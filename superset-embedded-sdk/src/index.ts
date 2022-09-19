@@ -17,10 +17,14 @@
  * under the License.
  */
 
-import { IFRAME_COMMS_MESSAGE_TYPE } from './const';
+import {
+  DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY,
+  IFRAME_COMMS_MESSAGE_TYPE
+} from './const';
 
 // We can swap this out for the actual switchboard package once it gets published
 import { Switchboard } from '@superset-ui/switchboard';
+import { getGuestTokenRefreshTiming } from './guestTokenRefresh';
 
 /**
  * The function to fetch a guest token from your Host App's backend server.
@@ -28,6 +32,17 @@ import { Switchboard } from '@superset-ui/switchboard';
  * which returns a guest token with appropriate resource access.
  */
 export type GuestTokenFetchFn = () => Promise<string>;
+
+export type UiConfigType = {
+  hideTitle?: boolean
+  hideTab?: boolean
+  hideChartControls?: boolean
+  filters?: {
+    [key: string]: boolean | undefined
+    visible?: boolean
+    expanded?: boolean
+  }
+}
 
 export type EmbedDashboardParams = {
   /** The id provided by the embed configuration UI in Superset */
@@ -38,6 +53,8 @@ export type EmbedDashboardParams = {
   mountPoint: HTMLElement
   /** A function to fetch a guest token from the Host App's backend server */
   fetchGuestToken: GuestTokenFetchFn
+  /** The dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded **/
+  dashboardUiConfig?: UiConfigType
   /** Are we in debug mode? */
   debug?: boolean
 }
@@ -59,6 +76,7 @@ export async function embedDashboard({
   supersetDomain,
   mountPoint,
   fetchGuestToken,
+  dashboardUiConfig,
   debug = false
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
@@ -69,17 +87,43 @@ export async function embedDashboard({
 
   log('embedding');
 
+  function calculateConfig() {
+    let configNumber = 0
+    if(dashboardUiConfig) {
+      if(dashboardUiConfig.hideTitle) {
+        configNumber += 1
+      }
+      if(dashboardUiConfig.hideTab) {
+        configNumber += 2
+      }
+      if(dashboardUiConfig.hideChartControls) {
+        configNumber += 8
+      }
+    }
+    return configNumber
+  }
+
   async function mountIframe(): Promise<Switchboard> {
     return new Promise(resolve => {
       const iframe = document.createElement('iframe');
+      const dashboardConfig = dashboardUiConfig ? `?uiConfig=${calculateConfig()}` : ""
+      const filterConfig = dashboardUiConfig?.filters || {}
+      const filterConfigKeys = Object.keys(filterConfig)
+      const filterConfigUrlParams = filterConfigKeys.length > 0
+        ? "&"
+        + filterConfigKeys
+          .map(key => DASHBOARD_UI_FILTER_CONFIG_URL_PARAM_KEY[key] + '=' + filterConfig[key]).join('&')
+        : ""
 
       // setup the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
       iframe.sandbox.add("allow-scripts"); // obviously the iframe needs scripts
       iframe.sandbox.add("allow-presentation"); // for fullscreen charts
+      iframe.sandbox.add("allow-downloads"); // for downloading charts as image
+      iframe.sandbox.add("allow-forms"); // for forms to submit
+      iframe.sandbox.add("allow-popups"); // for exporting charts as csv
       // add these ones if it turns out we need them:
       // iframe.sandbox.add("allow-top-navigation");
-      // iframe.sandbox.add("allow-forms");
 
       // add the event listener before setting src, to be 100% sure that we capture the load event
       iframe.addEventListener('load', () => {
@@ -103,7 +147,7 @@ export async function embedDashboard({
         resolve(new Switchboard({ port: ourPort, name: 'superset-embedded-sdk', debug }));
       });
 
-      iframe.src = `${supersetDomain}/dashboard/${id}/embedded`;
+      iframe.src = `${supersetDomain}/embedded/${id}${dashboardConfig}${filterConfigUrlParams}`;
       mountPoint.replaceChildren(iframe);
       log('placed the iframe')
     });
@@ -116,6 +160,14 @@ export async function embedDashboard({
 
   ourPort.emit('guestToken', { guestToken });
   log('sent guest token');
+
+  async function refreshGuestToken() {
+    const newGuestToken = await fetchGuestToken();
+    ourPort.emit('guestToken', { guestToken: newGuestToken });
+    setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(newGuestToken));
+  }
+
+  setTimeout(refreshGuestToken, getGuestTokenRefreshTiming(guestToken));
 
   function unmount() {
     log('unmounting');

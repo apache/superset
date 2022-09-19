@@ -15,5 +15,5 @@
 # limitations under the License.
 #
 -r base.in
+-e .[postgres]
 gevent
-psycopg2-binary

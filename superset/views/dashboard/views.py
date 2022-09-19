@@ -29,11 +29,10 @@ from flask_login import AnonymousUserMixin, LoginManager
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
     BaseSupersetView,
-    check_ownership,
     common_bootstrap_payload,
     DeleteMixin,
     generate_download_headers,
@@ -61,9 +60,6 @@ class DashboardModelView(
     @has_access
     @expose("/list/")
     def list(self) -> FlaskResponse:
-        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
-            return super().list()
-
         return super().render_app_template()
 
     @action("mulexport", __("Export"), __("Export dashboards?"), "fa-database")
@@ -100,12 +96,11 @@ class DashboardModelView(
             item.owners.append(g.user)
         utils.validate_json(item.json_metadata)
         utils.validate_json(item.position_json)
-        owners = list(item.owners)
         for slc in item.slices:
-            slc.owners = list(set(owners) | set(slc.owners))
+            slc.owners = list(set(item.owners) | set(slc.owners))
 
     def pre_update(self, item: "DashboardModelView") -> None:
-        check_ownership(item)
+        security_manager.raise_for_ownership(item)
         self.pre_add(item)
 
 
@@ -158,11 +153,13 @@ class Dashboard(BaseSupersetView):
         login_manager.reload_user(AnonymousUserMixin())
 
         add_extra_log_payload(
-            dashboard_id=dashboard_id_or_slug, dashboard_version="v2",
+            dashboard_id=dashboard_id_or_slug,
+            dashboard_version="v2",
         )
 
         bootstrap_data = {
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
+            "embedded": {"dashboard_id": dashboard_id_or_slug},
         }
 
         return self.render_template(

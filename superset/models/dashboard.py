@@ -23,7 +23,6 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Set, Tuple, Type, Union
 
 import sqlalchemy as sqla
-from flask import g
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -46,11 +45,10 @@ from sqlalchemy.orm.session import object_session
 from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
-from superset import app, ConnectorRegistry, db, is_feature_enabled, security_manager
-from superset.common.request_contexed_based import is_user_admin
+from superset import app, db, is_feature_enabled, security_manager
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.druid.models import DruidColumn, DruidMetric
-from superset.connectors.sqla.models import SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
@@ -59,6 +57,7 @@ from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
+from superset.utils.core import get_user_id
 from superset.utils.decorators import debounce
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.urls import get_url_path
@@ -146,12 +145,19 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     certification_details = Column(Text)
     json_metadata = Column(Text)
     slug = Column(String(255), unique=True)
-    slices = relationship(Slice, secondary=dashboard_slices, backref="dashboards")
+    slices: List[Slice] = relationship(
+        Slice, secondary=dashboard_slices, backref="dashboards"
+    )
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    embedded = relationship(
+        "EmbeddedDashboard",
+        back_populates="dashboard",
+        cascade="all, delete-orphan",
+    )
     _filter_sets = relationship(
         "FilterSet", back_populates="dashboard", cascade="all, delete"
     )
@@ -163,6 +169,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         "css",
         "slug",
     ]
+    extra_import_fields = ["is_managed_externally", "external_url"]
 
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
@@ -195,15 +202,14 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def filter_sets_lst(self) -> Dict[int, FilterSet]:
-        if is_user_admin():
+        if security_manager.is_admin():
             return self._filter_sets
-        current_user = g.user.id
         filter_sets_by_owner_type: Dict[str, List[Any]] = {"Dashboard": [], "User": []}
         for fs in self._filter_sets:
             filter_sets_by_owner_type[fs.owner_type].append(fs)
         user_filter_sets = list(
             filter(
-                lambda filter_set: filter_set.owner_id == current_user,
+                lambda filter_set: filter_set.owner_id == get_user_id(),
                 filter_sets_by_owner_type["User"],
             )
         )
@@ -213,7 +219,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         }
 
     @property
-    def charts(self) -> List[BaseDatasource]:
+    def charts(self) -> List[str]:
         return [slc.chart for slc in self.slices]
 
     @property
@@ -278,6 +284,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             "slices": [slc.data for slc in self.slices],
             "position_json": positions,
             "last_modified_time": self.changed_on.replace(microsecond=0).timestamp(),
+            "is_managed_externally": self.is_managed_externally,
         }
 
     @cache_manager.cache.memoize(
@@ -342,7 +349,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     @debounce(0.1)
     def clear_cache_for_datasource(cls, datasource_id: int) -> None:
         filter_query = select(
-            [dashboard_slices.c.dashboard_id], distinct=True,
+            [dashboard_slices.c.dashboard_id],
+            distinct=True,
         ).select_from(
             join(
                 dashboard_slices,
@@ -398,16 +406,18 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                     id_ = target.get("datasetId")
                     if id_ is None:
                         continue
-                    datasource = ConnectorRegistry.get_datasource_by_id(session, id_)
+                    datasource = DatasourceDAO.get_datasource(
+                        session, utils.DatasourceType.TABLE, id_
+                    )
                     datasource_ids.add((datasource.id, datasource.type))
 
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 
         eager_datasources = []
-        for datasource_id, datasource_type in datasource_ids:
-            eager_datasource = ConnectorRegistry.get_eager_datasource(
-                db.session, datasource_type, datasource_id
+        for datasource_id, _ in datasource_ids:
+            eager_datasource = SqlaTable.get_eager_sqlatable_datasource(
+                db.session, datasource_id
             )
             copied_datasource = eager_datasource.copy()
             copied_datasource.alter_params(
@@ -428,18 +438,15 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         )
 
     @classmethod
-    def get(cls, id_or_slug: str) -> Dashboard:
+    def get(cls, id_or_slug: Union[str, int]) -> Dashboard:
         session = db.session()
         qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
-    def is_actor_owner(self) -> bool:
-        if g.user is None or g.user.is_anonymous or not g.user.is_authenticated:
-            return False
-        return g.user.id in set(map(lambda user: user.id, self.owners))
 
-
-def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
+def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
+    if isinstance(id_or_slug, int):
+        return Dashboard.id == id_or_slug
     if id_or_slug.isdigit():
         return Dashboard.id == int(id_or_slug)
     return Dashboard.slug == id_or_slug
@@ -477,8 +484,6 @@ if is_feature_enabled("DASHBOARD_CACHE"):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.id)
         elif isinstance(obj, (SqlMetric, TableColumn)):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.table_id)
-        elif isinstance(obj, (DruidMetric, DruidColumn)):
-            Dashboard.clear_cache_for_datasource(datasource_id=obj.datasource_id)
 
     sqla.event.listen(Dashboard, "after_update", clear_dashboard_cache)
     sqla.event.listen(
@@ -493,5 +498,3 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     # trigger update events for BaseDatasource.
     sqla.event.listen(SqlMetric, "after_update", clear_dashboard_cache)
     sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)
-    sqla.event.listen(DruidMetric, "after_update", clear_dashboard_cache)
-    sqla.event.listen(DruidColumn, "after_update", clear_dashboard_cache)

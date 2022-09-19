@@ -63,7 +63,7 @@ superset-worker-75b48bbcc-qrq49         1/1     Running     0          4m12s
 
 The exact list will depend on some of your specific configuration overrides but you should generally expect:
 
-- N `superset-xxxx-yyyy` and `superset-worker-xxxx-yyyy` pods (depending on your `replicaCount` value)
+- N `superset-xxxx-yyyy` and `superset-worker-xxxx-yyyy` pods (depending on your `supersetNode.replicaCount` and `supersetWorker.replicaCount` values)
 - 1 `superset-postgresql-0` depending on your postgres settings
 - 1 `superset-redis-master-0` depending on your redis settings
 - 1 `superset-celerybeat-xxxx-yyyy` pod if you have `supersetCeleryBeat.enabled = true` in your values overrides
@@ -92,6 +92,35 @@ postgresql:
   postgresqlPassword: superset
 ```
 
+Make sure, you set a unique strong complex alphanumeric string for your SECRET_KEY and use a tool to help you generate
+a sufficiently random sequence.
+
+- To generate a good key you can run, `openssl rand -base64 42`
+
+```yaml
+configOverrides:
+  secret: |
+    SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+```
+
+If you want to change the previous secret key then you should rotate the keys.
+Default secret key for kubernetes deployment is `thisISaSECRET_1234`
+
+```yaml
+configOverrides:
+  my_override: |
+    PREVIOUS_SECRET_KEY = 'YOUR_PREVIOUS_SECRET_KEY'
+    SECRET_KEY = 'YOUR_OWN_RANDOM_GENERATED_SECRET_KEY'
+init:
+  command:
+    - /bin/sh
+    - -c
+    - |
+      . {{ .Values.configMountPath }}/superset_bootstrap.sh
+      superset re-encrypt-secrets
+      . {{ .Values.configMountPath }}/superset_init.sh
+```
+
 #### Dependencies
 
 Install additional packages and do any other bootstrap configuration in this script. For production clusters it's
@@ -101,7 +130,7 @@ database drivers so that you can connect to those datasources in your Superset i
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  pip install psycopg2==2.8.5 \
+  pip install psycopg2==2.9.1 \
     redis==3.2.1 \
     pybigquery==2.26.0 \
     elasticsearch-dbapi==0.2.5 &&\
@@ -210,7 +239,7 @@ configOverrides:
     # This will make sure the redirect_uri is properly computed, even with SSL offloading
     ENABLE_PROXY_FIX = True
 
-    from flask_appbuilder.security.manager import (AUTH_OAUTH, AUTH_DB)
+    from flask_appbuilder.security.manager import AUTH_OAUTH
     AUTH_TYPE = AUTH_OAUTH
     OAUTH_PROVIDERS = [
         {
@@ -315,12 +344,10 @@ configOverrides:
     from celery.schedules import crontab
 
     class CeleryConfig(object):
-      BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      CELERY_IMPORTS = ('superset.sql_lab', )
-      CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-      CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
-      CELERY_ANNOTATIONS = {
+      broker_url = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+      imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+      result_backend = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+      task_annotations = {
           'sql_lab.get_sql_results': {
               'rate_limit': '100/s',
           },
@@ -331,7 +358,7 @@ configOverrides:
               'ignore_result': True,
           },
       }
-      CELERYBEAT_SCHEDULE = {
+      beat_schedule = {
           'reports.scheduler': {
               'task': 'reports.scheduler',
               'schedule': crontab(minute='*', hour='*'),

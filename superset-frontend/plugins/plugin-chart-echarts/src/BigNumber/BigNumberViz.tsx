@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { MouseEvent } from 'react';
 import {
   t,
   getNumberFormatter,
@@ -26,10 +26,12 @@ import {
   computeMaxFontSize,
   BRAND_COLOR,
   styled,
+  QueryObjectFilterClause,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
 import Echart from '../components/Echart';
-import { TimeSeriesDatum } from './types';
+import { BigNumberWithTrendlineFormData, TimeSeriesDatum } from './types';
+import { EventHandlers } from '../types';
 
 const defaultNumberFormatter = getNumberFormatter();
 
@@ -62,6 +64,13 @@ type BigNumberVisProps = {
   trendLineData?: TimeSeriesDatum[];
   mainColor: string;
   echartOptions: EChartsCoreOption;
+  onContextMenu?: (
+    filters: QueryObjectFilterClause[],
+    clientX: number,
+    clientY: number,
+  ) => void;
+  xValueFormatter?: TimeFormatter;
+  formData?: BigNumberWithTrendlineFormData;
 };
 
 class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
@@ -152,12 +161,23 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width,
+      maxWidth: width - 8, // Decrease 8px for more precise font size
       maxHeight,
       className: 'header-line',
       container,
     });
     container.remove();
+
+    const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
+      if (this.props.onContextMenu) {
+        e.preventDefault();
+        this.props.onContextMenu(
+          [],
+          e.nativeEvent.clientX,
+          e.nativeEvent.clientY,
+        );
+      }
+    };
 
     return (
       <div
@@ -166,6 +186,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
           fontSize,
           height: maxHeight,
         }}
+        onContextMenu={onContextMenu}
       >
         {text}
       </div>
@@ -221,11 +242,37 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
       return null;
     }
 
+    const eventHandlers: EventHandlers = {
+      contextmenu: eventParams => {
+        if (this.props.onContextMenu) {
+          eventParams.event.stop();
+          const { data } = eventParams;
+          if (data) {
+            const pointerEvent = eventParams.event.event;
+            const filters: QueryObjectFilterClause[] = [];
+            filters.push({
+              col: this.props.formData?.granularitySqla,
+              grain: this.props.formData?.timeGrainSqla,
+              op: '==',
+              val: data[0],
+              formattedVal: this.props.xValueFormatter?.(data[0]),
+            });
+            this.props.onContextMenu(
+              filters,
+              pointerEvent.clientX,
+              pointerEvent.clientY,
+            );
+          }
+        }
+      },
+    };
+
     return (
       <Echart
         width={Math.floor(width)}
         height={maxHeight}
         echartOptions={echartOptions}
+        eventHandlers={eventHandlers}
       />
     );
   }
@@ -277,62 +324,57 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
 }
 
 export default styled(BigNumberVis)`
-  font-family: ${({ theme }) => theme.typography.families.sansSerif};
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-
-  &.no-trendline .subheader-line {
-    padding-bottom: 0.3em;
-  }
-
-  .text-container {
+  ${({ theme }) => `
+    font-family: ${theme.typography.families.sansSerif};
+    position: relative;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    .alert {
-      font-size: ${({ theme }) => theme.typography.sizes.s};
-      margin: -0.5em 0 0.4em;
-      line-height: 1;
-      padding: 2px 4px 3px;
-      border-radius: 3px;
+
+    &.no-trendline .subheader-line {
+      padding-bottom: 0.3em;
     }
-  }
 
-  .kicker {
-    font-weight: ${({ theme }) => theme.typography.weights.light};
-    line-height: 1em;
-    padding-bottom: 2em;
-  }
-
-  .header-line {
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    position: relative;
-    line-height: 1em;
-    span {
-      position: absolute;
-      bottom: 0;
+    .text-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+      .alert {
+        font-size: ${theme.typography.sizes.s};
+        margin: -0.5em 0 0.4em;
+        line-height: 1;
+        padding: ${theme.gridUnit}px;
+        border-radius: ${theme.gridUnit}px;
+      }
     }
-  }
 
-  .subheader-line {
-    font-weight: ${({ theme }) => theme.typography.weights.light};
-    line-height: 1em;
-    padding-bottom: 0;
-  }
+    .kicker {
+      line-height: 1em;
+      padding-bottom: 2em;
+    }
 
-  &.is-fallback-value {
-    .kicker,
-    .header-line,
+    .header-line {
+      position: relative;
+      line-height: 1em;
+      span {
+        position: absolute;
+        bottom: 0;
+      }
+    }
+
     .subheader-line {
-      opacity: 0.5;
+      line-height: 1em;
+      padding-bottom: 0;
     }
-  }
 
-  .superset-data-ui-tooltip {
-    z-index: 1000;
-    background: #000;
-  }
+    &.is-fallback-value {
+      .kicker,
+      .header-line,
+      .subheader-line {
+        opacity: ${theme.opacity.mediumHeavy};
+      }
+    }
+  `}
 `;

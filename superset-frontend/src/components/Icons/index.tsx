@@ -27,6 +27,9 @@ const IconFileNames = [
   'alert',
   'alert_solid',
   'alert_solid_small',
+  'area-chart-tile',
+  'bar-chart-tile',
+  'big-number-chart-tile',
   'binoculars',
   'bolt',
   'bolt_small',
@@ -56,6 +59,7 @@ const IconFileNames = [
   'cog',
   'collapse',
   'color_palette',
+  'current-rendered-tile',
   'components',
   'copy',
   'cursor_target',
@@ -101,6 +105,7 @@ const IconFileNames = [
   'keyboard',
   'layers',
   'lightbulb',
+  'line-chart-tile',
   'link',
   'list',
   'list_view',
@@ -123,6 +128,7 @@ const IconFileNames = [
   'note',
   'offline',
   'paperclip',
+  'pie-chart-tile',
   'placeholder',
   'plus',
   'plus_large',
@@ -141,6 +147,7 @@ const IconFileNames = [
   'sort_desc',
   'sort',
   'table',
+  'table-chart-tile',
   'tag',
   'trash',
   'triangle_change',
@@ -155,9 +162,11 @@ const IconFileNames = [
   'tags',
   'ballot',
   'category',
+  'undo',
+  'redo',
 ];
 
-const iconOverrides: Record<string, React.FC> = {};
+const iconOverrides: Record<string, React.FC<IconType>> = {};
 IconFileNames.forEach(fileName => {
   const keyName = _.startCase(fileName).replace(/ /g, '');
   iconOverrides[keyName] = (props: IconType) => (

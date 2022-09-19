@@ -26,8 +26,6 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 
-import './SankeyLoop.css';
-
 // a problem with 'd3-sankey-diagram'  is that the sankey().extent() paramters, which
 // informs the layout of the bounding box of the sankey columns, does not account
 // for labels and paths which happen to be layedout outside that rectangle.
@@ -84,7 +82,7 @@ function computeGraph(links) {
 }
 
 function SankeyLoop(element, props) {
-  const { data, width, height, colorScheme } = props;
+  const { data, width, height, colorScheme, sliceId } = props;
   const color = CategoricalColorNamespace.getScale(colorScheme);
   const margin = { ...defaultMargin, ...props.margin };
   const innerWidth = width - margin.left - margin.right;
@@ -109,7 +107,7 @@ function SankeyLoop(element, props) {
           value / sValue,
         )})`,
     )
-    .linkColor(d => color(d.source.name));
+    .linkColor(d => color(d.source.name, sliceId));
 
   const div = select(element);
   div.selectAll('*').remove();

@@ -20,9 +20,20 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 import { max as d3Max } from 'd3-array';
-import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
+import {
+  AsyncCreatableSelect,
+  CreatableSelect,
+} from 'src/components/DeprecatedSelect';
 import Button from 'src/components/Button';
-import { t, SupersetClient, ensureIsArray } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  SupersetClient,
+  ensureIsArray,
+  withTheme,
+} from '@superset-ui/core';
+import { Global } from '@emotion/react';
 
 import {
   BOOL_FALSE_DISPLAY,
@@ -35,15 +46,13 @@ import ControlRow from 'src/explore/components/ControlRow';
 import Control from 'src/explore/components/Control';
 import { controls } from 'src/explore/controls';
 import { getExploreUrl } from 'src/explore/exploreUtils';
-import OnPasteSelect from 'src/components/Select/OnPasteSelect';
+import OnPasteSelect from 'src/components/DeprecatedSelect/OnPasteSelect';
 import {
   FILTER_CONFIG_ATTRIBUTES,
   FILTER_OPTIONS_LIMIT,
   TIME_FILTER_LABELS,
   TIME_FILTER_MAP,
 } from 'src/explore/constants';
-
-import './FilterBox.less';
 
 // a shortcut to a map key, used by many components
 export const TIME_RANGE = TIME_FILTER_MAP.time_range;
@@ -75,8 +84,6 @@ const propTypes = {
   showDateFilter: PropTypes.bool,
   showSqlaTimeGrain: PropTypes.bool,
   showSqlaTimeColumn: PropTypes.bool,
-  showDruidTimeGrain: PropTypes.bool,
-  showDruidTimeOrigin: PropTypes.bool,
 };
 const defaultProps = {
   origSelectedValues: {},
@@ -86,10 +93,34 @@ const defaultProps = {
   showDateFilter: false,
   showSqlaTimeGrain: false,
   showSqlaTimeColumn: false,
-  showDruidTimeGrain: false,
-  showDruidTimeOrigin: false,
   instantFiltering: false,
 };
+
+const StyledFilterContainer = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    flex-direction: column;
+    margin-bottom: ${theme.gridUnit * 2 + 2}px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: flex;
+      font-weight: ${theme.typography.weights.bold};
+    }
+
+    .filter-badge-container {
+      width: 30px;
+      padding-right: ${theme.gridUnit * 2 + 2}px;
+    }
+
+    .filter-badge-container + div {
+      width: 100%;
+    }
+  `}
+`;
 
 class FilterBox extends React.PureComponent {
   constructor(props) {
@@ -287,19 +318,12 @@ class FilterBox extends React.PureComponent {
   }
 
   renderDatasourceFilters() {
-    const {
-      showSqlaTimeGrain,
-      showSqlaTimeColumn,
-      showDruidTimeGrain,
-      showDruidTimeOrigin,
-    } = this.props;
+    const { showSqlaTimeGrain, showSqlaTimeColumn } = this.props;
     const datasourceFilters = [];
     const sqlaFilters = [];
     const druidFilters = [];
     if (showSqlaTimeGrain) sqlaFilters.push('time_grain_sqla');
     if (showSqlaTimeColumn) sqlaFilters.push('granularity_sqla');
-    if (showDruidTimeGrain) druidFilters.push('granularity');
-    if (showDruidTimeOrigin) druidFilters.push('druid_time_origin');
     if (sqlaFilters.length) {
       datasourceFilters.push(
         <ControlRow
@@ -409,32 +433,51 @@ class FilterBox extends React.PureComponent {
     return filtersFields.map(filterConfig => {
       const { label, key } = filterConfig;
       return (
-        <div key={key} className="m-b-5 filter-container">
+        <StyledFilterContainer key={key} className="filter-container">
           <FormLabel htmlFor={`LABEL-${key}`}>{label}</FormLabel>
           {this.renderSelect(filterConfig)}
-        </div>
+        </StyledFilterContainer>
       );
     });
   }
 
   render() {
     const { instantFiltering, width, height } = this.props;
+    const { zIndex, gridUnit } = this.props.theme;
     return (
-      <div style={{ width, height, overflow: 'auto' }}>
-        {this.renderDateFilter()}
-        {this.renderDatasourceFilters()}
-        {this.renderFilters()}
-        {!instantFiltering && (
-          <Button
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={this.clickApply.bind(this)}
-            disabled={!this.state.hasChanged}
-          >
-            {t('Apply')}
-          </Button>
-        )}
-      </div>
+      <>
+        <Global
+          styles={css`
+            .dashboard .filter_box .slice_container > div:not(.alert) {
+              padding-top: 0;
+            }
+
+            .filter_box {
+              padding: ${gridUnit * 2 + 2}px 0;
+              overflow: visible !important;
+
+              &:hover {
+                z-index: ${zIndex.max};
+              }
+            }
+          `}
+        />
+        <div style={{ width, height, overflow: 'auto' }}>
+          {this.renderDateFilter()}
+          {this.renderDatasourceFilters()}
+          {this.renderFilters()}
+          {!instantFiltering && (
+            <Button
+              buttonSize="small"
+              buttonStyle="primary"
+              onClick={this.clickApply.bind(this)}
+              disabled={!this.state.hasChanged}
+            >
+              {t('Apply')}
+            </Button>
+          )}
+        </div>
+      </>
     );
   }
 }
@@ -442,4 +485,4 @@ class FilterBox extends React.PureComponent {
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
-export default FilterBox;
+export default withTheme(FilterBox);

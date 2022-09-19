@@ -24,7 +24,7 @@ import {
   FilterSet,
   HandlerFunction,
   styled,
-  supersetTheme,
+  useTheme,
   t,
 } from '@superset-ui/core';
 import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
@@ -76,6 +76,8 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
   isApplied,
   onRebuild,
 }) => {
+  const theme = useTheme();
+
   const menu = (
     <Menu>
       <Menu.Item onClick={onEdit}>{t('Edit')}</Menu.Item>
@@ -105,9 +107,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
         </Typography.Text>
         <IconsBlock>
           {isApplied && (
-            <CheckOutlined
-              style={{ color: supersetTheme.colors.success.base }}
-            />
+            <CheckOutlined style={{ color: theme.colors.success.base }} />
           )}
           {onDelete && (
             <AntdDropdown

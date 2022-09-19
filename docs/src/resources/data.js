@@ -19,7 +19,7 @@
 
 export const Databases = [
   {
-    title: 'Amazon Redshfit',
+    title: 'Amazon Redshift',
     href: 'https://aws.amazon.com/redshift/',
     imgName: 'aws-redshift.png',
   },
@@ -47,6 +47,11 @@ export const Databases = [
     title: 'Dremio',
     href: 'https://dremio.com/',
     imgName: 'dremio.png',
+  },
+  {
+    title: 'Databricks',
+    href: 'https://www.databricks.com',
+    imgName: 'databricks.png',
   },
   {
     title: 'Exasol',
@@ -106,7 +111,7 @@ export const Databases = [
   {
     title: 'SQLite',
     href: 'https://www.sqlite.org/index.html',
-    imgName: 'sqllite.png',
+    imgName: 'sqlite.png',
   },
   {
     title: 'Trino',
@@ -139,7 +144,12 @@ export const Databases = [
     imgName: 'teradata.png'
   },
   {
-    title: 'Yugabyte',
+    title: 'TimescaleDB',
+    href: "www.timescale.com",
+    imgName: 'timescale.png'
+  },
+  {
+    title: 'YugabyteDB',
     href: "www.yugabyte.com",
     imgName: 'yugabyte.png'
   }

@@ -25,6 +25,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   sections,
   emitFilterControl,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
@@ -62,7 +63,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
-        [<h1 className="section-header">{t('Labels')}</h1>],
+        [<div className="section-header">{t('Labels')}</div>],
         [
           {
             name: 'show_labels',
@@ -137,6 +138,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;

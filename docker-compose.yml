@@ -40,7 +40,7 @@ services:
 
   db:
     env_file: docker/.env
-    image: postgres:10
+    image: postgres:14
     container_name: superset_db
     restart: unless-stopped
     ports:
@@ -118,7 +118,7 @@ services:
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
-    # Bump memory limit if processing selenium / thumbails on superset-worker
+    # Bump memory limit if processing selenium / thumbnails on superset-worker
     # mem_limit: 2038m
     # mem_reservation: 128M
 

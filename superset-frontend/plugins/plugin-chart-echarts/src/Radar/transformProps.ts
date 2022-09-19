@@ -18,7 +18,6 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecordValue,
   ensureIsInt,
   getColumnLabel,
   getMetricLabel,
@@ -36,7 +35,7 @@ import {
   EchartsRadarLabelType,
   RadarChartTransformedProps,
 } from './types';
-import { DEFAULT_LEGEND_FORM_DATA } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import {
   extractGroupbyLabel,
   getChartPadding,
@@ -44,7 +43,6 @@ import {
   getLegendProps,
 } from '../utils/series';
 import { defaultGrid, defaultTooltip } from '../defaults';
-import { OpacityEnum } from '../constants';
 
 export function formatLabel({
   params,
@@ -71,8 +69,16 @@ export function formatLabel({
 export default function transformProps(
   chartProps: EchartsRadarChartProps,
 ): RadarChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width } =
-    chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    filterState,
+    queriesData,
+    width,
+    theme,
+    inContextMenu,
+  } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
@@ -91,12 +97,14 @@ export default function transformProps(
     showLegend,
     isCircle,
     columnConfig,
+    sliceId,
+    emitFilter,
   }: EchartsRadarFormData = {
     ...DEFAULT_LEGEND_FORM_DATA,
     ...DEFAULT_RADAR_FORM_DATA,
     ...formData,
   };
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -111,7 +119,7 @@ export default function transformProps(
   const groupbyLabels = groupby.map(getColumnLabel);
 
   const metricLabelAndMaxValueMap = new Map<string, number>();
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+  const columnsLabelMap = new Map<string, string[]>();
   const transformedData: RadarSeriesDataItemOption[] = [];
   data.forEach(datum => {
     const joinedName = extractGroupbyLabel({
@@ -123,7 +131,7 @@ export default function transformProps(
     // map(joined_name: [columnLabel_1, columnLabel_2, ...])
     columnsLabelMap.set(
       joinedName,
-      groupbyLabels.map(col => datum[col]),
+      groupbyLabels.map(col => datum[col] as string),
     );
 
     // put max value of series into metricLabelAndMaxValueMap
@@ -154,7 +162,7 @@ export default function transformProps(
       value: metricLabels.map(metricLabel => datum[metricLabel]),
       name: joinedName,
       itemStyle: {
-        color: colorFn(joinedName),
+        color: colorFn(joinedName, sliceId),
         opacity: isFiltered
           ? OpacityEnum.Transparent
           : OpacityEnum.NonTransparent,
@@ -209,7 +217,7 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: 'white',
+          backgroundColor: theme.colors.grayscale.light5,
         },
       },
       data: transformedData,
@@ -222,6 +230,7 @@ export default function transformProps(
     },
     tooltip: {
       ...defaultTooltip,
+      show: !inContextMenu,
       trigger: 'item',
     },
     legend: {
@@ -240,9 +249,11 @@ export default function transformProps(
     width,
     height,
     echartOptions,
+    emitFilter,
     setDataMask,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues,
+    onContextMenu,
   };
 }

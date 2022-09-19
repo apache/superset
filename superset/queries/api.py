@@ -22,7 +22,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
 from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
-from superset.queries.schemas import openapi_spec_methods_override
+from superset.queries.schemas import openapi_spec_methods_override, QuerySchema
 from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
 from superset.views.filters import FilterRelatedOwners
 
@@ -94,6 +94,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     ]
     base_filters = [["id", QueryFilter, lambda: []]]
     base_order = ("changed_on", "desc")
+    list_model_schema = QuerySchema()
 
     openapi_spec_tag = "Queries"
     openapi_spec_methods = openapi_spec_methods_override

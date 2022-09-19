@@ -46,7 +46,7 @@ function getCategories(fd, data) {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color), c.a * 255);
+        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
       } else {
         color = fixedColor;
       }
@@ -212,7 +212,7 @@ export default class CategoricalDeckGLContainer extends React.PureComponent {
     return data.map(d => {
       let color;
       if (fd.dimension) {
-        color = hexToRGB(colorFn(d.cat_color), c.a * 255);
+        color = hexToRGB(colorFn(d.cat_color, fd.sliceId), c.a * 255);
 
         return { ...d, color };
       }

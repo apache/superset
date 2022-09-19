@@ -20,6 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -98,7 +99,7 @@ const controlPanel: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...legendSection,
-        [<h1 className="section-header">{t('Layout')}</h1>],
+        [<div className="section-header">{t('Layout')}</div>],
         [
           {
             name: 'layout',
@@ -320,6 +321,10 @@ const controlPanel: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().popAllMetrics(),
+  }),
 };
 
 export default controlPanel;

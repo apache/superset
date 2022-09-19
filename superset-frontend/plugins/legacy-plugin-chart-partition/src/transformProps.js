@@ -30,6 +30,7 @@ export default function transformProps(chartProps) {
     partitionThreshold,
     richTooltip,
     timeSeriesOption,
+    sliceId,
   } = formData;
   const { verboseMap } = datasource;
 
@@ -48,5 +49,6 @@ export default function transformProps(chartProps) {
     timeSeriesOption,
     useLogScale: logScale,
     useRichTooltip: richTooltip,
+    sliceId,
   };
 }

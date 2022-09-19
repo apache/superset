@@ -21,7 +21,7 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { Select, Row, Col, AntdForm } from 'src/components';
+import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import rison from 'rison';
 import {
   styled,
@@ -29,6 +29,7 @@ import {
   SupersetClient,
   getCategoricalSchemeRegistry,
   ensureIsArray,
+  getSharedLabelColor,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -58,6 +59,7 @@ type PropertiesModalProps = {
   setColorSchemeAndUnsavedChanges?: () => void;
   onSubmit?: (params: Record<string, any>) => void;
   addSuccessToast: (message: string) => void;
+  addDangerToast: (message: string) => void;
   onlyApply?: boolean;
 };
 
@@ -74,10 +76,12 @@ type DashboardInfo = {
   slug: string;
   certifiedBy: string;
   certificationDetails: string;
+  isManagedExternally: boolean;
 };
 
 const PropertiesModal = ({
   addSuccessToast,
+  addDangerToast,
   colorScheme: currentColorScheme,
   dashboardId,
   dashboardInfo: currentDashboardInfo,
@@ -96,6 +100,7 @@ const PropertiesModal = ({
   const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
+  const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -127,12 +132,12 @@ const PropertiesModal = ({
       return SupersetClient.get({
         endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
       }).then(response => ({
-        data: response.json.result.map(
-          (item: { value: number; text: string }) => ({
+        data: response.json.result
+          .filter((item: { extra: { active: boolean } }) => item.extra.active)
+          .map((item: { value: number; text: string }) => ({
             value: item.value,
             label: item.text,
-          }),
-        ),
+          })),
         totalCount: response.json.count,
       }));
     },
@@ -150,6 +155,7 @@ const PropertiesModal = ({
         owners,
         roles,
         metadata,
+        is_managed_externally,
       } = dashboardData;
       const dashboardInfo = {
         id,
@@ -157,6 +163,7 @@ const PropertiesModal = ({
         slug: slug || '',
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
+        isManagedExternally: is_managed_externally || false,
       };
 
       form.setFieldsValue(dashboardInfo);
@@ -169,7 +176,15 @@ const PropertiesModal = ({
       if (metadata?.positions) {
         delete metadata.positions;
       }
-      setJsonMetadata(metadata ? jsonStringify(metadata) : '');
+      const metaDataCopy = { ...metadata };
+
+      if (metaDataCopy?.shared_label_colors) {
+        delete metaDataCopy.shared_label_colors;
+      }
+
+      delete metaDataCopy.color_scheme_domain;
+
+      setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
     },
     [form],
   );
@@ -254,7 +269,7 @@ const PropertiesModal = ({
     { updateMetadata = true } = {},
   ) => {
     // check that color_scheme is valid
-    const colorChoices = getCategoricalSchemeRegistry().keys();
+    const colorChoices = categoricalSchemeRegistry.keys();
     const jsonMetadataObj = getJsonMetadata();
 
     // only fire if the color_scheme is present and invalid
@@ -282,12 +297,43 @@ const PropertiesModal = ({
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
     let colorNamespace = '';
+    let currentJsonMetadata = jsonMetadata;
 
     // color scheme in json metadata has precedence over selection
-    if (jsonMetadata?.length) {
-      const metadata = JSON.parse(jsonMetadata);
+    if (currentJsonMetadata?.length) {
+      let metadata;
+      try {
+        metadata = JSON.parse(currentJsonMetadata);
+      } catch (error) {
+        addDangerToast(t('JSON metadata is invalid!'));
+      }
       currentColorScheme = metadata?.color_scheme || colorScheme;
       colorNamespace = metadata?.color_namespace || '';
+
+      // filter shared_label_color from user input
+      if (metadata?.shared_label_colors) {
+        delete metadata.shared_label_colors;
+      }
+      if (metadata?.color_scheme_domain) {
+        delete metadata.color_scheme_domain;
+      }
+
+      const colorMap = getSharedLabelColor().getColorMap(
+        colorNamespace,
+        currentColorScheme,
+        true,
+      );
+
+      metadata.shared_label_colors = colorMap;
+
+      if (metadata?.color_scheme) {
+        metadata.color_scheme_domain =
+          categoricalSchemeRegistry.get(colorScheme)?.colors || [];
+      } else {
+        metadata.color_scheme_domain = [];
+      }
+
+      currentJsonMetadata = jsonStringify(metadata);
     }
 
     onColorSchemeChange(currentColorScheme, {
@@ -304,7 +350,7 @@ const PropertiesModal = ({
       id: dashboardId,
       title,
       slug,
-      jsonMetadata,
+      jsonMetadata: currentJsonMetadata,
       owners,
       colorScheme: currentColorScheme,
       colorNamespace,
@@ -323,7 +369,7 @@ const PropertiesModal = ({
         body: JSON.stringify({
           dashboard_title: title,
           slug: slug || null,
-          json_metadata: jsonMetadata || null,
+          json_metadata: currentJsonMetadata || null,
           owners: (owners || []).map(o => o.id),
           certified_by: certifiedBy || null,
           certification_details:
@@ -349,7 +395,7 @@ const PropertiesModal = ({
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
           <StyledFormItem label={t('Owners')}>
-            <Select
+            <AsyncSelect
               allowClear
               ariaLabel={t('Owners')}
               disabled={isLoading}
@@ -396,7 +442,7 @@ const PropertiesModal = ({
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('Owners')}>
-              <Select
+              <AsyncSelect
                 allowClear
                 ariaLabel={t('Owners')}
                 disabled={isLoading}
@@ -416,7 +462,7 @@ const PropertiesModal = ({
           </Col>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('Roles')}>
-              <Select
+              <AsyncSelect
                 allowClear
                 ariaLabel={t('Roles')}
                 disabled={isLoading}
@@ -492,11 +538,20 @@ const PropertiesModal = ({
             {t('Cancel')}
           </Button>
           <Button
+            data-test="properties-modal-apply-button"
             onClick={form.submit}
             buttonSize="small"
             buttonStyle="primary"
             className="m-r-5"
             cta
+            disabled={dashboardInfo?.isManagedExternally}
+            tooltip={
+              dashboardInfo?.isManagedExternally
+                ? t(
+                    "This dashboard is managed externally, and can't be edited in Superset",
+                  )
+                : ''
+            }
           >
             {saveLabel}
           </Button>

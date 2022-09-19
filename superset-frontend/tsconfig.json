@@ -29,7 +29,8 @@
     "types": [
       "@emotion/react/types/css-prop",
       "jest",
-      "@testing-library/jest-dom"
+      "@testing-library/jest-dom",
+      "@types/node"
     ],
 
     /* Emit */
@@ -62,12 +63,17 @@
     /* Completeness */
     "skipLibCheck": true
   },
+  "exclude": [
+    "./packages/generator-superset/test/**/*"
+  ],
   "include": [
     "./src/**/*",
     "./spec/**/*",
     "./packages/*/src/**/*",
     "./packages/*/types/**/*",
     "./plugins/*/src/**/*",
-    "./plugins/*/types/**/*"
+    "./plugins/*/types/**/*",
+    "./packages/*/test/**/*",
+    "./plugins/*/test/**/*"
   ]
 }

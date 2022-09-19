@@ -24,6 +24,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,30 @@ logger = logging.getLogger(__name__)
 class DatabaseDAO(BaseDAO):
     model_cls = Database
     base_filter = DatabaseFilter
+
+    @classmethod
+    def update(
+        cls,
+        model: Database,
+        properties: Dict[str, Any],
+        commit: bool = True,
+    ) -> Database:
+        """
+        Unmask ``encrypted_extra`` before updating.
+
+        When a database is edited the user sees a masked version of ``encrypted_extra``,
+        depending on the engine spec. Eg, BigQuery will mask the ``private_key`` attribute
+        of the credentials.
+
+        The masked values should be unmasked before the database is updated.
+        """
+        if "encrypted_extra" in properties:
+            properties["encrypted_extra"] = model.db_engine_spec.unmask_encrypted_extra(
+                model.encrypted_extra,
+                properties["encrypted_extra"],
+            )
+
+        return super().update(model, properties, commit)
 
     @staticmethod
     def validate_uniqueness(database_name: str) -> bool:
@@ -42,7 +67,8 @@ class DatabaseDAO(BaseDAO):
     @staticmethod
     def validate_update_uniqueness(database_id: int, database_name: str) -> bool:
         database_query = db.session.query(Database).filter(
-            Database.database_name == database_name, Database.id != database_id,
+            Database.database_name == database_name,
+            Database.id != database_id,
         )
         return not db.session.query(database_query.exists()).scalar()
 
@@ -67,13 +93,15 @@ class DatabaseDAO(BaseDAO):
 
     @classmethod
     def get_related_objects(cls, database_id: int) -> Dict[str, Any]:
-        datasets = cls.find_by_id(database_id).tables
+        database: Any = cls.find_by_id(database_id)
+        datasets = database.tables
         dataset_ids = [dataset.id for dataset in datasets]
 
         charts = (
             db.session.query(Slice)
             .filter(
-                Slice.datasource_id.in_(dataset_ids), Slice.datasource_type == "table"
+                Slice.datasource_id.in_(dataset_ids),
+                Slice.datasource_type == DatasourceType.TABLE,
             )
             .all()
         )

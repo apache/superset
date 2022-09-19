@@ -19,7 +19,6 @@ from datetime import datetime
 from unittest import mock
 
 import pytest
-from flask.ctx import AppContext
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.fixtures.common import dttm
@@ -33,15 +32,13 @@ from tests.unit_tests.fixtures.common import dttm
         ("TIMESTAMP", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
     ],
 )
-def test_convert_dttm(
-    app_context: AppContext, actual: str, expected: str, dttm: datetime
-) -> None:
+def test_convert_dttm(actual: str, expected: str, dttm: datetime) -> None:
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
     assert SnowflakeEngineSpec.convert_dttm(actual, dttm) == expected
 
 
-def test_database_connection_test_mutator(app_context: AppContext) -> None:
+def test_database_connection_test_mutator() -> None:
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
     from superset.models.core import Database
 
@@ -54,7 +51,7 @@ def test_database_connection_test_mutator(app_context: AppContext) -> None:
     } == engine_params
 
 
-def test_extract_errors(app_context: AppContext) -> None:
+def test_extract_errors() -> None:
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
     msg = "Object dumbBrick does not exist or not authorized."

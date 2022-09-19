@@ -41,6 +41,7 @@ const store = mockStore({});
 const datasetsInfoEndpoint = 'glob:*/api/v1/dataset/_info*';
 const datasetsOwnersEndpoint = 'glob:*/api/v1/dataset/related/owners*';
 const datasetsSchemaEndpoint = 'glob:*/api/v1/dataset/distinct/schema*';
+const datasetsDuplicateEndpoint = 'glob:*/api/v1/dataset/duplicate*';
 const databaseEndpoint = 'glob:*/api/v1/dataset/related/database*';
 const datasetsEndpoint = 'glob:*/api/v1/dataset/?*';
 
@@ -51,10 +52,11 @@ const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,
-  explore_url: `/explore/table/${i}`,
+  explore_url: `/explore/?dataset_type=table&dataset_id=${i}`,
   id: i,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,
+  owners: [{ username: 'admin', userId: 1 }],
 }));
 
 const mockUser = {
@@ -62,12 +64,15 @@ const mockUser = {
 };
 
 fetchMock.get(datasetsInfoEndpoint, {
-  permissions: ['can_read', 'can_write'],
+  permissions: ['can_read', 'can_write', 'can_duplicate'],
 });
 fetchMock.get(datasetsOwnersEndpoint, {
   result: [],
 });
 fetchMock.get(datasetsSchemaEndpoint, {
+  result: [],
+});
+fetchMock.post(datasetsDuplicateEndpoint, {
   result: [],
 });
 fetchMock.get(datasetsEndpoint, {
@@ -148,7 +153,7 @@ describe('DatasetList', () => {
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"0 Selected"`);
 
-    // Vitual Selected
+    // Virtual Selected
     act(() => {
       wrapper.find(IndeterminateCheckbox).at(1).props().onChange(checkedEvent);
     });
@@ -180,7 +185,51 @@ describe('DatasetList', () => {
       wrapper.find('[data-test="bulk-select-copy"]').text(),
     ).toMatchInlineSnapshot(`"3 Selected (2 Physical, 1 Virtual)"`);
   });
+
+  it('shows duplicate modal when duplicate action is clicked', async () => {
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="duplicate-modal-input"]').exists(),
+    ).toBeFalsy();
+    act(() => {
+      wrapper
+        .find('#duplicate-action-tooltop')
+        .at(0)
+        .find('.action-button')
+        .props()
+        .onClick();
+    });
+    await waitForComponentToPaint(wrapper);
+    expect(
+      wrapper.find('[data-test="duplicate-modal-input"]').exists(),
+    ).toBeTruthy();
+  });
+
+  it('calls the duplicate endpoint', async () => {
+    await waitForComponentToPaint(wrapper);
+    await act(async () => {
+      wrapper
+        .find('#duplicate-action-tooltop')
+        .at(0)
+        .find('.action-button')
+        .props()
+        .onClick();
+      await waitForComponentToPaint(wrapper);
+      wrapper
+        .find('[data-test="duplicate-modal-input"]')
+        .at(0)
+        .props()
+        .onPressEnter();
+    });
+    expect(fetchMock.calls(/dataset\/duplicate/)).toHaveLength(1);
+  });
 });
+
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useLocation: () => ({}),
+  useHistory: () => ({}),
+}));
 
 describe('RTL', () => {
   async function renderAndWait() {
@@ -190,7 +239,7 @@ describe('RTL', () => {
         <QueryParamProvider>
           <DatasetList {...mockedProps} user={mockUser} />
         </QueryParamProvider>,
-        { useRedux: true },
+        { useRedux: true, useRouter: true },
       );
     });
 

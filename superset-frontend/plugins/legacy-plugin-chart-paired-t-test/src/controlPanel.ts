@@ -37,18 +37,8 @@ const config: ControlPanelConfig = {
           },
         ],
         ['limit', 'timeseries_limit_metric'],
+        ['order_desc'],
         [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
           {
             name: 'contribution',
             config: {

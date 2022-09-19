@@ -79,7 +79,7 @@ describe('ChartTable', () => {
 
   it('fetches chart favorites and renders chart cards', async () => {
     act(() => {
-      const handler = wrapper.find('li.no-router a').at(0).prop('onClick');
+      const handler = wrapper.find('[role="tab"] a').at(0).prop('onClick');
       if (handler) {
         handler({} as any);
       }

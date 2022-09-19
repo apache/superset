@@ -18,57 +18,27 @@
  */
 
 import React from 'react';
-import { Slice } from 'src/types/Chart';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
-const createProps = () => ({
-  slice: {
-    cache_timeout: null,
-    certified_by: 'John Doe',
-    certification_details: 'Sample certification',
-    changed_on: '2021-03-19T16:30:56.750230',
-    changed_on_humanized: '7 days ago',
-    datasource: 'FCC 2018 Survey',
-    description: null,
-    description_markeddown: '',
-    edit_url: '/chart/edit/318',
-    form_data: {
-      adhoc_filters: [],
-      all_columns_x: ['age'],
-      color_scheme: 'supersetColors',
-      datasource: '49__table',
-      granularity_sqla: 'time_start',
-      groupby: null,
-      label_colors: {},
-      link_length: '25',
-      queryFields: { groupby: 'groupby' },
-      row_limit: 10000,
+const createProps = () =>
+  ({
+    slice: {
+      cache_timeout: null,
+      certified_by: 'John Doe',
+      certification_details: 'Sample certification',
+      description: null,
       slice_id: 318,
-      time_range: 'No filter',
-      url_params: {},
-      viz_type: 'histogram',
-      x_axis_label: 'age',
-      y_axis_label: 'count',
+      slice_name: 'Age distribution of respondents',
+      is_managed_externally: false,
     },
-    modified: '<span class="no-wrap">7 days ago</span>',
-    owners: [
-      {
-        text: 'Superset Admin',
-        value: 1,
-      },
-    ],
-    slice_id: 318,
-    slice_name: 'Age distribution of respondents',
-    slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20318%7D',
-  } as unknown as Slice,
-  show: true,
-  onHide: jest.fn(),
-  onSave: jest.fn(),
-  addSuccessToast: jest.fn(),
-});
+    show: true,
+    onHide: jest.fn(),
+    onSave: jest.fn(),
+    addSuccessToast: jest.fn(),
+  } as PropertiesModalProps);
 
 fetchMock.get('glob:*/api/v1/chart/318', {
   body: {
@@ -299,6 +269,9 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
   };
   renderModal(noCertifiedByProps);
 
+  expect(
+    await screen.findByRole('textbox', { name: 'Certification details' }),
+  ).toBeInTheDocument();
   expect(
     screen.getByRole('textbox', { name: 'Certification details' }),
   ).toHaveValue('');

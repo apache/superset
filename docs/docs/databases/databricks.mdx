@@ -7,15 +7,11 @@ version: 1
 
 ## Databricks
 
-To connect to Databricks, first install [databricks-dbapi](https://pypi.org/project/databricks-dbapi/) with the optional SQLAlchemy dependencies:
+Databricks now offer a native DB API 2.0 driver, `databricks-sql-connector`, that can be used with the `sqlalchemy-databricks` dialect. You can install both with:
 
 ```bash
-pip install databricks-dbapi[sqlalchemy]
+pip install "superset[databricks]"
 ```
-
-There are two ways to connect to Databricks: using a Hive connector or an ODBC connector. Both ways work similarly, but only ODBC can be used to connect to [SQL endpoints](https://docs.databricks.com/sql/admin/sql-endpoints.html).
-
-### Hive
 
 To use the Hive connector you need the following information from your cluster:
 
@@ -27,15 +23,41 @@ These can be found under "Configuration" -> "Advanced Options" -> "JDBC/ODBC".
 
 You also need an access token from "Settings" -> "User Settings" -> "Access Tokens".
 
-Once you have all this information, add a database of type "Databricks (Hive)" in Superset, and use the following SQLAlchemy URI:
+Once you have all this information, add a database of type "Databricks Native Connector" and use the following SQLAlchemy URI:
 
 ```
-databricks+pyhive://token:{access token}@{server hostname}:{port}/{database name}
+databricks+connector://token:{access_token}@{server_hostname}:{port}/{database_name}
 ```
 
 You also need to add the following configuration to "Other" -> "Engine Parameters", with your HTTP path:
 
+```json
+{
+    "connect_args": {"http_path": "sql/protocolv1/o/****"}
+}
 ```
+
+## Older driver
+
+Originally Superset used `databricks-dbapi` to connect to Databricks. You might want to try it if you're having problems with the official Databricks connector:
+
+```bash
+pip install "databricks-dbapi[sqlalchemy]"
+```
+
+There are two ways to connect to Databricks when using `databricks-dbapi`: using a Hive connector or an ODBC connector. Both ways work similarly, but only ODBC can be used to connect to [SQL endpoints](https://docs.databricks.com/sql/admin/sql-endpoints.html).
+
+### Hive
+
+To connect to a Hive cluster add a database of type "Databricks Interactive Cluster" in Superset, and use the following SQLAlchemy URI:
+
+```
+databricks+pyhive://token:{access_token}@{server_hostname}:{port}/{database_name}
+```
+
+You also need to add the following configuration to "Other" -> "Engine Parameters", with your HTTP path:
+
+```json
 {"connect_args": {"http_path": "sql/protocolv1/o/****"}}
 ```
 
@@ -43,15 +65,15 @@ You also need to add the following configuration to "Other" -> "Engine Parameter
 
 For ODBC you first need to install the [ODBC drivers for your platform](https://databricks.com/spark/odbc-drivers-download).
 
-For a regular connection use this as the SQLAlchemy URI:
+For a regular connection use this as the SQLAlchemy URI after selecting either "Databricks Interactive Cluster" or "Databricks SQL Endpoint" for the database, depending on your use case:
 
 ```
-databricks+pyodbc://token:{access token}@{server hostname}:{port}/{database name}
+databricks+pyodbc://token:{access_token}@{server_hostname}:{port}/{database_name}
 ```
 
 And for the connection arguments:
 
-```
+```json
 {"connect_args": {"http_path": "sql/protocolv1/o/****", "driver_path": "/path/to/odbc/driver"}}
 ```
 
@@ -62,6 +84,6 @@ The driver path should be:
 
 For a connection to a SQL endpoint you need to use the HTTP path from the endpoint:
 
-```
+```json
 {"connect_args": {"http_path": "/sql/1.0/endpoints/****", "driver_path": "/path/to/odbc/driver"}}
 ```

@@ -17,7 +17,11 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  sections,
+  getStandardizedControls,
+} from '@superset-ui/chart-controls';
 import {
   lineInterpolation,
   showBrush,
@@ -96,6 +100,11 @@ const config: ControlPanelConfig = {
       default: 50000,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;

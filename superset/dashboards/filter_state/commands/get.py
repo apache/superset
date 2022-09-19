@@ -18,14 +18,14 @@ from typing import Optional
 
 from flask import current_app as app
 
-from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.filter_state.commands.utils import check_access
 from superset.extensions import cache_manager
-from superset.key_value.commands.get import GetKeyValueCommand
-from superset.key_value.commands.parameters import CommandParameters
-from superset.key_value.utils import cache_key
+from superset.temporary_cache.commands.get import GetTemporaryCacheCommand
+from superset.temporary_cache.commands.parameters import CommandParameters
+from superset.temporary_cache.utils import cache_key
 
 
-class GetFilterStateCommand(GetKeyValueCommand):
+class GetFilterStateCommand(GetTemporaryCacheCommand):
     def __init__(self, cmd_params: CommandParameters) -> None:
         super().__init__(cmd_params)
         config = app.config["FILTER_STATE_CACHE_CONFIG"]
@@ -34,7 +34,7 @@ class GetFilterStateCommand(GetKeyValueCommand):
     def get(self, cmd_params: CommandParameters) -> Optional[str]:
         resource_id = cmd_params.resource_id
         key = cache_key(resource_id, cmd_params.key)
-        DashboardDAO.get_by_id_or_slug(str(resource_id))
+        check_access(resource_id)
         entry = cache_manager.filter_state_cache.get(key) or {}
         if entry and self._refresh_timeout:
             cache_manager.filter_state_cache.set(key, entry)

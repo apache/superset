@@ -26,9 +26,10 @@ from slack import WebClient
 from slack.errors import SlackApiError, SlackClientError
 
 from superset import app
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
+from superset.utils.decorators import statsd_gauge
 from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
@@ -147,6 +148,7 @@ Error: %(text)s
         return []
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
+    @statsd_gauge("reports.slack.send")
     def send(self) -> None:
         files = self._get_inline_files()
         title = self._content.name

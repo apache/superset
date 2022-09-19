@@ -16,21 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption } from 'echarts';
 import {
   ChartDataResponseResult,
   ChartProps,
-  DataRecordValue,
   QueryFormColumn,
   QueryFormData,
-  SetDataMaskHook,
 } from '@superset-ui/core';
 import {
-  DEFAULT_LEGEND_FORM_DATA,
   EchartsLegendFormData,
+  EChartTransformedProps,
   LegendOrientation,
   LegendType,
 } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsPieFormData = QueryFormData &
   EchartsLegendFormData & {
@@ -61,7 +59,7 @@ export enum EchartsPieLabelType {
   KeyValuePercent = 'key_value_percent',
 }
 
-export interface EchartsPieChartProps extends ChartProps {
+export interface EchartsPieChartProps extends ChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
   queriesData: ChartDataResponseResult[];
 }
@@ -85,14 +83,5 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
   dateFormat: 'smart_date',
 };
 
-export interface PieChartTransformedProps {
-  formData: EchartsPieFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-}
+export type PieChartTransformedProps =
+  EChartTransformedProps<EchartsPieFormData>;

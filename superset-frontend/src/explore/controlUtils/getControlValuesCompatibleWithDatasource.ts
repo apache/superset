@@ -17,23 +17,20 @@
  * under the License.
  */
 
-import {
-  ControlState,
-  DatasourceMeta,
-  Metric,
-} from '@superset-ui/chart-controls';
+import { ControlState, Dataset, Metric } from '@superset-ui/chart-controls';
 import {
   Column,
   isAdhocMetricSimple,
   isSavedMetric,
   isSimpleAdhocFilter,
+  isFreeFormAdhocFilter,
   JsonValue,
   SimpleAdhocFilter,
 } from '@superset-ui/core';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 
 const isControlValueCompatibleWithDatasource = (
-  datasource: DatasourceMeta,
+  datasource: Dataset,
   controlState: ControlState,
   value: any,
 ) => {
@@ -74,11 +71,12 @@ const isControlValueCompatibleWithDatasource = (
         column.column_name === (value as SimpleAdhocFilter).subject,
     );
   }
+  if (isFreeFormAdhocFilter(value)) return true;
   return false;
 };
 
 export const getControlValuesCompatibleWithDatasource = (
-  datasource: DatasourceMeta,
+  datasource: Dataset,
   controlState: ControlState,
   value: JsonValue,
 ) => {

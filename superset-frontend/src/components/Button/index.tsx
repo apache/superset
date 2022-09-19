@@ -16,13 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, Children, ReactElement } from 'react';
+import React, { Children, ReactElement } from 'react';
 import { kebabCase } from 'lodash';
 import { mix } from 'polished';
 import cx from 'classnames';
 import { AntdButton } from 'src/components';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
+import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
+import { TooltipProps } from 'antd/lib/tooltip';
 
 export type OnClickHandler = React.MouseEventHandler<HTMLElement>;
 
@@ -37,36 +39,15 @@ export type ButtonStyle =
   | 'link'
   | 'dashed';
 
-export interface ButtonProps {
-  id?: string;
-  className?: string;
-  tooltip?: string;
-  ghost?: boolean;
-  placement?:
-    | 'bottom'
-    | 'left'
-    | 'right'
-    | 'top'
-    | 'topLeft'
-    | 'topRight'
-    | 'bottomLeft'
-    | 'bottomRight'
-    | 'leftTop'
-    | 'leftBottom'
-    | 'rightTop'
-    | 'rightBottom';
-  onClick?: OnClickHandler;
-  disabled?: boolean;
-  buttonStyle?: ButtonStyle;
-  buttonSize?: 'default' | 'small' | 'xsmall';
-  style?: CSSProperties;
-  children?: React.ReactNode;
-  href?: string;
-  htmlType?: 'button' | 'submit' | 'reset';
-  cta?: boolean;
-  loading?: boolean | { delay?: number | undefined } | undefined;
-  showMarginRight?: boolean;
-}
+export type ButtonProps = Omit<AntdButtonProps, 'css'> &
+  Pick<TooltipProps, 'placement'> & {
+    tooltip?: string;
+    className?: string;
+    buttonSize?: 'default' | 'small' | 'xsmall';
+    buttonStyle?: ButtonStyle;
+    cta?: boolean;
+    showMarginRight?: boolean;
+  };
 
 export default function Button(props: ButtonProps) {
   const {
@@ -110,8 +91,8 @@ export default function Button(props: ButtonProps) {
   let borderColorDisabled = 'transparent';
 
   if (buttonStyle === 'primary') {
-    backgroundColor = primary.dark1;
-    backgroundColorHover = mix(0.1, grayscale.light5, primary.dark1);
+    backgroundColor = primary.base;
+    backgroundColorHover = primary.dark1;
     backgroundColorActive = mix(0.2, grayscale.dark2, primary.dark1);
     color = grayscale.light5;
     colorHover = color;
@@ -229,10 +210,19 @@ export default function Button(props: ButtonProps) {
         id={`${kebabCase(tooltip)}-tooltip`}
         title={tooltip}
       >
-        {/* this ternary wraps the button in a span so that the tooltip shows up
-        when the button is disabled.  */}
+        {/* wrap the button in a span so that the tooltip shows up
+        when the button is disabled. */}
         {disabled ? (
-          <span css={{ cursor: 'not-allowed' }}>{button}</span>
+          <span
+            css={{
+              cursor: 'not-allowed',
+              '& > .superset-button': {
+                marginLeft: theme.gridUnit * 2,
+              },
+            }}
+          >
+            {button}
+          </span>
         ) : (
           button
         )}

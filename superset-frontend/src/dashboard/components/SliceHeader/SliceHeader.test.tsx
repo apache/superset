@@ -17,6 +17,8 @@
  * under the License.
  */
 import React from 'react';
+import { Router } from 'react-router-dom';
+import { createMemoryHistory } from 'history';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import SliceHeader from '.';
@@ -100,7 +102,7 @@ jest.mock('src/dashboard/components/FiltersBadge', () => ({
   ),
 }));
 
-const createProps = () => ({
+const createProps = (overrides: any = {}) => ({
   filters: {}, // is in typing but not being used
   editMode: false,
   annotationQuery: { param01: 'annotationQuery' } as any,
@@ -115,7 +117,7 @@ const createProps = () => ({
   sliceCanEdit: false,
   slice: {
     slice_id: 312,
-    slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%20312%7D',
+    slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20312%7D',
     slice_name: 'Vaccine Candidates per Phase',
     form_data: {
       adhoc_filters: [],
@@ -155,13 +157,15 @@ const createProps = () => ({
   forceRefresh: jest.fn(),
   logExploreChart: jest.fn(),
   exportCSV: jest.fn(),
-  onExploreChart: jest.fn(),
   formData: { slice_id: 1, datasource: '58__table' },
+  width: 100,
+  height: 100,
+  ...overrides,
 });
 
 test('Should render', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
@@ -203,7 +207,7 @@ test('Should render - default props', () => {
   // @ts-ignore
   delete props.sliceCanEdit;
 
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(screen.getByTestId('slice-header')).toBeInTheDocument();
 });
 
@@ -245,7 +249,7 @@ test('Should render default props and "call" actions', () => {
   // @ts-ignore
   delete props.sliceCanEdit;
 
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   userEvent.click(screen.getByTestId('toggleExpandSlice'));
   userEvent.click(screen.getByTestId('forceRefresh'));
   userEvent.click(screen.getByTestId('exploreChart'));
@@ -258,13 +262,105 @@ test('Should render default props and "call" actions', () => {
 
 test('Should render title', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(screen.getByText('Vaccine Candidates per Phase')).toBeInTheDocument();
+});
+
+test('Should render click to edit prompt and run onExploreChart on click', async () => {
+  const props = createProps();
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/dashboard/1/'],
+  });
+  render(
+    <Router history={history}>
+      <SliceHeader {...props} />
+    </Router>,
+    { useRedux: true },
+  );
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText('Use ctrl + click to open in a new tab.'),
+  ).toBeInTheDocument();
+
+  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  expect(history.location.pathname).toMatch('/explore');
+});
+
+test('Display cmd button in tooltip if running on MacOS', async () => {
+  jest.spyOn(window.navigator, 'appVersion', 'get').mockReturnValue('Mac');
+  const props = createProps();
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    await screen.findByText('Click to edit Vaccine Candidates per Phase.'),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText('Use ⌘ + click to open in a new tab.'),
+  ).toBeInTheDocument();
+});
+
+test('Display correct tooltip when DASHBOARD_EDIT_CHART_IN_NEW_TAB is enabled', async () => {
+  window.featureFlags.DASHBOARD_EDIT_CHART_IN_NEW_TAB = true;
+  const props = createProps();
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    await screen.findByText(
+      'Click to edit Vaccine Candidates per Phase in a new tab',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('Should not render click to edit prompt and run onExploreChart on click if supersetCanExplore=false', () => {
+  const props = createProps({ supersetCanExplore: false });
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/dashboard/1/'],
+  });
+  render(
+    <Router history={history}>
+      <SliceHeader {...props} />
+    </Router>,
+    { useRedux: true },
+  );
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    screen.queryByText(
+      'Click to edit Vaccine Candidates per Phase in a new tab',
+    ),
+  ).not.toBeInTheDocument();
+
+  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  expect(history.location.pathname).toMatch('/superset/dashboard');
+});
+
+test('Should not render click to edit prompt and run onExploreChart on click if in edit mode', () => {
+  const props = createProps({ editMode: true });
+  const history = createMemoryHistory({
+    initialEntries: ['/superset/dashboard/1/'],
+  });
+  render(
+    <Router history={history}>
+      <SliceHeader {...props} />
+    </Router>,
+    { useRedux: true },
+  );
+  userEvent.hover(screen.getByText('Vaccine Candidates per Phase'));
+  expect(
+    screen.queryByText(
+      'Click to edit Vaccine Candidates per Phase in a new tab',
+    ),
+  ).not.toBeInTheDocument();
+
+  userEvent.click(screen.getByText('Vaccine Candidates per Phase'));
+  expect(history.location.pathname).toMatch('/superset/dashboard');
 });
 
 test('Should render "annotationsLoading"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(
     screen.getByRole('img', {
       name: 'Annotation layers are still loading.',
@@ -274,7 +370,7 @@ test('Should render "annotationsLoading"', () => {
 
 test('Should render "annotationsError"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(
     screen.getByRole('img', {
       name: 'One ore more annotation layers failed loading.',
@@ -286,7 +382,7 @@ test('Should not render "annotationsError" and "annotationsLoading"', () => {
   const props = createProps();
   props.annotationQuery = {};
   props.annotationError = {};
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(
     screen.queryByRole('img', {
       name: 'One ore more annotation layers failed loading.',
@@ -301,7 +397,7 @@ test('Should not render "annotationsError" and "annotationsLoading"', () => {
 
 test('Correct props to "FiltersBadge"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(screen.getByTestId('FiltersBadge')).toHaveAttribute(
     'data-chart-id',
     '312',
@@ -310,7 +406,7 @@ test('Correct props to "FiltersBadge"', () => {
 
 test('Correct props to "SliceHeaderControls"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
   expect(screen.getByTestId('SliceHeaderControls')).toHaveAttribute(
     'data-cached-dttm',
     '',
@@ -367,7 +463,7 @@ test('Correct props to "SliceHeaderControls"', () => {
 
 test('Correct actions to "SliceHeaderControls"', () => {
   const props = createProps();
-  render(<SliceHeader {...props} />, { useRedux: true });
+  render(<SliceHeader {...props} />, { useRedux: true, useRouter: true });
 
   expect(props.toggleExpandSlice).toBeCalledTimes(0);
   userEvent.click(screen.getByTestId('toggleExpandSlice'));

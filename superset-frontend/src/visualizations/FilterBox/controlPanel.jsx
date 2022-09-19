@@ -20,36 +20,6 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import { sections } from '@superset-ui/chart-controls';
 
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
-const druidIsActive = !!bootstrapData?.common?.conf?.DRUID_IS_ACTIVE;
-const druidSection = druidIsActive
-  ? [
-      [
-        {
-          name: 'show_druid_time_granularity',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Show Druid granularity dropdown'),
-            default: false,
-            description: t('Check to include Druid granularity dropdown'),
-          },
-        },
-      ],
-      [
-        {
-          name: 'show_druid_time_origin',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Show Druid time origin'),
-            default: false,
-            description: t('Check to include time origin dropdown'),
-          },
-        },
-      ],
-    ]
-  : [];
-
 export default {
   controlPanelSections: [
     sections.legacyTimeseriesTime,
@@ -101,13 +71,9 @@ export default {
             name: 'show_sqla_time_granularity',
             config: {
               type: 'CheckboxControl',
-              label: druidIsActive
-                ? t('Show SQL time grain dropdown')
-                : t('Show time grain dropdown'),
+              label: t('Show time grain dropdown'),
               default: false,
-              description: druidIsActive
-                ? t('Check to include SQL time grain dropdown')
-                : t('Check to include time grain dropdown'),
+              description: t('Check to include time grain dropdown'),
             },
           },
         ],
@@ -116,15 +82,12 @@ export default {
             name: 'show_sqla_time_column',
             config: {
               type: 'CheckboxControl',
-              label: druidIsActive
-                ? t('Show SQL time column')
-                : t('Show time column'),
+              label: t('Show time column'),
               default: false,
               description: t('Check to include time column dropdown'),
             },
           },
         ],
-        ...druidSection,
         ['adhoc_filters'],
       ],
     },

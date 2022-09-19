@@ -100,7 +100,12 @@ class SqlQueryRenderImpl(SqlQueryRender):
             extra={
                 "undefined_parameters": list(undefined_parameters),
                 "template_parameters": execution_context.template_params,
-                "issue_codes": [{"code": 1006, "message": MSG_OF_1006,}],
+                "issue_codes": [
+                    {
+                        "code": 1006,
+                        "message": MSG_OF_1006,
+                    }
+                ],
             },
         )
 

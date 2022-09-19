@@ -35,7 +35,7 @@ def aggregate(
     :param groupby: columns to aggregate
     :param aggregates: A mapping from metric column to the function used to
            aggregate values.
-    :raises QueryObjectValidationError: If the request in incorrect
+    :raises InvalidPostProcessingError: If the request in incorrect
     """
     aggregates = aggregates or {}
     aggregate_funcs = _get_aggregate_funcs(df, aggregates)

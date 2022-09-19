@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, TimeGranularity } from '@superset-ui/core';
+import {
+  DatasourceType,
+  supersetTheme,
+  TimeGranularity,
+} from '@superset-ui/core';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
   BigNumberDatum,
@@ -57,7 +61,7 @@ const rawFormData = {
 function generateProps(
   data: BigNumberDatum[],
   extraFormData = {},
-  extraQueryData = {},
+  extraQueryData: any = {},
 ): BigNumberWithTrendlineChartProps {
   return {
     width: 200,
@@ -89,6 +93,7 @@ function generateProps(
     ownState: {},
     filterState: {},
     behaviors: [],
+    theme: supersetTheme,
   };
 }
 

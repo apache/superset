@@ -21,16 +21,16 @@ import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
-import DatabaseSelector from '.';
+import DatabaseSelector, { DatabaseSelectorProps } from '.';
+import { EmptyStateSmall } from '../EmptyState';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
-const createProps = () => ({
+const createProps = (): DatabaseSelectorProps => ({
   db: {
     id: 1,
     database_name: 'test',
     backend: 'test-postgresql',
-    allow_multi_schema_metadata_fetch: false,
   },
   formMode: false,
   isDatabaseSelectEnabled: true,
@@ -38,12 +38,10 @@ const createProps = () => ({
   schema: undefined,
   sqlLabMode: true,
   getDbList: jest.fn(),
-  getTableList: jest.fn(),
   handleError: jest.fn(),
   onDbChange: jest.fn(),
   onSchemaChange: jest.fn(),
   onSchemasLoad: jest.fn(),
-  onUpdate: jest.fn(),
 });
 
 beforeEach(() => {
@@ -70,12 +68,11 @@ beforeEach(() => {
             allow_ctas: 'Allow Ctas',
             allow_cvas: 'Allow Cvas',
             allow_dml: 'Allow Dml',
-            allow_multi_schema_metadata_fetch:
-              'Allow Multi Schema Metadata Fetch',
             allow_run_async: 'Allow Run Async',
             allows_cost_estimate: 'Allows Cost Estimate',
             allows_subquery: 'Allows Subquery',
             allows_virtual_table_explore: 'Allows Virtual Table Explore',
+            disable_data_preview: 'Disables SQL Lab Data Preview',
             backend: 'Backend',
             changed_on: 'Changed On',
             changed_on_delta_humanized: 'Changed On Delta Humanized',
@@ -92,11 +89,11 @@ beforeEach(() => {
             'allow_ctas',
             'allow_cvas',
             'allow_dml',
-            'allow_multi_schema_metadata_fetch',
             'allow_run_async',
             'allows_cost_estimate',
             'allows_subquery',
             'allows_virtual_table_explore',
+            'disable_data_preview',
             'backend',
             'changed_on',
             'changed_on_delta_humanized',
@@ -125,11 +122,11 @@ beforeEach(() => {
               allow_ctas: false,
               allow_cvas: false,
               allow_dml: false,
-              allow_multi_schema_metadata_fetch: false,
               allow_run_async: false,
               allows_cost_estimate: null,
               allows_subquery: true,
               allows_virtual_table_explore: true,
+              disable_data_preview: false,
               backend: 'postgresql',
               changed_on: '2021-03-09T19:02:07.141095',
               changed_on_delta_humanized: 'a day ago',
@@ -145,11 +142,11 @@ beforeEach(() => {
               allow_ctas: false,
               allow_cvas: false,
               allow_dml: false,
-              allow_multi_schema_metadata_fetch: false,
               allow_run_async: false,
               allows_cost_estimate: null,
               allows_subquery: true,
               allows_virtual_table_explore: true,
+              disable_data_preview: false,
               backend: 'mysql',
               changed_on: '2021-03-09T19:02:07.141095',
               changed_on_delta_humanized: 'a day ago',
@@ -187,12 +184,10 @@ test('Refresh should work', async () => {
   await waitFor(() => {
     expect(SupersetClientGet).toBeCalledTimes(2);
     expect(props.getDbList).toBeCalledTimes(0);
-    expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);
     expect(props.onSchemaChange).toBeCalledTimes(0);
     expect(props.onSchemasLoad).toBeCalledTimes(0);
-    expect(props.onUpdate).toBeCalledTimes(0);
   });
 
   userEvent.click(screen.getByRole('button', { name: 'refresh' }));
@@ -200,12 +195,10 @@ test('Refresh should work', async () => {
   await waitFor(() => {
     expect(SupersetClientGet).toBeCalledTimes(3);
     expect(props.getDbList).toBeCalledTimes(1);
-    expect(props.getTableList).toBeCalledTimes(0);
     expect(props.handleError).toBeCalledTimes(0);
     expect(props.onDbChange).toBeCalledTimes(0);
     expect(props.onSchemaChange).toBeCalledTimes(0);
     expect(props.onSchemasLoad).toBeCalledTimes(2);
-    expect(props.onUpdate).toBeCalledTimes(0);
   });
 });
 
@@ -218,6 +211,28 @@ test('Should database select display options', async () => {
   expect(select).toBeInTheDocument();
   userEvent.click(select);
   expect(await screen.findByText('test-mysql')).toBeInTheDocument();
+});
+
+test('should show empty state if there are no options', async () => {
+  SupersetClientGet.mockImplementation(
+    async () => ({ json: { result: [] } } as any),
+  );
+  const props = createProps();
+  render(
+    <DatabaseSelector
+      {...props}
+      db={undefined}
+      emptyState={<EmptyStateSmall title="empty" image="" />}
+    />,
+    { useRedux: true },
+  );
+  const select = screen.getByRole('combobox', {
+    name: 'Select database or type database name',
+  });
+  userEvent.click(select);
+  const emptystate = await screen.findByText('empty');
+  expect(emptystate).toBeInTheDocument();
+  expect(screen.queryByText('test-mysql')).not.toBeInTheDocument();
 });
 
 test('Should schema select display options', async () => {
@@ -251,7 +266,6 @@ test('Sends the correct db when changing the database', async () => {
         id: 2,
         database_name: 'test-mysql',
         backend: 'mysql',
-        allow_multi_schema_metadata_fetch: false,
       }),
     ),
   );

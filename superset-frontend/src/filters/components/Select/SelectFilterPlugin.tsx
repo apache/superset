@@ -36,7 +36,7 @@ import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
-import { propertyComparator } from 'src/components/Select/Select';
+import { propertyComparator } from 'src/components/Select/utils';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -209,7 +209,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
-      const values = ensureIsArray(value);
+      const values = value === null ? [null] : ensureIsArray(value);
+
       if (values.length === 0) {
         updateDataMask(null);
       } else {
@@ -305,7 +306,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           value={filterState.value || []}
           disabled={isDisabled}
           getPopupContainer={
-            showOverflow ? () => parentRef?.current : undefined
+            showOverflow
+              ? () => (parentRef?.current as HTMLElement) || document.body
+              : (trigger: HTMLElement) =>
+                  (trigger?.parentNode as HTMLElement) || document.body
           }
           showSearch={showSearch}
           mode={multiSelect ? 'multiple' : 'single'}

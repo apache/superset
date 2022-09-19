@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { ensureIsArray, t } from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -25,6 +25,7 @@ import {
   sections,
   emitFilterControl,
   ControlPanelConfig,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -125,7 +126,7 @@ const config: ControlPanelConfig = {
   ],
   controlOverrides: {
     groupby: {
-      label: t('Series'),
+      label: t('Dimensions'),
       description: t('Categories to group by on the x-axis.'),
     },
     columns: {
@@ -135,6 +136,21 @@ const config: ControlPanelConfig = {
         'Columns to calculate distribution across. Defaults to temporal column if left empty.',
       ),
     },
+  },
+  formDataOverrides: formData => {
+    const groupby = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.columns).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !groupby.includes(col),
+      );
+
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby,
+    };
   },
 };
 export default config;

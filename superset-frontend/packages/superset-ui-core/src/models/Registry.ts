@@ -59,6 +59,10 @@ export interface RegistryConfig {
 /**
  * Registry class
  *
+ * !!!!!!!!
+ * IF YOU ARE ADDING A NEW REGISTRY TO SUPERSET, CONSIDER USING TypedRegistry
+ * !!!!!!!!
+ *
  * Can use generic to specify type of item in the registry
  * @type V Type of value
  * @type W Type of value returned from loader function when using registerLoader().

@@ -29,295 +29,198 @@ import Button from 'src/components/Button';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 
-import * as exploreUtils from 'src/explore/exploreUtils';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import SaveModal, { StyledModal } from 'src/explore/components/SaveModal';
+import { BrowserRouter } from 'react-router-dom';
 
-describe('SaveModal', () => {
-  const middlewares = [thunk];
-  const mockStore = configureStore(middlewares);
-  const initialState = {
-    chart: {},
-    saveModal: {
-      dashboards: [],
+const middlewares = [thunk];
+const mockStore = configureStore(middlewares);
+const initialState = {
+  chart: {},
+  saveModal: {
+    dashboards: [],
+  },
+  explore: {
+    datasource: {},
+    slice: {
+      slice_id: 1,
+      slice_name: 'title',
+      owners: [1],
     },
-    explore: {
-      datasource: {},
-      slice: {
-        slice_id: 1,
-        slice_name: 'title',
-        owners: [1],
-      },
-      alert: null,
-      user: {
-        userId: 1,
-      },
-    },
-  };
-  const store = mockStore(initialState);
+    alert: null,
+  },
+  user: {
+    userId: 1,
+  },
+};
 
-  const defaultProps = {
-    onHide: () => ({}),
-    actions: bindActionCreators(saveModalActions, arg => {
-      if (typeof arg === 'function') {
-        return arg(jest.fn);
-      }
-      return arg;
-    }),
-    form_data: { datasource: '107__table', url_params: { foo: 'bar' } },
-  };
-  const mockEvent = {
-    target: {
-      value: 'mock event target',
-    },
-    value: 10,
-  };
+const initialStore = mockStore(initialState);
 
-  const mockDashboardData = {
-    pks: ['id'],
-    result: [{ id: 'id', dashboard_title: 'dashboard title' }],
-  };
+const defaultProps = {
+  onHide: () => ({}),
+  actions: bindActionCreators(saveModalActions, arg => {
+    if (typeof arg === 'function') {
+      return arg(jest.fn);
+    }
+    return arg;
+  }),
+  form_data: { datasource: '107__table', url_params: { foo: 'bar' } },
+};
 
-  const saveEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
+const mockEvent = {
+  target: {
+    value: 'mock event target',
+  },
+  value: 10,
+};
 
-  beforeAll(() => fetchMock.get(saveEndpoint, mockDashboardData));
+const mockDashboardData = {
+  pks: ['id'],
+  result: [{ id: 'id', dashboard_title: 'dashboard title' }],
+};
 
-  afterAll(() => fetchMock.restore());
+const queryStore = mockStore({
+  chart: {},
+  saveModal: {
+    dashboards: [],
+  },
+  explore: {
+    datasource: { name: 'test', type: 'query' },
+    slice: null,
+    alert: null,
+  },
+  user: {
+    userId: 1,
+  },
+});
 
-  const getWrapper = () =>
-    shallow(<SaveModal {...defaultProps} store={store} />)
-      .dive()
-      .dive();
+const queryDefaultProps = {
+  ...defaultProps,
+  form_data: { datasource: '107__query', url_params: { foo: 'bar' } },
+};
 
-  it('renders a Modal with the right set of components', () => {
-    const wrapper = getWrapper();
-    expect(wrapper.find(StyledModal)).toExist();
-    expect(wrapper.find(Radio)).toHaveLength(2);
+const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
 
-    const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
-    expect(footerWrapper.find(Button)).toHaveLength(3);
+beforeAll(() => fetchMock.get(fetchDashboardsEndpoint, mockDashboardData));
+
+afterAll(() => fetchMock.restore());
+
+const getWrapper = (props = defaultProps, store = initialStore) =>
+  shallow(
+    <BrowserRouter>
+      <SaveModal {...props} store={store} />
+    </BrowserRouter>,
+  )
+    .dive()
+    .dive()
+    .dive()
+    .dive()
+    .dive()
+    .dive()
+    .dive();
+
+test('renders a Modal with the right set of components', () => {
+  const wrapper = getWrapper();
+  expect(wrapper.find(StyledModal)).toExist();
+  expect(wrapper.find(Radio)).toHaveLength(2);
+
+  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
+
+  expect(footerWrapper.find(Button)).toHaveLength(3);
+});
+
+test('renders the right footer buttons when existing dashboard selected', () => {
+  const wrapper = getWrapper();
+  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
+  const saveAndGoDash = footerWrapper
+    .find('#btn_modal_save_goto_dash')
+    .getElement();
+  const save = footerWrapper.find('#btn_modal_save').getElement();
+  expect(save.props.children).toBe('Save');
+  expect(saveAndGoDash.props.children).toBe('Save & go to dashboard');
+});
+
+test('renders the right footer buttons when new dashboard selected', () => {
+  const wrapper = getWrapper();
+  wrapper.setState({
+    saveToDashboardId: null,
+    newDashboardName: 'Test new dashboard',
   });
+  const footerWrapper = shallow(wrapper.find(StyledModal).props().footer);
+  const saveAndGoDash = footerWrapper
+    .find('#btn_modal_save_goto_dash')
+    .getElement();
+  const save = footerWrapper.find('#btn_modal_save').getElement();
+  expect(save.props.children).toBe('Save to new dashboard');
+  expect(saveAndGoDash.props.children).toBe('Save & go to new dashboard');
+});
 
-  it('overwrite radio button is disabled for new slice', () => {
-    const wrapper = getWrapper();
-    wrapper.setProps({ slice: null });
-    expect(wrapper.find('#overwrite-radio').prop('disabled')).toBe(true);
-  });
+test('disables overwrite option for new slice', () => {
+  const wrapper = getWrapper();
+  wrapper.setProps({ slice: null });
+  expect(wrapper.find('#overwrite-radio').prop('disabled')).toBe(true);
+});
 
-  it('disable overwrite option for non-owner', () => {
-    const wrapperForNonOwner = getWrapper();
-    wrapperForNonOwner.setProps({ userId: 2 });
-    const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
-    expect(overwriteRadio).toHaveLength(1);
-    expect(overwriteRadio.prop('disabled')).toBe(true);
-  });
+test('disables overwrite option for non-owner', () => {
+  const wrapperForNonOwner = getWrapper();
+  wrapperForNonOwner.setProps({ userId: 2 });
+  const overwriteRadio = wrapperForNonOwner.find('#overwrite-radio');
+  expect(overwriteRadio).toHaveLength(1);
+  expect(overwriteRadio.prop('disabled')).toBe(true);
+});
 
-  it('saves a new slice', () => {
-    const wrapperForNewSlice = getWrapper();
-    wrapperForNewSlice.setProps({ can_overwrite: false });
-    wrapperForNewSlice.instance().changeAction('saveas');
-    const saveasRadio = wrapperForNewSlice.find('#saveas-radio');
-    saveasRadio.simulate('click');
-    expect(wrapperForNewSlice.state().action).toBe('saveas');
-  });
+test('sets action when saving as new slice', () => {
+  const wrapperForNewSlice = getWrapper();
+  wrapperForNewSlice.setProps({ can_overwrite: false });
+  wrapperForNewSlice.instance().changeAction('saveas');
+  const saveasRadio = wrapperForNewSlice.find('#saveas-radio');
+  saveasRadio.simulate('click');
+  expect(wrapperForNewSlice.state().action).toBe('saveas');
+});
 
-  it('overwrite a slice', () => {
-    const wrapperForOverwrite = getWrapper();
-    const overwriteRadio = wrapperForOverwrite.find('#overwrite-radio');
-    overwriteRadio.simulate('click');
-    expect(wrapperForOverwrite.state().action).toBe('overwrite');
-  });
+test('sets action when overwriting slice', () => {
+  const wrapperForOverwrite = getWrapper();
+  const overwriteRadio = wrapperForOverwrite.find('#overwrite-radio');
+  overwriteRadio.simulate('click');
+  expect(wrapperForOverwrite.state().action).toBe('overwrite');
+});
 
-  it('componentDidMount', () => {
-    sinon.spy(defaultProps.actions, 'fetchDashboards');
-    mount(
-      <Provider store={store}>
-        <SaveModal {...defaultProps} />
-      </Provider>,
-    );
-    expect(defaultProps.actions.fetchDashboards.calledOnce).toBe(true);
+test('fetches dashboards on component mount', () => {
+  sinon.spy(defaultProps.actions, 'fetchDashboards');
+  mount(
+    <Provider store={initialStore}>
+      <SaveModal {...defaultProps} />
+    </Provider>,
+  );
+  expect(defaultProps.actions.fetchDashboards.calledOnce).toBe(true);
 
-    defaultProps.actions.fetchDashboards.restore();
-  });
+  defaultProps.actions.fetchDashboards.restore();
+});
 
-  it('onChange', () => {
-    const wrapper = getWrapper();
-    const dashboardId = mockEvent.value;
+test('updates slice name and selected dashboard', () => {
+  const wrapper = getWrapper();
+  const dashboardId = mockEvent.value;
 
-    wrapper.instance().onSliceNameChange(mockEvent);
-    expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
+  wrapper.instance().onSliceNameChange(mockEvent);
+  expect(wrapper.state().newSliceName).toBe(mockEvent.target.value);
 
-    wrapper.instance().onDashboardSelectChange(dashboardId);
-    expect(wrapper.state().saveToDashboardId).toBe(dashboardId);
-  });
+  wrapper.instance().onDashboardSelectChange(dashboardId);
+  expect(wrapper.state().saveToDashboardId).toBe(dashboardId);
+});
 
-  describe('saveOrOverwrite', () => {
-    beforeEach(() => {
-      sinon.stub(exploreUtils, 'getExploreUrl').callsFake(() => 'mockURL');
+test('removes alert', () => {
+  sinon.spy(defaultProps.actions, 'removeSaveModalAlert');
+  const wrapper = getWrapper();
+  wrapper.setProps({ alert: 'old alert' });
 
-      sinon.stub(defaultProps.actions, 'saveSlice').callsFake(() =>
-        Promise.resolve({
-          dashboard_url: 'http://localhost/mock_dashboard/',
-          slice: { slice_url: '/mock_slice/' },
-        }),
-      );
-    });
+  wrapper.instance().removeAlert();
+  expect(defaultProps.actions.removeSaveModalAlert.callCount).toBe(1);
+  expect(wrapper.state().alert).toBeNull();
+  defaultProps.actions.removeSaveModalAlert.restore();
+});
 
-    afterEach(() => {
-      exploreUtils.getExploreUrl.restore();
-      defaultProps.actions.saveSlice.restore();
-    });
-
-    it('should save slice without url_params in form_data', () => {
-      const wrapper = getWrapper();
-      wrapper.instance().saveOrOverwrite(true);
-      const { args } = defaultProps.actions.saveSlice.getCall(0);
-      expect(args[0]).toEqual({ datasource: '107__table' });
-    });
-
-    it('existing dashboard', () => {
-      const wrapper = getWrapper();
-      const saveToDashboardId = 100;
-
-      wrapper.setState({ saveToDashboardId });
-      wrapper.instance().saveOrOverwrite(true);
-      const { args } = defaultProps.actions.saveSlice.getCall(0);
-      expect(args[1].save_to_dashboard_id).toBe(saveToDashboardId);
-    });
-
-    it('new dashboard', () => {
-      const wrapper = getWrapper();
-      const newDashboardName = 'new dashboard name';
-
-      wrapper.setState({ newDashboardName });
-      wrapper.instance().saveOrOverwrite(true);
-      const { args } = defaultProps.actions.saveSlice.getCall(0);
-      expect(args[1].new_dashboard_name).toBe(newDashboardName);
-    });
-
-    describe('should always reload or redirect', () => {
-      const originalLocation = window.location;
-      delete window.location;
-      window.location = { assign: jest.fn() };
-      const stub = sinon.stub(window.location, 'assign');
-
-      afterAll(() => {
-        delete window.location;
-        window.location = originalLocation;
-      });
-
-      let wrapper;
-
-      beforeEach(() => {
-        stub.resetHistory();
-        wrapper = getWrapper();
-      });
-
-      it('Save & go to dashboard', () =>
-        new Promise(done => {
-          wrapper.instance().saveOrOverwrite(true);
-          defaultProps.actions.saveSlice().then(() => {
-            expect(window.location.assign.callCount).toEqual(1);
-            expect(window.location.assign.getCall(0).args[0]).toEqual(
-              'http://localhost/mock_dashboard/?foo=bar',
-            );
-            done();
-          });
-        }));
-
-      it('saveas new slice', () =>
-        new Promise(done => {
-          wrapper.setState({
-            action: 'saveas',
-            newSliceName: 'new slice name',
-          });
-          wrapper.instance().saveOrOverwrite(false);
-          defaultProps.actions.saveSlice().then(() => {
-            expect(window.location.assign.callCount).toEqual(1);
-            expect(window.location.assign.getCall(0).args[0]).toEqual(
-              '/mock_slice/?foo=bar',
-            );
-            done();
-          });
-        }));
-
-      it('overwrite original slice', () =>
-        new Promise(done => {
-          wrapper.setState({ action: 'overwrite' });
-          wrapper.instance().saveOrOverwrite(false);
-          defaultProps.actions.saveSlice().then(() => {
-            expect(window.location.assign.callCount).toEqual(1);
-            expect(window.location.assign.getCall(0).args[0]).toEqual(
-              '/mock_slice/?foo=bar',
-            );
-            done();
-          });
-        }));
-    });
-  });
-
-  describe('fetchDashboards', () => {
-    let dispatch;
-    let actionThunk;
-    const userID = 1;
-
-    beforeEach(() => {
-      fetchMock.resetHistory();
-      dispatch = sinon.spy();
-    });
-
-    const makeRequest = () => {
-      actionThunk = saveModalActions.fetchDashboards(userID);
-      return actionThunk(dispatch);
-    };
-
-    it('makes the fetch request', () =>
-      makeRequest().then(() => {
-        expect(fetchMock.calls(saveEndpoint)).toHaveLength(1);
-
-        return Promise.resolve();
-      }));
-
-    it('calls correct actions on success', () =>
-      makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(1);
-        expect(dispatch.getCall(0).args[0].type).toBe(
-          saveModalActions.FETCH_DASHBOARDS_SUCCEEDED,
-        );
-
-        return Promise.resolve();
-      }));
-
-    it('calls correct actions on error', () => {
-      fetchMock.get(
-        saveEndpoint,
-        { throws: 'error' },
-        { overwriteRoutes: true },
-      );
-
-      return makeRequest().then(() => {
-        expect(dispatch.callCount).toBe(1);
-        expect(dispatch.getCall(0).args[0].type).toBe(
-          saveModalActions.FETCH_DASHBOARDS_FAILED,
-        );
-
-        fetchMock.get(saveEndpoint, mockDashboardData, {
-          overwriteRoutes: true,
-        });
-
-        return Promise.resolve();
-      });
-    });
-  });
-
-  it('removeAlert', () => {
-    sinon.spy(defaultProps.actions, 'removeSaveModalAlert');
-    const wrapper = getWrapper();
-    wrapper.setProps({ alert: 'old alert' });
-
-    wrapper.instance().removeAlert();
-    expect(defaultProps.actions.removeSaveModalAlert.callCount).toBe(1);
-    expect(wrapper.state().alert).toBeNull();
-    defaultProps.actions.removeSaveModalAlert.restore();
-  });
+test('set dataset name when chart source is query', () => {
+  const wrapper = getWrapper(queryDefaultProps, queryStore);
+  expect(wrapper.find('[data-test="new-dataset-name"]')).toExist();
+  expect(wrapper.state().datasetName).toBe('test');
 });

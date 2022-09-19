@@ -138,7 +138,7 @@ class ImportExamplesCommand(ImportModelsCommand):
 
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
-                    "datasource_type": "view" if dataset.is_sqllab_view else "table",
+                    "datasource_type": "table",
                     "datasource_name": dataset.table_name,
                 }
 
@@ -181,5 +181,4 @@ class ImportExamplesCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
         session.execute(dashboard_slices.insert(), values)

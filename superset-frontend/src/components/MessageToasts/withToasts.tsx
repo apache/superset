@@ -35,7 +35,8 @@ export interface ToastProps {
   addWarningToast: typeof addWarningToast;
 }
 
-const toasters = {
+/** just action creators, these do not dispatch */
+export const toasters = {
   addInfoToast,
   addSuccessToast,
   addWarningToast,

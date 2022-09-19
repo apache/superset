@@ -46,6 +46,25 @@ const terminalErrors = {
   ],
 };
 
+const terminalErrorsWithOnlyIssuesCode = {
+  errors: [
+    {
+      message: 'Error importing database',
+      error_type: 'GENERIC_COMMAND_ERROR',
+      level: 'warning',
+      extra: {
+        issue_codes: [
+          {
+            code: 1010,
+            message:
+              'Issue 1010 - Superset encountered an error while running a command.',
+          },
+        ],
+      },
+    },
+  ],
+};
+
 const overwriteNeededErrors = {
   errors: [
     {
@@ -146,6 +165,12 @@ test('detects if the error message is terminal or if it requires uses interventi
   expect(isTerminal).toBe(false);
 });
 
+test('error message is terminal when the "extra" field contains only the "issue_codes" key', () => {
+  expect(hasTerminalValidation(terminalErrorsWithOnlyIssuesCode.errors)).toBe(
+    true,
+  );
+});
+
 test('does not ask for password when the import type is wrong', () => {
   const error = {
     errors: [
@@ -188,7 +213,7 @@ test('successfully modified rison to encode correctly', () => {
   });
 });
 
-test('checkUploadExtenssions should return valid upload extensions', () => {
+test('checkUploadExtensions should return valid upload extensions', () => {
   const uploadExtensionTest = ['a', 'b', 'c'];
   const randomExtension = ['a', 'c'];
   const randomExtensionTwo = ['c'];

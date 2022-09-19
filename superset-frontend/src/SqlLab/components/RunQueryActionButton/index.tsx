@@ -16,28 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t, styled, supersetTheme } from '@superset-ui/core';
+import React, { useMemo } from 'react';
+import { t, styled, useTheme } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
-import Button, { ButtonProps } from 'src/components/Button';
+import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
+import { DropdownButton } from 'src/components/DropdownButton';
+import { detectOS } from 'src/utils/common';
+import { shallowEqual, useSelector } from 'react-redux';
 import {
-  DropdownButton,
-  DropdownButtonProps,
-} from 'src/components/DropdownButton';
+  QueryEditor,
+  SqlLabRootState,
+  QueryButtonProps,
+} from 'src/SqlLab/types';
+import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
 
-interface Props {
+export interface Props {
+  queryEditor: QueryEditor;
   allowAsync: boolean;
   queryState?: string;
   runQuery: (c?: boolean) => void;
-  selectedText?: string;
   stopQuery: () => void;
-  sql: string;
   overlayCreateAsMenu: typeof Menu | null;
 }
-
-type QueryButtonProps = DropdownButtonProps | ButtonProps;
 
 const buildText = (
   shouldShowStopButton: boolean,
@@ -79,20 +81,35 @@ const StyledButton = styled.span`
     }
     span[name='caret-down'] {
       display: flex;
-      margin-right: ${({ theme }) => theme.gridUnit * -2}px;
+      margin-left: ${({ theme }) => theme.gridUnit * 1}px;
     }
   }
 `;
 
 const RunQueryActionButton = ({
   allowAsync = false,
+  queryEditor,
   queryState,
-  selectedText,
-  sql = '',
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
 }: Props) => {
+  const theme = useTheme();
+  const userOS = detectOS();
+  const { selectedText, sql } = useSelector<
+    SqlLabRootState,
+    Pick<QueryEditor, 'selectedText' | 'sql'>
+  >(rootState => {
+    const currentQueryEditor = getUpToDateQuery(
+      rootState,
+      queryEditor,
+    ) as unknown as QueryEditor;
+    return {
+      selectedText: currentQueryEditor.selectedText,
+      sql: currentQueryEditor.sql,
+    };
+  }, shallowEqual);
+
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
@@ -100,7 +117,15 @@ const RunQueryActionButton = ({
     ? (DropdownButton as React.FC)
     : Button;
 
-  const isDisabled = !sql.trim();
+  const isDisabled = !sql || !sql.trim();
+
+  const stopButtonTooltipText = useMemo(
+    () =>
+      userOS === 'MacOS'
+        ? t('Stop running (Ctrl + x)')
+        : t('Stop running (Ctrl + e)'),
+    [userOS],
+  );
 
   return (
     <StyledButton>
@@ -112,7 +137,7 @@ const RunQueryActionButton = ({
         tooltip={
           (!isDisabled &&
             (shouldShowStopBtn
-              ? t('Stop running (Ctrl + x)')
+              ? stopButtonTooltipText
               : t('Run query (Ctrl + Return)'))) as string
         }
         cta
@@ -123,8 +148,8 @@ const RunQueryActionButton = ({
                 <Icons.CaretDown
                   iconColor={
                     isDisabled
-                      ? supersetTheme.colors.grayscale.base
-                      : supersetTheme.colors.grayscale.light5
+                      ? theme.colors.grayscale.base
+                      : theme.colors.grayscale.light5
                   }
                   name="caret-down"
                 />

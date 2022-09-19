@@ -80,6 +80,7 @@ class SupersetErrorType(str, Enum):
     SQLLAB_TIMEOUT_ERROR = "SQLLAB_TIMEOUT_ERROR"
     RESULTS_BACKEND_ERROR = "RESULTS_BACKEND_ERROR"
     ASYNC_WORKERS_ERROR = "ASYNC_WORKERS_ERROR"
+    ADHOC_SUBQUERY_NOT_ALLOWED_ERROR = "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR"
 
     # Generic errors
     GENERIC_COMMAND_ERROR = "GENERIC_COMMAND_ERROR"
@@ -138,10 +139,12 @@ ISSUE_CODES = {
     1034: _("The port number is invalid."),
     1035: _("Failed to start remote query on a worker."),
     1036: _("The database was deleted."),
+    1037: _("Custom SQL fields cannot contain sub-queries."),
 }
 
 
 ERROR_TYPES_TO_ISSUE_CODES_MAPPING = {
+    SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR: [1037],
     SupersetErrorType.BACKEND_TIMEOUT_ERROR: [1000, 1001],
     SupersetErrorType.GENERIC_DB_ENGINE_ERROR: [1002],
     SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR: [1003, 1004],

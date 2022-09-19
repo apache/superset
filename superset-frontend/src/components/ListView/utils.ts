@@ -35,7 +35,7 @@ import {
 
 import rison from 'rison';
 import { isEqual } from 'lodash';
-import { PartialStylesConfig } from 'src/components/Select';
+import { PartialStylesConfig } from 'src/components/DeprecatedSelect';
 import {
   FetchDataConfig,
   Filter,
@@ -378,6 +378,7 @@ export function useListViewState({
     toggleAllRowsSelected,
     applyFilterValue,
     setViewMode,
+    query,
   };
 }
 

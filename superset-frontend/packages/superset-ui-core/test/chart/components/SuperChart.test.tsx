@@ -17,16 +17,19 @@
  * under the License.
  */
 
-import React from 'react';
-import { mount } from 'enzyme';
+import React, { ReactElement } from 'react';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
 import ErrorBoundary from 'react-error-boundary';
 
-import { promiseTimeout, SuperChart } from '@superset-ui/core';
-import RealSuperChart, {
-  WrapperProps,
-} from '../../../src/chart/components/SuperChart';
+import {
+  promiseTimeout,
+  SuperChart,
+  supersetTheme,
+  ThemeProvider,
+} from '@superset-ui/core';
+import { mount as enzymeMount } from 'enzyme';
+import { WrapperProps } from '../../../src/chart/components/SuperChart';
 import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
 import {
@@ -50,6 +53,12 @@ function expectDimension(
     [width, height].join('x'),
   );
 }
+
+const mount = (component: ReactElement) =>
+  enzymeMount(component, {
+    wrappingComponent: ThemeProvider,
+    wrappingComponentProps: { theme: supersetTheme },
+  });
 
 describe('SuperChart', () => {
   const plugins = [
@@ -100,9 +109,8 @@ describe('SuperChart', () => {
       expectedErrors = 0;
     });
 
-    it('renders default FallbackComponent', () => {
+    it('renders default FallbackComponent', async () => {
       expectedErrors = 1;
-      jest.spyOn(RealSuperChart.defaultProps, 'FallbackComponent');
       const wrapper = mount(
         <SuperChart
           chartType={ChartKeys.BUGGY}
@@ -111,14 +119,9 @@ describe('SuperChart', () => {
           height="200"
         />,
       );
-      const renderedWrapper = wrapper.render();
-
-      return promiseTimeout(() => {
-        expect(renderedWrapper.find('div.test-component')).toHaveLength(0);
-        expect(
-          RealSuperChart.defaultProps.FallbackComponent,
-        ).toHaveBeenCalledTimes(1);
-      }, 100);
+      await new Promise(resolve => setImmediate(resolve));
+      wrapper.update();
+      expect(wrapper.text()).toContain('Oops! An error occurred!');
     });
     it('renders custom FallbackComponent', () => {
       expectedErrors = 1;
@@ -303,6 +306,7 @@ describe('SuperChart', () => {
           height="125"
         />,
       );
+      // @ts-ignore
       triggerResizeObserver([{ contentRect: { height: 125, width: 150 } }]);
 
       return promiseTimeout(() => {
@@ -328,6 +332,7 @@ describe('SuperChart', () => {
           height="25%"
         />,
       );
+      // @ts-ignore
       triggerResizeObserver([{ contentRect: { height: 75, width: 50 } }]);
 
       return promiseTimeout(() => {

@@ -29,7 +29,7 @@ import {
 import { RefObject } from 'react';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
-export type SelectValue = (number | string)[] | null | undefined;
+export type SelectValue = (number | string | null)[] | null | undefined;
 
 export interface PluginFilterSelectCustomizeProps {
   defaultValue?: SelectValue;

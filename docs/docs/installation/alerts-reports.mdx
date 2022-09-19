@@ -22,7 +22,7 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 ##### In your `superset_config.py`
 
-- `"ALERT_REPORTS"` feature flag must be turned to True.
+- `"ALERT_REPORTS"` [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) must be turned to True.
 - `CELERYBEAT_SCHEDULE` in CeleryConfig must contain schedule for `reports.scheduler`.
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
@@ -32,6 +32,9 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 
 - You must install a headless browser, for taking screenshots of the charts and dashboards. Only Firefox and Chrome are currently supported.
   > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
+
+Note : All the components required (headless browser, redis, postgres db, celery worker and celery beat) are present in the docker image if you are following [Installing Superset Locally](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose/).
+All you need to do is add the required config (See `Detailed Config`). Set `ALERT_REPORTS_NOTIFICATION_DRY_RUN` to `False` in [superset config](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py) to disable dry-run mode and start receiving email/slack notifications.
 
 #### Slack integration
 
@@ -86,12 +89,12 @@ REDIS_HOST = "redis-superset"
 REDIS_PORT = "6379"
 
 class CeleryConfig:
-    BROKER_URL = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    CELERY_IMPORTS = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
-    CELERY_RESULT_BACKEND = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    CELERYD_PREFETCH_MULTIPLIER = 10
-    CELERY_ACKS_LATE = True
-    CELERY_ANNOTATIONS = {
+    broker_url = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+    result_backend = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
+    worker_prefetch_multiplier = 10
+    task_acks_late = True
+    task_annotations = {
         'sql_lab.get_sql_results': {
             'rate_limit': '100/s',
         },
@@ -102,7 +105,7 @@ class CeleryConfig:
             'ignore_result': True,
         },
     }
-    CELERYBEAT_SCHEDULE = {
+    beat_schedule = {
         'reports.scheduler': {
             'task': 'reports.scheduler',
             'schedule': crontab(minute='*', hour='*'),
@@ -123,6 +126,7 @@ SLACK_API_TOKEN = "xoxb-"
 # Email configuration
 SMTP_HOST = "smtp.sendgrid.net" #change to your host
 SMTP_STARTTLS = True
+SMTP_SSL_SERVER_AUTH = True # If your using an SMTP server with a valid certificate
 SMTP_SSL = False
 SMTP_USER = "your_user"
 SMTP_PORT = 2525 # your port eg. 587
@@ -384,98 +388,95 @@ THUMBNAIL_SELENIUM_USER = 'username_with_permission_to_access_dashboards'
 
 ### Schedule Reports
 
-You can optionally allow your users to schedule queries directly in SQL Lab. This is done by addding
+You can optionally allow your users to schedule queries directly in SQL Lab. This is done by adding
 extra metadata to saved queries, which are then picked up by an external scheduled (like
 [Apache Airflow](https://airflow.apache.org/)).
 
-To allow scheduled queries, add the following to your configuration file:
+To allow scheduled queries, add the following to `SCHEDULED_QUERIES` in your configuration file:
 
 ```python
-FEATURE_FLAGS = {
-    # Configuration for scheduling queries from SQL Lab. This information is
-    # collected when the user clicks "Schedule query", and saved into the `extra`
-    # field of saved queries.
+SCHEDULED_QUERIES = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
     # See: https://github.com/mozilla-services/react-jsonschema-form
-    'SCHEDULED_QUERIES': {
-        'JSONSCHEMA': {
-            'title': 'Schedule',
-            'description': (
-                'In order to schedule a query, you need to specify when it '
-                'should start running, when it should stop running, and how '
-                'often it should run. You can also optionally specify '
-                'dependencies that should be met before the query is '
-                'executed. Please read the documentation for best practices '
-                'and more information on how to specify dependencies.'
-            ),
-            'type': 'object',
-            'properties': {
-                'output_table': {
-                    'type': 'string',
-                    'title': 'Output table name',
-                },
-                'start_date': {
-                    'type': 'string',
-                    'title': 'Start date',
-                    # date-time is parsed using the chrono library, see
-                    # https://www.npmjs.com/package/chrono-node#usage
-                    'format': 'date-time',
-                    'default': 'tomorrow at 9am',
-                },
-                'end_date': {
-                    'type': 'string',
-                    'title': 'End date',
-                    # date-time is parsed using the chrono library, see
-                    # https://www.npmjs.com/package/chrono-node#usage
-                    'format': 'date-time',
-                    'default': '9am in 30 days',
-                },
-                'schedule_interval': {
-                    'type': 'string',
-                    'title': 'Schedule interval',
-                },
-                'dependencies': {
-                    'type': 'array',
-                    'title': 'Dependencies',
-                    'items': {
-                        'type': 'string',
-                    },
-                },
+    'JSONSCHEMA': {
+        'title': 'Schedule',
+        'description': (
+            'In order to schedule a query, you need to specify when it '
+            'should start running, when it should stop running, and how '
+            'often it should run. You can also optionally specify '
+            'dependencies that should be met before the query is '
+            'executed. Please read the documentation for best practices '
+            'and more information on how to specify dependencies.'
+        ),
+        'type': 'object',
+        'properties': {
+            'output_table': {
+                'type': 'string',
+                'title': 'Output table name',
             },
-        },
-        'UISCHEMA': {
+            'start_date': {
+                'type': 'string',
+                'title': 'Start date',
+                # date-time is parsed using the chrono library, see
+                # https://www.npmjs.com/package/chrono-node#usage
+                'format': 'date-time',
+                'default': 'tomorrow at 9am',
+            },
+            'end_date': {
+                'type': 'string',
+                'title': 'End date',
+                # date-time is parsed using the chrono library, see
+                # https://www.npmjs.com/package/chrono-node#usage
+                'format': 'date-time',
+                'default': '9am in 30 days',
+            },
             'schedule_interval': {
-                'ui:placeholder': '@daily, @weekly, etc.',
+                'type': 'string',
+                'title': 'Schedule interval',
             },
             'dependencies': {
-                'ui:help': (
-                    'Check the documentation for the correct format when '
-                    'defining dependencies.'
-                ),
+                'type': 'array',
+                'title': 'Dependencies',
+                'items': {
+                    'type': 'string',
+                },
             },
         },
-        'VALIDATION': [
-            # ensure that start_date <= end_date
-            {
-                'name': 'less_equal',
-                'arguments': ['start_date', 'end_date'],
-                'message': 'End date cannot be before start date',
-                # this is where the error message is shown
-                'container': 'end_date',
-            },
-        ],
-        # link to the scheduler; this example links to an Airflow pipeline
-        # that uses the query id and the output table as its name
-        'linkback': (
-            'https://airflow.example.com/admin/airflow/tree?'
-            'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
-        ),
     },
+    'UISCHEMA': {
+        'schedule_interval': {
+            'ui:placeholder': '@daily, @weekly, etc.',
+        },
+        'dependencies': {
+            'ui:help': (
+                'Check the documentation for the correct format when '
+                'defining dependencies.'
+            ),
+        },
+    },
+    'VALIDATION': [
+        # ensure that start_date <= end_date
+        {
+            'name': 'less_equal',
+            'arguments': ['start_date', 'end_date'],
+            'message': 'End date cannot be before start date',
+            # this is where the error message is shown
+            'container': 'end_date',
+        },
+    ],
+    # link to the scheduler; this example links to an Airflow pipeline
+    # that uses the query id and the output table as its name
+    'linkback': (
+        'https://airflow.example.com/admin/airflow/tree?'
+        'dag_id=query_${id}_${extra_json.schedule_info.output_table}'
+    ),
 }
 ```
 
-This feature flag is based on
+This configuration is based on
 [react-jsonschema-form](https://github.com/mozilla-services/react-jsonschema-form) and will add a
-button called “Schedule Query” to SQL Lab. When the button is clicked, a modal will show up where
+menu item called “Schedule” to SQL Lab. When the menu item is clicked, a modal will show up where
 the user can add the metadata required for scheduling the query.
 
 This information can then be retrieved from the endpoint `/savedqueryviewapi/api/read` and used to
