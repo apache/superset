@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 # type: ignore
 from typing import Any, cast, Dict, List, Tuple
 from uuid import uuid4
@@ -149,7 +150,9 @@ class ExploreResponse:
         return mapped_columns, table_column_expressions
 
     @staticmethod
-    def column_joinfunc(table_expressions: Dict[str, str], column_join: str, table: str) -> str:
+    def column_joinfunc(
+        table_expressions: Dict[str, str], column_join: str, table: str
+    ) -> str:
         return (
             table_expressions[column_join]
             if column_join in table_expressions
@@ -267,7 +270,7 @@ class ExploreResponse:
                 )
         return join_statement
 
-    def multiple_dataset(   # pylint: disable=too-many-locals
+    def multiple_dataset(  # pylint: disable=too-many-locals
         self,
     ) -> Datasource:
         joins: List[str] = self.form_data.get("joins")
