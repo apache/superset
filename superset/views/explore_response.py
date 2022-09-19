@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: skip-file
+# type: ignore
 from typing import Any, cast, Dict, List, Tuple
 from uuid import uuid4
 
