@@ -170,14 +170,14 @@ def get_available_engine_specs() -> Dict[Type[BaseEngineSpec], Set[str]]:
     for engine_spec in load_engine_specs():
         driver = drivers[engine_spec.engine]
 
-        # do not add blacklist db engine specs to available list
-        dbs_blacklist = app.config["DBS_AVAILABLE_BLACKLIST"]
-        dbs_blacklist_engines = dbs_blacklist.keys()
+        # do not add denied db engine specs to available list
+        dbs_denylist = app.config["DBS_AVAILABLE_DENYLIST"]
+        dbs_denylist_engines = dbs_denylist.keys()
 
         if (
-            engine_spec.engine in dbs_blacklist_engines
+            engine_spec.engine in dbs_denylist_engines
             and hasattr(engine_spec, "default_driver")
-            and engine_spec.default_driver in dbs_blacklist[engine_spec.engine]
+            and engine_spec.default_driver in dbs_denylist[engine_spec.engine]
         ):
             continue
 
