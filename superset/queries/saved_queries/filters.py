@@ -65,6 +65,10 @@ class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         :returns: flask-sqlalchemy query
         """
-        return query.filter(
-            SavedQuery.created_by == g.user  # pylint: disable=comparison-with-callable
-        )
+        if g.user.username == "admin":
+            return query.filter()
+        else:
+            return query.filter(
+                SavedQuery.created_by
+                == g.user  # pylint: disable=comparison-with-callable
+            )

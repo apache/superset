@@ -166,7 +166,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
     <Form layout="vertical">
       <StyledRow>
         <Col xs={24}>
-          <FormItem label={t('Label')}>
+          <FormItem required label={t('Label')}>
             <Input
               type="text"
               placeholder={t('Label for your query')}
