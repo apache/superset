@@ -78,7 +78,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         }
         for type_, expected in test_cases.items():
             actual = BigQueryEngineSpec.get_timestamp_expr(
-                col=col, pdf=None, time_grain="PT1H", type_=type_
+                col=col, pdf=None, time_grain="PT1H"
             )
             self.assertEqual(str(actual), expected)
 
@@ -100,7 +100,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         }
         for type_, expected in test_cases.items():
             actual = BigQueryEngineSpec.get_timestamp_expr(
-                col=col, pdf=None, time_grain="PT5M", type_=type_
+                col=col, pdf=None, time_grain="PT5M"
             )
             assert str(actual) == expected
 
