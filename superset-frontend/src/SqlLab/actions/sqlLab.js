@@ -180,8 +180,17 @@ export function scheduleQuery(query) {
 }
 
 export function createFlashObject(flash) {
-  return dispatch =>
-    createFlash(flash)
+  return (dispatch, getState) => {
+    const newFlash = { ...flash };
+    if (typeof flash.sqlQuery !== 'string') {
+      const qe = getUpToDateQuery(
+        getState(),
+        flash.sqlQuery,
+        flash.sqlQuery.id,
+      );
+      newFlash.sqlQuery = qe.selectedText || qe.sql;
+    }
+    return createFlash(newFlash)
       .then(() =>
         dispatch(
           addSuccessToast(
@@ -194,6 +203,7 @@ export function createFlashObject(flash) {
       .catch(() =>
         dispatch(addDangerToast(t('Your flash object could not be created'))),
       );
+  };
 }
 
 export function estimateQueryCost(queryEditor) {
