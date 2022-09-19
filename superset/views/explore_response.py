@@ -269,7 +269,7 @@ class ExploreResponse:
 
     def multiple_dataset(   # pylint: disable=too-many-locals
         self,
-    ) -> Tuple[Datasource, Union[Column, Any, str]]:
+    ) -> Datasource:
         joins: List[str] = self.form_data.get("joins")
         dataset_joins: List[List[Dict[str, str]]] = self.form_data.get("column_joins")
         first_datasource: str = self.form_data.get("first_datasource")
@@ -319,4 +319,4 @@ class ExploreResponse:
             db.session, cast(str, changed_model.type), changed_model.id
         )
 
-        return datasource, datasource.name
+        return datasource
