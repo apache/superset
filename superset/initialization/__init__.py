@@ -375,7 +375,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             Flash,
             "Flash",
-            label=__("Flash"),
+            label="Flash",
             icon="",
             category="",
             category_icon="",
