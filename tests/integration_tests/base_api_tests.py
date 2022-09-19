@@ -294,19 +294,23 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(username="admin")
         uri = f"api/v1/{self.resource_name}/related/owners"
+        self.app.config["EXCLUDE_USER_USERNAMES"] = ["gamma"]
+        gamma_user = (
+            db.session.query(security_manager.user_model)
+            .filter(security_manager.user_model.username == "gamma")
+            .one_or_none()
+        )
+        assert gamma_user is not None
         users = db.session.query(security_manager.user_model).all()
-        expected_users = [str(user) for user in users]
 
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert response["count"] == len(users)
-        # This needs to be implemented like this, because ordering varies between
-        # postgres and mysql
+        assert response["count"] == len(users) - 1
         response_users = [result["text"] for result in response["result"]]
-        raise Exception(expected_users)
-        for expected_user in expected_users:
-            assert expected_user in response_users
+        assert "gamma user" not in response_users
+        # revert the config change
+        self.app.config["EXCLUDE_USER_USERNAMES"] = []
 
     def test_get_ids_related_owners(self):
         """
