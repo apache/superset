@@ -21,9 +21,9 @@ import {
   getColumnLabel,
   getMetricLabel,
   PostProcessingPivot,
+  getAxis,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { getAxis } from './utils';
 
 export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   formData,

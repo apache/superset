@@ -20,16 +20,16 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  DTTM_ALIAS,
   GenericDataType,
-  getColumnLabel,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
+  QueryFormData,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
+  getAxis,
 } from '@superset-ui/core';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
@@ -152,8 +152,7 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
 
-  const xAxisCol =
-    verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
+  const xAxisCol = getAxis(chartProps.rawFormData as QueryFormData);
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
   const rawSeriesA = extractSeries(rebasedDataA, {

@@ -22,8 +22,9 @@ import {
   getColumnLabel,
   NumpyFunction,
   PostProcessingPivot,
+  getAxis,
 } from '@superset-ui/core';
-import { getMetricOffsetsMap, isTimeComparison, getAxis } from './utils';
+import { getMetricOffsetsMap, isTimeComparison } from './utils';
 import { PostProcessingFactory } from './types';
 
 export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot> =

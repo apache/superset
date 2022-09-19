@@ -16,9 +16,8 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingProphet } from '@superset-ui/core';
+import { PostProcessingProphet, getAxis } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { getAxis } from './utils';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
