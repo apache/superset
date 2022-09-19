@@ -3532,9 +3532,6 @@
       },
       "Database": {
         "properties": {
-          "allow_multi_schema_metadata_fetch": {
-            "type": "boolean"
-          },
           "allows_cost_estimate": {
             "type": "boolean"
           },
@@ -3679,10 +3676,6 @@
             "nullable": true,
             "type": "boolean"
           },
-          "allow_multi_schema_metadata_fetch": {
-            "nullable": true,
-            "type": "boolean"
-          },
           "allow_run_async": {
             "nullable": true,
             "type": "boolean"
@@ -3768,10 +3761,6 @@
             "type": "boolean"
           },
           "allow_file_upload": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "allow_multi_schema_metadata_fetch": {
             "nullable": true,
             "type": "boolean"
           },
@@ -3870,10 +3859,6 @@
             "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
             "type": "boolean"
           },
-          "allow_multi_schema_metadata_fetch": {
-            "description": "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.",
-            "type": "boolean"
-          },
           "allow_run_async": {
             "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
@@ -3969,10 +3954,6 @@
           },
           "allow_file_upload": {
             "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
-            "type": "boolean"
-          },
-          "allow_multi_schema_metadata_fetch": {
-            "description": "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.",
             "type": "boolean"
           },
           "allow_run_async": {

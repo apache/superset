@@ -47,6 +47,7 @@ test('should do prophetOperator with default index', () => {
     prophetOperator(
       {
         ...formData,
+        granularity_sqla: 'time_column',
         forecastEnabled: true,
         forecastPeriods: '3',
         forecastInterval: '5',

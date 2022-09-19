@@ -618,7 +618,7 @@ class Header extends React.PureComponent {
                     <Button
                       buttonStyle="secondary"
                       onClick={this.toggleEditMode}
-                      data-test="query-save-button"
+                      data-test="edit-dashboard-button"
                       className="action-button"
                       css={editButtonStyle}
                       aria-label={t('Edit dashboard')}

@@ -33,7 +33,7 @@ import TemplateParamsEditor, {
   Props,
 } from 'src/SqlLab/components/TemplateParamsEditor';
 
-jest.mock('src/components/Select', () => () => (
+jest.mock('src/components/DeprecatedSelect', () => () => (
   <div data-test="mock-deprecated-select" />
 ));
 jest.mock('src/components/Select/Select', () => () => (
