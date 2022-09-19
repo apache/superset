@@ -378,6 +378,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=__("Flash"),
             href="/flash/list/",
             icon="fa-table",
+            category="",
+            category_icon="",
         )
 
         appbuilder.add_api(LogRestApi)
