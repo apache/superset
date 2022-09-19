@@ -5,7 +5,13 @@ import { ComponentStory, ComponentMeta } from '@storybook/react';
 import type { ColumnsType } from 'antd/es/table';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { Table, TableDataType, TableSize, Column } from './index';
+import {
+  Table,
+  TableDataType,
+  TableSize,
+  Column,
+  SUPERSET_TABLE_COLUMN,
+} from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
 
@@ -109,7 +115,7 @@ const basicColumns: ColumnsType[] = [
     title: 'Data Type',
     dataIndex: 'dataType',
     key: 'dataType',
-    sorter: (a: BasicData, b: BasicData) => numericalSort('dataType', a, b),
+    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('dataType', a, b),
   },
   {
     title: 'Actions',
@@ -221,8 +227,6 @@ Basic.args = {
     alert(selection);
   },
   size: TableSize.SMALL,
-  showSorterTooltip: false,
-  reorderable: true,
   onRow: handlers,
   pageSizeOptions: [5, 10, 15, 20, 25],
   defaultPageSize: 10,
@@ -244,4 +248,73 @@ ManyColumns.args = {
     alert(selection);
   },
   size: TableSize.SMALL,
+};
+
+export const ResizableColumns: ComponentStory<typeof Table> = args => (
+  <ThemeProvider theme={supersetTheme}>
+    <div>
+      <Table {...args} />
+    </div>
+  </ThemeProvider>
+);
+
+ResizableColumns.args = {
+  data: basicData,
+  columns: basicColumns,
+  selectedRows: [1],
+  handleRowSelection: (selection: React.Key[]) => {
+    alert(selection);
+  },
+  size: TableSize.SMALL,
+  resizable: true,
+};
+
+const dragOver = (ev: DragEvent) => {
+  ev.preventDefault();
+  ev.currentTarget.style.border = '1px dashed green';
+};
+
+const dragOut = (ev: DragEvent) => {
+  ev.preventDefault();
+  ev.currentTarget.style.border = '1px solid grey';
+};
+
+const dragDrop = (ev: DragEvent) => {
+  const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
+  ev.currentTarget.style.border = '1px solid grey';
+  alert(data);
+};
+
+export const ReorderableColumns: ComponentStory<typeof Table> = args => (
+  <ThemeProvider theme={supersetTheme}>
+    <div>
+      <div
+        onDragOver={(ev: Event) => dragOver(ev)}
+        onDragLeave={(ev: Event) => dragOut(ev)}
+        onDrop={(ev: Event) => dragDrop(ev)}
+        style={{
+          width: '100%',
+          height: '40px',
+          border: '1px solid grey',
+          marginBottom: '8px',
+          padding: '8px',
+          borderRadius: '4px',
+        }}
+      >
+        Drop column here...
+      </div>
+      <Table {...args} />
+    </div>
+  </ThemeProvider>
+);
+
+ReorderableColumns.args = {
+  data: basicData,
+  columns: basicColumns,
+  selectedRows: [1],
+  handleRowSelection: (selection: React.Key[]) => {
+    alert(selection);
+  },
+  size: TableSize.SMALL,
+  reorderable: true,
 };

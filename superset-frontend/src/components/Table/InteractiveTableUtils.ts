@@ -18,6 +18,7 @@
  */
 
 import { withinRange } from './utils';
+import { SUPERSET_TABLE_COLUMN } from 'src/components/Table';
 
 export default class InteractiveTableUtils {
   tableRef: HTMLTableElement | null;
@@ -36,8 +37,6 @@ export default class InteractiveTableUtils {
 
   RESIZE_INDICATOR_THRESHOLD: number;
 
-  SUPERSET_TABLE_COLUMN: string;
-
   constructor(
     tableRef: HTMLTableElement,
     derivedColumns: Array<any>,
@@ -47,7 +46,6 @@ export default class InteractiveTableUtils {
     this.tableRef = tableRef;
     this.isDragging = false;
     this.RESIZE_INDICATOR_THRESHOLD = 8;
-    this.SUPERSET_TABLE_COLUMN = 'superset/table-column';
     this.resizable = false;
     this.reorderable = false;
     this.derivedColumns = derivedColumns;
@@ -81,16 +79,13 @@ export default class InteractiveTableUtils {
     }
     this.isDragging = true;
     const index = this.getColumnIndex();
-    const columnnData = this.derivedColumns[index];
-    const dragData = { index, columnnData };
-    ev?.dataTransfer?.setData(
-      this.SUPERSET_TABLE_COLUMN,
-      JSON.stringify(dragData),
-    );
+    const columnData = this.derivedColumns[index];
+    const dragData = { index, columnData };
+    ev?.dataTransfer?.setData(SUPERSET_TABLE_COLUMN, JSON.stringify(dragData));
   };
 
   handleDragDrop = (ev: DragEvent): void => {
-    const data = ev.dataTransfer?.getData?.(this.SUPERSET_TABLE_COLUMN);
+    const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
     if (data) {
       ev.preventDefault();
       const parent: Element = (ev.currentTarget as HTMLElement)

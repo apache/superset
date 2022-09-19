@@ -7,6 +7,7 @@ import { useTheme, styled, t } from '@superset-ui/core';
 
 import InteractiveTableUtils from './InteractiveTableUtils';
 
+export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 export interface TableDataType {
   key: React.Key;
 }
@@ -155,8 +156,8 @@ export function Table(props: TableProps) {
     selectionType = SelectionType.DISABLED,
     sticky = true,
     loading = false,
-    resizable = true,
-    reorderable = true,
+    resizable = false,
+    reorderable = false,
     defaultPageSize = 15,
     pageSizeOptions = [5, 15, 25, 50, 100],
     hideData = false,
@@ -167,7 +168,6 @@ export function Table(props: TableProps) {
 
   const theme = useTheme();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const tableRef = useRef<HTMLTableElement | null>(null);
   const [derivedColumns, setDerivedColumns] = useState(columns);
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [mergedLocale, setMergedLocale] = useState({ ...defaultLocale });
@@ -270,6 +270,7 @@ export function Table(props: TableProps) {
             pageSizeOptions,
             onShowSizeChange: (page: number, size: number) => setPageSize(size),
           }}
+          showSorterTooltip={false}
           locale={mergedLocale}
         />
       </div>

@@ -23,13 +23,114 @@ provided by the Superset Table component
 
 <Story id="design-system-components-table-examples--basic" />
 
-## Variations
+### Data and Columns
 
-The table component has several variations.
+To set the visible columns and data for the table you use the `columns` and `data` props.
+To create
+the basic table example the `columns` prop is:
 
-## Column Sort Functions
+```
+const basicColumns: = [
+  {
+    title: 'Column Name',
+    dataIndex: 'columnName',
+    key: 'columnName',
+    width: 150,
+    sorter: (a: BasicData, b: BasicData) =>
+      alphabeticalSort('columnName', a, b),
+  },
+  {
+    title: 'Column Type',
+    dataIndex: 'columnType',
+    key: 'columnType',
+    sorter: (a: BasicData, b: BasicData) =>
+      alphabeticalSort('columnType', a, b),
+  },
+  {
+    title: 'Data Type',
+    dataIndex: 'dataType',
+    key: 'dataType',
+    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('dataType', a, b),
+  },
+  {
+    title: 'Actions',
+    dataIndex: 'actions',
+    key: 'actions',
+  },
+];
+```
 
-To ensure consitency for column sorting and avoid redudnant definitions cor columne sorters reusable soirt functions are provided
+the data prop is:
+
+```
+const basicData: = [
+  {
+    key: 1,
+    columnName: 'Column Name 1',
+    columnType: 'Physical',
+    dataType: 'string',
+    actions: ['Action 1', 'Action 2'],
+  },
+  {
+    key: 2,
+    columnName: { name: 'Column Name 2' },
+    columnType: 'Physical',
+    dataType: 'int',
+    actions: ['Action 1', 'Action 2'],
+  },
+  {
+    key: 3,
+    columnName: 'Column Name 3',
+    columnType: 'Virtual',
+    dataType: 'date',
+    actions: ['Action 1', 'Action 2'],
+  },
+];
+```
+
+### Column Sort Functions
+
+To ensure consitency for column sorting and avoid redundant definitions for common column sorters reusable sort functions are provided
+When defining the object for the `columns` prop you can provide an optional attribute `sorter`.
+The function provided in the `sorter` prop is given the entire record representing a row as props `a` and `b`.
+When using a provided sorter function the pattern is to wrap the call to the sorter with an inline function, then specify the specici attribute, representing a column,
+of the data objct for that row as the first argument of the sorter function.
+
+#### alphabeticalSort
+
+The alphabeticalSort is for columns that display a string of text.
+
+```
+import { alphabeticalSort } from 'src/components/Table/sorters';
+
+const basicColumns: = [
+  {
+    title: 'Column Name',
+    dataIndex: 'columnName',
+    key: 'columnName',
+    sorter: (a, b) =>
+      alphabeticalSort('columnName', a, b),
+  }
+]
+```
+
+#### numericSort
+
+the numericalSort is for columns that display a numeric value.
+
+```
+import { numericalSort } from './sorters';
+
+const basicColumns: = [
+  {
+    title: 'Height',
+    dataIndex: 'height',
+    key: 'height',
+    sorter: (a, b) =>
+      numericalSort('height', a, b),
+  }
+]
+```
 
 ### Size
 
@@ -104,12 +205,27 @@ The following specifications are required every time a table is used. These choi
 The Table component has features that are still experimental and can be used at your own risk.
 These features are inteded to be made fully stable in future releases
 
-## Drag Drop
+### Resizable Columns
 
-The prop `reorderable` can enable column drag drop reordering. IF you want to accept the drop event of a Table Column
-you can register a dragOVer event that chacks for
+The prop `resizeable` enables table columns to be resized by the user dragging from the right edge of each
+column to increase or decrease the columns' width
+
+<Story id="design-system-components-table-examples--resizable-columns" />
+
+### Drag & Drop Columns
+
+The prop `reorderable` can enable column drag drop reordering as well as dragging a column to another component. If you want to accept the drop event of a Table Column
+you can register `onDragOver` and `onDragDrop` event handlers on the destination component. In the `onDragDrop` handler you can check for `SUPERSET_TABLE_COLUMN`
+as the getData key as shown below.
 
 ```
-    const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
-    console.log(data);
+import { SUPERSET_TABLE_COLUMN } from 'src/components/table';
+
+const handleDrop = (ev:Event) => {
+  const json = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
+  const data = JSON.parse(json);
+  // ... do something with the data here
+}
 ```
+
+<Story id="design-system-components-table-examples--reorderable-columns" />
