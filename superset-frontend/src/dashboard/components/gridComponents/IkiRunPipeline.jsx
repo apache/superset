@@ -349,7 +349,9 @@ class IkiRunPipeline extends React.PureComponent {
         const paramPipelineId = iframeSrcUrl.searchParams.get('pipeline_id')
           ? iframeSrcUrl.searchParams.get('pipeline_id')
           : '';
-        const paramAliasId = iframeSrcUrl.searchParams.get('alias_id');
+        const paramAliasId = iframeSrcUrl.searchParams.get('alias_id')
+          ? iframeSrcUrl.searchParams.get('alias_id')
+          : '';
         const paramSubmitButtonLabel = iframeSrcUrl.searchParams.get(
           'submit_button_label',
         )
