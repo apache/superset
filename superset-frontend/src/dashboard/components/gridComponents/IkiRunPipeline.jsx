@@ -216,6 +216,7 @@ class IkiRunPipeline extends React.PureComponent {
               widgetUrlQuery = new URLSearchParams(widgetUrl);
               widgetUrlQuery.set('mode', 'preview');
               widgetUrlQuery.set('pipeline_id', messageData.pipeline.id);
+              widgetUrlQuery.set('alias_id', messageData.aliasPipelineId);
               widgetUrlQuery.set(
                 'submit_button_label',
                 messageData.buttonLabel,
