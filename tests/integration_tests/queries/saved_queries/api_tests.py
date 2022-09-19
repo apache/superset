@@ -481,10 +481,10 @@ class TestSavedQueryApi(SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         expected_response = {
-            "count": len(saved_queries),
+            "count": len(saved_queries) + 1,
             "result": [
                 {"text": f"schema{i}", "value": f"schema{i}"}
-                for i in range(len(saved_queries))
+                for i in range(len(saved_queries) + 1)
             ],
         }
         assert data == expected_response
