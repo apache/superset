@@ -60,7 +60,7 @@ type Query = {
 };
 interface FlashCreationButtonProps {
   latestQueryFormData?: object;
-  sql?: string;
+  sqlEditor?: any;
   onCreate?: Function;
 }
 
@@ -90,7 +90,7 @@ const StyledJsonSchema = styled.div`
 `;
 
 const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
-  sql,
+  sqlEditor,
   latestQueryFormData,
   onCreate = () => {},
 }) => {
@@ -99,11 +99,24 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     enum: [''],
     enumNames: ['Please Select'],
   });
-  const [formData, setFormData] = useState<FlashObject | {}>({});
+  // owner: '',
+  // datasetName: '',
+  // domainName: '',
+  // flashType: '',
+  // scheduleStartTime: '',
+  // scheduleType: '',
+  // serviceName: '',
+  // sqlQuery: '',
+  // datastoreId: '',
+  // tableName: '',
+  // teamSlackChannel: '',
+  // teamSlackHandle: '',
+  // ttl: '',
+  const [formData, setFormData] = useState<FlashObject | null>(null);
   const [sqlQuery, setSqlQuery] = useState<Query>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const canCreateFlashObject = !!sql || !!latestQueryFormData;
+  const canCreateFlashObject = !!sqlEditor || !!latestQueryFormData;
   const saveModal: ModalTriggerRef | null = useRef() as ModalTriggerRef;
 
   useEffect(() => {
@@ -191,18 +204,21 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
   }, [JSON.stringify(latestQueryFormData)]);
 
   const validate = (formData: any, errors: any) => {
-    if (
-      formData.flashType === FlashTypes.SHORT_TERM ||
-      formData.flashType === FlashTypes.LONG_TERM
-    )
+    if (formData) {
       if (
-        Date.parse(formData.scheduleStartTime) <
-        Date.parse(new Date().toISOString())
+        formData.flashType === FlashTypes.SHORT_TERM ||
+        formData.flashType === FlashTypes.LONG_TERM
       ) {
-        errors.scheduleStartTime.addError(
-          'Schedule Start Time can be tomorrow or onwards',
-        );
+        if (
+          Date.parse(formData.scheduleStartTime) <
+          Date.parse(new Date().toISOString())
+        ) {
+          errors.scheduleStartTime.addError(
+            'Schedule Start Time can be tomorrow or onwards',
+          );
+        }
       }
+    }
     return errors;
   };
 
@@ -297,15 +313,35 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
         'scheduleStartTime',
       ]);
     }
-    const flash = {
+    let flash = {
       owner: user?.email,
-      sqlQuery: sql || sqlQuery?.query,
+      sqlQuery: sqlQuery?.query ? sqlQuery?.query : sqlEditor,
       ...payload,
     } as FlashObject;
+
     onCreate(flash);
+    resetFormData();
     saveModal?.current?.close();
   };
 
+  const resetFormData = () => {
+    if (formData) {
+      formData.datastoreId = '';
+      formData.domainName = '';
+      formData.datasetName = '';
+      formData.flashType = '';
+      formData.scheduleStartTime = convertToLocalDateTime();
+      formData.scheduleType = '';
+      formData.serviceName = '';
+      formData.tableName = '';
+      formData.teamSlackChannel = '';
+      formData.teamSlackHandle = '';
+      formData.ttl = chrono
+        .parseDate('7 days from now')
+        .toISOString()
+        .split('T')[0];
+    }
+  };
   const renderModalBody = () => (
     <Form layout="vertical">
       <Row>
@@ -314,7 +350,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
             <SchemaForm
               schema={flashSchema}
               showErrorList={false}
-              formData={formData}
+              formData={formData || {}}
               uiSchema={getUISchema()}
               onSubmit={onFlashCreationSubmit}
               transformErrors={transformErrors}

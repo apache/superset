@@ -214,6 +214,7 @@ class SqlEditor extends React.PureComponent {
 
     this.onBeforeUnload = this.onBeforeUnload.bind(this);
     this.renderDropdown = this.renderDropdown.bind(this);
+    console.log('query editor props==', this.props)
   }
 
   UNSAFE_componentWillMount() {
@@ -660,7 +661,7 @@ class SqlEditor extends React.PureComponent {
           {flashCreationConf && (
             <span>
               <FlashCreationButton
-                sql={this.props.queryEditor.sql}
+                sqlEditor={this.props.queryEditor}
                 onCreate={this.props.actions.createFlashObject}
               />
             </span>
