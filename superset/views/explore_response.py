@@ -40,7 +40,7 @@ class ExploreResponse:
         self.form_data = form_data
 
     @staticmethod
-    def get_datasources_data(datasources: list) -> None:
+    def get_datasources_data(datasources: List[str]) -> Tuple[List[int], List[str]]:
         """
         Returns Datasource IDs and Types in seperate Lists
         """
@@ -130,10 +130,10 @@ class ExploreResponse:
         Iterates through Datasets and returns Column Aliases for each Dataset
         """
         table_column_expressions: Dict = {}
-        mapped_columns: list[str] = []  # pylint: disable=unsubscriptable-object
+        mapped_columns: List[str] = []  # pylint: disable=unsubscriptable-object
         for index, datasource in enumerate(datasources):
             table_name = datasource.data["table_name"]
-            columns: list[  # pylint: disable=unsubscriptable-object
+            columns: List[  # pylint: disable=unsubscriptable-object
                 Dict[str, Any]
             ] = datasource.data["columns"]
             renamed_columns, expression_columns = ExploreResponse.get_column_aliases(
@@ -264,10 +264,10 @@ class ExploreResponse:
         return join_statement
 
     def multiple_dataset(self):  # pylint: disable=too-many-locals
-        joins: list = self.form_data.get("joins")
-        dataset_joins: list = self.form_data.get("column_joins")
+        joins: List[str] = self.form_data.get("joins")
+        dataset_joins: List[List[Dict[str, str]]] = self.form_data.get("column_joins")
         first_datasource: str = self.form_data.get("first_datasource")
-        additional_datasources: list = self.form_data.get("additional_datasources")
+        additional_datasources: List[str] = self.form_data.get("additional_datasources")
 
         additional_datasources.insert(0, first_datasource)
         datasource_ids, datasource_types = self.get_datasources_data(
