@@ -331,7 +331,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
-        appbuilder.add_view_no_menu(Flash)
 
         #
         # Add links
@@ -373,11 +372,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="SQL Lab",
             category_label=__("SQL"),
         )
-        appbuilder.add_link(
+        appbuilder.add_view(
+            Flash,
             "Flash",
             label=__("Flash"),
-            href="/flash/list/",
-            icon="fa-table",
+            icon="",
             category="",
             category_icon="",
         )
