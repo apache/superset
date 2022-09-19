@@ -404,7 +404,7 @@ class SliceHeaderControls extends React.PureComponent<
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
-            <Link to={this.props.exploreUrl}>
+            <Link to={this.props.exploreUrl} target="_blank">
               <Tooltip
                 title={getSliceHeaderTooltip(this.props.slice.slice_name)}
               >
