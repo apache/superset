@@ -112,6 +112,8 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         "rows",
         "last_run_delta_humanized",
         "extra",
+        "extra_json",
+        "user_email",
     ]
     add_columns = ["db_id", "description", "label", "schema", "sql"]
     edit_columns = add_columns

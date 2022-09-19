@@ -31,7 +31,8 @@ const AntdIconComponent = ({
   viewBox,
   ...rest
 }: Omit<IconType, 'ref' | 'css'>) => (
-  <AntdIcon viewBox={viewBox || '0 0 24 24'} {...rest} />
+  // <AntdIcon viewBox={viewBox || '0 0 24 24'} {...rest} />
+  <AntdIcon {...rest} />
 );
 
 export const StyledIcon = styled(AntdIconComponent)<IconType>`

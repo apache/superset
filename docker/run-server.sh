@@ -17,7 +17,9 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+
 HYPHEN_SYMBOL='-'
+STATSD_PREFIX='careem.insights'
 
 gunicorn \
     --bind "${SUPERSET_BIND_ADDRESS:-0.0.0.0}:${SUPERSET_PORT:-8088}" \
@@ -32,4 +34,6 @@ gunicorn \
     --max-requests-jitter ${WORKER_MAX_REQUESTS_JITTER:-0} \
     --limit-request-line ${SERVER_LIMIT_REQUEST_LINE:-0} \
     --limit-request-field_size ${SERVER_LIMIT_REQUEST_FIELD_SIZE:-0} \
+    --statsd-host=localhost:${STATSD_PORT:-9125} \
+    --statsd-prefix=${STATSD_PREFIX} \
     "${FLASK_APP}"

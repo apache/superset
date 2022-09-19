@@ -95,9 +95,12 @@ interface TableSelectorProps {
   onDbChange?: (db: DatabaseObject) => void;
   onSchemaChange?: (schema?: string) => void;
   onSchemasLoad?: (schemaOptions: SchemaOption[]) => void;
+  onCatalogChange?: (catalog?: string) => void;
+  onCatalogsLoad?: (catalogOptions?: object[]) => void;
   onTablesLoad?: (options: Array<any>) => void;
   readOnly?: boolean;
   schema?: string;
+  catalog?: string;
   onEmptyResults?: (searchText?: string) => void;
   sqlLabMode?: boolean;
   tableValue?: string | string[];
@@ -165,10 +168,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   tableSelectMode = 'single',
   tableValue = undefined,
   onTableSelectChange,
+  catalog,
+  onCatalogsLoad,
+  onCatalogChange,
 }) => {
   const { addSuccessToast } = useToasts();
   const [currentSchema, setCurrentSchema] = useState<string | undefined>(
     schema,
+  );
+  const [currentCatalog, setCurrentCatalog] = useState<string | undefined>(
+    catalog,
   );
   const [tableSelectValue, setTableSelectValue] = useState<
     SelectValue | undefined
@@ -190,6 +199,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     onError: () => handleError(t('There was an error loading the tables')),
   });
 
+  const shouldLoadTables = (database: DatabaseObject | null | undefined) =>
+    database?.has_catalogs ? currentCatalog && currentSchema : currentSchema;
+
   const tableOptions = useMemo<TableOption[]>(
     () =>
       data
@@ -205,6 +217,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   useEffect(() => {
     // reset selections
     if (database === undefined) {
+      setCurrentCatalog(undefined);
       setCurrentSchema(undefined);
       setTableSelectValue(undefined);
     }
@@ -240,6 +253,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   };
 
   const internalDbChange = (db: DatabaseObject) => {
+    console.log('Triggered');
     if (onDbChange) {
       onDbChange(db);
     }
@@ -251,6 +265,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       onSchemaChange(schema);
     }
 
+    const value = tableSelectMode === 'single' ? undefined : [];
+    internalTableChange(value);
+  };
+
+  const internalCatalogChange = (catalog?: string) => {
+    setCurrentCatalog(catalog);
+    if (onCatalogChange) {
+      onCatalogChange(catalog);
+    }
+    internalSchemaChange(undefined);
     const value = tableSelectMode === 'single' ? undefined : [];
     internalTableChange(value);
   };
@@ -272,6 +296,9 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         sqlLabMode={sqlLabMode}
         isDatabaseSelectEnabled={isDatabaseSelectEnabled && !readOnly}
         readOnly={readOnly}
+        catalog={currentCatalog}
+        onCatalogLoad={onCatalogsLoad}
+        onCatalogChange={readOnly ? undefined : internalCatalogChange}
       />
     );
   }
@@ -331,7 +358,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     <TableSelectorWrapper>
       {renderDatabaseSelector()}
       {sqlLabMode && !formMode && <div className="divider" />}
-      {renderTableSelect()}
+      {shouldLoadTables(database) && renderTableSelect()}
     </TableSelectorWrapper>
   );
 };

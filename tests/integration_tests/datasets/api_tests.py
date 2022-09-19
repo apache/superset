@@ -207,6 +207,7 @@ class TestDatasetApi(SupersetTestCase):
             "changed_by_url",
             "changed_on_delta_humanized",
             "changed_on_utc",
+            "columns",
             "database",
             "datasource_type",
             "default_endpoint",

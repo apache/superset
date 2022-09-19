@@ -72,6 +72,9 @@ setup(
         ],
     },
     install_requires=[
+        "gevent>=1.4",
+        "Authlib>=0.6",
+        "statsd>=3.3.0",
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
         "cachelib>=0.4.1,<0.5",

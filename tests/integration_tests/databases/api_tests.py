@@ -200,6 +200,7 @@ class TestDatabaseApi(SupersetTestCase):
             "expose_in_sqllab",
             "extra",
             "force_ctas_schema",
+            "has_catalogs",
             "id",
         ]
 

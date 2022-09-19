@@ -31,6 +31,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
 import Icons from 'src/components/Icons';
+import * as sqlActions from 'src/SqlLab/actions/sqlLab';
 import {
   getItem,
   setItem,
@@ -763,6 +764,7 @@ function mapDispatchToProps(dispatch) {
     ...saveModalActions,
     ...chartActions,
     ...logActions,
+    ...sqlActions,
   };
   return {
     actions: bindActionCreators(actions, dispatch),

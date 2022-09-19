@@ -152,6 +152,7 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
+from superset.views.explore_response import ExploreResponse  # type: ignore
 from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
     _deserialize_results_payload,
@@ -188,6 +189,7 @@ DATABASE_KEYS = [
     "force_ctas_schema",
     "id",
     "disable_data_preview",
+    "has_catalogs",
 ]
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
@@ -736,6 +738,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return self.render_template(
             "superset/import_dashboards.html", databases=databases
         )
+
+    @api
+    @handle_api_exception
+    @event_logger.log_this
+    @expose("/multidataset/", methods=["POST"])
+    def multidataset(self) -> FlaskResponse:  # pylint: disable=no-self-use
+
+        initial_form_data: Dict[str, Any] = {}
+        form_data, slc = get_form_data(  # pylint: disable=unused-variable
+            use_slice_data=True, initial_form_data=initial_form_data
+        )
+
+        explore_response = ExploreResponse(form_data)
+        datasource = explore_response.multiple_dataset()
+
+        return json_success(json.dumps({"datasource": datasource.data}))
 
     @has_access
     @event_logger.log_this
@@ -1564,7 +1582,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
-    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def available_domains(self) -> FlaskResponse:
         """
         Returns the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
@@ -2794,6 +2812,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
             }
             databases[database.id]["backend"] = database.backend
+            databases[database.id]["has_catalogs"] = database.has_catalogs
         queries: Dict[str, Any] = {}
 
         # These are unnecessary if sqllab backend persistence is disabled

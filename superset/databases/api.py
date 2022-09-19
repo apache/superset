@@ -54,6 +54,8 @@ from superset.databases.dao import DatabaseDAO
 from superset.databases.decorators import check_datasource_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
+    CatalogsResponseSchema,
+    database_catalogs_query_schema,
     database_schemas_query_schema,
     DatabaseFunctionNamesResponse,
     DatabasePostSchema,
@@ -102,6 +104,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "available",
         "validate_parameters",
         "validate_sql",
+        "catalogs",
+        "catalog_schemas",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -153,6 +157,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "force_ctas_schema",
         "id",
         "disable_data_preview",
+        "has_catalogs",
     ]
     add_columns = [
         "database_name",
@@ -196,6 +201,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,
         "get_export_ids_schema": get_export_ids_schema,
+        "database_catalogs_query_schema": database_catalogs_query_schema,
     }
 
     openapi_spec_tag = "Database"
@@ -210,6 +216,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         SchemasResponseSchema,
         ValidateSQLRequest,
         ValidateSQLResponse,
+        CatalogsResponseSchema,
     )
 
     @expose("/", methods=["POST"])
@@ -466,6 +473,133 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         try:
             schemas = database.get_all_schema_names(
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout,
+                force=kwargs["rison"].get("force", False),
+            )
+            schemas = security_manager.get_schemas_accessible_by_user(database, schemas)
+            return self.response(200, result=schemas)
+        except OperationalError:
+            return self.response(
+                500, message="There was an error connecting to the database"
+            )
+
+    @expose("/<int:pk>/catalogs/")
+    @protect()
+    @safe
+    @rison(database_catalogs_query_schema)
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".catalogs",
+        log_to_statsd=False,
+    )
+    def catalogs(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """Get all catalogs for a Presto database
+        ---
+        get:
+          description: Get all catalogs for a Presto database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/database_catalogs_query_schema'
+          responses:
+            200:
+              description: A List of all catalogs from a Presto database
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/CatalogsResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = self.datamodel.get(pk, self._base_filters)
+        if not database:
+            return self.response_404()
+        if not database.has_catalogs:
+            return self.response(500, message="Database does not support catalogs")
+        try:
+            catalogs = database.get_all_catalog_names(
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout,
+                force=kwargs["rison"].get("force", False),
+            )
+            return self.response(200, result=catalogs)
+        except OperationalError:
+            return self.response(
+                500, message="There was an error connecting to the database"
+            )
+
+    @expose("/<int:pk>/<catalog_name>/schemas/")
+    @safe
+    @rison(database_schemas_query_schema)
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".catalog.schemas",
+        log_to_statsd=False,
+    )
+    def catalog_schemas(
+        self, pk: int, catalog_name: str, **kwargs: Any
+    ) -> FlaskResponse:
+        """Get all catalog realted schemas from a database
+        ---
+        get:
+          description: Get all catalog related schemas from a database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database id
+          - in: path
+            schema:
+              type: string
+            name: catalog_name
+            description: Catalog name
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/database_schemas_query_schema'
+          responses:
+            200:
+              description: A List of all catalog related schemas from the database
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/SchemasResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = self.datamodel.get(pk, self._base_filters)
+        if not database:
+            return self.response_404()
+        if not database.has_catalogs:
+            return self.response(500, message="Database does not support catalogs")
+        try:
+            schemas = database.get_all_catalog_schema_names(
+                catalog_name=catalog_name,
                 cache=database.schema_cache_enabled,
                 cache_timeout=database.schema_cache_timeout,
                 force=kwargs["rison"].get("force", False),

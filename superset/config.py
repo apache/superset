@@ -102,7 +102,7 @@ PACKAGE_JSON_FILE = pkg_resources.resource_filename(
 #     "type": "image/png"
 #     "rel": "icon"
 # },
-FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
+FAVICONS = [{"href": "/static/assets/images/insights v2 - 256.png"}]
 
 
 def _try_json_readversion(filepath: str) -> Optional[str]:
@@ -260,18 +260,386 @@ SHOW_STACKTRACE = True
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
 ENABLE_PROXY_FIX = False
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
+FLASH_URL = "https://flash-api.dev.careem-rh.com/"
 
 # Configuration for scheduling queries from SQL Lab.
-SCHEDULED_QUERIES: Dict[str, Any] = {}
+SCHEDULED_QUERIES: Dict[str, Any] = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    "JSONSCHEMA": {
+        "title": "Schedule",
+        "description": (
+            "In order to schedule a query, you need to specify when it "
+            "should start running, when it should stop running, and how "
+            "often it should run."
+        ),
+        "type": "object",
+        "properties": {
+            "output_table": {
+                "type": "string",
+                "title": "Output table name",
+            },
+            "start_date": {
+                "type": "string",
+                "title": "Start date",
+                # date-time is parsed using the chrono library, see
+                # https://www.npmjs.com/package/chrono-node#usage
+                "format": "date-time",
+                "default": "tomorrow at 9am",
+            },
+            "end_date": {
+                "type": "string",
+                "title": "End date",
+                # date-time is parsed using the chrono library, see
+                # https://www.npmjs.com/package/chrono-node#usage
+                "format": "date-time",
+                "default": "9am in 30 days",
+            },
+            "schedule_interval": {
+                "type": "string",
+                "title": "Schedule interval",
+                "enum": [
+                    "@15minutes",
+                    "@30minutes",
+                    "@45minutes",
+                    "@hourly",
+                    "@daily",
+                    "@weekly",
+                    "@monthly",
+                    "@quaterly",
+                ],
+                "enumNames": [
+                    "15 Minutes",
+                    "30 Minutes",
+                    "45 Minutes",
+                    "Hourly",
+                    "Daily",
+                    "Weekly",
+                    "Monthly",
+                    "Quaterly",
+                ],
+            },
+            "slack_handle": {
+                "type": "string",
+                "title": "Slack Handle",
+                "pattern": "^(@)[A-Za-z0-9_-\\s&!]+$",
+            },
+        },
+        "required": [
+            "output_table",
+            "start_date",
+            "end_date",
+            "schedule_interval",
+            "slack_handle",
+        ],
+    },
+    "VALIDATION": [
+        # ensure that start_date <= end_date
+        {
+            "name": "less_equal",
+            "arguments": ["start_date", "end_date"],
+            "message": "End date cannot be before start date",
+            # this is where the error message is shown
+            "container": "end_date",
+        },
+    ],
+}
+
+# Flash configurations
+FLASH_CREATION = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    "JSONSCHEMA": {
+        "type": "object",
+        "properties": {
+            "datastoreId": {
+                "title": "Target DB Name",
+                "type": "number",
+            },
+            "domainName": {"type": "string", "title": "Domain"},
+            "serviceName": {"type": "string", "title": "Service"},
+            "datasetName": {"type": "string", "title": "Dataset"},
+            "tableName": {
+                "type": "string",
+                "title": "Table Name",
+                "readOnly": True,
+            },
+            "flashType": {
+                "title": "Flash Type",
+                "type": "string",
+                "enum": ["", "One Time", "Short Term", "Long Term"],
+                "enumNames": [
+                    "Please Select",
+                    "One Time (Valid upto 7 days)",
+                    "Short Term (Valid upto 7 days)",
+                    "Long Term (Valid upto 90 days)",
+                ],
+                "default": "Please Select",
+            },
+            "ttl": {
+                "type": "string",
+                "title": "TTL",
+                "format": "date",
+                "default": "7 days from now",
+                "readOnly": True,
+            },
+        },
+        "required": [
+            "datastoreId",
+            "domainName",
+            "serviceName",
+            "datasetName",
+            "flashType",
+            "ttl",
+        ],
+        "dependencies": {
+            "flashType": {
+                "oneOf": [
+                    {
+                        "properties": {
+                            "flashType": {"enum": ["Long Term"]},
+                            "teamSlackChannel": {
+                                "type": "string",
+                                "title": "Slack Channel",
+                                "pattern": "^(#)[A-Za-z0-9_-]+$",
+                            },
+                            "teamSlackHandle": {
+                                "type": "string",
+                                "title": "Slack Handle",
+                                "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
+                            },
+                            "scheduleType": {
+                                "title": "Schedule Type",
+                                "type": "string",
+                                "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
+                                "enumNames": [
+                                    "Please Select",
+                                    "Hourly",
+                                    "Daily",
+                                    "Weekly",
+                                    "Monthly",
+                                ],
+                                "default": "Please Select",
+                            },
+                            "scheduleStartTime": {
+                                "type": "string",
+                                "title": "Schedule Start Time (In UTC)",
+                                "format": "date-time",
+                            },
+                        },
+                        "required": [
+                            "teamSlackChannel",
+                            "teamSlackHandle",
+                            "scheduleType",
+                            "scheduleStartTime",
+                        ],
+                    },
+                    {
+                        "properties": {
+                            "flashType": {"enum": ["Short Term"]},
+                            "scheduleType": {
+                                "title": "Schedule Type",
+                                "type": "string",
+                                "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
+                                "enumNames": [
+                                    "Please Select",
+                                    "Hourly",
+                                    "Daily",
+                                    "Weekly",
+                                    "Monthly",
+                                ],
+                                "default": "Please Select",
+                            },
+                            "scheduleStartTime": {
+                                "type": "string",
+                                "title": "Schedule Start Time (In UTC)",
+                                "format": "date-time",
+                            },
+                        },
+                        "required": ["scheduleType", "scheduleStartTime"],
+                    },
+                ]
+            }
+        },
+    },
+    "UISCHEMA": {
+        "ui:order": [
+            "datastoreId",
+            "domainName",
+            "serviceName",
+            "datasetName",
+            "tableName",
+            "flashType",
+            "*",
+            "ttl",
+            "scheduleType",
+            "scheduleStartTime",
+        ],
+        "datastoreId": {"ui:help": "Database where the flash object is stored"},
+        "domainName": {"ui:help": "Name of the owning team"},
+        "serviceName": {"ui:help": "Careem Service for which the flash object is used"},
+        "datasetName": {"ui:help": "Flash dataset name"},
+        "tableName": {"ui:help": "Name of the flash object created"},
+        "teamSlackChannel": {
+            "ui:placeholder": "#slack_channel_name",
+            "ui:help": "Slack channel for notification",
+        },
+        "teamSlackHandle": {
+            "ui:placeholder": "@slack_handle_name",
+            "ui:help": "Slack handle for notification",
+        },
+        "ttl": {"ui:help": "Flash object validity"},
+        "scheduleType": {"ui:help": "Schedule type for the Flash object"},
+        "scheduleStartTime": {
+            "ui:help": "Start time from which the flash object is to be scheduled."
+        },
+    },
+    "VALIDATION": [],
+    # link to the scheduler; this example links to an Airflow pipeline
+    # that uses the query id and the output table as its name
+    "linkback": (
+        "https://airflow.example.com/admin/airflow/tree?"
+        "dag_id=query_${id}_${extra_json.schedule_info.output_table}"
+    ),
+}
+
+FLASH_OWNERSHIP = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    "JSONSCHEMA": {
+        "type": "object",
+        "properties": {
+            "teamSlackChannel": {
+                "type": "string",
+                "title": "Slack Channel",
+                "pattern": "^(#)[A-Za-z0-9_-]+$",
+            },
+            "teamSlackHandle": {
+                "type": "string",
+                "title": "Slack Handle",
+                "pattern": "^(@)[A-Za-z0-9_-\\s]+$",
+            },
+            "ownershipType": {
+                "type": "boolean",
+                "title": "Assign to me",
+                "enum": [True, False],
+                "default": False,
+            },
+            "owner": {
+                "type": "string",
+                "title": "Owner Email",
+                "format": "email",
+                "pattern": "[a-z0-9]+@careem.com",
+            },
+        },
+        "required": [
+            "teamSlackChannel",
+            "teamSlackHandle",
+        ],
+    },
+    "UISCHEMA": {
+        "ui:order": [
+            "teamSlackChannel",
+            "teamSlackHandle",
+            "ownershipType",
+            "owner",
+        ],
+        "teamSlackChannel": {
+            "ui:placeholder": "#slack_channel_name",
+            "ui:help": "Slack channel for notification",
+        },
+        "teamSlackHandle": {
+            "ui:placeholder": "@slack_handle_name",
+            "ui:help": "Slack handle for notification",
+        },
+        "owner": {
+            "ui:placeholder": "abc@abc.com",
+            "ui:help": "The email to whom the ownership should be transferred",
+        },
+    },
+    "VALIDATION": [],
+}
+
+FLASH_TTL = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    "JSONSCHEMA": {
+        "type": "object",
+        "properties": {
+            "ttl": {
+                "type": "string",
+                "title": "TTL",
+                "format": "date",
+                "default": "7 days from now",
+            },
+        },
+        "required": ["ttl"],
+    },
+    "UISCHEMA": {
+        "ui:order": [
+            "ttl",
+        ],
+        "ttl": {"ui:help": "Flash object validity"},
+    },
+    "VALIDATION": [],
+}
+
+FLASH_SCHEDULE = {
+    # This information is collected when the user clicks "Schedule query",
+    # and saved into the `extra` field of saved queries.
+    # See: https://github.com/mozilla-services/react-jsonschema-form
+    "JSONSCHEMA": {
+        "type": "object",
+        "properties": {
+            "scheduleType": {
+                "title": "Schedule Type",
+                "type": "string",
+                "enum": ["", "Hourly", "Daily", "Weekly", "Monthly"],
+                "enumNames": [
+                    "Please Select",
+                    "Hourly",
+                    "Daily",
+                    "Weekly",
+                    "Monthly",
+                ],
+                "default": "Please Select",
+            },
+            "scheduleStartTime": {
+                "type": "string",
+                "title": "Schedule Start Time (In UTC)",
+                "format": "date-time",
+            },
+        },
+        "required": [
+            "scheduleType",
+            "scheduleStartTime",
+        ],
+    },
+    "UISCHEMA": {
+        "ui:order": [
+            "scheduleType",
+            "scheduleStartTime",
+        ],
+        "scheduleType": {"ui:help": "Schedule type for the Flash object"},
+        "scheduleStartTime": {
+            "ui:help": "Start time from which the flash object is to be scheduled"
+        },
+    },
+    "VALIDATION": [],
+}
 
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Superset"
+APP_NAME = "Careem Insights"
 
 # Specify the App icon
-APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "/static/assets/images/insights v2 -inline-a.png"
 
 # Specify where clicking the logo would take the user
 # e.g. setting it to '/' would take the user to '/superset/welcome/'
@@ -633,7 +1001,7 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
-ENABLE_CORS = False
+ENABLE_CORS = True
 CORS_OPTIONS: Dict[Any, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
