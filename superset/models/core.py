@@ -603,6 +603,7 @@ class Database(
         return self.get_db_engine_spec(url)
 
     @classmethod
+    @memoized
     def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:
