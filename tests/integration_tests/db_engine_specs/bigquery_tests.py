@@ -77,6 +77,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             "TIMESTAMP": "TIMESTAMP_TRUNC(temporal, HOUR)",
         }
         for type_, expected in test_cases.items():
+            col.type = type_
             actual = BigQueryEngineSpec.get_timestamp_expr(
                 col=col, pdf=None, time_grain="PT1H"
             )
@@ -99,6 +100,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             ") AS TIMESTAMP)",
         }
         for type_, expected in test_cases.items():
+            col.type = type_
             actual = BigQueryEngineSpec.get_timestamp_expr(
                 col=col, pdf=None, time_grain="PT5M"
             )
