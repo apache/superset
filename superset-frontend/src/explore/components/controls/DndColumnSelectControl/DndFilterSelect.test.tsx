@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { GenericDataType } from '@superset-ui/core';
+import { FeatureFlag, GenericDataType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter, {
@@ -47,6 +47,14 @@ const baseFormData = {
   viz_type: 'my_viz',
   datasource: 'table__1',
 };
+
+beforeAll(() => {
+  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
+});
+
+afterAll(() => {
+  window.featureFlags = {};
+});
 
 test('renders with default props', async () => {
   render(<DndFilterSelect {...defaultProps} />, { useDnd: true });

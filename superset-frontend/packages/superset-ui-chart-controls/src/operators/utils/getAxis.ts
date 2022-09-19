@@ -16,24 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  DTTM_ALIAS,
+  getColumnLabel,
+  isDefined,
+  QueryFormData,
+} from '@superset-ui/core';
 
-import { t } from '@superset-ui/core';
-import { sharedControls } from '@superset-ui/chart-controls';
+export const getAxis = (formData: QueryFormData): string | undefined => {
+  // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
+  if (!(formData.granularity_sqla || formData.x_axis)) {
+    return undefined;
+  }
 
-export const dndLineColumn = {
-  name: 'line_column',
-  config: {
-    ...sharedControls.entity,
-    label: t('Lines column'),
-    description: t('The database columns that contains lines information'),
-  },
-};
-
-export const dndGeojsonColumn = {
-  name: 'geojson',
-  config: {
-    ...sharedControls.entity,
-    label: t('GeoJson Column'),
-    description: t('Select the geojson column'),
-  },
+  return isDefined(formData.x_axis)
+    ? getColumnLabel(formData.x_axis)
+    : DTTM_ALIAS;
 };

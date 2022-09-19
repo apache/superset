@@ -851,19 +851,6 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "DROP TABLE brth_names", mock_cursor
             )
 
-    def test_get_all_datasource_names(self):
-        df = pd.DataFrame.from_dict(
-            {"table_schema": ["schema1", "schema2"], "table_name": ["name1", "name2"]}
-        )
-        database = mock.MagicMock()
-        database.get_df.return_value = df
-        result = PrestoEngineSpec.get_all_datasource_names(database, "table")
-        expected_result = [
-            DatasourceName(schema="schema1", table="name1"),
-            DatasourceName(schema="schema2", table="name2"),
-        ]
-        assert result == expected_result
-
     def test_get_create_view(self):
         mock_execute = mock.MagicMock()
         mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
