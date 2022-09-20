@@ -493,6 +493,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <StyledCell {...cellProps}>
               {valueRange && (
                 <div
+                  /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
                     value && value < 0 ? 'negative' : 'positive',
