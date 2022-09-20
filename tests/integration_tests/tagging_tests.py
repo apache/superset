@@ -90,40 +90,40 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_dataset)
         db.session.commit()
 
-    # @pytest.mark.usefixtures("with_tagging_system_feature")
-    # def test_chart_tagging(self):
-    #     """
-    #     Test to make sure that when a new chart is created,
-    #     a corresponding tag in the tagged_objects table
-    #     is created
-    #     """
+    @pytest.mark.usefixtures("with_tagging_system_feature")
+    def test_chart_tagging(self):
+        """
+        Test to make sure that when a new chart is created,
+        a corresponding tag in the tagged_objects table
+        is created
+        """
 
-    #     # Remove all existing rows in the tagged_object table
-    #     self.clear_tagged_object_table()
+        # Remove all existing rows in the tagged_object table
+        self.clear_tagged_object_table()
 
-    #     # Test to make sure nothing is in the tagged_object table
-    #     self.assertEqual([], self.query_tagged_object_table())
+        # Test to make sure nothing is in the tagged_object table
+        self.assertEqual([], self.query_tagged_object_table())
 
-    #     # Create a chart and add it to the db
-    #     test_chart = Slice(
-    #         slice_name="test_chart",
-    #         datasource_type=DatasourceType.TABLE,
-    #         viz_type="bubble",
-    #         datasource_id=1,
-    #         id=1,
-    #     )
-    #     db.session.add(test_chart)
-    #     db.session.commit()
+        # Create a chart and add it to the db
+        test_chart = Slice(
+            slice_name="test_chart",
+            datasource_type=DatasourceType.TABLE,
+            viz_type="bubble",
+            datasource_id=1,
+            id=1,
+        )
+        db.session.add(test_chart)
+        db.session.commit()
 
-    #     # Test to make sure that a chart tag was added to the tagged_object table
-    #     tags = self.query_tagged_object_table()
-    #     self.assertEqual(1, len(tags))
-    #     self.assertEqual("ObjectTypes.chart", str(tags[0].object_type))
-    #     self.assertEqual(test_chart.id, tags[0].object_id)
+        # Test to make sure that a chart tag was added to the tagged_object table
+        tags = self.query_tagged_object_table()
+        self.assertEqual(1, len(tags))
+        self.assertEqual("ObjectTypes.chart", str(tags[0].object_type))
+        self.assertEqual(test_chart.id, tags[0].object_id)
 
-    #     # Cleanup the db
-    #     db.session.delete(test_chart)
-    #     db.session.commit()
+        # Cleanup the db
+        db.session.delete(test_chart)
+        db.session.commit()
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_dashboard_tagging(self):
@@ -269,13 +269,13 @@ class TestTagging(SupersetTestCase):
         test_saved_query = SavedQuery(id=1, label="test saved query")
 
         # Create a favorited object and add it to the db
-        test_saved_query = FavStar(user_id=1, class_name="slice", obj_id=1)
+        test_favorited_object = FavStar(user_id=1, class_name="slice", obj_id=1)
 
         db.session.add(test_dataset)
         db.session.add(test_chart)
         db.session.add(test_dashboard)
         db.session.add(test_saved_query)
-        db.session.add(test_saved_query)
+        db.session.add(test_favorited_object)
         db.session.commit()
 
         # Test to make sure that no tags were added to the tagged_object table
@@ -283,5 +283,9 @@ class TestTagging(SupersetTestCase):
         self.assertEqual(0, len(tags))
 
         # Cleanup the db
+        db.session.delete(test_dataset)
+        db.session.delete(test_chart)
         db.session.delete(test_dashboard)
+        db.session.delete(test_saved_query)
+        db.session.delete(test_favorited_object)
         db.session.commit()
