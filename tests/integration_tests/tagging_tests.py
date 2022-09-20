@@ -90,6 +90,9 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_dataset)
         db.session.commit()
 
+        # Test to make sure the tag is deleted when the associated object is deleted
+        self.assertEqual([], self.query_tagged_object_table())
+
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_chart_tagging(self):
         """
@@ -125,6 +128,9 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_chart)
         db.session.commit()
 
+        # Test to make sure the tag is deleted when the associated object is deleted
+        self.assertEqual([], self.query_tagged_object_table())
+
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_dashboard_tagging(self):
         """
@@ -158,6 +164,9 @@ class TestTagging(SupersetTestCase):
         # Cleanup the db
         db.session.delete(test_dashboard)
         db.session.commit()
+
+        # Test to make sure the tag is deleted when the associated object is deleted
+        self.assertEqual([], self.query_tagged_object_table())
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_saved_query_tagging(self):
@@ -197,6 +206,9 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_saved_query)
         db.session.commit()
 
+        # Test to make sure the tag is deleted when the associated object is deleted
+        self.assertEqual([], self.query_tagged_object_table())
+
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_favorite_tagging(self):
         """
@@ -225,6 +237,9 @@ class TestTagging(SupersetTestCase):
         # Cleanup the db
         db.session.delete(test_saved_query)
         db.session.commit()
+
+        # Test to make sure the tag is deleted when the associated object is deleted
+        self.assertEqual([], self.query_tagged_object_table())
 
     @with_feature_flags(TAGGING_SYSTEM=False)
     def test_tagging_system(self):
@@ -289,3 +304,6 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_saved_query)
         db.session.delete(test_favorited_object)
         db.session.commit()
+
+        # Test to make sure all the tags are deleted when the associated objects are deleted
+        self.assertEqual([], self.query_tagged_object_table())
