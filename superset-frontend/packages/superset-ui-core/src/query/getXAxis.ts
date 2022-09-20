@@ -16,17 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DTTM_ALIAS, getColumnLabel, QueryFormData } from '@superset-ui/core';
+import {
+  DTTM_ALIAS,
+  getColumnLabel,
+  isQueryFormColumn,
+  QueryFormData,
+} from '@superset-ui/core';
 
-export const isEnabledAxes = (formData: QueryFormData) => !!formData.x_axis;
+export const isXAxisSet = (formData: QueryFormData) =>
+  isQueryFormColumn(formData.x_axis);
 
-export const getAxis = (formData: QueryFormData): string | undefined => {
+export const getXAxis = (formData: QueryFormData): string | undefined => {
   // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
   if (!(formData.granularity_sqla || formData.x_axis)) {
     return undefined;
   }
 
-  if (isEnabledAxes(formData)) {
+  if (isXAxisSet(formData)) {
     return getColumnLabel(formData.x_axis);
   }
   return DTTM_ALIAS;

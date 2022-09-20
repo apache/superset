@@ -22,8 +22,8 @@ import {
   normalizeOrderBy,
   PostProcessingPivot,
   QueryFormData,
-  getAxis,
-  isEnabledAxes,
+  getXAxis,
+  isXAxisSet,
 } from '@superset-ui/core';
 import {
   rollingWindowOperator,
@@ -72,11 +72,11 @@ export default function buildQuery(formData: QueryFormData) {
       {
         ...baseQueryObject,
         columns: [
-          ...(isEnabledAxes(formData) ? ensureIsArray(getAxis(formData)) : []),
+          ...(isXAxisSet(formData) ? ensureIsArray(getXAxis(formData)) : []),
           ...ensureIsArray(groupby),
         ],
         series_columns: groupby,
-        ...(isEnabledAxes(formData) ? {} : { is_timeseries: true }),
+        ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
         // todo: move `normalizeOrderBy to extractQueryFields`
         orderby: normalizeOrderBy(baseQueryObject).orderby,
         time_offsets: isTimeComparison(formData, baseQueryObject)

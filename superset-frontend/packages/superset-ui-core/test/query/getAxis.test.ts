@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isEnabledAxes } from '@superset-ui/core';
+import { isXAxisSet } from '@superset-ui/core';
 
 describe('GENERIC_CHART_AXES is enabled', () => {
   let windowSpy: any;
@@ -36,10 +36,10 @@ describe('GENERIC_CHART_AXES is enabled', () => {
 
   it('isEnabledAxies when FF is disabled', () => {
     expect(
-      isEnabledAxes({ datasource: '123', viz_type: 'table' }),
+      isXAxisSet({ datasource: '123', viz_type: 'table' }),
     ).not.toBeTruthy();
     expect(
-      isEnabledAxes({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
+      isXAxisSet({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
     ).toBeTruthy();
   });
 });
@@ -62,10 +62,10 @@ describe('GENERIC_CHART_AXES is disabled', () => {
 
   it('isEnabledAxies when FF is disabled', () => {
     expect(
-      isEnabledAxes({ datasource: '123', viz_type: 'table' }),
+      isXAxisSet({ datasource: '123', viz_type: 'table' }),
     ).not.toBeTruthy();
     expect(
-      isEnabledAxes({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
+      isXAxisSet({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
     ).toBeTruthy();
   });
 });

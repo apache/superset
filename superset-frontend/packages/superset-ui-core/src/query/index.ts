@@ -29,7 +29,7 @@ export { default as getMetricLabel } from './getMetricLabel';
 export { default as DatasourceKey } from './DatasourceKey';
 export { default as normalizeOrderBy } from './normalizeOrderBy';
 export { normalizeTimeColumn } from './normalizeTimeColumn';
-export { getAxis, isEnabledAxes } from './getAxis';
+export { getXAxis, isXAxisSet } from './getXAxis';
 
 export * from './types/AnnotationLayer';
 export * from './types/QueryFormData';

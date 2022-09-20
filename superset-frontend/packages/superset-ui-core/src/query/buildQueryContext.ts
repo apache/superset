@@ -24,7 +24,7 @@ import { QueryContext, QueryObject } from './types/Query';
 import { SetDataMaskHook } from '../chart';
 import { JsonObject } from '../connection';
 import { normalizeTimeColumn } from './normalizeTimeColumn';
-import { isEnabledAxes } from './getAxis';
+import { isXAxisSet } from './getXAxis';
 
 const WRAP_IN_ARRAY = (baseQueryObject: QueryObject) => [baseQueryObject];
 
@@ -54,7 +54,7 @@ export default function buildQueryContext(
       query.post_processing = query.post_processing.filter(Boolean);
     }
   });
-  if (isEnabledAxes(formData)) {
+  if (isXAxisSet(formData)) {
     queries = queries.map(query => normalizeTimeColumn(formData, query));
   }
   return {
