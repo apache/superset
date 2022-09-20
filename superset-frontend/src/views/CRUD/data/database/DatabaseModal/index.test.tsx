@@ -28,11 +28,21 @@ import {
 } from 'spec/helpers/testing-library';
 import * as hooks from 'src/views/CRUD/hooks';
 import DatabaseModal from './index';
+import {
+  DatabaseObject,
+  CONFIGURATION_METHOD,
+} from 'src/views/CRUD/data/database/types';
+import DatabaseModal, {
+  dbReducer,
+  DBReducerActionType,
+  ActionType,
+} from './index';
 
 const dbProps = {
   show: true,
   database_name: 'my database',
   sqlalchemy_uri: 'postgres://superset:superset@something:1234/superset',
+  onHide: () => {},
 };
 
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
@@ -222,6 +232,14 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
 fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
   message: 'OK',
 });
+
+const databaseFixture: DatabaseObject = {
+  backend: 'postgres',
+  configuration_method: CONFIGURATION_METHOD.DYNAMIC_FORM,
+  database_name: 'Postgres',
+  name: 'PostgresDB',
+  is_managed_externally: false,
+};
 
 describe('DatabaseModal', () => {
   const renderAndWait = async () => {
@@ -1169,7 +1187,9 @@ describe('DatabaseModal', () => {
 
     describe('Import database flow', () => {
       test('imports a file', async () => {
-        const importDbButton = screen.getByTestId('import-database-btn');
+        const importDbButton = screen.getByTestId(
+          'import-database-btn',
+        ) as HTMLInputElement;
         expect(importDbButton).toBeVisible();
 
         const testFile = new File([new ArrayBuffer(1)], 'model_export.zip');
@@ -1177,8 +1197,8 @@ describe('DatabaseModal', () => {
         userEvent.click(importDbButton);
         userEvent.upload(importDbButton, testFile);
 
-        expect(importDbButton.files[0]).toStrictEqual(testFile);
-        expect(importDbButton.files.item(0)).toStrictEqual(testFile);
+        expect(importDbButton.files?.[0]).toStrictEqual(testFile);
+        expect(importDbButton.files?.item(0)).toStrictEqual(testFile);
         expect(importDbButton.files).toHaveLength(1);
       });
     });
@@ -1358,6 +1378,309 @@ describe('DatabaseModal', () => {
       expect(step2of3text).toBeVisible();
       expect(errorTitleMessage).toBeVisible();
       expect(errorMessage).toBeVisible();
+    });
+  });
+});
+
+describe('dbReducer', () => {
+  test('it will reset state to null', () => {
+    const action: DBReducerActionType = { type: ActionType.reset };
+    const currentState = dbReducer(databaseFixture, action);
+    expect(currentState).toBeNull();
+  });
+
+  test('it will set state to payload from fetched', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.fetched,
+      payload: databaseFixture,
+    };
+    const currentState = dbReducer({}, action);
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      engine: 'postgres',
+      masked_encrypted_extra: '',
+      parameters: undefined,
+      query_input: '',
+    });
+  });
+
+  test('it will set state to payload from extra editor', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraEditorChange,
+      payload: { name: 'foo', json: { bar: 1 } },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"foo":{"bar":1}}',
+    });
+  });
+
+  test('it will set state to payload from editor', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.editorChange,
+      payload: { name: 'foo', json: { bar: 1 } },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      foo: { bar: 1 },
+    });
+  });
+
+  test('it will add extra payload to existing extra data', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraEditorChange,
+      payload: { name: 'foo', json: { bar: 1 } },
+    };
+    // extra should be a string
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        extra: JSON.stringify({ name: 'baz', json: { fiz: 2 } }),
+      },
+      action,
+    );
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"name":"baz","json":{"fiz":2},"foo":{"bar":1}}',
+    });
+  });
+
+  test('it will set state to payload from extra input change', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraInputChange,
+      payload: { name: 'foo', value: 'bar' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"foo":"bar"}',
+    });
+  });
+
+  test('it will set state to payload from extra input change when checkbox', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraInputChange,
+      payload: { name: 'foo', type: 'checkbox', checked: true },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"foo":true}',
+    });
+  });
+
+  test('it will set state to payload from extra input change when schema_cache_timeout', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraInputChange,
+      payload: { name: 'schema_cache_timeout', value: 'bar' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"metadata_cache_timeout":{"schema_cache_timeout":"bar"}}',
+    });
+  });
+
+  test('it will set state to payload from extra input change when table_cache_timeout', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraInputChange,
+      payload: { name: 'table_cache_timeout', value: 'bar' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"metadata_cache_timeout":{"table_cache_timeout":"bar"}}',
+    });
+  });
+
+  test('it will overwrite state to payload from extra input change when table_cache_timeout', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraInputChange,
+      payload: { name: 'table_cache_timeout', value: 'bar' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        extra: '{"metadata_cache_timeout":{"table_cache_timeout":"foo"}}',
+      },
+      action,
+    );
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"metadata_cache_timeout":{"table_cache_timeout":"bar"}}',
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraInputChange,
+      payload: { name: 'schemas_allowed_for_file_upload', value: 'bar' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["bar"]}',
+    });
+  });
+
+  test(`it will overwrite state to payload from extra
+  input change when schemas_allowed_for_file_upload`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraInputChange,
+      payload: { name: 'schemas_allowed_for_file_upload', value: 'bar' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        extra: '{"schemas_allowed_for_file_upload":["foo"]}',
+      },
+      action,
+    );
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["bar"]}',
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with blank list`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.extraInputChange,
+      payload: { name: 'schemas_allowed_for_file_upload', value: 'bar,' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    // extra should be serialized
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["bar"]}',
+    });
+  });
+
+  test('it will set state to payload from input change', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.inputChange,
+      payload: { name: 'foo', value: 'bar' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      foo: 'bar',
+    });
+  });
+
+  test('it will set state to payload from input change for checkbox', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.inputChange,
+      payload: { name: 'foo', type: 'checkbox', checked: true },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      foo: true,
+    });
+  });
+  test('it will set state to payload from parametersChange with catalog', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersChange,
+      payload: { name: 'name', type: 'catalog-0', value: 'bar' },
+    };
+    const currentState = dbReducer(
+      { ...databaseFixture, catalog: [{ name: 'foo', value: 'baz' }] },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      catalog: [{ name: 'bar', value: 'baz' }],
+      parameters: {
+        catalog: {
+          bar: 'baz',
+        },
+      },
+    });
+  });
+  test('it will set state to payload from parametersChange when catalog is undefined', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersChange,
+      payload: { name: 'foo', type: 'catalog-foo', value: 'bar' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      parameters: {
+        foo: 'bar',
+      },
+    });
+  });
+
+  test('it will add a new catalog array when empty', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.addTableCatalogSheet,
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      catalog: [{ name: '', value: '' }],
+    });
+  });
+
+  test('it will add a new catalog array when one exists', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.addTableCatalogSheet,
+    };
+    const currentState = dbReducer(
+      { ...databaseFixture, catalog: [{ name: 'foo', value: 'baz' }] },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      catalog: [
+        { name: 'foo', value: 'baz' },
+        { name: '', value: '' },
+      ],
+    });
+  });
+
+  test('it will remove a catalog when one exists', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.removeTableCatalogSheet,
+      payload: { indexToDelete: 0 },
+    };
+    const currentState = dbReducer(
+      { ...databaseFixture, catalog: [{ name: 'foo', value: 'baz' }] },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      catalog: [],
     });
   });
 });
