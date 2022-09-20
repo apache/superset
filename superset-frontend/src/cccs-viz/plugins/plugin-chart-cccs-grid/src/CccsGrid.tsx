@@ -332,6 +332,7 @@ export default function CccsGrid({
           columnDefs={columnDefs}
           defaultColDef={DEFAULT_COLUMN_DEF}
           frameworkComponents={frameworkComponents}
+          enableBrowserTooltips={true}
           enableRangeSelection={true}
           allowContextMenuWithControlKey={true}
           gridOptions={gridOptions}
