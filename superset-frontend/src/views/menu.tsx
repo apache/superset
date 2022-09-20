@@ -37,16 +37,15 @@ const container = document.getElementById('app');
 const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
 const bootstrap = JSON.parse(bootstrapJson);
 
-let menu = { ...bootstrap.common.menu_data };
+const menu = { ...bootstrap.common.menu_data };
 
-if (menu['menu'].length) {
-  let menuItem = {
+if (menu.menu.length) {
+  const menuItem = {
     name: 'Flash',
     label: 'Flash',
     url: '/flash/list',
   };
-
-  menu['menu'].push(menuItem);
+  menu.menu.push(menuItem);
 }
 
 const emotionCache = createCache({
