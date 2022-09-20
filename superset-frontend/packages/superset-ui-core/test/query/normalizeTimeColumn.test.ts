@@ -110,7 +110,7 @@ describe('GENERIC_CHART_AXES is disabled', () => {
   });
 });
 
-describe('GENERIC_CHART_AXES was enabled', () => {
+describe('GENERIC_CHART_AXES is enabled', () => {
   let windowSpy: any;
 
   beforeAll(() => {
