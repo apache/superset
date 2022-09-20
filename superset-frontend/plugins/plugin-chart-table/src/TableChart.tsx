@@ -32,6 +32,7 @@ import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort } from '@react-icons/all-files/fa/FaSort';
 import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
 import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+import cx from 'classnames';
 import {
   DataRecord,
   DataRecordValue,
@@ -41,6 +42,7 @@ import {
   getTimeFormatterForGranularity,
   QueryObjectFilterClause,
   styled,
+  css,
   t,
   tn,
 } from '@superset-ui/core';
@@ -80,44 +82,64 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
 }
 
 /**
- * Cell background to render columns as horizontal bar chart
+ * Cell background width calculation for horizontal bar chart
  */
-function cellBar({
+function cellWidth({
   value,
   valueRange,
-  colorPositiveNegative = false,
   alignPositiveNegative,
 }: {
   value: number;
   valueRange: ValueRange;
-  colorPositiveNegative: boolean;
   alignPositiveNegative: boolean;
 }) {
   const [minValue, maxValue] = valueRange;
-  const r = colorPositiveNegative && value < 0 ? 150 : 0;
   if (alignPositiveNegative) {
     const perc = Math.abs(Math.round((value / maxValue) * 100));
-    // The 0.01 to 0.001 is a workaround for what appears to be a
-    // CSS rendering bug on flat, transparent colors
-    return (
-      `linear-gradient(to right, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
-      `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
-    );
+    return perc;
   }
   const posExtent = Math.abs(Math.max(maxValue, 0));
   const negExtent = Math.abs(Math.min(minValue, 0));
   const tot = posExtent + negExtent;
-  const perc1 = Math.round(
-    (Math.min(negExtent + value, negExtent) / tot) * 100,
-  );
   const perc2 = Math.round((Math.abs(value) / tot) * 100);
-  // The 0.01 to 0.001 is a workaround for what appears to be a
-  // CSS rendering bug on flat, transparent colors
-  return (
-    `linear-gradient(to right, rgba(0,0,0,0.01), rgba(0,0,0,0.001) ${perc1}%, ` +
-    `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
-    `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
-  );
+  return perc2;
+}
+
+/**
+ * Cell left margin (offset) calculation for horizontal bar chart elements
+ * when alignPositiveNegative is not set
+ */
+function cellOffset({
+  value,
+  valueRange,
+  alignPositiveNegative,
+}: {
+  value: number;
+  valueRange: ValueRange;
+  alignPositiveNegative: boolean;
+}) {
+  if (alignPositiveNegative) {
+    return 0;
+  }
+  const [minValue, maxValue] = valueRange;
+  const posExtent = Math.abs(Math.max(maxValue, 0));
+  const negExtent = Math.abs(Math.min(minValue, 0));
+  const tot = posExtent + negExtent;
+  return Math.round((Math.min(negExtent + value, negExtent) / tot) * 100);
+}
+
+/**
+ * Cell background color calculation for horizontal bar chart
+ */
+function cellBackground({
+  value,
+  colorPositiveNegative = false,
+}: {
+  value: number;
+  colorPositiveNegative: boolean;
+}) {
+  const r = colorPositiveNegative && value < 0 ? 150 : 0;
+  return `rgba(${r},0,0,0.2)`;
 }
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
@@ -404,16 +426,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
           const StyledCell = styled.td`
             text-align: ${sharedStyle.textAlign};
-            background: ${backgroundColor ||
-            (valueRange
-              ? cellBar({
+            white-space: ${value instanceof Date ? 'nowrap' : undefined};
+            position: relative;
+            background: ${backgroundColor || undefined};
+          `;
+
+          const cellBarStyles = css`
+            position: absolute;
+            height: 100%;
+            display: block;
+            top: 0;
+            ${valueRange &&
+            `
+                width: ${`${cellWidth({
                   value: value as number,
                   valueRange,
                   alignPositiveNegative,
+                })}%`};
+                left: ${`${cellOffset({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                })}%`};
+                background-color: ${cellBackground({
+                  value: value as number,
                   colorPositiveNegative,
-                })
-              : undefined)};
-            white-space: ${value instanceof Date ? 'nowrap' : undefined};
+                })};
+              `}
           `;
 
           const cellProps = {
@@ -449,6 +488,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>
+              {valueRange && (
+                <div
+                  /* The following classes are added to support custom CSS styling */
+                  className={cx(
+                    'cell-bar',
+                    value && value < 0 ? 'negative' : 'positive',
+                  )}
+                  css={cellBarStyles}
+                />
+              )}
               {truncateLongCells ? (
                 <div
                   className="dt-truncate-cell"
