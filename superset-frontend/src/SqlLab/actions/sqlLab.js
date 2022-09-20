@@ -195,7 +195,7 @@ export function createFlashObject(flash) {
         dispatch(
           addSuccessToast(
             t(
-              'Your flash object has been created. To see details of your flash, navigate to Flash Management',
+              'Your request for new flash object is added. Please check status on Flash Management.',
             ),
           ),
         );
