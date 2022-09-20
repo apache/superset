@@ -65,7 +65,7 @@ import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 
 import { isMultiDatasource } from './utils';
-import MultidataSourcePanel from '../MultidataSourcePanel';
+import MultidataSourcePanel from '../MultiDatasourcePanel';
 
 const propTypes = {
   ...ExploreChartPanel.propTypes,
