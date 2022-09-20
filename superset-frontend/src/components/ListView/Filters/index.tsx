@@ -66,6 +66,7 @@ function UIFilters(
           {
             Header,
             fetchSelects,
+            key,
             id,
             input,
             paginate,
@@ -83,7 +84,7 @@ function UIFilters(
                 Header={Header}
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
                 onSelect={(
                   option: SelectOption | undefined,
@@ -109,7 +110,7 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
                 onSubmit={(value: string) => {
                   if (onFilterUpdate) {
@@ -127,7 +128,7 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
                 onSubmit={value => updateFilterValue(index, value)}
               />

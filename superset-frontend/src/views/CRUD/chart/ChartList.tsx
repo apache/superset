@@ -477,6 +477,7 @@ function ChartList(props: ChartListProps) {
   const favoritesFilter: Filter = useMemo(
     () => ({
       Header: t('Favorite'),
+      key: 'favorite',
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
@@ -494,6 +495,7 @@ function ChartList(props: ChartListProps) {
     () => [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -515,6 +517,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -536,6 +539,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Chart type'),
+        key: 'viz_type',
         id: 'viz_type',
         input: 'select',
         operator: FilterOperator.equals,
@@ -561,6 +565,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Dataset'),
+        key: 'dataset',
         id: 'datasource_id',
         input: 'select',
         operator: FilterOperator.equals,
@@ -571,6 +576,7 @@ function ChartList(props: ChartListProps) {
       ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
+        key: 'certified',
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
@@ -583,6 +589,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'slice_name',
         input: 'search',
         operator: FilterOperator.chartAllText,

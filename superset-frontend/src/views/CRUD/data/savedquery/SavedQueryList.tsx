@@ -424,6 +424,7 @@ function SavedQueryList({
     () => [
       {
         Header: t('Database'),
+        key: 'database',
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -444,6 +445,7 @@ function SavedQueryList({
       },
       {
         Header: t('Schema'),
+        key: 'schema',
         id: 'schema',
         input: 'select',
         operator: FilterOperator.equals,
@@ -461,6 +463,7 @@ function SavedQueryList({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'label',
         input: 'search',
         operator: FilterOperator.allText,

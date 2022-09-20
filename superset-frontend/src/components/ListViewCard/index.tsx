@@ -257,17 +257,15 @@ function ListViewCard({
               <div className="titleRow">
                 <Tooltip title={title}>
                   <TitleLink>
-                    <Link to={url!}>
-                      {certifiedBy && (
-                        <>
-                          <CertifiedBadge
-                            certifiedBy={certifiedBy}
-                            details={certificationDetails}
-                          />{' '}
-                        </>
-                      )}
-                      {title}
-                    </Link>
+                    {certifiedBy && (
+                      <>
+                        <CertifiedBadge
+                          certifiedBy={certifiedBy}
+                          details={certificationDetails}
+                        />{' '}
+                      </>
+                    )}
+                    {title}
                   </TitleLink>
                 </Tooltip>
                 {titleRight && <TitleRight>{titleRight}</TitleRight>}
