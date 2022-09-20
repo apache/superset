@@ -23,11 +23,6 @@ import { render, waitFor } from 'spec/helpers/testing-library';
 import { QueryEditor } from 'src/SqlLab/types';
 import { Store } from 'redux';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import {
-  queryEditorSetSelectedText,
-  queryEditorSetFunctionNames,
-  addTable,
-} from 'src/SqlLab/actions/sqlLab';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import { AsyncAceEditorProps } from 'src/components/AsyncAceEditor';
 
@@ -54,11 +49,6 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
   render(
     <AceEditorWrapper
       queryEditor={queryEditor}
-      actions={{
-        queryEditorSetSelectedText,
-        queryEditorSetFunctionNames,
-        addTable,
-      }}
       height="100px"
       hotkeys={[]}
       database={{}}

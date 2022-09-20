@@ -52,7 +52,7 @@ type AceEditorWrapperProps = {
   onChange: (sql: string) => void;
   queryEditor: QueryEditor;
   database: any;
-  extendedTables: Array<{ name: string; columns: any[] }>;
+  extendedTables?: Array<{ name: string; columns: any[] }>;
   height: string;
   hotkeys: HotKey[];
 };
