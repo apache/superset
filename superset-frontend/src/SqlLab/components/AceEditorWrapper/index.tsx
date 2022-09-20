@@ -91,9 +91,9 @@ const AceEditorWrapper = ({
     setAutoCompleter();
   }, []);
 
-  const prevTables = usePrevious(tables);
-  const prevSchemas = usePrevious(schemas);
-  const prevExtendedTables = usePrevious(extendedTables);
+  const prevTables = usePrevious(tables) ?? [];
+  const prevSchemas = usePrevious(schemas) ?? [];
+  const prevExtendedTables = usePrevious(extendedTables) ?? [];
   const prevSql = usePrevious(currentSql);
 
   useEffect(() => {
