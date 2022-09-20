@@ -62,7 +62,10 @@ function UIFilters(
   return (
     <>
       {filters.map(
-        ({ Header, fetchSelects, id, input, paginate, selects }, index) => {
+        (
+          { Header, fetchSelects, key, id, input, paginate, selects },
+          index,
+        ) => {
           const initialValue =
             internalFilters[index] && internalFilters[index].value;
           if (input === 'select') {
@@ -72,7 +75,7 @@ function UIFilters(
                 Header={Header}
                 fetchSelects={fetchSelects}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
                 onSelect={(option: SelectOption | undefined) =>
                   updateFilterValue(index, option)
@@ -88,7 +91,7 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
                 onSubmit={(value: string) => updateFilterValue(index, value)}
               />
@@ -100,7 +103,7 @@ function UIFilters(
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={id}
+                key={key}
                 name={id}
                 onSubmit={value => updateFilterValue(index, value)}
               />

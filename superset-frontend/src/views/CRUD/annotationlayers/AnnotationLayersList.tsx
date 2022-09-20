@@ -283,6 +283,7 @@ function AnnotationLayersList({
     () => [
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -302,6 +303,7 @@ function AnnotationLayersList({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'name',
         input: 'search',
         operator: FilterOperator.contains,

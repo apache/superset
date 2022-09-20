@@ -450,6 +450,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     () => [
       {
         Header: t('Expose in SQL Lab'),
+        key: 'expose_in_sql_lab',
         id: 'expose_in_sqllab',
         input: 'select',
         operator: FilterOperator.equals,
@@ -469,6 +470,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             <span>{t('AQE')}</span>
           </Tooltip>
         ),
+        key: 'allow_run_async',
         id: 'allow_run_async',
         input: 'select',
         operator: FilterOperator.equals,
@@ -480,6 +482,7 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'database_name',
         input: 'search',
         operator: FilterOperator.contains,
