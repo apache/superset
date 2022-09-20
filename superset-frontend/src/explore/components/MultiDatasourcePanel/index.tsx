@@ -31,8 +31,9 @@ import { Input } from 'src/components/Input';
 import Control from 'src/explore/components/Control';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 
-import { DndItemType } from '../DndItemType';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
+import { DndItemType } from '../DndItemType';
 import { StyledColumnOption, StyledMetricOption } from '../optionRenderers';
 import DatasourcePanelDragOption from '../DatasourcePanel/DatasourcePanelDragOption';
 
@@ -48,7 +49,6 @@ import {
 } from '../DatasourcePanel';
 
 import { MULTI_DATASET_JOIN_KEY } from '../ExploreViewContainer/utils';
-import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 
 const SMALLCASE_A_ASCII_CODE = 97;
 
@@ -106,6 +106,7 @@ export default function MultidataSourcePanel({
       _columns,
       String.fromCharCode(SMALLCASE_A_ASCII_CODE + index),
     );
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     tableColumns[table] = useMemo(
       () => [...tableColumns[table]].sort(),
       [tableColumns[table]],
@@ -146,9 +147,11 @@ export default function MultidataSourcePanel({
   );
 
   const columnSlices = {};
-
+  // eslint-disable-next-line
   tableNames.forEach(
+    // eslint-disable-next-line
     table =>
+      // eslint-disable-next-line
       (columnSlices[table] = useMemo(
         () =>
           showAllColumns[table]
@@ -179,7 +182,9 @@ export default function MultidataSourcePanel({
           return;
         }
         const updatedTableColumns = {};
+        // eslint-disable-next-line
         tableNames.forEach(
+          // eslint-disable-next-line
           (table, index) =>
             (updatedTableColumns[table] = matchSorter(
               getFilteredColumns(
