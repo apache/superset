@@ -31,6 +31,13 @@ import {
 } from 'src/logger/LogUtils';
 import { DatasetObject } from '../types';
 
+interface FooterProps {
+  url: string;
+  addDangerToast: () => void;
+  datasetObject?: Partial<DatasetObject> | null;
+  onDatasetAdd?: (dataset: DatasetObject) => void;
+}
+
 const INPUT_FIELDS = ['db', 'schema', 'table_name'];
 const LOG_ACTIONS = [
   LOG_ACTIONS_DATASET_CREATION_EMPTY_CANCELLATION,
@@ -38,12 +45,6 @@ const LOG_ACTIONS = [
   LOG_ACTIONS_DATASET_CREATION_SCHEMA_CANCELLATION,
   LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION,
 ];
-interface FooterProps {
-  url: string;
-  addDangerToast: () => void;
-  datasetObject?: Partial<DatasetObject> | null;
-  onDatasetAdd?: (dataset: DatasetObject) => void;
-}
 
 function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
@@ -110,7 +111,7 @@ function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={onSave}
       >
-        Create Dataset
+        {t('Create Dataset')}
       </Button>
     </>
   );

@@ -82,7 +82,7 @@ const LeftPanelStyle = styled.div`
       overflow: auto;
       position: absolute;
       bottom: 0;
-      top: ${theme.gridUnit * 97.5}px;
+      top: ${theme.gridUnit * 92.25}px;
       left: ${theme.gridUnit * 3.25}px;
       right: 0;
       .options {
@@ -267,6 +267,7 @@ export default function LeftPanel({
                 }}
                 className="table-form"
                 placeholder={t('Search tables')}
+                allowClear
               />
             )}
           </Form>
