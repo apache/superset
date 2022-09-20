@@ -21,15 +21,15 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
+import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
-  styled,
-  t,
-  SupersetClient,
-  getCategoricalSchemeRegistry,
   ensureIsArray,
+  getCategoricalSchemeRegistry,
   getSharedLabelColor,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -299,42 +299,47 @@ const PropertiesModal = ({
     let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;
 
-    // color scheme in json metadata has precedence over selection
-    if (currentJsonMetadata?.length) {
-      let metadata;
-      try {
-        metadata = JSON.parse(currentJsonMetadata);
-      } catch (error) {
-        addDangerToast(t('JSON metadata is invalid!'));
+    // validate currentJsonMetadata
+    let metadata;
+    try {
+      if (
+        !currentJsonMetadata.startsWith('{') ||
+        !currentJsonMetadata.endsWith('}')
+      ) {
+        throw new Error();
       }
-      currentColorScheme = metadata?.color_scheme || colorScheme;
-      colorNamespace = metadata?.color_namespace || '';
-
-      // filter shared_label_color from user input
-      if (metadata?.shared_label_colors) {
-        delete metadata.shared_label_colors;
-      }
-      if (metadata?.color_scheme_domain) {
-        delete metadata.color_scheme_domain;
-      }
-
-      const colorMap = getSharedLabelColor().getColorMap(
-        colorNamespace,
-        currentColorScheme,
-        true,
-      );
-
-      metadata.shared_label_colors = colorMap;
-
-      if (metadata?.color_scheme) {
-        metadata.color_scheme_domain =
-          categoricalSchemeRegistry.get(colorScheme)?.colors || [];
-      } else {
-        metadata.color_scheme_domain = [];
-      }
-
-      currentJsonMetadata = jsonStringify(metadata);
+      metadata = JSON.parse(currentJsonMetadata);
+    } catch (error) {
+      addDangerToast(t('JSON metadata is invalid!'));
+      return;
     }
+
+    // color scheme in json metadata has precedence over selection
+    currentColorScheme = metadata?.color_scheme || colorScheme;
+    colorNamespace = metadata?.color_namespace || '';
+
+    // filter shared_label_color from user input
+    if (metadata?.shared_label_colors) {
+      delete metadata.shared_label_colors;
+    }
+    if (metadata?.color_scheme_domain) {
+      delete metadata.color_scheme_domain;
+    }
+
+    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
+      colorNamespace,
+      currentColorScheme,
+      true,
+    );
+
+    if (metadata?.color_scheme) {
+      metadata.color_scheme_domain =
+        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
+    } else {
+      metadata.color_scheme_domain = [];
+    }
+
+    currentJsonMetadata = jsonStringify(metadata);
 
     onColorSchemeChange(currentColorScheme, {
       updateMetadata: false,
