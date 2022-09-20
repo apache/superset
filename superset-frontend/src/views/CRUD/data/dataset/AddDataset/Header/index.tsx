@@ -59,21 +59,23 @@ const renderOverlay = () => (
 
 export default function Header({
   setDataset,
-  datasetName,
+  title,
+  schema,
 }: {
   setDataset: React.Dispatch<DSReducerActionType>;
-  datasetName: string;
+  title: string;
+  schema?: string;
 }) {
   const editableTitleProps = {
-    title: datasetName,
-    placeholder: t('Add the name of the dataset'),
+    title: schema ? title : t('New dataset'),
+    placeholder: t('New dataset'),
     onSave: (newDatasetName: string) => {
       setDataset({
         type: DatasetActionType.changeDataset,
         payload: { name: 'dataset_name', value: newDatasetName },
       });
     },
-    canEdit: true,
+    canEdit: false,
     label: t('dataset name'),
   };
 
