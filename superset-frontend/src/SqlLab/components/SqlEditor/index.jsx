@@ -163,8 +163,13 @@ const SqlEditor = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
-  const { database, latestQuery, hideLeftBar } = useSelector(
-    ({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
+  const { currentQueryEditor, database, latestQuery, hideLeftBar } =
+    useSelector(({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
+      const currentQueryEditor = {
+        ...queryEditor,
+        ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
+      };
+
       let { dbId, latestQueryId, hideLeftBar } = queryEditor;
       if (unsavedQueryEditor.id === queryEditor.id) {
         dbId = unsavedQueryEditor.dbId || dbId;
@@ -172,12 +177,12 @@ const SqlEditor = ({
         hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
       }
       return {
+        currentQueryEditor,
         database: databases[dbId],
         latestQuery: queries[latestQueryId],
         hideLeftBar,
       };
-    },
-  );
+    });
 
   const queryEditors = useSelector(({ sqlLab }) => sqlLab.queryEditors);
 
@@ -608,11 +613,10 @@ const SqlEditor = ({
       >
         <div ref={northPaneRef} className="north-pane">
           <AceEditorWrapper
-            actions={actions}
             autocomplete={autocompleteEnabled}
             onBlur={setQueryEditorAndSaveSql}
             onChange={onSqlChanged}
-            queryEditor={queryEditor}
+            queryEditor={currentQueryEditor}
             database={database}
             extendedTables={tables}
             height={`${aceEditorHeight}px`}

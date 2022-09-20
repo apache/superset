@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -37,7 +37,7 @@ import {
   AceCompleterKeyword,
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
-import { QueryEditor, SchemaOption, SqlLabRootState } from 'src/SqlLab/types';
+import { QueryEditor } from 'src/SqlLab/types';
 
 type HotKey = {
   key: string;
@@ -57,14 +57,6 @@ type AceEditorWrapperProps = {
   hotkeys: HotKey[];
 };
 
-type ReduxProps = {
-  currentQueryEditor: QueryEditor;
-  currentSql: string;
-  schemas: SchemaOption[];
-  tables: any[];
-  functionNames: string[];
-};
-
 const AceEditorWrapper = ({
   autocomplete,
   onBlur = () => {},
@@ -77,22 +69,9 @@ const AceEditorWrapper = ({
 }: AceEditorWrapperProps) => {
   const dispatch = useDispatch();
 
-  const { currentQueryEditor, currentSql, schemas, tables, functionNames } =
-    useSelector<SqlLabRootState, ReduxProps>(
-      ({ sqlLab: { unsavedQueryEditor } }) => {
-        const currentQueryEditor = {
-          ...queryEditor,
-          ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-        };
-        return {
-          currentQueryEditor,
-          currentSql: currentQueryEditor.sql,
-          schemas: currentQueryEditor.schemaOptions || [],
-          tables: currentQueryEditor.tableOptions || [],
-          functionNames: currentQueryEditor.functionNames,
-        };
-      },
-    );
+  const { sql: currentSql, functionNames } = queryEditor;
+  const schemas = queryEditor.schemaOptions ?? [];
+  const tables = queryEditor.tableOptions ?? [];
 
   const [sql, setSql] = useState(currentSql);
   const [words, setWords] = useState<AceCompleterKeyword[]>([]);
@@ -223,12 +202,7 @@ const AceEditorWrapper = ({
       insertMatch: (editor: Editor, data: any) => {
         if (data.meta === 'table') {
           dispatch(
-            addTable(
-              currentQueryEditor,
-              database,
-              data.value,
-              queryEditor.schema,
-            ),
+            addTable(queryEditor, database, data.value, queryEditor.schema),
           );
         }
 
