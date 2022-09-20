@@ -64,6 +64,9 @@ import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 
+import { isMultiDatasource } from './utils';
+import MultidataSourcePanel from '../MultiDatasourcePanel';
+
 const propTypes = {
   ...ExploreChartPanel.propTypes,
   actions: PropTypes.object.isRequired,
@@ -634,14 +637,23 @@ function ExploreViewContainer(props) {
               />
             </span>
           </div>
-          <DataSourcePanel
-            formData={props.form_data}
-            datasource={props.datasource}
-            controls={props.controls}
-            actions={props.actions}
-            shouldForceUpdate={shouldForceUpdate}
-            user={props.user}
-          />
+          {isMultiDatasource(props.datasource) ? (
+            <MultidataSourcePanel
+              actions={props.actions}
+              controls={props.controls}
+              datasource={props.datasource}
+              shouldForceUpdate={shouldForceUpdate}
+            />
+          ) : (
+            <DataSourcePanel
+              user={props.user}
+              actions={props.actions}
+              controls={props.controls}
+              formData={props.form_data}
+              datasource={props.datasource}
+              shouldForceUpdate={shouldForceUpdate}
+            />
+          )}
         </Resizable>
         {isCollapsed ? (
           <div

@@ -69,6 +69,7 @@ export interface IDatasource {
   datasource_name?: string | null;
   name?: string | null;
   schema?: string | null;
+  extra?: string | null;
 }
 
 export interface Props {
@@ -82,23 +83,23 @@ export interface Props {
   formData?: QueryFormData;
 }
 
-const enableExploreDnd = isFeatureEnabled(
+export const enableExploreDnd = isFeatureEnabled(
   FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP,
 );
 
-const Button = styled.button`
+export const Button = styled.button`
   background: none;
   border: none;
   text-decoration: underline;
   color: ${({ theme }) => theme.colors.primary.dark1};
 `;
 
-const ButtonContainer = styled.div`
+export const ButtonContainer = styled.div`
   text-align: center;
   padding-top: 2px;
 `;
 
-const DatasourceContainer = styled.div`
+export const DatasourceContainer = styled.div`
   ${({ theme }) => css`
     background-color: ${theme.colors.grayscale.light5};
     position: relative;
@@ -179,14 +180,14 @@ const LabelWrapper = styled.div`
   `}
 `;
 
-const SectionHeader = styled.span`
+export const SectionHeader = styled.span`
   ${({ theme }) => `
     font-size: ${theme.typography.sizes.m}px;
     line-height: 1.3;
   `}
 `;
 
-const StyledInfoboxWrapper = styled.div`
+export const StyledInfoboxWrapper = styled.div`
   ${({ theme }) => css`
     margin: 0 ${theme.gridUnit * 2.5}px;
 
@@ -196,7 +197,7 @@ const StyledInfoboxWrapper = styled.div`
   `}
 `;
 
-const LabelContainer = (props: {
+export const LabelContainer = (props: {
   children: React.ReactElement;
   className: string;
 }) => {

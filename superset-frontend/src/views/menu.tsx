@@ -32,11 +32,21 @@ import { setupStore } from './store';
 
 // Disable connecting to redux debugger so that the React app injected
 // Below the menu like SqlLab or Explore can connect its redux store to the debugger
-const store = setupStore(true);
+const store = setupStore(false);
 const container = document.getElementById('app');
 const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
 const bootstrap = JSON.parse(bootstrapJson);
+
 const menu = { ...bootstrap.common.menu_data };
+
+if (menu.menu.length && menu.menu.every((menu: any) => menu.name !== 'Flash')) {
+  const menuItem = {
+    name: 'Flash',
+    label: 'Flash',
+    url: '/flash/list',
+  };
+  menu.menu.push(menuItem);
+}
 
 const emotionCache = createCache({
   key: 'menu',

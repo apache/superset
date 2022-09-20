@@ -45,6 +45,16 @@ const user = { ...bootstrapData.user };
 const menu = {
   ...bootstrapData.common.menu_data,
 };
+
+if (menu.menu.length) {
+  const menuItem = {
+    name: 'Flash',
+    label: 'Flash',
+    url: '/flash/list',
+  };
+  menu.menu.push(menuItem);
+}
+
 let lastLocationPathname: string;
 
 const LocationPathnameLogger = () => {

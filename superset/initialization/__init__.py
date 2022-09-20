@@ -373,12 +373,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="SQL Lab",
             category_label=__("SQL"),
         )
-        appbuilder.add_link(
-            "Flash",
-            label=__("Flash"),
-            href="/flash/list/",
-            icon="fa-table",
-        )
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(

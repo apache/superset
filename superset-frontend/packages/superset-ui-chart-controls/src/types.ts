@@ -79,6 +79,7 @@ export interface Dataset {
   description: string | null;
   uid?: string;
   owners?: Owner[];
+  extra?: string | null;
 }
 
 export interface ControlPanelState {
