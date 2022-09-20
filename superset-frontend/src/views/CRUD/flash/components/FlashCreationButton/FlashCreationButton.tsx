@@ -232,7 +232,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
             .toUpperCase();
           newError.message =
             keyName +
-            ' must start with an alphabet and can contain (-,_) in between e.g: key_name or key-name';
+            ' must start with an alphabet and can contain (_) in between e.g: key_name';
         }
       }
       return newError;
