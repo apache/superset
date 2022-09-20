@@ -24,8 +24,10 @@ from tests.integration_tests.test_app import app
 @pytest.fixture
 def with_tagging_system_feature():
     with app.app_context():
-        app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = True
-        register_sqla_event_listeners()
-        yield
-        app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
-        clear_sqla_event_listeners()
+        is_enabled = app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"]
+        if not is_enabled:
+            app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = True
+            register_sqla_event_listeners()
+            yield
+            app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
+            clear_sqla_event_listeners()
