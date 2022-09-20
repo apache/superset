@@ -16,17 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DTTM_ALIAS,
-  FeatureFlag,
-  getColumnLabel,
-  isFeatureEnabled,
-  QueryFormData,
-} from '@superset-ui/core';
+import { DTTM_ALIAS, getColumnLabel, QueryFormData } from '@superset-ui/core';
 
-export const isEnabledAxes = (formData: QueryFormData) =>
-  // return `true` when x_axis in formData but FeatureFlag.GENERIC_CHART_AXES is false
-  isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) || formData.x_axis;
+export const isEnabledAxes = (formData: QueryFormData) => !!formData.x_axis;
 
 export const getAxis = (formData: QueryFormData): string | undefined => {
   // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
@@ -34,7 +26,7 @@ export const getAxis = (formData: QueryFormData): string | undefined => {
     return undefined;
   }
 
-  if (isEnabledAxes(formData) && formData.x_axis) {
+  if (isEnabledAxes(formData)) {
     return getColumnLabel(formData.x_axis);
   }
   return DTTM_ALIAS;
