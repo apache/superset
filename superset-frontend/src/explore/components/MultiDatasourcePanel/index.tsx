@@ -92,7 +92,7 @@ export default function MultidataSourcePanel({
     );
   }
 
-  const tableName = datasource.extra
+  const tableName = datasource?.extra
     ? JSON.parse(datasource.extra)[MULTI_DATASET_JOIN_KEY]
     : datasource.datasource_name;
 
