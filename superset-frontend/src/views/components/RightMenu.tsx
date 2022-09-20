@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useEffect } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -125,11 +125,9 @@ const RightMenu = ({
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
-  const [showDatabaseModal, setShowDatabaseModal] =
-    React.useState<boolean>(false);
-  const [showDatasetModal, setShowDatasetModal] =
-    React.useState<boolean>(false);
-  const [engine, setEngine] = React.useState<string>('');
+  const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
+  const [showDatasetModal, setShowDatasetModal] = useState<boolean>(false);
+  const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
@@ -146,9 +144,9 @@ const RightMenu = ({
     );
 
   const showActionDropdown = canSql || canChart || canDashboard;
-  const [allowUploads, setAllowUploads] = React.useState<boolean>(false);
+  const [allowUploads, setAllowUploads] = useState<boolean>(false);
   const [nonExamplesDBConnected, setNonExamplesDBConnected] =
-    React.useState<boolean>(false);
+    useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
   const dropdownItems: MenuObjectProps[] = [
