@@ -191,17 +191,17 @@ export function createFlashObject(flash) {
       newFlash.sqlQuery = qe.selectedText || qe.sql;
     }
     return createFlash(newFlash)
-      .then(response => {
+      .then(
         dispatch(
           addSuccessToast(
             t(
               'Your request for new flash object is added. Please check status on Flash Management.',
             ),
           ),
-        );
-      })
+        ),
+      )
       .catch(error => {
-        let apiError = error?.data?.message
+        const apiError = error?.data?.message
           ? error?.data?.message
           : t('Your flash could not be created');
         dispatch(addDangerToast(apiError));

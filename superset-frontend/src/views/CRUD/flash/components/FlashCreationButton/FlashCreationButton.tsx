@@ -226,13 +226,11 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
           error.property === '.domainName' ||
           error.property === '.datasetName'
         ) {
-          let keyName = error.property
+          const keyName = error.property
             .replace('.', '')
             .replace(/([a-z])([A-Z])/, '$1 $2')
             .toUpperCase();
-          newError.message =
-            keyName +
-            ' must start with an alphabet and can contain (_) in between e.g: key_name';
+          newError.message = `${keyName} must start with an alphabet and can contain (_) in between e.g: key_name`;
         }
       }
       return newError;
