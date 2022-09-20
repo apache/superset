@@ -51,6 +51,7 @@ import { options as PeriodicRefreshOptions } from 'src/dashboard/components/Refr
 import findPermission from 'src/dashboard/util/findPermission';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import { Dropdown } from 'src/components/Dropdown';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
 
 const propTypes = {
@@ -172,7 +173,11 @@ class Header extends React.PureComponent {
     // window.location.assign(url);
     // window.location.href = url.toString();
     // window.location.replace(originalUrl);
-    window.location.replace(supersetUrl.toString());
+    if (supersetUrl) {
+      window.location.replace(supersetUrl.toString());
+    } else {
+      window.location.assign(url);
+    }
   }
 
   constructor(props) {
@@ -631,6 +636,50 @@ class Header extends React.PureComponent {
                   )}
                 </div>
               )}
+              <Dropdown
+                overlay={
+                  <HeaderActionsDropdown
+                    addSuccessToast={this.props.addSuccessToast}
+                    addDangerToast={this.props.addDangerToast}
+                    dashboardId={dashboardInfo.id}
+                    dashboardTitle={dashboardTitle}
+                    dashboardInfo={dashboardInfo}
+                    dataMask={dataMask}
+                    layout={layout}
+                    expandedSlices={expandedSlices}
+                    customCss={customCss}
+                    colorNamespace={colorNamespace}
+                    colorScheme={colorScheme}
+                    onSave={onSave}
+                    onChange={onChange}
+                    forceRefreshAllCharts={this.forceRefresh}
+                    startPeriodicRender={this.startPeriodicRender}
+                    refreshFrequency={refreshFrequency}
+                    shouldPersistRefreshFrequency={
+                      shouldPersistRefreshFrequency
+                    }
+                    setRefreshFrequency={setRefreshFrequency}
+                    updateCss={updateCss}
+                    editMode={editMode}
+                    hasUnsavedChanges={hasUnsavedChanges}
+                    userCanEdit={userCanEdit}
+                    userCanShare={userCanShare}
+                    userCanSave={userCanSaveAs}
+                    userCanCurate={userCanCurate}
+                    isLoading={isLoading}
+                    showPropertiesModal={this.showPropertiesModal}
+                    manageEmbedded={this.showEmbedModal}
+                    refreshLimit={refreshLimit}
+                    refreshWarning={refreshWarning}
+                    lastModifiedTime={lastModifiedTime}
+                    filterboxMigrationState={filterboxMigrationState}
+                    isDropdownVisible={this.state.isDropdownVisible}
+                    setIsDropdownVisible={this.setIsDropdownVisible}
+                  />
+                }
+              >
+                <Icons.MoreVert iconColor="red" />
+              </Dropdown>
             </div>
           }
           menuDropdownProps={{
@@ -639,44 +688,6 @@ class Header extends React.PureComponent {
             visible: this.state.isDropdownVisible,
             onVisibleChange: this.setIsDropdownVisible,
           }}
-          additionalActionsMenu={
-            <HeaderActionsDropdown
-              addSuccessToast={this.props.addSuccessToast}
-              addDangerToast={this.props.addDangerToast}
-              dashboardId={dashboardInfo.id}
-              dashboardTitle={dashboardTitle}
-              dashboardInfo={dashboardInfo}
-              dataMask={dataMask}
-              layout={layout}
-              expandedSlices={expandedSlices}
-              customCss={customCss}
-              colorNamespace={colorNamespace}
-              colorScheme={colorScheme}
-              onSave={onSave}
-              onChange={onChange}
-              forceRefreshAllCharts={this.forceRefresh}
-              startPeriodicRender={this.startPeriodicRender}
-              refreshFrequency={refreshFrequency}
-              shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
-              setRefreshFrequency={setRefreshFrequency}
-              updateCss={updateCss}
-              editMode={editMode}
-              hasUnsavedChanges={hasUnsavedChanges}
-              userCanEdit={userCanEdit}
-              userCanShare={userCanShare}
-              userCanSave={userCanSaveAs}
-              userCanCurate={userCanCurate}
-              isLoading={isLoading}
-              showPropertiesModal={this.showPropertiesModal}
-              manageEmbedded={this.showEmbedModal}
-              refreshLimit={refreshLimit}
-              refreshWarning={refreshWarning}
-              lastModifiedTime={lastModifiedTime}
-              filterboxMigrationState={filterboxMigrationState}
-              isDropdownVisible={this.state.isDropdownVisible}
-              setIsDropdownVisible={this.setIsDropdownVisible}
-            />
-          }
           showFaveStar={user?.userId && dashboardInfo?.id}
           showTitlePanelItems={!editMode}
         />

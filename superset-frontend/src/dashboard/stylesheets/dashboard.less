@@ -2241,6 +2241,34 @@ a[role='menuitem'] .dot {
 }
 
 .button-container {
+  display: inline-flex;
+}
+
+.button-container .ant-dropdown-trigger {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  padding: 8px;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  background-color: rgb(245, 246, 247);
+}
+
+.button-container .ant-dropdown-trigger div,
+.button-container .ant-dropdown-trigger div::before,
+.button-container .ant-dropdown-trigger div::after {
+  width: 4px;
+  height: 4px;
+}
+
+.button-container .ant-dropdown-trigger div::before {
+  top: 5px;
+}
+.button-container .ant-dropdown-trigger div::after {
+  bottom: 5px;
 }
 
 /* Buttons */

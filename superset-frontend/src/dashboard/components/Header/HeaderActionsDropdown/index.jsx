@@ -19,17 +19,17 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
-import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
-import CssEditor from 'src/dashboard/components/CssEditor';
+// import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
+// import CssEditor from 'src/dashboard/components/CssEditor';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import SaveModal from 'src/dashboard/components/SaveModal';
-import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
-import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
+// import SaveModal from 'src/dashboard/components/SaveModal';
+// import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
+// import injectCustomCss from 'src/dashboard/util/injectCustomCss';
+// import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
@@ -103,18 +103,18 @@ class HeaderActionsDropdown extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      css: props.customCss,
-      cssTemplates: [],
-      showReportSubMenu: null,
+      // css: props.customCss,
+      // cssTemplates: [],
+      // showReportSubMenu: null,
     };
 
-    this.changeCss = this.changeCss.bind(this);
+    // this.changeCss = this.changeCss.bind(this);
     this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
     this.handleMenuClick = this.handleMenuClick.bind(this);
-    this.setShowReportSubMenu = this.setShowReportSubMenu.bind(this);
+    // this.setShowReportSubMenu = this.setShowReportSubMenu.bind(this);
   }
 
-  UNSAFE_componentWillMount() {
+  /* UNSAFE_componentWillMount() {
     SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
       .then(({ json }) => {
         const cssTemplates = json.result.map(row => ({
@@ -129,26 +129,26 @@ class HeaderActionsDropdown extends React.PureComponent {
           t('An error occurred while fetching available CSS templates'),
         );
       });
-  }
+  } */
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
+  /* UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.customCss !== nextProps.customCss) {
       this.setState({ css: nextProps.customCss }, () => {
         injectCustomCss(nextProps.customCss);
       });
     }
-  }
+  } */
 
-  setShowReportSubMenu(show) {
+  /* setShowReportSubMenu(show) {
     this.setState({
       showReportSubMenu: show,
     });
-  }
+  } */
 
-  changeCss(css) {
+  /* changeCss(css) {
     this.props.onChange();
     this.props.updateCss(css);
-  }
+  } */
 
   changeRefreshInterval(refreshInterval, isPersistent) {
     this.props.setRefreshFrequency(refreshInterval, isPersistent);
@@ -229,15 +229,15 @@ class HeaderActionsDropdown extends React.PureComponent {
       ...rest
     } = this.props;
 
-    const emailTitle = t('Superset dashboard');
-    const emailSubject = `${emailTitle} ${dashboardTitle}`;
-    const emailBody = t('Check out this dashboard: ');
+    // const emailTitle = t('Superset dashboard');
+    // const emailSubject = `${emailTitle} ${dashboardTitle}`;
+    // const emailBody = t('Check out this dashboard: ');
 
-    const url = getDashboardUrl({
+    /* const url = getDashboardUrl({
       pathname: window.location.pathname,
       filters: getActiveFilters(),
       hash: window.location.hash,
-    });
+    }); */
 
     return (
       <Menu selectable={false} data-test="header-actions-menu" {...rest}>
@@ -261,15 +261,15 @@ class HeaderActionsDropdown extends React.PureComponent {
               : t('Enter fullscreen')}
           </Menu.Item>
         )}
-        {editMode && (
+        {/* {editMode && (
           <Menu.Item
             key={MENU_KEYS.EDIT_PROPERTIES}
             onClick={this.handleMenuClick}
           >
             {t('Edit properties')}
           </Menu.Item>
-        )}
-        {editMode && (
+        )} */}
+        {/* {editMode && (
           <Menu.Item key={MENU_KEYS.EDIT_CSS}>
             <CssEditor
               triggerNode={<span>{t('Edit CSS')}</span>}
@@ -278,9 +278,9 @@ class HeaderActionsDropdown extends React.PureComponent {
               onChange={this.changeCss}
             />
           </Menu.Item>
-        )}
-        <Menu.Divider />
-        {userCanSave && (
+        )} */}
+        {/* <Menu.Divider /> */}
+        {/* {userCanSave && (
           <Menu.Item key={MENU_KEYS.SAVE_MODAL}>
             <SaveModal
               addSuccessToast={this.props.addSuccessToast}
@@ -304,7 +304,7 @@ class HeaderActionsDropdown extends React.PureComponent {
               canOverwrite={userCanEdit}
             />
           </Menu.Item>
-        )}
+        )} */}
         {!editMode && (
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
@@ -313,7 +313,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             {t('Download as image')}
           </Menu.Item>
         )}
-        {userCanShare && (
+        {/* {userCanShare && (
           <Menu.SubMenu
             key={MENU_KEYS.SHARE_DASHBOARD}
             data-test="share-dashboard-menu-item"
@@ -331,17 +331,17 @@ class HeaderActionsDropdown extends React.PureComponent {
               dashboardId={dashboardId}
             />
           </Menu.SubMenu>
-        )}
-        {!editMode && userCanCurate && (
+        )} */}
+        {/* {!editMode && userCanCurate && (
           <Menu.Item
             key={MENU_KEYS.MANAGE_EMBEDDED}
             onClick={this.handleMenuClick}
           >
             {t('Embed dashboard')}
           </Menu.Item>
-        )}
-        <Menu.Divider />
-        {!editMode ? (
+        )} */}
+        {/* <Menu.Divider /> */}
+        {/* {!editMode ? (
           this.state.showReportSubMenu ? (
             <>
               <Menu.SubMenu title={t('Manage email report')}>
@@ -367,7 +367,7 @@ class HeaderActionsDropdown extends React.PureComponent {
               />
             </Menu>
           )
-        ) : null}
+        ) : null} */}
         {editMode &&
           filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.CONVERTED && (
             <Menu.Item key={MENU_KEYS.SET_FILTER_MAPPING}>
