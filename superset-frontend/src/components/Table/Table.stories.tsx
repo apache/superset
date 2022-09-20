@@ -14,12 +14,11 @@ import {
 } from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
-
-const themeDecorator = Story => (
-  <ThemeProvider theme={supersetTheme}>
-    <Story />
-  </ThemeProvider>
-);
+import NumericCell, {
+  CurrencyCode,
+  LocaleCode,
+  Style,
+} from './cell-renderers/NumericCell';
 
 export default {
   /* 👇 The title prop is optional.
@@ -28,9 +27,9 @@ export default {
    */
   title: 'Design System/Components/Table/Examples',
   component: Table,
-  decorators: [themeDecorator],
 } as ComponentMeta<typeof Table>;
 
+// eslint-disable-next-line no-alert
 const clikerit = (message: string) => alert(`I was Clicked: ${message}`);
 
 export interface BasicData extends TableDataType {
@@ -271,17 +270,27 @@ ResizableColumns.args = {
 
 const dragOver = (ev: DragEvent) => {
   ev.preventDefault();
-  ev.currentTarget.style.border = '1px dashed green';
+  const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
+  if (element?.style) {
+    element.style.border = '1px dashed green';
+  }
 };
 
 const dragOut = (ev: DragEvent) => {
   ev.preventDefault();
-  ev.currentTarget.style.border = '1px solid grey';
+  const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
+  if (element?.style) {
+    element.style.border = '1px solid grey';
+  }
 };
 
 const dragDrop = (ev: DragEvent) => {
   const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
-  ev.currentTarget.style.border = '1px solid grey';
+  const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
+  if (element?.style) {
+    element.style.border = '1px solid grey';
+  }
+  // eslint-disable-next-line no-alert
   alert(data);
 };
 
@@ -289,9 +298,9 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => (
   <ThemeProvider theme={supersetTheme}>
     <div>
       <div
-        onDragOver={(ev: Event) => dragOver(ev)}
-        onDragLeave={(ev: Event) => dragOut(ev)}
-        onDrop={(ev: Event) => dragDrop(ev)}
+        onDragOver={(ev: DragEvent) => dragOver(ev)}
+        onDragLeave={(ev: DragEvent) => dragOut(ev)}
+        onDrop={(ev: DragEvent) => dragDrop(ev)}
         style={{
           width: '100%',
           height: '40px',
@@ -311,6 +320,101 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => (
 ReorderableColumns.args = {
   data: basicData,
   columns: basicColumns,
+  selectedRows: [1],
+  handleRowSelection: (selection: React.Key[]) => {
+    alert(selection);
+  },
+  size: TableSize.SMALL,
+  reorderable: true,
+};
+
+const rendererColumns: ColumnsType[] = [
+  {
+    title: 'Button Cell',
+    dataIndex: 'buttonCell',
+    key: 'buttonCell',
+    width: 150,
+    render: (text: string) => (
+      <ButtonCell label={text} handleClick={() => alert('Cell was clicked')} />
+    ),
+  },
+  {
+    title: 'Text Cell',
+    dataIndex: 'textCell',
+    key: 'textCell',
+    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('textCell', a, b),
+  },
+  {
+    title: 'Euro Cell',
+    dataIndex: 'euroCell',
+    key: 'euroCell',
+    sorter: (a: BasicData, b: BasicData) => numericalSort('euroCell', a, b),
+    render: (value: number) => (
+      <NumericCell
+        options={{ style: Style.CURRENCY, currency: CurrencyCode.EUR }}
+        value={value}
+        locale={LocaleCode.en_US}
+      />
+    ),
+  },
+  {
+    title: 'Dollar Cell',
+    dataIndex: 'dollarCell',
+    key: 'dollarCell',
+    sorter: (a: BasicData, b: BasicData) => numericalSort('dollarCell', a, b),
+    render: (value: number) => (
+      <NumericCell
+        options={{ style: Style.CURRENCY, currency: CurrencyCode.USD }}
+        value={value}
+        locale={LocaleCode.en_US}
+      />
+    ),
+  },
+  {
+    title: 'Link Cell',
+    dataIndex: 'actions',
+    key: 'actions',
+  },
+];
+
+const rendererData: BasicData[] = [
+  {
+    key: 1,
+    buttonCell: 'Click Me',
+    columnType: 'Some text',
+    euroCell: 45.5,
+    dollarCell: 45.5,
+    actions: ['Action 1', 'Action 2'],
+  },
+  {
+    key: 2,
+    buttonCell: 'I am a button',
+    textCell: 'More text',
+    euroCell: 1700,
+    dollarCell: 1700,
+    actions: ['Action 1', 'Action 2'],
+  },
+  {
+    key: 3,
+    buttonCell: 'Button 3',
+    textCell: 'The third string of text',
+    euroCell: 500.567,
+    dollarCell: 500.567,
+    actions: ['Action 1', 'Action 2'],
+  },
+];
+
+export const CellRenderers: ComponentStory<typeof Table> = args => (
+  <ThemeProvider theme={supersetTheme}>
+    <div>
+      <Table {...args} />
+    </div>
+  </ThemeProvider>
+);
+
+CellRenderers.args = {
+  data: rendererData,
+  columns: rendererColumns,
   selectedRows: [1],
   handleRowSelection: (selection: React.Key[]) => {
     alert(selection);

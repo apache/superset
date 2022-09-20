@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { withinRange } from './utils';
 import { SUPERSET_TABLE_COLUMN } from 'src/components/Table';
+import { withinRange } from './utils';
 
 export default class InteractiveTableUtils {
   tableRef: HTMLTableElement | null;
@@ -48,7 +48,7 @@ export default class InteractiveTableUtils {
     this.RESIZE_INDICATOR_THRESHOLD = 8;
     this.resizable = false;
     this.reorderable = false;
-    this.derivedColumns = derivedColumns;
+    this.derivedColumns = [...derivedColumns];
     document.addEventListener('mouseup', this.handleMouseup);
   }
 
@@ -99,6 +99,7 @@ export default class InteractiveTableUtils {
       const removedItem = columnsCopy.slice(dragIndex, dragIndex + 1);
       columnsCopy.splice(dragIndex, 1);
       columnsCopy.splice(dropIndex, 0, removedItem[0]);
+      this.derivedColumns = [...columnsCopy];
       this.setDerivedColumns(columnsCopy);
     }
   };

@@ -1,18 +1,33 @@
 import React from 'react';
+import Button, { ButtonStyle, ButtonSize } from 'src/components/Button';
 
 export interface ButtonCellProps {
   label: string;
-  handleClick: Function;
+  onClick: Function;
   tooltip?: string;
+  buttonStyle?: ButtonStyle;
+  buttonSize?: ButtonSize;
 }
 
 export function ButtonCell(props: ButtonCellProps) {
-  const { label, handleClick, tooltip } = props;
+  const {
+    label,
+    onClick,
+    tooltip,
+    buttonStyle = 'primary',
+    buttonSize = 'small',
+  } = props;
 
   return (
-    <button title={tooltip} type="button" onClick={() => handleClick?.(label)}>
+    <Button
+      buttonStyle={buttonStyle}
+      buttonSize={buttonSize}
+      onClick={() => onClick?.()}
+      key={`${buttonStyle}_${buttonSize}`}
+      tooltip={tooltip}
+    >
       {label}
-    </button>
+    </Button>
   );
 }
 

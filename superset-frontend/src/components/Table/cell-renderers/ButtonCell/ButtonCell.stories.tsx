@@ -5,21 +5,27 @@ import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { ButtonCell } from './index';
 
 export default {
-  /* 👇 The title prop is optional.
-   * See https://storybook.js.org/docs/react/configure/overview#configure-story-loading
-   * to learn how to generate automatic titles
-   */
   title: 'Design System/Components/Table/Cell Renderers/ButtonCell',
   component: ButtonCell,
 } as ComponentMeta<typeof ButtonCell>;
 
-const clikerit = (message: string) => alert(`I waz Clicekd: ${message}`);
+const clickHandler = () => alert(`I was Clicked`);
 
-export const Examples: ComponentStory<typeof ButtonCell> = args => (
+export const Basic: ComponentStory<typeof ButtonCell> = args => (
   <ButtonCell {...args} />
 );
 
-Examples.args = {
-  handleClick: clikerit,
-  label: 'Example',
+Basic.args = {
+  onClick: clickHandler,
+  label: 'Primary',
+};
+
+export const Secondary: ComponentStory<typeof ButtonCell> = args => (
+  <ButtonCell {...args} />
+);
+
+Secondary.args = {
+  onClick: clickHandler,
+  label: 'Secondary',
+  style: 'secondary',
 };
