@@ -125,10 +125,7 @@ function cellOffset({
   const posExtent = Math.abs(Math.max(maxValue, 0));
   const negExtent = Math.abs(Math.min(minValue, 0));
   const tot = posExtent + negExtent;
-  const perc1 = Math.round(
-    (Math.min(negExtent + value, negExtent) / tot) * 100,
-  );
-  return perc1;
+  return Math.round((Math.min(negExtent + value, negExtent) / tot) * 100);
 }
 
 /**
