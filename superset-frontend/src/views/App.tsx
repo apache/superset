@@ -46,8 +46,6 @@ const menu = {
   ...bootstrapData.common.menu_data,
 };
 
-console.log(menu);
-
 if (menu.menu.length) {
   const menuItem = {
     name: 'Flash',
