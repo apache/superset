@@ -339,13 +339,3 @@ test('getSliceDashboards with slice handles failure', async () => {
   expect(dispatch.callCount).toBe(1);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
 });
-
-test('getSliceDashboards without slice handles success', async () => {
-  fetchMock.reset();
-  fetchMock.get(getSliceDashboardsEndpoint, dashboardSlicesResponsePayload);
-  const dispatch = sinon.spy();
-  const sliceDashboards = await getSliceDashboards()(dispatch);
-  expect(fetchMock.calls(getSliceDashboardsEndpoint)).toHaveLength(0);
-  expect(dispatch.callCount).toBe(0);
-  expect(sliceDashboards).toEqual([]);
-});

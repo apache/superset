@@ -221,20 +221,16 @@ export const getDashboard = dashboardId => async dispatch => {
 
 //  Get dashboards the slice is added to
 export const getSliceDashboards = slice => async dispatch => {
-  if (slice) {
-    try {
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
-          columns: ['dashboards.id'],
-        })}`,
-      });
+  try {
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
+        columns: ['dashboards.id'],
+      })}`,
+    });
 
-      return response.json.result.dashboards.map(({ id }) => id);
-    } catch (error) {
-      dispatch(saveSliceFailed());
-      throw error;
-    }
+    return response.json.result.dashboards.map(({ id }) => id);
+  } catch (error) {
+    dispatch(saveSliceFailed());
+    throw error;
   }
-
-  return [];
 };

@@ -183,12 +183,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     }
 
     //  Get chart dashboards
-    let sliceDashboards: number[];
-    promise = promise
-      .then(() => this.props.actions.getSliceDashboards(this.props.slice))
-      .then(dashboards => {
-        sliceDashboards = dashboards;
-      });
+    let sliceDashboards: number[] = [];
+    if (this.props.slice && this.state.action === 'overwrite') {
+      promise = promise
+        .then(() => this.props.actions.getSliceDashboards(this.props.slice))
+        .then(dashboards => {
+          sliceDashboards = dashboards;
+        });
+    }
 
     let dashboard: DashboardGetResponse | null = null;
     if (this.state.newDashboardName || this.state.saveToDashboardId) {
