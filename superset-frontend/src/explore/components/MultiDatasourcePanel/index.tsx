@@ -341,7 +341,7 @@ export default function MultidataSourcePanel({
                   <Collapse.Panel
                     key={table}
                     header={
-                      <span className="header">{t(`${table} columns`)}</span>
+                      <span className="header">{`${table} columns`}</span>
                     }
                   >
                     <div className="field-length">
