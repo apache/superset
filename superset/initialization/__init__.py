@@ -375,11 +375,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "Flash",
-            label="Flash",
-            href="/flash/list/"
-            icon="",
-            category="",
-            category_icon="",
+            label=_("Flash"),
+            href="/flash/list/",
         )
 
         appbuilder.add_api(LogRestApi)
