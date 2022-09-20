@@ -18,6 +18,7 @@
 # type: ignore
 from typing import Any, cast, Dict, List, Tuple
 from uuid import uuid4
+import json
 
 from flask import g
 
@@ -315,7 +316,10 @@ class ExploreResponse:
                 message=str(ex)
             )
 
-        changed_model = UpdateDatasetCommand(new_model.id, {"sql": sql_query}).run()
+        changed_model = UpdateDatasetCommand(
+            new_model.id,
+            {"sql": sql_query, "extra": json.dumps({"multi_table_name": table_name})},
+        ).run()
 
         datasource = DatasourceDAO.get_datasource(
             db.session, cast(str, changed_model.type), changed_model.id
