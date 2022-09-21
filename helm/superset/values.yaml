@@ -27,6 +27,7 @@ runAsUser: 0
 # serviceAccountName: superset
 serviceAccount:
   create: false
+  annotations: {}
 
 # Install additional packages and do any other bootstrap configuration in this script
 # For production clusters it's recommended to build own image with this step done in CI
