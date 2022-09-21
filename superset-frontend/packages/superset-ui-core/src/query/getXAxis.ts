@@ -19,17 +19,21 @@
 import {
   DTTM_ALIAS,
   getColumnLabel,
-  isDefined,
+  isQueryFormColumn,
   QueryFormData,
 } from '@superset-ui/core';
 
-export const getAxis = (formData: QueryFormData): string | undefined => {
+export const isXAxisSet = (formData: QueryFormData) =>
+  isQueryFormColumn(formData.x_axis);
+
+export const getXAxis = (formData: QueryFormData): string | undefined => {
   // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
   if (!(formData.granularity_sqla || formData.x_axis)) {
     return undefined;
   }
 
-  return isDefined(formData.x_axis)
-    ? getColumnLabel(formData.x_axis)
-    : DTTM_ALIAS;
+  if (isXAxisSet(formData)) {
+    return getColumnLabel(formData.x_axis);
+  }
+  return DTTM_ALIAS;
 };

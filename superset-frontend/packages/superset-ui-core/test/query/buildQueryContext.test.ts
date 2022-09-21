@@ -123,7 +123,7 @@ describe('buildQueryContext', () => {
       },
     ]);
   });
-  it('should call normalizeTimeColumn if GENERIC_CHART_AXES is enabled', () => {
+  it('should call normalizeTimeColumn if GENERIC_CHART_AXES is enabled and has x_axis', () => {
     // @ts-ignore
     const spy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
       featureFlags: {
@@ -139,6 +139,7 @@ describe('buildQueryContext', () => {
       {
         datasource: '5__table',
         viz_type: 'table',
+        x_axis: 'axis',
       },
       () => [{}],
     );
