@@ -102,7 +102,7 @@ const config: ControlPanelConfig = {
             : null,
           isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
             ? {
-                name: 'datetimeLookup',
+                name: 'datetimeColumnLookup',
                 config: {
                   type: 'HiddenControl',
                   default: (control: ControlState, state: ControlPanelState) =>
