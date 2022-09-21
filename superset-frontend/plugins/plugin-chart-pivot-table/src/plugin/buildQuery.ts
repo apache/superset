@@ -43,7 +43,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
       isPhysicalColumn(col) &&
       formData.time_grain_sqla &&
       isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
-      formData?.datetimeColumnLookup[col]
+      formData?.datetimeColumnLookup?.[col]
     ) {
       return {
         timeGrain: formData.time_grain_sqla,
