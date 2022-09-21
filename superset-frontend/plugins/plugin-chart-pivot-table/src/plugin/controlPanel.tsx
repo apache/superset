@@ -19,6 +19,10 @@
 import React from 'react';
 import {
   ensureIsArray,
+  FeatureFlag,
+  isAdhocColumn,
+  isFeatureEnabled,
+  isPhysicalColumn,
   QueryFormMetric,
   smartDateFormatter,
   t,
@@ -33,12 +37,14 @@ import {
   emitFilterControl,
   Dataset,
   getStandardizedControls,
+  ControlState,
+  ControlPanelState,
 } from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    { ...sections.legacyTimeseriesTime, expanded: false },
+    { ...sections.genericTime, expanded: false },
     {
       label: t('Query'),
       expanded: true,
@@ -62,6 +68,60 @@ const config: ControlPanelConfig = {
               description: t('Columns to group by on the rows'),
             },
           },
+        ],
+        [
+          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+            ? {
+                name: 'time_grain_sqla',
+                config: {
+                  ...sharedControls.time_grain_sqla,
+                  visibility: ({ controls }) => {
+                    if (!isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
+                      return true;
+                    }
+
+                    const isDTTMLookup = Object.fromEntries(
+                      ensureIsArray(controls?.groupbyColumns?.options).map(
+                        option => [option.column_name, option.is_dttm],
+                      ),
+                    );
+                    const selections = [
+                      ...ensureIsArray(controls?.groupbyColumns.value),
+                      ...ensureIsArray(controls?.groupbyRows.value),
+                    ];
+                    return selections
+                      .map(selection => {
+                        if (isAdhocColumn(selection)) {
+                          return true;
+                        }
+                        if (isPhysicalColumn(selection)) {
+                          return !!isDTTMLookup[selection];
+                        }
+                        return false;
+                      })
+                      .some(Boolean);
+                  },
+                },
+              }
+            : null,
+          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+            ? {
+                name: 'isDTTMLookup',
+                config: {
+                  type: 'HiddenControl',
+                  initialValue: (
+                    control: ControlState,
+                    state: ControlPanelState,
+                  ) =>
+                    Object.fromEntries(
+                      ensureIsArray(state?.datasource?.columns).map(option => [
+                        option.column_name ?? option.name,
+                        option.is_dttm,
+                      ]),
+                    ),
+                },
+              }
+            : null,
         ],
         [
           {
