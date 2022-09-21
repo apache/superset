@@ -76,7 +76,7 @@ const config: ControlPanelConfig = {
                 config: {
                   ...sharedControls.time_grain_sqla,
                   visibility: ({ controls }) => {
-                    const isDTTMLookup = Object.fromEntries(
+                    const DTTMLookup = Object.fromEntries(
                       ensureIsArray(controls?.groupbyColumns?.options).map(
                         option => [option.column_name, option.is_dttm],
                       ),
@@ -91,7 +91,7 @@ const config: ControlPanelConfig = {
                           return true;
                         }
                         if (isPhysicalColumn(selection)) {
-                          return !!isDTTMLookup[selection];
+                          return !!DTTMLookup[selection];
                         }
                         return false;
                       })
@@ -102,7 +102,7 @@ const config: ControlPanelConfig = {
             : null,
           isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
             ? {
-                name: 'isDTTMLookup',
+                name: 'DTTMLookup',
                 config: {
                   type: 'HiddenControl',
                   initialValue: (
