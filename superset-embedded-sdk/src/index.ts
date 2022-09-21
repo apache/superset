@@ -58,6 +58,8 @@ export type Size = {
 export type EmbeddedDashboard = {
   getScrollSize: () => Promise<Size>
   unmount: () => void
+  getDashboardPermalink: (anchor: string) => Promise<string>
+  getActiveTabs: () => Promise<string[]>
 }
 
 /**
@@ -100,12 +102,12 @@ export async function embedDashboard({
       const iframe = document.createElement('iframe');
       const dashboardConfig = dashboardUiConfig ? `?uiConfig=${calculateConfig()}` : ""
 
-      // setup the iframe's sandbox configuration
+      // set up the iframe's sandbox configuration
       iframe.sandbox.add("allow-same-origin"); // needed for postMessage to work
       iframe.sandbox.add("allow-scripts"); // obviously the iframe needs scripts
       iframe.sandbox.add("allow-presentation"); // for fullscreen charts
       iframe.sandbox.add("allow-downloads"); // for downloading charts as image
-      // add these ones if it turns out we need them:
+      // add these if it turns out we need them:
       // iframe.sandbox.add("allow-top-navigation");
       // iframe.sandbox.add("allow-forms");
 
@@ -137,7 +139,7 @@ export async function embedDashboard({
     });
   }
 
-  const [guestToken, ourPort] = await Promise.all([
+  const [guestToken, ourPort]: [string, Switchboard] = await Promise.all([
     fetchGuestToken(),
     mountIframe(),
   ]);
@@ -159,9 +161,14 @@ export async function embedDashboard({
   }
 
   const getScrollSize = () => ourPort.get<Size>('getScrollSize');
+  const getDashboardPermalink = (anchor: string) =>
+    ourPort.get<string>('getDashboardPermalink', { anchor });
+  const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs')
 
   return {
     getScrollSize,
     unmount,
+    getDashboardPermalink,
+    getActiveTabs,
   };
 }
