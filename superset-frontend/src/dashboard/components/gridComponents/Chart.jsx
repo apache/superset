@@ -200,8 +200,12 @@ class Chart extends React.Component {
         }
       }
     } else if (
-      // chart should re-render if color scheme was changed
-      nextProps.formData?.color_scheme !== this.props.formData?.color_scheme
+      // chart should re-render if color scheme or label color was changed
+      nextProps.formData?.color_scheme !== this.props.formData?.color_scheme ||
+      !areObjectsEqual(
+        nextProps.formData?.label_colors,
+        this.props.formData?.label_colors,
+      )
     ) {
       return true;
     }
