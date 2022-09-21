@@ -191,7 +191,7 @@ export function createFlashObject(flash) {
       newFlash.sqlQuery = qe.selectedText || qe.sql;
     }
     return createFlash(newFlash)
-      .then(
+      .then(() =>
         dispatch(
           addSuccessToast(
             t(
