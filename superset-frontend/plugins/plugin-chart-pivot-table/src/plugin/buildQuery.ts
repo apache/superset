@@ -33,7 +33,7 @@ import { PivotTableQueryFormData } from '../types';
 export default function buildQuery(formData: PivotTableQueryFormData) {
   const { groupbyColumns = [], groupbyRows = [] } = formData;
   // TODO: add deduping of AdhocColumns
-  const groupbySet = Array.from(
+  const columns = Array.from(
     new Set([
       ...ensureIsArray<QueryFormColumn>(groupbyColumns),
       ...ensureIsArray<QueryFormColumn>(groupbyRows),
@@ -70,7 +70,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
           ? omit(baseQueryObject, ['extras.time_grain_sqla'])
           : baseQueryObject),
         orderby: orderBy,
-        columns: groupbySet,
+        columns,
       },
     ];
   });
