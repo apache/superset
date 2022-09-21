@@ -32,9 +32,6 @@ params:
   row_limit: 10000
   slice_id: 3964
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   url_params: {}
   viz_type: sunburst
 cache_timeout: null

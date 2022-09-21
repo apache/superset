@@ -25,8 +25,13 @@ from flask_babel import gettext as __
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetErrorsException, SupersetGenericErrorException
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    SupersetErrorsException,
+    SupersetException,
+    SupersetGenericErrorException,
+    SupersetSyntaxErrorException,
+)
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sqllab.command_status import SqlJsonExecutionStatus
@@ -34,6 +39,7 @@ from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.limiting_factor import LimitingFactor
 
 if TYPE_CHECKING:
@@ -41,6 +47,7 @@ if TYPE_CHECKING:
     from superset.queries.dao import QueryDAO
     from superset.sqllab.sql_json_executer import SqlJsonExecutor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+
 
 logger = logging.getLogger(__name__)
 
@@ -94,13 +101,35 @@ class ExecuteSqlCommand(BaseCommand):
                 status = SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
             else:
                 status = self._run_sql_json_exec_from_scratch()
+
+            self._execution_context_convertor.set_payload(
+                self._execution_context, status
+            )
+
+            # save columns into metadata_json
+            self._query_dao.save_metadata(
+                self._execution_context.query, self._execution_context_convertor.payload
+            )
+
             return {
                 "status": status,
-                "payload": self._execution_context_convertor.to_payload(
-                    self._execution_context, status
-                ),
+                "payload": self._execution_context_convertor.serialize_payload(),
             }
-        except (SqlLabException, SupersetErrorsException) as ex:
+        except SupersetErrorsException as ex:
+            if all(ex.error_type == SupersetErrorType.SYNTAX_ERROR for ex in ex.errors):
+                raise SupersetSyntaxErrorException(ex.errors) from ex
+            raise ex
+        except SupersetException as ex:
+            if ex.error_type == SupersetErrorType.SYNTAX_ERROR:
+                raise SupersetSyntaxErrorException(
+                    [
+                        SupersetError(
+                            message=ex.message,
+                            error_type=ex.error_type,
+                            level=ErrorLevel.ERROR,
+                        )
+                    ]
+                ) from ex
             raise ex
         except Exception as ex:
             raise SqlLabException(self._execution_context, exception=ex) from ex
@@ -130,6 +159,9 @@ class ExecuteSqlCommand(BaseCommand):
             self._execution_context.set_query(query)
             rendered_query = self._sql_query_render.render(self._execution_context)
             self._set_query_limit_if_required(rendered_query)
+            self._query_dao.update(
+                query, {"limit": self._execution_context.query.limit}
+            )
             return self._sql_json_executor.execute(
                 self._execution_context, rendered_query, self._log_params
             )
@@ -138,7 +170,7 @@ class ExecuteSqlCommand(BaseCommand):
             raise ex
 
     def _get_the_query_db(self) -> Database:
-        mydb = self._database_dao.find_by_id(self._execution_context.database_id)
+        mydb: Any = self._database_dao.find_by_id(self._execution_context.database_id)
         self._validate_query_db(mydb)
         return mydb
 
@@ -170,7 +202,10 @@ class ExecuteSqlCommand(BaseCommand):
         except Exception as ex:
             raise QueryIsForbiddenToAccessException(self._execution_context, ex) from ex
 
-    def _set_query_limit_if_required(self, rendered_query: str,) -> None:
+    def _set_query_limit_if_required(
+        self,
+        rendered_query: str,
+    ) -> None:
         if self._is_required_to_set_limit():
             self._set_query_limit(rendered_query)
 
@@ -205,13 +240,4 @@ class CanAccessQueryValidator:
 
 class SqlQueryRender:
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
-        raise NotImplementedError()
-
-
-class ExecutionContextConvertor:
-    def to_payload(
-        self,
-        execution_context: SqlJsonExecutionContext,
-        execution_status: SqlJsonExecutionStatus,
-    ) -> str:
         raise NotImplementedError()

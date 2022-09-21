@@ -31,9 +31,9 @@ import {
   EChartGraphNode,
   DEFAULT_FORM_DATA as DEFAULT_GRAPH_FORM_DATA,
   EdgeSymbol,
+  GraphChartTransformedProps,
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
-import { EchartsProps } from '../types';
 import { getChartPadding, getLegendProps, sanitizeHtml } from '../utils/series';
 
 type EdgeWithStyles = GraphEdgeItemOption & {
@@ -157,8 +157,11 @@ function getCategoryName(columnName: string, name?: DataRecordValue) {
   return String(name);
 }
 
-export default function transformProps(chartProps: ChartProps): EchartsProps {
-  const { width, height, formData, queriesData } = chartProps;
+export default function transformProps(
+  chartProps: ChartProps,
+): GraphChartTransformedProps {
+  const { width, height, formData, queriesData, hooks, inContextMenu } =
+    chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
 
   const {
@@ -184,6 +187,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     baseEdgeWidth,
     baseNodeSize,
     edgeSymbol,
+    sliceId,
   }: EchartsGraphFormData = { ...DEFAULT_GRAPH_FORM_DATA, ...formData };
 
   const metricLabel = getMetricLabel(metric);
@@ -264,7 +268,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
       type: 'graph',
       categories: categoryList.map(c => ({
         name: c,
-        itemStyle: { color: colorFn(c) },
+        itemStyle: { color: colorFn(c, sliceId) },
       })),
       layout,
       force: {
@@ -294,6 +298,7 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     animationDuration: DEFAULT_GRAPH_SERIES_OPTION.animationDuration,
     animationEasing: DEFAULT_GRAPH_SERIES_OPTION.animationEasing,
     tooltip: {
+      show: !inContextMenu,
       formatter: (params: any): string =>
         edgeFormatter(
           params.data.source,
@@ -308,9 +313,14 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
     },
     series,
   };
+
+  const { onContextMenu } = hooks;
+
   return {
     width,
     height,
+    formData,
     echartOptions,
+    onContextMenu,
   };
 }

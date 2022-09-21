@@ -27,6 +27,7 @@ export default function transformProps(chartProps) {
     xAxisLabel,
     yAxisLabel,
     showLegend,
+    sliceId,
   } = formData;
 
   return {
@@ -41,5 +42,6 @@ export default function transformProps(chartProps) {
     xAxisLabel,
     yAxisLabel,
     showLegend,
+    sliceId,
   };
 }

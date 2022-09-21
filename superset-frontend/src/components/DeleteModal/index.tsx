@@ -18,7 +18,7 @@
  */
 import { t, styled } from '@superset-ui/core';
 import React, { useState } from 'react';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import Modal from 'src/components/Modal';
 import { FormLabel } from 'src/components/Form';
 
@@ -26,7 +26,7 @@ const StyledDiv = styled.div`
   padding-top: 8px;
   width: 50%;
   label {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    color: ${({ theme }) => theme.colors.grayscale.base};
     text-transform: uppercase;
   }
 `;

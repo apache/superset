@@ -19,18 +19,12 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import { SEPARATOR } from 'src/explore/components/controls/DateFilterControl/utils';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';
 
 export function AdvancedFrame(props: FrameComponentProps) {
-  const advancedRange = getAdvancedRange(props.value || '');
-  const [since, until] = advancedRange.split(SEPARATOR);
-  if (advancedRange !== props.value) {
-    props.onChange(getAdvancedRange(props.value || ''));
-  }
-
   function getAdvancedRange(value: string): string {
     if (value.includes(SEPARATOR)) {
       return value;
@@ -42,6 +36,12 @@ export function AdvancedFrame(props: FrameComponentProps) {
       return ['', value].join(SEPARATOR);
     }
     return SEPARATOR;
+  }
+
+  const advancedRange = getAdvancedRange(props.value || '');
+  const [since, until] = advancedRange.split(SEPARATOR);
+  if (advancedRange !== props.value) {
+    props.onChange(getAdvancedRange(props.value || ''));
   }
 
   function onChange(control: 'since' | 'until', value: string) {

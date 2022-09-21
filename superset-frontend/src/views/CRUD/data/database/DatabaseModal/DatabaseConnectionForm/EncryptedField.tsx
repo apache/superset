@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
-import { Select, Button } from 'src/common/components';
+import { AntdButton, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import { DeleteFilled } from '@ant-design/icons';
@@ -55,8 +55,7 @@ export const EncryptedField = ({
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const showCredentialsInfo =
     db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
-  // a database that has an optional encrypted field has an encrypted_extra that is an empty object, this checks for that.
-  const isEncrypted = isEditMode && db?.encrypted_extra !== '{}';
+  const isEncrypted = isEditMode && db?.masked_encrypted_extra !== '{}';
   const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
   const encryptedValue =
     typeof db?.parameters?.[encryptedField] === 'object'
@@ -72,20 +71,20 @@ export const EncryptedField = ({
           >
             {t('Type of Google Sheets allowed')}
           </FormLabel>
-          <Select
+          <AntdSelect
             style={{ width: '100%' }}
             defaultValue={isEncrypted ? 'false' : 'true'}
             onChange={(value: string) =>
               setIsPublic(castStringToBoolean(value))
             }
           >
-            <Select.Option value="true" key={1}>
+            <AntdSelect.Option value="true" key={1}>
               {t('Publicly shared sheets only')}
-            </Select.Option>
-            <Select.Option value="false" key={2}>
+            </AntdSelect.Option>
+            <AntdSelect.Option value="false" key={2}>
               {t('Public and privately shared sheets')}
-            </Select.Option>
-          </Select>
+            </AntdSelect.Option>
+          </AntdSelect>
         </div>
       )}
       {showCredentialsInfo && (
@@ -93,19 +92,19 @@ export const EncryptedField = ({
           <FormLabel required>
             {t('How do you want to enter service account credentials?')}
           </FormLabel>
-          <Select
+          <AntdSelect
             defaultValue={uploadOption}
             style={{ width: '100%' }}
             onChange={option => setUploadOption(option)}
           >
-            <Select.Option value={CredentialInfoOptions.jsonUpload}>
+            <AntdSelect.Option value={CredentialInfoOptions.jsonUpload}>
               {t('Upload JSON file')}
-            </Select.Option>
+            </AntdSelect.Option>
 
-            <Select.Option value={CredentialInfoOptions.copyPaste}>
+            <AntdSelect.Option value={CredentialInfoOptions.copyPaste}>
               {t('Copy and Paste JSON credentials')}
-            </Select.Option>
-          </Select>
+            </AntdSelect.Option>
+          </AntdSelect>
         </>
       )}
       {uploadOption === CredentialInfoOptions.copyPaste ||
@@ -141,14 +140,14 @@ export const EncryptedField = ({
             </div>
 
             {!fileToUpload && (
-              <Button
+              <AntdButton
                 className="input-upload-btn"
                 onClick={() =>
                   document?.getElementById('selectedFile')?.click()
                 }
               >
                 {t('Choose File')}
-              </Button>
+              </AntdButton>
             )}
             {fileToUpload && (
               <div className="input-upload-current">

@@ -23,7 +23,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
-import { Empty } from 'src/common/components';
+import { Empty } from 'src/components';
 import CardCollection from 'src/components/ListView/CardCollection';
 import { CardSortSelect } from 'src/components/ListView/CardSortSelect';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
@@ -34,6 +34,8 @@ import TableCollection from 'src/components/TableCollection';
 import Pagination from 'src/components/Pagination/Wrapper';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+
+jest.mock('src/components/Icons/Icon', () => () => <span />);
 
 function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);

@@ -25,6 +25,7 @@ import {
   ROW_TYPE,
   TAB_TYPE,
   TABS_TYPE,
+  DYNAMIC_TYPE,
 } from '../../util/componentTypes';
 
 import ChartHolder from './ChartHolder';
@@ -35,6 +36,7 @@ import Header from './Header';
 import Row from './Row';
 import Tab from './Tab';
 import TabsConnected from './Tabs';
+import DynamicComponent from './DynamicComponent';
 
 export { default as ChartHolder } from './ChartHolder';
 export { default as Markdown } from './Markdown';
@@ -44,6 +46,7 @@ export { default as Header } from './Header';
 export { default as Row } from './Row';
 export { default as Tab } from './Tab';
 export { default as Tabs } from './Tabs';
+export { default as DynamicComponent } from './DynamicComponent';
 
 export const componentLookup = {
   [CHART_TYPE]: ChartHolder,
@@ -54,4 +57,5 @@ export const componentLookup = {
   [ROW_TYPE]: Row,
   [TAB_TYPE]: Tab,
   [TABS_TYPE]: TabsConnected,
+  [DYNAMIC_TYPE]: DynamicComponent,
 };

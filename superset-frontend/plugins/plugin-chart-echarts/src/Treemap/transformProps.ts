@@ -19,7 +19,6 @@
 import {
   CategoricalColorNamespace,
   DataRecord,
-  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -109,10 +108,18 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreemapChartProps,
 ): TreemapTransformedProps {
-  const { formData, height, queriesData, width, hooks, filterState } =
-    chartProps;
+  const {
+    formData,
+    height,
+    queriesData,
+    width,
+    hooks,
+    filterState,
+    theme,
+    inContextMenu,
+  } = chartProps;
   const { data = [] } = queriesData[0];
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {
@@ -127,6 +134,7 @@ export default function transformProps(
     showUpperLabels,
     dashboardId,
     emitFilter,
+    sliceId,
   }: EchartsTreemapFormData = {
     ...DEFAULT_TREEMAP_FORM_DATA,
     ...formData,
@@ -141,7 +149,7 @@ export default function transformProps(
       labelType,
     });
 
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+  const columnsLabelMap = new Map<string, string[]>();
 
   const transformer = (
     data: DataRecord[],
@@ -223,7 +231,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
-        color: colorFn(`${child.name}`),
+        color: colorFn(`${child.name}`, sliceId),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },
@@ -239,6 +247,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
+        color: colorFn(`${metricLabel}`, sliceId),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },
@@ -259,7 +268,7 @@ export default function transformProps(
         show: false,
       },
       itemStyle: {
-        color: CategoricalColorNamespace.getColor(),
+        color: theme.colors.primary.base,
       },
     },
   ];
@@ -285,7 +294,7 @@ export default function transformProps(
         show: showLabels,
         position: labelPosition,
         formatter,
-        color: '#000',
+        color: theme.colors.grayscale.dark2,
         fontSize: LABEL_FONTSIZE,
       },
       upperLabel: {
@@ -301,6 +310,7 @@ export default function transformProps(
   const echartOptions: EChartsCoreOption = {
     tooltip: {
       ...defaultTooltip,
+      show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
         formatTooltip({
@@ -321,5 +331,6 @@ export default function transformProps(
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
+    onContextMenu,
   };
 }

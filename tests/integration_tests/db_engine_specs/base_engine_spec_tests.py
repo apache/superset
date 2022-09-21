@@ -20,7 +20,7 @@ from unittest import mock
 import pytest
 
 from superset.connectors.sqla.models import TableColumn
-from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
@@ -93,7 +93,9 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
     def test_limit_query_without_force(self):
         self.sql_limit_regex(
-            "SELECT * FROM a LIMIT 10", "SELECT * FROM a LIMIT 10", limit=11,
+            "SELECT * FROM a LIMIT 10",
+            "SELECT * FROM a LIMIT 10",
+            limit=11,
         )
 
     def test_limit_query_with_force(self):
@@ -193,7 +195,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
-        for engine in get_engine_specs().values():
+        for engine in load_engine_specs():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
                 self.assertGreater(len(engine.get_time_grain_expressions()), 0)
@@ -291,8 +293,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             table=table,
             expression="""
             case
-              when gender=true then "male"
-              else "female"
+              when gender='boy' then 'male'
+              else 'female'
             end
             """,
         )
@@ -307,8 +309,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         sql = table.get_query_str(query_obj)
         assert (
             """ORDER BY case
-             when gender=true then "male"
-             else "female"
+             when gender='boy' then 'male'
+             else 'female'
          end ASC;"""
             in sql
         )
@@ -399,7 +401,11 @@ def test_get_time_grain_with_unkown_values():
     config = app.config.copy()
 
     app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
-        "mysql": {"PT2H": "foo", "weird": "foo", "PT12H": "foo",}
+        "mysql": {
+            "PT2H": "foo",
+            "weird": "foo",
+            "PT12H": "foo",
+        }
     }
 
     with app.app_context():

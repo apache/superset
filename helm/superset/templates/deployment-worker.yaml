@@ -28,7 +28,7 @@ metadata:
     {{ toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.supersetWorker.replicaCount }}
   selector:
     matchLabels:
       app: {{ template "superset.name" . }}-worker
@@ -53,12 +53,18 @@ spec:
       labels:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
+      {{- if .Values.supersetWorker.podLabels }}
+        {{ toYaml .Values.supersetWorker.podLabels | nindent 8 }}
+      {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.supersetWorker.podSecurityContext }}
+        {{ toYaml .Values.supersetWorker.podSecurityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.supersetWorker.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
@@ -70,6 +76,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.supersetWorker.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.supersetWorker.containerSecurityContext | nindent 12 }}
+          {{- end }}
           command: {{  tpl (toJson .Values.supersetWorker.command) . }}
           env:
             - name: "SUPERSET_PORT"
@@ -92,11 +101,20 @@ spec:
             - name: superset-config
               mountPath: {{ .Values.configMountPath | quote }}
               readOnly: true
+          {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+          {{- end }}
           {{- with .Values.extraVolumeMounts }}
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
           resources:
+          {{- if .Values.supersetWorker.resources }}
+{{ toYaml .Values.supersetWorker.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
@@ -117,6 +135,11 @@ spec:
         - name: superset-config
           secret:
             secretName: {{ tpl .Values.configFromSecret . }}
-      {{- with .Values.extraVolumes }}
-      {{- tpl (toYaml .) $ | nindent 8 -}}
-      {{- end }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- tpl (toYaml .) $ | nindent 8 -}}
+        {{- end }}

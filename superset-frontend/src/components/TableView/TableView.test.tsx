@@ -44,6 +44,8 @@ const mockedProps: TableViewProps = {
   pageSize: 1,
 };
 
+jest.mock('src/components/Icons/Icon', () => () => <span />);
+
 test('should render', () => {
   const { container } = render(<TableView {...mockedProps} />);
   expect(container).toBeInTheDocument();
@@ -190,4 +192,22 @@ test('should render the right page', () => {
   expect(screen.getByText('10')).toBeInTheDocument();
   expect(screen.getByText('Kate')).toBeInTheDocument();
   expect(screen.queryByText('Emily')).not.toBeInTheDocument();
+});
+
+test('should render the right wrap content text by columnsForWrapText', () => {
+  const props = {
+    ...mockedProps,
+    columnsForWrapText: ['Name'],
+  };
+  render(<TableView {...props} />);
+
+  expect(screen.getAllByTestId('table-row-cell')[0]).toHaveClass(
+    'table-cell__nowrap',
+  );
+  expect(screen.getAllByTestId('table-row-cell')[1]).toHaveClass(
+    'table-cell__nowrap',
+  );
+  expect(screen.getAllByTestId('table-row-cell')[2]).toHaveClass(
+    'table-cell__wrap',
+  );
 });

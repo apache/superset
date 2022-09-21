@@ -56,12 +56,11 @@ const config: ControlPanelConfig = {
             name: 'multiSelect',
             config: {
               type: 'CheckboxControl',
-              label: t('Multiple select'),
+              label: t('Can select multiple values'),
               default: multiSelect,
               affectsDataMask: true,
               resetConfig: true,
               renderTrigger: true,
-              description: t('Allow selecting multiple values'),
             },
           },
         ],
@@ -70,10 +69,12 @@ const config: ControlPanelConfig = {
             name: 'enableEmptyFilter',
             config: {
               type: 'CheckboxControl',
-              label: t('Required'),
+              label: t('Filter value is required'),
               default: false,
               renderTrigger: true,
-              description: t('User must select a value for this filter.'),
+              description: t(
+                'User must select a value before applying the filter',
+              ),
             },
           },
         ],

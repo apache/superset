@@ -16,59 +16,138 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
-import { ReactWrapper } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { CronPicker } from 'src/components/CronPicker';
-import { Input } from 'src/common/components';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { act } from 'react-dom/test-utils';
 
-import { AlertReportCronScheduler } from './AlertReportCronScheduler';
+import {
+  AlertReportCronScheduler,
+  AlertReportCronSchedulerProps,
+} from './AlertReportCronScheduler';
 
-describe('AlertReportCronScheduler', () => {
-  let wrapper: ReactWrapper;
+const createProps = (props: Partial<AlertReportCronSchedulerProps> = {}) => ({
+  onChange: jest.fn(),
+  value: '* * * * *',
+  ...props,
+});
 
-  it('calls onChnage when value chnages', () => {
-    const onChangeMock = jest.fn();
-    wrapper = mount(
-      <AlertReportCronScheduler value="* * * * *" onChange={onChangeMock} />,
-    );
+test('should render', () => {
+  const props = createProps();
+  render(<AlertReportCronScheduler {...props} />);
 
-    const changeValue = '1,7 * * * *';
+  // Text found in the first radio option
+  expect(screen.getByText('Every')).toBeInTheDocument();
+  // Text found in the second radio option
+  expect(screen.getByText('CRON Schedule')).toBeInTheDocument();
+});
 
-    wrapper.find(CronPicker).props().setValue(changeValue);
-    expect(onChangeMock).toHaveBeenLastCalledWith(changeValue);
+test('only one radio option should be enabled at a time', () => {
+  const props = createProps();
+  const { container } = render(<AlertReportCronScheduler {...props} />);
+
+  expect(screen.getByTestId('picker')).toBeChecked();
+  expect(screen.getByTestId('input')).not.toBeChecked();
+
+  const pickerContainer = container.querySelector(
+    '.react-js-cron-select',
+  ) as HTMLElement;
+  const inputContainer = screen.getByTestId('input-content');
+
+  expect(within(pickerContainer).getAllByRole('combobox')[0]).toBeEnabled();
+  expect(inputContainer.querySelector('input[name="crontab"]')).toBeDisabled();
+
+  userEvent.click(screen.getByTestId('input'));
+
+  expect(within(pickerContainer).getAllByRole('combobox')[0]).toBeDisabled();
+  expect(inputContainer.querySelector('input[name="crontab"]')).toBeEnabled();
+
+  userEvent.click(screen.getByTestId('picker'));
+
+  expect(within(pickerContainer).getAllByRole('combobox')[0]).toBeEnabled();
+  expect(inputContainer.querySelector('input[name="crontab"]')).toBeDisabled();
+});
+
+test('picker mode updates correctly', async () => {
+  const onChangeCallback = jest.fn();
+  const props = createProps({
+    onChange: onChangeCallback,
   });
 
-  it.skip('sets input value when cron picker changes', () => {
-    const onChangeMock = jest.fn();
-    wrapper = mount(
-      <AlertReportCronScheduler value="* * * * *" onChange={onChangeMock} />,
-    );
+  const { container } = render(<AlertReportCronScheduler {...props} />);
 
-    const changeValue = '1,7 * * * *';
+  expect(screen.getByTestId('picker')).toBeChecked();
 
-    wrapper.find(CronPicker).props().setValue(changeValue);
-    // TODO fix this class-style assertion that doesn't work on function components
-    // @ts-ignore
-    expect(wrapper.find(Input).state().value).toEqual(changeValue);
+  const pickerContainer = container.querySelector(
+    '.react-js-cron-select',
+  ) as HTMLElement;
+
+  const firstSelect = within(pickerContainer).getAllByRole('combobox')[0];
+  act(() => {
+    userEvent.click(firstSelect);
   });
 
-  it('calls onChange when input value changes', () => {
-    const onChangeMock = jest.fn();
-    wrapper = mount(
-      <AlertReportCronScheduler value="* * * * *" onChange={onChangeMock} />,
-    );
-
-    const changeValue = '1,7 * * * *';
-    const event = {
-      target: { value: changeValue },
-    } as React.FocusEvent<HTMLInputElement>;
-
-    const inputProps = wrapper.find(Input).props();
-    if (inputProps.onBlur) {
-      inputProps.onBlur(event);
-    }
-    expect(onChangeMock).toHaveBeenLastCalledWith(changeValue);
+  expect(await within(pickerContainer).findByText('day')).toBeInTheDocument();
+  act(() => {
+    userEvent.click(within(pickerContainer).getByText('day'));
   });
+
+  expect(onChangeCallback).toHaveBeenLastCalledWith('* * * * *');
+
+  const secondSelect = container.querySelector(
+    '.react-js-cron-hours .ant-select-selector',
+  ) as HTMLElement;
+  await waitFor(() => {
+    expect(secondSelect).toBeInTheDocument();
+  });
+
+  act(() => {
+    userEvent.click(secondSelect);
+  });
+
+  expect(await screen.findByText('9')).toBeInTheDocument();
+  act(() => {
+    userEvent.click(screen.getByText('9'));
+  });
+
+  await waitFor(() => {
+    expect(onChangeCallback).toHaveBeenLastCalledWith('* 9 * * *');
+  });
+});
+
+test('input mode updates correctly', async () => {
+  const onChangeCallback = jest.fn();
+  const props = createProps({
+    onChange: onChangeCallback,
+  });
+
+  render(<AlertReportCronScheduler {...props} />);
+
+  const inputContainer = screen.getByTestId('input-content');
+  userEvent.click(screen.getByTestId('input'));
+
+  const input = inputContainer.querySelector(
+    'input[name="crontab"]',
+  ) as HTMLElement;
+  await waitFor(() => {
+    expect(input).toBeEnabled();
+  });
+
+  userEvent.clear(input);
+  expect(input).toHaveValue('');
+
+  const value = '* 10 2 * *';
+  await act(async () => {
+    await userEvent.type(input, value, { delay: 1 });
+  });
+
+  await waitFor(() => {
+    expect(input).toHaveValue(value);
+  });
+
+  act(() => {
+    userEvent.click(inputContainer);
+  });
+
+  expect(onChangeCallback).toHaveBeenLastCalledWith(value);
 });

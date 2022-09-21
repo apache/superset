@@ -23,29 +23,30 @@ import {
   addDangerToast,
   addSuccessToast,
 } from 'src/components/MessageToasts/actions';
+import { isEmpty } from 'lodash';
 
 export const SET_REPORT = 'SET_REPORT';
-export function setReport(report) {
-  return { type: SET_REPORT, report };
+export function setReport(report, resourceId, creationMethod, filterField) {
+  return { type: SET_REPORT, report, resourceId, creationMethod, filterField };
 }
 
-export function fetchUISpecificReport(
+export function fetchUISpecificReport({
   userId,
-  filter_field,
-  creation_method,
-  dashboardId,
-) {
+  filterField,
+  creationMethod,
+  resourceId,
+}) {
   const queryParams = rison.encode({
     filters: [
       {
-        col: filter_field,
+        col: filterField,
         opr: 'eq',
-        value: dashboardId,
+        value: resourceId,
       },
       {
         col: 'creation_method',
         opr: 'eq',
-        value: creation_method,
+        value: creationMethod,
       },
       {
         col: 'created_by',
@@ -59,7 +60,7 @@ export function fetchUISpecificReport(
       endpoint: `/api/v1/report/?q=${queryParams}`,
     })
       .then(({ json }) => {
-        dispatch(setReport(json));
+        dispatch(setReport(json, resourceId, creationMethod, filterField));
       })
       .catch(() =>
         dispatch(
@@ -76,24 +77,24 @@ export function fetchUISpecificReport(
 const structureFetchAction = (dispatch, getState) => {
   const state = getState();
   const { user, dashboardInfo, charts, explore } = state;
-  if (dashboardInfo) {
+  if (!isEmpty(dashboardInfo)) {
     dispatch(
-      fetchUISpecificReport(
-        user.userId,
-        'dashboard_id',
-        'dashboards',
-        dashboardInfo.id,
-      ),
+      fetchUISpecificReport({
+        userId: user.userId,
+        filterField: 'dashboard_id',
+        creationMethod: 'dashboards',
+        resourceId: dashboardInfo.id,
+      }),
     );
   } else {
     const [chartArr] = Object.keys(charts);
     dispatch(
-      fetchUISpecificReport(
-        explore.user.userId,
-        'chart_id',
-        'charts',
-        charts[chartArr].id,
-      ),
+      fetchUISpecificReport({
+        userId: explore.user?.userId || user?.userId,
+        filterField: 'chart_id',
+        creationMethod: 'charts',
+        resourceId: charts[chartArr].id,
+      }),
     );
   }
 };
@@ -111,22 +112,14 @@ export const addReport = report => dispatch =>
 
 export const EDIT_REPORT = 'EDIT_REPORT';
 
-export function editReport(id, report) {
-  return function (dispatch) {
-    SupersetClient.put({
-      endpoint: `/api/v1/report/${id}`,
-      jsonPayload: report,
-    })
-      .then(({ json }) => {
-        dispatch({ type: EDIT_REPORT, json });
-      })
-      .catch(() =>
-        dispatch(
-          addDangerToast(t('An error occurred while editing this report.')),
-        ),
-      );
-  };
-}
+export const editReport = (id, report) => dispatch =>
+  SupersetClient.put({
+    endpoint: `/api/v1/report/${id}`,
+    jsonPayload: report,
+  }).then(({ json }) => {
+    dispatch({ type: EDIT_REPORT, json });
+    dispatch(addSuccessToast(t('Report updated')));
+  });
 
 export function toggleActive(report, isActive) {
   return function toggleActiveThunk(dispatch) {

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { connect } from 'react-redux';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
@@ -30,7 +31,7 @@ import {
   AceCompleterKeyword,
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
-import { QueryEditor } from 'src/SqlLab/types';
+import { QueryEditor, SchemaOption, SqlLabRootState } from 'src/SqlLab/types';
 
 type HotKey = {
   key: string;
@@ -39,28 +40,39 @@ type HotKey = {
   func: () => void;
 };
 
-interface Props {
+type OwnProps = {
+  queryEditor: QueryEditor;
+  extendedTables: Array<{ name: string; columns: any[] }>;
+  autocomplete: boolean;
+  onChange: (sql: string) => void;
+  onBlur: (sql: string) => void;
+  database: any;
   actions: {
     queryEditorSetSelectedText: (edit: any, text: null | string) => void;
     queryEditorSetFunctionNames: (queryEditor: object, dbId: number) => void;
-    addTable: (queryEditor: any, value: any, schema: any) => void;
+    addTable: (
+      queryEditor: any,
+      database: any,
+      value: any,
+      schema: any,
+    ) => void;
   };
-  autocomplete: boolean;
-  onBlur: (sql: string) => void;
+  hotkeys: HotKey[];
+  height: string;
+};
+
+type ReduxProps = {
+  queryEditor: QueryEditor;
   sql: string;
-  schemas: any[];
+  schemas: SchemaOption[];
   tables: any[];
   functionNames: string[];
-  extendedTables: Array<{ name: string; columns: any[] }>;
-  queryEditor: QueryEditor;
-  height: string;
-  hotkeys: HotKey[];
-  onChange: (sql: string) => void;
-}
+};
+
+type Props = ReduxProps & OwnProps;
 
 interface State {
   sql: string;
-  selectedText: string;
   words: AceCompleterKeyword[];
 }
 
@@ -74,13 +86,20 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
     extendedTables: [],
   };
 
+  private currentSelectionCache;
+
   constructor(props: Props) {
     super(props);
     this.state = {
       sql: props.sql,
-      selectedText: '',
       words: [],
     };
+
+    // The editor changeSelection is called multiple times in a row,
+    // faster than React reconciliation process, so the selected text
+    // needs to be stored out of the state to ensure changes to it
+    // get saved immediately
+    this.currentSelectionCache = '';
     this.onChange = this.onChange.bind(this);
   }
 
@@ -128,6 +147,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
         this.onAltEnter();
       },
     });
+
     this.props.hotkeys.forEach(keyConfig => {
       editor.commands.addCommand({
         name: keyConfig.name,
@@ -135,20 +155,23 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
         exec: keyConfig.func,
       });
     });
+
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
       const selectedText = editor.getSelectedText();
+
       // Backspace trigger 1 character selection, ignoring
       if (
-        selectedText !== this.state.selectedText &&
+        selectedText !== this.currentSelectionCache &&
         selectedText.length !== 1
       ) {
-        this.setState({ selectedText });
         this.props.actions.queryEditorSetSelectedText(
           this.props.queryEditor,
           selectedText,
         );
       }
+
+      this.currentSelectionCache = selectedText;
     });
   }
 
@@ -167,8 +190,10 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       meta: 'schema',
     }));
     const columns = {};
+
     const tables = props.tables || [];
     const extendedTables = props.extendedTables || [];
+
     const tableWords = tables.map(t => {
       const tableName = t.value;
       const extendedTable = extendedTables.find(et => et.name === tableName);
@@ -176,6 +201,7 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
       cols.forEach(col => {
         columns[col.name] = null; // using an object as a unique set
       });
+
       return {
         name: t.label,
         value: tableName,
@@ -203,15 +229,20 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
         if (data.meta === 'table') {
           this.props.actions.addTable(
             this.props.queryEditor,
+            this.props.database,
             data.value,
             this.props.queryEditor.schema,
           );
         }
+
+        let { caption } = data;
+        if (data.meta === 'table' && caption.includes(' ')) {
+          caption = `"${caption}"`;
+        }
+
         // executing https://github.com/thlorenz/brace/blob/3a00c5d59777f9d826841178e1eb36694177f5e6/ext/language_tools.js#L1448
         editor.completer.insertMatch(
-          `${data.caption}${
-            ['function', 'schema'].includes(data.meta) ? '' : ' '
-          }`,
+          `${caption}${['function', 'schema'].includes(data.meta) ? '' : ' '}`,
         );
       },
     };
@@ -262,4 +293,22 @@ class AceEditorWrapper extends React.PureComponent<Props, State> {
   }
 }
 
-export default AceEditorWrapper;
+function mapStateToProps(
+  { sqlLab: { unsavedQueryEditor } }: SqlLabRootState,
+  { queryEditor }: OwnProps,
+) {
+  const currentQueryEditor = {
+    ...queryEditor,
+    ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
+  };
+  return {
+    queryEditor: currentQueryEditor,
+    sql: currentQueryEditor.sql,
+    schemas: currentQueryEditor.schemaOptions || [],
+    tables: currentQueryEditor.tableOptions,
+    functionNames: currentQueryEditor.functionNames,
+  };
+}
+export default connect<ReduxProps, {}, OwnProps>(mapStateToProps)(
+  AceEditorWrapper,
+);

@@ -22,6 +22,8 @@ import {
   ChartPlugin,
   AnnotationType,
   Behavior,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
@@ -43,16 +45,6 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
   EchartsTimeseriesFormData,
   EchartsTimeseriesChartProps
 > {
-  /**
-   * The constructor is used to pass relevant metadata and callbacks that get
-   * registered in respective registries that are used throughout the library
-   * and application. A more thorough description of each property is given in
-   * the respective imported file.
-   *
-   * It is worth noting that `buildQuery` and is optional, and only needed for
-   * advanced visualizations that require either post processing operations
-   * (pivoting, rolling aggregations, sorting etc) or submitting multiple queries.
-   */
   constructor() {
     super({
       buildQuery,
@@ -62,9 +54,13 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
         behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: t(
-          'Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.',
-        ),
+        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t(
+              'Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.',
+            )
+          : t(
+              'Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.',
+            ),
         exampleGallery: [{ url: example1 }],
         supportedAnnotationTypes: [
           AnnotationType.Event,
@@ -72,7 +68,9 @@ export default class EchartsAreaChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: t('Time-series Area Chart'),
+        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? t('Area Chart v2')
+          : t('Time-series Area Chart'),
         tags: [
           t('ECharts'),
           t('Predictive'),

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { MainNav as Menu } from 'src/common/components';
+import { MainNav as Menu } from 'src/components/Menu';
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 

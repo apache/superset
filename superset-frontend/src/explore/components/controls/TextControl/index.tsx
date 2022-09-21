@@ -21,7 +21,7 @@ import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import { FAST_DEBOUNCE } from 'src/constants';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { Input } from 'src/common/components';
+import { Input } from 'src/components/Input';
 
 type InputValueType = string | number;
 

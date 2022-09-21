@@ -17,32 +17,65 @@
  * under the License.
  */
 /* eslint-disable camelcase */
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { SET_REPORT, ADD_REPORT, EDIT_REPORT } from '../actions/reports';
 
 export default function reportsReducer(state = {}, action) {
   const actionHandlers = {
     [SET_REPORT]() {
-      return {
-        ...action.report.result.reduce(
-          (obj, report) => ({ ...obj, [report.id]: report }),
-          {},
-        ),
-      };
+      const { report, resourceId, creationMethod, filterField } = action;
+      // For now report count should only be one, but we are checking in case
+      // functionality changes.
+      const reportObject = report.result?.find(
+        report => report[filterField] === resourceId,
+      );
+
+      if (reportObject) {
+        return {
+          ...state,
+          [creationMethod]: {
+            ...state[creationMethod],
+            [resourceId]: reportObject,
+          },
+        };
+      }
+      if (state?.[creationMethod]?.[resourceId]) {
+        // remove the empty report from state
+        const newState = { ...state };
+        delete newState[creationMethod][resourceId];
+        return newState;
+      }
+      return { ...state };
     },
+
     [ADD_REPORT]() {
-      const report = action.json.result;
-      report.id = action.json.id;
+      const { result, id } = action.json;
+      const report = { ...result, id };
+      const reportTypeId = report.dashboard || report.chart;
+      // this is the id of either the chart or the dashboard associated with the report.
+
       return {
         ...state,
-        [action.json.id]: report,
+        [report.creation_method]: {
+          ...state[report.creation_method],
+          [reportTypeId]: report,
+        },
       };
     },
+
     [EDIT_REPORT]() {
-      const report = action.json.result;
-      report.id = action.json.id;
+      const report = {
+        ...action.json.result,
+        id: action.json.id,
+      };
+      const reportTypeId = report.dashboard || report.chart;
+
       return {
         ...state,
-        [action.json.id]: report,
+        [report.creation_method]: {
+          ...state[report.creation_method],
+          [reportTypeId]: report,
+        },
       };
     },
   };

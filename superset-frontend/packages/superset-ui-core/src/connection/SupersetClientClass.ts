@@ -33,12 +33,22 @@ import {
 } from './types';
 import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_BASE_URL } from './constants';
 
+const defaultUnauthorizedHandler = () => {
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = `/login?next=${window.location.href}`;
+  }
+};
+
 export default class SupersetClientClass {
   credentials: Credentials;
 
   csrfToken?: CsrfToken;
 
   csrfPromise?: CsrfPromise;
+
+  guestToken?: string;
+
+  guestTokenHeaderName: string;
 
   fetchRetryOptions?: FetchRetryOptions;
 
@@ -54,6 +64,8 @@ export default class SupersetClientClass {
 
   timeout: ClientTimeout;
 
+  handleUnauthorized: () => void;
+
   constructor({
     baseUrl = DEFAULT_BASE_URL,
     host,
@@ -64,6 +76,9 @@ export default class SupersetClientClass {
     timeout,
     credentials = undefined,
     csrfToken = undefined,
+    guestToken = undefined,
+    guestTokenHeaderName = 'X-GuestToken',
+    unauthorizedHandler = defaultUnauthorizedHandler,
   }: ClientConfig = {}) {
     const url = new URL(
       host || protocol
@@ -81,6 +96,8 @@ export default class SupersetClientClass {
     this.timeout = timeout;
     this.credentials = credentials;
     this.csrfToken = csrfToken;
+    this.guestToken = guestToken;
+    this.guestTokenHeaderName = guestTokenHeaderName;
     this.fetchRetryOptions = {
       ...DEFAULT_FETCH_RETRY_OPTIONS,
       ...fetchRetryOptions,
@@ -89,6 +106,10 @@ export default class SupersetClientClass {
       this.headers = { ...this.headers, 'X-CSRFToken': this.csrfToken };
       this.csrfPromise = Promise.resolve(this.csrfToken);
     }
+    if (guestToken) {
+      this.headers[guestTokenHeaderName] = guestToken;
+    }
+    this.handleUnauthorized = unauthorizedHandler;
   }
 
   async init(force = false): CsrfPromise {
@@ -98,6 +119,36 @@ export default class SupersetClientClass {
     return this.getCSRFToken();
   }
 
+  async postForm(url: string, payload: Record<string, any>, target = '_blank') {
+    if (url) {
+      await this.ensureAuth();
+      const hiddenForm = document.createElement('form');
+      hiddenForm.action = url;
+      hiddenForm.method = 'POST';
+      hiddenForm.target = target;
+      const payloadWithToken: Record<string, any> = {
+        ...payload,
+        csrf_token: this.csrfToken!,
+      };
+
+      if (this.guestToken) {
+        payloadWithToken.guest_token = this.guestToken;
+      }
+
+      Object.entries(payloadWithToken).forEach(([key, value]) => {
+        const data = document.createElement('input');
+        data.type = 'hidden';
+        data.name = key;
+        data.value = value;
+        hiddenForm.appendChild(data);
+      });
+
+      document.body.appendChild(hiddenForm);
+      hiddenForm.submit();
+      document.body.removeChild(hiddenForm);
+    }
+  }
+
   async reAuthenticate() {
     return this.init(true);
   }
@@ -105,6 +156,10 @@ export default class SupersetClientClass {
   isAuthenticated(): boolean {
     // if CSRF protection is disabled in the Superset app, the token may be an empty string
     return this.csrfToken !== null && this.csrfToken !== undefined;
+  }
+
+  getGuestToken() {
+    return this.guestToken;
   }
 
   async get<T extends ParseMethod = 'json'>(
@@ -140,6 +195,7 @@ export default class SupersetClientClass {
     headers,
     timeout,
     fetchRetryOptions,
+    ignoreUnauthorized = false,
     ...rest
   }: RequestConfig & { parseMethod?: T }) {
     await this.ensureAuth();
@@ -152,8 +208,8 @@ export default class SupersetClientClass {
       timeout: timeout ?? this.timeout,
       fetchRetryOptions: fetchRetryOptions ?? this.fetchRetryOptions,
     }).catch(res => {
-      if (res?.status === 401) {
-        this.redirectUnauthorized();
+      if (res?.status === 401 && !ignoreUnauthorized) {
+        this.handleUnauthorized();
       }
       return Promise.reject(res);
     });
@@ -218,9 +274,5 @@ export default class SupersetClientClass {
     return `${this.protocol}//${cleanHost}/${
       endpoint[0] === '/' ? endpoint.slice(1) : endpoint
     }`;
-  }
-
-  redirectUnauthorized() {
-    window.location.href = `/login?next=${window.location.href}`;
   }
 }

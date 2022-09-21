@@ -167,7 +167,7 @@ Other features
 
 Alerts (send notification when a condition is met) ([Roadmap](https://github.com/apache-superset/superset-roadmap/issues/54))
 - feat: add test email functionality to SQL-based email alerts  (#[10476](https://github.com/apache/superset/pull/10476))
-- feat: refractored SQL-based alerting framework  (#[10605](https://github.com/apache/superset/pull/10605))
+- feat: refactored SQL-based alerting framework  (#[10605](https://github.com/apache/superset/pull/10605))
 
 
 [SIP-34] Proposal to establish a new design direction, system, and process for Superset ([SIP](https://github.com/apache/superset/issues/8976))

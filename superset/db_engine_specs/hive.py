@@ -31,11 +31,12 @@ from flask import current_app, g
 from sqlalchemy import Column, text
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.engine.url import make_url, URL
+from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import ColumnClause, Select
 
 from superset.common.db_query_status import QueryStatus
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
@@ -47,7 +48,6 @@ from superset.utils import core as utils
 if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
-
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +64,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
 
     # pylint: disable=import-outside-toplevel
     import boto3
+    from boto3.s3.transfer import TransferConfig
 
     bucket_path = current_app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
@@ -79,6 +80,7 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
         filename,
         bucket_path,
         os.path.join(upload_prefix, table.table, os.path.basename(filename)),
+        Config=TransferConfig(use_threads=False),  # Threading is broken in Python 3.9.
     )
     return location
 
@@ -142,12 +144,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.constants = patched_constants
         hive.ttypes = patched_ttypes
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
-
-    @classmethod
-    def get_all_datasource_names(
-        cls, database: "Database", datasource_type: str
-    ) -> List[utils.DatasourceName]:
-        return BaseEngineSpec.get_all_datasource_names(database, datasource_type)
 
     @classmethod
     def fetch_data(
@@ -260,15 +256,13 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
-    def epoch_to_dttm(cls) -> str:
-        return "from_unixtime({col})"
-
-    @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> None:
+    ) -> URL:
         if selected_schema:
-            uri.database = parse.quote(selected_schema, safe="")
+            uri = uri.set(database=parse.quote(selected_schema, safe=""))
+
+        return uri
 
     @classmethod
     def _extract_error_message(cls, ex: Exception) -> str:
@@ -310,7 +304,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return int(progress)
 
     @classmethod
-    def get_tracking_url(cls, log_lines: List[str]) -> Optional[str]:
+    def get_tracking_url_from_logs(cls, log_lines: List[str]) -> Optional[str]:
         lkp = "Tracking URL = "
         for line in log_lines:
             if lkp in line:
@@ -335,6 +329,10 @@ class HiveEngineSpec(PrestoEngineSpec):
         job_id = None
         query_id = query.id
         while polled.operationState in unfinished_states:
+            # Queries don't terminate when user clicks the STOP button on SQL LAB.
+            # Refresh session so that the `query.status` modified in stop_query in
+            # views/core.py is reflected here.
+            session.refresh(query)
             query = session.query(type(query)).filter_by(id=query_id).one()
             if query.status == QueryStatus.STOPPED:
                 cursor.cancel()
@@ -357,18 +355,11 @@ class HiveEngineSpec(PrestoEngineSpec):
                     query.progress = progress
                     needs_commit = True
                 if not tracking_url:
-                    tracking_url = cls.get_tracking_url(log_lines)
+                    tracking_url = cls.get_tracking_url_from_logs(log_lines)
                     if tracking_url:
                         job_id = tracking_url.split("/")[-2]
                         logger.info(
                             "Query %s: Found the tracking url: %s",
-                            str(query_id),
-                            tracking_url,
-                        )
-                        transformer = current_app.config["TRACKING_URL_TRANSFORMER"]
-                        tracking_url = transformer(tracking_url)
-                        logger.info(
-                            "Query %s: Transformation applied: %s",
                             str(query_id),
                             tracking_url,
                         )
@@ -478,21 +469,26 @@ class HiveEngineSpec(PrestoEngineSpec):
         )
 
     @classmethod
-    def modify_url_for_impersonation(
+    def get_url_for_impersonation(
         cls, url: URL, impersonate_user: bool, username: Optional[str]
-    ) -> None:
+    ) -> URL:
         """
-        Modify the SQL Alchemy URL object with the user to impersonate if applicable.
+        Return a modified URL with the username set.
+
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
         """
         # Do nothing in the URL object since instead this should modify
         # the configuraiton dictionary. See get_configuration_for_impersonation
+        return url
 
     @classmethod
     def update_impersonation_config(
-        cls, connect_args: Dict[str, Any], uri: str, username: Optional[str],
+        cls,
+        connect_args: Dict[str, Any],
+        uri: str,
+        username: Optional[str],
     ) -> None:
         """
         Update a configuration dictionary
@@ -503,7 +499,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param username: Effective username
         :return: None
         """
-        url = make_url(uri)
+        url = make_url_safe(uri)
         backend_name = url.get_backend_name()
 
         # Must be Hive connection, enable impersonation, and set optional param
@@ -570,8 +566,3 @@ class HiveEngineSpec(PrestoEngineSpec):
         """
 
         return True
-
-
-class SparkEngineSpec(HiveEngineSpec):
-
-    engine_name = "Apache Spark SQL"

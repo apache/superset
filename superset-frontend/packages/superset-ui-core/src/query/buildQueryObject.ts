@@ -20,11 +20,16 @@
 /* eslint-disable camelcase */
 import {
   AdhocFilter,
-  QueryFieldAliases,
-  QueryFormData,
   QueryObject,
   QueryObjectFilterClause,
+  isPhysicalColumn,
+  isAdhocColumn,
 } from './types';
+import {
+  QueryFieldAliases,
+  QueryFormColumn,
+  QueryFormData,
+} from './types/QueryFormData';
 import processFilters from './processFilters';
 import extractExtras from './extractExtras';
 import extractQueryFields from './extractQueryFields';
@@ -89,6 +94,12 @@ export default function buildQueryObject<T extends QueryFormData>(
     ...extras,
     ...filterFormData,
   });
+  const normalizeSeriesLimitMetric = (column: QueryFormColumn | undefined) => {
+    if (isAdhocColumn(column) || isPhysicalColumn(column)) {
+      return column;
+    }
+    return undefined;
+  };
 
   let queryObject: QueryObject = {
     // fallback `null` to `undefined` so they won't be sent to the backend
@@ -113,13 +124,14 @@ export default function buildQueryObject<T extends QueryFormData>(
         : numericRowOffset,
     series_columns,
     series_limit,
-    series_limit_metric,
+    series_limit_metric: normalizeSeriesLimitMetric(series_limit_metric),
     timeseries_limit: limit ? Number(limit) : 0,
     timeseries_limit_metric: timeseries_limit_metric || undefined,
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     url_params: url_params || undefined,
     custom_params,
   };
+
   // override extra form data used by native and cross filters
   queryObject = overrideExtraFormData(queryObject, overrides);
 

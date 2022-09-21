@@ -49,10 +49,11 @@ const sqlExpressionAdhocMetric = new AdhocMetric({
 function setup(overrides) {
   const onChange = sinon.spy();
   const onClose = sinon.spy();
+  const savedMetric = { metric_name: 'foo', expression: 'COUNT(*)' };
   const props = {
     adhocMetric: sumValueAdhocMetric,
-    savedMetric: { metric_name: 'foo', expression: 'COUNT(*)' },
-    savedMetrics: [],
+    savedMetric,
+    savedMetricsOptions: [savedMetric],
     onChange,
     onClose,
     onResize: () => {},

@@ -1,0 +1,134 @@
+---
+title: Creating Visualization Plugins
+hide_title: true
+sidebar_position: 10
+version: 1
+---
+
+## Creating Visualization Plugins
+
+Visualizations in Superset are implemented in JavaScript or TypeScript. Superset
+comes preinstalled with several visualizations types (hereafter "viz plugins") that
+can be found under the `superset-frontend/plugins` directory. Viz plugins are added to
+the application in the `superset-frontend/src/visualizations/presets/MainPreset.js`.
+The Superset project is always happy to review proposals for new high quality viz
+plugins. However, for highly custom viz types it is recommended to maintain a fork
+of Superset, and add the custom built viz plugins by hand.
+
+### Prerequisites
+
+In order to create a new viz plugin, you need the following:
+
+- Run MacOS or Linux (Windows is not officially supported, but may work)
+- Node.js 16
+- npm 7 or 8
+
+A general familiarity with [React](https://reactjs.org/) and the npm/Node system is
+also recommended.
+
+### Creating a simple Hello World viz plugin
+
+To get started, you need the Superset Yeoman Generator. It is recommended to use the
+version of the template that ships with the version of Superset you are using. This
+can be installed by doing the following:
+
+```bash
+npm i -g yo
+cd superset-frontend/packages/generator-superset
+npm i
+npm link
+```
+
+After this you can proceed to create your viz plugin. Create a new directory for your
+viz plugin with the prefix `superset-plugin-chart` and run the Yeoman generator:
+
+```bash
+mkdir /tmp/superset-plugin-chart-hello-world
+cd /tmp/superset-plugin-chart-hello-world
+```
+
+Initialize the viz plugin:
+
+```bash
+yo @superset-ui/superset
+```
+
+After that the generator will ask a few questions (the defaults should be fine):
+
+```
+$ yo @superset-ui/superset
+     _-----_     ╭──────────────────────────╮
+    |       |    │      Welcome to the      │
+    |--(o)--|    │    generator-superset    │
+   `---------´   │        generator!        │
+    ( _´U`_ )    ╰──────────────────────────╯
+    /___A___\   /
+     |  ~  |
+   __'.___.'__
+ ´   `  |° ´ Y `
+? Package name: superset-plugin-chart-hello-world
+? Description: Hello World
+? What type of chart would you like? Time-series chart
+   create package.json
+   create .gitignore
+   create babel.config.js
+   create jest.config.js
+   create README.md
+   create tsconfig.json
+   create src/index.ts
+   create src/plugin/buildQuery.ts
+   create src/plugin/controlPanel.ts
+   create src/plugin/index.ts
+   create src/plugin/transformProps.ts
+   create src/types.ts
+   create src/SupersetPluginChartHelloWorld.tsx
+   create test/index.test.ts
+   create test/__mocks__/mockExportString.js
+   create test/plugin/buildQuery.test.ts
+   create test/plugin/transformProps.test.ts
+   create types/external.d.ts
+   create src/images/thumbnail.png
+```
+
+To build the viz plugin, run the following commands:
+
+```
+npm i --force
+npm run build
+```
+
+Alternatively, to run the viz plugin in development mode (=rebuilding whenever changes
+are made), start the dev server with the following command:
+
+```
+npm run dev
+```
+
+To add the package to Superset, go to the `superset-frontend` subdirectory in your
+Superset source folder run
+
+```bash
+npm i -S /tmp/superset-plugin-chart-hello-world
+```
+
+If you publish your package to npm, you can naturally install directly from there, too.
+After this edit the `superset-frontend/src/visualizations/presets/MainPreset.js`
+and make the following changes:
+
+```js
+import { SupersetPluginChartHelloWorld } from 'superset-plugin-chart-hello-world';
+```
+
+to import the viz plugin and later add the following to the array that's passed to the
+`plugins` property:
+
+```js
+new SupersetPluginChartHelloWorld().configure({ key: 'ext-hello-world' }),
+```
+
+After that the viz plugin should show up when you run Superset, e.g. the development
+server:
+
+```bash
+npm run dev-server
+```

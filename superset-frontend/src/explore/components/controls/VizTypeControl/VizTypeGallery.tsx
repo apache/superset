@@ -33,8 +33,12 @@ import {
   ChartMetadata,
   SupersetTheme,
   useTheme,
+  chartLabelWeight,
+  chartLabelExplanations,
 } from '@superset-ui/core';
-import { Collapse, Input } from 'src/common/components';
+import { AntdCollapse } from 'src/components';
+import { Tooltip } from 'src/components/Tooltip';
+import { Input } from 'src/components/Input';
 import Label from 'src/components/Label';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import Icons from 'src/components/Icons';
@@ -43,6 +47,7 @@ import scrollIntoView from 'scroll-into-view-if-needed';
 
 interface VizTypeGalleryProps {
   onChange: (vizType: string | null) => void;
+  onDoubleClick: () => void;
   selectedViz: string | null;
   className?: string;
 }
@@ -220,7 +225,7 @@ const SelectorLabel = styled.button`
     }
 
     &.selected {
-      background-color: ${theme.colors.primary.dark1};
+      background-color: ${theme.colors.primary.base};
       color: ${theme.colors.primary.light5};
 
       svg {
@@ -309,6 +314,7 @@ const Examples = styled.div`
 const thumbnailContainerCss = (theme: SupersetTheme) => css`
   cursor: pointer;
   width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
+  position: relative;
 
   img {
     min-width: ${theme.gridUnit * THUMBNAIL_GRID_UNITS}px;
@@ -332,6 +338,38 @@ const thumbnailContainerCss = (theme: SupersetTheme) => css`
   }
 `;
 
+const HighlightLabel = styled.div`
+  ${({ theme }) => `
+    border: 1px solid ${theme.colors.primary.dark1};
+    box-sizing: border-box;
+    border-radius: ${theme.gridUnit}px;
+    background: ${theme.colors.grayscale.light5};
+    line-height: ${theme.gridUnit * 2.5}px;
+    color: ${theme.colors.primary.dark1};
+    font-size: ${theme.typography.sizes.s}px;
+    font-weight: ${theme.typography.weights.bold};
+    text-align: center;
+    padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
+    text-transform: uppercase;
+    cursor: pointer;
+
+    div {
+      transform: scale(0.83,0.83);
+    }
+  `}
+`;
+
+const ThumbnailLabelWrapper = styled.div`
+  position: absolute;
+  right: ${({ theme }) => theme.gridUnit}px;
+  top: ${({ theme }) => theme.gridUnit * 19}px;
+`;
+
+const TitleLabelWrapper = styled.div`
+  display: inline-block !important;
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 function vizSortFactor(entry: VizEntry) {
   if (typesWithDefaultOrder.has(entry.key)) {
     return DEFAULT_ORDER.indexOf(entry.key);
@@ -343,12 +381,14 @@ interface ThumbnailProps {
   entry: VizEntry;
   selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
+  onDoubleClick: () => void;
 }
 
 const Thumbnail: React.FC<ThumbnailProps> = ({
   entry,
   selectedViz,
   setSelectedViz,
+  onDoubleClick,
 }) => {
   const theme = useTheme();
   const { key, value: type } = entry;
@@ -363,6 +403,7 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       tabIndex={0}
       className={isSelected ? 'selected' : ''}
       onClick={() => setSelectedViz(key)}
+      onDoubleClick={onDoubleClick}
       data-test="viztype-selector-container"
     >
       <img
@@ -377,6 +418,13 @@ const Thumbnail: React.FC<ThumbnailProps> = ({
       >
         {type.name}
       </div>
+      {type.label && (
+        <ThumbnailLabelWrapper>
+          <HighlightLabel>
+            <div>{t(type.label)}</div>
+          </HighlightLabel>
+        </ThumbnailLabelWrapper>
+      )}
     </div>
   );
 };
@@ -385,6 +433,7 @@ interface ThumbnailGalleryProps {
   vizEntries: VizEntry[];
   selectedViz: string | null;
   setSelectedViz: (viz: string) => void;
+  onDoubleClick: () => void;
 }
 
 /** A list of viz thumbnails, used within the viz picker modal */
@@ -443,7 +492,7 @@ const doesVizMatchSelector = (viz: ChartMetadata, selector: string) =>
   (viz.tags || []).indexOf(selector) > -1;
 
 export default function VizTypeGallery(props: VizTypeGalleryProps) {
-  const { selectedViz, onChange, className } = props;
+  const { selectedViz, onChange, onDoubleClick, className } = props;
   const { mountedPluginMetadata } = usePluginContext();
   const searchInputRef = useRef<HTMLInputElement>();
   const [searchInputValue, setSearchInputValue] = useState('');
@@ -535,7 +584,17 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       new Fuse(chartMetadata, {
         ignoreLocation: true,
         threshold: 0.3,
-        keys: ['value.name', 'value.tags', 'value.description'],
+        keys: [
+          {
+            name: 'value.name',
+            weight: 4,
+          },
+          {
+            name: 'value.tags',
+            weight: 2,
+          },
+          'value.description',
+        ],
       }),
     [chartMetadata],
   );
@@ -544,7 +603,22 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
     if (searchInputValue.trim() === '') {
       return [];
     }
-    return fuse.search(searchInputValue).map(result => result.item);
+    return fuse
+      .search(searchInputValue)
+      .map(result => result.item)
+      .sort((a, b) => {
+        const aLabel = a.value?.label;
+        const bLabel = b.value?.label;
+        const aOrder =
+          aLabel && chartLabelWeight[aLabel]
+            ? chartLabelWeight[aLabel].weight
+            : 0;
+        const bOrder =
+          bLabel && chartLabelWeight[bLabel]
+            ? chartLabelWeight[bLabel].weight
+            : 0;
+        return bOrder - aOrder;
+      });
   }, [searchInputValue, fuse]);
 
   const focusSearch = useCallback(() => {
@@ -662,7 +736,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           }
           onClick={clickSelector}
         />
-        <Collapse
+        <AntdCollapse
           expandIconPosition="right"
           ghost
           defaultActiveKey={Object.keys(sectionMap)}
@@ -671,7 +745,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             const section = sectionMap[sectionId];
 
             return (
-              <Collapse.Panel
+              <AntdCollapse.Panel
                 header={<span className="header">{section.title}</span>}
                 key={sectionId}
               >
@@ -689,10 +763,10 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
                     onClick={clickSelector}
                   />
                 ))}
-              </Collapse.Panel>
+              </AntdCollapse.Panel>
             );
           })}
-        </Collapse>
+        </AntdCollapse>
       </LeftPane>
 
       <SearchWrapper>
@@ -724,6 +798,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           vizEntries={getVizEntriesToDisplay()}
           selectedViz={selectedViz}
           setSelectedViz={onChange}
+          onDoubleClick={onDoubleClick}
         />
       </RightPane>
 
@@ -738,9 +813,26 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             <SectionTitle
               css={css`
                 grid-area: viz-name;
+                position: relative;
               `}
             >
               {selectedVizMetadata?.name}
+              {selectedVizMetadata?.label && (
+                <Tooltip
+                  id="viz-badge-tooltip"
+                  placement="top"
+                  title={
+                    selectedVizMetadata.labelExplanation ??
+                    chartLabelExplanations[selectedVizMetadata.label]
+                  }
+                >
+                  <TitleLabelWrapper>
+                    <HighlightLabel>
+                      <div>{t(selectedVizMetadata.label)}</div>
+                    </HighlightLabel>
+                  </TitleLabelWrapper>
+                </Tooltip>
+              )}
             </SectionTitle>
             <TagsWrapper>
               {selectedVizMetadata?.tags.map(tag => (

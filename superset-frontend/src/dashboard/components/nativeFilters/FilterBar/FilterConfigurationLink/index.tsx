@@ -20,8 +20,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
 import Button from 'src/components/Button';
-import { styled } from '@superset-ui/core';
-import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
+import { FilterConfiguration, styled } from '@superset-ui/core';
 import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 import { getFilterBarTestId } from '..';
 

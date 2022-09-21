@@ -21,21 +21,20 @@ import sinon from 'sinon';
 import URI from 'urijs';
 import {
   buildV1ChartDataPayload,
+  exploreChart,
   getExploreUrl,
-  getExploreLongUrl,
-  shouldUseLegacyApi,
   getSimpleSQLExpression,
+  shouldUseLegacyApi,
 } from 'src/explore/exploreUtils';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
-import { getChartMetadataRegistry } from '@superset-ui/core';
+import { getChartMetadataRegistry, SupersetClient } from '@superset-ui/core';
 
 describe('exploreUtils', () => {
   const { location } = window;
   const formData = {
     datasource: '1__table',
   };
-  const sFormData = JSON.stringify(formData);
   function compareURI(uri1, uri2) {
     expect(uri1.toString()).toBe(uri2.toString());
   }
@@ -52,7 +51,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'http://superset.com',
       });
-      compareURI(URI(url), URI('/superset/explore/'));
+      compareURI(URI(url), URI('/explore/'));
     });
     it('generates proper json url', () => {
       const url = getExploreUrl({
@@ -96,7 +95,7 @@ describe('exploreUtils', () => {
       });
       compareURI(
         URI(url),
-        URI('/superset/explore/').search({
+        URI('/explore/').search({
           standalone: DashboardStandaloneMode.HIDE_NAV,
         }),
       );
@@ -191,25 +190,6 @@ describe('exploreUtils', () => {
     });
   });
 
-  describe('getExploreLongUrl', () => {
-    it('generates proper base url with form_data', () => {
-      compareURI(
-        URI(getExploreLongUrl(formData, 'base')),
-        URI('/superset/explore/').search({ form_data: sFormData }),
-      );
-    });
-
-    it('generates url with standalone', () => {
-      compareURI(
-        URI(getExploreLongUrl(formData, 'standalone')),
-        URI('/superset/explore/').search({
-          form_data: sFormData,
-          standalone: DashboardStandaloneMode.HIDE_NAV,
-        }),
-      );
-    });
-  });
-
   describe('buildV1ChartDataPayload', () => {
     it('generate valid request payload despite no registered buildQuery', () => {
       const v1RequestPayload = buildV1ChartDataPayload({
@@ -294,6 +274,18 @@ describe('exploreUtils', () => {
       expect(getSimpleSQLExpression('col', 'NOT IN', [0, 1, 2])).toBe(
         'col NOT IN (0, 1, 2)',
       );
+    });
+  });
+
+  describe('.exploreChart()', () => {
+    it('postForm', () => {
+      const postFormSpy = jest.spyOn(SupersetClient, 'postForm');
+      postFormSpy.mockImplementation(jest.fn());
+
+      exploreChart({
+        formData: { ...formData, viz_type: 'my_custom_viz' },
+      });
+      expect(postFormSpy).toBeCalledTimes(1);
     });
   });
 });

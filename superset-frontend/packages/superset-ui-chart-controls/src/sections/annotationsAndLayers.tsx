@@ -24,6 +24,7 @@ export const annotationLayers = [];
 export const annotationsAndLayersControls: ControlPanelSectionConfig = {
   label: t('Annotations and Layers'),
   expanded: false,
+  tabOverride: 'data',
   controlSetRows: [
     [
       {
@@ -33,6 +34,7 @@ export const annotationsAndLayersControls: ControlPanelSectionConfig = {
           label: '',
           default: annotationLayers,
           description: t('Annotation Layers'),
+          renderTrigger: false,
         },
       },
     ],

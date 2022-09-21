@@ -18,15 +18,16 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
+from math import ceil, floor
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
 from random import random
 from unittest import mock
-from superset.extensions import db
 import prison
 
+from freezegun import freeze_time
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs import BaseEngineSpec
@@ -34,16 +35,12 @@ from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
-from superset.models.core import Database
 from superset.models.sql_lab import Query, SavedQuery
 from superset.result_set import SupersetResultSet
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sql_lab import (
     cancel_query,
     execute_sql_statements,
-    execute_sql_statement,
-    get_sql_results,
-    SqlLabException,
     apply_limit_if_exists,
 )
 from superset.sql_parse import CtasMethod
@@ -69,12 +66,13 @@ QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def run_some_queries(self):
         db.session.query(Query).delete()
         db.session.commit()
-        self.run_sql(QUERY_1, client_id="client_id_1", user_name="admin")
-        self.run_sql(QUERY_2, client_id="client_id_3", user_name="admin")
-        self.run_sql(QUERY_3, client_id="client_id_2", user_name="gamma_sqllab")
+        self.run_sql(QUERY_1, client_id="client_id_1", username="admin")
+        self.run_sql(QUERY_2, client_id="client_id_2", username="admin")
+        self.run_sql(QUERY_3, client_id="client_id_3", username="gamma_sqllab")
         self.logout()
 
     def tearDown(self):
@@ -157,8 +155,6 @@ class TestSqlLab(SupersetTestCase):
         """
         SQLLab: Test SQLLab query execution info propagation to saved queries
         """
-        from freezegun import freeze_time
-
         self.login("admin")
 
         sql_statement = "SELECT * FROM birth_names LIMIT 10"
@@ -167,8 +163,8 @@ class TestSqlLab(SupersetTestCase):
         db.session.add(saved_query)
         db.session.commit()
 
-        with freeze_time("2020-01-01T00:00:00Z"):
-            self.run_sql(sql_statement, "1")
+        with freeze_time(datetime.now().isoformat(timespec="seconds")):
+            self.run_sql(sql_statement, "1", username="admin")
             saved_query_ = (
                 db.session.query(SavedQuery)
                 .filter(
@@ -178,9 +174,9 @@ class TestSqlLab(SupersetTestCase):
             )
             assert saved_query_.rows is not None
             assert saved_query_.last_run == datetime.now()
-            # Rollback changes
-            db.session.delete(saved_query_)
-            db.session.commit()
+        # Rollback changes
+        db.session.delete(saved_query_)
+        db.session.commit()
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -254,7 +250,7 @@ class TestSqlLab(SupersetTestCase):
         # Gamma user, with sqllab and db permission
         self.create_user_with_roles("Gagarin", ["ExampleDBAccess", "Gamma", "sql_lab"])
 
-        data = self.run_sql(QUERY_1, "1", user_name="Gagarin")
+        data = self.run_sql(QUERY_1, "1", username="Gagarin")
         db.session.query(Query).delete()
         db.session.commit()
         self.assertLess(0, len(data["data"]))
@@ -266,8 +262,10 @@ class TestSqlLab(SupersetTestCase):
             # sqlite doesn't support database creation
             return
 
-        sqllab_test_db_schema_permission_view = security_manager.add_permission_view_menu(
-            "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+        sqllab_test_db_schema_permission_view = (
+            security_manager.add_permission_view_menu(
+                "schema_access", f"[{examples_db.name}].[{CTAS_SCHEMA_NAME}]"
+            )
         )
         schema_perm_role = security_manager.add_role("SchemaPermission")
         security_manager.add_permission_role(
@@ -282,14 +280,14 @@ class TestSqlLab(SupersetTestCase):
         )
 
         data = self.run_sql(
-            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", user_name="SchemaUser"
+            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
         )
         self.assertEqual(1, len(data["data"]))
 
         data = self.run_sql(
             f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",
             "4",
-            user_name="SchemaUser",
+            username="SchemaUser",
             schema=CTAS_SCHEMA_NAME,
         )
         self.assertEqual(1, len(data["data"]))
@@ -299,7 +297,7 @@ class TestSqlLab(SupersetTestCase):
             data = self.run_sql(
                 "SELECT * FROM test_table",
                 "5",
-                user_name="SchemaUser",
+                username="SchemaUser",
                 schema=CTAS_SCHEMA_NAME,
             )
             self.assertEqual(1, len(data["data"]))
@@ -409,22 +407,17 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(2, len(data))
         self.assertIn("birth", data[0]["sql"])
 
-    def test_search_query_on_time(self):
+    def test_search_query_filter_by_time(self):
         self.run_some_queries()
         self.login("admin")
-        first_query_time = (
-            db.session.query(Query).filter_by(sql=QUERY_1).one()
-        ).start_time
-        second_query_time = (
-            db.session.query(Query).filter_by(sql=QUERY_3).one()
-        ).start_time
-        # Test search queries on time filter
-        from_time = "from={}".format(int(first_query_time))
-        to_time = "to={}".format(int(second_query_time))
-        params = [from_time, to_time]
-        resp = self.get_resp("/superset/search_queries?" + "&".join(params))
-        data = json.loads(resp)
-        self.assertEqual(2, len(data))
+        from_time = floor(
+            (db.session.query(Query).filter_by(sql=QUERY_1).one()).start_time
+        )
+        to_time = ceil(
+            (db.session.query(Query).filter_by(sql=QUERY_2).one()).start_time
+        )
+        url = f"/superset/search_queries?from={from_time}&to={to_time}"
+        assert len(self.client.get(url).json) == 2
 
     def test_search_query_only_owned(self) -> None:
         """
@@ -445,7 +438,7 @@ class TestSqlLab(SupersetTestCase):
         self.run_sql(
             "SELECT name as col, gender as col FROM birth_names LIMIT 10",
             client_id="2e2df3",
-            user_name="admin",
+            username="admin",
             raise_on_error=True,
         )
 
@@ -481,8 +474,8 @@ class TestSqlLab(SupersetTestCase):
             "datasourceName": f"test_viz_flow_table_{random()}",
             "schema": "superset",
             "columns": [
-                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
-                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
             ],
             "sql": """\
                 SELECT *
@@ -511,8 +504,8 @@ class TestSqlLab(SupersetTestCase):
             "chartType": "dist_bar",
             "schema": "superset",
             "columns": [
-                {"is_date": False, "type": "STRING", "name": f"viz_type_{random()}"},
-                {"is_date": False, "type": "OBJECT", "name": f"ccount_{random()}"},
+                {"is_dttm": False, "type": "STRING", "name": f"viz_type_{random()}"},
+                {"is_dttm": False, "type": "OBJECT", "name": f"ccount_{random()}"},
             ],
             "sql": """\
                 SELECT *
@@ -593,13 +586,17 @@ class TestSqlLab(SupersetTestCase):
         )
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_6", query_limit=10000,
+            "SELECT * FROM birth_names",
+            client_id="sql_limit_6",
+            query_limit=10000,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
 
         data = self.run_sql(
-            "SELECT * FROM birth_names", client_id="sql_limit_7", query_limit=1200,
+            "SELECT * FROM birth_names",
+            client_id="sql_limit_7",
+            query_limit=1200,
         )
         self.assertEqual(len(data["data"]), 1200)
         self.assertEqual(data["query"]["limitingFactor"], LimitingFactor.NOT_LIMITED)
@@ -747,7 +744,6 @@ class TestSqlLab(SupersetTestCase):
             rendered_query=sql,
             return_results=True,
             store_results=False,
-            user_name="admin",
             session=mock_session,
             start_time=None,
             expand_data=False,
@@ -758,7 +754,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SET @value = 42",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -767,7 +762,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SELECT @value AS foo",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -804,7 +798,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,
@@ -858,7 +851,6 @@ class TestSqlLab(SupersetTestCase):
             rendered_query=sql,
             return_results=True,
             store_results=False,
-            user_name="admin",
             session=mock_session,
             start_time=None,
             expand_data=False,
@@ -869,7 +861,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SET @value = 42",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -878,7 +869,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SELECT @value AS foo",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -895,7 +885,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,
@@ -929,7 +918,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,

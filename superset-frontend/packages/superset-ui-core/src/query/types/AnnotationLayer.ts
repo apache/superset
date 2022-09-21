@@ -162,9 +162,10 @@ export type RecordAnnotationResult = {
   records: DataRecord[];
 };
 
-export type TimeseriesAnnotationResult = [
-  { key: string; values: { x: string | number; y?: number }[] },
-];
+export type TimeseriesAnnotationResult = {
+  key: string;
+  values: { x: string | number; y?: number }[];
+}[];
 
 export type AnnotationResult =
   | RecordAnnotationResult
@@ -177,9 +178,9 @@ export function isTimeseriesAnnotationResult(
 }
 
 export function isRecordAnnotationResult(
-  result: AnnotationResult,
+  result: any,
 ): result is RecordAnnotationResult {
-  return 'columns' in result && 'records' in result;
+  return Array.isArray(result?.columns) && Array.isArray(result?.records);
 }
 
 export type AnnotationData = { [key: string]: AnnotationResult };

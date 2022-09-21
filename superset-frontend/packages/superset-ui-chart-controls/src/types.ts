@@ -17,16 +17,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, ReactText, ReactElement } from 'react';
+import React, { ReactElement, ReactNode, ReactText } from 'react';
 import type {
   AdhocColumn,
   Column,
   DatasourceType,
   JsonValue,
   Metric,
+  QueryFormColumn,
   QueryFormData,
+  QueryFormMetric,
+  QueryResponse,
 } from '@superset-ui/core';
-import { sharedControls } from './shared-controls';
+import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
 export type { Metric } from '@superset-ui/core';
@@ -47,11 +50,19 @@ export type SharedControlComponents = typeof sharedControlComponents;
 /** ----------------------------------------------
  * Input data/props while rendering
  * ---------------------------------------------*/
+export interface Owner {
+  first_name: string;
+  id: number;
+  last_name: string;
+  username: string;
+  email?: string;
+}
+
 export type ColumnMeta = Omit<Column, 'id'> & {
   id?: number;
 } & AnyDict;
 
-export interface DatasourceMeta {
+export interface Dataset {
   id: number;
   type: DatasourceType;
   columns: ColumnMeta[];
@@ -64,12 +75,15 @@ export interface DatasourceMeta {
   time_grain_sqla?: string;
   granularity_sqla?: string;
   datasource_name: string | null;
+  name?: string;
   description: string | null;
+  uid?: string;
+  owners?: Owner[];
 }
 
 export interface ControlPanelState {
   form_data: QueryFormData;
-  datasource: DatasourceMeta | null;
+  datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
 }
 
@@ -88,7 +102,7 @@ export interface ActionDispatcher<
  * Mapping of action dispatchers
  */
 export interface ControlPanelActionDispatchers {
-  setDatasource: ActionDispatcher<[DatasourceMeta]>;
+  setDatasource: ActionDispatcher<[Dataset]>;
 }
 
 /**
@@ -171,6 +185,8 @@ export type TabOverride = 'data' | 'customize' | boolean;
  *    bubbled up to the control header, section header and query panel header.
  * - warning: text shown as a tooltip on a warning icon in the control's header
  * - error: text shown as a tooltip on a error icon in the control's header
+ * - shouldMapStateToProps: a function that receives the previous and current app state
+ *   and determines if the control needs to recalculate it's props based on the new state.
  * - mapStateToProps: a function that receives the App's state and return an object of k/v
  *    to overwrite configuration at runtime. This is useful to alter a component based on
  *    anything external to it, like another control's value. For instance it's possible to
@@ -188,9 +204,24 @@ export interface BaseControlConfig<
   V = JsonValue,
 > extends AnyDict {
   type: T;
-  label?: ReactNode;
-  description?: ReactNode;
+  label?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
+  description?:
+    | ReactNode
+    | ((
+        state: ControlPanelState,
+        controlState: ControlState,
+        // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+        chartState?: AnyDict,
+      ) => ReactNode);
   default?: V;
+  initialValue?: V;
   renderTrigger?: boolean;
   validators?: ControlValueValidator<T, O, V>[];
   warning?: ReactNode;
@@ -198,13 +229,23 @@ export interface BaseControlConfig<
   /**
    * Add additional props to chart control.
    */
-  mapStateToProps?: (
+  shouldMapStateToProps?: (
+    prevState: ControlPanelState,
     state: ControlPanelState,
     controlState: ControlState,
     // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
     chartState?: AnyDict,
+  ) => boolean;
+  mapStateToProps?: (
+    state: ControlPanelState,
+    controlState?: ControlState,
+    // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
+    chartState?: AnyDict,
   ) => ExtraControlProps;
-  visibility?: (props: ControlPanelsContainerProps) => boolean;
+  visibility?: (
+    props: ControlPanelsContainerProps,
+    controlData: AnyDict,
+  ) => boolean;
 }
 
 export interface ControlValueValidator<
@@ -321,18 +362,43 @@ export type ControlSetRow = ControlSetItem[];
 //  - superset-frontend/src/explore/components/ControlPanelsContainer.jsx
 //  - superset-frontend/src/explore/components/ControlPanelSection.jsx
 export interface ControlPanelSectionConfig {
-  label: ReactNode;
+  label?: ReactNode;
   description?: ReactNode;
   expanded?: boolean;
   tabOverride?: TabOverride;
   controlSetRows: ControlSetRow[];
 }
 
+export interface StandardizedControls {
+  metrics: QueryFormMetric[];
+  columns: QueryFormColumn[];
+}
+
+export interface StandardizedFormDataInterface {
+  // Controls not used in the current viz
+  controls: StandardizedControls;
+  // Transformation history
+  memorizedFormData: Map<string, QueryFormData>;
+}
+
+export type QueryStandardizedFormData = QueryFormData & {
+  standardizedFormData: StandardizedFormDataInterface;
+};
+
+export const isStandardizedFormData = (
+  formData: QueryFormData,
+): formData is QueryStandardizedFormData =>
+  formData?.standardizedFormData?.controls &&
+  formData?.standardizedFormData?.memorizedFormData &&
+  Array.isArray(formData.standardizedFormData.controls.metrics) &&
+  Array.isArray(formData.standardizedFormData.controls.columns);
+
 export interface ControlPanelConfig {
-  controlPanelSections: ControlPanelSectionConfig[];
+  controlPanelSections: (ControlPanelSectionConfig | null)[];
   controlOverrides?: ControlOverrides;
   sectionOverrides?: SectionOverrides;
   onInit?: (state: ControlStateMapping) => void;
+  formDataOverrides?: (formData: QueryFormData) => QueryFormData;
 }
 
 export type ControlOverrides = {
@@ -396,8 +462,24 @@ export function isSavedExpression(
   );
 }
 
-export function isAdhocColumn(
-  column: AdhocColumn | ColumnMeta,
-): column is AdhocColumn {
-  return 'label' in column && 'sqlExpression' in column;
+export function isControlPanelSectionConfig(
+  section: ControlPanelSectionConfig | null,
+): section is ControlPanelSectionConfig {
+  return section !== null;
+}
+
+export function isDataset(
+  datasource: Dataset | QueryResponse | null | undefined,
+): datasource is Dataset {
+  return !!datasource && 'columns' in datasource;
+}
+
+export function isQueryResponse(
+  datasource: Dataset | QueryResponse | null | undefined,
+): datasource is QueryResponse {
+  return (
+    !!datasource &&
+    ('results' in datasource ||
+      datasource?.type === ('query' as DatasourceType.Query))
+  );
 }

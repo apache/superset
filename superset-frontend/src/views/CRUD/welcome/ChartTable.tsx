@@ -106,28 +106,13 @@ function ChartTable({
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (loaded || chartFilter === 'Favorite') {
-      getData(chartFilter);
-    }
-    setLoaded(true);
-  }, [chartFilter]);
-
-  const handleBulkChartExport = (chartsToExport: Chart[]) => {
-    const ids = chartsToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
-      setPreparingExport(false);
-    });
-    setPreparingExport(true);
-  };
-
   const getFilters = (filterName: string) => {
     const filters = [];
 
     if (filterName === 'Mine') {
       filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
+        id: 'owners',
+        operator: 'rel_m_m',
         value: `${user?.userId}`,
       });
     } else if (filterName === 'Favorite') {
@@ -158,6 +143,21 @@ function ChartTable({
       ],
       filters: getFilters(filter),
     });
+
+  useEffect(() => {
+    if (loaded || chartFilter === 'Favorite') {
+      getData(chartFilter);
+    }
+    setLoaded(true);
+  }, [chartFilter]);
+
+  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+    const ids = chartsToExport.map(({ id }) => id);
+    handleResourceExport('chart', ids, () => {
+      setPreparingExport(false);
+    });
+    setPreparingExport(true);
+  };
 
   const menuTabs = [
     {

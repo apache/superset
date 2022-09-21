@@ -119,7 +119,7 @@ describe('ChartDataProvider', () => {
         setup({ loadDatasource: false });
         setTimeout(() => {
           expect(mockLoadDatasource.mock.calls).toHaveLength(0);
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -132,7 +132,7 @@ describe('ChartDataProvider', () => {
           expect(mockLoadDatasource.mock.calls[0][0]).toEqual(
             props.formData.datasource,
           );
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -144,7 +144,7 @@ describe('ChartDataProvider', () => {
         setTimeout(() => {
           expect(mockLoadDatasource.mock.calls).toHaveLength(1);
           expect(mockLoadDatasource.mock.calls[0][1]).toEqual(options);
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -164,7 +164,7 @@ describe('ChartDataProvider', () => {
             props.formData.datasource,
           );
           expect(mockLoadDatasource.mock.calls[1][0]).toEqual(newDatasource);
-          done();
+          done(undefined);
         }, 0);
       }));
   });
@@ -177,7 +177,7 @@ describe('ChartDataProvider', () => {
         setTimeout(() => {
           expect(mockLoadQueryData.mock.calls).toHaveLength(1);
           expect(mockLoadQueryData.mock.calls[0][0]).toEqual(props.formData);
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -189,7 +189,7 @@ describe('ChartDataProvider', () => {
         setTimeout(() => {
           expect(mockLoadQueryData.mock.calls).toHaveLength(1);
           expect(mockLoadQueryData.mock.calls[0][1]).toEqual(options);
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -204,7 +204,7 @@ describe('ChartDataProvider', () => {
           expect(mockLoadQueryData.mock.calls).toHaveLength(2);
           expect(mockLoadQueryData.mock.calls[0][0]).toEqual(props.formData);
           expect(mockLoadQueryData.mock.calls[1][0]).toEqual(newFormData);
-          done();
+          done(undefined);
         }, 0);
       }));
   });
@@ -234,7 +234,7 @@ describe('ChartDataProvider', () => {
               queriesData: [props.formData],
             },
           });
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -251,7 +251,7 @@ describe('ChartDataProvider', () => {
           expect(children.mock.calls[1][0]).toEqual({
             error: new Error('error'),
           });
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -271,7 +271,7 @@ describe('ChartDataProvider', () => {
           expect(children.mock.calls[1][0]).toEqual({
             error: new Error('non-async error'),
           });
-          done();
+          done(undefined);
         }, 0);
       }));
   });
@@ -290,7 +290,7 @@ describe('ChartDataProvider', () => {
             datasource: props.formData.datasource,
             queriesData: [props.formData],
           });
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -304,7 +304,7 @@ describe('ChartDataProvider', () => {
         setTimeout(() => {
           expect(onError.mock.calls).toHaveLength(1);
           expect(onError.mock.calls[0][0]).toEqual(new Error('error'));
-          done();
+          done(undefined);
         }, 0);
       }));
 
@@ -323,7 +323,7 @@ describe('ChartDataProvider', () => {
           expect(onError.mock.calls[0][0]).toEqual(
             new Error('non-async error'),
           );
-          done();
+          done(undefined);
         }, 0);
       }));
   });

@@ -20,17 +20,19 @@ import { getNumberFormatter, getTimeFormatter } from '@superset-ui/core';
 import {
   dedupSeries,
   extractGroupbyLabel,
-  extractTimeseriesSeries,
+  extractSeries,
   formatSeriesName,
   getChartPadding,
   getLegendProps,
   sanitizeHtml,
+  extractShowValueIndexes,
+  getOverMaxHiddenFormatter,
 } from '../../src/utils/series';
 import { LegendOrientation, LegendType } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
 import { NULL_STRING } from '../../src/constants';
 
-describe('extractTimeseriesSeries', () => {
+describe('extractSeries', () => {
   it('should generate a valid ECharts timeseries series object', () => {
     const data = [
       {
@@ -49,23 +51,58 @@ describe('extractTimeseriesSeries', () => {
         abc: 5,
       },
     ];
-    expect(extractTimeseriesSeries(data)).toEqual([
+    expect(extractSeries(data)).toEqual([
       {
         id: 'Hulk',
         name: 'Hulk',
         data: [
-          [new Date('2000-01-01'), null],
-          [new Date('2000-02-01'), 2],
-          [new Date('2000-03-01'), 1],
+          ['2000-01-01', null],
+          ['2000-02-01', 2],
+          ['2000-03-01', 1],
         ],
       },
       {
         id: 'abc',
         name: 'abc',
         data: [
-          [new Date('2000-01-01'), 2],
-          [new Date('2000-02-01'), 10],
-          [new Date('2000-03-01'), 5],
+          ['2000-01-01', 2],
+          ['2000-02-01', 10],
+          ['2000-03-01', 5],
+        ],
+      },
+    ]);
+  });
+
+  it('should remove rows that have a null x-value', () => {
+    const data = [
+      {
+        x: 1,
+        Hulk: null,
+        abc: 2,
+      },
+      {
+        x: null,
+        Hulk: 2,
+        abc: 10,
+      },
+      {
+        x: 2,
+        Hulk: 1,
+        abc: 5,
+      },
+    ];
+    expect(extractSeries(data, { xAxis: 'x', removeNulls: true })).toEqual([
+      {
+        id: 'Hulk',
+        name: 'Hulk',
+        data: [[2, 1]],
+      },
+      {
+        id: 'abc',
+        name: 'abc',
+        data: [
+          [1, 2],
+          [2, 5],
         ],
       },
     ]);
@@ -114,21 +151,21 @@ describe('extractTimeseriesSeries', () => {
         abc: null,
       },
     ];
-    expect(extractTimeseriesSeries(data, { fillNeighborValue: 0 })).toEqual([
+    expect(extractSeries(data, { fillNeighborValue: 0 })).toEqual([
       {
         id: 'abc',
         name: 'abc',
         data: [
-          [new Date('2000-01-01'), null],
-          [new Date('2000-02-01'), 0],
-          [new Date('2000-03-01'), 1],
-          [new Date('2000-04-01'), 0],
-          [new Date('2000-05-01'), null],
-          [new Date('2000-06-01'), 0],
-          [new Date('2000-07-01'), 2],
-          [new Date('2000-08-01'), 3],
-          [new Date('2000-09-01'), 0],
-          [new Date('2000-10-01'), null],
+          ['2000-01-01', null],
+          ['2000-02-01', 0],
+          ['2000-03-01', 1],
+          ['2000-04-01', 0],
+          ['2000-05-01', null],
+          ['2000-06-01', 0],
+          ['2000-07-01', 2],
+          ['2000-08-01', 3],
+          ['2000-09-01', 0],
+          ['2000-10-01', null],
         ],
       },
     ]);
@@ -171,6 +208,124 @@ describe('extractGroupbyLabel', () => {
   });
 });
 
+describe('extractShowValueIndexes', () => {
+  it('should return the latest index for stack', () => {
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'abc',
+            name: 'abc',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', 1],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', null],
+              ['2000-03-01', null],
+              ['2000-04-01', null],
+              ['2000-05-01', null],
+              ['2000-06-01', 3],
+              ['2000-07-01', null],
+              ['2000-08-01', null],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
+            ],
+          },
+        ],
+        { stack: true, onlyTotal: false, isHorizontal: false },
+      ),
+    ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
+  });
+
+  it('should handle the negative numbers for total only', () => {
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'abc',
+            name: 'abc',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', -1],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', -2],
+              ['2000-08-01', -3],
+              ['2000-09-01', null],
+              ['2000-10-01', null],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 0],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', 2],
+              ['2000-08-01', -3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
+            ],
+          },
+          {
+            id: 'def',
+            name: 'def',
+            data: [
+              ['2000-01-01', null],
+              ['2000-02-01', 0],
+              ['2000-03-01', null],
+              ['2000-04-01', 1],
+              ['2000-05-01', null],
+              ['2000-06-01', 0],
+              ['2000-07-01', -2],
+              ['2000-08-01', 3],
+              ['2000-09-01', null],
+              ['2000-10-01', 0],
+            ],
+          },
+        ],
+        { stack: true, onlyTotal: true, isHorizontal: false },
+      ),
+    ).toEqual([undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1]);
+  });
+});
+
 describe('formatSeriesName', () => {
   const numberFormatter = getNumberFormatter();
   const timeFormatter = getTimeFormatter();
@@ -195,7 +350,7 @@ describe('formatSeriesName', () => {
     expect(formatSeriesName(12345678.9, { numberFormatter })).toEqual('12.3M');
   });
 
-  it('should use default formatting for for date values without formatter', () => {
+  it('should use default formatting for date values without formatter', () => {
     expect(formatSeriesName(new Date('2020-09-11'))).toEqual(
       '2020-09-11T00:00:00.000Z',
     );
@@ -380,6 +535,18 @@ describe('formatSeriesName', () => {
   describe('sanitizeHtml', () => {
     it('should remove html tags from series name', () => {
       expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
+    });
+  });
+
+  describe('getOverMaxHiddenFormatter', () => {
+    it('should hide value if greater than max', () => {
+      const formatter = getOverMaxHiddenFormatter({ max: 81000 });
+      expect(formatter.format(84500)).toEqual('');
+    });
+    it('should show value if less or equal than max', () => {
+      const formatter = getOverMaxHiddenFormatter({ max: 81000 });
+      expect(formatter.format(81000)).toEqual('81000');
+      expect(formatter.format(50000)).toEqual('50000');
     });
   });
 });

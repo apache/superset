@@ -24,7 +24,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { LineEditableTabs } from 'src/components/Tabs';
-import { Modal } from 'src/common/components';
+import { AntdModal } from 'src/components';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -196,7 +196,7 @@ describe('Tabs', () => {
 
   it('should render Modal when clicked remove tab button', () => {
     const deleteComponent = sinon.spy();
-    const modalMock = jest.spyOn(Modal, 'confirm');
+    const modalMock = jest.spyOn(AntdModal, 'confirm');
     const wrapper = setup({ editMode: true, deleteComponent });
     wrapper.find('.ant-tabs-tab-remove').at(0).simulate('click');
     expect(modalMock.mock.calls).toHaveLength(1);

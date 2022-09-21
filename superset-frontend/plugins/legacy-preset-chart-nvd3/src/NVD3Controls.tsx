@@ -148,7 +148,7 @@ export const showLegend: CustomControlItem = {
     type: 'CheckboxControl',
     label: t('Legend'),
     renderTrigger: true,
-    default: false,
+    default: true,
     description: t('Whether to display the legend (toggles)'),
   },
 };
@@ -346,19 +346,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
       ['groupby'],
       ['limit'],
       ['timeseries_limit_metric'],
-      [
-        {
-          name: 'order_desc',
-          config: {
-            type: 'CheckboxControl',
-            label: t('Sort Descending'),
-            default: true,
-            description: t('Whether to sort descending or ascending'),
-            visibility: ({ controls }) =>
-              Boolean(controls?.timeseries_limit_metric.value),
-          },
-        },
-      ],
+      ['order_desc'],
       [
         {
           name: 'contribution',
@@ -382,7 +370,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
         'of query results',
     ),
     controlSetRows: [
-      [<h1 className="section-header">{t('Rolling Window')}</h1>],
+      [<div className="section-header">{t('Rolling Window')}</div>],
       [
         {
           name: 'rolling_type',
@@ -435,7 +423,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Time Comparison')}</h1>],
+      [<div className="section-header">{t('Time Comparison')}</div>],
       [
         {
           name: 'time_compare',
@@ -486,8 +474,7 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
           },
         },
       ],
-      [<h1 className="section-header">{t('Python Functions')}</h1>],
-      [<h2 className="section-header">pandas.resample</h2>],
+      [<div className="section-header">{t('Resample')}</div>],
       [
         {
           name: 'resample_rule',

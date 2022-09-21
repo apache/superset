@@ -17,7 +17,7 @@
 import logging
 from typing import Any, cast
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import (
     expose,
     get_list_schema,
@@ -62,7 +62,11 @@ from superset.dashboards.filter_sets.schemas import (
 )
 from superset.extensions import event_logger
 from superset.models.filter_set import FilterSet
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    requires_json,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +197,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @requires_json
     def post(self, dashboard_id: int) -> Response:
         """
             Creates a new Dashboard's Filter Set
@@ -236,11 +241,9 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
-            new_model = CreateFilterSetCommand(g.user, dashboard_id, item).run()
+            new_model = CreateFilterSetCommand(dashboard_id, item).run()
             return self.response(
                 201, **self.show_model_schema.dump(new_model, many=False)
             )
@@ -261,6 +264,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @requires_json
     def put(self, dashboard_id: int, pk: int) -> Response:
         """Changes a Dashboard's Filter set
         ---
@@ -308,11 +312,9 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
-            changed_model = UpdateFilterSetCommand(g.user, dashboard_id, pk, item).run()
+            changed_model = UpdateFilterSetCommand(dashboard_id, pk, item).run()
             return self.response(
                 200, **self.show_model_schema.dump(changed_model, many=False)
             )
@@ -372,7 +374,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            changed_model = DeleteFilterSetCommand(g.user, dashboard_id, pk).run()
+            changed_model = DeleteFilterSetCommand(dashboard_id, pk).run()
             return self.response(200, id=changed_model.id)
         except ValidationError as error:
             return self.response_400(message=error.messages)

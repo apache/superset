@@ -38,6 +38,7 @@ export const basic = () => (
     formData={{
       maxBubbleSize: '25',
       showBubbles: true,
+      colorPicker: {},
     }}
   />
 );

@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import datetime, timedelta
 from functools import wraps
@@ -55,7 +56,11 @@ def set_and_log_cache(
     if isinstance(cache_instance.cache, NullCache):
         return
 
-    timeout = cache_timeout if cache_timeout else config["CACHE_DEFAULT_TIMEOUT"]
+    timeout = (
+        cache_timeout
+        if cache_timeout is not None
+        else app.config["CACHE_DEFAULT_TIMEOUT"]
+    )
     try:
         dttm = datetime.utcnow().isoformat().split(".")[0]
         value = {**cache_value, "dttm": dttm}
@@ -90,9 +95,21 @@ def view_cache_key(*args: Any, **kwargs: Any) -> str:  # pylint: disable=unused-
 
 
 def memoized_func(
-    key: Callable[..., str] = view_cache_key, cache: Cache = cache_manager.cache,
+    key: Optional[str] = None,
+    cache: Cache = cache_manager.cache,
 ) -> Callable[..., Any]:
-    """Use this decorator to cache functions that have predefined first arg.
+    """
+    Decorator with configurable key and cache backend.
+
+        @memoized_func(key="{a}+{b}", cache=cache_manager.data_cache)
+        def sum(a: int, b: int) -> int:
+            return a + b
+
+    In the example above the result for `1+2` will be stored under the key of name "1+2",
+    in the `cache_manager.data_cache` cache.
+
+    Note: this decorator should be used only with functions that return primitives,
+    otherwise the deserialization might not work correctly.
 
     enable_cache is treated as True by default,
     except enable_cache = False is passed to the decorated function.
@@ -109,15 +126,23 @@ def memoized_func(
     """
 
     def wrap(f: Callable[..., Any]) -> Callable[..., Any]:
-        def wrapped_f(self: Any, *args: Any, **kwargs: Any) -> Any:
+        def wrapped_f(*args: Any, **kwargs: Any) -> Any:
             if not kwargs.get("cache", True):
-                return f(self, *args, **kwargs)
+                return f(*args, **kwargs)
 
-            cache_key = key(self, *args, **kwargs)
+            if key:
+                # format the key using args/kwargs passed to the decorated function
+                signature = inspect.signature(f)
+                bound_args = signature.bind(*args, **kwargs)
+                bound_args.apply_defaults()
+                cache_key = key.format(**bound_args.arguments)
+            else:
+                cache_key = view_cache_key(*args, **kwargs)
+
             obj = cache.get(cache_key)
             if not kwargs.get("force") and obj is not None:
                 return obj
-            obj = f(self, *args, **kwargs)
+            obj = f(*args, **kwargs)
             cache.set(cache_key, obj, timeout=kwargs.get("cache_timeout"))
             return obj
 

@@ -21,9 +21,36 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { formatNumber } from '@superset-ui/core';
+import { formatNumber, styled } from '@superset-ui/core';
 
-import './Legend.css';
+const StyledLegend = styled.div`
+  ${({ theme }) => `
+    font-size: ${theme.typography.sizes.s}px;
+    position: absolute;
+    background: ${theme.colors.grayscale.light5};
+    box-shadow: 0 0 ${theme.gridUnit}px ${theme.colors.grayscale.light2};
+    margin: ${theme.gridUnit * 6}px;
+    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 5}px;
+    outline: none;
+    overflow-y: scroll;
+    max-height: 200px;
+
+    & ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+
+      & li a {
+        color: ${theme.colors.grayscale.base};
+        text-decoration: none;
+
+        & span {
+          margin-right: ${theme.gridUnit * 3}px;
+        }
+      }
+    }
+  `}
+`;
 
 const categoryDelimiter = ' - ';
 
@@ -106,9 +133,9 @@ export default class Legend extends React.PureComponent {
     };
 
     return (
-      <div className="legend" style={style}>
-        <ul className="categories">{categories}</ul>
-      </div>
+      <StyledLegend style={style}>
+        <ul>{categories}</ul>
+      </StyledLegend>
     );
   }
 }

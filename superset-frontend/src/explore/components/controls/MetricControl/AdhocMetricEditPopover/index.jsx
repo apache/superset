@@ -19,17 +19,16 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { t, styled, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import { t, styled } from '@superset-ui/core';
-
+import { EmptyStateSmall } from 'src/components/EmptyState';
 import { Form, FormItem } from 'src/components/Form';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { noOp } from 'src/utils/common';
-
 import {
   AGGREGATES_OPTIONS,
   POPOVER_INITIAL_HEIGHT,
@@ -324,15 +323,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       autoFocus: true,
     };
 
-    if (
-      this.props.datasource?.type === 'druid' &&
-      aggregateSelectProps.options
-    ) {
-      aggregateSelectProps.options = aggregateSelectProps.options.filter(
-        aggregate => aggregate !== 'AVG',
-      );
-    }
-
     const stateIsValid = adhocMetric.isValid() || savedMetric?.metric_name;
     const hasUnsavedChanges =
       !adhocMetric.equals(propsAdhocMetric) ||
@@ -366,21 +356,49 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           allowOverflow
         >
           <Tabs.TabPane key={SAVED_TAB_KEY} tab={t('Saved')}>
-            <FormItem label={t('Saved metric')}>
-              <StyledSelect
-                options={
-                  Array.isArray(savedMetricsOptions)
-                    ? savedMetricsOptions.map(savedMetric => ({
-                        value: savedMetric.metric_name,
-                        label: savedMetric.metric_name,
-                        customLabel: this.renderMetricOption(savedMetric),
-                        key: savedMetric.id,
-                      }))
-                    : []
-                }
-                {...savedSelectProps}
+            {ensureIsArray(savedMetricsOptions).length > 0 ? (
+              <FormItem label={t('Saved metric')}>
+                <StyledSelect
+                  options={ensureIsArray(savedMetricsOptions).map(
+                    savedMetric => ({
+                      value: savedMetric.metric_name,
+                      label: savedMetric.metric_name,
+                      customLabel: this.renderMetricOption(savedMetric),
+                      key: savedMetric.id,
+                    }),
+                  )}
+                  {...savedSelectProps}
+                />
+              </FormItem>
+            ) : datasource.type === DatasourceType.Table ? (
+              <EmptyStateSmall
+                image="empty.svg"
+                title={t('No saved metrics found')}
+                description={t(
+                  'Add metrics to dataset in "Edit datasource" modal',
+                )}
               />
-            </FormItem>
+            ) : (
+              <EmptyStateSmall
+                image="empty.svg"
+                title={t('No saved metrics found')}
+                description={
+                  <>
+                    <span
+                      tabIndex={0}
+                      role="button"
+                      onClick={() => {
+                        this.props.handleDatasetModal(true);
+                        this.props.onClose();
+                      }}
+                    >
+                      {t('Create a dataset')}
+                    </span>
+                    {t(' to add metrics')}
+                  </>
+                }
+              />
+            )}
           </Tabs.TabPane>
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SIMPLE}
@@ -424,18 +442,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SQL}
             tab={
-              extra.disallow_adhoc_metrics ||
-              this.props.datasource?.type === 'druid' ? (
+              extra.disallow_adhoc_metrics ? (
                 <Tooltip
-                  title={
-                    this.props.datasource?.type === 'druid'
-                      ? t(
-                          'Custom SQL ad-hoc metrics are not available for the native Druid connector',
-                        )
-                      : t(
-                          'Custom SQL ad-hoc metrics are not enabled for this dataset',
-                        )
-                  }
+                  title={t(
+                    'Custom SQL ad-hoc metrics are not enabled for this dataset',
+                  )}
                 >
                   {t('Custom SQL')}
                 </Tooltip>
@@ -444,10 +455,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               )
             }
             data-test="adhoc-metric-edit-tab#custom"
-            disabled={
-              extra.disallow_adhoc_metrics ||
-              this.props.datasource?.type === 'druid'
-            }
+            disabled={extra.disallow_adhoc_metrics}
           >
             <SQLEditor
               data-test="sql-editor"
@@ -458,7 +466,10 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               onChange={this.onSqlExpressionChange}
               width="100%"
               showGutter={false}
-              value={adhocMetric.sqlExpression || adhocMetric.translateToSql()}
+              value={
+                adhocMetric.sqlExpression ||
+                adhocMetric.translateToSql({ transformCountDistinct: true })
+              }
               editorProps={{ $blockScrolling: true }}
               enableLiveAutocompletion
               className="filter-sql-editor"

@@ -23,7 +23,7 @@ describe('Visualization > Pivot Table', () => {
     slice_id: 61,
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
-    time_range: '100+years+ago+:+now',
+    time_range: '100 years ago : now',
     metrics: ['sum__num'],
     adhoc_filters: [],
     groupby: ['name'],
@@ -54,7 +54,7 @@ describe('Visualization > Pivot Table', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   }
 

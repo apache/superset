@@ -24,7 +24,9 @@ import ErrorBoundary, {
 } from 'react-error-boundary';
 import { ParentSize } from '@vx/responsive';
 import { createSelector } from 'reselect';
+import { withTheme } from '@emotion/react';
 import { parseLength, Dimension } from '../../dimension';
+import getChartMetadataRegistry from '../registries/ChartMetadataRegistrySingleton';
 import SuperChartCore, { Props as SuperChartCoreProps } from './SuperChartCore';
 import DefaultFallbackComponent from './FallbackComponent';
 import ChartProps, { ChartPropsConfig } from '../models/ChartProps';
@@ -63,6 +65,8 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     showOverflow?: boolean;
     /** Prop for popovercontainer ref */
     parentRef?: RefObject<any>;
+    /** Prop for chart ref */
+    inputRef?: RefObject<any>;
     /** Chart width */
     height?: number | string;
     /** Chart height */
@@ -77,11 +81,16 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
      * because it will clash with auto-sizing.
      */
     Wrapper?: React.ComponentType<WrapperProps>;
+    /**
+     * Component to display when query returns no results.
+     * If not defined, NoResultsComponent is used
+     */
+    noResults?: ReactNode;
   };
 
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
 
-export default class SuperChart extends React.PureComponent<Props, {}> {
+class SuperChart extends React.PureComponent<Props, {}> {
   /**
    * SuperChart's core
    */
@@ -132,6 +141,9 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
     this.core = core;
   };
 
+  private getQueryCount = () =>
+    getChartMetadataRegistry().get(this.props.chartType)?.queryObjectCount ?? 1;
+
   renderChart(width: number, height: number) {
     const {
       id,
@@ -148,6 +160,8 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       Wrapper,
       queriesData,
       enableNoResults,
+      noResults,
+      theme,
       ...rest
     } = this.props as PropsWithDefault;
 
@@ -156,6 +170,7 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
       queriesData,
       height,
       width,
+      theme,
     });
 
     let chart;
@@ -163,11 +178,13 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
     const noResultQueries =
       enableNoResults &&
       (!queriesData ||
-        queriesData.every(
-          ({ data }) => !data || (Array.isArray(data) && data.length === 0),
-        ));
+        queriesData
+          .slice(0, this.getQueryCount())
+          .every(
+            ({ data }) => !data || (Array.isArray(data) && data.length === 0),
+          ));
     if (noResultQueries) {
-      chart = (
+      chart = noResults || (
         <NoResultsComponent
           id={id}
           className={className}
@@ -239,3 +256,5 @@ export default class SuperChart extends React.PureComponent<Props, {}> {
     return this.renderChart(widthInfo.value, heightInfo.value);
   }
 }
+
+export default withTheme(SuperChart);

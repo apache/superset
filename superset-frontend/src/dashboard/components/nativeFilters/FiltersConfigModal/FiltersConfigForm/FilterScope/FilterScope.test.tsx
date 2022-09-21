@@ -25,7 +25,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
-import { Form, FormInstance } from 'src/common/components';
+import { AntdForm, FormInstance } from 'src/components';
 import { NativeFiltersForm } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/types';
 import FiltersConfigForm, {
   FilterPanels,
@@ -36,19 +36,21 @@ describe('FilterScope', () => {
   let form: FormInstance<NativeFiltersForm>;
   const mockedProps = {
     filterId: 'DefaultFilterId',
-    parentFilters: [],
+    dependencies: [],
     setErroredFilters: jest.fn(),
-    onFilterHierarchyChange: jest.fn(),
     restoreFilter: jest.fn(),
+    getAvailableFilters: () => [],
+    getDependencySuggestion: () => '',
     save,
     removedFilters: {},
     handleActiveFilterPanelChange: jest.fn(),
-    activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.basic.key}`,
+    activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.configuration.key}`,
     isActive: true,
+    validateDependencies: jest.fn(),
   };
 
   const MockModal = ({ scope }: { scope?: object }) => {
-    const [newForm] = Form.useForm<NativeFiltersForm>();
+    const [newForm] = AntdForm.useForm<NativeFiltersForm>();
     form = newForm;
     if (scope) {
       form.setFieldsValue({
@@ -61,9 +63,9 @@ describe('FilterScope', () => {
     }
     return (
       <Provider store={mockStoreWithChartsInTabsAndRoot}>
-        <Form form={form}>
+        <AntdForm form={form}>
           <FiltersConfigForm form={form} {...mockedProps} />
-        </Form>
+        </AntdForm>
       </Provider>
     );
   };

@@ -29,6 +29,19 @@ declare namespace Cypress {
      * Login test user.
      */
     login(): void;
+    preserveLogin(): void;
+
+    /**
+     *
+     * Utils
+     */
+
+    getBySel(selector: string): cy;
+    getBySelLike(selector: string): cy;
+    cleanCharts(): cy;
+    cleanDashboards(): cy;
+    loadChartFixtures(): cy;
+    loadDashboardFixtures(): cy;
 
     visitChartByParams(params: string | Record<string, unknown>): cy;
     visitChartByName(name: string): cy;
@@ -47,6 +60,26 @@ declare namespace Cypress {
       querySubstring?: string | RegExp;
       chartSelector?: JQuery.Selector;
     }): cy;
+
+    /**
+     * Get
+     */
+    getDashboards(): cy;
+    getCharts(): cy;
+
+    /**
+     * Create
+     */
+    createSampleDashboards(indexes?: number[]): void;
+    createSampleCharts(indexes?: number[]): void;
+
+    /**
+     * Delete
+     */
+    deleteDashboard(id: number, failOnStatusCode: boolean): cy;
+    deleteDashboardByName(dashboardName: string, failOnStatusCode: boolean): cy;
+    deleteChartByName(name: string, failOnStatusCode: boolean): cy;
+    deleteChart(id: number, failOnStatusCode: boolean): cy;
   }
 }
 

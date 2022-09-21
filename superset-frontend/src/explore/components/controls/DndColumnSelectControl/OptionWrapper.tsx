@@ -30,8 +30,8 @@ import {
 } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import { Tooltip } from 'src/components/Tooltip';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
-import { styled } from '@superset-ui/core';
-import { ColumnMeta, isAdhocColumn } from '@superset-ui/chart-controls';
+import { styled, isAdhocColumn } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import Option from './Option';
 
 export const OptionLabel = styled.div`
@@ -144,7 +144,6 @@ export default function OptionWrapper(
       <StyledColumnOption
         column={transformedCol as ColumnMeta}
         labelRef={labelRef}
-        showTooltip={!!shouldShowTooltip}
         showType
       />
     );

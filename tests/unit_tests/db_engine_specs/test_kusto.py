@@ -18,7 +18,8 @@
 from datetime import datetime
 
 import pytest
-from flask.ctx import AppContext
+
+from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
@@ -30,9 +31,7 @@ from flask.ctx import AppContext
         ("INSERT INTO tbl (foo) VALUES (1)", False),
     ],
 )
-def test_sql_is_readonly_query(
-    app_context: AppContext, sql: str, expected: bool
-) -> None:
+def test_sql_is_readonly_query(sql: str, expected: bool) -> None:
     """
     Make sure that SQL dialect consider only SELECT statements as read-only
     """
@@ -54,7 +53,7 @@ def test_sql_is_readonly_query(
         (".show tables", False),
     ],
 )
-def test_kql_is_select_query(app_context: AppContext, kql: str, expected: bool) -> None:
+def test_kql_is_select_query(kql: str, expected: bool) -> None:
     """
     Make sure that KQL dialect consider only statements that do not start with "." (dot)
     as a SELECT statements
@@ -81,9 +80,7 @@ def test_kql_is_select_query(app_context: AppContext, kql: str, expected: bool) 
         (".set-or-append table foo <| bar", False),
     ],
 )
-def test_kql_is_readonly_query(
-    app_context: AppContext, kql: str, expected: bool
-) -> None:
+def test_kql_is_readonly_query(kql: str, expected: bool) -> None:
     """
     Make sure that KQL dialect consider only SELECT statements as read-only
     """
@@ -97,7 +94,7 @@ def test_kql_is_readonly_query(
     assert expected == is_readonly
 
 
-def test_kql_parse_sql(app_context: AppContext) -> None:
+def test_kql_parse_sql() -> None:
     """
     parse_sql method should always return a list with a single element
     which is an original query
@@ -119,7 +116,9 @@ def test_kql_parse_sql(app_context: AppContext) -> None:
     ],
 )
 def test_kql_convert_dttm(
-    app_context: AppContext, target_type: str, expected_dttm: str
+    target_type: str,
+    expected_dttm: str,
+    dttm: datetime,
 ) -> None:
     """
     Test that date objects are converted correctly.
@@ -127,8 +126,6 @@ def test_kql_convert_dttm(
 
     from superset.db_engine_specs.kusto import KustoKqlEngineSpec
 
-    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
-    print(dttm)
     assert expected_dttm == KustoKqlEngineSpec.convert_dttm(target_type, dttm)
 
 
@@ -142,7 +139,9 @@ def test_kql_convert_dttm(
     ],
 )
 def test_sql_convert_dttm(
-    app_context: AppContext, target_type: str, expected_dttm: str
+    target_type: str,
+    expected_dttm: str,
+    dttm: datetime,
 ) -> None:
     """
     Test that date objects are converted correctly.
@@ -150,6 +149,4 @@ def test_sql_convert_dttm(
 
     from superset.db_engine_specs.kusto import KustoSqlEngineSpec
 
-    dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
-    print(dttm)
     assert expected_dttm == KustoSqlEngineSpec.convert_dttm(target_type, dttm)

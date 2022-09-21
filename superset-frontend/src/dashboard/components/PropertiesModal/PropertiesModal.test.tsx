@@ -132,6 +132,7 @@ const createProps = () => ({
   onlyApply: false,
   onHide: jest.fn(),
   onSubmit: jest.fn(),
+  addSuccessToast: jest.fn(),
 });
 
 beforeEach(() => {
@@ -261,6 +262,7 @@ test('submitting with onlyApply:false', async () => {
   );
   spyGetCategoricalSchemeRegistry.mockReturnValue({
     keys: () => ['supersetColors'],
+    get: () => ['#FFFFFF', '#000000'],
   } as any);
   put.mockResolvedValue({
     json: {
@@ -288,7 +290,6 @@ test('submitting with onlyApply:false', async () => {
 
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => {
-    expect(props.onHide).toBeCalledTimes(1);
     expect(props.onSubmit).toBeCalledTimes(1);
     expect(props.onSubmit).toBeCalledWith({
       certificationDetails: 'Sample certification',
@@ -311,6 +312,7 @@ test('submitting with onlyApply:true', async () => {
   );
   spyGetCategoricalSchemeRegistry.mockReturnValue({
     keys: () => ['supersetColors'],
+    get: () => ['#FFFFFF', '#000000'],
   } as any);
   spyIsFeatureEnabled.mockReturnValue(false);
   const props = createProps();
@@ -327,7 +329,6 @@ test('submitting with onlyApply:true', async () => {
 
   userEvent.click(screen.getByRole('button', { name: 'Apply' }));
   await waitFor(() => {
-    expect(props.onHide).toBeCalledTimes(1);
     expect(props.onSubmit).toBeCalledTimes(1);
   });
 });

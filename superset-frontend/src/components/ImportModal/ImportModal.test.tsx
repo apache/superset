@@ -24,7 +24,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import { ReactWrapper } from 'enzyme';
 import fetchMock from 'fetch-mock';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { Upload } from 'src/common/components';
+import { Upload } from 'src/components';
 import Button from 'src/components/Button';
 import { ImportResourceName } from 'src/views/CRUD/types';
 import ImportModelsModal from 'src/components/ImportModal';

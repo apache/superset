@@ -19,72 +19,33 @@
 import {
   buildQueryContext,
   DTTM_ALIAS,
-  PostProcessingResample,
   QueryFormData,
 } from '@superset-ui/core';
 import {
+  flattenOperator,
+  pivotOperator,
+  resampleOperator,
   rollingWindowOperator,
-  TIME_COLUMN,
 } from '@superset-ui/chart-controls';
-
-const TIME_GRAIN_MAP: Record<string, string> = {
-  PT1S: 'S',
-  PT1M: 'min',
-  PT5M: '5min',
-  PT10M: '10min',
-  PT15M: '15min',
-  PT30M: '30min',
-  PT1H: 'H',
-  P1D: 'D',
-  P1M: 'M',
-  P3M: 'Q',
-  P1Y: 'A',
-  // TODO: these need to be mapped carefully, as the first day of week
-  //  can vary from engine to engine
-  // P1W: 'W',
-  // '1969-12-28T00:00:00Z/P1W': 'W',
-  // '1969-12-29T00:00:00Z/P1W': 'W',
-  // 'P1W/1970-01-03T00:00:00Z': 'W',
-  // 'P1W/1970-01-04T00:00:00Z': 'W',
-};
 
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => {
-    const rollingProc = rollingWindowOperator(formData, baseQueryObject);
-    if (rollingProc) {
-      rollingProc.options = { ...rollingProc.options, is_pivot_df: false };
-    }
-    const { time_grain_sqla } = formData;
-    let resampleProc: PostProcessingResample | undefined;
-    if (rollingProc && time_grain_sqla) {
-      const rule = TIME_GRAIN_MAP[time_grain_sqla];
-      if (rule) {
-        resampleProc = {
-          operation: 'resample',
-          options: {
-            method: 'asfreq',
-            rule,
-            fill_value: null,
-            time_column: TIME_COLUMN,
-          },
-        };
-      }
-    }
+    const { x_axis } = formData;
+    const is_timeseries = x_axis === DTTM_ALIAS || !x_axis;
+
     return [
       {
         ...baseQueryObject,
         is_timeseries: true,
         post_processing: [
-          {
-            operation: 'sort',
-            options: {
-              columns: {
-                [DTTM_ALIAS]: true,
-              },
-            },
-          },
-          resampleProc,
-          rollingProc,
+          pivotOperator(formData, {
+            ...baseQueryObject,
+            index: x_axis,
+            is_timeseries,
+          }),
+          rollingWindowOperator(formData, baseQueryObject),
+          resampleOperator(formData, baseQueryObject),
+          flattenOperator(formData, baseQueryObject),
         ],
       },
     ];

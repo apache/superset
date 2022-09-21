@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { Row, Col } from 'src/common/components';
+import { Row, Col } from 'src/components';
 import { shallow } from 'enzyme';
 import App from 'src/profile/components/App';
 

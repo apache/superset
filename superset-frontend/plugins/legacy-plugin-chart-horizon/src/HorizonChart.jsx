@@ -20,9 +20,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
-import { ensureIsArray } from '@superset-ui/core';
+import { ensureIsArray, styled } from '@superset-ui/core';
 import HorizonRow, { DEFAULT_COLORS } from './HorizonRow';
-import './HorizonChart.css';
 
 const propTypes = {
   className: PropTypes.string,
@@ -58,6 +57,29 @@ const defaultProps = {
   offsetX: 0,
 };
 
+const StyledDiv = styled.div`
+  ${({ theme }) => `
+    .superset-legacy-chart-horizon {
+      overflow: auto;
+      position: relative;
+    }
+
+    .superset-legacy-chart-horizon .horizon-row {
+      border-bottom: solid 1px ${theme.colors.grayscale.light2};
+      border-top: 0;
+      padding: 0;
+      margin: 0;
+    }
+
+    .superset-legacy-chart-horizon .horizon-row span.title {
+      position: absolute;
+      color: ${theme.colors.grayscale.dark1};
+      font-size: ${theme.typography.sizes.s}px;
+      margin: 0;
+    }
+  `}
+`;
+
 class HorizonChart extends React.PureComponent {
   render() {
     const {
@@ -83,26 +105,28 @@ class HorizonChart extends React.PureComponent {
     }
 
     return (
-      <div
-        className={`superset-legacy-chart-horizon ${className}`}
-        style={{ height }}
-      >
-        {data.map(row => (
-          <HorizonRow
-            key={row.key}
-            width={width}
-            height={seriesHeight}
-            title={ensureIsArray(row.key).join(', ')}
-            data={row.values}
-            bands={bands}
-            colors={colors}
-            colorScale={colorScale}
-            mode={mode}
-            offsetX={offsetX}
-            yDomain={yDomain}
-          />
-        ))}
-      </div>
+      <StyledDiv>
+        <div
+          className={`superset-legacy-chart-horizon ${className}`}
+          style={{ height }}
+        >
+          {data.map(row => (
+            <HorizonRow
+              key={row.key}
+              width={width}
+              height={seriesHeight}
+              title={ensureIsArray(row.key).join(', ')}
+              data={row.values}
+              bands={bands}
+              colors={colors}
+              colorScale={colorScale}
+              mode={mode}
+              offsetX={offsetX}
+              yDomain={yDomain}
+            />
+          ))}
+        </div>
+      </StyledDiv>
     );
   }
 }

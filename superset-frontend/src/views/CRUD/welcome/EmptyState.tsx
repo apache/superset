@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import Button from 'src/components/Button';
-import { Empty } from 'src/common/components';
+import { Empty } from 'src/components';
 import { t, styled } from '@superset-ui/core';
 import { WelcomeTable } from './types';
 
@@ -122,11 +122,10 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
                 <i className="fa fa-plus" />
                 {tableName === 'SAVED_QUERIES'
                   ? t('SQL query')
-                  : t(`${tableName
+                  : tableName
                       .split('')
                       .slice(0, tableName.length - 1)
                       .join('')}
-                    `)}
               </Button>
             </ButtonContainer>
           )}

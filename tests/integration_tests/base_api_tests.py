@@ -29,7 +29,7 @@ import tests.integration_tests.test_app
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
-from superset.views.base_api import BaseSupersetModelRestApi
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 from .base_tests import SupersetTestCase
 
@@ -154,6 +154,19 @@ class TestBaseModelRestApi(SupersetTestCase):
         }
         self.assertEqual(response, expected_response)
 
+    def test_refuse_invalid_format_request(self):
+        """
+        API: Test invalid format of request
+
+        We want to make sure that non-JSON request are refused
+        """
+        self.login(username="admin")
+        uri = "api/v1/report/"  # endpoint decorated with @requires_json
+        rv = self.client.post(
+            uri, data="a: value\nb: 1\n", content_type="application/yaml"
+        )
+        self.assertEqual(rv.status_code, 400)
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_default_missing_declaration_put(self):
         """
@@ -251,10 +264,26 @@ class ApiOwnersTestCaseMixin:
         assert 4 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma2 user", "value": 3},
-            {"text": "gamma_no_csv user", "value": 6},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma2@fab.org"},
+                "text": "gamma2 user",
+                "value": 3,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_no_csv@fab.org"},
+                "text": "gamma_no_csv user",
+                "value": 6,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         # TODO Check me
         assert expected_results == sorted_results
@@ -273,8 +302,16 @@ class ApiOwnersTestCaseMixin:
         assert 2 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         assert expected_results == sorted_results
 
@@ -292,8 +329,16 @@ class ApiOwnersTestCaseMixin:
         assert 2 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         assert expected_results == sorted_results
 

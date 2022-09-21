@@ -18,7 +18,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
@@ -38,8 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateDatabaseCommand(BaseCommand):
-    def __init__(self, user: User, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, data: Dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -47,13 +45,19 @@ class CreateDatabaseCommand(BaseCommand):
 
         try:
             # Test connection before starting create transaction
-            TestConnectionDatabaseCommand(self._actor, self._properties).run()
+            TestConnectionDatabaseCommand(self._properties).run()
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             raise DatabaseConnectionFailedError() from ex
+
+        # when creating a new database we don't need to unmask encrypted extra
+        self._properties["encrypted_extra"] = self._properties.pop(
+            "masked_encrypted_extra",
+            "{}",
+        )
 
         try:
             database = DatabaseDAO.create(self._properties, commit=False)
@@ -65,7 +69,6 @@ class CreateDatabaseCommand(BaseCommand):
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
-            security_manager.add_permission_view_menu("database_access", database.perm)
             db.session.commit()
         except DAOCreateFailedError as ex:
             db.session.rollback()
@@ -92,6 +95,9 @@ class CreateDatabaseCommand(BaseCommand):
             exception = DatabaseInvalidError()
             exception.add_list(exceptions)
             event_logger.log_with_context(
-                action=f"db_connection_failed.{exception.__class__.__name__}"
+                action="db_connection_failed.{}.{}".format(
+                    exception.__class__.__name__,
+                    ".".join(exception.get_list_classnames()),
+                )
             )
             raise exception

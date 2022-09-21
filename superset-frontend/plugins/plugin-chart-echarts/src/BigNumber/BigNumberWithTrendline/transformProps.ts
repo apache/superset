@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  DTTM_ALIAS,
   extractTimegrain,
   getNumberFormatter,
   NumberFormats,
@@ -54,7 +55,6 @@ export function renderTooltipFactory(
   };
 }
 
-const TIME_COLUMN = '__timestamp';
 const formatPercentChange = getNumberFormatter(
   NumberFormats.PERCENT_SIGNED_1_POINT,
 );
@@ -62,7 +62,16 @@ const formatPercentChange = getNumberFormatter(
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
 ) {
-  const { width, height, queriesData, formData, rawFormData } = chartProps;
+  const {
+    width,
+    height,
+    queriesData,
+    formData,
+    rawFormData,
+    theme,
+    hooks,
+    inContextMenu,
+  } = chartProps;
   const {
     colorPicker,
     compareLag: compareLag_,
@@ -97,7 +106,7 @@ export default function transformProps(
   let trendLineData;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let timestamp = data.length === 0 ? null : data[0][TIME_COLUMN];
+  let timestamp = data.length === 0 ? null : data[0][DTTM_ALIAS];
   let bigNumberFallback;
 
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
@@ -106,7 +115,7 @@ export default function transformProps(
 
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[TIME_COLUMN], parseMetricValue(d[metricName])])
+      .map(d => [d[DTTM_ALIAS], parseMetricValue(d[metricName])])
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
@@ -124,8 +133,10 @@ export default function transformProps(
       if (compareIndex < sortedData.length) {
         const compareValue = sortedData[compareIndex][1];
         // compare values must both be non-nulls
-        if (bigNumber !== null && compareValue !== null && compareValue !== 0) {
-          percentChange = (bigNumber - compareValue) / Math.abs(compareValue);
+        if (bigNumber !== null && compareValue !== null) {
+          percentChange = compareValue
+            ? (bigNumber - compareValue) / Math.abs(compareValue)
+            : 0;
           formattedSubheader = `${formatPercentChange(
             percentChange,
           )} ${compareSuffix}`;
@@ -184,6 +195,7 @@ export default function transformProps(
             type: 'line',
             smooth: true,
             symbol: 'circle',
+            symbolSize: 10,
             showSymbol: false,
             color: mainColor,
             areaStyle: {
@@ -194,7 +206,7 @@ export default function transformProps(
                 },
                 {
                   offset: 1,
-                  color: 'white',
+                  color: theme.colors.grayscale.light5,
                 },
               ]),
             },
@@ -217,7 +229,8 @@ export default function transformProps(
           bottom: 0,
         },
         tooltip: {
-          show: true,
+          appendToBody: true,
+          show: !inContextMenu,
           trigger: 'axis',
           confine: true,
           formatter: renderTooltipFactory(formatTime, headerFormatter),
@@ -230,6 +243,9 @@ export default function transformProps(
         },
       }
     : {};
+
+  const { onContextMenu } = hooks;
+
   return {
     width,
     height,
@@ -238,6 +254,7 @@ export default function transformProps(
     className,
     headerFormatter,
     formatTime,
+    formData,
     headerFontSize,
     subheaderFontSize,
     mainColor,
@@ -248,5 +265,7 @@ export default function transformProps(
     timestamp,
     trendLineData,
     echartOptions,
+    onContextMenu,
+    xValueFormatter: formatTime,
   };
 }

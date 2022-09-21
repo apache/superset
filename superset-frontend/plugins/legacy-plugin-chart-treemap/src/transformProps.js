@@ -18,7 +18,7 @@
  */
 export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
-  const { colorScheme, treemapRatio } = formData;
+  const { colorScheme, treemapRatio, sliceId } = formData;
   let { numberFormat } = formData;
 
   if (!numberFormat && chartProps.datasource && chartProps.datasource.metrics) {
@@ -39,5 +39,6 @@ export default function transformProps(chartProps) {
     colorScheme,
     numberFormat,
     treemapRatio,
+    sliceId,
   };
 }

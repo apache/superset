@@ -24,8 +24,8 @@ import {
   ControlSetRow,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA } from './types';
-import { DEFAULT_FORM_DATA } from './Timeseries/types';
+import { DEFAULT_LEGEND_FORM_DATA } from './constants';
+import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -94,14 +94,14 @@ const legendOrientationControl: ControlSetItem = {
 };
 
 export const legendSection: ControlSetRow[] = [
-  [<h1 className="section-header">{t('Legend')}</h1>],
+  [<div className="section-header">{t('Legend')}</div>],
   [showLegendControl],
   [legendTypeControl],
   [legendOrientationControl],
   [legendMarginControl],
 ];
 
-const showValueControl: ControlSetItem = {
+export const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
@@ -112,7 +112,7 @@ const showValueControl: ControlSetItem = {
   },
 };
 
-const stackControl: ControlSetItem = {
+export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
     type: 'CheckboxControl',
@@ -123,7 +123,7 @@ const stackControl: ControlSetItem = {
   },
 };
 
-const onlyTotalControl: ControlSetItem = {
+export const onlyTotalControl: ControlSetItem = {
   name: 'only_total',
   config: {
     type: 'CheckboxControl',
@@ -161,6 +161,11 @@ export const showValueSection: ControlSetRow[] = [
   [stackControl],
   [onlyTotalControl],
   [percentageThresholdControl],
+];
+
+export const showValueSectionWithoutStack: ControlSetRow[] = [
+  [showValueControl],
+  [onlyTotalControl],
 ];
 
 const richTooltipControl: ControlSetItem = {
@@ -202,7 +207,7 @@ const tooltipSortByMetricControl: ControlSetItem = {
 };
 
 export const richTooltipSection: ControlSetRow[] = [
-  [<h1 className="section-header">{t('Tooltip')}</h1>],
+  [<div className="section-header">{t('Tooltip')}</div>],
   [richTooltipControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],

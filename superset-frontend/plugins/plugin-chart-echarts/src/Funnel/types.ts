@@ -16,21 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption } from 'echarts';
 import {
   ChartDataResponseResult,
   ChartProps,
-  DataRecordValue,
-  QueryFormColumn,
   QueryFormData,
-  SetDataMaskHook,
 } from '@superset-ui/core';
 import {
-  DEFAULT_LEGEND_FORM_DATA,
   EchartsLegendFormData,
+  EChartTransformedProps,
   LegendOrientation,
   LegendType,
 } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsFunnelFormData = QueryFormData &
   EchartsLegendFormData & {
@@ -56,7 +53,8 @@ export enum EchartsFunnelLabelTypeType {
   KeyValuePercent,
 }
 
-export interface EchartsFunnelChartProps extends ChartProps {
+export interface EchartsFunnelChartProps
+  extends ChartProps<EchartsFunnelFormData> {
   formData: EchartsFunnelFormData;
   queriesData: ChartDataResponseResult[];
 }
@@ -77,14 +75,5 @@ export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
   emitFilter: false,
 };
 
-export interface FunnelChartTransformedProps {
-  formData: EchartsFunnelFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-}
+export type FunnelChartTransformedProps =
+  EChartTransformedProps<EchartsFunnelFormData>;

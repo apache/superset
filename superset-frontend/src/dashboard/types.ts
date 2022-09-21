@@ -18,17 +18,18 @@
  */
 import {
   ChartProps,
+  DataMaskStateWithId,
   ExtraFormData,
   GenericDataType,
   JsonObject,
+  NativeFiltersState,
 } from '@superset-ui/core';
-import { DatasourceMeta } from '@superset-ui/chart-controls';
-import { chart } from 'src/chart/chartReducer';
+import { Dataset } from '@superset-ui/chart-controls';
+import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
+import { UrlParamEntries } from 'src/utils/urlUtils';
 
 import { User } from 'src/types/bootstrapTypes';
-import { DataMaskStateWithId } from '../dataMask/types';
-import { NativeFiltersState } from './reducers/types';
 import { ChartState } from '../explore/types';
 
 export { Dashboard } from 'src/types/Dashboard';
@@ -39,14 +40,13 @@ export type ChartReducerInitialState = typeof chart;
 // Ref: https://github.com/apache/superset/blob/dcac860f3e5528ecbc39e58f045c7388adb5c3d0/superset-frontend/src/dashboard/reducers/getInitialState.js#L120
 export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
   id: number;
-  formData: ChartProps['formData'];
   form_data?: ChartProps['rawFormData'];
   [key: string]: unknown;
 }
 
 /** Chart state of redux */
 export type Chart = ChartState & {
-  formData: {
+  form_data: {
     viz_type: string;
     datasource: string;
   };
@@ -63,7 +63,15 @@ export type DashboardState = {
   activeTabs: ActiveTabs;
   fullSizeChartId: number | null;
   isRefreshing: boolean;
+  isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
+  colorScheme: string;
+  sliceIds: number[];
+  directPathLastUpdated: number;
+  focusedFilterField?: {
+    chartId: number;
+    column: string;
+  };
 };
 export type DashboardInfo = {
   id: number;
@@ -78,12 +86,17 @@ export type DashboardInfo = {
     native_filter_configuration: JsonObject;
     show_native_filters: boolean;
     chart_configuration: JsonObject;
+    color_scheme: string;
+    color_namespace: string;
+    color_scheme_domain: string[];
+    label_colors: JsonObject;
+    shared_label_colors: JsonObject;
   };
 };
 
 export type ChartsState = { [key: string]: Chart };
 
-export type Datasource = DatasourceMeta & {
+export type Datasource = Dataset & {
   uid: string;
   column_types: GenericDataType[];
   table_name: string;
@@ -142,4 +155,22 @@ type ActiveFilter = {
 
 export type ActiveFilters = {
   [key: string]: ActiveFilter;
+};
+
+export interface DashboardPermalinkState {
+  dataMask: DataMaskStateWithId;
+  activeTabs: string[];
+  anchor: string;
+  urlParams?: UrlParamEntries;
+}
+
+export interface DashboardPermalinkValue {
+  dashboardId: string;
+  state: DashboardPermalinkState;
+}
+
+export type EmbeddedDashboard = {
+  uuid: string;
+  dashboard_id: string;
+  allowed_domains: string[];
 };

@@ -90,7 +90,6 @@ const StyledPopoverItem = styled.div`
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
-  user,
 }: SavedQueryListProps) {
   const {
     state: {
@@ -127,6 +126,7 @@ function SavedQueryList({
   const handleSavedQueryImport = () => {
     showImportModal(false);
     refreshData();
+    addSuccessToast(t('Query imported'));
   };
 
   const canCreate = hasPerm('can_write');
@@ -209,8 +209,10 @@ function SavedQueryList({
 
   const copyQueryLink = useCallback(
     (id: number) => {
-      copyTextToClipboard(
-        `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+      copyTextToClipboard(() =>
+        Promise.resolve(
+          `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+        ),
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));

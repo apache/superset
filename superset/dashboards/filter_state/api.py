@@ -25,15 +25,15 @@ from superset.dashboards.filter_state.commands.delete import DeleteFilterStateCo
 from superset.dashboards.filter_state.commands.get import GetFilterStateCommand
 from superset.dashboards.filter_state.commands.update import UpdateFilterStateCommand
 from superset.extensions import event_logger
-from superset.key_value.api import KeyValueRestApi
+from superset.temporary_cache.api import TemporaryCacheRestApi
 
 logger = logging.getLogger(__name__)
 
 
-class DashboardFilterStateRestApi(KeyValueRestApi):
-    class_permission_name = "FilterStateRestApi"
+class DashboardFilterStateRestApi(TemporaryCacheRestApi):
+    class_permission_name = "DashboardFilterStateRestApi"
     resource_name = "dashboard"
-    openapi_spec_tag = "Filter State"
+    openapi_spec_tag = "Dashboard Filter State"
 
     def get_create_command(self) -> Type[CreateFilterStateCommand]:
         return CreateFilterStateCommand
@@ -65,12 +65,16 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             schema:
               type: integer
             name: pk
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           requestBody:
             required: true
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/KeyValuePostSchema'
+                  $ref: '#/components/schemas/TemporaryCachePostSchema'
           responses:
             201:
               description: The value was stored successfully.
@@ -93,7 +97,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().post(pk)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["PUT"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=["PUT"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -115,12 +119,16 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
             schema:
               type: string
             name: key
+          - in: query
+            schema:
+              type: integer
+            name: tab_id
           requestBody:
             required: true
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/KeyValuePutSchema'
+                  $ref: '#/components/schemas/TemporaryCachePutSchema'
           responses:
             200:
               description: The value was stored successfully.
@@ -129,9 +137,9 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
                   schema:
                     type: object
                     properties:
-                      message:
+                      key:
                         type: string
-                        description: The result of the operation
+                        description: The key to retrieve the value.
             400:
               $ref: '#/components/responses/400'
             401:
@@ -145,7 +153,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().put(pk, key)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["GET"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=["GET"])
     @protect()
     @safe
     @event_logger.log_this_with_context(
@@ -191,7 +199,7 @@ class DashboardFilterStateRestApi(KeyValueRestApi):
         """
         return super().get(pk, key)
 
-    @expose("/<int:pk>/filter_state/<string:key>/", methods=["DELETE"])
+    @expose("/<int:pk>/filter_state/<string:key>", methods=["DELETE"])
     @protect()
     @safe
     @event_logger.log_this_with_context(

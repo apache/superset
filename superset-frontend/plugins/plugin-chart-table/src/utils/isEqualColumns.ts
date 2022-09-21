@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import isEqualArray from './isEqualArray';
+import { isEqualArray } from '@superset-ui/core';
 import { TableChartProps } from '../types';
 
 export default function isEqualColumns(
