@@ -96,7 +96,7 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
         createErrorHandler(errMsg =>
           addDangerToast(
             t(
-              'There was an issue changing the ownership of the Flash %s',
+              'There was an issue updating the sql query of the Flash %s',
               errMsg,
             ),
           ),
