@@ -18,7 +18,7 @@ import logging
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, cast, Iterator, List, Set, Tuple, NamedTuple
+from typing import Any, cast, Iterator, List, Set, Tuple, NamedTuple, Optional
 from urllib import parse
 
 import sqlparse

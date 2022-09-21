@@ -550,16 +550,16 @@ def test_extract_tables_reusing_aliases() -> None:
     """
     Test that the parser follows aliases.
     """
-#     assert (
-#         extract_tables(
-#             """
-# with q1 as ( select key from q2 where key = '5'),
-# q2 as ( select key from src where key = '5')
-# select * from (select key from q1) a
-# """
-#         )
-#         == {Table("src")}
-#     )
+    assert (
+        extract_tables(
+            """
+with q1 as ( select key from q2 where key = '5'),
+q2 as ( select key from src where key = '5')
+select * from (select key from q1) a
+"""
+        )
+        == {Table("src")}
+    )
     assert (
         extract_tables(
             """
