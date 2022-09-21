@@ -29,7 +29,6 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { embeddedApi } from './api';
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
