@@ -76,10 +76,6 @@ const config: ControlPanelConfig = {
                 config: {
                   ...sharedControls.time_grain_sqla,
                   visibility: ({ controls }) => {
-                    if (!isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
-                      return true;
-                    }
-
                     const isDTTMLookup = Object.fromEntries(
                       ensureIsArray(controls?.groupbyColumns?.options).map(
                         option => [option.column_name, option.is_dttm],
@@ -114,7 +110,9 @@ const config: ControlPanelConfig = {
                     state: ControlPanelState,
                   ) =>
                     Object.fromEntries(
-                      ensureIsArray(state?.datasource?.columns).map(option => [
+                      ensureIsArray<Record<string, any>>(
+                        state?.datasource?.columns,
+                      ).map(option => [
                         option.column_name ?? option.name,
                         option.is_dttm,
                       ]),

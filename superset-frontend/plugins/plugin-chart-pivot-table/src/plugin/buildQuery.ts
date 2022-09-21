@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import omit from 'lodash/omit';
+
 import {
   AdhocColumn,
   buildQueryContext,
   ensureIsArray,
+  FeatureFlag,
+  isFeatureEnabled,
   isPhysicalColumn,
   QueryFormColumn,
   QueryFormOrderBy,
@@ -38,6 +42,7 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     if (
       isPhysicalColumn(col) &&
       formData.time_grain_sqla &&
+      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
       formData?.isDTTMLookup[col]
     ) {
       return {
@@ -61,7 +66,9 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
     }
     return [
       {
-        ...baseQueryObject,
+        ...(isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          ? omit(baseQueryObject, ['extras.time_grain_sqla'])
+          : baseQueryObject),
         orderby: orderBy,
         columns: groupbySet,
       },
