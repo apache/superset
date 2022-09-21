@@ -358,9 +358,21 @@ FLASH_CREATION = {
                 "title": "Target DB Name",
                 "type": "number",
             },
-            "domainName": {"type": "string", "title": "Domain"},
-            "serviceName": {"type": "string", "title": "Service"},
-            "datasetName": {"type": "string", "title": "Dataset"},
+            "domainName": {
+                "type": "string",
+                "title": "Domain",
+                "pattern": "^[a-zA-Z0-9]+(?:_[a-zA-Z0-9]+)*$",
+            },
+            "serviceName": {
+                "type": "string",
+                "title": "Service",
+                "pattern": "^[a-zA-Z0-9]+(?:_[a-zA-Z0-9]+)*$",
+            },
+            "datasetName": {
+                "type": "string",
+                "title": "Dataset",
+                "pattern": "^[a-zA-Z0-9]+(?:_[a-zA-Z0-9]+)*$",
+            },
             "tableName": {
                 "type": "string",
                 "title": "Table Name",

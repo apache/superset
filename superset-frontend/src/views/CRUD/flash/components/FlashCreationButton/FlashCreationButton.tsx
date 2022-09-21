@@ -53,7 +53,6 @@ const getJSONSchema = () => {
 };
 
 const getUISchema = () => flashObjectConfig?.UISCHEMA;
-
 type Query = {
   query?: string;
   language?: string;
@@ -86,6 +85,9 @@ const StyledJsonSchema = styled.div`
   input::placeholder {
     font-size: 13px
     opacity: 0.7;
+  }
+  .text-danger{
+    font-size: 11px
   }
 `;
 
@@ -218,6 +220,17 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
         }
         if (error.property === '.teamSlackHandle') {
           newError.message = 'Slack Handle must start with @';
+        }
+        if (
+          error.property === '.serviceName' ||
+          error.property === '.domainName' ||
+          error.property === '.datasetName'
+        ) {
+          const keyName = error.property
+            .replace('.', '')
+            .replace(/([a-z])([A-Z])/, '$1 $2')
+            .toUpperCase();
+          newError.message = `${keyName} must start with an alphabet and can contain (_) in between e.g: key_name`;
         }
       }
       return newError;

@@ -191,18 +191,21 @@ export function createFlashObject(flash) {
       newFlash.sqlQuery = qe.selectedText || qe.sql;
     }
     return createFlash(newFlash)
-      .then(() =>
+      .then(
         dispatch(
           addSuccessToast(
             t(
-              'Your flash object has been created. To see details of your flash, navigate to Flash Management',
+              'Your request for new flash object is added. Please check status on Flash Management.',
             ),
           ),
         ),
       )
-      .catch(() =>
-        dispatch(addDangerToast(t('Your flash object could not be created'))),
-      );
+      .catch(error => {
+        const apiError = error?.data?.message
+          ? error?.data?.message
+          : t('Your flash could not be created');
+        dispatch(addDangerToast(apiError));
+      });
   };
 }
 

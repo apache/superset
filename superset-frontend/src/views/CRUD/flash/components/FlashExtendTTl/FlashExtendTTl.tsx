@@ -84,6 +84,9 @@ const StyledJsonSchema = styled.div`
     font-size: 13px
     opacity: 0.7;
   }
+  .text-danger{
+    font-size: 11px
+  }
 `;
 
 const StyledModal = styled(Modal)`
