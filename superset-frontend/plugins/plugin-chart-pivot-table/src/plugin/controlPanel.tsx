@@ -102,20 +102,19 @@ const config: ControlPanelConfig = {
             : null,
           isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
             ? {
-                name: 'DTTMLookup',
+                name: 'datetimeLookup',
                 config: {
                   type: 'HiddenControl',
-                  initialValue: (
-                    control: ControlState,
-                    state: ControlPanelState,
-                  ) =>
+                  default: (control: ControlState, state: ControlPanelState) =>
                     Object.fromEntries(
                       ensureIsArray<Record<string, any>>(
                         state?.datasource?.columns,
-                      ).map(option => [
-                        option.column_name ?? option.name,
-                        option.is_dttm,
-                      ]),
+                      )
+                        .filter(option => option.is_dttm)
+                        .map(option => [
+                          option.column_name ?? option.name,
+                          option.is_dttm,
+                        ]),
                     ),
                 },
               }
