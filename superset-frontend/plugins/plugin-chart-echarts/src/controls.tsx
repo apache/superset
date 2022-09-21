@@ -87,7 +87,7 @@ const legendOrientationControl: ControlSetItem = {
     ],
     default: legendOrientation,
     renderTrigger: true,
-    description: t('Legend type'),
+    description: t('Legend Orientation'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_legend?.value),
   },
