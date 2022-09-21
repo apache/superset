@@ -289,9 +289,11 @@ supersetNode:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
-  rollingUpdate:
-    maxSurge: 25%
-    maxUnavailable: 25%
+  strategy: {}
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 25%
+    #   maxUnavailable: 25%
 
 ##
 ## Superset worker configuration
@@ -326,9 +328,11 @@ supersetWorker:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
-  rollingUpdate:
-    maxSurge: 25%
-    maxUnavailable: 25%
+  strategy: {}
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 25%
+    #   maxUnavailable: 25%
 
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)

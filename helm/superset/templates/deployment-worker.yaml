@@ -33,11 +33,10 @@ spec:
     matchLabels:
       app: {{ template "superset.name" . }}-worker
       release: {{ .Release.Name }}
+  {{- if .Values.supersetWorker.strategy }}
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: {{ .Values.supersetWorker.rollingUpdate.maxSurge }}
-      maxUnavailable: {{ .Values.supersetWorker.rollingUpdate.maxUnavailable }}
+    {{- toYaml .Values.supersetWorker.strategy | nindent 4 }}
+  {{- end }}
   template:
     metadata:
       annotations:
