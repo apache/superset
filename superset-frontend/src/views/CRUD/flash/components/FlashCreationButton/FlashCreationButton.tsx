@@ -200,7 +200,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
       ) {
         if (Date.parse(formData.scheduleStartTime) < Date.now()) {
           errors.scheduleStartTime.addError(
-            'Schedule Start Time can be tomorrow or onwards',
+            'Schedule Start Time should be greater than current data-time',
           );
         }
       }
