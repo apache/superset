@@ -12,6 +12,9 @@
             "properties": {
                 "create": {
                     "type": "boolean"
+                },
+                "annotations": {
+                    "type": "object"
                 }
             },
             "required": [
