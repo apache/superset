@@ -45,6 +45,7 @@ import {
   ComparisionType,
   isAdhocColumn,
   isPhysicalColumn,
+  ensureIsArray,
 } from '@superset-ui/core';
 
 import {
@@ -57,7 +58,13 @@ import {
   DEFAULT_NUMBER_FORMAT,
 } from '../utils';
 import { TIME_FILTER_LABELS } from '../constants';
-import { SharedControlConfig, Dataset, ColumnMeta } from '../types';
+import {
+  SharedControlConfig,
+  Dataset,
+  ColumnMeta,
+  ControlState,
+  ControlPanelState,
+} from '../types';
 
 import {
   dndAdhocFilterControl,
@@ -340,6 +347,16 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
   description: t('Show empty columns'),
 };
 
+const datetime_columns_lookup: SharedControlConfig<'HiddenControl'> = {
+  type: 'HiddenControl',
+  initialValue: (control: ControlState, state: ControlPanelState) =>
+    Object.fromEntries(
+      ensureIsArray<Record<string, any>>(state?.datasource?.columns)
+        .filter(option => option.is_dttm)
+        .map(option => [option.column_name ?? option.name, option.is_dttm]),
+    ),
+};
+
 export default {
   metrics: dndAdhocMetricsControl,
   metric: dndAdhocMetricControl,
@@ -376,4 +393,5 @@ export default {
   truncate_metric,
   x_axis: dndXAxisControl,
   show_empty_columns,
+  datetime_columns_lookup,
 };

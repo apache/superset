@@ -37,8 +37,6 @@ import {
   emitFilterControl,
   Dataset,
   getStandardizedControls,
-  ControlState,
-  ControlPanelState,
 } from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
@@ -81,11 +79,11 @@ const config: ControlPanelConfig = {
                         option => [option.column_name, option.is_dttm],
                       ),
                     );
-                    const selections = [
+
+                    return [
                       ...ensureIsArray(controls?.groupbyColumns.value),
                       ...ensureIsArray(controls?.groupbyRows.value),
-                    ];
-                    return selections
+                    ]
                       .map(selection => {
                         if (isAdhocColumn(selection)) {
                           return true;
@@ -101,23 +99,7 @@ const config: ControlPanelConfig = {
               }
             : null,
           isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-            ? {
-                name: 'datetimeColumnLookup',
-                config: {
-                  type: 'HiddenControl',
-                  default: (control: ControlState, state: ControlPanelState) =>
-                    Object.fromEntries(
-                      ensureIsArray<Record<string, any>>(
-                        state?.datasource?.columns,
-                      )
-                        .filter(option => option.is_dttm)
-                        .map(option => [
-                          option.column_name ?? option.name,
-                          option.is_dttm,
-                        ]),
-                    ),
-                },
-              }
+            ? 'datetime_columns_lookup'
             : null,
         ],
         [
