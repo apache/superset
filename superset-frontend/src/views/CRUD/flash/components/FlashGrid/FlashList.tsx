@@ -44,6 +44,7 @@ import FlashSchedule from '../FlashSchedule/FlashSchedule';
 import { fetchDatabases, removeFlash } from '../../services/flash.service';
 import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypesEnum } from '../../enums';
+import FlashView from '../FlashView/FlashView';
 
 const PAGE_SIZE = 25;
 
@@ -85,6 +86,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const [showFlashTtl, setShowFlashTtl] = useState<boolean>(false);
   const [showFlashSchedule, setShowFlashSchedule] = useState<boolean>(false);
   const [showFlashQuery, setShowFlashQuery] = useState<boolean>(false);
+  const [showFlashView, setShowFlashView] = useState<boolean>(false);
   const savedQueryCurrentlyPreviewing: SavedQueryObject | undefined = undefined;
 
   useEffect(() => {
@@ -130,6 +132,11 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const changeSqlQuery = (flash: FlashServiceObject) => {
     setCurrentFlash(flash);
     setShowFlashQuery(true);
+  };
+
+  const changeViewFlash = (flash: FlashServiceObject) => {
+    setCurrentFlash(flash);
+    setShowFlashView(true);
   };
 
   const handleDeleteFlash = (flash: FlashServiceObject) => {
@@ -228,6 +235,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           const handleChangeCost = () => console.log('costing==', original);
           const handleChangeTtl = () => changeTtl(original);
           const handleDelete = () => setDeleteFlash(original);
+          const handleView = () => changeViewFlash(original);
 
           const actions: ActionProps[] | [] = [
             (original?.owner === user?.email || user?.roles?.Admin) && {
@@ -272,6 +280,13 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
               placement: 'bottom' as TooltipPlacement,
               icon: 'Trash',
               onClick: handleDelete,
+            },
+            {
+              label: 'view-action',
+              tooltip: t('View Flash Information'),
+              placement: 'bottom' as TooltipPlacement,
+              icon: 'Eye',
+              onClick: handleView,
             },
           ].filter(item => !!item);
 
@@ -381,6 +396,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         />
       )}
 
+      {showFlashView && (
+        <FlashView
+          flash={currentFlash as FlashServiceObject}
+          show={showFlashView}
+          onHide={() => setShowFlashView(false)}
+          databaseDropdown={databaseDropdown}
+        />
+      )}
+
       {deleteFlash && (
         <DeleteModal
           description={t(
@@ -397,38 +421,18 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         />
       )}
 
-      <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t('Are you sure you want to delete the selected flash?')}
-        onConfirm={() => console.log('query deleted')}
-      >
-        {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = [];
-          bulkActions.push({
-            key: 'delete',
-            name: t('Delete'),
-            onSelect: confirmDelete,
-            type: 'danger',
-          });
-          return (
-            <ListView<FlashServiceObject>
-              className="flash-list-view"
-              columns={columns}
-              count={flashCount}
-              data={flashes}
-              fetchData={fetchData}
-              filters={filters}
-              initialSort={initialSort}
-              loading={loading}
-              pageSize={PAGE_SIZE}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={toggleBulkSelect}
-              highlightRowId={savedQueryCurrentlyPreviewing}
-            />
-          );
-        }}
-      </ConfirmStatusChange>
+      <ListView<FlashServiceObject>
+        className="flash-list-view"
+        columns={columns}
+        count={flashCount}
+        data={flashes}
+        fetchData={fetchData}
+        filters={filters}
+        initialSort={initialSort}
+        loading={loading}
+        pageSize={PAGE_SIZE}
+        highlightRowId={savedQueryCurrentlyPreviewing}
+      />
     </>
   );
 }
