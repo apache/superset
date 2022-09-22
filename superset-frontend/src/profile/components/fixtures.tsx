@@ -32,6 +32,7 @@ export const user: UserWithPermissionsAndRoles = {
       ['can_sql_json', 'Superset'],
       ['can_search_queries', 'Superset'],
       ['can_csv', 'Superset'],
+      ['can_excel', 'Superset'],
     ],
   },
   firstName: 'alpha',
@@ -40,7 +41,6 @@ export const user: UserWithPermissionsAndRoles = {
   userId: 5,
   email: 'alpha@alpha.com',
   isActive: true,
-  isAnonymous: false,
   permissions: {
     datasource_access: ['table1', 'table2'],
     database_access: ['db1', 'db2', 'db3'],

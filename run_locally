@@ -1,0 +1,20 @@
+#!/bin/bash
+
+set -e
+if [ -z $1 ]; then
+   VER="1.4.1"
+else
+   VER=$1
+fi
+docker build --tag data-diving/superset-xlsx --build-arg SUPERSET_VER=$VER .
+docker run --rm -d -p 8088:8088 --name data_diving --platform linux/AMD64 data-diving/superset-xlsx
+docker exec data_diving superset fab create-admin \
+   --username admin \
+   --firstname Admin \
+   --lastname Admin \
+   --email admin@superset.com \
+   --password admin
+docker exec data_diving superset db upgrade
+docker exec data_diving superset init
+echo "You should be able to access Apache Superset $VER through this link:"
+echo "http://localhost:8088 (admin/admin)"

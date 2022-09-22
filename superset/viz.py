@@ -20,10 +20,9 @@
 These objects represent the backend of all the visualizations that
 Superset can render.
 """
-from __future__ import annotations
-
 import copy
 import dataclasses
+import io
 import logging
 import math
 import re
@@ -55,39 +54,28 @@ from flask_babel import lazy_gettext as _
 from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
-from superset import app
+from superset import app, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
     NullValueException,
+    QueryClauseValidationException,
     QueryObjectValidationError,
     SpatialException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
-from superset.sql_parse import sanitize_clause
-from superset.superset_typing import (
-    Column,
-    Metric,
-    QueryObjectDict,
-    VizData,
-    VizPayload,
-)
+from superset.sql_parse import validate_filter_clause
+from superset.typing import Metric, QueryObjectDict, VizData, VizPayload
 from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
-    DateColumn,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
-    get_column_name,
-    get_column_names,
-    get_column_names_from_columns,
-    get_metric_names,
-    is_adhoc_column,
     JS_MAX_INTEGER,
     merge_extra_filters,
     QueryMode,
@@ -98,7 +86,6 @@ from superset.utils.dates import datetime_to_epoch
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
-    from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.base.models import BaseDatasource
 
 config = app.config
@@ -148,7 +135,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         self.query = ""
         self.token = utils.get_form_data_token(form_data)
 
-        self.groupby: List[Column] = self.form_data.get("groupby") or []
+        self.groupby: List[str] = self.form_data.get("groupby") or []
         self.time_shift = timedelta()
 
         self.status: Optional[str] = None
@@ -250,7 +237,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             )
         return df
 
-    def get_samples(self) -> Dict[str, Any]:
+    def get_samples(self) -> List[Dict[str, Any]]:
         query_obj = self.query_obj()
         query_obj.update(
             {
@@ -260,16 +247,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 "orderby": [],
                 "row_limit": config["SAMPLES_ROW_LIMIT"],
                 "columns": [o.column_name for o in self.datasource.columns],
-                "from_dttm": None,
-                "to_dttm": None,
             }
         )
-        payload = self.get_df_payload(query_obj)  # leverage caching logic
-        return {
-            "data": payload["df"].to_dict(orient="records"),
-            "colnames": payload.get("colnames"),
-            "coltypes": payload.get("coltypes"),
-        }
+        df = self.get_df_payload(query_obj)["df"]  # leverage caching logic
+        return df.to_dict(orient="records")
 
     def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
         """Returns a pandas dataframe based on the query object"""
@@ -302,15 +283,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         if not df.empty:
             utils.normalize_dttm_col(
                 df=df,
-                dttm_cols=tuple(
-                    [
-                        DateColumn.get_legacy_time_column(
-                            timestamp_format=timestamp_format,
-                            offset=self.datasource.offset,
-                            time_shift=self.time_shift,
-                        )
-                    ]
-                ),
+                timestamp_format=timestamp_format,
+                offset=self.datasource.offset,
+                time_shift=self.time_shift,
             )
 
             if self.enforce_numerical_metrics:
@@ -331,30 +306,19 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         merge_extra_filters(self.form_data)
         utils.split_adhoc_filters_into_base_filters(self.form_data)
 
-    @staticmethod
-    def dedup_columns(*columns_args: Optional[List[Column]]) -> List[Column]:
-        # dedup groupby and columns while preserving order
-        labels: List[str] = []
-        deduped_columns: List[Column] = []
-        for columns in columns_args:
-            for column in columns or []:
-                label = get_column_name(column)
-                if label not in labels:
-                    deduped_columns.append(column)
-        return deduped_columns
-
     def query_obj(self) -> QueryObjectDict:  # pylint: disable=too-many-locals
         """Building a query object"""
         self.process_query_filters()
 
+        gb = self.groupby
         metrics = self.all_metrics or []
-
-        groupby = self.dedup_columns(self.groupby, self.form_data.get("columns"))
-        groupby_labels = get_column_names(groupby)
+        columns = self.form_data.get("columns") or []
+        # merge list and dedup while preserving order
+        groupby = list(OrderedDict.fromkeys(gb + columns))
 
         is_timeseries = self.is_timeseries
-        if DTTM_ALIAS in groupby_labels:
-            del groupby[groupby_labels.index(DTTM_ALIAS)]
+        if DTTM_ALIAS in groupby:
+            groupby.remove(DTTM_ALIAS)
             is_timeseries = True
 
         granularity = self.form_data.get("granularity") or self.form_data.get(
@@ -397,15 +361,19 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         for param in ("where", "having"):
             clause = self.form_data.get(param)
             if clause:
-                sanitized_clause = sanitize_clause(clause)
-                if sanitized_clause != clause:
-                    self.form_data[param] = sanitized_clause
+                try:
+                    validate_filter_clause(clause)
+                except QueryClauseValidationException as ex:
+                    raise QueryObjectValidationError(ex.message) from ex
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
         extras = {
+            "druid_time_origin": self.form_data.get("druid_time_origin", ""),
             "having": self.form_data.get("having", ""),
+            "having_druid": self.form_data.get("having_filters", []),
             "time_grain_sqla": self.form_data.get("time_grain_sqla"),
+            "time_range_endpoints": self.form_data.get("time_range_endpoints"),
             "where": self.form_data.get("where", ""),
         }
 
@@ -467,7 +435,12 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["time_range"] = self.form_data.get("time_range")
         cache_dict["datasource"] = self.datasource.uid
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
-        cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
+        cache_dict["rls"] = (
+            security_manager.get_rls_ids(self.datasource)
+            if is_feature_enabled("ROW_LEVEL_SECURITY")
+            and self.datasource.is_rls_supported
+            else []
+        )
         cache_dict["changed_on"] = self.datasource.changed_on
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return md5_sha_from_str(json_data)
@@ -501,16 +474,14 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             self.datasource, applied_time_extras
         )
         payload["applied_filters"] = [
-            {"column": get_column_name(col)}
+            {"column": col}
             for col in filter_columns
-            if is_adhoc_column(col) or col in columns or col in applied_template_filters
+            if col in columns or col in applied_template_filters
         ] + applied_time_columns
         payload["rejected_filters"] = [
             {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
             for col in filter_columns
-            if not is_adhoc_column(col)
-            and col not in columns
-            and col not in applied_template_filters
+            if col not in columns and col not in applied_template_filters
         ] + rejected_time_columns
         if df is not None:
             payload["colnames"] = list(df.columns)
@@ -560,12 +531,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             try:
                 invalid_columns = [
                     col
-                    for col in get_column_names_from_columns(
-                        query_obj.get("columns") or []
-                    )
-                    + get_column_names_from_columns(query_obj.get("groupby") or [])
+                    for col in (query_obj.get("columns") or [])
+                    + (query_obj.get("groupby") or [])
                     + utils.get_column_names_from_metrics(
-                        cast(List[Metric], query_obj.get("metrics") or [])
+                        cast(List[Metric], query_obj.get("metrics") or [],)
                     )
                     if col not in self.datasource.column_names
                 ]
@@ -628,10 +597,6 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "status": self.status,
             "stacktrace": stacktrace,
             "rowcount": len(df.index) if df is not None else 0,
-            "colnames": list(df.columns) if df is not None else None,
-            "coltypes": utils.extract_dataframe_dtypes(df, self.datasource)
-            if df is not None
-            else None,
         }
 
     @staticmethod
@@ -669,6 +634,14 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         df = self.get_df_payload()["df"]  # leverage caching logic
         include_index = not isinstance(df.index, pd.RangeIndex)
         return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
+
+    def get_excel(self) -> Optional[str]:
+        data = io.BytesIO()
+        df = self.get_df()
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        df.to_excel(data, index=include_index, **config.get("EXCEL_EXPORT"))
+        data.seek(0)
+        return data  # .read()
 
     def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=no-self-use
         return df.to_dict(orient="records")
@@ -735,16 +708,16 @@ class TableViz(BaseViz):
             else QueryMode.AGGREGATE
         )
 
-        columns: List[str]  # output columns sans time and percent_metric column
+        columns: List[str] = []  # output columns sans time and percent_metric column
         percent_columns: List[str] = []  # percent columns that needs extra computation
 
         if self.query_mode == QueryMode.RAW:
-            columns = get_metric_names(self.form_data.get("all_columns"))
+            columns = utils.get_metric_names(self.form_data.get("all_columns") or [])
         else:
-            columns = get_column_names(self.groupby) + get_metric_names(
-                self.form_data.get("metrics")
+            columns = utils.get_metric_names(
+                self.groupby + (self.form_data.get("metrics") or [])
             )
-            percent_columns = get_metric_names(
+            percent_columns = utils.get_metric_names(
                 self.form_data.get("percent_metrics") or []
             )
 
@@ -857,11 +830,6 @@ class TimeTableViz(BaseViz):
             raise QueryObjectValidationError(
                 _("When using 'Group By' you are limited to use a single metric")
             )
-
-        sort_by = utils.get_first_metric_name(query_obj["metrics"])
-        is_asc = not query_obj.get("order_desc")
-        query_obj["orderby"] = [(sort_by, is_asc)]
-
         return query_obj
 
     def get_data(self, df: pd.DataFrame) -> VizData:
@@ -872,7 +840,7 @@ class TimeTableViz(BaseViz):
         values: Union[List[str], str] = self.metric_labels
         if self.form_data.get("groupby"):
             values = self.metric_labels[0]
-            columns = get_column_names(self.form_data.get("groupby"))
+            columns = self.form_data.get("groupby")
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
@@ -918,9 +886,7 @@ class PivotTableViz(BaseViz):
             )
         if not metrics:
             raise QueryObjectValidationError(_("Please choose at least one metric"))
-        deduped_cols = self.dedup_columns(groupby, columns)
-
-        if len(deduped_cols) < (len(groupby) + len(columns)):
+        if set(groupby) & set(columns):
             raise QueryObjectValidationError(_("Group By' and 'Columns' can't overlap"))
         sort_by = self.form_data.get("timeseries_limit_metric")
         if sort_by:
@@ -985,22 +951,18 @@ class PivotTableViz(BaseViz):
         groupby = self.form_data.get("groupby") or []
         columns = self.form_data.get("columns") or []
 
-        for column in groupby + columns:
-            if is_adhoc_column(column):
-                # TODO: check data type
-                pass
-            else:
-                column_obj = self.datasource.get_column(column)
-                if column_obj and column_obj.is_temporal:
-                    ts = df[column].apply(self._format_datetime)
-                    df[column] = ts
+        for column_name in groupby + columns:
+            column = self.datasource.get_column(column_name)
+            if column and column.is_temporal:
+                ts = df[column_name].apply(self._format_datetime)
+                df[column_name] = ts
 
         if self.form_data.get("transpose_pivot"):
             groupby, columns = columns, groupby
 
         df = df.pivot_table(
-            index=get_column_names(groupby),
-            columns=get_column_names(columns),
+            index=groupby,
+            columns=columns,
             values=metrics,
             aggfunc=aggfuncs,
             margins=self.form_data.get("pivot_margins"),
@@ -1061,7 +1023,7 @@ class TreemapViz(BaseViz):
         if df.empty:
             return None
 
-        df = df.set_index(get_column_names(self.form_data.get("groupby")))
+        df = df.set_index(self.form_data.get("groupby"))
         chart_data = [
             {"name": metric, "children": self._nest(metric, df)}
             for metric in df.columns
@@ -1091,7 +1053,7 @@ class CalHeatmapViz(BaseViz):
                 v = query_obj[DTTM_ALIAS]
                 if hasattr(v, "value"):
                     v = v.value
-                values[str(v / 10**9)] = query_obj.get(metric)
+                values[str(v / 10 ** 9)] = query_obj.get(metric)
             data[metric] = values
 
         try:
@@ -1175,7 +1137,7 @@ class BubbleViz(NVD3Viz):
             query_obj["groupby"].append(self.form_data.get("series"))
 
         # dedup groupby if it happens to be the same
-        query_obj["groupby"] = self.dedup_columns(query_obj["groupby"])
+        query_obj["groupby"] = list(dict.fromkeys(query_obj["groupby"]))
 
         # pylint: disable=attribute-defined-outside-init
         self.x_metric = self.form_data["x"]
@@ -1200,7 +1162,7 @@ class BubbleViz(NVD3Viz):
         df["y"] = df[[utils.get_metric_name(self.y_metric)]]
         df["size"] = df[[utils.get_metric_name(self.z_metric)]]
         df["shape"] = "circle"
-        df["group"] = df[[get_column_name(self.series)]]  # type: ignore
+        df["group"] = df[[self.series]]
 
         series: Dict[Any, List[Any]] = defaultdict(list)
         for row in df.to_dict(orient="records"):
@@ -1393,7 +1355,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if aggregate:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
-                columns=get_column_names(self.form_data.get("groupby")),
+                columns=self.form_data.get("groupby"),
                 values=self.metric_labels,
                 fill_value=0,
                 aggfunc=sum,
@@ -1401,7 +1363,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         else:
             df = df.pivot_table(
                 index=DTTM_ALIAS,
-                columns=get_column_names(self.form_data.get("groupby")),
+                columns=self.form_data.get("groupby"),
                 values=self.metric_labels,
                 fill_value=self.pivot_fill_value,
             )
@@ -1774,15 +1736,15 @@ class HistogramViz(BaseViz):
 
         chart_data = []
         if len(self.groupby) > 0:
-            groups = df.groupby(get_column_names(self.groupby))
+            groups = df.groupby(self.groupby)
         else:
             groups = [((), df)]
         for keys, data in groups:
             chart_data.extend(
                 [
                     {
-                        "key": self.labelify(keys, get_column_name(column)),
-                        "values": data[get_column_name(column)].tolist(),
+                        "key": self.labelify(keys, column),
+                        "values": data[column].tolist(),
                     }
                     for column in self.columns
                 ]
@@ -1833,22 +1795,21 @@ class DistributionBarViz(BaseViz):
             return None
 
         metrics = self.metric_labels
-        columns = get_column_names(self.form_data.get("columns"))
-        groupby = get_column_names(self.groupby)
+        columns = self.form_data.get("columns") or []
 
         # pandas will throw away nulls when grouping/pivoting,
         # so we substitute NULL_STRING for any nulls in the necessary columns
-        filled_cols = groupby + columns
+        filled_cols = self.groupby + columns
         df = df.copy()
         df[filled_cols] = df[filled_cols].fillna(value=NULL_STRING)
 
         sortby = utils.get_metric_name(
             self.form_data.get("timeseries_limit_metric") or metrics[0]
         )
-        row = df.groupby(groupby)[sortby].sum().copy()
+        row = df.groupby(self.groupby).sum()[sortby].copy()
         is_asc = not self.form_data.get("order_desc")
         row.sort_values(ascending=is_asc, inplace=True)
-        pt = df.pivot_table(index=groupby, columns=columns, values=metrics)
+        pt = df.pivot_table(index=self.groupby, columns=columns, values=metrics)
         if self.form_data.get("contribution"):
             pt = pt.T
             pt = (pt / pt.sum()).T
@@ -1858,7 +1819,7 @@ class DistributionBarViz(BaseViz):
         pt = pt[metrics]
         chart_data = []
         for name, ys in pt.items():
-            if pt[name].dtype.kind not in "biufc" or name in groupby:
+            if pt[name].dtype.kind not in "biufc" or name in self.groupby:
                 continue
             if isinstance(name, str):
                 series_title = name
@@ -1893,7 +1854,7 @@ class SunburstViz(BaseViz):
         if df.empty:
             return None
         form_data = copy.deepcopy(self.form_data)
-        cols = get_column_names(form_data.get("groupby"))
+        cols = form_data.get("groupby") or []
         cols.extend(["m1", "m2"])
         metric = utils.get_metric_name(form_data["metric"])
         secondary_metric = (
@@ -1947,15 +1908,10 @@ class SankeyViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        source, target = get_column_names(self.groupby)
+        source, target = self.groupby
         (value,) = self.metric_labels
         df.rename(
-            columns={
-                source: "source",
-                target: "target",
-                value: "value",
-            },
-            inplace=True,
+            columns={source: "source", target: "target", value: "value",}, inplace=True,
         )
         df["source"] = df["source"].astype(str)
         df["target"] = df["target"].astype(str)
@@ -2059,7 +2015,7 @@ class CountryMapViz(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        cols = get_column_names([self.form_data.get("entity")])  # type: ignore
+        cols = [self.form_data.get("entity")]
         metric = self.metric_labels[0]
         cols += [metric]
         ndf = df[cols]
@@ -2091,7 +2047,7 @@ class WorldMapViz(BaseViz):
         # pylint: disable=import-outside-toplevel
         from superset.examples import countries
 
-        cols = get_column_names([self.form_data.get("entity")])  # type: ignore
+        cols = [self.form_data.get("entity")]
         metric = utils.get_metric_name(self.form_data["metric"])
         secondary_metric = (
             utils.get_metric_name(self.form_data["secondary_metric"])
@@ -2134,7 +2090,6 @@ class FilterBoxViz(BaseViz):
 
     """A multi filter, multi-choice filter box to make dashboards interactive"""
 
-    query_context_factory: Optional[QueryContextFactory] = None
     viz_type = "filter_box"
     verbose_name = _("Filters")
     is_timeseries = False
@@ -2146,6 +2101,9 @@ class FilterBoxViz(BaseViz):
         return {}
 
     def run_extra_queries(self) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.common.query_context import QueryContext
+
         query_obj = super().query_obj()
         filters = self.form_data.get("filter_configs") or []
         query_obj["row_limit"] = self.filter_row_limit
@@ -2162,7 +2120,7 @@ class FilterBoxViz(BaseViz):
             asc = flt.get("asc")
             if metric and asc is not None:
                 query_obj["orderby"] = [(metric, asc)]
-            self.get_query_context_factory().create(
+            QueryContext(
                 datasource={"id": self.datasource.id, "type": self.datasource.type},
                 queries=[query_obj],
             ).raise_for_access()
@@ -2179,14 +2137,14 @@ class FilterBoxViz(BaseViz):
             if df is not None and not df.empty:
                 if metric:
                     df = df.sort_values(
-                        utils.get_metric_name(metric), ascending=flt.get("asc", False)
+                        utils.get_metric_name(metric), ascending=flt.get("asc")
                     )
                     data[col] = [
                         {"id": row[0], "text": row[0], "metric": row[1]}
                         for row in df.itertuples(index=False)
                     ]
                 else:
-                    df = df.sort_values(col, ascending=flt.get("asc", False))
+                    df = df.sort_values(col, ascending=flt.get("asc"))
                     data[col] = [
                         {"id": row[0], "text": row[0]}
                         for row in df.itertuples(index=False)
@@ -2194,14 +2152,6 @@ class FilterBoxViz(BaseViz):
             else:
                 data[col] = []
         return data
-
-    def get_query_context_factory(self) -> QueryContextFactory:
-        if self.query_context_factory is None:
-            # pylint: disable=import-outside-toplevel
-            from superset.common.query_context_factory import QueryContextFactory
-
-            self.query_context_factory = QueryContextFactory()
-        return self.query_context_factory
 
 
 class ParallelCoordinatesViz(BaseViz):
@@ -2267,8 +2217,8 @@ class HeatmapViz(BaseViz):
         if df.empty:
             return None
 
-        x = get_column_name(self.form_data.get("all_columns_x"))  # type: ignore
-        y = get_column_name(self.form_data.get("all_columns_y"))  # type: ignore
+        x = self.form_data.get("all_columns_x")
+        y = self.form_data.get("all_columns_y")
         v = self.metric_labels[0]
         if x == y:
             df.columns = ["x", "y", "v"]
@@ -2884,7 +2834,7 @@ class DeckGeoJson(BaseDeckGLViz):
         return query_obj
 
     def get_properties(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        geojson = data[get_column_name(self.form_data["geojson"])]
+        geojson = data[self.form_data["geojson"]]
         return json.loads(geojson)
 
 
@@ -2992,7 +2942,7 @@ class PairedTTestViz(BaseViz):
         if df.empty:
             return None
 
-        groups = get_column_names(self.form_data.get("groupby"))
+        groups = self.form_data.get("groupby")
         metrics = self.metric_labels
         df = df.pivot_table(index=DTTM_ALIAS, columns=groups, values=metrics)
         cols = []
@@ -3221,7 +3171,7 @@ class PartitionViz(NVD3TimeSeriesViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         if df.empty:
             return None
-        groups = get_column_names(self.form_data.get("groupby"))
+        groups = self.form_data.get("groupby", [])
         time_op = self.form_data.get("time_series_option", "not_time")
         if not groups:
             raise ValueError("Please choose at least one groupby")

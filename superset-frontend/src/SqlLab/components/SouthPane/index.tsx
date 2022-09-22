@@ -20,7 +20,6 @@ import React, { createRef } from 'react';
 import shortid from 'shortid';
 import Alert from 'src/components/Alert';
 import Tabs from 'src/components/Tabs';
-import { EmptyStateMedium } from 'src/components/EmptyState';
 import { t, styled } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -45,14 +44,7 @@ interface SouthPanePropTypes {
   editorQueries: any[];
   latestQueryId?: string;
   dataPreviewQueries: any[];
-  actions: {
-    queryEditorSetAndSaveSql: Function;
-    cloneQueryToNewTab: Function;
-    fetchQueryResults: Function;
-    clearQueryResults: Function;
-    removeQuery: Function;
-    setActiveSouthPaneTab: Function;
-  };
+  actions: Record<string, Function>;
   activeSouthPaneTab?: string;
   height: number;
   databases: Record<string, any>;
@@ -62,13 +54,9 @@ interface SouthPanePropTypes {
   defaultQueryLimit: number;
 }
 
-type StyledPaneProps = {
-  height: number;
-};
-
-const StyledPane = styled.div<StyledPaneProps>`
+const StyledPane = styled.div`
   width: 100%;
-  height: ${props => props.height}px;
+
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -95,18 +83,6 @@ const StyledPane = styled.div<StyledPaneProps>`
     button.fetch {
       margin-top: ${({ theme }) => theme.gridUnit * 2}px;
     }
-  }
-`;
-
-const EXTRA_HEIGHT_RESULTS = 24; // we need extra height in RESULTS tab. because the height from props was calculated based on PREVIEW tab.
-const StyledEmptyStateWrapper = styled.div`
-  height: 100%;
-  .ant-empty-image img {
-    margin-right: 28px;
-  }
-
-  p {
-    margin-right: 28px;
   }
 `;
 
@@ -164,10 +140,12 @@ export default function SouthPane({
       if (Date.now() - latestQuery.startDttm <= LOCALSTORAGE_MAX_QUERY_AGE_MS) {
         results = (
           <ResultSet
+            showControls
             search
             query={latestQuery}
+            actions={actions}
             user={user}
-            height={innerTabContentHeight + EXTRA_HEIGHT_RESULTS}
+            height={innerTabContentHeight}
             database={databases[latestQuery.dbId]}
             displayLimit={displayLimit}
             defaultQueryLimit={defaultQueryLimit}
@@ -176,12 +154,7 @@ export default function SouthPane({
       }
     } else {
       results = (
-        <StyledEmptyStateWrapper>
-          <EmptyStateMedium
-            title={t('Run a query to display results')}
-            image="document.svg"
-          />
-        </StyledEmptyStateWrapper>
+        <Alert type="info" message={t('Run a query to display results here')} />
       );
     }
     return results;
@@ -197,6 +170,8 @@ export default function SouthPane({
           query={query}
           visualize={false}
           csv={false}
+          excel={false}
+          actions={actions}
           cache
           user={user}
           height={innerTabContentHeight}
@@ -208,7 +183,7 @@ export default function SouthPane({
   return offline ? (
     renderOfflineStatus()
   ) : (
-    <StyledPane className="SouthPane" height={height} ref={southPaneRef}>
+    <StyledPane className="SouthPane" ref={southPaneRef}>
       <Tabs
         activeKey={activeSouthPaneTab}
         className="SouthPaneTabs"
@@ -225,7 +200,6 @@ export default function SouthPane({
             queries={editorQueries}
             actions={actions}
             displayLimit={displayLimit}
-            latestQueryId={latestQueryId}
           />
         </Tabs.TabPane>
         {renderDataPreviewTabs()}
