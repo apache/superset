@@ -22,19 +22,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
 } from 'src/views/components/SubMenu';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
+import ListView, { Filters, FilterOperator } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import { SavedQueryObject } from 'src/views/CRUD/types';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
@@ -45,9 +39,6 @@ import { fetchDatabases, removeFlash } from '../../services/flash.service';
 import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
-import { styled, css } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
-import { Tooltip } from 'src/components/Tooltip';
 
 const PAGE_SIZE = 25;
 
@@ -60,14 +51,6 @@ interface FlashListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
-
-const StyledLink = styled.a`
-  ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.xl}px;
-    display: flex;
-    padding: 0 0 0 ${theme.gridUnit * 2}px;
-  `};
-`;
 
 function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const {
@@ -92,7 +75,6 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const [showFlashSchedule, setShowFlashSchedule] = useState<boolean>(false);
   const [showFlashQuery, setShowFlashQuery] = useState<boolean>(false);
   const [showFlashView, setShowFlashView] = useState<boolean>(false);
-  const savedQueryCurrentlyPreviewing: SavedQueryObject | undefined = undefined;
 
   useEffect(() => {
     fetchDatabaseDropdown();
