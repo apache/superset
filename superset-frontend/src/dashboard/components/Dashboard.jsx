@@ -56,7 +56,7 @@ const propTypes = {
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   activeFilters: PropTypes.object.isRequired,
-  chartConfiguration: PropTypes.object.isRequired,
+  chartConfiguration: PropTypes.object,
   datasources: PropTypes.object.isRequired,
   ownDataCharts: PropTypes.object.isRequired,
   layout: PropTypes.object.isRequired,
