@@ -152,6 +152,7 @@ WHERE s11 > ANY (
         == {Table("t1"), Table("t2"), Table("t3"), Table("t4")}
     )
 
+
 def test_extract_tables_subselect_with_table_names_as_aliases() -> None:
     assert (
         extract_tables(
@@ -183,6 +184,7 @@ WHERE t1.resolution = 'NONE'
         )
         == {Table("t2"), Table("t1")}
     )
+
 
 def test_extract_tables_select_in_expression() -> None:
     """
