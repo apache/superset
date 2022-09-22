@@ -45,6 +45,9 @@ import { fetchDatabases, removeFlash } from '../../services/flash.service';
 import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
+import { styled, css } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 
 const PAGE_SIZE = 25;
 
@@ -58,17 +61,19 @@ interface FlashListProps {
   addSuccessToast: (msg: string) => void;
 }
 
+const StyledLink = styled.a`
+  ${({ theme }) => css`
+    font-size: ${theme.typography.sizes.xl}px;
+    display: flex;
+    padding: 0 0 0 ${theme.gridUnit * 2}px;
+  `};
+`;
+
 function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const {
-    state: {
-      loading,
-      resourceCount: flashCount,
-      resourceCollection: flashes,
-      bulkSelectEnabled,
-    },
+    state: { loading, resourceCount: flashCount, resourceCollection: flashes },
 
     fetchData,
-    toggleBulkSelect,
     refreshData,
   } = useFlashListViewResource<FlashServiceObject>(
     'flashes',
@@ -232,7 +237,6 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           };
           const handleChangeSchedule = () => changeSchedule(original);
           const handleChangeOwnership = () => changeOwnership(original);
-          const handleChangeCost = () => console.log('costing==', original);
           const handleChangeTtl = () => changeTtl(original);
           const handleDelete = () => setDeleteFlash(original);
           const handleView = () => changeViewFlash(original);
@@ -266,13 +270,6 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
               placement: 'bottom' as TooltipPlacement,
               icon: 'Sql',
               onClick: handleSqlQuery,
-            },
-            (original?.owner === user?.email || user?.roles?.Admin) && {
-              label: 'copy-action',
-              tooltip: t('Change Costing Attributes'),
-              placement: 'bottom' as TooltipPlacement,
-              icon: 'Edit',
-              onClick: handleChangeCost,
             },
             original?.owner === user?.email && {
               label: 'delete-action',
@@ -431,7 +428,6 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         initialSort={initialSort}
         loading={loading}
         pageSize={PAGE_SIZE}
-        highlightRowId={savedQueryCurrentlyPreviewing}
       />
     </>
   );

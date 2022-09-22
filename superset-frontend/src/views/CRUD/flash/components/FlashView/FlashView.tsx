@@ -154,6 +154,24 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>{flash?.status}</Value>
         </StyledCol>
+        <StyledCol xs={5}>
+          <Label>Created At:</Label>
+        </StyledCol>
+        <StyledCol xs={7}>
+          <Value>{flash?.createdAt}</Value>
+        </StyledCol>
+        <StyledCol xs={5}>
+          <Label>Updated At:</Label>
+        </StyledCol>
+        <StyledCol xs={7}>
+          <Value>{flash?.updatedAt}</Value>
+        </StyledCol>
+        <StyledCol xs={5}>
+          <Label>Last Refresh Time:</Label>
+        </StyledCol>
+        <StyledCol xs={7}>
+          <Value>{flash?.lastRefreshTime}</Value>
+        </StyledCol>
       </Row>
       <Label>SQL Query:</Label>
       <SyntaxHighlighterCopy
