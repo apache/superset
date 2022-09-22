@@ -33,6 +33,10 @@ function configure(config?: TranslatorConfig) {
 }
 
 function getInstance() {
+  if (!isConfigured) {
+    console.warn('You should call configure(...) before calling other methods');
+  }
+
   if (typeof singleton === 'undefined') {
     singleton = new Translator();
   }
