@@ -17,7 +17,7 @@
 import json
 import re
 from contextlib import closing
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
@@ -138,10 +138,12 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
+    def mask_encrypted_extra(
+        cls, encrypted_extra: Union[str, None]
+    ) -> Union[str, None]:
         try:
-            config = json.loads(encrypted_extra)
-        except json.JSONDecodeError:
+            config = json.loads(encrypted_extra)  # type:ignore
+        except (TypeError, json.JSONDecodeError):
             return encrypted_extra
 
         try:
@@ -152,14 +154,16 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         return json.dumps(config)
 
     @classmethod
-    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
+    def unmask_encrypted_extra(
+        cls, old: Union[str, None], new: Union[str, None]
+    ) -> Union[str, None]:
         """
         Reuse ``private_key`` if available and unchanged.
         """
         try:
-            old_config = json.loads(old)
-            new_config = json.loads(new)
-        except json.JSONDecodeError:
+            old_config = json.loads(old)  # type:ignore
+            new_config = json.loads(new)  # type:ignore
+        except (TypeError, json.JSONDecodeError):
             return new
 
         if "service_account_info" not in new_config:
