@@ -57,7 +57,7 @@ class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
 class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-methods
 
     """
-    Filter to apply on related users. Will exclude users in EXCLUDE_USER_USERNAMES
+    Filter to apply on related users. Will exclude users in EXCLUDE_USERS_FROM_LISTS
 
     Use in the api by adding something like:
     ```
@@ -73,9 +73,10 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         user_model = security_manager.user_model
-        query_ = query.filter(
-            and_(
-                user_model.username.not_in(current_app.config["EXCLUDE_USER_USERNAMES"])
-            )
+        exclude_users = (
+            security_manager.get_exclude_users_from_lists()
+            if current_app.config["EXCLUDE_USERS_FROM_LISTS"] is None
+            else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
         )
+        query_ = query.filter(and_(user_model.username.not_in(exclude_users)))
         return query_
