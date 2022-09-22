@@ -496,806 +496,806 @@ def load_echarts_dashboard() -> None:
         dash = Dashboard()
 
     js = textwrap.dedent(
-        """\
+        """
 {
-    "CHART-1": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-1"
-      ],
-      "id": "CHART-1",
-      "meta": {
-        "chartId": 1,
-        "height": 50,
-        "sliceName": "Big Number",
-        "width": 6
-      },
-      "type": "CHART"
+  "CHART-1": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-1"
+    ],
+    "id": "CHART-1",
+    "meta": {
+      "chartId": 1,
+      "height": 50,
+      "sliceName": "Big Number",
+      "width": 6
     },
-    "CHART-2": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-1"
-      ],
-      "id": "CHART-2",
-      "meta": {
-          "chartId": 2,
-          "height": 50,
-          "sliceName": "Big Number with Trendline",
-          "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-2": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-1"
+    ],
+    "id": "CHART-2",
+    "meta": {
+      "chartId": 2,
+      "height": 50,
+      "sliceName": "Big Number with Trendline",
+      "width": 6
     },
-    "CHART-3": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-1"
-      ],
-      "id": "CHART-3",
-      "meta":{
-          "chartId": 3,
-          "height": 50,
-          "sliceName": "Table",
-          "width": 6
-        },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-3": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-1"
+    ],
+    "id": "CHART-3",
+    "meta":{
+      "chartId": 3,
+      "height": 50,
+      "sliceName": "Table",
+      "width": 6
     },
-    "CHART-4": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-2"
-      ],
-      "id": "CHART-4",
-      "meta": {
-        "chartId": 4,
-        "height": 50,
-        "sliceName": "Pivot Table",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-4": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-2"
+    ],
+    "id": "CHART-4",
+    "meta": {
+      "chartId": 4,
+      "height": 50,
+      "sliceName": "Pivot Table",
+      "width": 6
     },
-    "CHART-5": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-2"
-      ],
-      "id": "CHART-5",
-      "meta": {
-        "chartId": 5,
-        "height": 50,
-        "sliceName": "Time-Series Line Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-5": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-2"
+    ],
+    "id": "CHART-5",
+    "meta": {
+      "chartId": 5,
+      "height": 50,
+      "sliceName": "Time-Series Line Chart",
+      "width": 6
     },
-    "CHART-6": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-2"
-      ],
-      "id": "CHART-6",
-      "meta": {
-        "chartId": 6,
-        "height": 50,
-        "sliceName": "Time-Series Bar Chart V2",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-6": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-2"
+    ],
+    "id": "CHART-6",
+    "meta": {
+      "chartId": 6,
+      "height": 50,
+      "sliceName": "Time-Series Bar Chart V2",
+      "width": 6
     },
-    "CHART-7": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-3"
-      ],
-      "id": "CHART-7",
-      "meta": {
-        "chartId": 7,
-        "height": 50,
-        "sliceName": "Time-Series Area Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-7": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-3"
+    ],
+    "id": "CHART-7",
+    "meta": {
+      "chartId": 7,
+      "height": 50,
+      "sliceName": "Time-Series Area Chart",
+      "width": 6
     },
-    "CHART-8": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-3"
-      ],
-      "id": "CHART-8",
-      "meta": {
-        "chartId": 8,
-        "height": 50,
-        "sliceName": "Time-Series Scatter Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-8": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-3"
+    ],
+    "id": "CHART-8",
+    "meta": {
+      "chartId": 8,
+      "height": 50,
+      "sliceName": "Time-Series Scatter Chart",
+      "width": 6
     },
-    "CHART-9": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-3"
-      ],
-      "id": "CHART-9",
-      "meta": {
-        "chartId": 9,
-        "height": 50,
-        "sliceName": "Pie Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-9": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-3"
+    ],
+    "id": "CHART-9",
+    "meta": {
+      "chartId": 9,
+      "height": 50,
+      "sliceName": "Pie Chart",
+      "width": 6
     },
-    "CHART-10": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-4"
-      ],
-      "id": "CHART-10",
-      "meta": {
-        "chartId": 10,
-        "height": 50,
-        "sliceName": "Bar Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-10": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-4"
+    ],
+    "id": "CHART-10",
+    "meta": {
+      "chartId": 10,
+      "height": 50,
+      "sliceName": "Bar Chart",
+      "width": 6
     },
-    "CHART-11": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-1",
-        "ROW-4"
-      ],
-      "id": "CHART-11",
-      "meta": {
-        "chartId": 11,
-        "height": 50,
-        "sliceName": "World Map",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-11": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1",
+      "ROW-4"
+    ],
+    "id": "CHART-11",
+    "meta": {
+      "chartId": 11,
+      "height": 50,
+      "sliceName": "World Map",
+      "width": 6
     },
-    "CHART-12": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-5"
-      ],
-      "id": "CHART-12",
-      "meta": {
-        "chartId": 12,
-        "height": 50,
-        "sliceName": "Box Plot Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-12": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-5"
+    ],
+    "id": "CHART-12",
+    "meta": {
+      "chartId": 12,
+      "height": 50,
+      "sliceName": "Box Plot Chart",
+      "width": 6
     },
-    "CHART-13": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-5"
-      ],
-      "id": "CHART-13",
-      "meta": {
-        "chartId": 13,
-        "height": 50,
-        "sliceName": "Bubble Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-13": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-5"
+    ],
+    "id": "CHART-13",
+    "meta": {
+      "chartId": 13,
+      "height": 50,
+      "sliceName": "Bubble Chart",
+      "width": 6
     },
-    "CHART-14": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-5"
-      ],
-      "id": "CHART-14",
-      "meta": {
-        "chartId": 14,
-        "height": 50,
-        "sliceName": "Calendar Heatmap",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-14": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-5"
+    ],
+    "id": "CHART-14",
+    "meta": {
+      "chartId": 14,
+      "height": 50,
+      "sliceName": "Calendar Heatmap",
+      "width": 6
     },
-    "CHART-15": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-6"
-      ],
-      "id": "CHART-15",
-      "meta": {
-        "chartId": 15,
-        "height": 50,
-        "sliceName": "Chord Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-15": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-6"
+    ],
+    "id": "CHART-15",
+    "meta": {
+      "chartId": 15,
+      "height": 50,
+      "sliceName": "Chord Chart",
+      "width": 6
     },
-    "CHART-16": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-6"
-      ],
-      "id": "CHART-16",
-      "meta": {
-        "chartId": 16,
-        "height": 50,
-        "sliceName": "Time-Series Percent Change Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-16": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-6"
+    ],
+    "id": "CHART-16",
+    "meta": {
+      "chartId": 16,
+      "height": 50,
+      "sliceName": "Time-Series Percent Change Chart",
+      "width": 6
     },
-    "CHART-17": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-6"
-      ],
-      "id": "CHART-17",
-      "meta": {
-        "chartId": 17,
-        "height": 50,
-        "sliceName": "Time-Series Generic Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-17": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-6"
+    ],
+    "id": "CHART-17",
+    "meta": {
+      "chartId": 17,
+      "height": 50,
+      "sliceName": "Time-Series Generic Chart",
+      "width": 6
     },
-    "CHART-18": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-7"
-      ],
-      "id": "CHART-18",
-      "meta": {
-        "chartId": 18,
-        "height": 50,
-        "sliceName": "Time-Series Smooth Line Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-18": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-7"
+    ],
+    "id": "CHART-18",
+    "meta": {
+      "chartId": 18,
+      "height": 50,
+      "sliceName": "Time-Series Smooth Line Chart",
+      "width": 6
     },
-    "CHART-19": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-7"
-      ],
-      "id": "CHART-19",
-      "meta": {
-        "chartId": 19,
-        "height": 50,
-        "sliceName": "Time-Series Step Line Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-19": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-7"
+    ],
+    "id": "CHART-19",
+    "meta": {
+      "chartId": 19,
+      "height": 50,
+      "sliceName": "Time-Series Step Line Chart",
+      "width": 6
     },
-    "CHART-20": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-7"
-      ],
-      "id": "CHART-20",
-      "meta": {
-        "chartId": 20,
-        "height": 50,
-        "sliceName": "Funnel Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-20": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-7"
+    ],
+    "id": "CHART-20",
+    "meta": {
+      "chartId": 20,
+      "height": 50,
+      "sliceName": "Funnel Chart",
+      "width": 6
     },
-    "CHART-21": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-8"
-      ],
-      "id": "CHART-21",
-      "meta": {
-        "chartId": 21,
-        "height": 50,
-        "sliceName": "Gauge Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-21": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-8"
+    ],
+    "id": "CHART-21",
+    "meta": {
+      "chartId": 21,
+      "height": 50,
+      "sliceName": "Gauge Chart",
+      "width": 6
     },
-    "CHART-22": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-8"
-      ],
-      "id": "CHART-22",
-      "meta": {
-        "chartId": 22,
-        "height": 50,
-        "sliceName": "Heatmap Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-22": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-8"
+    ],
+    "id": "CHART-22",
+    "meta": {
+      "chartId": 22,
+      "height": 50,
+      "sliceName": "Heatmap Chart",
+      "width": 6
     },
-    "CHART-23": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-8"
-      ],
-      "id": "CHART-23",
-      "meta": {
-        "chartId": 23,
-        "height": 50,
-        "sliceName": "Line Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-23": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-8"
+    ],
+    "id": "CHART-23",
+    "meta": {
+      "chartId": 23,
+      "height": 50,
+      "sliceName": "Line Chart",
+      "width": 6
     },
-    "CHART-24": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-9"
-      ],
-      "id": "CHART-24",
-      "meta": {
-        "chartId": 24,
-        "height": 50,
-        "sliceName": "Mixed Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-24": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-9"
+    ],
+    "id": "CHART-24",
+    "meta": {
+      "chartId": 24,
+      "height": 50,
+      "sliceName": "Mixed Chart",
+      "width": 6
     },
-    "CHART-25": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-9"
-      ],
-      "id": "CHART-25",
-      "meta": {
-        "chartId": 25,
-        "height": 50,
-        "sliceName": "Partition Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-25": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-9"
+    ],
+    "id": "CHART-25",
+    "meta": {
+      "chartId": 25,
+      "height": 50,
+      "sliceName": "Partition Chart",
+      "width": 6
     },
-    "CHART-26": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-9"
-      ],
-      "id": "CHART-26",
-      "meta": {
-        "chartId": 26,
-        "height": 50,
-        "sliceName": "Radar Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-26": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-9"
+    ],
+    "id": "CHART-26",
+    "meta": {
+      "chartId": 26,
+      "height": 50,
+      "sliceName": "Radar Chart",
+      "width": 6
     },
-    "CHART-27": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-10"
-      ],
-      "id": "CHART-27",
-      "meta": {
-        "chartId": 27,
-        "height": 50,
-        "sliceName": "Nightingale Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-27": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-10"
+    ],
+    "id": "CHART-27",
+    "meta": {
+      "chartId": 27,
+      "height": 50,
+      "sliceName": "Nightingale Chart",
+      "width": 6
     },
-    "CHART-28": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-10"
-      ],
-      "id": "CHART-28",
-      "meta": {
-        "chartId": 28,
-        "height": 50,
-        "sliceName": "Sankey Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-28": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-10"
+    ],
+    "id": "CHART-28",
+    "meta": {
+      "chartId": 28,
+      "height": 50,
+      "sliceName": "Sankey Chart",
+      "width": 6
     },
-    "CHART-29": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-10"
-      ],
-      "id": "CHART-29",
-      "meta": {
-        "chartId": 29,
-        "height": 50,
-        "sliceName": "Sunburst Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-29": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-10"
+    ],
+    "id": "CHART-29",
+    "meta": {
+      "chartId": 29,
+      "height": 50,
+      "sliceName": "Sunburst Chart",
+      "width": 6
     },
-    "CHART-30": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-11"
-      ],
-      "id": "CHART-30",
-      "meta": {
-        "chartId": 30,
-        "height": 50,
-        "sliceName": "Treemap Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-30": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-11"
+    ],
+    "id": "CHART-30",
+    "meta": {
+      "chartId": 30,
+      "height": 50,
+      "sliceName": "Treemap Chart",
+      "width": 6
     },
-    "CHART-31": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-11"
-      ],
-      "id": "CHART-31",
-      "meta": {
-        "chartId": 31,
-        "height": 50,
-        "sliceName": "Treemap V2 Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-31": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-11"
+    ],
+    "id": "CHART-31",
+    "meta": {
+      "chartId": 31,
+      "height": 50,
+      "sliceName": "Treemap V2 Chart",
+      "width": 6
     },
-    "CHART-32": {
-      "children": [],
-      "parents": [
-        "ROOT_ID",
-        "TABS-TOP",
-        "TAB-TOP-2",
-        "ROW-11"
-      ],
-      "id": "CHART-32",
-      "meta": {
-        "chartId": 32,
-        "height": 50,
-        "sliceName": "Word Cloud Chart",
-        "width": 6
-      },
-      "type": "CHART"
+    "type": "CHART"
+  },
+  "CHART-32": {
+    "children": [],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2",
+      "ROW-11"
+    ],
+    "id": "CHART-32",
+    "meta": {
+      "chartId": 32,
+      "height": 50,
+      "sliceName": "Word Cloud Chart",
+      "width": 6
     },
-    "GRID_ID": {
-        "children": [],
-        "id": "GRID_ID",
-        "type": "GRID"
+    "type": "CHART"
+  },
+  "GRID_ID": {
+    "children": [],
+    "id": "GRID_ID",
+    "type": "GRID"
+  },
+  "HEADER_ID": {
+    "id": "HEADER_ID",
+    "meta": {
+      "text": "ECharts Dashboard"
     },
-    "HEADER_ID": {
-        "id": "HEADER_ID",
-        "meta": {
-            "text": "ECharts Dashboard"
-        },
-        "type": "HEADER"
+    "type": "HEADER"
+  },
+  "TABS-TOP": {
+    "children": [
+      "TAB-TOP-1",
+      "TAB-TOP-2"
+    ],
+    "id": "TABS-TOP",
+    "type": "TABS"
+  },
+  "TAB-TOP-1": {
+    "id": "TAB_TOP-1",
+    "type": "TAB",
+    "meta": {
+      "text": "Tier 1",
+      "defaultText": "Tab title",
+      "placeholder": "Tab title"
     },
-    "TABS-TOP": {
-        "children": [
-            "TAB-TOP-1",
-            "TAB-TOP-2"
-        ],
-        "id": "TABS-TOP",
-        "type": "TABS"
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP"
+    ],
+    "children": [
+      "ROW-1",
+      "ROW-2",
+      "ROW-3",
+      "ROW-4"
+    ]
+  },
+  "TAB-TOP-2": {
+    "id": "TAB_TOP-2",
+    "type": "TAB",
+    "meta": {
+      "text": "Tier 2",
+      "defaultText": "Tab title",
+      "placeholder": "Tab title"
     },
-    "TAB-TOP-1": {
-        "id": "TAB_TOP-1",
-        "type": "TAB",
-        "meta": {
-            "text": "Tier 1",
-            "defaultText": "Tab title",
-            "placeholder": "Tab title",
-        },
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP"
-        ],
-        "children": [
-            "ROW-1",
-            "ROW-2",
-            "ROW-3",
-            "ROW-4",
-        ]
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP"
+    ],
+    "children": [
+      "ROW-5",
+      "ROW-6",
+      "ROW-7",
+      "ROW-8",
+      "ROW-9",
+      "ROW-10",
+      "ROW-11"
+    ]
+  },
+  "ROOT_ID": {
+    "children": [
+      "TABS-TOP"
+    ],
+    "id": "ROOT_ID",
+    "type": "ROOT"
+  },
+  "ROW-1": {
+    "children": [
+      "CHART-1",
+      "CHART-2",
+      "CHART-3"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1"
+    ],
+    "id": "ROW-1",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "TAB-TOP-2": {
-        "id": "TAB_TOP-2",
-        "type": "TAB",
-        "meta": {
-            "text": "Tier 2",
-            "defaultText": "Tab title",
-            "placeholder": "Tab title",
-        },
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP"
-        ],
-        "children": [
-            "ROW-5",
-            "ROW-6",
-            "ROW-7",
-            "ROW-8",
-            "ROW-9",
-            "ROW-10",
-            "ROW-11",
-        ]
+    "type": "ROW"
+  },
+  "ROW-2": {
+    "children": [
+      "CHART-4",
+      "CHART-5",
+      "CHART-6"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1"
+    ],
+    "id": "ROW-2",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROOT_ID": {
-        "children": [
-            "TABS-TOP"
-        ],
-        "id": "ROOT_ID",
-        "type": "ROOT"
+    "type": "ROW"
+  },
+  "ROW-3": {
+    "children": [
+      "CHART-7",
+      "CHART-8",
+      "CHART-9"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1"
+    ],
+    "id": "ROW-3",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-1": {
-        "children": [
-            "CHART-1",
-            "CHART-2",
-            "CHART-3"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-1"
-        ],
-        "id": "ROW-1",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+    "type": "ROW"
+  },
+  "ROW-4": {
+    "children": [
+      "CHART-10",
+      "CHART-11"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-1"
+    ],
+    "id": "ROW-4",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-2": {
-        "children": [
-            "CHART-4",
-            "CHART-5",
-            "CHART-6"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-1"
-        ],
-        "id": "ROW-2",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+    "type": "ROW"
+  },
+  "ROW-5": {
+    "children": [
+      "CHART-12",
+      "CHART-13",
+      "CHART-14"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2"
+    ],
+    "id": "ROW-5",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-3": {
-        "children": [
-            "CHART-7",
-            "CHART-8",
-            "CHART-9"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-1"
-        ],
-        "id": "ROW-3",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+    "type": "ROW"
+  },
+  "ROW-6": {
+    "children": [
+      "CHART-15",
+      "CHART-16",
+      "CHART-17"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2"
+    ],
+    "id": "ROW-6",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-4": {
-        "children": [
-            "CHART-10",
-            "CHART-11"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-1"
-        ],
-        "id": "ROW-4",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+    "type": "ROW"
+  },
+  "ROW-7": {
+    "children": [
+      "CHART-18",
+      "CHART-19",
+      "CHART-20"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2"
+    ],
+    "id": "ROW-7",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-5": {
-        "children": [
-            "CHART-12",
-            "CHART-13",
-            "CHART-14"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-2"
-        ],
-        "id": "ROW-5",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+    "type": "ROW"
+  },
+  "ROW-8": {
+    "children": [
+      "CHART-21",
+      "CHART-22",
+      "CHART-23"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2"
+    ],
+    "id": "ROW-8",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-6": {
-        "children": [
-            "CHART-15",
-            "CHART-16",
-            "CHART-17"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-2"
-        ],
-        "id": "ROW-6",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+    "type": "ROW"
+  },
+  "ROW-9": {
+    "children": [
+      "CHART-24",
+      "CHART-25",
+      "CHART-26"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2"
+    ],
+    "id": "ROW-9",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-7": {
-        "children": [
-            "CHART-18",
-            "CHART-19",
-            "CHART-20"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-2"
-        ],
-        "id": "ROW-7",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+    "type": "ROW"
+  },
+  "ROW-10": {
+    "children": [
+      "CHART-27",
+      "CHART-28",
+      "CHART-29"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2"
+    ],
+    "id": "ROW-10",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-8": {
-        "children": [
-            "CHART-21",
-            "CHART-22",
-            "CHART-23"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-2"
-        ],
-        "id": "ROW-8",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
+    "type": "ROW"
+  },
+  "ROW-11": {
+    "children": [
+      "CHART-30",
+      "CHART-31"
+    ],
+    "parents": [
+      "ROOT_ID",
+      "TABS-TOP",
+      "TAB-TOP-2"
+    ],
+    "id": "ROW-11",
+    "meta": {
+      "background": "BACKGROUND_TRANSPARENT"
     },
-    "ROW-9": {
-        "children": [
-            "CHART-24",
-            "CHART-25",
-            "CHART-26"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-2"
-        ],
-        "id": "ROW-9",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
-    },
-    "ROW-10": {
-        "children": [
-            "CHART-27",
-            "CHART-28",
-            "CHART-29"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-2"
-        ],
-        "id": "ROW-10",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
-    },
-    "ROW-11": {
-        "children": [
-            "CHART-30",
-            "CHART-31"
-        ],
-        "parents": [
-            "ROOT_ID",
-            "TABS-TOP",
-            "TAB-TOP-2"
-        ],
-        "id": "ROW-11",
-        "meta": {
-            "background": "BACKGROUND_TRANSPARENT"
-        },
-        "type": "ROW"
-    },
-    "DASHBOARD_VERSION_KEY": "v2"
+    "type": "ROW"
+  },
+  "DASHBOARD_VERSION_KEY": "v2"
 }
     """
     )
@@ -1303,6 +1303,6 @@ def load_echarts_dashboard() -> None:
     pos = json.loads(js)
     dash.slices = update_slice_ids(pos)
     dash.dashboard_title = "Tier 1 and Tier 2 Charts Dashboard"
-    dash.position_json = json.dumps(pos, indent=4)
+    dash.position_json = json.dumps(pos, indent=2)
     dash.slug = DASH_SLUG
     db.session.commit()
