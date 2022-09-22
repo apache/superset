@@ -72,6 +72,13 @@ export interface ExplorePageInitialData {
   dataset: Dataset;
   form_data: QueryFormData;
   slice: Slice | null;
+  metadata?: {
+    created_on_humanized: string;
+    changed_on_humanized: string;
+    owners: string[];
+    created_by?: string;
+    changed_by?: string;
+  };
 }
 
 export interface ExploreResponsePayload {

@@ -179,9 +179,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "extra",
         "kind",
         "created_on",
+        "created_on_humanized",
         "created_by.first_name",
         "created_by.last_name",
         "changed_on",
+        "changed_on_humanized",
         "changed_by.first_name",
         "changed_by.last_name",
     ]

@@ -22,7 +22,6 @@ import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { QueryFormData, SupersetClient } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
-import moment from 'moment';
 import DrillDetailPane from './DrillDetailPane';
 
 const chart = chartQueries[sliceId];
@@ -48,8 +47,8 @@ const SAMPLES_ENDPOINT =
 const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/*';
 
 const MOCKED_DATASET = {
-  changed_on: new Date(Date.parse('2022-01-01')),
-  created_on: new Date(Date.parse('2022-01-01')),
+  changed_on_humanized: '2 days ago',
+  created_on_humanized: 'a week ago',
   description: 'Simple description',
   table_name: 'test_table',
   changed_by: {
@@ -170,7 +169,7 @@ test('should render the metadata bar', async () => {
     ),
   ).toBeInTheDocument();
   expect(
-    await screen.findByText(moment.utc(MOCKED_DATASET.changed_on).fromNow()),
+    await screen.findByText(MOCKED_DATASET.changed_on_humanized),
   ).toBeInTheDocument();
 });
 
