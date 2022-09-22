@@ -181,6 +181,20 @@ export default function transformProps(chartProps: CccsGridChartProps) {
     JSON: 'jsonValueRenderer',
   };
 
+  const formatIpV4 = (v: any) => {
+    const converted = `${(v >> 24) & 0xff}.${(v >> 16) & 0xff}.${
+      (v >> 8) & 0xff
+    }.${v & 0xff}`;
+    return converted;
+  };
+
+  const advancedTypeValueFormatter = (params: any) => {
+    if (params.colDef.cellRenderer === 'ipv4ValueRenderer') {
+      return formatIpV4(params.value.toString());
+    }
+    return params.value.toString();
+  };
+
   const percentMetricValueFormatter = function (params: ValueFormatterParams) {
     return getNumberFormatter(NumberFormats.PERCENT_3_POINT).format(
       params.value,
@@ -221,6 +235,7 @@ export default function transformProps(chartProps: CccsGridChartProps) {
         sort: sortDirection,
         sortIndex,
         enableRowGroup,
+        getQuickFilterText: (params: any) => advancedTypeValueFormatter(params),
         headerTooltip: columnDescription,
       };
     });
@@ -247,6 +262,8 @@ export default function transformProps(chartProps: CccsGridChartProps) {
           cellRenderer,
           sortable: isSortable,
           enableRowGroup,
+          getQuickFilterText: (params: any) =>
+            advancedTypeValueFormatter(params),
           headerTooltip: columnDescription,
         };
       });
