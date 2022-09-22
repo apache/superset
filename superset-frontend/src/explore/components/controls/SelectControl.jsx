@@ -27,7 +27,7 @@ const propTypes = {
   autoFocus: PropTypes.bool,
   choices: PropTypes.array,
   clearable: PropTypes.bool,
-  description: PropTypes.string,
+  description: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
   disabled: PropTypes.bool,
   freeForm: PropTypes.bool,
   isLoading: PropTypes.bool,
