@@ -661,7 +661,7 @@ const PropertiesModal = ({
                     <>
                       {' '}
                       {t(
-                        'Please DO NOT overwrite `filter_scopes` metadata.',
+                        'Please DO NOT overwrite the "filter_scopes" key.',
                       )}{' '}
                       <FilterScopeModal
                         triggerNode={
