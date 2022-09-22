@@ -21,6 +21,8 @@ export enum SelectionType {
 export interface Column extends ColumnsType {
   title: string | JSX.Element;
   tooltip?: string;
+  dataIndex: string;
+  key: string;
 }
 
 export interface TableProps extends AntTableProps<TableProps> {
@@ -118,8 +120,6 @@ export const StyledTable = styled(AntTable)<StyledTableProps>`
 }
   `}
 `;
-
-function wrapHandler(ref);
 
 const defaultLocale = {
   filterTitle: t('Filter menu'),

@@ -19,31 +19,42 @@
 
 import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
-import { ButtonCell } from './index';
+import { ActionCell, ActionMenuItem } from './index';
 
 export default {
-  title: 'Design System/Components/Table/Cell Renderers/ButtonCell',
-  component: ButtonCell,
-} as ComponentMeta<typeof ButtonCell>;
+  title: 'Design System/Components/Table/Cell Renderers/ActionCell',
+  component: ActionCell,
+} as ComponentMeta<typeof ActionCell>;
 
-// eslint-disable-next-line no-alert
-const clickHandler = () => alert(`I was Clicked`);
+export const exampleMenuOptions: ActionMenuItem[] = [
+  {
+    label: 'Action 1',
+    tooltip: "This is a tip, don't spend it all in one place",
+    onClick: (item: ActionMenuItem) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(item));
+    },
+    payload: {
+      taco: 'spicy chiken',
+    },
+  },
+  {
+    label: 'Action 2',
+    tooltip: 'This is another tip',
+    onClick: (item: ActionMenuItem) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(item));
+    },
+    payload: {
+      taco: 'saucy tofu',
+    },
+  },
+];
 
-export const Basic: ComponentStory<typeof ButtonCell> = args => (
-  <ButtonCell {...args} />
+export const Basic: ComponentStory<typeof ActionCell> = args => (
+  <ActionCell {...args} />
 );
 
 Basic.args = {
-  onClick: clickHandler,
-  label: 'Primary',
-};
-
-export const Secondary: ComponentStory<typeof ButtonCell> = args => (
-  <ButtonCell {...args} />
-);
-
-Secondary.args = {
-  onClick: clickHandler,
-  label: 'Secondary',
-  buttonStyle: 'secondary',
+  menuOptions: exampleMenuOptions,
 };

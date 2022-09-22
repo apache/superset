@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
-import type { ColumnsType } from 'antd/es/table';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import {
@@ -14,6 +13,8 @@ import {
 } from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
+import ActionCell from './cell-renderers/ActionCell';
+import { exampleMenuOptions } from './cell-renderers/ActionCell/ActionCell.stories';
 import NumericCell, {
   CurrencyCode,
   LocaleCode,
@@ -21,16 +22,12 @@ import NumericCell, {
 } from './cell-renderers/NumericCell';
 
 export default {
-  /* 👇 The title prop is optional.
-   * See https://storybook.js.org/docs/react/configure/overview#configure-story-loading
-   * to learn how to generate automatic titles
-   */
   title: 'Design System/Components/Table/Examples',
   component: Table,
 } as ComponentMeta<typeof Table>;
 
 // eslint-disable-next-line no-alert
-const clikerit = (message: string) => alert(`I was Clicked: ${message}`);
+const handleClick = (message: string) => alert(`I was Clicked: ${message}`);
 
 export interface BasicData extends TableDataType {
   columnName: string;
@@ -55,8 +52,8 @@ function generateValues(amount: number): object {
   return cells;
 }
 
-function generateColumns(amount: number): ColumnsType[] {
-  const newCols: ColumnsType<ExampleData>[] = [];
+function generateColumns(amount: number): Column[] {
+  const newCols: Column[] = [];
   for (let i = 0; i < amount; i += 1) {
     newCols.push({
       title: `Column Header ${i}`,
@@ -68,7 +65,7 @@ function generateColumns(amount: number): ColumnsType[] {
 }
 const recordCount = 200;
 const columnCount = 12;
-const randomCols: ColumnsType[] = generateColumns(columnCount);
+const randomCols: Columns[] = generateColumns(columnCount);
 
 const basicData: BasicData[] = [
   {
@@ -94,7 +91,7 @@ const basicData: BasicData[] = [
   },
 ];
 
-const basicColumns: ColumnsType[] = [
+const basicColumns: Columns[] = [
   {
     title: 'Column Name',
     dataIndex: 'columnName',
@@ -136,9 +133,7 @@ const bigColumns: Column[] = [
     },
     dataIndex: 'name',
     key: 'name',
-    render: (text: string) => (
-      <ButtonCell label={text} handleClick={clikerit} />
-    ),
+    render: (text: string) => <ButtonCell label={text} onClick={handleClick} />,
     width: 150,
   },
   {
@@ -201,20 +196,31 @@ export const Basic: ComponentStory<typeof Table> = args => (
   </ThemeProvider>
 );
 
-function handlers(record, rowIndex) {
+function handlers(record: object, rowIndex: number) {
   return {
-    onClick: event => {
-      alert('Click', rowIndex);
+    onClick: (event: MouseEvent) => {
+      // eslint-disable-next-line no-alert
+      alert(`Double Click, row:  ${rowIndex}`);
     }, // click row
-    onDoubleClick: event => {
-      alert('Double Click', rowIndex);
+    onDoubleClick: (event: MouseEvent) => {
+      // eslint-disable-next-line no-alert
+      alert(`Double Click, row:  ${rowIndex}`);
     }, // double click row
-    onContextMenu: event => {
+    onContextMenu: (event: MouseEvent) => {
       event.preventDefault();
-      alert('Context Menu', rowIndex);
+      // eslint-disable-next-line no-alert
+      alert(`Context Menu, row:  ${rowIndex}`);
     }, // right button click row
-    onMouseEnter: event => {}, // mouse enter row
-    onMouseLeave: event => {}, // mouse leave row
+    onMouseEnter: (event: MouseEvent) => {
+      // eslint-disable-next-line no-console
+      console.log(
+        `Mouse Enter, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      );
+    }, // mouse enter row
+    onMouseLeave: (event: MouseEvent) => {
+      // eslint-disable-next-line no-console
+      console.log(`Mouse Leave, row:  ${rowIndex}`);
+    }, // mouse leave row
   };
 }
 
@@ -223,6 +229,7 @@ Basic.args = {
   columns: basicColumns,
   selectedRows: [1],
   handleRowSelection: (selection: React.Key[]) => {
+    // eslint-disable-next-line no-alert
     alert(selection);
   },
   size: TableSize.SMALL,
@@ -322,20 +329,29 @@ ReorderableColumns.args = {
   columns: basicColumns,
   selectedRows: [1],
   handleRowSelection: (selection: React.Key[]) => {
+    // eslint-disable-next-line no-alert
     alert(selection);
   },
   size: TableSize.SMALL,
   reorderable: true,
 };
 
-const rendererColumns: ColumnsType[] = [
+const rendererColumns: Columns[] = [
   {
     title: 'Button Cell',
     dataIndex: 'buttonCell',
     key: 'buttonCell',
     width: 150,
-    render: (text: string) => (
-      <ButtonCell label={text} handleClick={() => alert('Cell was clicked')} />
+    render: (text: string, data: object, index: number) => (
+      <ButtonCell
+        label={text}
+        data={data}
+        index={index}
+        onClick={(data: object, index: number) =>
+          // eslint-disable-next-line no-alert
+          alert(`Cell was clicked: row ${index}, data: ${JSON.stringify(data)}`)
+        }
+      />
     ),
   },
   {
@@ -371,9 +387,10 @@ const rendererColumns: ColumnsType[] = [
     ),
   },
   {
-    title: 'Link Cell',
+    title: 'Action Cell',
     dataIndex: 'actions',
     key: 'actions',
+    render: () => <ActionCell menuOptions={exampleMenuOptions} />,
   },
 ];
 
