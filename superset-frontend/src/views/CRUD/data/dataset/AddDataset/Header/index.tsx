@@ -64,7 +64,7 @@ export default function Header({
 }: {
   setDataset: React.Dispatch<DSReducerActionType>;
   title: string;
-  schema?: string;
+  schema?: string | null | undefined;
 }) {
   const editableTitleProps = {
     title: schema ? title : t('New dataset'),
