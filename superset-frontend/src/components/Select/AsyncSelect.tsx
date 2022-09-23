@@ -185,6 +185,7 @@ const AsyncSelect = forwardRef(
     const [totalCount, setTotalCount] = useState(0);
     const [loadingEnabled, setLoadingEnabled] = useState(!lazyLoading);
     const [allValuesLoaded, setAllValuesLoaded] = useState(false);
+    const selectValueRef = useRef(selectValue);
     const fetchedQueries = useRef(new Map<string, number>());
     const mappedMode = isSingleMode
       ? undefined
@@ -193,10 +194,14 @@ const AsyncSelect = forwardRef(
       : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
 
+    useEffect(() => {
+      selectValueRef.current = selectValue;
+    }, [selectValue]);
+
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        sortSelectedFirstHelper(a, b, selectValue),
-      [selectValue],
+        sortSelectedFirstHelper(a, b, selectValueRef.current),
+      [],
     );
 
     const sortComparatorWithSearch = useCallback(
@@ -334,6 +339,7 @@ const AsyncSelect = forwardRef(
           return;
         }
         setIsLoading(true);
+
         const fetchOptions = options as SelectOptionsPagePromise;
         fetchOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
@@ -342,7 +348,7 @@ const AsyncSelect = forwardRef(
             setTotalCount(totalCount);
             if (
               !fetchOnlyOnSearch &&
-              value === '' &&
+              search === '' &&
               mergedData.length >= totalCount
             ) {
               setAllValuesLoaded(true);
@@ -360,7 +366,6 @@ const AsyncSelect = forwardRef(
         internalOnError,
         options,
         pageSize,
-        value,
       ],
     );
 
@@ -511,10 +516,6 @@ const AsyncSelect = forwardRef(
       }),
       [ref],
     );
-
-    useEffect(() => {
-      setSelectValue(value);
-    }, [value]);
 
     return (
       <StyledContainer>
