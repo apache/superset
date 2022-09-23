@@ -19,15 +19,23 @@
 
 import React, { useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
-import { css, SqlaFormData, styled, t, useTheme } from '@superset-ui/core';
+import {
+  Behavior,
+  css,
+  getChartMetadataRegistry,
+  SqlaFormData,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';
-import { DrillDetailPayload } from './types';
 import DrillDetailPane from './DrillDetailPane';
+import { ContextMenuPayload } from '../types';
 
 const Filter = styled.span`
   ${({ theme }) => `
@@ -36,13 +44,12 @@ const Filter = styled.span`
   `}
 `;
 
-const ModalFooter = ({
-  exploreChart,
-  closeModal,
-}: {
+type ModalFooterProps = {
   exploreChart: () => void;
   closeModal?: () => void;
-}) => (
+};
+
+const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
   <>
     <Button buttonStyle="secondary" buttonSize="small" onClick={exploreChart}>
       {t('Edit chart')}
@@ -53,18 +60,22 @@ const ModalFooter = ({
   </>
 );
 
+export type DrillDetailMenuItemsProps = {
+  chartId: number;
+  formData: SqlaFormData;
+  isContextMenu?: boolean;
+  contextPayload?: ContextMenuPayload;
+  onSelection?: () => void;
+};
+
 export const DrillDetailMenuItems = ({
   chartId,
   formData,
+  isContextMenu,
   contextPayload,
   onSelection,
   ...props
-}: {
-  chartId: string;
-  formData: SqlaFormData;
-  contextPayload?: DrillDetailPayload;
-  onSelection?: () => void;
-}) => {
+}: DrillDetailMenuItemsProps) => {
   const theme = useTheme();
   const history = useHistory();
   const dashboardPageId = useContext(DashboardPageIdContext);
@@ -119,31 +130,47 @@ export const DrillDetailMenuItems = ({
     [chartName, exploreChart, formData, onSelection, props, theme.gridUnit],
   );
 
-  if (!contextPayload) {
-    return getMenuItem('none', t('Drill to detail'));
-  }
+  const drillToDetail = getMenuItem('none', t('Drill to detail'));
+  const drillToDetailBy = (
+    <Menu.SubMenu title={t('Drill to detail by')} {...props}>
+      <Menu data-test="drill-to-detail-by-submenu">
+        <Menu.Item disabled {...props}>
+          {t(
+            'Drill to detail by value is not yet supported for this chart type.',
+          )}
+        </Menu.Item>
+      </Menu>
+    </Menu.SubMenu>
+  );
 
   return (
     <>
-      {contextPayload.filters.map((filter, i) =>
-        getMenuItem(
-          i,
-          <>
-            {`${t('Drill to detail by')} `}
-            <Filter>{filter.formattedVal}</Filter>
-          </>,
-          [filter],
-        ),
-      )}
-      {contextPayload.filters.length > 1 &&
-        getMenuItem(
-          'all',
-          <>
-            {`${t('Drill to detail by')} `}
-            <Filter>{t('all')}</Filter>
-          </>,
-          contextPayload.filters,
-        )}
+      {drillToDetail}
+      {isContextMenu && drillToDetailBy}
     </>
   );
+
+  // return (
+  //   <>
+  //     {contextPayload.filters.map((filter, i) =>
+  //       getMenuItem(
+  //         i,
+  //         <>
+  //           {`${t('Drill to detail by')} `}
+  //           <Filter>{filter.formattedVal}</Filter>
+  //         </>,
+  //         [filter],
+  //       ),
+  //     )}
+  //     {contextPayload.filters.length > 1 &&
+  //       getMenuItem(
+  //         'all',
+  //         <>
+  //           {`${t('Drill to detail by')} `}
+  //           <Filter>{t('all')}</Filter>
+  //         </>,
+  //         contextPayload.filters,
+  //       )}
+  //   </>
+  // );
 };

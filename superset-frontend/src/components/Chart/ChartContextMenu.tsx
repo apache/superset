@@ -27,19 +27,14 @@ import { FeatureFlag, isFeatureEnabled, SqlaFormData } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
 import ReactDOM from 'react-dom';
-import {
-  DrillDetailMenuItems,
-  DrillDetailPayload,
-  getDrillDetailMenuItemsCount,
-} from './DrillDetail';
+import { DrillDetailMenuItems } from './DrillDetail';
+import { ContextMenuPayload } from './types';
 
 const MENU_ITEM_HEIGHT = 32;
 const MENU_VERTICAL_SPACING = 32;
 
-type ContextMenuPayload = DrillDetailPayload;
-
 export interface ChartContextMenuProps {
-  id: string;
+  id: number;
   formData: SqlaFormData;
   onSelection: () => void;
   onClose: () => void;
@@ -69,6 +64,7 @@ const ChartContextMenu = (
         <DrillDetailMenuItems
           chartId={id}
           formData={formData}
+          isContextMenu
           contextPayload={payload}
           onSelection={onSelection}
         />
@@ -86,7 +82,7 @@ const ChartContextMenu = (
       );
 
       const itemsCount = [
-        getDrillDetailMenuItemsCount(payload),
+        2, // Drill to detail always has 2 top-level menu items
         // Include additional menu item counts here
       ].reduce((a, b) => a + b, 0);
 

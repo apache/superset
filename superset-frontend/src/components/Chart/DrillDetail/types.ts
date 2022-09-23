@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType, QueryObjectFilterClause } from '@superset-ui/core';
+import { GenericDataType } from '@superset-ui/core';
 
 export type ResultsPage = {
   total: number;
@@ -43,8 +43,3 @@ export type Dataset = {
     last_name: string;
   }[];
 };
-
-export interface DrillDetailPayload {
-  noAggregation: boolean;
-  filters: QueryObjectFilterClause[];
-}

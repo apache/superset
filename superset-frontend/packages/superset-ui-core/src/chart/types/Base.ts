@@ -25,6 +25,9 @@ export type HandlerFunction = (...args: unknown[]) => void;
 export enum Behavior {
   INTERACTIVE_CHART = 'INTERACTIVE_CHART',
   NATIVE_FILTER = 'NATIVE_FILTER',
+  //  Include CONTEXT_MENU if chart handles the `contextmenu` event itself
+  //  rather than relying on the fallback handler
+  CONTEXT_MENU = 'CONTEXT_MENU',
 }
 
 export enum AppSection {
