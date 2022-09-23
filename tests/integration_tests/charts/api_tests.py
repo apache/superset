@@ -821,6 +821,51 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 34)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
+    def test_get_charts_dashboards(self):
+        """
+        Chart API: Test get charts with related dashboards
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {"col": "slice_name", "opr": "eq", "value": self.chart.slice_name}
+            ]
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"][0]["dashboards"] == [
+            {
+                "id": self.original_dashboard.id,
+                "dashboard_title": self.original_dashboard.dashboard_title,
+            }
+        ]
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
+    def test_get_charts_dashboard_filter(self):
+        """
+        Chart API: Test get charts with dashboard filter
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {
+                    "col": "dashboards",
+                    "opr": "rel_m_m",
+                    "value": self.original_dashboard.id,
+                }
+            ]
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert len(result) == 1
+        assert result[0]["slice_name"] == self.chart.slice_name
+
     def test_get_charts_changed_on(self):
         """
         Dashboard API: Test get charts changed on
