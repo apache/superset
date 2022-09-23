@@ -35,7 +35,7 @@ describe('AddDataset', () => {
     // Left panel
     expect(blankeStateImgs[0]).toBeVisible();
     // Footer
-    expect(screen.getByText(/footer/i)).toBeVisible();
+    expect(screen.getByText(/Cancel/i)).toBeVisible();
 
     expect(blankeStateImgs.length).toBe(1);
   });
