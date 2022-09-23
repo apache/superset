@@ -1,6 +1,8 @@
 import { store } from '../views/store';
 import { bootstrapData } from '../preamble';
-import { getDashboardPermalink as getDashboardPermalinkUtil } from '../utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import { getDashboardPermalink as getDashboardPermalinkUtil, getUrlParam } from '../utils/urlUtils';
+import { getFilterValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 
 type Size = {
   width: number;
@@ -19,18 +21,18 @@ const getScrollSize = (): Size => ({
 });
 
 const getDashboardPermalink = async ({ anchor }: { anchor: string }): Promise<string> => {
-  const state = store?.getState();
-  const { dashboardId, dataMask, activeTabs } = {
-    dashboardId: state?.dashboardInfo?.id || bootstrapData?.embedded!.dashboard_id,
-    dataMask: state?.dataMask,
-    activeTabs: state.dashboardState?.activeTabs,
-  };
+  const dashboardId = store.getState()?.dashboardInfo?.id || bootstrapData?.embedded!.dashboard_id;
+
+  let filterState = {};
+  const nativeFiltersKey = getUrlParam(URL_PARAMS.nativeFiltersKey);
+  if (nativeFiltersKey && dashboardId) {
+    filterState = await getFilterValue(dashboardId, nativeFiltersKey);
+  }
 
   return getDashboardPermalinkUtil({
     dashboardId,
-    dataMask,
-    activeTabs,
-    anchor,
+    filterState,
+    hash: anchor,
   });
 };
 

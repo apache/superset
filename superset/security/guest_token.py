@@ -78,6 +78,7 @@ class GuestUser(AnonymousUserMixin):
 
     def __init__(self, token: GuestToken, roles: List[Role]):
         user = token["user"]
+        self.id = None
         self.guest_token = token
         self.username = user.get("username", "guest_user")
         self.first_name = user.get("first_name", "Guest")
