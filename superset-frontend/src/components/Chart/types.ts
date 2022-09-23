@@ -20,5 +20,5 @@
 import { QueryObjectFilterClause } from '@superset-ui/core';
 
 export type ContextMenuPayload = {
-  filters?: QueryObjectFilterClause[];
+  filters: QueryObjectFilterClause[];
 };

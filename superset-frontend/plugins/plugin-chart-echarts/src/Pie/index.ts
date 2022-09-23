@@ -47,7 +47,7 @@ export default class EchartsPieChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsPie'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.CONTEXT_MENU],
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
         description:

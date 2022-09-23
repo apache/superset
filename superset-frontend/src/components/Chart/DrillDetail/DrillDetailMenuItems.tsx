@@ -130,47 +130,80 @@ export const DrillDetailMenuItems = ({
     [chartName, exploreChart, formData, onSelection, props, theme.gridUnit],
   );
 
-  const drillToDetail = getMenuItem('none', t('Drill to detail'));
-  const drillToDetailBy = (
-    <Menu.SubMenu title={t('Drill to detail by')} {...props}>
-      <Menu data-test="drill-to-detail-by-submenu">
+  const hasDimensions = !!(formData.groupby && formData.groupby.length);
+  //  Viz type: world_map has dimension in entity
+
+  const drillToDetail = hasDimensions ? (
+    getMenuItem('none', t('Drill to detail'))
+  ) : (
+    <Menu.Item disabled {...props}>
+      {t(
+        'Drill to detail is disabled because this chart does not group data by dimension value.',
+      )}
+      {/* TODO: Tooltip */}
+    </Menu.Item>
+  );
+
+  const contextMenuSupported = useMemo(
+    () =>
+      getChartMetadataRegistry()
+        .get(formData.viz_type)
+        ?.behaviors.find(behavior => behavior === Behavior.CONTEXT_MENU),
+    [formData.viz_type],
+  );
+
+  let drillToDetailBy = (
+    <Menu.Item disabled {...props}>
+      {t('Drill to detail by value is not yet supported for this chart type.')}
+    </Menu.Item>
+  );
+
+  if (contextMenuSupported) {
+    if (contextPayload?.filters.length) {
+      drillToDetailBy = (
+        <>
+          {contextPayload.filters.map((filter, i) =>
+            getMenuItem(
+              i,
+              <>
+                {`${t('Drill to detail by')} `}
+                <Filter>{filter.formattedVal}</Filter>
+              </>,
+              [filter],
+            ),
+          )}
+          {contextPayload.filters.length > 1 &&
+            getMenuItem(
+              'all',
+              <>
+                {`${t('Drill to detail by')} `}
+                <Filter>{t('all')}</Filter>
+              </>,
+              contextPayload.filters,
+            )}
+        </>
+      );
+    } else {
+      drillToDetailBy = (
         <Menu.Item disabled {...props}>
           {t(
-            'Drill to detail by value is not yet supported for this chart type.',
+            'Right-click on a dimension value to drill to detail by that value.',
           )}
         </Menu.Item>
-      </Menu>
-    </Menu.SubMenu>
-  );
+      );
+    }
+  }
 
   return (
     <>
       {drillToDetail}
-      {isContextMenu && drillToDetailBy}
+      {isContextMenu && (
+        <Menu.SubMenu title={t('Drill to detail by')} {...props}>
+          <Menu data-test="drill-to-detail-by-submenu" {...props}>
+            {drillToDetailBy}
+          </Menu>
+        </Menu.SubMenu>
+      )}
     </>
   );
-
-  // return (
-  //   <>
-  //     {contextPayload.filters.map((filter, i) =>
-  //       getMenuItem(
-  //         i,
-  //         <>
-  //           {`${t('Drill to detail by')} `}
-  //           <Filter>{filter.formattedVal}</Filter>
-  //         </>,
-  //         [filter],
-  //       ),
-  //     )}
-  //     {contextPayload.filters.length > 1 &&
-  //       getMenuItem(
-  //         'all',
-  //         <>
-  //           {`${t('Drill to detail by')} `}
-  //           <Filter>{t('all')}</Filter>
-  //         </>,
-  //         contextPayload.filters,
-  //       )}
-  //   </>
-  // );
 };

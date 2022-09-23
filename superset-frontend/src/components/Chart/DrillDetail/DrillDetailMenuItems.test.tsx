@@ -29,19 +29,19 @@ import {
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
-const { id: defaultChartId, form_data: defaultFormData } =
+const { id: chartId, form_data: supportedChartFormData } =
   chartQueries[sliceId];
 
-const renderMenu = (props?: Partial<DrillDetailMenuItemsProps>) => {
-  const menuItemsProps = {
-    chartId: defaultChartId,
-    formData: defaultFormData,
-    ...(props || {}),
-  };
+const unsupportedChartFormData = {
+  ...supportedChartFormData,
+  viz_type: 'dist_bar',
+};
+
+const renderMenu = (props: Omit<DrillDetailMenuItemsProps, 'chartId'>) => {
   const store = getMockStoreWithNativeFilters();
   return render(
     <Menu>
-      <DrillDetailMenuItems {...menuItemsProps} />
+      <DrillDetailMenuItems chartId={chartId} {...props} />
     </Menu>,
     { useRouter: true, useRedux: true, store },
   );
@@ -93,29 +93,49 @@ const expectDrillToDetailBySubMenu = async () => {
   expect(drillToDetailByMenu).toBeInTheDocument();
 };
 
-//  "Drill to detail by" fallback message disabled menu item should be the only item
-const expectDrillToDetailBySubMenuFallbackItem = async () => {
+//  "Drill to detail by" unsupported chart message should be the only menu item
+const expectUnsupportedChartMessage = async () => {
   userEvent.hover(screen.getByRole('button', { name: 'Drill to detail by' }));
   const drillToDetailByMenu = await screen.findByTestId(
     'drill-to-detail-by-submenu',
   );
 
-  const chartNotSupportedMenuItem = screen.queryByRole('menuitem', {
+  const unsupportedChartMessage = screen.queryByRole('menuitem', {
     name: 'Drill to detail by value is not yet supported for this chart type.',
   });
 
-  expect(chartNotSupportedMenuItem).toBeInTheDocument();
-  expect(chartNotSupportedMenuItem).toHaveAttribute('aria-disabled', 'true');
-  expect(drillToDetailByMenu).toContainElement(chartNotSupportedMenuItem);
+  expect(unsupportedChartMessage).toBeInTheDocument();
+  expect(unsupportedChartMessage).toHaveAttribute('aria-disabled', 'true');
+  expect(drillToDetailByMenu).toContainElement(unsupportedChartMessage);
 
   const drillToDetailByDimension = screen.queryByRole('menuitem', {
-    name: /drill to detail by (?!value is not yet supported for this chart type)/,
+    name: /Drill to detail by (?!value is not yet supported for this chart type\.)/,
   });
 
   expect(drillToDetailByDimension).not.toBeInTheDocument();
 };
 
-const unsupportedChartFormData = { ...defaultFormData, viz_type: 'dist_bar' };
+//  "Drill to detail by" unsupported click message should be the only menu item
+const expectUnsupportedClickMessage = async () => {
+  userEvent.hover(screen.getByRole('button', { name: 'Drill to detail by' }));
+  const drillToDetailByMenu = await screen.findByTestId(
+    'drill-to-detail-by-submenu',
+  );
+
+  const unsupportedClickMessage = screen.queryByRole('menuitem', {
+    name: 'Right-click on a dimension value to drill to detail by that value.',
+  });
+
+  expect(unsupportedClickMessage).toBeInTheDocument();
+  expect(unsupportedClickMessage).toHaveAttribute('aria-disabled', 'true');
+  expect(drillToDetailByMenu).toContainElement(unsupportedClickMessage);
+
+  const drillToDetailByDimension = screen.queryByRole('menuitem', {
+    name: /Drill to detail by (?!value is not yet supported for this chart type\.)/,
+  });
+
+  expect(drillToDetailByDimension).not.toBeInTheDocument();
+};
 
 test('dropdown menu for unsupported chart', () => {
   renderMenu({ formData: unsupportedChartFormData });
@@ -133,8 +153,33 @@ test('context menu for unsupported chart', async () => {
   expectDrillToDetailMenuItem();
   expectNoDrillToDetailMenuItemTooltip();
   await expectDrillToDetailBySubMenu();
-  await expectDrillToDetailBySubMenuFallbackItem();
+  await expectUnsupportedChartMessage();
 });
+
+test('dropdown menu for supported chart', () => {
+  renderMenu({ formData: supportedChartFormData });
+  expectDrillToDetailMenuItem();
+  expectNoDrillToDetailMenuItemTooltip();
+  expectNoDrillToDetailBySubMenu();
+});
+
+test('context menu for supported chart, no filters', async () => {
+  renderMenu({
+    formData: supportedChartFormData,
+    isContextMenu: true,
+  });
+
+  expectDrillToDetailMenuItem();
+  expectNoDrillToDetailMenuItemTooltip();
+  await expectDrillToDetailBySubMenu();
+  await expectUnsupportedClickMessage();
+});
+
+//  Atomic data tests
+//  Drill by dimensions/all tests
+//  Opening modal tests (see below)
+//  Permissions tests
+//  Change width
 
 // const chart = chartQueries[sliceId];
 // const setup = (overrides: Record<string, any> = {}) => {
