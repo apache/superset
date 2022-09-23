@@ -49,6 +49,26 @@ const stateWithOnlyUser = {
   reports: {},
 };
 
+const stateWithNonAdminUser = {
+  explore: {
+    user: {
+      email: 'nonadmin@test.com',
+      firstName: 'nonadmin',
+      isActive: true,
+      lastName: 'nonadmin',
+      permissions: {},
+      createdOn: '2022-01-12T10:17:37.801361',
+      roles: {
+        Gamma: [['no_menu_access', 'Manage']],
+        OtherRole: [['menu_access', 'Manage']],
+      },
+      userId: 1,
+      username: 'nonadmin',
+    },
+  },
+  reports: {},
+};
+
 const stateWithUserAndReport = {
   user: {
     email: 'admin@test.com',
@@ -190,6 +210,19 @@ describe('Header Report Dropdown', () => {
     };
     act(() => {
       setup(mockedProps, stateWithOnlyUser);
+    });
+    expect(screen.getByText('Set up an email report')).toBeInTheDocument();
+  });
+
+  it('renders Schedule Email Reports as long as user has permission through any role', () => {
+    let mockedProps = createProps();
+    mockedProps = {
+      ...mockedProps,
+      useTextMenu: true,
+      isDropdownVisible: true,
+    };
+    act(() => {
+      setup(mockedProps, stateWithNonAdminUser);
     });
     expect(screen.getByText('Set up an email report')).toBeInTheDocument();
   });
