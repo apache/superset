@@ -42,24 +42,15 @@ export const getAdhocExtraFormData = (
       },
     ];
   } else if (value !== undefined && value !== null && value.length !== 0) {
-    extra.filters = [
+    extra.adhoc_filters = [
       {
-        col,
-        op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
-        // @ts-ignore
-        val: value,
+        expressionType: 'SIMPLE',
+        subject: col,
+        operator: 'IN',
+        comparator: value,
+        clause: 'WHERE',
       },
     ];
-    // extra.adhoc_filters = [
-    //   {
-    //     expressionType: EXPRESSION_TYPES.SIMPLE,
-    //     subject: option.column_name,
-    //     operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
-    //     comparator: '',
-    //     clause: CLAUSES.WHERE,
-    //     isNew: true,
-    //   },
-    // ];
   }
   return extra;
 };
