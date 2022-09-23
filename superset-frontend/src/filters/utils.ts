@@ -26,6 +26,44 @@ import {
 } from '@superset-ui/core';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
+export const getAdhocExtraFormData = (
+  col: string,
+  value?: null | (string | number | boolean | null)[],
+  emptyFilter = false,
+  inverseSelection = false,
+): ExtraFormData => {
+  const extra: ExtraFormData = {};
+  if (emptyFilter) {
+    extra.adhoc_filters = [
+      {
+        expressionType: 'SQL',
+        clause: 'WHERE',
+        sqlExpression: '1 = 0',
+      },
+    ];
+  } else if (value !== undefined && value !== null && value.length !== 0) {
+    extra.filters = [
+      {
+        col,
+        op: inverseSelection ? ('NOT IN' as const) : ('IN' as const),
+        // @ts-ignore
+        val: value,
+      },
+    ];
+    // extra.adhoc_filters = [
+    //   {
+    //     expressionType: EXPRESSION_TYPES.SIMPLE,
+    //     subject: option.column_name,
+    //     operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.EQUALS].operation,
+    //     comparator: '',
+    //     clause: CLAUSES.WHERE,
+    //     isNew: true,
+    //   },
+    // ];
+  }
+  return extra;
+};
+
 export const getSelectExtraFormData = (
   col: string,
   value?: null | (string | number | boolean | null)[],
