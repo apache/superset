@@ -21,6 +21,7 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
+import { isEmpty } from 'lodash';
 
 import {
   t,
@@ -90,6 +91,13 @@ const StyledAnchor = styled.a`
 
 const tagStyles = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light5};
+`;
+
+const styledChildMenu = (theme: SupersetTheme) => css`
+  &:hover {
+    color: ${theme.colors.primary.base} !important;
+    cursor: pointer !important;
+  }
 `;
 
 const { SubMenu } = Menu;
@@ -298,14 +306,24 @@ const RightMenu = ({
         </Tooltip>
       </Menu.Item>
     ) : (
-      <Menu.Item key={item.name}>
+      <Menu.Item key={item.name} css={styledChildMenu}>
         {item.url ? <a href={item.url}> {item.label} </a> : item.label}
       </Menu.Item>
     );
   };
 
   const onMenuOpen = (openKeys: string[]) => {
-    if (openKeys.length) {
+    // We should query the API only if opening Data submenus
+    // because the rest don't need this information. Not using
+    // "Data" directly since we might change the label later on?
+    if (
+      openKeys.length > 1 &&
+      !isEmpty(
+        openKeys?.filter((key: string) =>
+          key.includes(`sub2_${dropdownItems?.[0]?.label}`),
+        ),
+      )
+    ) {
       if (canUploadData) checkAllowUploads();
       if (canDatabase) existsNonExamplesDatabases();
     }
@@ -379,7 +397,7 @@ const RightMenu = ({
                       {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
                           <Fragment key={item.name}>
-                            {idx === 2 && <Menu.Divider />}
+                            {idx === 3 && <Menu.Divider />}
                             {buildMenuItem(item)}
                           </Fragment>
                         ) : null,
