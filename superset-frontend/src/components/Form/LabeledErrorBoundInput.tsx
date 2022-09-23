@@ -38,13 +38,14 @@ export interface LabeledErrorBoundInputProps {
   id?: string;
   classname?: string;
   [x: string]: any;
+  visibilityToggle?: string;
 }
 
 const StyledInput = styled(Input)`
   margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
 `;
 
-const StyledInputPassword = styled(Input.Password)`
+const StyledInputHideShow = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
 `;
 
@@ -101,6 +102,7 @@ const LabeledErrorBoundInput = ({
   tooltipText,
   id,
   className,
+  visibilityToggle,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
@@ -119,8 +121,8 @@ const LabeledErrorBoundInput = ({
       help={errorMessage || helpText}
       hasFeedback={!!errorMessage}
     >
-      {props.name === 'password' ? (
-        <StyledInputPassword
+      {visibilityToggle ? (
+        <StyledInputHideShow
           {...props}
           {...validationMethods}
           iconRender={visible =>
