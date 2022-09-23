@@ -14,24 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, List
 
-from werkzeug.routing import BaseConverter, Map
+import pytest
 
-from superset.tags.models import ObjectTypes
-
-
-class RegexConverter(BaseConverter):
-    def __init__(self, url_map: Map, *items: List[str]) -> None:
-        super().__init__(url_map)  # type: ignore
-        self.regex = items[0]
+from superset.tags.core import clear_sqla_event_listeners, register_sqla_event_listeners
+from tests.integration_tests.test_app import app
 
 
-class ObjectTypeConverter(BaseConverter):
-    """Validate that object_type is indeed an object type."""
-
-    def to_python(self, value: str) -> Any:
-        return ObjectTypes[value]
-
-    def to_url(self, value: Any) -> str:
-        return value.name
+@pytest.fixture
+def with_tagging_system_feature():
+    with app.app_context():
+        is_enabled = app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"]
+        if not is_enabled:
+            app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = True
+            register_sqla_event_listeners()
+            yield
+            app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
+            clear_sqla_event_listeners()
