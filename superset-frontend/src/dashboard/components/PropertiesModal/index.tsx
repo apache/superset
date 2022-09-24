@@ -123,13 +123,7 @@ const PropertiesModal = ({
   };
 
   const loadAccessOptions = useCallback(
-    (
-      accessType = 'owners',
-      input = '',
-      checkActive: boolean = true,
-      page: number,
-      pageSize: number,
-    ) => {
+    (accessType = 'owners', input = '', page: number, pageSize: number) => {
       const query = rison.encode({
         filter: input,
         page,
@@ -137,21 +131,17 @@ const PropertiesModal = ({
       });
       return SupersetClient.get({
         endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
-      }).then(response => {
-        let data = response.json.result;
-        if (checkActive) {
-          data = data.filter(
-            (item: { extra: { active: boolean } }) => item.extra.active,
-          );
-        }
-        return {
-          data: data.map((item: { value: number; text: string }) => ({
+      }).then(response => ({
+        data: response.json.result
+          .filter((item: { extra: { active: boolean } }) =>
+            item.extra.active !== undefined ? item.extra.active : true,
+          )
+          .map((item: { value: number; text: string }) => ({
             value: item.value,
             label: item.text,
           })),
-          totalCount: response.json.count,
-        };
-      });
+        totalCount: response.json.count,
+      }));
     },
     [],
   );
@@ -419,7 +409,7 @@ const PropertiesModal = ({
               mode="multiple"
               onChange={handleOnChangeOwners}
               options={(input, page, pageSize) =>
-                loadAccessOptions('owners', input, true, page, pageSize)
+                loadAccessOptions('owners', input, page, pageSize)
               }
               value={handleOwnersSelectValue()}
             />
@@ -466,7 +456,7 @@ const PropertiesModal = ({
                 mode="multiple"
                 onChange={handleOnChangeOwners}
                 options={(input, page, pageSize) =>
-                  loadAccessOptions('owners', input, true, page, pageSize)
+                  loadAccessOptions('owners', input, page, pageSize)
                 }
                 value={handleOwnersSelectValue()}
               />
@@ -484,10 +474,9 @@ const PropertiesModal = ({
                 ariaLabel={t('Roles')}
                 disabled={isLoading}
                 mode="multiple"
-                labelInValue={true}
                 onChange={handleOnChangeRoles}
                 options={(input, page, pageSize) =>
-                  loadAccessOptions('roles', input, false, page, pageSize)
+                  loadAccessOptions('roles', input, page, pageSize)
                 }
                 value={handleRolesSelectValue()}
               />
