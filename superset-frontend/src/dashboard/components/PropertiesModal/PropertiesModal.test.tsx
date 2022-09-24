@@ -429,7 +429,7 @@ test('should show active owners with dashboard rbac', async () => {
 });
 
 test('should show active owners without dashboard rbac', async () => {
-  spyIsFeatureEnabled.mockReturnValue(true);
+  spyIsFeatureEnabled.mockReturnValue(false);
 
   let props = createProps();
   const propsWithDashboardIndo = { ...props, dashboardInfo };
@@ -448,7 +448,7 @@ test('should show active owners without dashboard rbac', async () => {
     useRedux: true,
   });
 
-  expect(screen.getAllByRole('combobox')).toHaveLength(2);
+  expect(screen.getAllByRole('combobox')).toHaveLength(1);
   expect(
     screen.getAllByRole('combobox', { name: SupersetCore.t('Owners') }),
   ).toHaveLength(1);
