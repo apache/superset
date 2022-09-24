@@ -365,7 +365,7 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
 test('should show all roles', async () => {
   spyIsFeatureEnabled.mockReturnValue(true);
 
-  let props = createProps();
+  const props = createProps();
   const propsWithDashboardIndo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
@@ -384,8 +384,8 @@ test('should show all roles', async () => {
 
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
   expect(
-    screen.getAllByRole('combobox', { name: SupersetCore.t('Roles') }),
-  ).toHaveLength(1);
+    screen.getByRole('combobox', { name: SupersetCore.t('Roles') }),
+  ).toBeInTheDocument();
 
   await open();
 
@@ -398,7 +398,7 @@ test('should show all roles', async () => {
 test('should show active owners with dashboard rbac', async () => {
   spyIsFeatureEnabled.mockReturnValue(true);
 
-  let props = createProps();
+  const props = createProps();
   const propsWithDashboardIndo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
@@ -417,8 +417,8 @@ test('should show active owners with dashboard rbac', async () => {
 
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
   expect(
-    screen.getAllByRole('combobox', { name: SupersetCore.t('Owners') }),
-  ).toHaveLength(1);
+    screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
+  ).toBeInTheDocument();
 
   await open();
 
@@ -431,7 +431,7 @@ test('should show active owners with dashboard rbac', async () => {
 test('should show active owners without dashboard rbac', async () => {
   spyIsFeatureEnabled.mockReturnValue(false);
 
-  let props = createProps();
+  const props = createProps();
   const propsWithDashboardIndo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
@@ -448,10 +448,10 @@ test('should show active owners without dashboard rbac', async () => {
     useRedux: true,
   });
 
-  expect(screen.getAllByRole('combobox')).toHaveLength(1);
+  expect(screen.getByRole('combobox')).toBeInTheDocument();
   expect(
-    screen.getAllByRole('combobox', { name: SupersetCore.t('Owners') }),
-  ).toHaveLength(1);
+    screen.getByRole('combobox', { name: SupersetCore.t('Owners') }),
+  ).toBeInTheDocument();
 
   await open();
 
