@@ -26,6 +26,7 @@ import withToasts, {
 } from 'src/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
 import { convertValueToLabel } from 'src/utils/commonHelper';
+import moment from 'moment';
 
 interface FlashViewButtonProps extends ToastProps {
   flash: FlashServiceObject;
@@ -129,7 +130,9 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         </StyledCol>
         <StyledCol xs={7}>
           <Value>
-            {flash?.scheduleStartTime ? flash?.scheduleStartTime : 'NIL'}
+            {flash?.scheduleStartTime
+              ? moment(flash?.scheduleStartTime).format('DD/MM/YYYY hh:mm:ss A')
+              : 'NIL'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -158,19 +161,31 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
           <Label>Created At:</Label>
         </StyledCol>
         <StyledCol xs={7}>
-          <Value>{flash?.createdAt}</Value>
+          <Value>
+            {flash?.createdAt
+              ? moment(flash?.createdAt).format('DD/MM/YYYY hh:mm:ss A')
+              : ''}
+          </Value>
         </StyledCol>
         <StyledCol xs={5}>
           <Label>Updated At:</Label>
         </StyledCol>
         <StyledCol xs={7}>
-          <Value>{flash?.updatedAt}</Value>
+          <Value>
+            {flash?.updatedAt
+              ? moment(flash?.updatedAt).format('DD/MM/YYYY hh:mm:ss A')
+              : ''}
+          </Value>
         </StyledCol>
         <StyledCol xs={5}>
           <Label>Last Refresh Time:</Label>
         </StyledCol>
         <StyledCol xs={7}>
-          <Value>{flash?.lastRefreshTime}</Value>
+          <Value>
+            {flash?.lastRefreshTime
+              ? moment(flash?.lastRefreshTime).format('DD/MM/YYYY hh:mm:ss A')
+              : ''}
+          </Value>
         </StyledCol>
       </Row>
       <Label>SQL Query:</Label>
