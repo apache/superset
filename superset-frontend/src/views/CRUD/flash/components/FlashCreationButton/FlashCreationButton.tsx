@@ -36,7 +36,6 @@ import { FlashTypes } from 'src/views/CRUD/flash/enums';
 import { FlashObject, FormErrors, Dropdown } from 'src/views/CRUD/flash/types';
 import moment from 'moment';
 import { fetchDatabases } from '../../services/flash.service';
-import { mainMetric } from 'plugins/legacy-preset-chart-deckgl/src/utilities/utils';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
