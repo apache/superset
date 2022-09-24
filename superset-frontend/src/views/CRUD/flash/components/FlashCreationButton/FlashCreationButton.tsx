@@ -36,6 +36,7 @@ import { FlashTypes } from 'src/views/CRUD/flash/enums';
 import { FlashObject, FormErrors, Dropdown } from 'src/views/CRUD/flash/types';
 import moment from 'moment';
 import { fetchDatabases } from '../../services/flash.service';
+import { mainMetric } from 'plugins/legacy-preset-chart-deckgl/src/utilities/utils';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -293,9 +294,12 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
 
   const onFlashCreationSubmit = ({ formData }: { formData: any }) => {
     const payload = { ...formData };
+    console.log('date ==', payload.scheduleStartTime);
     payload.scheduleStartTime = moment(payload.scheduleStartTime).format(
-      'YYYY-MM-DD hh:mm:ss',
+      'YYYY-MM-DD HH:mm:ss',
     );
+
+    console.log('date to send', payload.scheduleStartTime);
     if (payload.flashType === FlashTypes.SHORT_TERM) {
       removeUnnecessaryProperties(payload, [
         'teamSlackChannel',
