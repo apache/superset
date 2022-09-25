@@ -69,7 +69,7 @@ RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
 DATA_CACHE_CONFIG = {
     'CACHE_TYPE': 'redis',
-    'CACHE_DEFAULT_TIMEOUT': 60 * 60 * 24,
+    'CACHE_DEFAULT_TIMEOUT': 60 * 20,
     'CACHE_KEY_PREFIX': 'superset_results',
     'CACHE_REDIS_URL': f'redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}',
 }
