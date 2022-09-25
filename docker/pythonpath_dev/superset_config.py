@@ -54,6 +54,7 @@ SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
     DATABASE_PORT,
     DATABASE_DB,
 )
+FIRST_DAY_OF_WEEK = 1
 
 TIME_GRAIN_DENYLIST = ['PT1S', 'PT1M', 'PT1H', None]
 
