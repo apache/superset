@@ -53,6 +53,7 @@ describe('Tabs', () => {
     editMode: false,
     availableColumnCount: 12,
     columnWidth: 50,
+    dashboardId: 1,
     onResizeStart() {},
     onResize() {},
     onResizeStop() {},
@@ -202,4 +203,18 @@ describe('Tabs', () => {
     expect(modalMock.mock.calls).toHaveLength(1);
     expect(deleteComponent.callCount).toBe(0);
   });
+
+  if (
+    ('should set new tab key if dashboardId was changed',
+    () => {
+      let wrapper = shallow(<Tabs {...props} />);
+      expect(wrapper.state('activeKey')).toBe('TABS_ID');
+      wrapper.setProps({
+        ...props,
+        dashboardId: 2,
+        component: dashboardLayoutWithTabs.present.TAB_ID,
+      });
+      expect(wrapper.state('activeKey')).toBe('TAB_ID');
+    })
+  );
 });
