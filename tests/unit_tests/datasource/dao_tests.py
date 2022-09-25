@@ -202,3 +202,15 @@ def test_get_all_datasources(session_with_data: Session) -> None:
 
     result = SqlaTable.get_all_datasources(session=session_with_data)
     assert len(result) == 1
+
+
+def test_not_found_datasource(session_with_data: Session) -> None:
+    from superset.dao.exceptions import DatasourceNotFound
+    from superset.datasource.dao import DatasourceDAO
+
+    with pytest.raises(DatasourceNotFound):
+        DatasourceDAO.get_datasource(
+            datasource_type="table",
+            datasource_id=500000,
+            session=session_with_data,
+        )

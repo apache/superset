@@ -27,7 +27,7 @@ import {
   QueryFormMetric,
   tn,
 } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, withDndFallback } from '@superset-ui/chart-controls';
 import { isEqual } from 'lodash';
 import { usePrevious } from 'src/hooks/usePrevious';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
@@ -41,6 +41,7 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
+import MetricsControl from '../MetricControl/MetricsControl';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
@@ -125,7 +126,7 @@ const getMetricsMatchingCurrentDataset = (
   }, []);
 };
 
-export const DndMetricSelect = (props: any) => {
+const DndMetricSelect = (props: any) => {
   const { onChange, multi, columns, savedMetrics } = props;
 
   const handleChange = useCallback(
@@ -408,3 +409,10 @@ export const DndMetricSelect = (props: any) => {
     </div>
   );
 };
+
+const DndMetricSelectWithFallback = withDndFallback(
+  DndMetricSelect,
+  MetricsControl,
+);
+
+export { DndMetricSelectWithFallback as DndMetricSelect };

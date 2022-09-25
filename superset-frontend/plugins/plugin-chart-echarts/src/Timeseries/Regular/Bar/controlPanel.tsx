@@ -259,7 +259,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.genericTime,
     sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
@@ -345,7 +345,7 @@ const config: ControlPanelConfig = {
             controlState,
           ) || {};
         timeserieslimitProps.value = state.controls?.limit?.value
-          ? controlState.value
+          ? controlState?.value
           : [];
         return timeserieslimitProps;
       },

@@ -305,7 +305,6 @@ class TabbedSqlEditors extends React.PureComponent {
           editorQueries={this.state.queriesArray}
           dataPreviewQueries={this.state.dataPreviewQueries}
           actions={this.props.actions}
-          hideLeftBar={qe.hideLeftBar}
           defaultQueryLimit={this.props.defaultQueryLimit}
           maxRow={this.props.maxRow}
           displayLimit={this.props.displayLimit}

@@ -46,7 +46,7 @@ const percentMetrics: typeof sharedControls.metrics = {
     externalValidationErrors: validateAggControlValues(controls, [
       controls.groupby?.value,
       controls.metrics?.value,
-      controlState.value,
+      controlState?.value,
     ]),
   }),
   rerender: ['groupby', 'metrics'],

@@ -23,8 +23,12 @@ import * as resizeDetector from 'react-resize-detector';
 import moment from 'moment';
 import { supersetTheme } from '@superset-ui/core';
 import { hexToRgb } from 'src/utils/colorUtils';
-import MetadataBar, { MIN_NUMBER_ITEMS, MAX_NUMBER_ITEMS } from '.';
-import { ContentType, MetadataType } from './ContentType';
+import MetadataBar, {
+  MIN_NUMBER_ITEMS,
+  MAX_NUMBER_ITEMS,
+  ContentType,
+  MetadataType,
+} from '.';
 
 const DASHBOARD_TITLE = 'Added to 452 dashboards';
 const DASHBOARD_DESCRIPTION =
@@ -166,8 +170,8 @@ test('renders the items sorted', () => {
   const { container } = render(<MetadataBar items={ITEMS.slice(0, 6)} />);
   const nodes = container.firstChild?.childNodes as NodeListOf<HTMLElement>;
   expect(within(nodes[0]).getByText(DASHBOARD_TITLE)).toBeInTheDocument();
-  expect(within(nodes[1]).getByText(ROWS_TITLE)).toBeInTheDocument();
-  expect(within(nodes[2]).getByText(SQL_TITLE)).toBeInTheDocument();
+  expect(within(nodes[1]).getByText(SQL_TITLE)).toBeInTheDocument();
+  expect(within(nodes[2]).getByText(ROWS_TITLE)).toBeInTheDocument();
   expect(within(nodes[3]).getByText(DESCRIPTION_VALUE)).toBeInTheDocument();
   expect(within(nodes[4]).getByText(CREATED_BY)).toBeInTheDocument();
 });
@@ -217,7 +221,7 @@ test('correctly renders the owner tooltip', async () => {
 test('correctly renders the rows tooltip', async () => {
   await runWithBarCollapsed(async () => {
     render(<MetadataBar items={ITEMS.slice(4, 8)} />);
-    userEvent.hover(screen.getAllByRole('img')[0]);
+    userEvent.hover(screen.getAllByRole('img')[2]);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText(ROWS_TITLE)).toBeInTheDocument();
@@ -237,7 +241,7 @@ test('correctly renders the sql tooltip', async () => {
 test('correctly renders the table tooltip', async () => {
   await runWithBarCollapsed(async () => {
     render(<MetadataBar items={ITEMS.slice(4, 8)} />);
-    userEvent.hover(screen.getAllByRole('img')[2]);
+    userEvent.hover(screen.getAllByRole('img')[0]);
     const tooltip = await screen.findByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText(TABLE_TITLE)).toBeInTheDocument();

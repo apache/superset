@@ -19,4 +19,4 @@
 /helm/superset/ @craig-rueda @dpgaspar @villebro
 
 # Notify E2E test maintainers of changes
-/superset-frontend/cypress-base/ @jinghua-qa
+/superset-frontend/cypress-base/ @jinghua-qa @geido

@@ -39,12 +39,14 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { SchemaOption } from 'src/SqlLab/types';
 import { useTables, Table } from 'src/hooks/apiResources';
 
+const REFRESH_WIDTH = 30;
+
 const TableSelectorWrapper = styled.div`
   ${({ theme }) => `
     .refresh {
       display: flex;
       align-items: center;
-      width: 30px;
+      width: ${REFRESH_WIDTH}px;
       margin-left: ${theme.gridUnit}px;
       margin-top: ${theme.gridUnit * 5}px;
     }
@@ -66,6 +68,7 @@ const TableSelectorWrapper = styled.div`
 
     .select {
       flex: 1;
+      max-width: calc(100% - ${theme.gridUnit + REFRESH_WIDTH}px)
     }
   `}
 `;
@@ -102,16 +105,16 @@ interface TableSelectorProps {
   tableSelectMode?: 'single' | 'multiple';
 }
 
-interface TableOption {
+export interface TableOption {
   label: JSX.Element;
   text: string;
   value: string;
 }
 
-const TableOption = ({ table }: { table: Table }) => {
-  const { label, type, extra } = table;
+export const TableOption = ({ table }: { table: Table }) => {
+  const { value, type, extra } = table;
   return (
-    <TableLabel title={label}>
+    <TableLabel title={value}>
       {type === 'view' ? (
         <Icons.Eye iconSize="m" />
       ) : (
@@ -130,7 +133,7 @@ const TableOption = ({ table }: { table: Table }) => {
           size="l"
         />
       )}
-      {label}
+      {value}
     </TableLabel>
   );
 };
@@ -193,7 +196,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         ? data.options.map(table => ({
             value: table.value,
             label: <TableOption table={table} />,
-            text: table.label,
+            text: table.value,
           }))
         : [],
     [data],
@@ -255,7 +258,6 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   function renderDatabaseSelector() {
     return (
       <DatabaseSelector
-        key={database?.id}
         db={database}
         emptyState={emptyState}
         formMode={formMode}
@@ -283,9 +285,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   );
 
   function renderTableSelect() {
-    const disabled =
-      (currentSchema && !formMode && readOnly) ||
-      (!currentSchema && !database?.allow_multi_schema_metadata_fetch);
+    const disabled = (currentSchema && !formMode && readOnly) || !currentSchema;
 
     const header = sqlLabMode ? (
       <FormLabel>{t('See table schema')}</FormLabel>

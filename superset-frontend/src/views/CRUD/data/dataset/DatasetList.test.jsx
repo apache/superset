@@ -33,6 +33,7 @@ import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
+import SubMenu from 'src/views/components/SubMenu';
 
 // store needed for withToasts(DatasetList)
 const mockStore = configureStore([thunk]);
@@ -222,6 +223,14 @@ describe('DatasetList', () => {
         .onPressEnter();
     });
     expect(fetchMock.calls(/dataset\/duplicate/)).toHaveLength(1);
+  });
+
+  it('renders a SubMenu', () => {
+    expect(wrapper.find(SubMenu)).toExist();
+  });
+
+  it('renders a SubMenu with no tabs', () => {
+    expect(wrapper.find(SubMenu).props().tabs).toBeUndefined();
   });
 });
 

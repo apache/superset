@@ -66,11 +66,10 @@ export type DatabaseObject = {
   allow_ctas?: boolean;
   allow_cvas?: boolean;
   allow_dml?: boolean;
-  allow_multi_schema_metadata_fetch?: boolean;
   force_ctas_schema?: string;
 
   // Security
-  encrypted_extra?: string;
+  masked_encrypted_extra?: string;
   server_cert?: string;
   allow_file_upload?: boolean;
   impersonate_user?: boolean;
