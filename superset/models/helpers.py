@@ -1576,7 +1576,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 else:
                     dttm_col_name = dttm_col.column_name
 
-                if self.main_dttm_col in self.dttm_cols and self.main_dttm_col != dttm_col_name:
+                if (
+                    self.main_dttm_col in self.dttm_cols and
+                    self.main_dttm_col != dttm_col_name
+                ):
                     if isinstance(self.main_dttm_col, dict):
                         time_filters.append(
                             self.get_time_filter(
