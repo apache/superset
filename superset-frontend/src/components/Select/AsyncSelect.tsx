@@ -28,7 +28,7 @@ import React, {
   useCallback,
   useImperativeHandle,
 } from 'react';
-import { ensureIsArray, styled, t } from '@superset-ui/core';
+import { ensureIsArray, t } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import debounce from 'lodash/debounce';
 import { isEqual } from 'lodash';
@@ -42,17 +42,9 @@ import {
   DEFAULT_SORT_COMPARATOR,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
-  SelectOptionsPagePromise,
-  SelectOptionsType,
-  SelectOptionsTypePage,
-  StyledCheckOutlined,
-  StyledStopOutlined,
   TOKEN_SEPARATORS,
   renderSelectOptions,
-  StyledContainer,
-  StyledSelect,
   hasCustomLabels,
-  BaseSelectProps,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   sortComparatorForNoSearchHelper,
@@ -60,64 +52,23 @@ import {
   dropDownRenderHelper,
   handleFilterOptionHelper,
 } from './utils';
-
-const StyledError = styled.div`
-  ${({ theme }) => `
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    width: 100%;
-    padding: ${theme.gridUnit * 2}px;
-    color: ${theme.colors.error.base};
-    & svg {
-      margin-right: ${theme.gridUnit * 2}px;
-    }
-  `}
-`;
-
-const StyledErrorMessage = styled.div`
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
+import {
+  AsyncSelectProps,
+  AsyncSelectRef,
+  SelectOptionsPagePromise,
+  SelectOptionsType,
+  SelectOptionsTypePage,
+} from './types';
+import {
+  StyledCheckOutlined,
+  StyledContainer,
+  StyledError,
+  StyledErrorMessage,
+  StyledSelect,
+  StyledStopOutlined,
+} from './styles';
 
 const DEFAULT_PAGE_SIZE = 100;
-
-export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
-
-export interface AsyncSelectProps extends BaseSelectProps {
-  /**
-   * It fires a request against the server after
-   * the first interaction and not on render.
-   * Works in async mode only (See the options property).
-   * True by default.
-   */
-  lazyLoading?: boolean;
-  /**
-   * It defines the options of the Select.
-   * The options are async, a promise that returns
-   * an array of options.
-   */
-  options: SelectOptionsPagePromise;
-  /**
-   * It defines how many results should be included
-   * in the query response.
-   * Works in async mode only (See the options property).
-   */
-  pageSize?: number;
-  /**
-   * It fires a request against the server only after
-   * searching.
-   * Works in async mode only (See the options property).
-   * Undefined by default.
-   */
-  fetchOnlyOnSearch?: boolean;
-  /**
-   * It provides a callback function when an error
-   * is generated after a request is fired.
-   * Works in async mode only (See the options property).
-   */
-  onError?: (error: string) => void;
-}
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
