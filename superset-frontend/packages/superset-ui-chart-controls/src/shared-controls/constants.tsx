@@ -20,10 +20,16 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   QueryFormData,
+  QueryResponse,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ControlPanelState, ControlState } from '../types';
+import {
+  BaseControlConfig,
+  ControlPanelState,
+  ControlState,
+  Dataset,
+} from '../types';
 
 const getAxisLabel = (
   formData: QueryFormData,
@@ -32,7 +38,7 @@ const getAxisLabel = (
     ? { label: t('Y-axis'), description: t('Dimension to use on y-axis.') }
     : { label: t('X-axis'), description: t('Dimension to use on x-axis.') };
 
-export const xAxisControlConfig = {
+export const xAxisMixin = {
   label: (state: ControlPanelState) => getAxisLabel(state?.form_data).label,
   multi: false,
   description: (state: ControlPanelState) =>
@@ -50,4 +56,29 @@ export const xAxisControlConfig = {
     return undefined;
   },
   default: undefined,
+};
+
+export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
+  mapStateToProps: ({ datasource }) => {
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
+      const temporalColumns =
+        (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
+      return {
+        options: temporalColumns,
+        default:
+          (datasource as Dataset)?.main_dttm_col ||
+          temporalColumns[0]?.column_name ||
+          null,
+        isTemporal: true,
+      };
+    }
+    const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
+      query => (query?.is_dttm ? -1 : 1),
+    );
+    return {
+      options: sortedQueryColumns,
+      default: sortedQueryColumns[0]?.name || null,
+      isTemporal: true,
+    };
+  },
 };
