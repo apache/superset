@@ -204,17 +204,14 @@ describe('Tabs', () => {
     expect(deleteComponent.callCount).toBe(0);
   });
 
-  if (
-    ('should set new tab key if dashboardId was changed',
-    () => {
-      const wrapper = shallow(<Tabs {...props} />);
-      expect(wrapper.state('activeKey')).toBe('TABS_ID');
-      wrapper.setProps({
-        ...props,
-        dashboardId: 2,
-        component: dashboardLayoutWithTabs.present.TAB_ID,
-      });
-      expect(wrapper.state('activeKey')).toBe('TAB_ID');
-    })
-  );
+  it('should set new tab key if dashboardId was changed', () => {
+    const wrapper = shallow(<Tabs {...props} />);
+    expect(wrapper.state('activeKey')).toBe('TABS_ID');
+    wrapper.setProps({
+      ...props,
+      dashboardId: 2,
+      component: dashboardLayoutWithTabs.present.TAB_ID,
+    });
+    expect(wrapper.state('activeKey')).toBe('TAB_ID');
+  });
 });
