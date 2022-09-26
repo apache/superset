@@ -55,7 +55,6 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   validateQuery,
-  createFlashObject,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -659,10 +658,7 @@ class SqlEditor extends React.PureComponent {
         <div className="rightItems">
           {flashCreationConf && (
             <span>
-              <FlashCreationButton
-                sqlEditor={this.props.queryEditor}
-                onCreate={this.props.actions.createFlashObject}
-              />
+              <FlashCreationButton sqlEditor={this.props.queryEditor} />
             </span>
           )}
           <span>
@@ -826,7 +822,6 @@ function mapDispatchToProps(dispatch) {
       saveQuery,
       addSavedQueryToTabState,
       scheduleQuery,
-      createFlashObject,
       setActiveSouthPaneTab,
       updateSavedQuery,
       validateQuery,

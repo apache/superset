@@ -35,10 +35,11 @@ import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { FlashTypes } from 'src/views/CRUD/flash/enums';
 import { FlashObject, FormErrors, Dropdown } from 'src/views/CRUD/flash/types';
 import moment from 'moment';
-import { fetchDatabases } from '../../services/flash.service';
 import { useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import { createFlash, fetchDatabases } from '../../services/flash.service';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -63,7 +64,9 @@ type Query = {
 interface FlashCreationButtonProps {
   latestQueryFormData?: object;
   sqlEditor?: any;
-  onCreate?: Function;
+  // onCreate?: Function;
+  addDangerToast: (msg: string) => void;
+  addSuccessToast: (msg: string) => void;
 }
 
 const StyledJsonSchema = styled.div`
@@ -97,12 +100,15 @@ const StyledJsonSchema = styled.div`
 const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
   sqlEditor,
   latestQueryFormData,
-  onCreate = () => {},
+  addDangerToast,
+  addSuccessToast,
 }) => {
-  const sql = useSelector<SqlLabRootState, string | undefined>(
-    rootState =>
-      (getUpToDateQuery(rootState, sqlEditor) as unknown as QueryEditor).sql,
+  const sql = useSelector<SqlLabRootState, string | undefined>(rootState =>
+    sqlEditor
+      ? (getUpToDateQuery(rootState, sqlEditor) as unknown as QueryEditor).sql
+      : '',
   );
+
   const [flashSchema, setFlashSchema] = useState(getJSONSchema());
   const [dbDropdown, setDbDropdown] = useState<Dropdown>({
     enum: [''],
@@ -320,13 +326,30 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     }
     const flash = {
       owner: user?.email,
-      sqlQuery: sql ? sql : sqlQuery?.query,
+      sqlQuery: sql || sqlQuery?.query,
       ...payload,
     } as FlashObject;
 
-    onCreate(flash);
-    resetFormData();
-    saveModal?.current?.close();
+    flashCreationService(flash);
+  };
+
+  const flashCreationService = (payload: FlashObject) => {
+    createFlash(payload)
+      .then(() => {
+        resetFormData();
+        addSuccessToast(
+          t(
+            'Your request for new flash object is added. Please check status on Flash Management.',
+          ),
+        );
+        saveModal?.current?.close();
+      })
+      .catch(error => {
+        const apiError = error?.data?.message
+          ? error?.data?.message
+          : t('Your flash could not be created');
+        addDangerToast(apiError);
+      });
   };
 
   const resetFormData = () => {
@@ -347,6 +370,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
         .split('T')[0];
     }
   };
+
   const renderModalBody = () => (
     <Form layout="vertical">
       <Row>
@@ -405,4 +429,4 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
   );
 };
 
-export default FlashCreationButton;
+export default withToasts(FlashCreationButton);
