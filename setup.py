@@ -94,7 +94,7 @@ setup(
         "graphlib-backport",
         "gunicorn>=20.1.0",
         "hashids>=1.3.1, <2",
-        "holidays==0.14.2",
+        "holidays>=0.14.2",
         "humanize",
         "isodate",
         "markdown>=3.0",
@@ -118,7 +118,7 @@ setup(
         "sqlalchemy>=1.4, <2",
         "sqlalchemy-utils>=0.38.3, <0.39",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
-        "tabulate==0.8.9",
+        "tabulate>=0.8.9",
         # needed to support Literal (3.8) and TypeGuard (3.10)
         "typing-extensions>=3.10, <4",
         "wtforms-json",
