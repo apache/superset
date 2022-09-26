@@ -17,17 +17,16 @@
  * under the License.
  */
 import {
-  DTTM_ALIAS,
   extractTimegrain,
   getNumberFormatter,
   NumberFormats,
-  QueryFormData,
   GenericDataType,
   getMetricLabel,
   t,
   smartDateVerboseFormatter,
   NumberFormatter,
   TimeFormatter,
+  getXAxis,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
@@ -88,7 +87,7 @@ export default function transformProps(
     yAxisFormat,
     timeRangeFixed,
   } = formData;
-  const granularity = extractTimegrain(rawFormData as QueryFormData);
+  const granularity = extractTimegrain(rawFormData);
   const {
     data = [],
     colnames = [],
@@ -103,10 +102,11 @@ export default function transformProps(
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
 
+  const timeColumn = getXAxis(rawFormData) as string;
   let trendLineData;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let timestamp = data.length === 0 ? null : data[0][DTTM_ALIAS];
+  let timestamp = data.length === 0 ? null : data[0][timeColumn];
   let bigNumberFallback;
 
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
@@ -115,7 +115,7 @@ export default function transformProps(
 
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[DTTM_ALIAS], parseMetricValue(d[metricName])])
+      .map(d => [d[timeColumn], parseMetricValue(d[metricName])])
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
