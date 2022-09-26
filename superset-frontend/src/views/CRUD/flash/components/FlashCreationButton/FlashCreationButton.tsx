@@ -64,7 +64,6 @@ type Query = {
 interface FlashCreationButtonProps {
   latestQueryFormData?: object;
   sqlEditor?: any;
-  // onCreate?: Function;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
 }
