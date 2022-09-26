@@ -1572,13 +1572,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # Use main dttm column to support index with secondary dttm columns.
             if db_engine_spec.time_secondary_columns:
                 if isinstance(dttm_col, dict):
-                    dttm_col_name = dttm_col.get('column_name')
+                    dttm_col_name = dttm_col.get("column_name")
                 else:
                     dttm_col_name = dttm_col.column_name
 
                 if (
-                    self.main_dttm_col in self.dttm_cols and
-                    self.main_dttm_col != dttm_col_name
+                    self.main_dttm_col in self.dttm_cols
+                    and self.main_dttm_col != dttm_col_name
                 ):
                     if isinstance(self.main_dttm_col, dict):
                         time_filters.append(
