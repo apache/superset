@@ -53,8 +53,7 @@ export const xAxisMixin = {
   default: undefined,
 };
 
-export const temporalXAxisMixin = {
-  label: t('TEMPORAL X-AXIS'),
+export const temporalColumnMixin = {
   mapStateToProps: ({ datasource }: ControlPanelState) => {
     if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
       const temporalColumns =

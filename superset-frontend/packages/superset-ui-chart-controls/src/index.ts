@@ -37,4 +37,4 @@ export { legacySortBy } from './shared-controls/legacySortBy';
 export * from './shared-controls/emitFilterControl';
 export * from './shared-controls/components';
 export * from './types';
-export { xAxisMixin, temporalXAxisMixin } from './shared-controls/constants';
+export { xAxisMixin, temporalColumnMixin } from './shared-controls/constants';

@@ -29,7 +29,7 @@ import {
   formatSelectOptions,
   getStandardizedControls,
   sections,
-  temporalXAxisMixin,
+  temporalColumnMixin,
 } from '@superset-ui/chart-controls';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
@@ -285,7 +285,10 @@ const config: ControlPanelConfig = {
     y_axis_format: {
       label: t('Number format'),
     },
-    x_axis: temporalXAxisMixin,
+    x_axis: {
+      label: t('TEMPORAL X-AXIS'),
+      ...temporalColumnMixin,
+    },
   },
   formDataOverrides: formData => ({
     ...formData,
