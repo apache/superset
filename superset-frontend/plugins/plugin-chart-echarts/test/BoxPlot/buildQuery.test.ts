@@ -44,7 +44,6 @@ describe('BoxPlot buildQuery', () => {
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);
     expect(query.columns).toEqual(['ds', 'bar']);
-    expect(query.series_columns).toEqual(['bar']);
     const [rule] = query.post_processing || [];
     expect(isPostProcessingBoxplot(rule)).toEqual(true);
     expect((rule as PostProcessingBoxplot)?.options?.groupby).toEqual(['bar']);
@@ -55,7 +54,6 @@ describe('BoxPlot buildQuery', () => {
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);
     expect(query.columns).toEqual(['qwerty', 'bar']);
-    expect(query.series_columns).toEqual(['bar']);
     const [rule] = query.post_processing || [];
     expect(isPostProcessingBoxplot(rule)).toEqual(true);
     expect((rule as PostProcessingBoxplot)?.options?.groupby).toEqual(['bar']);

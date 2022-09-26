@@ -95,7 +95,6 @@ describe('GENERIC_CHART_AXES is enabled', () => {
         time_range: '1 year ago : 2013',
         extras: { time_grain_sqla: 'P1Y', having: '', where: '' },
         columns: ['col1'],
-        series_columns: ['col1'],
         metrics: ['count(*)'],
         is_timeseries: true,
         post_processing: [
@@ -131,7 +130,6 @@ describe('GENERIC_CHART_AXES is enabled', () => {
           },
           'col1',
         ],
-        series_columns: ['col1'],
         metrics: ['count(*)'],
         post_processing: [
           {
@@ -184,7 +182,6 @@ describe('GENERIC_CHART_AXES is disabled', () => {
         time_range: '1 year ago : 2013',
         extras: { time_grain_sqla: 'P1Y', having: '', where: '' },
         columns: ['col1'],
-        series_columns: ['col1'],
         metrics: ['count(*)'],
         is_timeseries: true,
         post_processing: [
@@ -220,7 +217,6 @@ describe('GENERIC_CHART_AXES is disabled', () => {
           },
           'col1',
         ],
-        series_columns: ['col1'],
         metrics: ['count(*)'],
         post_processing: [
           {

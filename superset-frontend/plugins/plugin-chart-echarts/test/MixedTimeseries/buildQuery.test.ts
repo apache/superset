@@ -106,7 +106,7 @@ test('should compile query object A', () => {
     annotation_layers: [],
     row_limit: 10,
     row_offset: undefined,
-    series_columns: ['foo'],
+    series_columns: undefined,
     series_limit: undefined,
     series_limit_metric: undefined,
     timeseries_limit: 5,
@@ -144,6 +144,8 @@ test('should compile query object A', () => {
       },
     ],
     orderby: [['count', false]],
+    timeseries_limit_metric: 'count',
+    order_desc: true,
   });
 });
 
@@ -166,7 +168,7 @@ test('should compile query object B', () => {
     annotation_layers: [],
     row_limit: 100,
     row_offset: undefined,
-    series_columns: [],
+    series_columns: undefined,
     series_limit: undefined,
     series_limit_metric: undefined,
     timeseries_limit: 0,
@@ -194,6 +196,8 @@ test('should compile query object B', () => {
       },
     ],
     orderby: [['count', true]],
+    timeseries_limit_metric: undefined,
+    order_desc: false,
   });
 });
 
@@ -312,7 +316,7 @@ test('should convert a queryObject with x-axis although FF is disabled', () => {
     annotation_layers: [],
     row_limit: 10,
     row_offset: undefined,
-    series_columns: ['foo'],
+    series_columns: undefined,
     series_limit: undefined,
     series_limit_metric: undefined,
     timeseries_limit: 5,
@@ -349,6 +353,8 @@ test('should convert a queryObject with x-axis although FF is disabled', () => {
       },
     ],
     orderby: [['count', false]],
+    timeseries_limit_metric: 'count',
+    order_desc: true,
   });
 
   // check the main props on the second query
@@ -364,7 +370,6 @@ test('should convert a queryObject with x-axis although FF is disabled', () => {
         },
       ],
       granularity: 'ds',
-      series_columns: [],
       metrics: ['count'],
       post_processing: [
         {
@@ -409,7 +414,6 @@ test("shouldn't convert a queryObject with axis although FF is enabled", () => {
     expect.objectContaining({
       granularity: 'ds',
       columns: ['foo'],
-      series_columns: ['foo'],
       metrics: ['sum(sales)'],
       is_timeseries: true,
       extras: {
@@ -445,7 +449,6 @@ test("shouldn't convert a queryObject with axis although FF is enabled", () => {
     expect.objectContaining({
       granularity: 'ds',
       columns: [],
-      series_columns: [],
       metrics: ['count'],
       is_timeseries: true,
       extras: {
