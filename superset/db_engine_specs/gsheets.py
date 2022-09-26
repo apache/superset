@@ -81,6 +81,8 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         ),
     }
 
+    supports_file_upload = False
+
     @classmethod
     def get_url_for_impersonation(
         cls,
