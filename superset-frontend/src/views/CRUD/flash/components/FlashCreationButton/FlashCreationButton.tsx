@@ -294,8 +294,9 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
   const onFlashCreationSubmit = ({ formData }: { formData: any }) => {
     const payload = { ...formData };
     payload.scheduleStartTime = moment(payload.scheduleStartTime).format(
-      'YYYY-MM-DD hh:mm:ss',
+      'YYYY-MM-DD HH:mm:ss',
     );
+
     if (payload.flashType === FlashTypes.SHORT_TERM) {
       removeUnnecessaryProperties(payload, [
         'teamSlackChannel',

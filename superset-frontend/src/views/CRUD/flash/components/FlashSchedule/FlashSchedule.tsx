@@ -146,7 +146,7 @@ const FlashSchedule: FunctionComponent<FlashSchedulingButtonProps> = ({
   const onFlashUpdation = ({ formData }: { formData: any }) => {
     const payload = { ...formData };
     payload.scheduleStartTime = moment(payload.scheduleStartTime).format(
-      'YYYY-MM-DD hh:mm:ss',
+      'YYYY-MM-DD HH:mm:ss',
     );
     flashScheduleService(Number(flash?.id), UPDATE_TYPES.SCHEDULE, payload);
   };
