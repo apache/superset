@@ -62,6 +62,15 @@ const saveButtonStyles = theme => css`
   }
 `;
 
+const additionalItemsStyles = theme => css`
+  display: flex;
+  align-items: center;
+  margin-left: ${theme.gridUnit}px;
+  & > span {
+    margin-right: ${theme.gridUnit * 3}px;
+  }
+`;
+
 export const ExploreChartHeader = ({
   dashboardId,
   slice,
@@ -162,7 +171,7 @@ export const ExploreChartHeader = ({
     items.push({
       type: MetadataType.OWNER,
       createdBy: metadata.created_by || t('Not available'),
-      owners: metadata.owners,
+      owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
       createdOn: metadata.created_on_humanized,
     });
     if (slice?.description) {
@@ -202,7 +211,7 @@ export const ExploreChartHeader = ({
           showTooltip: true,
         }}
         titlePanelAdditionalItems={
-          <>
+          <div css={additionalItemsStyles}>
             {sliceFormData ? (
               <AlteredSliceTag
                 className="altered"
@@ -214,7 +223,7 @@ export const ExploreChartHeader = ({
               />
             ) : null}
             {metadataBar}
-          </>
+          </div>
         }
         rightPanelAdditionalItems={
           <Tooltip
