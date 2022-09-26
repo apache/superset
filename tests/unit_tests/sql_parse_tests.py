@@ -266,13 +266,9 @@ def test_extract_tables_illdefined() -> None:
     assert extract_tables("SELECT * FROM catalogname..tbname") == set()
 
 
-@unittest.skip("Requires sqlparse>=3.1")
 def test_extract_tables_show_tables_from() -> None:
     """
     Test ``SHOW TABLES FROM``.
-
-    This is currently broken in the pinned version of sqlparse, and fixed in
-    ``sqlparse>=3.1``. However, ``sqlparse==3.1`` breaks some sql formatting.
     """
     assert extract_tables("SHOW TABLES FROM s1 like '%order%'") == set()
 
@@ -1108,15 +1104,6 @@ SELECT * FROM birth_names LIMIT 1
 def test_sqlparse_formatting():
     """
     Test that ``from_unixtime`` is formatted correctly.
-
-    ``sqlparse==0.3.1`` has a bug and removes space between ``from`` and
-    ``from_unixtime``, resulting in::
-
-        SELECT extract(HOUR
-        fromfrom_unixtime(hour_ts)
-        AT TIME ZONE 'America/Los_Angeles')
-        from table
-
     """
     assert sqlparse.format(
         "SELECT extract(HOUR from from_unixtime(hour_ts) "
