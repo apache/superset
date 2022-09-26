@@ -30,7 +30,7 @@ import {
   formatSelectOptions,
   formatSelectOptionsForRange,
   sections,
-  dndEntity,
+  sharedControls,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
@@ -52,7 +52,7 @@ const allColumns = {
 };
 
 const dndAllColumns = {
-  ...dndEntity,
+  ...sharedControls.entity,
   description: t('Columns to display'),
 };
 

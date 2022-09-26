@@ -151,24 +151,6 @@ const ExtraOptions = ({
             <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="allow_multi_schema_metadata_fetch"
-                  indeterminate={false}
-                  checked={!!db?.allow_multi_schema_metadata_fetch}
-                  onChange={onInputChange}
-                  labelText={t('Allow Multi Schema Metadata Fetch')}
-                />
-                <InfoTooltip
-                  tooltip={t(
-                    'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
-                      'schemas. For large data warehouse with thousands of tables, this can be ' +
-                      'expensive and put strain on the system.',
-                  )}
-                />
-              </div>
-            </StyledInputContainer>
-            <StyledInputContainer css={no_margin_bottom}>
-              <div className="input-container">
-                <IndeterminateCheckbox
                   id="cost_estimate_enabled"
                   indeterminate={false}
                   checked={!!db?.extra_json?.cost_estimate_enabled}

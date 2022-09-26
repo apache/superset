@@ -26,13 +26,16 @@ describe('AddDataset', () => {
 
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 
-    expect(await screen.findByText(/header/i)).toBeInTheDocument();
     // Header
-    expect(screen.getByText(/header/i)).toBeVisible();
+    expect(
+      await screen.findByRole('textbox', {
+        name: /dataset name/i,
+      }),
+    ).toBeVisible();
     // Left panel
     expect(blankeStateImgs[0]).toBeVisible();
     // Footer
-    expect(screen.getByText(/footer/i)).toBeVisible();
+    expect(screen.getByText(/Cancel/i)).toBeVisible();
 
     expect(blankeStateImgs.length).toBe(1);
   });

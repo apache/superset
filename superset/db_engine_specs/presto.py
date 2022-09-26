@@ -797,26 +797,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         )
 
     @classmethod
-    def get_all_datasource_names(
-        cls, database: Database, datasource_type: str
-    ) -> List[utils.DatasourceName]:
-        datasource_df = database.get_df(
-            "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
-            "ORDER BY concat(table_schema, '.', table_name)".format(
-                datasource_type.upper()
-            ),
-            None,
-        )
-        datasource_names: List[utils.DatasourceName] = []
-        for _unused, row in datasource_df.iterrows():
-            datasource_names.append(
-                utils.DatasourceName(
-                    schema=row["table_schema"], table=row["table_name"]
-                )
-            )
-        return datasource_names
-
-    @classmethod
     def expand_data(  # pylint: disable=too-many-locals
         cls, columns: List[ResultSetColumnType], data: List[Dict[Any, Any]]
     ) -> Tuple[
