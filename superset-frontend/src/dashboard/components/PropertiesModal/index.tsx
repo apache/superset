@@ -129,12 +129,14 @@ const PropertiesModal = ({
       return SupersetClient.get({
         endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
       }).then(response => ({
-        data: response.json.result.map(
-          (item: { value: number; text: string }) => ({
+        data: response.json.result
+          .filter((item: { extra: { active: boolean } }) =>
+            item.extra.active !== undefined ? item.extra.active : true,
+          )
+          .map((item: { value: number; text: string }) => ({
             value: item.value,
             label: item.text,
-          }),
-        ),
+          })),
         totalCount: response.json.count,
       }));
     },
