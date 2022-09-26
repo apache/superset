@@ -114,7 +114,7 @@ setup(
         "redis",
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
-        "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
+        "slack_sdk>=3.1.1",
         "sqlalchemy>=1.4, <2",
         "sqlalchemy-utils>=0.38.3, <0.39",
         "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
