@@ -234,7 +234,7 @@ def test_unmask_encrypted_extra_when_new_is_empty() -> None:
     )
     new = None
 
-    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) == None
+    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) is None
 
 
 def test_mask_encrypted_extra_when_empty() -> None:
@@ -243,4 +243,4 @@ def test_mask_encrypted_extra_when_empty() -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    assert BigQueryEngineSpec.mask_encrypted_extra(None) == None
+    assert BigQueryEngineSpec.mask_encrypted_extra(None) is None

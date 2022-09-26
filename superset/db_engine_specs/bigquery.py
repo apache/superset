@@ -18,7 +18,7 @@ import json
 import re
 import urllib
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, TYPE_CHECKING, Union
+from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, TYPE_CHECKING
 
 import pandas as pd
 from apispec import APISpec
@@ -396,9 +396,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def mask_encrypted_extra(
-        cls, encrypted_extra: Union[str, None]
-    ) -> Union[str, None]:
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
         try:
             config = json.loads(encrypted_extra)  # type:ignore
         except (json.JSONDecodeError, TypeError):
@@ -413,8 +411,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def unmask_encrypted_extra(
-        cls, old: Union[str, None], new: Union[str, None]
-    ) -> Union[str, None]:
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
         """
         Reuse ``private_key`` if available and unchanged.
         """

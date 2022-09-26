@@ -24,7 +24,7 @@ from ast import literal_eval
 from contextlib import closing
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
 
 import numpy
 import pandas as pd
@@ -248,7 +248,7 @@ class Database(
         return sqlalchemy_url.get_backend_name()
 
     @property
-    def masked_encrypted_extra(self) -> Union[str, None]:
+    def masked_encrypted_extra(self) -> Optional[str]:
         return self.db_engine_spec.mask_encrypted_extra(self.encrypted_extra)
 
     @property

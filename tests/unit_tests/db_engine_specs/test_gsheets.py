@@ -280,4 +280,4 @@ def test_unmask_encrypted_extra_when_new_is_none() -> None:
     )
     new = None
 
-    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == None
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) is None

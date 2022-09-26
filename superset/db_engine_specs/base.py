@@ -1614,9 +1614,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return user.username if user else None
 
     @classmethod
-    def mask_encrypted_extra(
-        cls, encrypted_extra: Union[str, None]
-    ) -> Union[str, None]:
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
         """
         Mask ``encrypted_extra``.
 
@@ -1630,8 +1628,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # pylint: disable=unused-argument
     @classmethod
     def unmask_encrypted_extra(
-        cls, old: Union[str, None], new: Union[str, None]
-    ) -> Union[str, None]:
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
         """
         Remove masks from ``encrypted_extra``.
 
