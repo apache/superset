@@ -148,6 +148,9 @@ const mockNonExamplesDB = [...new Array(2)].map((_, i) => ({
   changed_on_delta_humanized: `${i} day(s) ago`,
   changed_on: new Date().toISOString,
   id: i,
+  engine_information: {
+    supports_file_upload: true,
+  },
 }));
 
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
@@ -162,137 +165,12 @@ beforeEach(async () => {
     'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
     { result: [], count: 0 },
   );
-  // By default we get file extensions to be uploaded
-  useSelectorMock.mockReturnValue({
-    CSV_EXTENSIONS: ['csv'],
-    EXCEL_EXTENSIONS: ['xls', 'xlsx'],
-    COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
-    ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
-  });
 });
 
 afterEach(fetchMock.restore);
 
-test('renders', async () => {
-  const mockedProps = createProps();
-  const { container } = render(<RightMenu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-  });
-  // expect(await screen.findByText(/Settings/i)).toBeInTheDocument();
-  await waitFor(() => expect(container).toBeInTheDocument());
-});
-
-test('If user has permission to upload files AND connect DBs we query existing DBs that has allow_file_upload as True and DBs that are not examples', async () => {
-  const mockedProps = createProps();
+const resetUseSelectorMock = () => {
   useSelectorMock.mockReturnValueOnce({
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: {
-      Admin: [
-        ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
-        ['can_write', 'Database'], // So we can write DBs
-      ],
-    },
-    userId: 1,
-    username: 'admin',
-  });
-  // Second call we get the dashboardId
-  useSelectorMock.mockReturnValueOnce('1');
-  const { container } = render(<RightMenu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-  });
-  await waitFor(() => expect(container).toBeVisible());
-  const callsD = fetchMock.calls(/database\/\?q/);
-  expect(callsD).toHaveLength(2);
-  expect(callsD[0][0]).toMatchInlineSnapshot(
-    `"http://localhost/api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))"`,
-  );
-  expect(callsD[1][0]).toMatchInlineSnapshot(
-    `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))"`,
-  );
-});
-
-test('If user has permission to upload files but NOT to connect DBs we query existing DBs that has allow_file_upload as True only', async () => {
-  const mockedProps = createProps();
-  useSelectorMock.mockReturnValueOnce({
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: {
-      Admin: [
-        ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
-      ],
-    },
-    userId: 1,
-    username: 'admin',
-  });
-  // Second call we get the dashboardId
-  useSelectorMock.mockReturnValueOnce('1');
-  const { container } = render(<RightMenu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-  });
-  await waitFor(() => expect(container).toBeVisible());
-  const callsD = fetchMock.calls(/database\/\?q/);
-  expect(callsD).toHaveLength(1);
-  expect(callsD[0][0]).toMatchInlineSnapshot(
-    `"http://localhost/api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))"`,
-  );
-});
-
-test('If user has NO permission to upload files But it DOES have to connect DBs we query DBs that are not examples only', async () => {
-  const mockedProps = createProps();
-  useSelectorMock.mockReturnValueOnce({
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: {
-      Admin: [
-        ['can_write', 'Database'], // So we can write DBs
-      ],
-    },
-    userId: 1,
-    username: 'admin',
-  });
-  // Second call we get the dashboardId
-  useSelectorMock.mockReturnValueOnce('1');
-  const { container } = render(<RightMenu {...mockedProps} />, {
-    useRedux: true,
-    useQueryParams: true,
-  });
-  await waitFor(() => expect(container).toBeVisible());
-  const callsD = fetchMock.calls(/database\/\?q/);
-  expect(callsD).toHaveLength(1);
-  expect(callsD[0][0]).toMatchInlineSnapshot(
-    `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))"`,
-  );
-});
-
-test('If only examples DB exist we must show the Connect Database option', async () => {
-  const mockedProps = createProps();
-  fetchMock.get(
-    'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
-    { result: [...mockNonExamplesDB], count: 2 },
-    { overwriteRoutes: true },
-  );
-  fetchMock.get(
-    'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
-    { result: [], count: 0 },
-    { overwriteRoutes: true },
-  );
-  useSelectorMock.mockReturnValue({
     createdOn: '2021-04-27T18:12:38.952304',
     email: 'admin',
     firstName: 'admin',
@@ -310,6 +188,65 @@ test('If only examples DB exist we must show the Connect Database option', async
     userId: 1,
     username: 'admin',
   });
+
+  // By default we get file extensions to be uploaded
+  useSelectorMock.mockReturnValueOnce('1');
+  // By default we get file extensions to be uploaded
+  useSelectorMock.mockReturnValueOnce({
+    CSV_EXTENSIONS: ['csv'],
+    EXCEL_EXTENSIONS: ['xls', 'xlsx'],
+    COLUMNAR_EXTENSIONS: ['parquet', 'zip'],
+    ALLOWED_EXTENSIONS: ['parquet', 'zip', 'xls', 'xlsx', 'csv'],
+  });
+};
+
+test('renders', async () => {
+  const mockedProps = createProps();
+  // Initial Load
+  resetUseSelectorMock();
+  const { container } = render(<RightMenu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+  });
+  // expect(await screen.findByText(/Settings/i)).toBeInTheDocument();
+  await waitFor(() => expect(container).toBeInTheDocument());
+});
+
+test('If user has permission to upload files AND connect DBs we query existing DBs that has allow_file_upload as True and DBs that are not examples', async () => {
+  const mockedProps = createProps();
+  // Initial Load
+  resetUseSelectorMock();
+  const { container } = render(<RightMenu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+  });
+  await waitFor(() => expect(container).toBeVisible());
+  const callsD = fetchMock.calls(/database\/\?q/);
+  expect(callsD).toHaveLength(2);
+  expect(callsD[0][0]).toMatchInlineSnapshot(
+    `"http://localhost/api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))"`,
+  );
+  expect(callsD[1][0]).toMatchInlineSnapshot(
+    `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))"`,
+  );
+});
+
+test('If only examples DB exist we must show the Connect Database option', async () => {
+  const mockedProps = createProps();
+  fetchMock.get(
+    'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
+    { result: [...mockNonExamplesDB], count: 2 },
+    { overwriteRoutes: true },
+  );
+  fetchMock.get(
+    'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
+    { result: [], count: 0 },
+    { overwriteRoutes: true },
+  );
+  // Initial Load
+  resetUseSelectorMock();
+  // setAllowUploads called
+  resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
@@ -335,24 +272,12 @@ test('If more than just examples DB exist we must show the Create dataset option
     { result: [...mockNonExamplesDB], count: 2 },
     { overwriteRoutes: true },
   );
-  useSelectorMock.mockReturnValue({
-    createdOn: '2021-04-27T18:12:38.952304',
-    email: 'admin',
-    firstName: 'admin',
-    isActive: true,
-    lastName: 'admin',
-    permissions: {},
-    roles: {
-      Admin: [
-        ['can_this_form_get', 'CsvToDatabaseView'], // So we can upload CSV
-        ['can_write', 'Database'], // So we can write DBs
-        ['can_write', 'Dataset'], // So we can write Datasets
-        ['can_write', 'Chart'], // So we can write Datasets
-      ],
-    },
-    userId: 1,
-    username: 'admin',
-  });
+  // Initial Load
+  resetUseSelectorMock();
+  // setAllowUploads called
+  resetUseSelectorMock();
+  // setNonExamplesDBConnected called
+  resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
@@ -364,4 +289,69 @@ test('If more than just examples DB exist we must show the Create dataset option
   userEvent.hover(dataMenu);
   expect(await screen.findByText('Create dataset')).toBeInTheDocument();
   expect(screen.queryByText('Connect database')).not.toBeInTheDocument();
+});
+
+test('If there is a DB with allow_file_upload set as True the option should be enabled', async () => {
+  const mockedProps = createProps();
+  fetchMock.get(
+    'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
+    { result: [...mockNonExamplesDB], count: 2 },
+    { overwriteRoutes: true },
+  );
+  fetchMock.get(
+    'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
+    { result: [...mockNonExamplesDB], count: 2 },
+    { overwriteRoutes: true },
+  );
+  // Initial load
+  resetUseSelectorMock();
+  // setAllowUploads called
+  resetUseSelectorMock();
+  // setNonExamplesDBConnected called
+  resetUseSelectorMock();
+  render(<RightMenu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  const dropdown = screen.getByTestId('new-dropdown-icon');
+  userEvent.hover(dropdown);
+  const dataMenu = await screen.findByText(dropdownItems[0].label);
+  userEvent.hover(dataMenu);
+  expect(
+    (await screen.findByText('Upload CSV to database')).closest('a'),
+  ).toHaveAttribute('href', '/csvtodatabaseview/form');
+});
+
+test('If there is NOT a DB with allow_file_upload set as True the option should be disabled', async () => {
+  const mockedProps = createProps();
+  fetchMock.get(
+    'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:upload_is_enabled,value:!t)))',
+    { result: [], count: 0 },
+    { overwriteRoutes: true },
+  );
+  fetchMock.get(
+    'glob:*api/v1/database/?q=(filters:!((col:database_name,opr:neq,value:examples)))',
+    { result: [...mockNonExamplesDB], count: 2 },
+    { overwriteRoutes: true },
+  );
+  // Initial load
+  resetUseSelectorMock();
+  // setAllowUploads called
+  resetUseSelectorMock();
+  // setNonExamplesDBConnected called
+  resetUseSelectorMock();
+  render(<RightMenu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  const dropdown = screen.getByTestId('new-dropdown-icon');
+  userEvent.hover(dropdown);
+  const dataMenu = await screen.findByText(dropdownItems[0].label);
+  userEvent.hover(dataMenu);
+  expect(await screen.findByText('Upload CSV to database')).toBeInTheDocument();
+  expect(
+    (await screen.findByText('Upload CSV to database')).closest('a'),
+  ).not.toBeInTheDocument();
 });
