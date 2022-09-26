@@ -40,7 +40,7 @@ import {
   ColumnMeta,
   FilterOption,
 } from '..';
-import { xAxisControlConfig } from './constants';
+import { xAxisMixin } from './constants';
 
 type Control = {
   savedMetrics?: Metric[] | null;
@@ -273,7 +273,7 @@ export const dndGranularitySqlaControl: typeof dndSeriesControl = {
 
 export const dndXAxisControl: typeof dndGroupByControl = {
   ...dndGroupByControl,
-  ...xAxisControlConfig,
+  ...xAxisMixin,
 };
 
 export function withDndFallback(
