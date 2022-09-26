@@ -27,7 +27,6 @@ babel==2.9.1
     # via flask-babel
 backoff==1.11.1
     # via apache-superset
-pybigquery==0.10.2
 billiard==3.6.4.0
     # via celery
 bleach==3.3.1
