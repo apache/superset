@@ -361,6 +361,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]
     ] = {}
 
+    # Whether the engine supports file uploads
+    # if True, database will be listed as option in the upload file form
+    supports_file_upload = True
+
     @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
@@ -1636,6 +1640,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         without having to provide sensitive data to the client.
         """
         return new
+
+    @classmethod
+    def get_public_information(cls) -> Dict[str, Any]:
+        """
+        Construct a Dict with properties we want to expose.
+
+        :returns: Dict with properties of our class like supports_file_upload
+        """
+        return {
+            "supports_file_upload": cls.supports_file_upload,
+        }
 
 
 # schema for adding a database by providing parameters instead of the
