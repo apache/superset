@@ -32,7 +32,6 @@ import {
   getValue,
   hasOption,
   isLabeledValue,
-  defaultSortComparator,
   renderSelectOptions,
   hasCustomLabels,
   sortSelectedFirstHelper,
@@ -48,7 +47,12 @@ import {
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
-import { EMPTY_OPTIONS, MAX_TAG_COUNT, TOKEN_SEPARATORS } from './constants';
+import {
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  TOKEN_SEPARATORS,
+  DEFAULT_SORT_COMPARATOR,
+} from './constants';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -86,7 +90,7 @@ const Select = forwardRef(
       options,
       placeholder = t('Select ...'),
       showSearch = true,
-      sortComparator = defaultSortComparator,
+      sortComparator = DEFAULT_SORT_COMPARATOR,
       tokenSeparators,
       value,
       getPopupContainer,

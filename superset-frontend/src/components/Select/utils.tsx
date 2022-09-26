@@ -18,7 +18,6 @@
  */
 import { ensureIsArray, t } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 import React, { ReactElement, RefObject } from 'react';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
@@ -64,30 +63,6 @@ export function hasOption(
     ) !== undefined
   );
 }
-
-export const defaultSortComparator = (
-  a: AntdLabeledValue,
-  b: AntdLabeledValue,
-  search?: string,
-) => {
-  let aText: string | undefined;
-  let bText: string | undefined;
-  if (typeof a.label === 'string' && typeof b.label === 'string') {
-    aText = a.label;
-    bText = b.label;
-  } else if (typeof a.value === 'string' && typeof b.value === 'string') {
-    aText = a.value;
-    bText = b.value;
-  }
-  // sort selected options first
-  if (typeof aText === 'string' && typeof bText === 'string') {
-    if (search) {
-      return rankedSearchCompare(aText, bText, search);
-    }
-    return aText.localeCompare(bText);
-  }
-  return (a.value as number) - (b.value as number);
-};
 
 /**
  * It creates a comparator to check for a specific property.

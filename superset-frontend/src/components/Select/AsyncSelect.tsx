@@ -39,7 +39,6 @@ import {
   getValue,
   hasOption,
   isLabeledValue,
-  defaultSortComparator,
   renderSelectOptions,
   hasCustomLabels,
   sortSelectedFirstHelper,
@@ -69,6 +68,7 @@ import {
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
+  DEFAULT_SORT_COMPARATOR,
 } from './constants';
 
 const Error = ({ error }: { error: string }) => (
@@ -119,7 +119,7 @@ const AsyncSelect = forwardRef(
       pageSize = DEFAULT_PAGE_SIZE,
       placeholder = t('Select ...'),
       showSearch = true,
-      sortComparator = defaultSortComparator,
+      sortComparator = DEFAULT_SORT_COMPARATOR,
       tokenSeparators,
       value,
       getPopupContainer,
