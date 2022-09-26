@@ -479,7 +479,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         col: ColumnClause,
         pdf: Optional[str],
         time_grain: Optional[str],
-        type_: Optional[str] = None,
     ) -> TimestampExpression:
         """
         Construct a TimestampExpression to be used in a SQLAlchemy query.
@@ -487,10 +486,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
-        :param type_: the source column type
         :return: TimestampExpression object
         """
         if time_grain:
+            type_ = str(getattr(col, "type", ""))
             time_expr = cls.get_time_grain_expressions().get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
@@ -919,48 +918,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :return: The SQL expression
         """
         return None
-
-    @classmethod
-    def get_all_datasource_names(
-        cls, database: "Database", datasource_type: str
-    ) -> List[utils.DatasourceName]:
-        """Returns a list of all tables or views in database.
-
-        :param database: Database instance
-        :param datasource_type: Datasource_type can be 'table' or 'view'
-        :return: List of all datasources in database or schema
-        """
-        # TODO: Fix circular import caused by importing Database
-        schemas = database.get_all_schema_names(
-            cache=database.schema_cache_enabled,
-            cache_timeout=database.schema_cache_timeout,
-            force=True,
-        )
-        all_datasources: List[utils.DatasourceName] = []
-        for schema in schemas:
-            if datasource_type == "table":
-                all_datasources.extend(
-                    utils.DatasourceName(*datasource_name)
-                    for datasource_name in database.get_all_table_names_in_schema(
-                        schema=schema,
-                        force=True,
-                        cache=database.table_cache_enabled,
-                        cache_timeout=database.table_cache_timeout,
-                    )
-                )
-            elif datasource_type == "view":
-                all_datasources.extend(
-                    utils.DatasourceName(*datasource_name)
-                    for datasource_name in database.get_all_view_names_in_schema(
-                        schema=schema,
-                        force=True,
-                        cache=database.table_cache_enabled,
-                        cache_timeout=database.table_cache_timeout,
-                    )
-                )
-            else:
-                raise Exception(f"Unsupported datasource_type: {datasource_type}")
-        return all_datasources
 
     @classmethod
     def handle_cursor(cls, cursor: Any, query: "Query", session: Session) -> None:

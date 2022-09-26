@@ -26,6 +26,7 @@ import React, {
 import { QueryObjectFilterClause, t, styled } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
+import ReactDOM from 'react-dom';
 
 const MENU_ITEM_HEIGHT = 32;
 const MENU_VERTICAL_SPACING = 32;
@@ -116,7 +117,7 @@ const ChartContextMenu = (
     [open],
   );
 
-  return (
+  return ReactDOM.createPortal(
     <Dropdown
       overlay={menu}
       trigger={['click']}
@@ -133,7 +134,8 @@ const ChartContextMenu = (
           height: 1,
         }}
       />
-    </Dropdown>
+    </Dropdown>,
+    document.body,
   );
 };
 

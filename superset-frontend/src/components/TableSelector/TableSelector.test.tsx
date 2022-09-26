@@ -31,7 +31,6 @@ const createProps = (props = {}) => ({
     id: 1,
     database_name: 'main',
     backend: 'sqlite',
-    allow_multi_schema_metadata_fetch: false,
     has_catalogs: false,
   },
   schema: 'test_schema',
