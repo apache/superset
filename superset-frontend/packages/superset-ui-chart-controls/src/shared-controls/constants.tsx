@@ -19,48 +19,66 @@
 import {
   FeatureFlag,
   isFeatureEnabled,
+  QueryFormData,
+  QueryResponse,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ControlPanelState, ControlState } from '../types';
+import {
+  BaseControlConfig,
+  ControlPanelState,
+  ControlState,
+  Dataset,
+} from '../types';
 
-export const xAxisControlConfig = {
-  label: (state: ControlPanelState) => {
-    if (
-      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
-      state?.form_data?.orientation === 'horizontal'
-    ) {
-      return t('Y-axis');
-    }
+const getAxisLabel = (
+  formData: QueryFormData,
+): Record<'label' | 'description', string> =>
+  formData?.orientation === 'horizontal'
+    ? { label: t('Y-axis'), description: t('Dimension to use on y-axis.') }
+    : { label: t('X-axis'), description: t('Dimension to use on x-axis.') };
 
-    return t('X-axis');
-  },
-  default: (
-    control: ControlState,
-    controlPanel: Partial<ControlPanelState>,
-  ) => {
-    // default to the chosen time column if x-axis is unset and the
-    // GENERIC_CHART_AXES feature flag is enabled
-    const { value } = control;
-    if (value) {
-      return value;
-    }
-    const timeColumn = controlPanel?.form_data?.granularity_sqla;
-    if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && timeColumn) {
-      return timeColumn;
-    }
-    return null;
-  },
+export const xAxisMixin = {
+  label: (state: ControlPanelState) => getAxisLabel(state?.form_data).label,
   multi: false,
-  description: (state: ControlPanelState) => {
+  description: (state: ControlPanelState) =>
+    getAxisLabel(state?.form_data).description,
+  validators: [validateNonEmpty],
+  initialValue: (control: ControlState, state: ControlPanelState) => {
     if (
       isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
-      state?.form_data?.orientation === 'horizontal'
+      state?.form_data?.granularity_sqla &&
+      !state.form_data?.x_axis &&
+      !control?.value
     ) {
-      return t('Dimension to use on y-axis.');
+      return state.form_data.granularity_sqla;
     }
-
-    return t('Dimension to use on x-axis.');
+    return undefined;
   },
-  validators: [validateNonEmpty],
+  default: undefined,
+};
+
+export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
+  mapStateToProps: ({ datasource }) => {
+    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
+      const temporalColumns =
+        (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
+      return {
+        options: temporalColumns,
+        default:
+          (datasource as Dataset)?.main_dttm_col ||
+          temporalColumns[0]?.column_name ||
+          null,
+        isTemporal: true,
+      };
+    }
+    const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
+      query => (query?.is_dttm ? -1 : 1),
+    );
+    return {
+      options: sortedQueryColumns,
+      default: sortedQueryColumns[0]?.name || null,
+      isTemporal: true,
+    };
+  },
 };

@@ -27,16 +27,19 @@ def is_port_open(host: str, port: int) -> bool:
     Test if a given port in a host is open.
     """
     # pylint: disable=invalid-name
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(PORT_TIMEOUT)
-    try:
-        s.connect((host, port))
-        s.shutdown(socket.SHUT_RDWR)
-        return True
-    except socket.error:
-        return False
-    finally:
-        s.close()
+    for res in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
+        af, _, _, _, sockaddr = res
+        s = socket.socket(af, socket.SOCK_STREAM)
+        try:
+            s.settimeout(PORT_TIMEOUT)
+            s.connect((sockaddr))
+            s.shutdown(socket.SHUT_RDWR)
+            return True
+        except socket.error as _:
+            continue
+        finally:
+            s.close()
+    return False
 
 
 def is_hostname_valid(host: str) -> bool:
@@ -44,7 +47,7 @@ def is_hostname_valid(host: str) -> bool:
     Test if a given hostname can be resolved.
     """
     try:
-        socket.gethostbyname(host)
+        socket.getaddrinfo(host, None)
         return True
     except socket.gaierror:
         return False

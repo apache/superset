@@ -83,7 +83,7 @@ setup(
         "cryptography>=3.3.2",
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.0.0, <3.0.0",
-        "flask-appbuilder>=4.1.3, <5.0.0",
+        "flask-appbuilder>=4.1.4, <5.0.0",
         "flask-caching>=1.10.0",
         "flask-compress",
         "flask-talisman",
@@ -100,7 +100,7 @@ setup(
         "markdown>=3.0",
         "msgpack>=1.0.0, <1.1",
         "numpy==1.22.1",
-        "pandas>=1.4.3, <1.5",
+        "pandas>=1.4.4, <1.5",
         "parsedatetime",
         "pgsanity",
         "polyline",
@@ -116,8 +116,8 @@ setup(
         "simplejson>=3.15.0",
         "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
         "sqlalchemy>=1.4, <2",
-        "sqlalchemy-utils>=0.37.8, <0.38",
-        "sqlparse==0.3.0",  # PINNED! see https://github.com/andialbrecht/sqlparse/issues/562
+        "sqlalchemy-utils>=0.38.3, <0.39",
+        "sqlparse>=0.4.3, <0.5",
         "tabulate==0.8.9",
         # needed to support Literal (3.8) and TypeGuard (3.10)
         "typing-extensions>=3.10, <4",
@@ -153,7 +153,7 @@ setup(
         "hana": ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"],
         "hive": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],
         "impala": ["impyla>0.16.2, <0.17"],
-        "kusto": ["sqlalchemy-kusto>=1.0.1, <2"],
+        "kusto": ["sqlalchemy-kusto>=2.0.0, <3"],
         "kylin": ["kylinpy>=2.8.1, <2.9"],
         "mssql": ["pymssql>=2.1.4, <2.2"],
         "mysql": ["mysqlclient>=2.1.0, <3"],

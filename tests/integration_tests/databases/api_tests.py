@@ -185,7 +185,6 @@ class TestDatabaseApi(SupersetTestCase):
             "allow_cvas",
             "allow_dml",
             "allow_file_upload",
-            "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
             "allows_subquery",
@@ -196,6 +195,7 @@ class TestDatabaseApi(SupersetTestCase):
             "created_by",
             "database_name",
             "disable_data_preview",
+            "engine_information",
             "explore_database_id",
             "expose_in_sqllab",
             "extra",
@@ -374,7 +374,7 @@ class TestDatabaseApi(SupersetTestCase):
             "database_name": "test-create-database-invalid-json",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
-            "encrypted_extra": '{"A": "a", "B", "C"}',
+            "masked_encrypted_extra": '{"A": "a", "B", "C"}',
             "extra": '["A": "a", "B", "C"]',
         }
 
@@ -383,7 +383,7 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
             "message": {
-                "encrypted_extra": [
+                "masked_encrypted_extra": [
                     "Field cannot be decoded by JSON. Expecting ':' "
                     "delimiter: line 1 column 15 (char 14)"
                 ],
@@ -1353,7 +1353,7 @@ class TestDatabaseApi(SupersetTestCase):
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = {
             "database_name": "examples",
-            "encrypted_extra": "{}",
+            "masked_encrypted_extra": "{}",
             "extra": json.dumps(extra),
             "impersonate_user": False,
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
@@ -1942,6 +1942,9 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": ["bigquery"],
@@ -1961,6 +1964,9 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": ["psycopg2"],
@@ -2009,6 +2015,9 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": ["apsw"],
@@ -2028,6 +2037,9 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
+                    "engine_information": {
+                        "supports_file_upload": False,
+                    },
                 },
                 {
                     "available_drivers": ["mysqlconnector", "mysqldb"],
@@ -2076,12 +2088,18 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": [""],
                     "engine": "hana",
                     "name": "SAP HANA",
                     "preferred": False,
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
             ]
         }
@@ -2109,12 +2127,18 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "mysql",
                     "name": "MySQL",
                     "preferred": True,
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": [""],
                     "engine": "hana",
                     "name": "SAP HANA",
                     "preferred": False,
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
             ]
         }
