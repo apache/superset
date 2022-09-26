@@ -207,7 +207,7 @@ describe('Tabs', () => {
   if (
     ('should set new tab key if dashboardId was changed',
     () => {
-      let wrapper = shallow(<Tabs {...props} />);
+      const wrapper = shallow(<Tabs {...props} />);
       expect(wrapper.state('activeKey')).toBe('TABS_ID');
       wrapper.setProps({
         ...props,
