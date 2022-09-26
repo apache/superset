@@ -26,12 +26,6 @@ import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 const { Option } = AntdSelect;
 
-export const MAX_TAG_COUNT = 4;
-
-export const TOKEN_SEPARATORS = [',', '\n', '\t', ';'];
-
-export const EMPTY_OPTIONS: SelectOptionsType = [];
-
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
     value !== null &&
@@ -71,7 +65,7 @@ export function hasOption(
   );
 }
 
-export const DEFAULT_SORT_COMPARATOR = (
+export const defaultSortComparator = (
   a: AntdLabeledValue,
   b: AntdLabeledValue,
   search?: string,

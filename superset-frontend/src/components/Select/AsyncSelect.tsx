@@ -39,10 +39,7 @@ import {
   getValue,
   hasOption,
   isLabeledValue,
-  DEFAULT_SORT_COMPARATOR,
-  EMPTY_OPTIONS,
-  MAX_TAG_COUNT,
-  TOKEN_SEPARATORS,
+  defaultSortComparator,
   renderSelectOptions,
   hasCustomLabels,
   sortSelectedFirstHelper,
@@ -67,8 +64,12 @@ import {
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
-
-const DEFAULT_PAGE_SIZE = 100;
+import {
+  DEFAULT_PAGE_SIZE,
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  TOKEN_SEPARATORS,
+} from './constants';
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
@@ -118,7 +119,7 @@ const AsyncSelect = forwardRef(
       pageSize = DEFAULT_PAGE_SIZE,
       placeholder = t('Select ...'),
       showSearch = true,
-      sortComparator = DEFAULT_SORT_COMPARATOR,
+      sortComparator = defaultSortComparator,
       tokenSeparators,
       value,
       getPopupContainer,
