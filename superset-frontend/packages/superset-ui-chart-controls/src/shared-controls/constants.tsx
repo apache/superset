@@ -24,7 +24,12 @@ import {
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ControlPanelState, ControlState, Dataset } from '../types';
+import {
+  BaseControlConfig,
+  ControlPanelState,
+  ControlState,
+  Dataset,
+} from '../types';
 
 const getAxisLabel = (
   formData: QueryFormData,
@@ -53,8 +58,8 @@ export const xAxisMixin = {
   default: undefined,
 };
 
-export const temporalColumnMixin = {
-  mapStateToProps: ({ datasource }: ControlPanelState) => {
+export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
+  mapStateToProps: ({ datasource }) => {
     if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
       const temporalColumns =
         (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
