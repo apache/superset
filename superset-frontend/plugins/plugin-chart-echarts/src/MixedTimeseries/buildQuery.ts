@@ -22,7 +22,6 @@ import {
   normalizeOrderBy,
   PostProcessingPivot,
   QueryFormData,
-  QueryObject,
   getXAxis,
   isXAxisSet,
 } from '@superset-ui/core';
@@ -51,42 +50,36 @@ export default function buildQuery(formData: QueryFormData) {
 
   const queryContexts = [formData1, formData2].map(fd =>
     buildQueryContext(fd, baseQueryObject => {
-      const queryObject = {
-        ...baseQueryObject,
-        columns: [
-          ...(isXAxisSet(formData) ? ensureIsArray(getXAxis(formData)) : []),
-          ...ensureIsArray(fd.groupby),
-        ],
-        series_columns: fd.groupby,
-        ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
-      };
-
       const pivotOperatorInRuntime: PostProcessingPivot = isTimeComparison(
         fd,
-        queryObject,
+        baseQueryObject,
       )
-        ? timeComparePivotOperator(fd, queryObject)
-        : pivotOperator(fd, {
-            ...queryObject,
-            columns: fd.groupby,
-          });
+        ? timeComparePivotOperator(fd, baseQueryObject)
+        : pivotOperator(fd, baseQueryObject);
 
-      const tmpQueryObject = {
-        ...queryObject,
-        time_offsets: isTimeComparison(fd, queryObject) ? fd.time_compare : [],
-        post_processing: [
-          pivotOperatorInRuntime,
-          rollingWindowOperator(fd, queryObject),
-          timeCompareOperator(fd, queryObject),
-          resampleOperator(fd, queryObject),
-          renameOperator(fd, {
-            ...queryObject,
-            columns: fd.groupby,
-          }),
-          flattenOperator(fd, queryObject),
-        ],
-      } as QueryObject;
-      return [normalizeOrderBy(tmpQueryObject)];
+      return [
+        {
+          ...baseQueryObject,
+          columns: [
+            ...(isXAxisSet(fd) ? ensureIsArray(getXAxis(fd)) : []),
+            ...ensureIsArray(baseQueryObject.columns),
+          ],
+          ...(isXAxisSet(fd) ? {} : { is_timeseries: true }),
+          time_offsets: isTimeComparison(fd, baseQueryObject)
+            ? fd.time_compare
+            : [],
+          post_processing: [
+            pivotOperatorInRuntime,
+            rollingWindowOperator(fd, baseQueryObject),
+            timeCompareOperator(fd, baseQueryObject),
+            resampleOperator(fd, baseQueryObject),
+            renameOperator(fd, baseQueryObject),
+            flattenOperator(fd, baseQueryObject),
+          ],
+          // todo: move `normalizeOrderBy to extractQueryFields`
+          orderby: normalizeOrderBy(baseQueryObject).orderby,
+        },
+      ];
     }),
   );
 

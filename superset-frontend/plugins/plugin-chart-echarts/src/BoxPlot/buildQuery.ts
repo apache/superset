@@ -33,7 +33,6 @@ export default function buildQuery(formData: BoxPlotQueryFormData) {
       {
         ...baseQueryObject,
         columns: [...distributionColumns, ...columns, ...groupby],
-        series_columns: groupby,
         post_processing: [boxplotOperator(formData, baseQueryObject)],
       },
     ];
