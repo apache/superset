@@ -69,7 +69,8 @@ const AceEditorWrapper = ({
 }: AceEditorWrapperProps) => {
   const dispatch = useDispatch();
 
-  const { sql: currentSql, functionNames } = queryEditor;
+  const { sql: currentSql } = queryEditor;
+  const functionNames = queryEditor.functionNames ?? [];
   const schemas = queryEditor.schemaOptions ?? [];
   const tables = queryEditor.tableOptions ?? [];
 
