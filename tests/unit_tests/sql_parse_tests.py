@@ -560,7 +560,7 @@ q2 as ( select key from src where key = '5')
 select * from (select key from q1) a
 """
         )
-        == {Table("src")}
+        == {Table("q2"), Table("src")}
     )
     assert (
         extract_tables(

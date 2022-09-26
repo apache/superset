@@ -504,7 +504,6 @@ class ParsedQuery:
                 with_tables = self._tables_that_are_not_alias_names(
                     with_tables, alias_names
                 )
-                tables = self._tables_that_are_not_alias_names(tables, with_alias_names)
                 alias_names = self._alias_names_that_are_not_tables(
                     with_tables, alias_names
                 )
