@@ -205,7 +205,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         onHide={onHide}
         draggable
         show={show}
-        title={t('Flash Object Information')}
+        title={t('Flash Information')}
         footer={<></>}
       >
         {renderModalBody()}
