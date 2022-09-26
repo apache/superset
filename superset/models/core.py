@@ -231,6 +231,7 @@ class Database(
             "parameters": self.parameters,
             "disable_data_preview": self.disable_data_preview,
             "parameters_schema": self.parameters_schema,
+            "engine_information": self.engine_information,
         }
 
     @property
@@ -311,6 +312,14 @@ class Database(
     @property
     def connect_args(self) -> Dict[str, Any]:
         return self.get_extra().get("engine_params", {}).get("connect_args", {})
+
+    @property
+    def engine_information(self) -> Dict[str, Any]:
+        try:
+            engine_information = self.db_engine_spec.get_public_information()
+        except Exception:  # pylint: disable=broad-except
+            engine_information = {}
+        return engine_information
 
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
