@@ -24,11 +24,11 @@ import {
   TimeFormatter,
   ExtraFormData,
 } from '@superset-ui/core';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 
 export const getAdhocExtraFormData = (
-  col: string,
-  value?: null | (string | number | boolean | null)[],
+  adhoc_filters: AdhocFilter[] = [],
   emptyFilter = false,
   inverseSelection = false,
 ): ExtraFormData => {
@@ -41,16 +41,8 @@ export const getAdhocExtraFormData = (
         sqlExpression: '1 = 0',
       },
     ];
-  } else if (value !== undefined && value !== null && value.length !== 0) {
-    extra.adhoc_filters = [
-      {
-        expressionType: 'SIMPLE',
-        subject: col,
-        operator: 'IN',
-        comparator: value,
-        clause: 'WHERE',
-      },
-    ];
+  } else {
+    extra.adhoc_filters = adhoc_filters;
   }
   return extra;
 };

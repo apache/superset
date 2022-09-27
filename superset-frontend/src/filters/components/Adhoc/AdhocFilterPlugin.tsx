@@ -26,17 +26,29 @@ import {
   GenericDataType,
   getColumnLabel,
   JsonObject,
+  JsonResponse,
+  QueryFormColumn,
   smartDateDetailedFormatter,
+  SupersetApiError,
+  SupersetClient,
   t,
   tn,
 } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
+// eslint-disable-next-line import/no-unresolved
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
 import { propertyComparator } from 'src/components/Select/Select';
+import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+// eslint-disable-next-line import/no-unresolved
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+// eslint-disable-next-line import/no-unresolved
+import { cacheWrapper } from 'src/utils/cacheWrapper';
+// eslint-disable-next-line import/no-unresolved
+import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { PluginFilterAdhocProps, SelectValue } from './types';
 import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getAdhocExtraFormData } from '../../utils';
@@ -47,7 +59,11 @@ type DataMaskAction =
       type: 'filterState';
       __cache: JsonObject;
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue; label?: string };
+      filterState: {
+        label?: string;
+        filters?: AdhocFilter[];
+        value: AdhocFilter[];
+      };
     };
 
 function reducer(
@@ -102,7 +118,14 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     () => ensureIsArray(formData.groupby).map(getColumnLabel),
     [formData.groupby],
   );
-  const [col] = groupby;
+  const datasetId = useMemo(
+    () => formData.datasource.split('_')[0],
+    [formData.datasource],
+  );
+  const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
+  const [col, setCol] = useState('');
+  console.log(formData.columns);
+  const [columns, setColumns] = useState();
   const [initialColtypeMap] = useState(coltypeMap);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
@@ -117,33 +140,70 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     [],
   );
 
-  const updateDataMask = useCallback(
-    (values: SelectValue) => {
-      const emptyFilter =
-        enableEmptyFilter && !inverseSelection && !values?.length;
+  const localCache = new Map<string, any>();
 
-      const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
+  const cachedSupersetGet = cacheWrapper(
+    SupersetClient.get,
+    localCache,
+    ({ endpoint }) => endpoint || '',
+  );
+
+  useEffect(() => {
+    if (datasetId) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      })
+        .then((response: JsonResponse) => {
+          const dataset = response.json?.result;
+          // modify the response to fit structure expected by AdhocFilterControl
+          dataset.type = dataset.datasource_type;
+          dataset.filter_select = true;
+          setDatasetDetails(dataset);
+        })
+        .catch((response: SupersetApiError) => {
+          addDangerToast(response.message);
+        });
+    }
+  }, [datasetId]);
+
+  useEffect(() => {
+    if (datasetId != null) {
+      cachedSupersetGet({
+        endpoint: `/api/v1/dataset/${datasetId}`,
+      }).then(
+        ({ json: { result } }) => {
+          setColumns(result.columns);
+        },
+        async badResponse => {
+          const { error, message } = await getClientErrorObject(badResponse);
+          let errorText = message || error || t('An error has occurred');
+          if (message === 'Forbidden') {
+            errorText = t('You do not have permission to edit this dashboard');
+          }
+          addDangerToast(errorText);
+        },
+      );
+    }
+  });
+
+  const updateDataMask = useCallback(
+    (adhoc_filters: AdhocFilter[]) => {
+      const emptyFilter =
+        enableEmptyFilter && !inverseSelection && !adhoc_filters?.length;
 
       dispatchDataMask({
         type: 'filterState',
         __cache: filterState,
         extraFormData: getAdhocExtraFormData(
-          col,
-          values,
+          adhoc_filters,
           emptyFilter,
           inverseSelection,
         ),
         filterState: {
           ...filterState,
-          label: values?.length
-            ? `${(values || [])
-                .map(value => labelFormatter(value, datatype))
-                .join(', ')}${suffix}`
-            : undefined,
-          value:
-            appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem
-              ? undefined
-              : values,
+          label: (adhoc_filters || []).map(f => String(f.subject)).join(', '),
+          value: adhoc_filters,
+          filters: adhoc_filters,
         },
       });
     },
@@ -207,49 +267,6 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     unsetFocusedFilter();
   }, [clearSuggestionSearch, unsetFocusedFilter]);
 
-  const handleChange = useCallback(
-    (value?: SelectValue | number | string) => {
-      const values = value === null ? [null] : ensureIsArray(value);
-
-      if (values.length === 0) {
-        updateDataMask(null);
-      } else {
-        updateDataMask(values);
-      }
-    },
-    [updateDataMask],
-  );
-
-  useEffect(() => {
-    if (defaultToFirstItem && filterState.value === undefined) {
-      // initialize to first value if set to default to first item
-      const firstItem: SelectValue = data[0]
-        ? (groupby.map(col => data[0][col]) as string[])
-        : null;
-      // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
-      // TODO: still need repopulate default value in config modal when column changed
-      if (firstItem && firstItem[0] !== undefined) {
-        updateDataMask(firstItem);
-      }
-    } else if (isDisabled) {
-      // empty selection if filter is disabled
-      updateDataMask(null);
-    } else {
-      // reset data mask based on filter state
-      updateDataMask(filterState.value);
-    }
-  }, [
-    col,
-    isDisabled,
-    defaultToFirstItem,
-    enableEmptyFilter,
-    inverseSelection,
-    updateDataMask,
-    data,
-    groupby,
-    JSON.stringify(filterState),
-  ]);
-
   useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
@@ -299,35 +316,16 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
-        <Select
-          allowClear
-          allowNewOptions
-          // @ts-ignore
-          value={filterState.value || []}
-          disabled={isDisabled}
-          getPopupContainer={
-            showOverflow
-              ? () => parentRef?.current
-              : (trigger: HTMLElement) => trigger?.parentNode
-          }
-          showSearch={showSearch}
-          mode={multiSelect ? 'multiple' : 'single'}
-          placeholder={placeholderText}
-          onSearch={searchWrapper}
-          onSelect={clearSuggestionSearch}
-          onBlur={handleBlur}
-          onMouseEnter={setFocusedFilter}
-          onMouseLeave={unsetFocusedFilter}
-          // @ts-ignore
-          onChange={handleChange}
-          ref={inputRef}
-          loading={isRefreshing}
-          maxTagCount={5}
-          invertSelection={inverseSelection}
-          // @ts-ignore
-          options={options}
-          sortComparator={sortComparator}
-          onDropdownVisibleChange={setFilterActive}
+        <AdhocFilterControl
+          columns={columns || []}
+          savedMetrics={[]}
+          datasource={datasetDetails}
+          onChange={(filters: AdhocFilter[]) => {
+            // New Adhoc Filters Selected
+            updateDataMask(filters);
+          }}
+          label={' '}
+          value={filterState.filters || []}
         />
       </StyledFormItem>
     </FilterPluginStyle>
