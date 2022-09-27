@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, ensureIsArray } from '@superset-ui/core';
+import {
+  AdhocColumn,
+  buildQueryContext,
+  ensureIsArray,
+  isPhysicalColumn,
+} from '@superset-ui/core';
 import { boxplotOperator } from '@superset-ui/chart-controls';
 import { BoxPlotQueryFormData } from './types';
 
@@ -25,7 +30,18 @@ export default function buildQuery(formData: BoxPlotQueryFormData) {
     {
       ...baseQueryObject,
       columns: [
-        ...ensureIsArray(formData.columns),
+        ...ensureIsArray(formData.columns).map(col => {
+          if (isPhysicalColumn(col) && formData.time_grain_sqla) {
+            return {
+              timeGrain: formData.time_grain_sqla,
+              columnType: 'BASE_AXIS',
+              sqlExpression: col,
+              label: col,
+              expressionType: 'SQL',
+            } as AdhocColumn;
+          }
+          return col;
+        }),
         ...ensureIsArray(formData.groupby),
       ],
       series_columns: formData.groupby,

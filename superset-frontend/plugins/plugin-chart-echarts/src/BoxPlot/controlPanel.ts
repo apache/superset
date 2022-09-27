@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  isAdhocColumn,
+  isPhysicalColumn,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -29,16 +35,46 @@ import {
   ControlState,
   ControlPanelState,
   getTemporalColumnsFromDatasouce,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.genericTime,
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
         ['columns'],
+        [
+          {
+            name: 'time_grain_sqla',
+            config: {
+              ...sharedControls.time_grain_sqla,
+              visibility: ({ controls }) => {
+                const dttmLookup = Object.fromEntries(
+                  ensureIsArray(controls?.columns?.options).map(option => [
+                    option.column_name,
+                    option.is_dttm,
+                  ]),
+                );
+
+                return ensureIsArray(controls?.columns.value)
+                  .map(selection => {
+                    if (isAdhocColumn(selection)) {
+                      return true;
+                    }
+                    if (isPhysicalColumn(selection)) {
+                      return !!dttmLookup[selection];
+                    }
+                    return false;
+                  })
+                  .some(Boolean);
+              },
+            },
+          },
+          'datetime_columns_lookup',
+        ],
         ['groupby'],
         ['metrics'],
         ['adhoc_filters'],
