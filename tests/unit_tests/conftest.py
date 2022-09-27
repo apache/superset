@@ -21,6 +21,7 @@ import os
 from typing import Any, Callable, Iterator
 
 import pytest
+from _pytest.fixtures import SubRequest
 from pytest_mock import MockFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -68,7 +69,7 @@ def session(get_session) -> Iterator[Session]:
 
 
 @pytest.fixture(scope="module")
-def app(request) -> Iterator[SupersetApp]:
+def app(request: SubRequest) -> Iterator[SupersetApp]:
     """
     A fixture that generates a Superset app.
     """

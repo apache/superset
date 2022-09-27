@@ -53,7 +53,7 @@ def test_get_available_engine_specs(mocker: MockFixture) -> None:
 
 @pytest.mark.parametrize(
     "app",
-    [{"DBS_AVAILABLE_DENYLIST": {"databricks": ("pyhive", "pyodbc")}}],
+    [{"DBS_AVAILABLE_DENYLIST": {"databricks": {"pyhive", "pyodbc"}}}],
     indirect=True,
 )
 def test_get_available_engine_specs_with_denylist(mocker: MockFixture) -> None:
