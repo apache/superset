@@ -32,7 +32,6 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import COMMON_ERR_MESSAGES from 'src/utils/errorMessages';
-import { createFlash } from 'src/views/CRUD/flash/services/flash.service';
 
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
@@ -177,36 +176,6 @@ export function scheduleQuery(query) {
       .catch(() =>
         dispatch(addDangerToast(t('Your query could not be scheduled'))),
       );
-}
-
-export function createFlashObject(flash) {
-  return (dispatch, getState) => {
-    const newFlash = { ...flash };
-    if (typeof flash.sqlQuery !== 'string') {
-      const qe = getUpToDateQuery(
-        getState(),
-        flash.sqlQuery,
-        flash.sqlQuery.id,
-      );
-      newFlash.sqlQuery = qe.selectedText || qe.sql;
-    }
-    return createFlash(newFlash)
-      .then(() =>
-        dispatch(
-          addSuccessToast(
-            t(
-              'Your request for new flash object is added. Please check status on Flash Management.',
-            ),
-          ),
-        ),
-      )
-      .catch(error => {
-        const apiError = error?.data?.message
-          ? error?.data?.message
-          : t('Your flash could not be created');
-        dispatch(addDangerToast(apiError));
-      });
-  };
 }
 
 export function estimateQueryCost(queryEditor) {

@@ -53,7 +53,6 @@ import {
   setActiveSouthPaneTab,
   updateSavedQuery,
   validateQuery,
-  createFlashObject,
 } from 'src/SqlLab/actions/sqlLab';
 import {
   STATE_TYPE_MAP,
@@ -574,10 +573,7 @@ const SqlEditor = ({
         <div className="rightItems">
           {flashCreationConf && (
             <span>
-              <FlashCreationButton
-                sqlEditor={this.props.queryEditor}
-                onCreate={this.props.actions.createFlashObject}
-              />
+              <FlashCreationButton sqlEditor={this.props.queryEditor} />
             </span>
           )}
           <span>
