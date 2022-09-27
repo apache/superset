@@ -72,30 +72,6 @@ describe('AceEditorWrapper', () => {
     );
   });
 
-  it('renders sql from unsaved change', () => {
-    // TODO: need to rewrite the test because we retrieve 'currentQueryEditor' in SqlEditor
-    return;
-
-    const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
-    const { getByTestId } = setup(
-      defaultQueryEditor,
-      mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            sql: expectedSql,
-          },
-        },
-      }),
-    );
-
-    expect(getByTestId('react-ace')).toHaveTextContent(
-      JSON.stringify({ value: expectedSql }).slice(1, -1),
-    );
-  });
-
   it('renders current sql for unrelated unsaved changes', () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
     const { getByTestId } = setup(
