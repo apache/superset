@@ -25,7 +25,10 @@ import withToasts, {
   ToastProps,
 } from 'src/components/MessageToasts/withToasts';
 import SyntaxHighlighterCopy from 'src/views/CRUD/data/components/SyntaxHighlighterCopy';
-import { convertValueToLabel } from 'src/utils/commonHelper';
+import {
+  convertDateToReqFormat,
+  convertValueToLabel,
+} from 'src/utils/commonHelper';
 import moment from 'moment';
 
 interface FlashViewButtonProps extends ToastProps {
@@ -131,7 +134,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>
             {flash?.scheduleStartTime
-              ? moment(flash?.scheduleStartTime).format('DD/MM/YYYY hh:mm:ss A')
+              ? convertDateToReqFormat(flash?.scheduleStartTime)
               : 'NIL'}
           </Value>
         </StyledCol>
@@ -164,7 +167,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
           <Value>
             {flash?.createdAt
               ? moment(flash?.createdAt).format('DD/MM/YYYY hh:mm:ss A')
-              : ''}
+              : 'NIL'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -173,8 +176,8 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
         <StyledCol xs={7}>
           <Value>
             {flash?.updatedAt
-              ? moment(flash?.updatedAt).format('DD/MM/YYYY hh:mm:ss A')
-              : ''}
+              ? convertDateToReqFormat(flash?.updatedAt)
+              : 'NIL'}
           </Value>
         </StyledCol>
         <StyledCol xs={5}>
@@ -184,7 +187,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
           <Value>
             {flash?.lastRefreshTime
               ? moment(flash?.lastRefreshTime).format('DD/MM/YYYY hh:mm:ss A')
-              : ''}
+              : 'NIL'}
           </Value>
         </StyledCol>
       </Row>

@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import moment from 'moment';
 import { FilterDropdown } from 'src/views/CRUD/flash/types';
 
 export const removeUnnecessaryProperties = (
@@ -53,3 +54,7 @@ export const convertValueToLabel = (
 
   return null;
 };
+
+export const convertDateToReqFormat  = (date:string) => {
+  return moment(date).format('DD/MM/YYYY hh:mm:ss A')
+}
