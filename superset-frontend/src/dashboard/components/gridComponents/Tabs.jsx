@@ -114,22 +114,7 @@ const StyledTabsContainer = styled.div`
 export class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
-    let tabIndex = Math.max(
-      0,
-      findTabIndexByComponentId({
-        currentComponent: props.component,
-        directPathToChild: props.directPathToChild,
-      }),
-    );
-    if (tabIndex === 0 && props.activeTabs?.length) {
-      props.component.children.forEach((tabId, index) => {
-        if (tabIndex === 0 && props.activeTabs.includes(tabId)) {
-          tabIndex = index;
-        }
-      });
-    }
-    const { children: tabIds } = props.component;
-    const activeKey = tabIds[tabIndex];
+    const { tabIndex, activeKey } = this.getTabInfo(props);
 
     this.state = {
       tabIndex,
@@ -164,6 +149,15 @@ export class Tabs extends React.PureComponent {
       this.setState(() => ({ tabIndex: maxIndex }));
     }
 
+    // reset tab index if dashboard was changed
+    if (nextProps.dashboardId !== this.props.dashboardId) {
+      const { tabIndex, activeKey } = this.getTabInfo(nextProps);
+      this.setState(() => ({
+        tabIndex,
+        activeKey,
+      }));
+    }
+
     if (nextProps.isComponentVisible) {
       const nextFocusComponent = getLeafComponentIdFromPath(
         nextProps.directPathToChild,
@@ -195,6 +189,30 @@ export class Tabs extends React.PureComponent {
       }
     }
   }
+
+  getTabInfo = props => {
+    let tabIndex = Math.max(
+      0,
+      findTabIndexByComponentId({
+        currentComponent: props.component,
+        directPathToChild: props.directPathToChild,
+      }),
+    );
+    if (tabIndex === 0 && props.activeTabs?.length) {
+      props.component.children.forEach((tabId, index) => {
+        if (tabIndex === 0 && props.activeTabs.includes(tabId)) {
+          tabIndex = index;
+        }
+      });
+    }
+    const { children: tabIds } = props.component;
+    const activeKey = tabIds[tabIndex];
+
+    return {
+      tabIndex,
+      activeKey,
+    };
+  };
 
   showDeleteConfirmModal = key => {
     const { component, deleteComponent } = this.props;
