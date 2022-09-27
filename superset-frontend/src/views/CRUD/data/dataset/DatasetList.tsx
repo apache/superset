@@ -701,7 +701,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
     SupersetClient.post({
       endpoint: `/api/v1/dataset/duplicate`,
-      postPayload: {
+      jsonPayload: {
         base_model_id: datasetCurrentlyDuplicating?.id,
         table_name: newDatasetName,
       },
