@@ -31,7 +31,11 @@ export default function buildQuery(formData: BoxPlotQueryFormData) {
       ...baseQueryObject,
       columns: [
         ...ensureIsArray(formData.columns).map(col => {
-          if (isPhysicalColumn(col) && formData.time_grain_sqla) {
+          if (
+            isPhysicalColumn(col) &&
+            formData.time_grain_sqla &&
+            formData?.datetime_columns_lookup?.[col]
+          ) {
             return {
               timeGrain: formData.time_grain_sqla,
               columnType: 'BASE_AXIS',
