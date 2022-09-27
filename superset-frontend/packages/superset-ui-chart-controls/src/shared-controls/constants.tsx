@@ -17,25 +17,14 @@
  * under the License.
  */
 import {
-  ensureIsArray,
   FeatureFlag,
-  isDefined,
   isFeatureEnabled,
-  QueryColumn,
   QueryFormData,
   t,
   validateNonEmpty,
-  ValueOf,
 } from '@superset-ui/core';
-import {
-  BaseControlConfig,
-  ColumnMeta,
-  ControlPanelState,
-  ControlState,
-  isColumnMeta,
-  isDataset,
-  isQueryResponse,
-} from '../types';
+import { BaseControlConfig, ControlPanelState, ControlState } from '../types';
+import { getTemporalColumnsMetadata } from '../utils';
 
 const getAxisLabel = (
   formData: QueryFormData,
@@ -64,46 +53,9 @@ export const xAxisMixin = {
   default: undefined,
 };
 
-export const getTemporalColumnsFromDatasouce = (
-  datasource: ValueOf<Pick<ControlPanelState, 'datasource'>>,
-) => {
-  const rv: {
-    temporalColumns: ColumnMeta[] | QueryColumn[];
-    defaultTemporalColumn: string | null | undefined;
-  } = {
-    temporalColumns: [],
-    defaultTemporalColumn: undefined,
-  };
-
-  if (
-    isDataset(datasource) ||
-    (isQueryResponse(datasource) && !('results' in datasource))
-  ) {
-    rv.temporalColumns = ensureIsArray(datasource.columns).filter(
-      c => c.is_dttm,
-    );
-  }
-  if (isQueryResponse(datasource) && 'results' in datasource) {
-    rv.temporalColumns = ensureIsArray(datasource.results.columns).filter(
-      c => c.is_dttm,
-    );
-  }
-
-  if (isDataset(datasource)) {
-    rv.defaultTemporalColumn = datasource.main_dttm_col;
-  }
-  if (!isDefined(rv.defaultTemporalColumn)) {
-    rv.defaultTemporalColumn = isColumnMeta(rv.temporalColumns[0])
-      ? rv.temporalColumns[0].column_name
-      : rv.temporalColumns[0]?.name;
-  }
-
-  return rv;
-};
-
 export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
   mapStateToProps: ({ datasource }) => {
-    const payload = getTemporalColumnsFromDatasouce(datasource);
+    const payload = getTemporalColumnsMetadata(datasource);
 
     return {
       options: payload.temporalColumns,
