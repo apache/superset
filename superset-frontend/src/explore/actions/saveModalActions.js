@@ -46,13 +46,12 @@ export function fetchDashboards(userId) {
         choices.sort((a, b) => {
           const labelA = a.label.toUpperCase();
           const labelB = b.label.toUpperCase();
-          if (labelA < labelB) {
-            return -1;
+          const labelAMatch = labelA.match(/^(\d+)/g);
+          const labelBMatch = labelB.match(/^(\d+)/g);
+          if (!!labelAMatch && !!labelBMatch) {
+            return Number(labelAMatch[0]) - Number(labelBMatch[0]);
           }
-          if (labelA > labelB) {
-            return 1;
-          }
-          return 0;
+          return labelA.localeCompare(labelB);
         });
 
         return dispatch(fetchDashboardsSucceeded(choices));
