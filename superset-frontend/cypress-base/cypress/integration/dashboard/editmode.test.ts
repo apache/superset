@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SAMPLE_DASHBOARD_1 } from 'cypress/utils/urls';
-import { drag, resize } from 'cypress/utils';
+import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
+import { drag, resize, waitForChartLoad } from 'cypress/utils';
 import * as ace from 'brace';
 import { interceptGet, interceptUpdate } from './utils';
 import { interceptFiltering as interceptCharts } from '../explore/utils';
@@ -60,15 +60,44 @@ function discardChanges() {
   cy.getBySel('undo-action').click({ force: true });
 }
 
-function visitEdit() {
+function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
   interceptCharts();
   interceptGet();
 
-  cy.visit(SAMPLE_DASHBOARD_1);
+  cy.visit(sampleDashboard);
   cy.wait('@get');
   editDashboard();
   cy.wait('@filtering');
   cy.wait(500);
+}
+
+function resetTabbedDashboard(go = false) {
+  cy.getDashboard('tabbed_dash').then((r: Record<string, any>) => {
+    const jsonMetadata = r?.json_metadata || '{}';
+    const metadata = JSON.parse(jsonMetadata);
+    const resetMetadata = JSON.stringify({
+      ...metadata,
+      color_scheme: '',
+      label_colors: {},
+    });
+    cy.updateDashboard(r.id, {
+      certification_details: r.certification_details,
+      certified_by: r.certified_by,
+      css: r.css,
+      dashboard_title: r.dashboard_title,
+      json_metadata: resetMetadata,
+      owners: r.owners,
+      slug: r.slug,
+    }).then(() => {
+      if (go) {
+        visitEdit(TABBED_DASHBOARD);
+      }
+    });
+  });
+}
+
+function visitResetTabbedDashboard() {
+  resetTabbedDashboard(true);
 }
 
 function selectColorScheme(color: string) {
@@ -104,6 +133,7 @@ function assertMetadata(text: string) {
 }
 function clearMetadata() {
   cy.get('#json_metadata').then($jsonmetadata => {
+    cy.wait(500);
     cy.wrap($jsonmetadata).type('{selectall} {backspace}');
   });
 }
@@ -117,6 +147,247 @@ function writeMetadata(metadata: string) {
 describe('Dashboard edit', () => {
   beforeEach(() => {
     cy.preserveLogin();
+  });
+
+  describe('Color consistency', () => {
+    beforeEach(() => {
+      visitResetTabbedDashboard();
+    });
+
+    after(() => {
+      resetTabbedDashboard();
+    });
+
+    it('should apply the color scheme across main tabs', () => {
+      openProperties();
+      selectColorScheme('lyftColors');
+      applyChanges();
+      saveChanges();
+
+      cy.get('.treemap #rect-sum__SP_POP_TOTL').should(
+        'have.css',
+        'fill',
+        'rgb(234, 11, 140)',
+      );
+
+      // go to second tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(0)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+      waitForChartLoad({ name: 'Trends', viz: 'line' });
+
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+    });
+
+    it('should apply the color scheme across main tabs for rendered charts', () => {
+      waitForChartLoad({ name: 'Treemap', viz: 'treemap' });
+      openProperties();
+      selectColorScheme('bnbColors');
+      applyChanges();
+      saveChanges();
+
+      cy.get('.treemap #rect-sum__SP_POP_TOTL').should(
+        'have.css',
+        'fill',
+        'rgb(255, 90, 95)',
+      );
+
+      // go to second tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(0)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+      waitForChartLoad({ name: 'Trends', viz: 'line' });
+
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(255, 90, 95)');
+
+      // go back to first tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(0)
+        .find('[role="tab"]')
+        .eq(0)
+        .click();
+
+      // change scheme now that charts are rendered across the main tabs
+      editDashboard();
+      openProperties();
+      selectColorScheme('lyftColors');
+      applyChanges();
+      saveChanges();
+
+      cy.get('.treemap #rect-sum__SP_POP_TOTL').should(
+        'have.css',
+        'fill',
+        'rgb(234, 11, 140)',
+      );
+
+      // go to second tab again
+      cy.getBySel('dashboard-component-tabs')
+        .eq(0)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+    });
+
+    it('should apply the color scheme in nested tabs', () => {
+      openProperties();
+      selectColorScheme('lyftColors');
+      applyChanges();
+      saveChanges();
+      cy.get('.treemap #rect-sum__SP_POP_TOTL').should(
+        'have.css',
+        'fill',
+        'rgb(234, 11, 140)',
+      );
+
+      // open nested tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(1)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+      waitForChartLoad({
+        name: 'Top 10 California Names Timeseries',
+        viz: 'line',
+      });
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+
+      // open another nested tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(2)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+      waitForChartLoad({ name: 'Growth Rate', viz: 'line' });
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+    });
+
+    it('label colors should take the precedence in nested tabs', () => {
+      openProperties();
+      openAdvancedProperties();
+      clearMetadata();
+      writeMetadata(
+        '{"color_scheme":"lyftColors","label_colors":{"Anthony":"red","Bangladesh":"red"}}',
+      );
+      applyChanges();
+      saveChanges();
+
+      // open nested tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(1)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+      waitForChartLoad({
+        name: 'Top 10 California Names Timeseries',
+        viz: 'line',
+      });
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(255, 0, 0)');
+
+      // open another nested tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(2)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+      waitForChartLoad({ name: 'Growth Rate', viz: 'line' });
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(255, 0, 0)');
+    });
+
+    it('should apply a valid color scheme for rendered charts in nested tabs', () => {
+      // open the tab first time and let chart load
+      cy.getBySel('dashboard-component-tabs')
+        .eq(1)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+      waitForChartLoad({
+        name: 'Top 10 California Names Timeseries',
+        viz: 'line',
+      });
+
+      // go to previous tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(1)
+        .find('[role="tab"]')
+        .eq(0)
+        .click();
+
+      openProperties();
+      selectColorScheme('lyftColors');
+      applyChanges();
+      saveChanges();
+
+      // re-open the tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(1)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+    });
+
+    it('label colors should take the precedence for rendered charts in nested tabs', () => {
+      // open the tab first time and let chart load
+      cy.getBySel('dashboard-component-tabs')
+        .eq(1)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+      waitForChartLoad({
+        name: 'Top 10 California Names Timeseries',
+        viz: 'line',
+      });
+
+      // go to previous tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(1)
+        .find('[role="tab"]')
+        .eq(0)
+        .click();
+
+      openProperties();
+      openAdvancedProperties();
+      clearMetadata();
+      writeMetadata(
+        '{"color_scheme":"lyftColors","label_colors":{"Anthony":"red"}}',
+      );
+      applyChanges();
+      saveChanges();
+
+      // re-open the tab
+      cy.getBySel('dashboard-component-tabs')
+        .eq(1)
+        .find('[role="tab"]')
+        .eq(1)
+        .click();
+
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(255, 0, 0)');
+    });
   });
 
   describe('Edit properties', () => {
@@ -255,39 +526,6 @@ describe('Dashboard edit', () => {
       ).to(500, 600);
 
       cy.getBySel('dashboard-markdown-editor').contains('Test resize');
-    });
-  });
-
-  describe('Color schemes', () => {
-    beforeEach(() => {
-      cy.createSampleDashboards();
-      visitEdit();
-    });
-
-    it('should apply a valid color scheme', () => {
-      dragComponent('Top 10 California Names Timeseries');
-      openProperties();
-      selectColorScheme('lyftColors');
-      applyChanges();
-      saveChanges();
-      cy.get('.line .nv-legend-symbol')
-        .first()
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
-    });
-
-    it('label colors should take the precedence', () => {
-      dragComponent('Top 10 California Names Timeseries');
-      openProperties();
-      openAdvancedProperties();
-      clearMetadata();
-      writeMetadata(
-        '{"color_scheme":"lyftColors","label_colors":{"Anthony":"red"}}',
-      );
-      applyChanges();
-      saveChanges();
-      cy.get('.line .nv-legend-symbol')
-        .first()
-        .should('have.css', 'fill', 'rgb(255, 0, 0)');
     });
   });
 
