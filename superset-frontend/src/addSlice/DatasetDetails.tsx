@@ -25,9 +25,12 @@ import { Select, AsyncSelect } from 'src/components';
 import { Button, Col, Row, Tooltip } from 'antd';
 import { FormLabel } from 'src/components/Form';
 
-import { OptionsType } from 'src/components/Select/Select';
 import { MinusCircleOutlined } from '@ant-design/icons';
-import { OptionsPagePromise } from 'src/components/Select/AsyncSelect';
+
+import {
+  SelectOptionsPagePromise,
+  SelectOptionsType,
+} from 'src/components/Select/utils';
 import {
   StyledLabel,
   StyledStepDescription,
@@ -45,12 +48,12 @@ import DatasetJoins from './DatasetJoins';
 interface DatasetDetailsProps {
   index: number;
   firstDatasetName: string;
-  joinOptions: OptionsType;
+  joinOptions: SelectOptionsType;
   dataset: AdditionalStateDataset;
   datasets: AdditionalStateDataset[];
   datasourceJoins: DatasourceJoins[];
-  firstDatasourceColumns: OptionsType;
-  datasetOptions: OptionsPagePromise;
+  firstDatasourceColumns: SelectOptionsType;
+  datasetOptions: SelectOptionsPagePromise;
   changeDatasourceJoins: (datasourceJoins: DatasourceJoins[]) => void;
   changeAdditionalDatasource: (datasets: AdditionalStateDataset[]) => void;
 }

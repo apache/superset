@@ -25,7 +25,7 @@ import { Button, Col, Row, Tooltip } from 'antd';
 import { Select } from 'src/components';
 
 import { FormLabel } from 'src/components/Form';
-import { OptionsType } from 'src/components/Select/Select';
+import { SelectOptionsType } from 'src/components/Select/utils';
 
 import { MinusCircleOutlined, PlusCircleOutlined } from '@ant-design/icons';
 
@@ -50,8 +50,8 @@ interface DatasetJoinsProps {
   firstDatasetName: string;
   secondDatasetName: string;
   datasetJoins: DatasourceJoin[];
-  firstColumnOptions: OptionsType;
-  secondColumnOptions: OptionsType;
+  firstColumnOptions: SelectOptionsType;
+  secondColumnOptions: SelectOptionsType;
   changeDatasourceJoin: (datasetJoin: DatasetJoin[]) => void;
 }
 
