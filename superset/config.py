@@ -543,7 +543,7 @@ FLASH_OWNERSHIP = {
             "owner": {
                 "type": "string",
                 "title": "Owner Email",
-                "pattern": "[a-z0-9]+@careem.com",
+                "pattern": "^[a-z0-9._-]+@careem.com+$",
             },
         },
         "required": [
