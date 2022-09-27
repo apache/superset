@@ -573,7 +573,7 @@ const SqlEditor = ({
         <div className="rightItems">
           {flashCreationConf && (
             <span>
-              <FlashCreationButton sqlEditor={this.props.queryEditor} />
+              <FlashCreationButton sqlEditor={queryEditor} />
             </span>
           )}
           <span>
