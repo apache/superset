@@ -27,30 +27,31 @@ import {
 import { getMetricOffsetsMap, isTimeComparison } from './utils';
 import { PostProcessingFactory } from './types';
 
-export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot> =
-  (formData, queryObject) => {
-    const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
-    const xAxis = getXAxis(formData);
+export const timeComparePivotOperator: PostProcessingFactory<
+  PostProcessingPivot
+> = (formData, queryObject) => {
+  const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
+  const xAxis = getXAxis(formData);
 
-    if (isTimeComparison(formData, queryObject) && xAxis) {
-      const aggregates = Object.fromEntries(
-        [...metricOffsetMap.values(), ...metricOffsetMap.keys()].map(metric => [
-          metric,
-          // use the 'mean' aggregates to avoid drop NaN
-          { operator: 'mean' as NumpyFunction },
-        ]),
-      );
+  if (isTimeComparison(formData, queryObject) && xAxis) {
+    const aggregates = Object.fromEntries(
+      [...metricOffsetMap.values(), ...metricOffsetMap.keys()].map(metric => [
+        metric,
+        // use the 'mean' aggregates to avoid drop NaN
+        { operator: 'mean' as NumpyFunction },
+      ]),
+    );
 
-      return {
-        operation: 'pivot',
-        options: {
-          index: [xAxis],
-          columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
-          drop_missing_columns: !formData?.show_empty_columns,
-          aggregates,
-        },
-      };
-    }
+    return {
+      operation: 'pivot',
+      options: {
+        index: [xAxis],
+        columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
+        drop_missing_columns: !formData?.show_empty_columns,
+        aggregates,
+      },
+    };
+  }
 
-    return undefined;
-  };
+  return undefined;
+};
