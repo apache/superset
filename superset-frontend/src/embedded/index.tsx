@@ -184,16 +184,22 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
 
     let started = false;
 
-    switchboard.defineMethod('guestToken', ({ guestToken }: { guestToken: string }) => {
-      setupGuestClient(guestToken);
-      if (!started) {
-        start();
-        started = true;
-      }
-    });
+    switchboard.defineMethod(
+      'guestToken',
+      ({ guestToken }: { guestToken: string }) => {
+        setupGuestClient(guestToken);
+        if (!started) {
+          start();
+          started = true;
+        }
+      },
+    );
 
     switchboard.defineMethod('getScrollSize', embeddedApi.getScrollSize);
-    switchboard.defineMethod('getDashboardPermalink', embeddedApi.getDashboardPermalink);
+    switchboard.defineMethod(
+      'getDashboardPermalink',
+      embeddedApi.getDashboardPermalink,
+    );
     switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     switchboard.start();
   }
