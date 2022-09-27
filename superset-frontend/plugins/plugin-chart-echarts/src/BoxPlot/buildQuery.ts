@@ -16,26 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext } from '@superset-ui/core';
+import { buildQueryContext, ensureIsArray } from '@superset-ui/core';
 import { boxplotOperator } from '@superset-ui/chart-controls';
 import { BoxPlotQueryFormData } from './types';
 
 export default function buildQuery(formData: BoxPlotQueryFormData) {
-  const { columns = [], granularity_sqla, groupby = [] } = formData;
-  return buildQueryContext(formData, baseQueryObject => {
-    const distributionColumns: string[] = [];
-    // For now default to using the temporal column as distribution column.
-    // In the future this control should be made mandatory.
-    if (!columns.length && granularity_sqla) {
-      distributionColumns.push(granularity_sqla);
-    }
-    return [
-      {
-        ...baseQueryObject,
-        columns: [...distributionColumns, ...columns, ...groupby],
-        series_columns: groupby,
-        post_processing: [boxplotOperator(formData, baseQueryObject)],
-      },
-    ];
-  });
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      columns: [
+        ...ensureIsArray(formData.columns),
+        ...ensureIsArray(formData.groupby),
+      ],
+      series_columns: formData.groupby,
+      post_processing: [boxplotOperator(formData, baseQueryObject)],
+    },
+  ]);
 }

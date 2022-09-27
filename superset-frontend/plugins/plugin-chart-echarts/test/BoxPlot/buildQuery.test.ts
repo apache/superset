@@ -43,7 +43,7 @@ describe('BoxPlot buildQuery', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);
-    expect(query.columns).toEqual(['ds', 'bar']);
+    expect(query.columns).toEqual(['bar']);
     expect(query.series_columns).toEqual(['bar']);
     const [rule] = query.post_processing || [];
     expect(isPostProcessingBoxplot(rule)).toEqual(true);

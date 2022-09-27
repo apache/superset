@@ -17,18 +17,24 @@
  * under the License.
  */
 import {
+  ensureIsArray,
   FeatureFlag,
+  isDefined,
   isFeatureEnabled,
+  QueryColumn,
   QueryFormData,
-  QueryResponse,
   t,
   validateNonEmpty,
+  ValueOf,
 } from '@superset-ui/core';
 import {
   BaseControlConfig,
+  ColumnMeta,
   ControlPanelState,
   ControlState,
-  Dataset,
+  isColumnMeta,
+  isDataset,
+  isQueryResponse,
 } from '../types';
 
 const getAxisLabel = (
@@ -58,26 +64,50 @@ export const xAxisMixin = {
   default: undefined,
 };
 
+export const getTemporalColumnsFromDatasouce = (
+  datasource: ValueOf<Pick<ControlPanelState, 'datasource'>>,
+) => {
+  const rv: {
+    temporalColumns: ColumnMeta[] | QueryColumn[];
+    defaultTemporalColumn: string | null | undefined;
+  } = {
+    temporalColumns: [],
+    defaultTemporalColumn: undefined,
+  };
+
+  if (
+    isDataset(datasource) ||
+    (isQueryResponse(datasource) && !('results' in datasource))
+  ) {
+    rv.temporalColumns = ensureIsArray(datasource.columns).filter(
+      c => c.is_dttm,
+    );
+  }
+  if (isQueryResponse(datasource) && 'results' in datasource) {
+    rv.temporalColumns = ensureIsArray(datasource.results.columns).filter(
+      c => c.is_dttm,
+    );
+  }
+
+  if (isDataset(datasource)) {
+    rv.defaultTemporalColumn = datasource.main_dttm_col;
+  }
+  if (!isDefined(rv.defaultTemporalColumn)) {
+    rv.defaultTemporalColumn = isColumnMeta(rv.temporalColumns[0])
+      ? rv.temporalColumns[0].column_name
+      : rv.temporalColumns[0]?.name;
+  }
+
+  return rv;
+};
+
 export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
   mapStateToProps: ({ datasource }) => {
-    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
-      const temporalColumns =
-        (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
-      return {
-        options: temporalColumns,
-        default:
-          (datasource as Dataset)?.main_dttm_col ||
-          temporalColumns[0]?.column_name ||
-          null,
-        isTemporal: true,
-      };
-    }
-    const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
-      query => (query?.is_dttm ? -1 : 1),
-    );
+    const payload = getTemporalColumnsFromDatasouce(datasource);
+
     return {
-      options: sortedQueryColumns,
-      default: sortedQueryColumns[0]?.name || null,
+      options: payload.temporalColumns,
+      default: payload.defaultTemporalColumn,
       isTemporal: true,
     };
   },

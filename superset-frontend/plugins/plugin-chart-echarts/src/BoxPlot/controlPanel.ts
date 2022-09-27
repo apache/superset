@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t } from '@superset-ui/core';
+import { ensureIsArray, t, validateNonEmpty } from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -26,20 +26,23 @@ import {
   emitFilterControl,
   ControlPanelConfig,
   getStandardizedControls,
+  ControlState,
+  ControlPanelState,
+  getTemporalColumnsFromDatasouce,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        ['columns'],
+        ['groupby'],
         ['metrics'],
         ['adhoc_filters'],
         emitFilterControl,
-        ['groupby'],
-        ['columns'], // TODO: this should be migrated to `series_columns`
         ['series_limit'],
         ['series_limit_metric'],
         [
@@ -132,9 +135,20 @@ const config: ControlPanelConfig = {
     columns: {
       label: t('Distribute across'),
       multi: true,
-      description: t(
-        'Columns to calculate distribution across. Defaults to temporal column if left empty.',
-      ),
+      description: t('Columns to calculate distribution across.'),
+      initialValue: (control: ControlState, state: ControlPanelState) => {
+        if (
+          !control?.value ||
+          (Array.isArray(control?.value) && control.value.length === 0)
+        ) {
+          return [
+            getTemporalColumnsFromDatasouce(state.datasource)
+              .defaultTemporalColumn,
+          ];
+        }
+        return control.value;
+      },
+      validators: [validateNonEmpty],
     },
   },
   formDataOverrides: formData => {
