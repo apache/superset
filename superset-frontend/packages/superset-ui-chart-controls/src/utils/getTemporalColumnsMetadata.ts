@@ -1,17 +1,3 @@
-import {
-  ensureIsArray,
-  isDefined,
-  QueryColumn,
-  ValueOf,
-} from '@superset-ui/core';
-import {
-  ColumnMeta,
-  ControlPanelState,
-  isColumnMeta,
-  isDataset,
-  isQueryResponse,
-} from '@superset-ui/chart-controls';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -30,6 +16,20 @@ import {
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  ensureIsArray,
+  isDefined,
+  QueryColumn,
+  ValueOf,
+} from '@superset-ui/core';
+import {
+  ColumnMeta,
+  ControlPanelState,
+  isColumnMeta,
+  isDataset,
+  isQueryResponse,
+} from '@superset-ui/chart-controls';
+
 export const getTemporalColumnsMetadata = (
   datasource: ValueOf<Pick<ControlPanelState, 'datasource'>>,
 ) => {
