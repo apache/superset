@@ -67,31 +67,24 @@ class CategoricalColorScale extends ExtensibleFunction {
     const cleanedValue = stringifyAndTrim(value);
     const sharedLabelColor = getSharedLabelColor();
 
-    const parentColor =
-      this.parentForcedColors && this.parentForcedColors[cleanedValue];
-    if (parentColor) {
-      sharedLabelColor.addSlice(cleanedValue, parentColor, sliceId);
-      return parentColor;
-    }
+    // priority: parentForcedColors > forcedColors
+    let color =
+      this.parentForcedColors?.[cleanedValue] ||
+      this.forcedColors?.[cleanedValue];
 
-    const forcedColor = this.forcedColors[cleanedValue];
-    if (forcedColor) {
-      sharedLabelColor.addSlice(cleanedValue, forcedColor, sliceId);
-      return forcedColor;
-    }
-
-    if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
-      const multiple = Math.floor(
-        this.domain().length / this.originColors.length,
-      );
-      if (multiple > this.multiple) {
-        this.multiple = multiple;
-        const newRange = getAnalogousColors(this.originColors, multiple);
-        this.range(this.originColors.concat(newRange));
+    if (!color) {
+      if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
+        const multiple = Math.floor(
+          this.domain().length / this.originColors.length,
+        );
+        if (multiple > this.multiple) {
+          this.multiple = multiple;
+          const newRange = getAnalogousColors(this.originColors, multiple);
+          this.range(this.originColors.concat(newRange));
+        }
       }
+      color = this.scale(cleanedValue);
     }
-
-    const color = this.scale(cleanedValue);
     sharedLabelColor.addSlice(cleanedValue, color, sliceId);
 
     return color;
