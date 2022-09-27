@@ -155,7 +155,7 @@ export default function transformProps(
   }
 
   let metricEntry;
-  if (chartProps.datasource && chartProps.datasource.metrics) {
+  if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
       metricEntry => metricEntry.metric_name === metric,
     );
