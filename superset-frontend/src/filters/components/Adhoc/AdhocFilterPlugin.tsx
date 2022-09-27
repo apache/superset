@@ -49,6 +49,8 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
 // eslint-disable-next-line import/no-unresolved
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+// eslint-disable-next-line import/no-unresolved
+import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { PluginFilterAdhocProps, SelectValue } from './types';
 import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getAdhocExtraFormData } from '../../utils';
@@ -148,7 +150,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     ({ endpoint }) => endpoint || '',
   );
 
-  useEffect(() => {
+  useChangeEffect(datasetId, () => {
     if (datasetId) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
@@ -164,9 +166,9 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
           addDangerToast(response.message);
         });
     }
-  }, [datasetId]);
+  });
 
-  useEffect(() => {
+  useChangeEffect(datasetId, () => {
     if (datasetId != null) {
       cachedSupersetGet({
         endpoint: `/api/v1/dataset/${datasetId}`,
