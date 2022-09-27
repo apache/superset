@@ -188,7 +188,7 @@ RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_
     rm /tmp/geckodriver.tar.gz
 
 # Install Firefox
-RUN wget -O /opt/firefox-esr.tar.bz2 https://download.mozilla.org/?product=firefox-esr-latest&os=linux64&lang=en-US && \
+RUN wget -O /opt/firefox-esr.tar.bz2 "https://download.mozilla.org/?product=firefox-esr-latest&os=linux64&lang=en-US" && \
     tar xvf /opt/firefox-esr.tar.bz2 -C /opt && \
     ln -s /opt/firefox/firefox /usr/local/bin/firefox
 
