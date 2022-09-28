@@ -76,7 +76,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
-import ConnectedSouthPane from '../SouthPane';
+import SouthPane from '../SouthPane';
 import SaveQuery from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
@@ -622,7 +622,7 @@ const SqlEditor = ({
           />
           {renderEditorBottomBar(hotkeys)}
         </div>
-        <ConnectedSouthPane
+        <SouthPane
           editorQueries={editorQueries}
           latestQueryId={latestQuery?.id}
           dataPreviewQueries={dataPreviewQueries}
