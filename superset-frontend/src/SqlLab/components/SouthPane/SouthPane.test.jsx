@@ -19,10 +19,8 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { styledShallow as shallow } from 'spec/helpers/theming';
 import { render, screen, act } from 'spec/helpers/testing-library';
 import SouthPane from 'src/SqlLab/components/SouthPane';
-import ResultSet from 'src/SqlLab/components/ResultSet';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -88,44 +86,59 @@ const mockedEmptyProps = {
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-const store = mockStore(initialState);
-const setup = (overrides = {}) => (
-  <SouthPane store={store} {...mockedProps} {...overrides} />
-);
 
-describe('SouthPane - Enzyme', () => {
-  const getWrapper = () => shallow(setup()).dive();
-
-  let wrapper;
-
-  it('should render offline when the state is offline', () => {
-    wrapper = getWrapper().dive();
-    wrapper.setProps({ offline: true });
-    expect(wrapper.childAt(0).text()).toBe(STATUS_OPTIONS.offline);
+const setup = (props, store) =>
+  render(<SouthPane {...props} />, {
+    useRedux: true,
+    ...(store && { store }),
   });
 
-  it('should pass latest query down to ResultSet component', () => {
-    wrapper = getWrapper().dive();
-    expect(wrapper.find(ResultSet)).toExist();
-    expect(wrapper.find(ResultSet).props().query.id).toEqual(
-      mockedProps.latestQueryId,
-    );
-  });
-});
-
-describe('SouthPane - RTL', () => {
-  const renderAndWait = overrides => {
-    const mounted = act(async () => {
-      render(setup(overrides));
+describe('SouthPane', () => {
+  const renderAndWait = (props, store) =>
+    act(async () => {
+      setup(props, store);
     });
 
-    return mounted;
-  };
   it('Renders an empty state for results', async () => {
-    await renderAndWait(mockedEmptyProps);
+    await renderAndWait(mockedEmptyProps, mockStore(initialState));
 
     const emptyStateText = screen.getByText(/run a query to display results/i);
 
     expect(emptyStateText).toBeVisible();
+  });
+
+  it('should render offline when the state is offline', async () => {
+    await renderAndWait(
+      mockedEmptyProps,
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          offline: true,
+        },
+      }),
+    );
+
+    expect(screen.getByText(STATUS_OPTIONS.offline)).toBeVisible();
+  });
+
+  it('should pass latest query down to ResultSet component', async () => {
+    const alertMessage = 'LATEST QUERY MESSAGE';
+
+    const [latestQuery, ...restQueries] = mockedProps.editorQueries;
+    const latestQueryWithAlertMsg = {
+      ...latestQuery,
+      extra: { progress: alertMessage },
+    };
+
+    await renderAndWait(
+      {
+        ...mockedProps,
+        editorQueries: [latestQueryWithAlertMsg, ...restQueries],
+      },
+      mockStore(initialState),
+    );
+
+    expect(screen.getByText(alertMessage)).toBeVisible();
   });
 });
