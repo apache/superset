@@ -208,7 +208,12 @@ const SouthPane = ({
   return offline ? (
     renderOfflineStatus()
   ) : (
-    <StyledPane className="SouthPane" height={height} ref={southPaneRef}>
+    <StyledPane
+      data-test="south-pane"
+      className="SouthPane"
+      height={height}
+      ref={southPaneRef}
+    >
       <Tabs
         activeKey={activeSouthPaneTab}
         className="SouthPaneTabs"

@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
-import { render } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
@@ -33,8 +33,6 @@ import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import SouthPane from 'src/SqlLab/components/SouthPane';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import QueryProvider from 'src/views/QueryProvider';
-import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
-import { AntdDropdown } from 'src/components';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import {
@@ -122,15 +120,15 @@ describe('SqlEditor', () => {
   });
 
   it('render a SqlEditorLeftBar', async () => {
-    const wrapper = buildWrapper();
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(SqlEditorLeftBar)).toExist();
+    setup(mockedProps, store);
+    const leftBar = screen.getByTestId('sql-editor-left-bar');
+    expect(leftBar).toBeInTheDocument();
   });
 
   it('render an AceEditorWrapper', async () => {
-    const wrapper = buildWrapper();
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(AceEditorWrapper)).toExist();
+    setup(mockedProps, store);
+    const editor = screen.getByTestId('react-ace');
+    expect(editor).toBeInTheDocument();
   });
 
   it('renders sql from unsaved change', () => {
@@ -170,9 +168,9 @@ describe('SqlEditor', () => {
   });
 
   it('render a SouthPane', async () => {
-    const wrapper = buildWrapper();
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(SouthPane)).toExist();
+    setup(mockedProps, store);
+    const southPane = screen.getByTestId('south-pane');
+    expect(southPane).toBeInTheDocument();
   });
 
   // TODO eschutho convert tests to RTL
@@ -206,8 +204,11 @@ describe('SqlEditor', () => {
   it('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
-    const wrapper = buildWrapper(updatedProps);
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(AntdDropdown)).toExist();
+
+    setup(updatedProps, store);
+    const limitDropdown = screen.getByTestId('limit-dropdown');
+
+    expect(limitDropdown).toBeInTheDocument();
+    expect(limitDropdown).toHaveTextContent(defaultQueryLimit);
   });
 });

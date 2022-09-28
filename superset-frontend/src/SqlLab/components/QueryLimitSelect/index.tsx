@@ -98,7 +98,7 @@ const QueryLimitSelect = ({
   const theme = useTheme();
 
   return (
-    <LimitSelectStyled>
+    <LimitSelectStyled data-test="limit-dropdown">
       <AntdDropdown
         overlay={renderQueryLimit(maxRow, setQueryLimit)}
         trigger={['click']}

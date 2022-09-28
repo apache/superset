@@ -247,7 +247,7 @@ export default function SqlEditorLeftBar({
   }, []);
 
   return (
-    <div className="SqlEditorLeftBar">
+    <div data-test="sql-editor-left-bar" className="SqlEditorLeftBar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
