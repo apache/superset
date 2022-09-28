@@ -79,23 +79,8 @@ function reducer(
 }
 
 export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
-  const {
-    coltypeMap,
-    data,
-    filterState,
-    formData,
-    height,
-    isRefreshing,
-    width,
-    setDataMask,
-    setFocusedFilter,
-    unsetFocusedFilter,
-    setFilterActive,
-    appSection,
-    showOverflow,
-    parentRef,
-    inputRef,
-  } = props;
+  const { filterState, formData, height, width, setDataMask, appSection } =
+    props;
   const { enableEmptyFilter, inverseSelection, defaultToFirstItem } = formData;
   const datasetId = useMemo(
     () => formData.datasource.split('_')[0],
