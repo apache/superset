@@ -20,7 +20,6 @@
 import {
   DataMask,
   ExtraFormData,
-  GenericDataType,
   JsonObject,
   JsonResponse,
   smartDateDetailedFormatter,
@@ -103,14 +102,11 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     [formData.datasource],
   );
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
-  const [col, setCol] = useState('');
-  console.log(formData.columns);
   const [columns, setColumns] = useState();
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
   });
-  const datatype: GenericDataType = coltypeMap[col];
   const labelFormatter = useMemo(
     () =>
       getDataRecordFormatter({
@@ -195,8 +191,6 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       appSection,
-      col,
-      datatype,
       defaultToFirstItem,
       dispatchDataMask,
       enableEmptyFilter,
