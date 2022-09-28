@@ -20,16 +20,11 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   QueryFormData,
-  QueryResponse,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import {
-  BaseControlConfig,
-  ControlPanelState,
-  ControlState,
-  Dataset,
-} from '../types';
+import { BaseControlConfig, ControlPanelState, ControlState } from '../types';
+import { getTemporalColumns } from '../utils';
 
 const getAxisLabel = (
   formData: QueryFormData,
@@ -60,24 +55,11 @@ export const xAxisMixin = {
 
 export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
   mapStateToProps: ({ datasource }) => {
-    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
-      const temporalColumns =
-        (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
-      return {
-        options: temporalColumns,
-        default:
-          (datasource as Dataset)?.main_dttm_col ||
-          temporalColumns[0]?.column_name ||
-          null,
-        isTemporal: true,
-      };
-    }
-    const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
-      query => (query?.is_dttm ? -1 : 1),
-    );
+    const payload = getTemporalColumns(datasource);
+
     return {
-      options: sortedQueryColumns,
-      default: sortedQueryColumns[0]?.name || null,
+      options: payload.temporalColumns,
+      default: payload.defaultTemporalColumn,
       isTemporal: true,
     };
   },
