@@ -69,6 +69,9 @@ These features flags are **safe for production** and have been tested.
 - ENABLE_EXPLORE_DRAG_AND_DROP
 - ENABLE_DND_WITH_CLICK_UX
 - EMBEDDABLE_CHARTS
+- EMBEDDED_SUPERSET
+- ALERTS_ATTACH_REPORTS
+- ALLOW_ADHOC_SUBQUERY
 - DRUID_JOINS
 
 ## Deprecated Flags
@@ -80,9 +83,6 @@ These features flags currently default to True and **will be removed in a future
 
 ## In need of categorization
 - DISABLE_LEGACY_DATASOURCE_EDITOR
-- EMBEDDED_SUPERSET
 - ENABLE_ADVANCED_DATA_TYPES
-- ALERTS_ATTACH_REPORTS
 - ENFORCE_DB_ENCRYPTION_UI
 - ALLOW_FULL_CSV_EXPORT
-- ALLOW_ADHOC_SUBQUERY
