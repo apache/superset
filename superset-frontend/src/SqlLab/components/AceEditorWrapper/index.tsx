@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { areArraysShallowEqual } from 'src/reduxUtils';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
@@ -37,7 +37,7 @@ import {
   AceCompleterKeyword,
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
-import { QueryEditor } from 'src/SqlLab/types';
+import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 
 type HotKey = {
   key: string;
@@ -50,7 +50,7 @@ type AceEditorWrapperProps = {
   autocomplete: boolean;
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   database: any;
   extendedTables?: Array<{ name: string; columns: any[] }>;
   height: string;
@@ -61,7 +61,7 @@ const AceEditorWrapper = ({
   autocomplete,
   onBlur = () => {},
   onChange = () => {},
-  queryEditor,
+  queryEditorId,
   database,
   extendedTables = [],
   height,
@@ -69,7 +69,13 @@ const AceEditorWrapper = ({
 }: AceEditorWrapperProps) => {
   const dispatch = useDispatch();
 
-  const { sql: currentSql } = queryEditor;
+  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
+      ...queryEditors.find(({ id }) => id === queryEditorId),
+      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+    }),
+  );
+  const currentSql = queryEditor.sql ?? '';
   const functionNames = queryEditor.functionNames ?? [];
   const schemas = queryEditor.schemaOptions ?? [];
   const tables = queryEditor.tableOptions ?? [];
