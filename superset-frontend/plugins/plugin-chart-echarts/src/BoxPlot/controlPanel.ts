@@ -174,7 +174,7 @@ const config: ControlPanelConfig = {
       description: t('Columns to calculate distribution across.'),
       initialValue: (control: ControlState, state: ControlPanelState) => {
         if (
-          !control?.value ||
+          (state && !control?.value) ||
           (Array.isArray(control?.value) && control.value.length === 0)
         ) {
           return [getTemporalColumns(state.datasource).defaultTemporalColumn];
