@@ -17,7 +17,81 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
+import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
+import { Menu } from 'src/components/Menu';
+import { TooltipPlacement } from 'src/components/Tooltip';
+import {
+  HeaderComponentStyles,
+  disabledSaveBtnStyles,
+} from 'src/views/CRUD/data/dataset/styles';
+import {
+  DatasetActionType,
+  DSReducerActionType,
+} from 'src/views/CRUD/data/dataset/AddDataset/types';
 
-export default function Header() {
-  return <div>Header</div>;
+const tooltipProps: { text: string; placement: TooltipPlacement } = {
+  text: t('Select a database table and create dataset'),
+  placement: 'bottomRight',
+};
+
+const renderDisabledSaveButton = () => (
+  <Button
+    buttonStyle="primary"
+    tooltip={tooltipProps?.text}
+    placement={tooltipProps?.placement}
+    disabled
+    css={disabledSaveBtnStyles}
+  >
+    <Icons.Save iconSize="m" />
+    {t('Save')}
+  </Button>
+);
+
+const renderOverlay = () => (
+  <Menu>
+    <Menu.Item>{t('Settings')}</Menu.Item>
+    <Menu.Item>{t('Delete')}</Menu.Item>
+  </Menu>
+);
+
+export default function Header({
+  setDataset,
+  datasetName,
+}: {
+  setDataset: React.Dispatch<DSReducerActionType>;
+  datasetName: string;
+}) {
+  const editableTitleProps = {
+    title: datasetName,
+    placeholder: t('Add the name of the dataset'),
+    onSave: (newDatasetName: string) => {
+      setDataset({
+        type: DatasetActionType.changeDataset,
+        payload: { name: 'dataset_name', value: newDatasetName },
+      });
+    },
+    canEdit: true,
+    label: t('dataset name'),
+  };
+
+  return (
+    <HeaderComponentStyles>
+      <PageHeaderWithActions
+        editableTitleProps={editableTitleProps}
+        showTitlePanelItems={false}
+        showFaveStar={false}
+        faveStarProps={{ itemId: 1, saveFaveStar: () => {} }}
+        titlePanelAdditionalItems={<></>}
+        rightPanelAdditionalItems={renderDisabledSaveButton()}
+        additionalActionsMenu={renderOverlay()}
+        menuDropdownProps={{
+          disabled: true,
+        }}
+        tooltipProps={tooltipProps}
+      />
+    </HeaderComponentStyles>
+  );
 }

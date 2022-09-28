@@ -74,7 +74,6 @@ type DatabaseValue = {
   id: number;
   database_name: string;
   backend: string;
-  allow_multi_schema_metadata_fetch: boolean;
   has_catalogs: boolean;
 };
 
@@ -82,7 +81,6 @@ export type DatabaseObject = {
   id: number;
   database_name: string;
   backend: string;
-  allow_multi_schema_metadata_fetch: boolean;
   has_catalogs: boolean;
 };
 
@@ -146,17 +144,7 @@ export default function DatabaseSelector({
   const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
   const [catalogOptions, setCatalogOptions] = useState<CatalogValue[]>([]);
 
-  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>(
-    db
-      ? {
-          label: (
-            <SelectLabel backend={db.backend} databaseName={db.database_name} />
-          ),
-          value: db.id,
-          ...db,
-        }
-      : undefined,
-  );
+  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
   const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
     schema ? { label: schema, value: schema } : undefined,
   );
@@ -220,7 +208,6 @@ export default function DatabaseSelector({
       label: (
         <SelectLabel backend={row.backend} databaseName={row.database_name} />
       ),
-      allow_multi_schema_metadata_fetch: row.allow_multi_schema_metadata_fetch,
     }));
     return { data: options, totalCount: options.length };
   };
@@ -291,6 +278,25 @@ export default function DatabaseSelector({
   };
 
   // Todo: Test UseEffets
+  useEffect(() => {
+    setCurrentDb(current =>
+      current?.id !== db?.id
+        ? db
+          ? {
+              label: (
+                <SelectLabel
+                  backend={db.backend}
+                  databaseName={db.database_name}
+                />
+              ),
+              value: db.id,
+              ...db,
+            }
+          : undefined
+        : current,
+    );
+  }, [db]);
+
   useEffect(() => {
     if (currentDb) {
       if (currentDb.has_catalogs) fetchCatalogs();

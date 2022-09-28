@@ -10,12 +10,12 @@ KIND, either express or implied. See the License for the specific language
 governing permissions and limitations under the License. #} {% extends
 "appbuilder/baselayout.html" %} {% from 'superset/partials/asset_bundle.html'
 import css_bundle, js_bundle with context %} {% block head_css %} {{ super() }}
-<link
-  rel="icon"
-  type="image/png"
-  href="{{ assets_prefix }}/static/assets/images/insights v2 - 256.png"
-/>
-{{ css_bundle("theme") }} {% endblock %} {% block head_js %} {{ super() }} {{
-js_bundle("theme") }} {% endblock %} {% block tail_js %} {{ super() }} {{
-js_bundle("preamble") }} {{ js_bundle('menu') }} {% include
+{% set favicons = appbuilder.app.config['FAVICONS'] %} {% for favicon in
+favicons %} <link rel="{{favicon.rel if favicon.rel else "icon"}}"
+type="{{favicon.type if favicon.type else "image/png"}}" {% if favicon.sizes
+%}sizes={{favicon.sizes}}{% endif %} href="{{ "" if
+favicon.href.startswith("http") else assets_prefix }}{{favicon.href}}" > {%
+endfor %} {{ css_bundle("theme") }} {% endblock %} {% block head_js %} {{
+super() }} {{ js_bundle("theme") }} {% endblock %} {% block tail_js %} {{
+super() }} {{ js_bundle("preamble") }} {{ js_bundle('menu') }} {% include
 "tail_js_custom_extra.html" %} {% endblock %}

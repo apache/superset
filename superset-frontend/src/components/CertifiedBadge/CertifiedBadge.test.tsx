@@ -17,31 +17,36 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import CertifiedBadge from 'src/components/CertifiedBadge';
+import CertifiedBadge, {
+  CertifiedBadgeProps,
+} from 'src/components/CertifiedBadge';
 
-test('renders with default props', () => {
-  render(<CertifiedBadge />);
+const asyncRender = (props?: CertifiedBadgeProps) =>
+  waitFor(() => render(<CertifiedBadge {...props} />));
+
+test('renders with default props', async () => {
+  await asyncRender();
   expect(screen.getByRole('img')).toBeInTheDocument();
 });
 
 test('renders a tooltip when hovered', async () => {
-  render(<CertifiedBadge />);
+  await asyncRender();
   userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toBeInTheDocument();
 });
 
 test('renders with certified by', async () => {
   const certifiedBy = 'Trusted Authority';
-  render(<CertifiedBadge certifiedBy={certifiedBy} />);
+  await asyncRender({ certifiedBy });
   userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toHaveTextContent(certifiedBy);
 });
 
 test('renders with details', async () => {
   const details = 'All requirements have been met.';
-  render(<CertifiedBadge details={details} />);
+  await asyncRender({ details });
   userEvent.hover(screen.getByRole('img'));
   expect(await screen.findByRole('tooltip')).toHaveTextContent(details);
 });

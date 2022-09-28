@@ -98,6 +98,7 @@ const Styles = styled.div`
   }
 
   .gutter.gutter-vertical {
+    display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
   }
 
@@ -148,6 +149,9 @@ const ExploreChartPanel = ({
   });
   const [splitSizes, setSplitSizes] = useState(
     getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+  );
+  const [showSplite, setShowSplit] = useState(
+    getItem(LocalStorageKeys.is_datapanel_open, false),
   );
 
   const [showDatasetModal, setShowDatasetModal] = useState(false);
@@ -225,6 +229,7 @@ const ExploreChartPanel = ({
       ];
     }
     setSplitSizes(splitSizes);
+    setShowSplit(isOpen);
   }, []);
 
   const renderChart = useCallback(
@@ -411,7 +416,10 @@ const ExploreChartPanel = ({
   }
 
   return (
-    <Styles className="panel panel-default chart-container">
+    <Styles
+      className="panel panel-default chart-container"
+      showSplite={showSplite}
+    >
       {vizType === 'filter_box' ? (
         panelBody
       ) : (

@@ -17,12 +17,15 @@
  * under the License.
  */
 
-const DATASET_LIST_PATH = 'tablemodelview/list';
+import { DATASET_LIST_PATH } from 'cypress/utils/urls';
 
 describe('Dataset list', () => {
-  beforeEach(() => {
-    cy.login();
+  before(() => {
     cy.visit(DATASET_LIST_PATH);
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
   });
 
   it('should open Explore on dataset name click', () => {

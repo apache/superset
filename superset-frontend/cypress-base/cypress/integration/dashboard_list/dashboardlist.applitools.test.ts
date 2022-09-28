@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DASHBOARD_LIST } from './dashboard_list.helper';
+import { DASHBOARD_LIST } from 'cypress/utils/urls';
 
 describe('dashboard list view', () => {
   beforeEach(() => {

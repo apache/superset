@@ -603,7 +603,6 @@ function ExploreViewContainer(props) {
             form_data={props.form_data}
             sliceName={props.sliceName}
             dashboardId={props.dashboardId}
-            sliceDashboards={props.exploreState.sliceDashboards ?? []}
           />
         )}
         <Resizable

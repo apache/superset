@@ -23,8 +23,8 @@ import { QueryFieldAliases, QueryFormData } from './types/QueryFormData';
 import { QueryContext, QueryObject } from './types/Query';
 import { SetDataMaskHook } from '../chart';
 import { JsonObject } from '../connection';
-import { isFeatureEnabled, FeatureFlag } from '../utils';
 import { normalizeTimeColumn } from './normalizeTimeColumn';
+import { isXAxisSet } from './getXAxis';
 
 const WRAP_IN_ARRAY = (baseQueryObject: QueryObject) => [baseQueryObject];
 
@@ -54,7 +54,7 @@ export default function buildQueryContext(
       query.post_processing = query.post_processing.filter(Boolean);
     }
   });
-  if (isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
+  if (isXAxisSet(formData)) {
     queries = queries.map(query => normalizeTimeColumn(formData, query));
   }
   return {

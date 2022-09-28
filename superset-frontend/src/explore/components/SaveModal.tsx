@@ -49,7 +49,6 @@ interface SaveModalProps extends RouteComponentProps {
   slice?: Record<string, any>;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
-  sliceDashboards: number[];
 }
 
 type ActionType = 'overwrite' | 'saveas';
@@ -183,6 +182,16 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       }
     }
 
+    //  Get chart dashboards
+    let sliceDashboards: number[] = [];
+    if (this.props.slice && this.state.action === 'overwrite') {
+      promise = promise
+        .then(() => this.props.actions.getSliceDashboards(this.props.slice))
+        .then(dashboards => {
+          sliceDashboards = dashboards;
+        });
+    }
+
     let dashboard: DashboardGetResponse | null = null;
     if (this.state.newDashboardName || this.state.saveToDashboardId) {
       let saveToDashboardId = this.state.saveToDashboardId || null;
@@ -200,12 +209,13 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         .then(() => this.props.actions.getDashboard(saveToDashboardId))
         .then((response: { result: DashboardGetResponse }) => {
           dashboard = response.result;
-          const dashboards = new Set<number>(this.props.sliceDashboards);
-          dashboards.add(dashboard.id);
+          sliceDashboards = sliceDashboards.includes(dashboard.id)
+            ? sliceDashboards
+            : [...sliceDashboards, dashboard.id];
           const { url_params, ...formData } = this.props.form_data || {};
           this.props.actions.setFormData({
             ...formData,
-            dashboards: Array.from(dashboards),
+            dashboards: sliceDashboards,
           });
         });
     }
@@ -216,6 +226,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         this.props.actions.updateSlice(
           this.props.slice,
           this.state.newSliceName,
+          sliceDashboards,
           dashboard
             ? {
                 title: dashboard.dashboard_title,
@@ -228,6 +239,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       promise = promise.then(() =>
         this.props.actions.createSlice(
           this.state.newSliceName,
+          sliceDashboards,
           dashboard
             ? {
                 title: dashboard.dashboard_title,
@@ -276,7 +288,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             type="warning"
             message={
               <>
-                {this.state.alert ? this.state.alert : this.props.alert}
+                {this.state.alert || this.props.alert}
                 <i
                   role="button"
                   aria-label="Remove alert"

@@ -72,11 +72,6 @@ allow_dml_description = (
     "(UPDATE, DELETE, CREATE, ...) "
     "in SQL Lab"
 )
-allow_multi_schema_metadata_fetch_description = (
-    "Allow SQL Lab to fetch a list of all tables and all views across "
-    "all database schemas. For large data warehouse with thousands of "
-    "tables, this can be expensive and put strain on the system."
-)  # pylint: disable=invalid-name
 configuration_method_description = (
     "Configuration_method is used on the frontend to "
     "inform the backend whether to explode parameters "
@@ -373,9 +368,6 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
         allow_none=True,
         validate=Length(0, 250),
     )
-    allow_multi_schema_metadata_fetch = fields.Boolean(
-        description=allow_multi_schema_metadata_fetch_description,
-    )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
@@ -419,9 +411,6 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         description=force_ctas_schema_description,
         allow_none=True,
         validate=Length(0, 250),
-    )
-    allow_multi_schema_metadata_fetch = fields.Boolean(
-        description=allow_multi_schema_metadata_fetch_description
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     masked_encrypted_extra = fields.String(
@@ -595,7 +584,7 @@ class DatabaseFunctionNamesResponse(Schema):
 class ImportV1DatabaseExtraSchema(Schema):
     # pylint: disable=no-self-use, unused-argument
     @pre_load
-    def fix_schemas_allowed_for_csv_upload(
+    def fix_schemas_allowed_for_csv_upload(  # pylint: disable=invalid-name
         self, data: Dict[str, Any], **kwargs: Any
     ) -> Dict[str, Any]:
         """

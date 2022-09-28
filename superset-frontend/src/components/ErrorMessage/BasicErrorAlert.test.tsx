@@ -23,6 +23,13 @@ import { supersetTheme } from '@superset-ui/core';
 import BasicErrorAlert from './BasicErrorAlert';
 import { ErrorLevel } from './types';
 
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) =>
+      <span role="img" aria-label={fileName.replace('_', '-')} />,
+);
+
 const mockedProps = {
   body: 'Error body',
   level: 'warning' as ErrorLevel,

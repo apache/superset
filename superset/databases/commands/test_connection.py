@@ -117,9 +117,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                     extra={"sqlalchemy_uri": database.sqlalchemy_uri},
                 ) from ex
-            except Exception as e:  # pylint: disable=broad-except
-                logging.debug("Printing Exception")
-                logging.debug(e)
+            except Exception:  # pylint: disable=broad-except
                 alive = False
             if not alive:
                 raise DBAPIError(None, None, None)

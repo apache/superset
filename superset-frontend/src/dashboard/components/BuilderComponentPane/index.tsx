@@ -64,6 +64,7 @@ const BuilderComponentPane: React.FC<BCPProps> = ({
   <DashboardBuilderSidepane
     topOffset={topOffset}
     className="dashboard-builder-sidepane"
+    data-test="dashboard-builder-sidepane"
   >
     <ParentSize>
       {({ height }) => (

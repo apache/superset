@@ -21,7 +21,6 @@ import { SupersetClient } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
-import { act } from 'react-dom/test-utils';
 
 describe('LeftPanel', () => {
   const mockFun = jest.fn();
@@ -160,17 +159,21 @@ describe('LeftPanel', () => {
       },
     } as any);
 
-  it('should render', () => {
+  test('should render', async () => {
     const { container } = render(<LeftPanel setDataset={mockFun} />, {
       useRedux: true,
     });
+
+    expect(
+      await screen.findByText(/select database & schema/i),
+    ).toBeInTheDocument();
     expect(container).toBeInTheDocument();
   });
 
-  it('should render tableselector and databaselector container and selects', () => {
+  test('should render tableselector and databaselector container and selects', async () => {
     render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
 
-    expect(screen.getByText(/select database & schema/i)).toBeVisible();
+    expect(await screen.findByText(/select database & schema/i)).toBeVisible();
 
     const databaseSelect = screen.getByRole('combobox', {
       name: 'Select database or type database name',
@@ -181,12 +184,18 @@ describe('LeftPanel', () => {
     expect(databaseSelect).toBeInTheDocument();
     expect(schemaSelect).toBeInTheDocument();
   });
-  it('does not render blank state if there is nothing selected', () => {
+
+  test('does not render blank state if there is nothing selected', async () => {
     render(<LeftPanel setDataset={mockFun} />, { useRedux: true });
+
+    expect(
+      await screen.findByText(/select database & schema/i),
+    ).toBeInTheDocument();
     const emptyState = screen.queryByRole('img', { name: /empty/i });
     expect(emptyState).not.toBeInTheDocument();
   });
-  it('renders list of options when user clicks on schema', async () => {
+
+  test('renders list of options when user clicks on schema', async () => {
     render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId={1} />, {
       useRedux: true,
     });
@@ -197,9 +206,7 @@ describe('LeftPanel', () => {
     userEvent.click(databaseSelect);
     expect(await screen.findByText('test-postgres')).toBeInTheDocument();
 
-    act(() => {
-      userEvent.click(screen.getAllByText('test-postgres')[0]);
-    });
+    userEvent.click(screen.getAllByText('test-postgres')[0]);
     const tableSelect = screen.getByRole('combobox', {
       name: /select schema or type schema name/i,
     });
@@ -217,11 +224,9 @@ describe('LeftPanel', () => {
     ).toBeInTheDocument();
 
     SupersetClientGet.mockImplementation(getTableMockFunction);
-    act(() => {
-      userEvent.click(screen.getAllByText('public')[1]);
-    });
 
     // Todo: (Phillip) finish testing for showing list of options once table is implemented
+    // userEvent.click(screen.getAllByText('public')[1]);
     // expect(screen.getByTestId('options-list')).toBeInTheDocument();
   });
 });
