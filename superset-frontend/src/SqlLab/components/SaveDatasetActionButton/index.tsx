@@ -23,15 +23,15 @@ import { DropdownButton } from 'src/components/DropdownButton';
 import Button from 'src/components/Button';
 import { DropdownButtonProps } from 'antd/lib/dropdown';
 
-interface Props {
+interface SaveDatasetActionButtonProps {
   setShowSave: (arg0: boolean) => void;
   overlayMenu: JSX.Element | null;
 }
 
-export default function SaveDatasetActionButton({
+const SaveDatasetActionButton = ({
   setShowSave,
   overlayMenu,
-}: Props) {
+}: SaveDatasetActionButtonProps) => {
   const theme = useTheme();
 
   const StyledDropdownButton = styled(
@@ -80,4 +80,6 @@ export default function SaveDatasetActionButton({
       {t('Save')}
     </StyledDropdownButton>
   );
-}
+};
+
+export default SaveDatasetActionButton;
