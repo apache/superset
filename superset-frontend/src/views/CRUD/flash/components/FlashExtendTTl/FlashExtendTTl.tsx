@@ -191,6 +191,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
   return (
     <div role="none">
       <StyledModal
+        draggable
         onHide={onHide}
         show={show}
         title={t('Update TTL')}

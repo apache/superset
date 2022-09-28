@@ -17,6 +17,9 @@
  * under the License.
  */
 
+import moment from 'moment';
+import { FilterDropdown } from 'src/views/CRUD/flash/types';
+
 export const removeUnnecessaryProperties = (
   formObject: Object,
   properties: Array<string>,
@@ -33,3 +36,24 @@ export const convertToLocalDateTime = (date?: Date) => {
   const newDate = date;
   return newDate ? new Date(newDate).toISOString() : new Date().toISOString();
 };
+
+export const convertValueToLabel = (
+  id: string,
+  dropdown: FilterDropdown[] | null,
+) => {
+  if (dropdown && dropdown.length > 0) {
+    const itemValue = dropdown.find(
+      (item: FilterDropdown) => item.value === id,
+    );
+    if (itemValue && itemValue.label) {
+      return itemValue.label;
+    }
+
+    return null;
+  }
+
+  return null;
+};
+
+export const convertDateToReqFormat = (date: string) =>
+  moment(date).format('DD/MM/YYYY hh:mm:ss A');

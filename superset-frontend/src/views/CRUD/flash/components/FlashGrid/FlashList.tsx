@@ -22,19 +22,13 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
-import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, {
   SubMenuProps,
   ButtonProps,
 } from 'src/views/components/SubMenu';
-import ListView, {
-  ListViewProps,
-  Filters,
-  FilterOperator,
-} from 'src/components/ListView';
+import ListView, { Filters, FilterOperator } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import { SavedQueryObject } from 'src/views/CRUD/types';
 import { TooltipPlacement } from 'antd/lib/tooltip';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
@@ -44,6 +38,7 @@ import FlashSchedule from '../FlashSchedule/FlashSchedule';
 import { fetchDatabases, removeFlash } from '../../services/flash.service';
 import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypesEnum } from '../../enums';
+import FlashView from '../FlashView/FlashView';
 
 const PAGE_SIZE = 25;
 
@@ -59,15 +54,9 @@ interface FlashListProps {
 
 function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const {
-    state: {
-      loading,
-      resourceCount: flashCount,
-      resourceCollection: flashes,
-      bulkSelectEnabled,
-    },
+    state: { loading, resourceCount: flashCount, resourceCollection: flashes },
 
     fetchData,
-    toggleBulkSelect,
     refreshData,
   } = useFlashListViewResource<FlashServiceObject>(
     'flashes',
@@ -85,7 +74,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const [showFlashTtl, setShowFlashTtl] = useState<boolean>(false);
   const [showFlashSchedule, setShowFlashSchedule] = useState<boolean>(false);
   const [showFlashQuery, setShowFlashQuery] = useState<boolean>(false);
-  const savedQueryCurrentlyPreviewing: SavedQueryObject | undefined = undefined;
+  const [showFlashView, setShowFlashView] = useState<boolean>(false);
 
   useEffect(() => {
     fetchDatabaseDropdown();
@@ -130,6 +119,11 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const changeSqlQuery = (flash: FlashServiceObject) => {
     setCurrentFlash(flash);
     setShowFlashQuery(true);
+  };
+
+  const changeViewFlash = (flash: FlashServiceObject) => {
+    setCurrentFlash(flash);
+    setShowFlashView(true);
   };
 
   const handleDeleteFlash = (flash: FlashServiceObject) => {
@@ -225,9 +219,9 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           };
           const handleChangeSchedule = () => changeSchedule(original);
           const handleChangeOwnership = () => changeOwnership(original);
-          const handleChangeCost = () => console.log('costing==', original);
           const handleChangeTtl = () => changeTtl(original);
           const handleDelete = () => setDeleteFlash(original);
+          const handleView = () => changeViewFlash(original);
 
           const actions: ActionProps[] | [] = [
             (original?.owner === user?.email || user?.roles?.Admin) && {
@@ -259,19 +253,19 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
               icon: 'Sql',
               onClick: handleSqlQuery,
             },
-            (original?.owner === user?.email || user?.roles?.Admin) && {
-              label: 'copy-action',
-              tooltip: t('Change Costing Attributes'),
-              placement: 'bottom' as TooltipPlacement,
-              icon: 'Edit',
-              onClick: handleChangeCost,
-            },
             original?.owner === user?.email && {
               label: 'delete-action',
               tooltip: t('Delete Flash'),
               placement: 'bottom' as TooltipPlacement,
               icon: 'Trash',
               onClick: handleDelete,
+            },
+            {
+              label: 'view-action',
+              tooltip: t('View Flash Information'),
+              placement: 'bottom' as TooltipPlacement,
+              icon: 'Eye',
+              onClick: handleView,
             },
           ].filter(item => !!item);
 
@@ -381,6 +375,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         />
       )}
 
+      {showFlashView && (
+        <FlashView
+          flash={currentFlash as FlashServiceObject}
+          show={showFlashView}
+          onHide={() => setShowFlashView(false)}
+          databaseDropdown={databaseDropdown}
+        />
+      )}
+
       {deleteFlash && (
         <DeleteModal
           description={t(
@@ -397,38 +400,17 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         />
       )}
 
-      <ConfirmStatusChange
-        title={t('Please confirm')}
-        description={t('Are you sure you want to delete the selected flash?')}
-        onConfirm={() => console.log('query deleted')}
-      >
-        {confirmDelete => {
-          const bulkActions: ListViewProps['bulkActions'] = [];
-          bulkActions.push({
-            key: 'delete',
-            name: t('Delete'),
-            onSelect: confirmDelete,
-            type: 'danger',
-          });
-          return (
-            <ListView<FlashServiceObject>
-              className="flash-list-view"
-              columns={columns}
-              count={flashCount}
-              data={flashes}
-              fetchData={fetchData}
-              filters={filters}
-              initialSort={initialSort}
-              loading={loading}
-              pageSize={PAGE_SIZE}
-              bulkActions={bulkActions}
-              bulkSelectEnabled={bulkSelectEnabled}
-              disableBulkSelect={toggleBulkSelect}
-              highlightRowId={savedQueryCurrentlyPreviewing}
-            />
-          );
-        }}
-      </ConfirmStatusChange>
+      <ListView<FlashServiceObject>
+        className="flash-list-view"
+        columns={columns}
+        count={flashCount}
+        data={flashes}
+        fetchData={fetchData}
+        filters={filters}
+        initialSort={initialSort}
+        loading={loading}
+        pageSize={PAGE_SIZE}
+      />
     </>
   );
 }

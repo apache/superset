@@ -122,6 +122,7 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
   return (
     <div role="none">
       <StyledModal
+        draggable
         onHide={onHide}
         show={show}
         title={t('Update SQL Query')}
