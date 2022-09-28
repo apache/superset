@@ -17,6 +17,9 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+
+import { setDatabases, addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import Button from 'src/components/Button';
 import Select from 'src/components/DeprecatedSelect';
 import { styled, t, SupersetClient, QueryResponse } from '@superset-ui/core';
@@ -33,15 +36,6 @@ import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
 import QueryTable from '../QueryTable';
 
 interface QuerySearchProps {
-  actions: {
-    addDangerToast: (msg: string) => void;
-    setDatabases: (data: Record<string, any>) => Record<string, any>;
-    queryEditorSetAndSaveSql: Function;
-    cloneQueryToNewTab: Function;
-    fetchQueryResults: Function;
-    clearQueryResults: Function;
-    removeQuery: Function;
-  };
   displayLimit: number;
 }
 
@@ -77,7 +71,10 @@ const TableStyles = styled.div`
 const StyledTableStylesContainer = styled.div`
   overflow: auto;
 `;
-function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
+
+const QuerySearch = ({ displayLimit }: QuerySearchProps) => {
+  const dispatch = useDispatch();
+
   const [databaseId, setDatabaseId] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
@@ -133,7 +130,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
       const queries = Object.values(response.json);
       setQueriesArray(queries);
     } catch (err) {
-      actions.addDangerToast(t('An error occurred when refreshing queries'));
+      dispatch(addDangerToast(t('An error occurred when refreshing queries')));
     } finally {
       setQueriesLoading(false);
     }
@@ -178,10 +175,10 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
       value: id,
       label: database_name,
     }));
-    actions.setDatabases(result);
+    dispatch(setDatabases(result));
     if (result.length === 0) {
-      actions.addDangerToast(
-        t("It seems you don't have access to any database"),
+      dispatch(
+        addDangerToast(t("It seems you don't have access to any database")),
       );
     }
     return options;
@@ -280,7 +277,6 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
               onUserClicked={onUserClicked}
               onDbClicked={onDbClicked}
               queries={queriesArray}
-              actions={actions}
               displayLimit={displayLimit}
             />
           </TableStyles>
@@ -288,5 +284,6 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
       </StyledTableStylesContainer>
     </TableWrapper>
   );
-}
+};
+
 export default QuerySearch;
