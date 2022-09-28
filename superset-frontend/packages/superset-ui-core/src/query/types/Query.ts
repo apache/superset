@@ -389,17 +389,17 @@ export const testQuery: Query = {
   columns: [
     {
       name: 'Column 1',
-      type: DatasourceType.Query,
+      type: 'STRING',
       is_dttm: false,
     },
     {
       name: 'Column 3',
-      type: DatasourceType.Query,
+      type: 'STRING',
       is_dttm: false,
     },
     {
       name: 'Column 2',
-      type: DatasourceType.Query,
+      type: 'TIMESTAMP',
       is_dttm: true,
     },
   ],

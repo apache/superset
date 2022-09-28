@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { testQueryResponse } from '@superset-ui/core';
-import { getTemporalColumns } from '../../src';
+import { testQueryResponse, testQueryResults } from '@superset-ui/core';
+import { Dataset, getTemporalColumns } from '../../src';
 import { TestDataset } from '../fixtures';
 
 test('get temporal columns from a Dataset', () => {
@@ -56,6 +56,32 @@ test('get temporal columns from a QueryResponse', () => {
       },
     ],
     defaultTemporalColumn: 'Column 2',
+  });
+
+  expect(
+    getTemporalColumns({
+      ...TestDataset,
+      ...{
+        columns: [],
+        main_dttm_col: undefined,
+      },
+    } as any as Dataset),
+  ).toEqual({
+    temporalColumns: [],
+    defaultTemporalColumn: undefined,
+  });
+
+  expect(
+    getTemporalColumns({
+      ...testQueryResponse,
+      ...{
+        columns: [],
+        results: { ...testQueryResults.results, ...{ columns: [] } },
+      },
+    }),
+  ).toEqual({
+    temporalColumns: [],
+    defaultTemporalColumn: undefined,
   });
 });
 

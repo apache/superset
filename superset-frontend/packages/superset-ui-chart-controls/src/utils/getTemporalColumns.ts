@@ -25,7 +25,6 @@ import {
 import {
   ColumnMeta,
   ControlPanelState,
-  isColumnMeta,
   isDataset,
   isQueryResponse,
 } from '@superset-ui/chart-controls';
@@ -47,7 +46,7 @@ export const getTemporalColumns = (
     );
   }
   if (isQueryResponse(datasource)) {
-    rv.temporalColumns = ensureIsArray(datasource.results.columns).filter(
+    rv.temporalColumns = ensureIsArray(datasource.columns).filter(
       c => c.is_dttm,
     );
   }
@@ -56,9 +55,9 @@ export const getTemporalColumns = (
     rv.defaultTemporalColumn = datasource.main_dttm_col;
   }
   if (!isDefined(rv.defaultTemporalColumn)) {
-    rv.defaultTemporalColumn = isColumnMeta(rv.temporalColumns[0])
-      ? rv.temporalColumns[0].column_name
-      : rv.temporalColumns[0]?.name;
+    rv.defaultTemporalColumn =
+      (rv.temporalColumns[0] as ColumnMeta)?.column_name ??
+      (rv.temporalColumns[0] as QueryColumn)?.name;
   }
 
   return rv;
