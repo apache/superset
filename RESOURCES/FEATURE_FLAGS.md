@@ -34,6 +34,7 @@ These features are considered **unfinished** and should only be used on developm
 - TAGGING_SYSTEM
 - ENABLE_TEMPLATE_REMOVE_FILTERS
 - DRILL_TO_DETAIL
+- ENABLE_ADVANCED_DATA_TYPES
 
 ## In Testing
 These features are **finished** but currently being tested. They are usable, but may still contain some bugs.
@@ -84,5 +85,4 @@ These features flags currently default to True and **will be removed in a future
 - FORCE_DATABASE_CONNECTIONS_SSL
 
 ## In need of categorization
-- ENABLE_ADVANCED_DATA_TYPES
 - ALLOW_FULL_CSV_EXPORT
