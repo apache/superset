@@ -478,5 +478,5 @@ export function isDataset(
 export function isQueryResponse(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is QueryResponse {
-  return !!datasource && ('results' in datasource || 'sql' in datasource);
+  return !!datasource && 'results' in datasource && 'sql' in datasource;
 }

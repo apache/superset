@@ -30,7 +30,7 @@ import {
   isQueryResponse,
 } from '@superset-ui/chart-controls';
 
-export const getTemporalColumnsMetadata = (
+export const getTemporalColumns = (
   datasource: ValueOf<Pick<ControlPanelState, 'datasource'>>,
 ) => {
   const rv: {
@@ -41,15 +41,12 @@ export const getTemporalColumnsMetadata = (
     defaultTemporalColumn: undefined,
   };
 
-  if (
-    isDataset(datasource) ||
-    (isQueryResponse(datasource) && !('results' in datasource))
-  ) {
+  if (isDataset(datasource)) {
     rv.temporalColumns = ensureIsArray(datasource.columns).filter(
       c => c.is_dttm,
     );
   }
-  if (isQueryResponse(datasource) && 'results' in datasource) {
+  if (isQueryResponse(datasource)) {
     rv.temporalColumns = ensureIsArray(datasource.results.columns).filter(
       c => c.is_dttm,
     );

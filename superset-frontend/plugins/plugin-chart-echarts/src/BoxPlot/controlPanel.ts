@@ -34,7 +34,7 @@ import {
   getStandardizedControls,
   ControlState,
   ControlPanelState,
-  getTemporalColumnsMetadata,
+  getTemporalColumns,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
@@ -177,9 +177,7 @@ const config: ControlPanelConfig = {
           !control?.value ||
           (Array.isArray(control?.value) && control.value.length === 0)
         ) {
-          return [
-            getTemporalColumnsMetadata(state.datasource).defaultTemporalColumn,
-          ];
+          return [getTemporalColumns(state.datasource).defaultTemporalColumn];
         }
         return control.value;
       },

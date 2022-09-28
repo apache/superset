@@ -24,7 +24,7 @@ import {
   validateNonEmpty,
 } from '@superset-ui/core';
 import { BaseControlConfig, ControlPanelState, ControlState } from '../types';
-import { getTemporalColumnsMetadata } from '../utils';
+import { getTemporalColumns } from '../utils';
 
 const getAxisLabel = (
   formData: QueryFormData,
@@ -55,7 +55,7 @@ export const xAxisMixin = {
 
 export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
   mapStateToProps: ({ datasource }) => {
-    const payload = getTemporalColumnsMetadata(datasource);
+    const payload = getTemporalColumns(datasource);
 
     return {
       options: payload.temporalColumns,
