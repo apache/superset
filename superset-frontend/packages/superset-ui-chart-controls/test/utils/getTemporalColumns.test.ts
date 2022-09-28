@@ -57,7 +57,16 @@ test('get temporal columns from a QueryResponse', () => {
     ],
     defaultTemporalColumn: 'Column 2',
   });
+});
 
+test('get temporal columns from null', () => {
+  expect(getTemporalColumns(null)).toEqual({
+    temporalColumns: [],
+    defaultTemporalColumn: undefined,
+  });
+});
+
+test('should accept empty Dataset or queryResponse', () => {
   expect(
     getTemporalColumns({
       ...TestDataset,
@@ -80,13 +89,6 @@ test('get temporal columns from a QueryResponse', () => {
       },
     }),
   ).toEqual({
-    temporalColumns: [],
-    defaultTemporalColumn: undefined,
-  });
-});
-
-test('get temporal columns from null', () => {
-  expect(getTemporalColumns(null)).toEqual({
     temporalColumns: [],
     defaultTemporalColumn: undefined,
   });
