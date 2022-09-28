@@ -76,7 +76,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
-import ConnectedSouthPane from '../SouthPane/state';
+import ConnectedSouthPane from '../SouthPane';
 import SaveQuery from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
@@ -136,7 +136,6 @@ const StyledSidebar = styled.div`
 `;
 
 const propTypes = {
-  actions: PropTypes.object.isRequired,
   tables: PropTypes.array.isRequired,
   editorQueries: PropTypes.array.isRequired,
   dataPreviewQueries: PropTypes.array.isRequired,
@@ -149,7 +148,6 @@ const propTypes = {
 };
 
 const SqlEditor = ({
-  actions,
   tables,
   editorQueries,
   dataPreviewQueries,
@@ -628,7 +626,6 @@ const SqlEditor = ({
           editorQueries={editorQueries}
           latestQueryId={latestQuery?.id}
           dataPreviewQueries={dataPreviewQueries}
-          actions={actions}
           height={southPaneHeight}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}
@@ -667,7 +664,6 @@ const SqlEditor = ({
                 database={database}
                 queryEditor={queryEditor}
                 tables={tables}
-                actions={actions}
                 setEmptyState={bool => setShowEmptyState(bool)}
               />
             </StyledSidebar>
