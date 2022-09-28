@@ -155,4 +155,10 @@ export interface TitleFormData {
 
 export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
 
+export interface TreePathInfo {
+  name: string;
+  dataIndex: number;
+  value: number | number[];
+}
+
 export * from './Timeseries/types';
