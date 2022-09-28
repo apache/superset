@@ -18,29 +18,18 @@
  */
 /* eslint-disable no-param-reassign */
 import {
-  AppSection,
   DataMask,
-  DataRecordValue,
-  ensureIsArray,
   ExtraFormData,
   GenericDataType,
-  getColumnLabel,
   JsonObject,
   JsonResponse,
-  QueryFormColumn,
   smartDateDetailedFormatter,
   SupersetApiError,
   SupersetClient,
   t,
-  tn,
 } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import React, { useCallback, useEffect, useState, useMemo } from 'react';
-import debounce from 'lodash/debounce';
-// eslint-disable-next-line import/no-unresolved
-import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
-import { propertyComparator } from 'src/components/Select/Select';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 // eslint-disable-next-line import/no-unresolved
@@ -51,7 +40,7 @@ import { cacheWrapper } from 'src/utils/cacheWrapper';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 // eslint-disable-next-line import/no-unresolved
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
-import { PluginFilterAdhocProps, SelectValue } from './types';
+import { PluginFilterAdhocProps } from './types';
 import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getAdhocExtraFormData } from '../../utils';
 
@@ -108,18 +97,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     parentRef,
     inputRef,
   } = props;
-  const {
-    enableEmptyFilter,
-    multiSelect,
-    showSearch,
-    inverseSelection,
-    defaultToFirstItem,
-    searchAllOptions,
-  } = formData;
-  const groupby = useMemo(
-    () => ensureIsArray(formData.groupby).map(getColumnLabel),
-    [formData.groupby],
-  );
+  const { enableEmptyFilter, inverseSelection, defaultToFirstItem } = formData;
   const datasetId = useMemo(
     () => formData.datasource.split('_')[0],
     [formData.datasource],
@@ -128,7 +106,6 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
   const [col, setCol] = useState('');
   console.log(formData.columns);
   const [columns, setColumns] = useState();
-  const [initialColtypeMap] = useState(coltypeMap);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -233,56 +210,9 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     updateDataMask(filterState.value);
   }, [JSON.stringify(filterState.value)]);
 
-  const isDisabled =
-    appSection === AppSection.FILTER_CONFIG_MODAL && defaultToFirstItem;
-
-  const debouncedOwnStateFunc = useCallback(
-    debounce((val: string) => {
-      dispatchDataMask({
-        type: 'ownState',
-        ownState: {
-          coltypeMap: initialColtypeMap,
-          search: val,
-        },
-      });
-    }, SLOW_DEBOUNCE),
-    [],
-  );
-
-  const searchWrapper = useCallback(
-    (val: string) => {
-      if (searchAllOptions) {
-        debouncedOwnStateFunc(val);
-      }
-    },
-    [debouncedOwnStateFunc, searchAllOptions],
-  );
-
-  const clearSuggestionSearch = useCallback(() => {
-    if (searchAllOptions) {
-      dispatchDataMask({
-        type: 'ownState',
-        ownState: {
-          coltypeMap: initialColtypeMap,
-          search: null,
-        },
-      });
-    }
-  }, [dispatchDataMask, initialColtypeMap, searchAllOptions]);
-
-  const handleBlur = useCallback(() => {
-    clearSuggestionSearch();
-    unsetFocusedFilter();
-  }, [clearSuggestionSearch, unsetFocusedFilter]);
-
   useEffect(() => {
     setDataMask(dataMask);
   }, [JSON.stringify(dataMask)]);
-
-  const placeholderText =
-    data.length === 0
-      ? t('No data')
-      : tn('%s option', '%s options', data.length, data.length);
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
@@ -294,29 +224,6 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     }
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
-
-  const options = useMemo(() => {
-    const options: { label: string; value: DataRecordValue }[] = [];
-    data.forEach(row => {
-      const [value] = groupby.map(col => row[col]);
-      options.push({
-        label: labelFormatter(value, datatype),
-        value,
-      });
-    });
-    return options;
-  }, [data, datatype, groupby, labelFormatter]);
-
-  const sortComparator = useCallback(
-    (a: AntdLabeledValue, b: AntdLabeledValue) => {
-      const labelComparator = propertyComparator('label');
-      if (formData.sortAscending) {
-        return labelComparator(a, b);
-      }
-      return labelComparator(b, a);
-    },
-    [formData.sortAscending],
-  );
 
   return (
     <FilterPluginStyle height={height} width={width}>
