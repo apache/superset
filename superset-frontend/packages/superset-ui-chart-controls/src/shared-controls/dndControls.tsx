@@ -40,7 +40,7 @@ import {
   FilterOption,
   temporalColumnMixin,
 } from '..';
-import { xAxisMixin } from './constants';
+import { xAxisMixin } from './mixins';
 
 type Control = {
   savedMetrics?: Metric[] | null;
