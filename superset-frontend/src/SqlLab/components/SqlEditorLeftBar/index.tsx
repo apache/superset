@@ -96,13 +96,13 @@ const collapseStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-export default function SqlEditorLeftBar({
+const SqlEditorLeftBar = ({
   database,
   queryEditor,
   tables = [],
   height = 500,
   setEmptyState,
-}: SqlEditorLeftBarProps) {
+}: SqlEditorLeftBarProps) => {
   const dispatch = useDispatch();
 
   // Ref needed to avoid infinite rerenders on handlers
@@ -252,8 +252,8 @@ export default function SqlEditorLeftBar({
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
         database={userSelectedDb}
-        getDbList={dispatch(setDatabases)}
-        handleError={dispatch(addDangerToast)}
+        getDbList={result => dispatch(setDatabases(result))}
+        handleError={message => dispatch(addDangerToast(message))}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
         onSchemasLoad={handleSchemasLoad}
@@ -297,4 +297,6 @@ export default function SqlEditorLeftBar({
       )}
     </div>
   );
-}
+};
+
+export default SqlEditorLeftBar;
