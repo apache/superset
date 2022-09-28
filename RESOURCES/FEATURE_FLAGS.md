@@ -73,6 +73,8 @@ These features flags are **safe for production** and have been tested.
 - ALERTS_ATTACH_REPORTS
 - ALLOW_ADHOC_SUBQUERY
 - DRUID_JOINS
+- DISABLE_LEGACY_DATASOURCE_EDITOR
+- ENFORCE_DB_ENCRYPTION_UI
 
 ## Deprecated Flags
 These features flags currently default to True and **will be removed in a future major release**. For this current release you can turn them off by setting your config to False, but it is advised to remove or set these flags in your local configuration to **True** so that you do not experience any unexpected changes in a future release.
@@ -82,7 +84,5 @@ These features flags currently default to True and **will be removed in a future
 - FORCE_DATABASE_CONNECTIONS_SSL
 
 ## In need of categorization
-- DISABLE_LEGACY_DATASOURCE_EDITOR
 - ENABLE_ADVANCED_DATA_TYPES
-- ENFORCE_DB_ENCRYPTION_UI
 - ALLOW_FULL_CSV_EXPORT
