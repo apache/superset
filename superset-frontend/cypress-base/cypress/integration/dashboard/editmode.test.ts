@@ -19,7 +19,7 @@
 import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { drag, resize, waitForChartLoad } from 'cypress/utils';
 import * as ace from 'brace';
-import { interceptGet, interceptUpdate } from './utils';
+import { interceptGet, interceptUpdate, openTab } from './utils';
 import { interceptFiltering as interceptCharts } from '../explore/utils';
 
 function editDashboard() {
@@ -158,6 +158,100 @@ describe('Dashboard edit', () => {
       resetTabbedDashboard();
     });
 
+    it('should respect chart color scheme when none is set for the dashboard', () => {
+      openProperties();
+      cy.get('[aria-label="Select color scheme"]').should('have.value', '');
+      applyChanges();
+      saveChanges();
+
+      // open nested tab
+      openTab(1, 1);
+      waitForChartLoad({
+        name: 'Top 10 California Names Timeseries',
+        viz: 'line',
+      });
+
+      // label Anthony
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(31, 168, 201)');
+    });
+
+    it('should apply same color to same labels', () => {
+      openProperties();
+      selectColorScheme('lyftColors');
+      applyChanges();
+      saveChanges();
+
+      // open nested tab
+      openTab(1, 1);
+      waitForChartLoad({
+        name: 'Top 10 California Names Timeseries',
+        viz: 'line',
+      });
+
+      // label Anthony
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+
+      // open 2nd main tab
+      openTab(0, 1);
+      waitForChartLoad({ name: 'Trends', viz: 'line' });
+
+      // label Anthony
+      cy.get('.line .nv-legend-symbol')
+        .eq(2)
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+    });
+
+    it('should change color scheme multiple times', () => {
+      openProperties();
+      selectColorScheme('lyftColors');
+      applyChanges();
+      saveChanges();
+
+      // open nested tab
+      openTab(1, 1);
+      waitForChartLoad({
+        name: 'Top 10 California Names Timeseries',
+        viz: 'line',
+      });
+
+      // label Anthony
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+
+      // open 2nd main tab
+      openTab(0, 1);
+      waitForChartLoad({ name: 'Trends', viz: 'line' });
+
+      // label Anthony
+      cy.get('.line .nv-legend-symbol')
+        .eq(2)
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+
+      openProperties();
+      selectColorScheme('bnbColors');
+      applyChanges();
+      saveChanges();
+
+      // label Anthony
+      cy.get('.line .nv-legend-symbol')
+        .eq(2)
+        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+
+      // open main tab and nested tab
+      openTab(0, 0);
+      openTab(1, 1);
+
+      // label Anthony
+      cy.get('.line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(0, 122, 135)');
+    });
+
     it('should apply the color scheme across main tabs', () => {
       openProperties();
       selectColorScheme('lyftColors');
@@ -171,11 +265,7 @@ describe('Dashboard edit', () => {
       );
 
       // go to second tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(0)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(0, 1);
       waitForChartLoad({ name: 'Trends', viz: 'line' });
 
       cy.get('.line .nv-legend-symbol')
@@ -197,11 +287,7 @@ describe('Dashboard edit', () => {
       );
 
       // go to second tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(0)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(0, 1);
       waitForChartLoad({ name: 'Trends', viz: 'line' });
 
       cy.get('.line .nv-legend-symbol')
@@ -209,11 +295,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(255, 90, 95)');
 
       // go back to first tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(0)
-        .find('[role="tab"]')
-        .eq(0)
-        .click();
+      openTab(0, 0);
 
       // change scheme now that charts are rendered across the main tabs
       editDashboard();
@@ -229,11 +311,7 @@ describe('Dashboard edit', () => {
       );
 
       // go to second tab again
-      cy.getBySel('dashboard-component-tabs')
-        .eq(0)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(0, 1);
 
       cy.get('.line .nv-legend-symbol')
         .first()
@@ -252,11 +330,7 @@ describe('Dashboard edit', () => {
       );
 
       // open nested tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(1)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
         viz: 'line',
@@ -266,11 +340,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
 
       // open another nested tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(2)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(2, 1);
       waitForChartLoad({ name: 'Growth Rate', viz: 'line' });
       cy.get('.line .nv-legend-symbol')
         .first()
@@ -288,11 +358,7 @@ describe('Dashboard edit', () => {
       saveChanges();
 
       // open nested tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(1)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
         viz: 'line',
@@ -302,11 +368,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(255, 0, 0)');
 
       // open another nested tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(2)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(2, 1);
       waitForChartLoad({ name: 'Growth Rate', viz: 'line' });
       cy.get('.line .nv-legend-symbol')
         .first()
@@ -315,34 +377,21 @@ describe('Dashboard edit', () => {
 
     it('should apply a valid color scheme for rendered charts in nested tabs', () => {
       // open the tab first time and let chart load
-      cy.getBySel('dashboard-component-tabs')
-        .eq(1)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
         viz: 'line',
       });
 
       // go to previous tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(1)
-        .find('[role="tab"]')
-        .eq(0)
-        .click();
-
+      openTab(1, 0);
       openProperties();
       selectColorScheme('lyftColors');
       applyChanges();
       saveChanges();
 
       // re-open the tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(1)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(1, 1);
 
       cy.get('.line .nv-legend-symbol')
         .first()
@@ -351,23 +400,14 @@ describe('Dashboard edit', () => {
 
     it('label colors should take the precedence for rendered charts in nested tabs', () => {
       // open the tab first time and let chart load
-      cy.getBySel('dashboard-component-tabs')
-        .eq(1)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
+      openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
         viz: 'line',
       });
 
       // go to previous tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(1)
-        .find('[role="tab"]')
-        .eq(0)
-        .click();
-
+      openTab(1, 0);
       openProperties();
       openAdvancedProperties();
       clearMetadata();
@@ -378,12 +418,7 @@ describe('Dashboard edit', () => {
       saveChanges();
 
       // re-open the tab
-      cy.getBySel('dashboard-component-tabs')
-        .eq(1)
-        .find('[role="tab"]')
-        .eq(1)
-        .click();
-
+      openTab(1, 1);
       cy.get('.line .nv-legend-symbol')
         .first()
         .should('have.css', 'fill', 'rgb(255, 0, 0)');
