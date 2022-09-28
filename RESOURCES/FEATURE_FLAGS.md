@@ -51,6 +51,7 @@ These features are **finished** but currently being tested. They are usable, but
 - DASHBOARD_EDIT_CHART_IN_NEW_TAB
 - CACHE_IMPERSONATION
 - RLS_IN_SQLLAB
+- DASHBOARD_FILTERS_EXPERIMENTAL
 
 
 ## Stable
@@ -79,7 +80,6 @@ These features flags currently default to True and **will be removed in a future
 
 ## In need of categorization
 - DISABLE_LEGACY_DATASOURCE_EDITOR
-- DASHBOARD_FILTERS_EXPERIMENTAL
 - EMBEDDED_SUPERSET
 - ENABLE_ADVANCED_DATA_TYPES
 - ALERTS_ATTACH_REPORTS
