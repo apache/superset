@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { QueryObjectFilterClause } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
@@ -47,15 +48,116 @@ const renderMenu = (props: Omit<DrillDetailMenuItemsProps, 'chartId'>) => {
   );
 };
 
+const expectDrillToDetailModal = (
+  menuItem: HTMLElement,
+  filters: QueryObjectFilterClause[],
+) => {
+  // const chart = chartQueries[sliceId];
+  // const setup = (overrides: Record<string, any> = {}) => {
+  //   const store = getMockStoreWithNativeFilters();
+  //   const props = {
+  //     chartId: sliceId,
+  //     formData: chart.form_data as unknown as QueryFormData,
+  //     ...overrides,
+  //   };
+  //   return render(
+  //     <Menu data-testid="menu">
+  //       <DrillDetailMenuItems {...props} />
+  //     </Menu>,
+  //     {
+  //       useRedux: true,
+  //       useRouter: true,
+  //       store,
+  //     },
+  //   );
+  // };
+  // const waitForRender = (overrides: Record<string, any> = {}) =>
+  //   waitFor(() => setup(overrides));
+
+  // fetchMock.post(
+  //   'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1',
+  //   {
+  //     result: {
+  //       data: [],
+  //       colnames: [],
+  //       coltypes: [],
+  //     },
+  //   },
+  // );
+
+  // const mockHistoryPush = jest.fn();
+  // jest.mock('react-router-dom', () => ({
+  //   ...jest.requireActual('react-router-dom'),
+  //   useHistory: () => ({
+  //     push: mockHistoryPush,
+  //   }),
+  // }));
+
+  // ('should render', async () => {
+  //   const { container } = await waitForRender();
+  //   expect(container).toBeInTheDocument();
+  // });
+
+  // ('should render fallback menu', async () => {
+  //   await waitForRender();
+  //   console.log(screen.queryAllByText('Drill to detail'));
+  //   expect(screen.queryAllByTestId('menu-item-content')).toBeInTheDocument();
+  // });
+
+  // ('should render the title', async () => {
+  //   await waitForRender();
+  //   expect(
+  //     screen.getByText(`Drill to detail: ${chart.form_data.slice_name}`),
+  //   ).toBeInTheDocument();
+  // });
+
+  // ('should render the modal', async () => {
+  //   await waitForRender();
+  //   expect(screen.getByRole('dialog')).toBeInTheDocument();
+  // });
+
+  // ('should not render the modal', async () => {
+  //   await waitForRender({
+  //     initialFilters: undefined,
+  //   });
+  //   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  // });
+
+  // ('should render the button', async () => {
+  //   await waitForRender();
+  //   expect(
+  //     screen.getByRole('button', { name: 'Edit chart' }),
+  //   ).toBeInTheDocument();
+  //   expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
+  // });
+
+  // ('should close the modal', async () => {
+  //   await waitForRender();
+  //   expect(screen.getByRole('dialog')).toBeInTheDocument();
+  //   userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
+  //   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  // });
+
+  // ('should forward to Explore', async () => {
+  //   await waitForRender();
+  //   userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
+  //   expect(mockHistoryPush).toHaveBeenCalledWith(
+  //     `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
+  //   );
+  // });
+  const returnValue = null;
+  return returnValue;
+};
+
 //  "Drill to detail" item should be enabled
 const expectDrillToDetailMenuItem = () => {
-  const drillToDetail = screen.queryByRole('menuitem', {
+  const drillToDetailMenuItem = screen.getByRole('menuitem', {
     name: 'Drill to detail',
   });
 
-  expect(drillToDetail).toBeInTheDocument();
-  expect(drillToDetail).toBeEnabled();
-  expect(drillToDetail).toHaveTextContent('Drill to detail');
+  expect(drillToDetailMenuItem).toBeInTheDocument();
+  expect(drillToDetailMenuItem).toBeEnabled();
+  expectDrillToDetailModal(drillToDetailMenuItem, []);
 };
 
 //  "Drill to detail" tooltip should not be present
@@ -137,6 +239,9 @@ const expectUnsupportedClickMessage = async () => {
   expect(drillToDetailByDimension).not.toBeInTheDocument();
 };
 
+test.todo('dropdown menu, no explore permissions');
+test.todo('context menu, no explore permissions');
+
 test('dropdown menu for unsupported chart', () => {
   renderMenu({ formData: unsupportedChartFormData });
   expectDrillToDetailMenuItem();
@@ -156,14 +261,17 @@ test('context menu for unsupported chart', async () => {
   await expectUnsupportedChartMessage();
 });
 
-test('dropdown menu for supported chart', () => {
+test.todo('dropdown menu for supported chart, no dimensions');
+test.todo('context menu for supported chart, no dimensions');
+
+test('dropdown menu for supported chart, dimensions', () => {
   renderMenu({ formData: supportedChartFormData });
   expectDrillToDetailMenuItem();
   expectNoDrillToDetailMenuItemTooltip();
   expectNoDrillToDetailBySubMenu();
 });
 
-test('context menu for supported chart, no filters', async () => {
+test('context menu for supported chart, dimensions, no filters', async () => {
   renderMenu({
     formData: supportedChartFormData,
     isContextMenu: true,
@@ -175,102 +283,5 @@ test('context menu for supported chart, no filters', async () => {
   await expectUnsupportedClickMessage();
 });
 
-//  Atomic data tests
-//  Drill by dimensions/all tests
-//  Opening modal tests (see below)
-//  Permissions tests
-//  Change width
-
-// const chart = chartQueries[sliceId];
-// const setup = (overrides: Record<string, any> = {}) => {
-//   const store = getMockStoreWithNativeFilters();
-//   const props = {
-//     chartId: sliceId,
-//     formData: chart.form_data as unknown as QueryFormData,
-//     ...overrides,
-//   };
-//   return render(
-//     <Menu data-testid="menu">
-//       <DrillDetailMenuItems {...props} />
-//     </Menu>,
-//     {
-//       useRedux: true,
-//       useRouter: true,
-//       store,
-//     },
-//   );
-// };
-// const waitForRender = (overrides: Record<string, any> = {}) =>
-//   waitFor(() => setup(overrides));
-
-// fetchMock.post(
-//   'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1',
-//   {
-//     result: {
-//       data: [],
-//       colnames: [],
-//       coltypes: [],
-//     },
-//   },
-// );
-
-// const mockHistoryPush = jest.fn();
-// jest.mock('react-router-dom', () => ({
-//   ...jest.requireActual('react-router-dom'),
-//   useHistory: () => ({
-//     push: mockHistoryPush,
-//   }),
-// }));
-
-// test('should render', async () => {
-//   const { container } = await waitForRender();
-//   expect(container).toBeInTheDocument();
-// });
-
-// test('should render fallback menu', async () => {
-//   await waitForRender();
-//   console.log(screen.queryAllByText('Drill to detail'));
-//   expect(screen.queryAllByTestId('menu-item-content')).toBeInTheDocument();
-// });
-
-// test('should render the title', async () => {
-//   await waitForRender();
-//   expect(
-//     screen.getByText(`Drill to detail: ${chart.form_data.slice_name}`),
-//   ).toBeInTheDocument();
-// });
-
-// test('should render the modal', async () => {
-//   await waitForRender();
-//   expect(screen.getByRole('dialog')).toBeInTheDocument();
-// });
-
-// test('should not render the modal', async () => {
-//   await waitForRender({
-//     initialFilters: undefined,
-//   });
-//   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-// });
-
-// test('should render the button', async () => {
-//   await waitForRender();
-//   expect(
-//     screen.getByRole('button', { name: 'Edit chart' }),
-//   ).toBeInTheDocument();
-//   expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
-// });
-
-// test('should close the modal', async () => {
-//   await waitForRender();
-//   expect(screen.getByRole('dialog')).toBeInTheDocument();
-//   userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
-//   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-// });
-
-// test('should forward to Explore', async () => {
-//   await waitForRender();
-//   userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
-//   expect(mockHistoryPush).toHaveBeenCalledWith(
-//     `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
-//   );
-// });
+test.todo('context menu for supported chart, dimensions, 1 filter');
+test.todo('context menu for supported chart, dimensions, 2 filters');

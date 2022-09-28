@@ -20,13 +20,13 @@ import { omit } from 'lodash';
 import {
   ensureIsArray,
   QueryFormData,
-  BinaryQueryObjectFilterClause,
   buildQueryObject,
+  QueryObjectFilterClause,
 } from '@superset-ui/core';
 
 export function getDrillPayload(
   queryFormData?: QueryFormData,
-  drillFilters?: BinaryQueryObjectFilterClause[],
+  drillFilters?: QueryObjectFilterClause[],
 ) {
   if (!queryFormData) {
     return undefined;

@@ -20,7 +20,7 @@
 import React, { useCallback, useMemo } from 'react';
 import { Tag } from 'antd';
 import {
-  BinaryQueryObjectFilterClause,
+  QueryObjectFilterClause,
   css,
   isAdhocColumn,
   t,
@@ -36,14 +36,14 @@ export default function TableControls({
   loading,
   onReload,
 }: {
-  filters: BinaryQueryObjectFilterClause[];
-  setFilters: (filters: BinaryQueryObjectFilterClause[]) => void;
+  filters: QueryObjectFilterClause[];
+  setFilters: (filters: QueryObjectFilterClause[]) => void;
   totalCount?: number;
   loading: boolean;
   onReload: () => void;
 }) {
   const theme = useTheme();
-  const filterMap: Record<string, BinaryQueryObjectFilterClause> = useMemo(
+  const filterMap: Record<string, QueryObjectFilterClause> = useMemo(
     () =>
       Object.assign(
         {},
@@ -68,9 +68,9 @@ export default function TableControls({
   const filterTags = useMemo(
     () =>
       Object.entries(filterMap)
-        .map(([colName, { val, formattedVal }]) => ({
+        .map(([colName, { formattedVal }]) => ({
           colName,
-          val: formattedVal ?? val,
+          val: formattedVal,
         }))
         .sort((a, b) => a.colName.localeCompare(b.colName)),
     [filterMap],

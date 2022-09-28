@@ -17,14 +17,16 @@
  * under the License.
  */
 
-import React, { useCallback, useContext, useMemo } from 'react';
+import React, { ReactNode, useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   Behavior,
+  QueryObjectFilterClause,
   css,
   getChartMetadataRegistry,
   SqlaFormData,
   styled,
+  SupersetTheme,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -36,6 +38,19 @@ import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';
 import DrillDetailPane from './DrillDetailPane';
 import { ContextMenuPayload } from '../types';
+
+const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
+  <Menu.Item disabled {...props}>
+    <div
+      css={(theme: SupersetTheme) => css`
+        white-space: normal;
+        max-width: ${theme.gridUnit * 40}px;
+      `}
+    >
+      {children}
+    </div>
+  </Menu.Item>
+);
 
 const Filter = styled.span`
   ${({ theme }) => `
@@ -94,7 +109,7 @@ export const DrillDetailMenuItems = ({
   }, [exploreUrl, history]);
 
   const getMenuItem = useCallback(
-    (key, content, filters = []) => (
+    (key: string, content: ReactNode, filters?: QueryObjectFilterClause[]) => (
       <Menu.Item
         key={`drill-to-detail-${key}`}
         onClick={onSelection}
@@ -108,7 +123,7 @@ export const DrillDetailMenuItems = ({
             }
           `}
           modalTitle={t('Drill to detail: %s', chartName)}
-          triggerNode={<span>{content}</span>}
+          triggerNode={content}
           modalFooter={<ModalFooter exploreChart={exploreChart} />}
           modalBody={
             <DrillDetailPane formData={formData} initialFilters={filters} />
@@ -136,12 +151,11 @@ export const DrillDetailMenuItems = ({
   const drillToDetail = hasDimensions ? (
     getMenuItem('none', t('Drill to detail'))
   ) : (
-    <Menu.Item disabled {...props}>
+    <DisabledMenuItem {...props}>
       {t(
         'Drill to detail is disabled because this chart does not group data by dimension value.',
       )}
-      {/* TODO: Tooltip */}
-    </Menu.Item>
+    </DisabledMenuItem>
   );
 
   const contextMenuSupported = useMemo(
@@ -153,9 +167,9 @@ export const DrillDetailMenuItems = ({
   );
 
   let drillToDetailBy = (
-    <Menu.Item disabled {...props}>
+    <DisabledMenuItem {...props}>
       {t('Drill to detail by value is not yet supported for this chart type.')}
-    </Menu.Item>
+    </DisabledMenuItem>
   );
 
   if (contextMenuSupported) {
@@ -164,7 +178,7 @@ export const DrillDetailMenuItems = ({
         <>
           {contextPayload.filters.map((filter, i) =>
             getMenuItem(
-              i,
+              `${i}`,
               <>
                 {`${t('Drill to detail by')} `}
                 <Filter>{filter.formattedVal}</Filter>
@@ -185,11 +199,11 @@ export const DrillDetailMenuItems = ({
       );
     } else {
       drillToDetailBy = (
-        <Menu.Item disabled {...props}>
+        <DisabledMenuItem {...props}>
           {t(
             'Right-click on a dimension value to drill to detail by that value.',
           )}
-        </Menu.Item>
+        </DisabledMenuItem>
       );
     }
   }
@@ -199,9 +213,7 @@ export const DrillDetailMenuItems = ({
       {drillToDetail}
       {isContextMenu && (
         <Menu.SubMenu title={t('Drill to detail by')} {...props}>
-          <Menu data-test="drill-to-detail-by-submenu" {...props}>
-            {drillToDetailBy}
-          </Menu>
+          <div data-test="drill-to-detail-by-submenu">{drillToDetailBy}</div>
         </Menu.SubMenu>
       )}
     </>
