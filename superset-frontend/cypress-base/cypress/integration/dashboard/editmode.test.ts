@@ -235,7 +235,7 @@ describe('Dashboard edit', () => {
         .click();
 
       // add new markdown component
-      dragComponent('Markdown', 'new-component');
+      dragComponent('Text', 'new-component');
 
       cy.get('[data-test="dashboard-markdown-editor"]')
         .should(
@@ -245,7 +245,7 @@ describe('Dashboard edit', () => {
         .click();
 
       cy.getBySel('dashboard-component-chart-holder').contains(
-        'Click here to edit [markdown](https://bit.ly/1dQOfRK)',
+        'Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)',
       );
 
       cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
