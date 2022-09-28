@@ -219,10 +219,14 @@ export default function LeftPanel({
     [dbId, encodedSchema],
   );
 
+  const filteredOptions = tableOptions.filter(option =>
+    option?.value?.toLowerCase().includes(searchVal.toLowerCase()),
+  );
+
   const Loader = (inline: string) => (
     <div className="loading-container">
       <Loading position="inline" />
-      <p>{inline} </p>
+      <p>{inline}</p>
     </div>
   );
 
@@ -273,7 +277,7 @@ export default function LeftPanel({
           </Form>
           <div className="options-list" data-test="options-list">
             {!refresh &&
-              tableOptions.map((option, i) => (
+              filteredOptions.map((option, i) => (
                 <div
                   className={
                     selectedTable === i ? 'options-highlighted' : 'options'
