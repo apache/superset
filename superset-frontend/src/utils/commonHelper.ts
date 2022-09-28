@@ -55,6 +55,5 @@ export const convertValueToLabel = (
   return null;
 };
 
-export const convertDateToReqFormat  = (date:string) => {
-  return moment(date).format('DD/MM/YYYY hh:mm:ss A')
-}
+export const convertDateToReqFormat = (date: string) =>
+  moment(date).format('DD/MM/YYYY hh:mm:ss A');
