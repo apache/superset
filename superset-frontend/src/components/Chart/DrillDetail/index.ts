@@ -17,6 +17,5 @@
  * under the License.
  */
 
-export { DrillDetailPayload } from './types';
 export { DrillDetailMenuItems } from './DrillDetailMenuItems';
 export { getDrillDetailMenuItemsCount } from './utils';

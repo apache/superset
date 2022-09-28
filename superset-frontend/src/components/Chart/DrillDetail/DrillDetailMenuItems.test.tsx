@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
@@ -30,11 +30,11 @@ import {
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
-const { id: chartId, form_data: supportedChartFormData } =
-  chartQueries[sliceId];
+const { id: chartId, form_data: chartFormData } = chartQueries[sliceId];
 
+const { slice_name: chartName } = chartFormData;
 const unsupportedChartFormData = {
-  ...supportedChartFormData,
+  ...chartFormData,
   viz_type: 'dist_bar',
 };
 
@@ -48,106 +48,24 @@ const renderMenu = (props: Omit<DrillDetailMenuItemsProps, 'chartId'>) => {
   );
 };
 
-const expectDrillToDetailModal = (
-  menuItem: HTMLElement,
-  filters: QueryObjectFilterClause[],
-) => {
-  // const chart = chartQueries[sliceId];
-  // const setup = (overrides: Record<string, any> = {}) => {
-  //   const store = getMockStoreWithNativeFilters();
-  //   const props = {
-  //     chartId: sliceId,
-  //     formData: chart.form_data as unknown as QueryFormData,
-  //     ...overrides,
-  //   };
-  //   return render(
-  //     <Menu data-testid="menu">
-  //       <DrillDetailMenuItems {...props} />
-  //     </Menu>,
-  //     {
-  //       useRedux: true,
-  //       useRouter: true,
-  //       store,
-  //     },
-  //   );
-  // };
-  // const waitForRender = (overrides: Record<string, any> = {}) =>
-  //   waitFor(() => setup(overrides));
+fetchMock.post(
+  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1',
+  {
+    result: {
+      data: [],
+      colnames: [],
+      coltypes: [],
+    },
+  },
+);
 
-  // fetchMock.post(
-  //   'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1',
-  //   {
-  //     result: {
-  //       data: [],
-  //       colnames: [],
-  //       coltypes: [],
-  //     },
-  //   },
-  // );
-
-  // const mockHistoryPush = jest.fn();
-  // jest.mock('react-router-dom', () => ({
-  //   ...jest.requireActual('react-router-dom'),
-  //   useHistory: () => ({
-  //     push: mockHistoryPush,
-  //   }),
-  // }));
-
-  // ('should render', async () => {
-  //   const { container } = await waitForRender();
-  //   expect(container).toBeInTheDocument();
-  // });
-
-  // ('should render fallback menu', async () => {
-  //   await waitForRender();
-  //   console.log(screen.queryAllByText('Drill to detail'));
-  //   expect(screen.queryAllByTestId('menu-item-content')).toBeInTheDocument();
-  // });
-
-  // ('should render the title', async () => {
-  //   await waitForRender();
-  //   expect(
-  //     screen.getByText(`Drill to detail: ${chart.form_data.slice_name}`),
-  //   ).toBeInTheDocument();
-  // });
-
-  // ('should render the modal', async () => {
-  //   await waitForRender();
-  //   expect(screen.getByRole('dialog')).toBeInTheDocument();
-  // });
-
-  // ('should not render the modal', async () => {
-  //   await waitForRender({
-  //     initialFilters: undefined,
-  //   });
-  //   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  // });
-
-  // ('should render the button', async () => {
-  //   await waitForRender();
-  //   expect(
-  //     screen.getByRole('button', { name: 'Edit chart' }),
-  //   ).toBeInTheDocument();
-  //   expect(screen.getAllByRole('button', { name: 'Close' })).toHaveLength(2);
-  // });
-
-  // ('should close the modal', async () => {
-  //   await waitForRender();
-  //   expect(screen.getByRole('dialog')).toBeInTheDocument();
-  //   userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
-  //   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  // });
-
-  // ('should forward to Explore', async () => {
-  //   await waitForRender();
-  //   userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
-  //   expect(mockHistoryPush).toHaveBeenCalledWith(
-  //     `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
-  //   );
-  // });
-  const returnValue = null;
-  return returnValue;
-};
+const mockHistoryPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+}));
 
 //  "Drill to detail" item should be enabled
 const expectDrillToDetailMenuItem = () => {
@@ -157,7 +75,7 @@ const expectDrillToDetailMenuItem = () => {
 
   expect(drillToDetailMenuItem).toBeInTheDocument();
   expect(drillToDetailMenuItem).toBeEnabled();
-  expectDrillToDetailModal(drillToDetailMenuItem, []);
+  return drillToDetailMenuItem;
 };
 
 //  "Drill to detail" tooltip should not be present
@@ -239,14 +157,26 @@ const expectUnsupportedClickMessage = async () => {
   expect(drillToDetailByDimension).not.toBeInTheDocument();
 };
 
+//  Drill to Detail modal should appear
+const expectDrillToDetailModal = async (buttonName: string) => {
+  const button = screen.getByRole('button', { name: buttonName });
+  userEvent.click(button);
+  const modal = await screen.findByRole('dialog', {
+    name: `Drill to detail: ${chartName}`,
+  });
+
+  expect(modal).toBeVisible();
+};
+
 test.todo('dropdown menu, no explore permissions');
 test.todo('context menu, no explore permissions');
 
-test('dropdown menu for unsupported chart', () => {
+test('dropdown menu for unsupported chart', async () => {
   renderMenu({ formData: unsupportedChartFormData });
   expectDrillToDetailMenuItem();
   expectNoDrillToDetailMenuItemTooltip();
   expectNoDrillToDetailBySubMenu();
+  await expectDrillToDetailModal('Drill to detail');
 });
 
 test('context menu for unsupported chart', async () => {
@@ -265,7 +195,7 @@ test.todo('dropdown menu for supported chart, no dimensions');
 test.todo('context menu for supported chart, no dimensions');
 
 test('dropdown menu for supported chart, dimensions', () => {
-  renderMenu({ formData: supportedChartFormData });
+  renderMenu({ formData: chartFormData });
   expectDrillToDetailMenuItem();
   expectNoDrillToDetailMenuItemTooltip();
   expectNoDrillToDetailBySubMenu();
@@ -273,7 +203,7 @@ test('dropdown menu for supported chart, dimensions', () => {
 
 test('context menu for supported chart, dimensions, no filters', async () => {
   renderMenu({
-    formData: supportedChartFormData,
+    formData: chartFormData,
     isContextMenu: true,
   });
 

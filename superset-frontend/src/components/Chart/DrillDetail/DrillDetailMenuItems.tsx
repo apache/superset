@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, useCallback, useContext, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
+import React, { ReactNode, useMemo } from 'react';
 import {
   Behavior,
   QueryObjectFilterClause,
@@ -28,16 +27,10 @@ import {
   styled,
   SupersetTheme,
   t,
-  useTheme,
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import ModalTrigger from 'src/components/ModalTrigger';
-import Button from 'src/components/Button';
-import { useSelector } from 'react-redux';
-import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { Slice } from 'src/types/Chart';
-import DrillDetailPane from './DrillDetailPane';
 import { ContextMenuPayload } from '../types';
+import DrillDetailModalTrigger from './DrillDetailModalTrigger';
 
 const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
   <Menu.Item disabled {...props}>
@@ -59,21 +52,41 @@ const Filter = styled.span`
   `}
 `;
 
-type ModalFooterProps = {
-  exploreChart: () => void;
-  closeModal?: () => void;
-};
-
-const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
-  <>
-    <Button buttonStyle="secondary" buttonSize="small" onClick={exploreChart}>
-      {t('Edit chart')}
-    </Button>
-    <Button buttonStyle="primary" buttonSize="small" onClick={closeModal}>
-      {t('Close')}
-    </Button>
-  </>
-);
+const useModalTriggerMenuItem =
+  ({
+    chartId,
+    formData,
+    onSelection,
+  }: {
+    chartId: number;
+    formData: SqlaFormData;
+    onSelection?: () => void;
+  }) =>
+  ({
+    key,
+    filters,
+    children,
+    ...props
+  }: {
+    key: string;
+    filters?: QueryObjectFilterClause[];
+    children: ReactNode;
+  }) =>
+    (
+      <Menu.Item
+        key={`drill-to-detail-${key}`}
+        onClick={onSelection}
+        {...props}
+      >
+        <DrillDetailModalTrigger
+          chartId={chartId}
+          formData={formData}
+          filters={filters}
+        >
+          {children}
+        </DrillDetailModalTrigger>
+      </Menu.Item>
+    );
 
 export type DrillDetailMenuItemsProps = {
   chartId: number;
@@ -91,65 +104,20 @@ export const DrillDetailMenuItems = ({
   onSelection,
   ...props
 }: DrillDetailMenuItemsProps) => {
-  const theme = useTheme();
-  const history = useHistory();
-  const dashboardPageId = useContext(DashboardPageIdContext);
-  const { slice_name: chartName } = useSelector(
-    (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
-      state.sliceEntities.slices[chartId],
-  );
-
-  const exploreUrl = useMemo(
-    () => `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${chartId}`,
-    [chartId, dashboardPageId],
-  );
-
-  const exploreChart = useCallback(() => {
-    history.push(exploreUrl);
-  }, [exploreUrl, history]);
-
-  const getMenuItem = useCallback(
-    (key: string, content: ReactNode, filters?: QueryObjectFilterClause[]) => (
-      <Menu.Item
-        key={`drill-to-detail-${key}`}
-        onClick={onSelection}
-        {...props}
-      >
-        <ModalTrigger
-          css={css`
-            .ant-modal-body {
-              display: flex;
-              flex-direction: column;
-            }
-          `}
-          modalTitle={t('Drill to detail: %s', chartName)}
-          triggerNode={content}
-          modalFooter={<ModalFooter exploreChart={exploreChart} />}
-          modalBody={
-            <DrillDetailPane formData={formData} initialFilters={filters} />
-          }
-          responsive
-          resizable
-          resizableConfig={{
-            minHeight: theme.gridUnit * 128,
-            minWidth: theme.gridUnit * 128,
-            defaultSize: {
-              width: 'auto',
-              height: '75vh',
-            },
-          }}
-          draggable
-        />
-      </Menu.Item>
-    ),
-    [chartName, exploreChart, formData, onSelection, props, theme.gridUnit],
-  );
+  const ModalTriggerMenuItem = useModalTriggerMenuItem({
+    chartId,
+    formData,
+    onSelection,
+    ...props,
+  });
 
   const hasDimensions = !!(formData.groupby && formData.groupby.length);
   //  Viz type: world_map has dimension in entity
 
   const drillToDetail = hasDimensions ? (
-    getMenuItem('none', t('Drill to detail'))
+    <ModalTriggerMenuItem key="none" {...props}>
+      {t('Drill to detail')}
+    </ModalTriggerMenuItem>
   ) : (
     <DisabledMenuItem {...props}>
       {t(
@@ -176,25 +144,22 @@ export const DrillDetailMenuItems = ({
     if (contextPayload?.filters.length) {
       drillToDetailBy = (
         <>
-          {contextPayload.filters.map((filter, i) =>
-            getMenuItem(
-              `${i}`,
-              <>
-                {`${t('Drill to detail by')} `}
-                <Filter>{filter.formattedVal}</Filter>
-              </>,
-              [filter],
-            ),
+          {contextPayload.filters.map((filter, i) => (
+            <ModalTriggerMenuItem key={`${i}`} filters={[filter]} {...props}>
+              {`${t('Drill to detail by')} `}
+              <Filter>{filter.formattedVal}</Filter>
+            </ModalTriggerMenuItem>
+          ))}
+          {contextPayload.filters.length > 1 && (
+            <ModalTriggerMenuItem
+              key="all"
+              filters={contextPayload.filters}
+              {...props}
+            >
+              {`${t('Drill to detail by')} `}
+              <Filter>{t('all')}</Filter>
+            </ModalTriggerMenuItem>
           )}
-          {contextPayload.filters.length > 1 &&
-            getMenuItem(
-              'all',
-              <>
-                {`${t('Drill to detail by')} `}
-                <Filter>{t('all')}</Filter>
-              </>,
-              contextPayload.filters,
-            )}
         </>
       );
     } else {
