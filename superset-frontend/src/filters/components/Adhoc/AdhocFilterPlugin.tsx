@@ -146,6 +146,15 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     }
   });
 
+  const labelString = (props: AdhocFilter) => {
+    if (props.comparator.length >= 1) {
+      return `${props.subject} ${props.operator} (${props.comparator.join(
+        ', ',
+      )})`;
+    }
+    return `${props.subject} ${props.operator} ${props.comparator}`;
+  };
+
   const updateDataMask = useCallback(
     (adhoc_filters: AdhocFilter[]) => {
       const emptyFilter =
@@ -163,9 +172,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
           ...filterState,
           label: (adhoc_filters || [])
             .map(f =>
-              f.sqlExpression
-                ? String(f.sqlExpression)
-                : String(f.subject) + String(f.operator) + String(f.comparator),
+              f.sqlExpression ? String(f.sqlExpression) : labelString(f),
             )
             .join(', '),
           value: adhoc_filters,
