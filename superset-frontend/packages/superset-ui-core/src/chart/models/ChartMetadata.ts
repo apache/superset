@@ -50,6 +50,7 @@ export interface ChartMetadataConfig {
   label?: ChartLabel | null;
   labelExplanation?: string | null;
   queryObjectCount?: number;
+  noAggregations?: (formData: SqlaFormData) => boolean;
 }
 
 export default class ChartMetadata {
@@ -116,6 +117,7 @@ export default class ChartMetadata {
       label = null,
       labelExplanation = null,
       queryObjectCount = 1,
+      noAggregations,
     } = config;
 
     this.name = name;
@@ -145,6 +147,7 @@ export default class ChartMetadata {
     this.label = label;
     this.labelExplanation = labelExplanation;
     this.queryObjectCount = queryObjectCount;
+    this.noAggregations = noAggregations;
   }
 
   canBeAnnotationType(type: string): boolean {

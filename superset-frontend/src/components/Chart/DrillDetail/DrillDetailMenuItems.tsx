@@ -28,6 +28,8 @@ import {
   t,
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
+import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 import { ContextMenuPayload } from '../types';
 import DrillDetailModal from './DrillDetailModal';
 
@@ -107,9 +109,28 @@ export const DrillDetailMenuItems = ({
 
   const drillToDetail = noAggregations ? (
     <DisabledMenuItem key="no-aggregations-message" {...props}>
-      {t(
-        'Drill to detail is disabled because this chart does not group data by dimension value.',
-      )}
+      {t('Drill to detail')}
+      <Tooltip
+        title={t(
+          'Drill to detail is disabled because this chart does not group data by dimension value.',
+        )}
+        placement="top"
+      >
+        <Icons.InfoCircleOutlined
+          data-test="no-aggregations-tooltip-trigger"
+          css={(theme: SupersetTheme) => css`
+            color: ${theme.colors.text.label};
+            margin-left: ${theme.gridUnit * 2}px;
+            &.anticon {
+              font-size: unset;
+              .anticon {
+                line-height: unset;
+                vertical-align: unset;
+              }
+            }
+          `}
+        />
+      </Tooltip>
     </DisabledMenuItem>
   ) : (
     <Menu.Item {...props} onClick={() => openModal([])}>
@@ -159,7 +180,11 @@ export const DrillDetailMenuItems = ({
     <>
       {drillToDetail}
       {isContextMenu && (
-        <Menu.SubMenu title={t('Drill to detail by')} {...props}>
+        <Menu.SubMenu
+          title={t('Drill to detail by')}
+          disabled={noAggregations}
+          {...props}
+        >
           <div data-test="drill-to-detail-by-submenu">{drillToDetailBy}</div>
         </Menu.SubMenu>
       )}

@@ -51,6 +51,7 @@ const metadata = new ChartMetadata({
     t('Description'),
   ],
   thumbnail,
+  noAggregations: ({ query_mode }) => query_mode === 'raw',
 });
 
 export default class TableChartPlugin extends ChartPlugin<
