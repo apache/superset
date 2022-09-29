@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
-import Tag, { TagType } from 'src/types/TagType';
+import Tag from 'src/types/TagType';
 import { StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import { fetchSuggestions } from 'src/tags';
 import AllEntitiesTable from './AllEntitiesTable';
-import { loadTags } from 'src/components/ObjectTags';
-import { AsyncSelect, Select } from 'src/components';
-import { LabeledValue } from 'antd/lib/select';
 
 const AllEntitiesContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};

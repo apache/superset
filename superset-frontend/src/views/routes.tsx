@@ -106,6 +106,9 @@ const SavedQueryList = lazy(
 const AllEntitiesPage = lazy(
   () => import(/* webpackChunkName: "AllEntities" */ 'src/views/CRUD/allentities/AllEntities'),
 );
+const TagsPage = lazy(
+  () => import(/* webpackChunkName: "TagList" */ 'src/views/CRUD/tags/TagList'),
+);
 
 type Routes = {
   path: string;
@@ -199,6 +202,10 @@ if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
   routes.push({
     path: '/superset/all_entities/',
     Component: AllEntitiesPage,
+  });
+  routes.push({
+    path: '/superset/tags/',
+    Component: TagsPage,
   });
 }
 

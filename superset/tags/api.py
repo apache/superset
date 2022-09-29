@@ -55,12 +55,29 @@ class TagRestApi(BaseSupersetModelRestApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
     list_columns = [
-        "id",
-        "name",
-        "type",
+      "id",
+      "name",
+      "type",
+      "changed_by.first_name",
+      "changed_by.last_name",
+      "changed_on_delta_humanized",
+      "created_by.first_name",
+      "created_by.last_name",
     ]
 
     list_select_columns = list_columns
+
+    show_columns = [
+      "id",
+      "name",
+      "type",
+      "changed_by.first_name",
+      "changed_by.last_name",
+      "changed_on_delta_humanized",
+      "created_by.first_name",
+      "created_by.last_name",
+      "created_by"
+    ]
 
     add_model_schema = TagPostSchema()
     tag_get_response_schema = TagGetResponseSchema()
@@ -76,10 +93,9 @@ class TagRestApi(BaseSupersetModelRestApi):
 
     def __repr__(self) -> str:
         """Deterministic string representation of the API instance for etag_cache."""
-        return "Superset.tags.api.TagRestApi@v{}{}".format(
-            self.appbuilder.app.config["VERSION_STRING"],
-            self.appbuilder.app.config["VERSION_SHA"],
-        )
+        return 'Superset.tags.api.TagRestApi@v' \
+            f'{self.appbuilder.app.config["VERSION_STRING"]}' \
+            f'{self.appbuilder.app.config["VERSION_SHA"]}'
 
     @expose("/<int:object_type>/<int:object_id>/", methods=["POST"])
     @protect()

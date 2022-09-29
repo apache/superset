@@ -28,6 +28,7 @@ import { uniqBy } from 'lodash';
 import moment from 'moment';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
+  Actions,
   createErrorHandler,
   createFetchRelated,
   handleChartDelete,
@@ -145,10 +146,6 @@ interface ChartListProps {
     lastName: string;
   };
 }
-
-const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
 
 function ChartList(props: ChartListProps) {
   const {

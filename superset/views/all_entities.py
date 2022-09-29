@@ -163,8 +163,6 @@ class TaggedObjectView(BaseSupersetView):
             for tag in request.args.get("tags", "").split(",")
             if tag
         ]
-        if not tags:
-            return json_success(json.dumps([]))
 
         # filter types
         types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
@@ -183,8 +181,9 @@ class TaggedObjectView(BaseSupersetView):
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
-                .filter(Tag.name.in_(tags))
+                .filter(not tags or Tag.name.in_(tags))
             )
+
             results.extend(
                 {
                     "id": obj.id,
@@ -210,7 +209,7 @@ class TaggedObjectView(BaseSupersetView):
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
-                .filter(Tag.name.in_(tags))
+                .filter(not tags or Tag.name.in_(tags))
             )
             results.extend(
                 {
@@ -237,7 +236,7 @@ class TaggedObjectView(BaseSupersetView):
                     ),
                 )
                 .join(Tag, TaggedObject.tag_id == Tag.id)
-                .filter(Tag.name.in_(tags))
+                .filter(not tags or Tag.name.in_(tags))
             )
             results.extend(
                 {

@@ -186,6 +186,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.users.api import CurrentUserRestApi
         from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
+        from superset.views.tags import TagModelView, TagView
 
 
         #
@@ -309,6 +310,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TaggedObjectView)
+        appbuilder.add_view_no_menu(TagView)
         appbuilder.add_view_no_menu(ReportView)
 
         #
@@ -374,7 +376,20 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "All Entities",
             label=__("All Entities"),
             icon="",
-            category="",
+            category="Tagging",
+            category_label=__("Tagging"),
+            category_icon="",
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "TAGGING_SYSTEM"
+            ),
+        )
+        appbuilder.add_view(
+            TagModelView,
+            "Tags",
+            label=__("Tags"),
+            icon="",
+            category="Tagging",
+            category_label=__("Tagging"),
             category_icon="",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled(
                 "TAGGING_SYSTEM"

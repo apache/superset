@@ -25,6 +25,7 @@ import {
   createFetchRelated,
   createErrorHandler,
   handleDashboardDelete,
+  Actions,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -93,10 +94,6 @@ interface Dashboard {
   tags: Tag[];
   created_by: object;
 }
-
-const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
 
 function DashboardList(props: DashboardListProps) {
   const {

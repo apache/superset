@@ -20,10 +20,8 @@ import React, { useState, useEffect } from 'react';
 import moment from 'moment';
 import { t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { fetchObjects, fetchTags } from '../../../tags';
+import { fetchObjects } from '../../../tags';
 import Loading from '../../../components/Loading';
-import { Tag, TagsList } from 'src/components/Tags';
-import { loadTags } from 'src/components/ObjectTags';
 
 const AllEntitiesTableContainer = styled.div`
   text-align: left;
@@ -85,7 +83,6 @@ export default function AllEntitiesTable({ search = '' }: AllEntitiesTableProps)
     const data = objects[type].map((o: TaggedObject) => ({
       [type]: <a href={o.url}>{o.name}</a>,
       // eslint-disable-next-line react/no-danger
-      creator: <div>o.creator</div>,
       modified: moment.utc(o.changed_on).fromNow(),
     }));
     return (
@@ -99,7 +96,6 @@ export default function AllEntitiesTable({ search = '' }: AllEntitiesTableProps)
             accessor: type,
             Header: type.charAt(0).toUpperCase() + type.slice(1),
           },
-          { accessor: 'creator', Header: 'Creator' },
           { accessor: 'modified', Header: 'Modified' },
         ]}
       />

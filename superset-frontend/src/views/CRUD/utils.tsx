@@ -64,6 +64,10 @@ import { Dashboard, Filters } from './types';
   risonRef.next_id = new RegExp(idrx, 'g');
 })();
 
+export const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 const createFetchResourceMethod =
   (method: string) =>
   (

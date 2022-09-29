@@ -25,6 +25,17 @@ export const OBJECT_TYPES = Object.freeze({
   QUERY: 'query',
 });
 
+export function fetchAllTags(
+  callback: (json: JsonObject) => void,
+  error: (response: Response) => void,
+) {
+  let url = `/tagview/tags/`;
+  SupersetClient.get({ endpoint: url })
+    .then(({ json }) => callback(json))
+    .catch(response => error(response));
+}
+
+
 export function fetchTags(
   {
     objectType,
