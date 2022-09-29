@@ -619,6 +619,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     }
 
+    if (dbToUpdate.allow_run_async === undefined) {
+      dbToUpdate.allow_run_async = true;
+    }
+
     if (dbToUpdate?.parameters?.catalog) {
       // need to stringify gsheets catalog to allow it to be seralized
       dbToUpdate.extra_json = {
