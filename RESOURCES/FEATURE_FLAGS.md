@@ -53,6 +53,7 @@ These features are **finished** but currently being tested. They are usable, but
 - CACHE_IMPERSONATION
 - RLS_IN_SQLLAB
 - DASHBOARD_FILTERS_EXPERIMENTAL
+- ALLOW_FULL_CSV_EXPORT
 
 
 ## Stable
@@ -83,6 +84,3 @@ These features flags currently default to True and **will be removed in a future
 - ALLOW_DASHBOARD_DOMAIN_SHARDING
 - DISPLAY_MARKDOWN_HTML
 - FORCE_DATABASE_CONNECTIONS_SSL
-
-## In need of categorization
-- ALLOW_FULL_CSV_EXPORT
