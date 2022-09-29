@@ -78,7 +78,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
 
   const eventHandlers: EventHandlers = {
     click: props => {
-      const { data, treePathInfo } = props;
+      const { treePathInfo } = props;
       const treePath = extractTreePathInfo(treePathInfo);
       const name = treePath.join(',');
       const values = Object.values(selectedValues);
