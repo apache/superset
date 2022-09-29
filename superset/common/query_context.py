@@ -47,7 +47,7 @@ class QueryContext:
     enforce_numerical_metrics: ClassVar[bool] = True
 
     datasource: BaseDatasource
-    slice_id: Optional[int] = None
+    slice: Optional[Slice] = None
     queries: List[QueryObject]
     form_data: Optional[Dict[str, Any]]
     result_type: ChartDataResultType
@@ -102,7 +102,7 @@ class QueryContext:
     def get_cache_timeout(self) -> Optional[int]:
         if self.custom_cache_timeout is not None:
             return self.custom_cache_timeout
-        if self.slice and self.slice.cache_timeout:
+        if self.slice and self.slice.cache_timeout is not None:
             return self.slice.cache_timeout
         if self.datasource.cache_timeout is not None:
             return self.datasource.cache_timeout
