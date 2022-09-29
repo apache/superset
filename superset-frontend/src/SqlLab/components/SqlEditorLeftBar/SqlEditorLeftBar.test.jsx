@@ -34,7 +34,7 @@ import {
 
 const mockedProps = {
   tables: [table],
-  queryEditor: defaultQueryEditor,
+  queryEditorId: defaultQueryEditor.id,
   database: databases,
   height: 0,
 };

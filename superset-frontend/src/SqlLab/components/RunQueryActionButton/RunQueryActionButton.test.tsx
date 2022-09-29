@@ -41,7 +41,7 @@ jest.mock('src/components/Select/AsyncSelect', () => () => (
 ));
 
 const defaultProps = {
-  queryEditor: defaultQueryEditor,
+  queryEditorId: defaultQueryEditor.id,
   allowAsync: false,
   dbId: 1,
   queryState: 'ready',

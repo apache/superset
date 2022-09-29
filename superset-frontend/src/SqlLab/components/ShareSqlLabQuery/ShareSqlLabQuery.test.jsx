@@ -28,7 +28,7 @@ import '@testing-library/jest-dom/extend-expect';
 import userEvent from '@testing-library/user-event';
 import * as utils from 'src/utils/common';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
-import { initialState } from 'src/SqlLab/fixtures';
+import { initialState, extraQueryEditor1 } from 'src/SqlLab/fixtures';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore(initialState);
@@ -41,20 +41,12 @@ const standardProvider = ({ children }) => (
 );
 
 const defaultProps = {
-  queryEditor: {
-    id: 'qe1',
-    dbId: 0,
-    name: 'query title',
-    schema: 'query_schema',
-    autorun: false,
-    sql: 'SELECT * FROM ...',
-    remoteId: 999,
-  },
+  queryEditorId: extraQueryEditor1.id,
   addDangerToast: jest.fn(),
 };
 
 const unsavedQueryEditor = {
-  id: defaultProps.queryEditor.id,
+  id: defaultProps.queryEditorId,
   dbId: 9888,
   name: 'query title changed',
   schema: 'query_schema_updated',
@@ -110,7 +102,8 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, remoteId, ...expected } = defaultProps.queryEditor;
+      const { autorun, dbId, name, schema, sql } = extraQueryEditor1;
+      const expected = { autorun, dbId, name, schema, sql };
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);
