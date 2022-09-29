@@ -233,7 +233,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
         )
     if apply_ctas:
         if not query.tmp_table_name:
-            start_dttm = datetime.fromtimestamp(query.start_time)
+            start_dttm = datetime.fromtimestamp(query.start_time / 1000)
             query.tmp_table_name = "tmp_{}_table_{}".format(
                 query.user_id, start_dttm.strftime("%Y_%m_%d_%H_%M_%S")
             )
