@@ -63,20 +63,14 @@ function setTopLevelTab(tabName: string) {
 }
 
 describe('Drill to detail modal', () => {
-  before(() => {
-    cy.visit(SUPPORTED_CHARTS_DASHBOARD);
-  });
-
   beforeEach(() => {
     cy.preserveLogin();
-  });
-
-  afterEach(() => {
     closeModal();
   });
 
   describe('Tier 1 charts', () => {
     before(() => {
+      cy.visit(SUPPORTED_CHARTS_DASHBOARD);
       setTopLevelTab('Tier 1');
       SUPPORTED_TIER1_CHARTS.forEach(waitForChartLoad);
     });
@@ -175,7 +169,7 @@ describe('Drill to detail modal', () => {
         cy.get("[data-test-viz-type='pie'] canvas").then($canvas => {
           const canvasWidth = $canvas.width() || 0;
           const canvasHeight = $canvas.height() || 0;
-          const canvasCenterX = canvasWidth / 2;
+          const canvasCenterX = canvasWidth / 3;
           const canvasCenterY = canvasHeight / 2;
 
           cy.wrap($canvas)
@@ -195,9 +189,9 @@ describe('Drill to detail modal', () => {
         interceptSamples();
 
         // opens the modal by clicking on the number on the chart
-        cy.get(
-          "[data-test-viz-type='big_number_total'] .header-line",
-        ).rightclick();
+        cy.get("[data-test-viz-type='big_number_total'] .header-line")
+          .scrollIntoView()
+          .rightclick();
 
         openModalFromChartContext('Drill to detail');
 
@@ -210,7 +204,9 @@ describe('Drill to detail modal', () => {
         interceptSamples();
 
         // opens the modal by clicking on the number
-        cy.get("[data-test-viz-type='big_number'] .header-line").rightclick();
+        cy.get("[data-test-viz-type='big_number'] .header-line")
+          .scrollIntoView()
+          .rightclick();
 
         openModalFromChartContext('Drill to detail');
 
@@ -222,8 +218,9 @@ describe('Drill to detail modal', () => {
     });
   });
 
-  describe.only('Tier 2 charts', () => {
+  describe('Tier 2 charts', () => {
     before(() => {
+      cy.visit(SUPPORTED_CHARTS_DASHBOARD);
       setTopLevelTab('Tier 2');
       SUPPORTED_TIER2_CHARTS.forEach(waitForChartLoad);
     });
@@ -236,9 +233,8 @@ describe('Drill to detail modal', () => {
         cy.get("[data-test-viz-type='box_plot'] canvas").then($canvas => {
           const canvasWidth = $canvas.width() || 0;
           const canvasHeight = $canvas.height() || 0;
-          const canvasCenterX = canvasWidth / 6;
-          const canvasCenterY = canvasHeight / 1.3;
-          console.log(canvasCenterX, canvasCenterY);
+          const canvasCenterX = canvasWidth / 3;
+          const canvasCenterY = (canvasHeight * 5) / 6;
 
           cy.wrap($canvas)
             .scrollIntoView()
@@ -282,8 +278,8 @@ describe('Drill to detail modal', () => {
         cy.get("[data-test-viz-type='box_plot'] canvas").then($canvas => {
           const canvasWidth = $canvas.width() || 0;
           const canvasHeight = $canvas.height() || 0;
-          const canvasCenterX = canvasWidth / 6;
-          const canvasCenterY = canvasHeight / 6;
+          const canvasCenterX = canvasWidth / 3;
+          const canvasCenterY = (canvasHeight * 5) / 6;
 
           cy.wrap($canvas)
             .scrollIntoView()
