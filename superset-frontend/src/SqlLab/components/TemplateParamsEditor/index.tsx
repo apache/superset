@@ -35,17 +35,17 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-export type Props = {
+export type TemplateParamsEditorProps = {
   queryEditorId: string;
   language: 'yaml' | 'json';
   onChange: () => void;
 };
 
-function TemplateParamsEditor({
+const TemplateParamsEditor = ({
   queryEditorId,
   language,
   onChange = () => {},
-}: Props) {
+}: TemplateParamsEditorProps) => {
   const [parsedJSON, setParsedJSON] = useState({});
   const [isValid, setIsValid] = useState(true);
 

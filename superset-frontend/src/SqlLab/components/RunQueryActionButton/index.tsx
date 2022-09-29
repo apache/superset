@@ -31,7 +31,7 @@ import {
   QueryButtonProps,
 } from 'src/SqlLab/types';
 
-export interface Props {
+export interface RunQueryActionButtonProps {
   queryEditorId: string;
   allowAsync: boolean;
   queryState?: string;
@@ -92,7 +92,7 @@ const RunQueryActionButton = ({
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-}: Props) => {
+}: RunQueryActionButtonProps) => {
   const theme = useTheme();
   const userOS = detectOS();
 

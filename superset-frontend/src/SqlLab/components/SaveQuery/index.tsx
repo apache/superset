@@ -80,14 +80,14 @@ const Styles = styled.span`
   }
 `;
 
-export default function SaveQuery({
+const SaveQuery = ({
   queryEditorId,
   onSave = () => {},
   onUpdate,
   saveQueryWarning = null,
   database,
   columns,
-}: SaveQueryProps) {
+}: SaveQueryProps) => {
   const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
     ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
       ...queryEditors.find(({ id }) => id === queryEditorId),
@@ -233,4 +233,6 @@ export default function SaveQuery({
       </Modal>
     </Styles>
   );
-}
+};
+
+export default SaveQuery;
