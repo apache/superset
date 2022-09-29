@@ -59,7 +59,7 @@ export type DrillDetailMenuItemsProps = {
   isContextMenu?: boolean;
   contextPayload?: ContextMenuPayload;
   onSelection?: () => void;
-  onClick?: () => void;
+  onClick?: (event: MouseEvent) => void;
 };
 
 export const DrillDetailMenuItems = ({
@@ -74,8 +74,8 @@ export const DrillDetailMenuItems = ({
   const [filters, setFilters] = useState<ContextMenuPayload['filters']>();
   const [showModal, setShowModal] = useState(false);
   const openModal = useCallback(
-    filters => {
-      onClick();
+    (filters, event) => {
+      onClick(event);
       onSelection();
       setFilters(filters);
       setShowModal(true);
@@ -108,7 +108,7 @@ export const DrillDetailMenuItems = ({
   );
 
   const drillToDetail = noAggregations ? (
-    <DisabledMenuItem key="no-aggregations-message" {...props}>
+    <DisabledMenuItem {...props} key="drill-detail-no-aggregations-message">
       {t('Drill to detail')}
       <Tooltip
         title={t(
@@ -133,13 +133,17 @@ export const DrillDetailMenuItems = ({
       </Tooltip>
     </DisabledMenuItem>
   ) : (
-    <Menu.Item {...props} onClick={() => openModal([])}>
+    <Menu.Item
+      {...props}
+      key="drill-detail-no-filters"
+      onClick={openModal.bind(null, [])}
+    >
       {t('Drill to detail')}
     </Menu.Item>
   );
 
   let drillToDetailBy = (
-    <DisabledMenuItem key="filters-disabled" {...props}>
+    <DisabledMenuItem {...props} key="drill-detail-filters-disabled-message">
       {t('Drill to detail by value is not yet supported for this chart type.')}
     </DisabledMenuItem>
   );
@@ -149,7 +153,11 @@ export const DrillDetailMenuItems = ({
       drillToDetailBy = (
         <>
           {contextPayload.filters.map((filter, i) => (
-            <Menu.Item {...props} key={i} onClick={() => openModal([filter])}>
+            <Menu.Item
+              {...props}
+              key={`drill-detail-filter-${i}`}
+              onClick={openModal.bind(null, [filter])}
+            >
               {`${t('Drill to detail by')} `}
               <Filter>{filter.formattedVal}</Filter>
             </Menu.Item>
@@ -157,7 +165,8 @@ export const DrillDetailMenuItems = ({
           {contextPayload.filters.length > 1 && (
             <Menu.Item
               {...props}
-              onClick={() => openModal(contextPayload.filters)}
+              key="drill-detail-filter-all"
+              onClick={openModal.bind(null, contextPayload.filters)}
             >
               {`${t('Drill to detail by')} `}
               <Filter>{t('all')}</Filter>
@@ -167,7 +176,7 @@ export const DrillDetailMenuItems = ({
       );
     } else {
       drillToDetailBy = (
-        <DisabledMenuItem key="no-filters-message" {...props}>
+        <DisabledMenuItem {...props} key="drill-detail-no-filters-message">
           {t(
             'Right-click on a dimension value to drill to detail by that value.',
           )}
@@ -181,9 +190,9 @@ export const DrillDetailMenuItems = ({
       {drillToDetail}
       {isContextMenu && (
         <Menu.SubMenu
+          {...props}
           title={t('Drill to detail by')}
           disabled={noAggregations}
-          {...props}
         >
           <div data-test="drill-to-detail-by-submenu">{drillToDetailBy}</div>
         </Menu.SubMenu>
