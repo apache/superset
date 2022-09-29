@@ -78,6 +78,7 @@ from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
 from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, sanitize_clause
 from superset.superset_typing import (
+    AdhocColumn,
     AdhocMetric,
     FilterValue,
     FilterValues,
@@ -1173,7 +1174,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
     def adhoc_column_to_sqla(
         self,
-        col: Type["AdhocColumn"],  # type: ignore
+        col: AdhocColumn,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         """
@@ -1184,14 +1185,42 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :returns: The metric defined as a sqlalchemy column
         :rtype: sqlalchemy.sql.column
         """
-        label = utils.get_column_name(col)  # type: ignore
-        expression = self._process_sql_expression(
+        from superset.connectors.sqla.models import _process_sql_expression
+        from superset.connectors.sqla.utils import get_columns_description
+
+        label = utils.get_column_name(col)
+        expression = _process_sql_expression(
             expression=col["sqlExpression"],
             database_id=self.database_id,
             schema=self.schema,
             template_processor=template_processor,
         )
-        sqla_column = literal_column(expression)
+        # note that: the column name is "name" instead of "column_name" in SQLLab query metadata
+        col_in_metadata = (
+            [col for col in self.columns if col.get("name") == expression] or [None]
+        )[0]
+        if col_in_metadata:
+            sqla_column = literal_column(col_in_metadata.get("name"))
+            is_dttm = col_in_metadata.get("is_dttm")
+        else:
+            sqla_column = literal_column(expression)
+            # probe adhoc column type
+            tbl, _ = self.get_from_clause(template_processor)
+            qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+            sql = self.database.compile_sqla_query(qry)  # type: ignore
+            col_desc = get_columns_description(self.database, sql)  # type: ignore
+            is_dttm = col_desc[0]["is_dttm"]
+
+        if (
+            is_dttm
+            and col.get("columnType") == "BASE_AXIS"
+            and (time_grain := col.get("timeGrain"))
+        ):
+            sqla_column = self.db_engine_spec.get_timestamp_expr(
+                col=sqla_column,
+                pdf=None,
+                time_grain=time_grain,
+            )
         return self.make_sqla_column_compatible(sqla_column, label)
 
     def _get_top_groups(
@@ -1632,7 +1661,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif utils.is_adhoc_column(flt_col):
-                sqla_col = self.adhoc_column_to_sqla(flt_col)  # type: ignore
+                sqla_col = self.adhoc_column_to_sqla(flt_col)
             else:
                 col_obj = columns_by_name.get(flt_col)
             filter_grain = flt.get("grain")
