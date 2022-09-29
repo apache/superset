@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { useSelector, shallowEqual } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
@@ -34,7 +34,7 @@ import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 
 interface SaveQueryProps {
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   columns: ISaveableDatasource['columns'];
   onSave: (arg0: QueryPayload) => void;
   onUpdate: (arg0: QueryPayload) => void;
@@ -81,21 +81,21 @@ const Styles = styled.span`
 `;
 
 const SaveQuery = ({
-  queryEditor,
+  queryEditorId,
   onSave = () => {},
   onUpdate,
   saveQueryWarning = null,
   database,
   columns,
 }: SaveQueryProps) => {
-  const query = useSelector<SqlLabRootState, QueryEditor>(
-    ({ sqlLab: { unsavedQueryEditor } }) => ({
-      ...queryEditor,
-      ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-      columns,
+  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
+      ...queryEditors.find(({ id }) => id === queryEditorId),
+      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
     }),
-    shallowEqual,
   );
+
+  const query = { ...queryEditor, columns };
   const defaultLabel = query.name || query.description || t('Undefined');
   const [description, setDescription] = useState<string>(
     query.description || '',

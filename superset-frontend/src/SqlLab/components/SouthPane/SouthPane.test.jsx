@@ -19,7 +19,7 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import SouthPane from 'src/SqlLab/components/SouthPane';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
@@ -95,9 +95,7 @@ const setup = (props, store) =>
 
 describe('SouthPane', () => {
   const renderAndWait = (props, store) =>
-    act(async () => {
-      setup(props, store);
-    });
+    waitFor(async () => setup(props, store));
 
   it('Renders an empty state for results', async () => {
     await renderAndWait(mockedEmptyProps, mockStore(initialState));

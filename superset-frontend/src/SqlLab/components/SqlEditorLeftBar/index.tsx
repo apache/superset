@@ -63,7 +63,7 @@ interface ExtendedTable extends Table {
 }
 
 interface SqlEditorLeftBarProps {
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   height?: number;
   tables?: ExtendedTable[];
   database: DatabaseObject;
@@ -98,29 +98,28 @@ const collapseStyles = (theme: SupersetTheme) => css`
 
 const SqlEditorLeftBar = ({
   database,
-  queryEditor,
+  queryEditorId,
   tables = [],
   height = 500,
   setEmptyState,
 }: SqlEditorLeftBarProps) => {
   const dispatch = useDispatch();
 
+  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
+      ...queryEditors.find(({ id }) => id === queryEditorId),
+      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+    }),
+  );
+
   // Ref needed to avoid infinite rerenders on handlers
   // that require and modify the queryEditor
-  const queryEditorRef = useRef<QueryEditor>(queryEditor);
+  const queryEditorRef = useRef<Partial<QueryEditor>>(queryEditor);
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
-  const schema = useSelector<SqlLabRootState, string>(
-    ({ sqlLab: { unsavedQueryEditor } }) => {
-      const updatedQueryEditor = {
-        ...queryEditor,
-        ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
-      };
-      return updatedQueryEditor.schema;
-    },
-  );
+  const { schema } = queryEditor;
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;

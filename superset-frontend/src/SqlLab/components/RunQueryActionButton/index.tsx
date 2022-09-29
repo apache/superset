@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { t, styled, useTheme } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
@@ -24,16 +25,14 @@ import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
-import { shallowEqual, useSelector } from 'react-redux';
 import {
   QueryEditor,
   SqlLabRootState,
   QueryButtonProps,
 } from 'src/SqlLab/types';
-import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
 
 export interface Props {
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   allowAsync: boolean;
   queryState?: string;
   runQuery: (c?: boolean) => void;
@@ -88,7 +87,7 @@ const StyledButton = styled.span`
 
 const RunQueryActionButton = ({
   allowAsync = false,
-  queryEditor,
+  queryEditorId,
   queryState,
   overlayCreateAsMenu,
   runQuery,
@@ -96,19 +95,14 @@ const RunQueryActionButton = ({
 }: Props) => {
   const theme = useTheme();
   const userOS = detectOS();
-  const { selectedText, sql } = useSelector<
-    SqlLabRootState,
-    Pick<QueryEditor, 'selectedText' | 'sql'>
-  >(rootState => {
-    const currentQueryEditor = getUpToDateQuery(
-      rootState,
-      queryEditor,
-    ) as unknown as QueryEditor;
-    return {
-      selectedText: currentQueryEditor.selectedText,
-      sql: currentQueryEditor.sql,
-    };
-  }, shallowEqual);
+
+  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
+      ...queryEditors.find(({ id }) => id === queryEditorId),
+      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+    }),
+  );
+  const { selectedText, sql } = queryEditor;
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
