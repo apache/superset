@@ -21,7 +21,7 @@ import unittest
 import copy
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional, List
 from unittest import mock
 from zipfile import ZipFile
 
