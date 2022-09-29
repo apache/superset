@@ -39,12 +39,14 @@ import {
 } from './utils/reduxStateToLocalStorageHelper';
 import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
+import setupExtensions from 'src/setup/setupExtensions';
 
 import './main.less';
 import '../assets/stylesheets/reactable-pagination.less';
 import { theme } from '../preamble';
 
 setupApp();
+setupExtensions();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));

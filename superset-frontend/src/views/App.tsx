@@ -37,9 +37,11 @@ import { Logger } from 'src/logger/LogUtils';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 import QueryProvider from './QueryProvider';
+import setupExtensions from 'src/setup/setupExtensions';
 
 setupApp();
 setupPlugins();
+setupExtensions();
 
 const user = { ...bootstrapData.user };
 const menu = {
