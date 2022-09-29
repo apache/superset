@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { SqlaFormData } from '../../query';
 import { Behavior, ChartLabel } from '../types/Base';
 
 interface LookupTable {
@@ -89,6 +90,11 @@ export default class ChartMetadata {
   labelExplanation?: string | null;
 
   queryObjectCount: number;
+
+  //  Optional function allowing a chart to indicate if its current configuration
+  //  lacks data aggregations (e.g. to determine if Drill to Detail should be
+  //  enabled)
+  noAggregations?: (formData: SqlaFormData) => boolean;
 
   constructor(config: ChartMetadataConfig) {
     const {

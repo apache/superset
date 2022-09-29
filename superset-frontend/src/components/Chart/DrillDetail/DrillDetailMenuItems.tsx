@@ -52,49 +52,13 @@ const Filter = styled.span`
   `}
 `;
 
-const useModalTriggerMenuItem =
-  ({
-    chartId,
-    formData,
-    onSelection,
-  }: {
-    chartId: number;
-    formData: SqlaFormData;
-    onSelection?: () => void;
-  }) =>
-  ({
-    key,
-    filters,
-    children,
-    ...props
-  }: {
-    key: string;
-    filters?: QueryObjectFilterClause[];
-    children: ReactNode;
-  }) =>
-    (
-      <Menu.Item
-        key={`drill-to-detail-${key}`}
-        onClick={onSelection}
-        {...props}
-      >
-        <DrillDetailModalTrigger
-          chartId={chartId}
-          formData={formData}
-          filters={filters}
-        >
-          {children}
-        </DrillDetailModalTrigger>
-      </Menu.Item>
-    );
-
-export type DrillDetailMenuItemsProps = {
+export interface DrillDetailMenuItemsProps {
   chartId: number;
   formData: SqlaFormData;
   isContextMenu?: boolean;
   contextPayload?: ContextMenuPayload;
   onSelection?: () => void;
-};
+}
 
 export const DrillDetailMenuItems = ({
   chartId,
@@ -104,29 +68,28 @@ export const DrillDetailMenuItems = ({
   onSelection,
   ...props
 }: DrillDetailMenuItemsProps) => {
-  const ModalTriggerMenuItem = useModalTriggerMenuItem({
-    chartId,
-    formData,
-    onSelection,
-    ...props,
-  });
-
-  const hasDimensions = !!(formData.groupby && formData.groupby.length);
-  //  Viz type: world_map has dimension in entity
-
-  const drillToDetail = hasDimensions ? (
-    <ModalTriggerMenuItem key="none" {...props}>
-      {t('Drill to detail')}
-    </ModalTriggerMenuItem>
-  ) : (
-    <DisabledMenuItem {...props}>
-      {t(
-        'Drill to detail is disabled because this chart does not group data by dimension value.',
-      )}
-    </DisabledMenuItem>
+  const ModalTriggerMenuItem = ({
+    filters,
+    children,
+    ...props
+  }: {
+    filters?: QueryObjectFilterClause[];
+    children: ReactNode;
+  }) => (
+    <Menu.Item onClick={onSelection} {...props}>
+      <DrillDetailModalTrigger
+        chartId={chartId}
+        formData={formData}
+        filters={filters}
+      >
+        {children}
+      </DrillDetailModalTrigger>
+    </Menu.Item>
   );
 
-  const contextMenuSupported = useMemo(
+  //  Check chart plugin metadata to see if the contextmenu event is handled
+  //  by the chart plugin or the fallback handler
+  const chartHandlesContextMenuEvent = useMemo(
     () =>
       getChartMetadataRegistry()
         .get(formData.viz_type)
@@ -134,25 +97,51 @@ export const DrillDetailMenuItems = ({
     [formData.viz_type],
   );
 
+  //  Check chart plugin metadata to see if chart's current configuration lacks
+  //  aggregations, in which case Drill to Detail should be disabled
+  const noAggregations = useMemo(
+    () =>
+      getChartMetadataRegistry()
+        .get(formData.viz_type)
+        ?.noAggregations?.(formData) ?? false,
+    [formData],
+  );
+
+  const drillToDetail = noAggregations ? (
+    <DisabledMenuItem key="no-aggregations-message" {...props}>
+      {t(
+        'Drill to detail is disabled because this chart does not group data by dimension value.',
+      )}
+    </DisabledMenuItem>
+  ) : (
+    <ModalTriggerMenuItem key="no-filters" {...props}>
+      {t('Drill to detail')}
+    </ModalTriggerMenuItem>
+  );
+
   let drillToDetailBy = (
-    <DisabledMenuItem {...props}>
+    <DisabledMenuItem key="filters-disabled" {...props}>
       {t('Drill to detail by value is not yet supported for this chart type.')}
     </DisabledMenuItem>
   );
 
-  if (contextMenuSupported) {
+  if (chartHandlesContextMenuEvent) {
     if (contextPayload?.filters.length) {
       drillToDetailBy = (
         <>
           {contextPayload.filters.map((filter, i) => (
-            <ModalTriggerMenuItem key={`${i}`} filters={[filter]} {...props}>
+            <ModalTriggerMenuItem
+              key={`filter-${i}`}
+              filters={[filter]}
+              {...props}
+            >
               {`${t('Drill to detail by')} `}
               <Filter>{filter.formattedVal}</Filter>
             </ModalTriggerMenuItem>
           ))}
           {contextPayload.filters.length > 1 && (
             <ModalTriggerMenuItem
-              key="all"
+              key="filters-all"
               filters={contextPayload.filters}
               {...props}
             >
@@ -164,7 +153,7 @@ export const DrillDetailMenuItems = ({
       );
     } else {
       drillToDetailBy = (
-        <DisabledMenuItem {...props}>
+        <DisabledMenuItem key="no-filters-message" {...props}>
           {t(
             'Right-click on a dimension value to drill to detail by that value.',
           )}
