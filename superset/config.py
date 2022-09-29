@@ -30,6 +30,7 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import timedelta
+from email.mime.multipart import MIMEMultipart
 from typing import (
     Any,
     Callable,
@@ -201,8 +202,31 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 # to the DB.
 #
 # Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
-#  to AES-128 under the covers using the app's SECRET_KEY as key material.
+#  to AesEngine that uses AES-128 under the covers using the app's SECRET_KEY
+#  as key material. Do note that AesEngine allows for queryability over the
+#  encrypted fields.
 #
+#  To change the default engine you need to define your own adapter:
+#
+# e.g.:
+#
+# class AesGcmEncryptedAdapter(
+#     AbstractEncryptedFieldAdapter
+# ):
+#     def create(
+#         self,
+#         app_config: Optional[Dict[str, Any]],
+#         *args: List[Any],
+#         **kwargs: Optional[Dict[str, Any]],
+#     ) -> TypeDecorator:
+#         if app_config:
+#             return EncryptedType(
+#                 *args, app_config["SECRET_KEY"], engine=AesGcmEngine, **kwargs
+#             )
+#         raise Exception("Missing app_config kwarg")
+#
+#
+#  SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = AesGcmEncryptedAdapter
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
@@ -438,6 +462,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "CACHE_IMPERSONATION": False,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
+    "DRILL_TO_DETAIL": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -633,13 +658,13 @@ CSV_EXPORT = {"encoding": "utf-8"}
 # Time grain configurations
 # ---------------------------------------------------
 # List of time grains to disable in the application (see list of builtin
-# time grains in superset/db_engine_specs.builtin_time_grains).
+# time grains in superset/db_engine_specs/base.py).
 # For example: to disable 1 second time grain:
 # TIME_GRAIN_DENYLIST = ['PT1S']
 TIME_GRAIN_DENYLIST: List[str] = []
 
 # Additional time grains to be supported using similar definitions as in
-# superset/db_engine_specs.builtin_time_grains.
+# superset/db_engine_specs/base.py.
 # For example: To add a new 2 second time grain:
 # TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
 TIME_GRAIN_ADDONS: Dict[str, str] = {}
@@ -725,9 +750,6 @@ DISPLAY_MAX_ROW = 10000
 # Default row limit for SQL Lab queries. Is overridden by setting a new limit in
 # the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
-
-# Maximum number of tables/views displayed in the dropdown window in SQL Lab.
-MAX_TABLE_NAMES = 3000
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
@@ -962,7 +984,9 @@ SMTP_USER = "superset"
 SMTP_PORT = 25
 SMTP_PASSWORD = "superset"
 SMTP_MAIL_FROM = "superset@superset.com"
-
+# If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
+# default system root CA certificates.
+SMTP_SSL_SERVER_AUTH = False
 ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
@@ -1064,6 +1088,15 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     sql: str, **kwargs: Any
 ) -> str:
     return sql
+
+
+# This allows for a user to add header data to any outgoing emails. For example,
+# if you need to include metadata in the header or you want to change the specifications
+# of the email title, header, or sender.
+def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+    msg: MIMEMultipart, **kwargs: Any
+) -> MIMEMultipart:
+    return msg
 
 
 # This auth provider is used by background (offline) tasks that need to access
@@ -1299,6 +1332,7 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 MENU_HIDE_USER_INFO = False
 
 # Set to False to only allow viewing own recent activity
+# or to disallow users from viewing other users profile page
 ENABLE_BROAD_ACTIVITY_ACCESS = True
 
 # the advanced data type key should correspond to that set in the column metadata
@@ -1307,6 +1341,21 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
+# Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
+# 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
+ENVIRONMENT_TAG_CONFIG = {
+    "variable": "FLASK_ENV",
+    "values": {
+        "development": {
+            "color": "error.base",
+            "text": "Development",
+        },
+        "production": {
+            "color": "",
+            "text": "",
+        },
+    },
+}
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

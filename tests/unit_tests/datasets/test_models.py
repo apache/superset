@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
 
 
-def test_dataset_model(app_context: None, session: Session) -> None:
+def test_dataset_model(session: Session) -> None:
     """
     Test basic attributes of a ``Dataset``.
     """
@@ -86,7 +86,7 @@ FROM my_catalog.my_schema.my_table
     assert [column.name for column in dataset.columns] == ["position"]
 
 
-def test_cascade_delete_table(app_context: None, session: Session) -> None:
+def test_cascade_delete_table(session: Session) -> None:
     """
     Test that deleting ``Table`` also deletes its columns.
     """
@@ -121,7 +121,7 @@ def test_cascade_delete_table(app_context: None, session: Session) -> None:
     assert len(columns) == 0
 
 
-def test_cascade_delete_dataset(app_context: None, session: Session) -> None:
+def test_cascade_delete_dataset(session: Session) -> None:
     """
     Test that deleting ``Dataset`` also deletes its columns.
     """
@@ -175,7 +175,7 @@ FROM my_catalog.my_schema.my_table
     assert len(columns) == 2
 
 
-def test_dataset_attributes(app_context: None, session: Session) -> None:
+def test_dataset_attributes(session: Session) -> None:
     """
     Test that checks attributes in the dataset.
 
@@ -649,7 +649,7 @@ FROM
     }
 
 
-def test_delete_sqlatable(app_context: None, session: Session) -> None:
+def test_delete_sqlatable(session: Session) -> None:
     """
     Test that deleting a ``SqlaTable`` also deletes the corresponding ``Dataset``.
     """
@@ -689,7 +689,7 @@ def test_delete_sqlatable(app_context: None, session: Session) -> None:
 
 
 def test_update_physical_sqlatable_columns(
-    mocker: MockFixture, app_context: None, session: Session
+    mocker: MockFixture, session: Session
 ) -> None:
     """
     Test that updating a ``SqlaTable`` also updates the corresponding ``Dataset``.
@@ -765,7 +765,7 @@ def test_update_physical_sqlatable_columns(
 
 
 def test_update_physical_sqlatable_schema(
-    mocker: MockFixture, app_context: None, session: Session
+    mocker: MockFixture, session: Session
 ) -> None:
     """
     Test that updating a ``SqlaTable`` schema also updates the corresponding ``Dataset``.
@@ -1046,7 +1046,7 @@ def test_update_physical_sqlatable_database(
 
 
 def test_update_virtual_sqlatable_references(
-    mocker: MockFixture, app_context: None, session: Session
+    mocker: MockFixture, session: Session
 ) -> None:
     """
     Test that changing the SQL of a virtual ``SqlaTable`` updates ``Dataset``.
@@ -1122,7 +1122,7 @@ def test_update_virtual_sqlatable_references(
     assert new_dataset.tables[2].name == "table_c"
 
 
-def test_quote_expressions(app_context: None, session: Session) -> None:
+def test_quote_expressions(session: Session) -> None:
     """
     Test that expressions are quoted appropriately in columns and datasets.
     """

@@ -20,10 +20,7 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  DataRecordValue,
-  DTTM_ALIAS,
   GenericDataType,
-  getColumnLabel,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
@@ -31,8 +28,9 @@ import {
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
   t,
+  DTTM_ALIAS,
 } from '@superset-ui/core';
-import { isDerivedSeries } from '@superset-ui/chart-controls';
+import { getAxis, isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { ZRLineType } from 'echarts/types/src/util/types';
 import {
@@ -41,6 +39,7 @@ import {
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
+  AxisType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue } from '../types';
@@ -96,10 +95,12 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
+    inContextMenu,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
-  const { data = [] } = queryData as TimeseriesChartDataResponseResult;
+  const { data = [], label_map: labelMap } =
+    queryData as TimeseriesChartDataResponseResult;
   const dataTypes = getColtypesMapping(queryData);
   const annotationData = getAnnotationData(chartProps);
 
@@ -147,8 +148,9 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
+  // todo: if the both granularity_sqla and x_axis are `null`, should throw an error
   const xAxisCol =
-    verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
+    verboseMap[xAxisOrig] || getAxis(chartProps.rawFormData) || DTTM_ALIAS;
   const isHorizontal = orientation === OrientationType.horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
@@ -168,6 +170,8 @@ export default function transformProps(
   });
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
+    onlyTotal,
+    isHorizontal,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
@@ -287,20 +291,10 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
-  const labelMap = series.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const name: string = datum.name as string;
-      return {
-        ...acc,
-        [name]: [name],
-      };
-    },
-    {},
-  );
-
   const {
     setDataMask = () => {},
-    setControlValue = (...args: unknown[]) => {},
+    setControlValue = () => {},
+    onContextMenu,
   } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
@@ -337,13 +331,23 @@ export default function transformProps(
       rotate: xAxisLabelRotation,
     },
     minInterval:
-      xAxisType === 'time' && timeGrainSqla
+      xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
   };
+
+  if (xAxisType === AxisType.time) {
+    /**
+     * Overriding default behavior (false) for time axis regardless of the granilarity.
+     * Not including this in the initial declaration above so if echarts changes the default
+     * behavior for other axist types we won't unintentionally override it
+     */
+    xAxis.axisLabel.showMaxLabel = null;
+  }
+
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? 'log' : 'value',
+    type: logAxis ? AxisType.log : AxisType.value,
     min,
     max,
     minorTick: { show: true },
@@ -369,6 +373,7 @@ export default function transformProps(
     xAxis,
     yAxis,
     tooltip: {
+      show: !inContextMenu,
       ...defaultTooltip,
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
@@ -446,5 +451,7 @@ export default function transformProps(
     setControlValue,
     width,
     legendData,
+    onContextMenu,
+    xValueFormatter: tooltipFormatter,
   };
 }

@@ -178,6 +178,10 @@ const mockedProps = {
       tooltip: '',
       text: '',
     },
+    environment_tag: {
+      text: 'Production',
+      color: '#000',
+    },
     navbar_right: {
       show_watermark: false,
       bug_report_url: '/report/',
@@ -248,39 +252,64 @@ beforeEach(() => {
   useSelectorMock.mockClear();
 });
 
-test('should render', () => {
+test('should render', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const { container } = render(<Menu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,
+    useRouter: true,
   });
+  expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(container).toBeInTheDocument();
 });
 
-test('should render the navigation', () => {
+test('should render the navigation', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
-  expect(screen.getByRole('navigation')).toBeInTheDocument();
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  expect(await screen.findByRole('navigation')).toBeInTheDocument();
 });
 
-test('should render the brand', () => {
+test('should render the brand', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
       brand: { alt, icon },
     },
   } = mockedProps;
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  expect(await screen.findByAltText(alt)).toBeInTheDocument();
   const image = screen.getByAltText(alt);
   expect(image).toHaveAttribute('src', icon);
 });
 
-test('should render all the top navbar menu items', () => {
+test('should render the environment tag', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  const {
+    data: { environment_tag },
+  } = mockedProps;
+  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  expect(await screen.findByText(environment_tag.text)).toBeInTheDocument();
+});
+
+test('should render all the top navbar menu items', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: { menu },
   } = mockedProps;
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  expect(await screen.findByText(menu[0].label)).toBeInTheDocument();
   menu.forEach(item => {
     expect(screen.getByText(item.label)).toBeInTheDocument();
   });
@@ -291,7 +320,11 @@ test('should render the top navbar child menu items', async () => {
   const {
     data: { menu },
   } = mockedProps;
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   const sources = screen.getByText('Sources');
   userEvent.hover(sources);
   const datasets = await screen.findByText('Datasets');
@@ -305,7 +338,11 @@ test('should render the top navbar child menu items', async () => {
 
 test('should render the dropdown items', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(<Menu {...notanonProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...notanonProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   const dropdown = screen.getByTestId('new-dropdown-icon');
   userEvent.hover(dropdown);
   // todo (philip): test data submenu
@@ -331,14 +368,22 @@ test('should render the dropdown items', async () => {
 
 test('should render the Settings', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   const settings = await screen.findByText('Settings');
   expect(settings).toBeInTheDocument();
 });
 
 test('should render the Settings menu item', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   userEvent.hover(screen.getByText('Settings'));
   const label = await screen.findByText('Security');
   expect(label).toBeInTheDocument();
@@ -349,21 +394,34 @@ test('should render the Settings dropdown child menu items', async () => {
   const {
     data: { settings },
   } = mockedProps;
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   userEvent.hover(screen.getByText('Settings'));
   const listUsers = await screen.findByText('List Users');
   expect(listUsers).toHaveAttribute('href', settings[0].childs[0].url);
 });
 
-test('should render the plus menu (+) when user is not anonymous', () => {
+test('should render the plus menu (+) when user is not anonymous', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(<Menu {...notanonProps} />, { useRedux: true, useQueryParams: true });
-  expect(screen.getByTestId('new-dropdown')).toBeInTheDocument();
+  render(<Menu {...notanonProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  expect(await screen.findByTestId('new-dropdown')).toBeInTheDocument();
 });
 
-test('should NOT render the plus menu (+) when user is anonymous', () => {
+test('should NOT render the plus menu (+) when user is anonymous', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });
 
@@ -375,7 +433,11 @@ test('should render the user actions when user is not anonymous', async () => {
     },
   } = mockedProps;
 
-  render(<Menu {...notanonProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...notanonProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   userEvent.hover(screen.getByText('Settings'));
   const user = await screen.findByText('User');
   expect(user).toBeInTheDocument();
@@ -387,9 +449,14 @@ test('should render the user actions when user is not anonymous', async () => {
   expect(logout).toHaveAttribute('href', user_logout_url);
 });
 
-test('should NOT render the user actions when user is anonymous', () => {
+test('should NOT render the user actions when user is anonymous', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByText('User')).not.toBeInTheDocument();
 });
 
@@ -401,7 +468,11 @@ test('should render the Profile link when available', async () => {
     },
   } = mockedProps;
 
-  render(<Menu {...notanonProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...notanonProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
 
   userEvent.hover(screen.getByText('Settings'));
   const profile = await screen.findByText('Profile');
@@ -416,7 +487,11 @@ test('should render the About section and version_string, sha or build_number wh
     },
   } = mockedProps;
 
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
   const version = await screen.findByText(`Version: ${version_string}`);
@@ -435,7 +510,11 @@ test('should render the Documentation link when available', async () => {
       navbar_right: { documentation_url },
     },
   } = mockedProps;
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   userEvent.hover(screen.getByText('Settings'));
   const doc = await screen.findByTitle('Documentation');
   expect(doc).toHaveAttribute('href', documentation_url);
@@ -449,12 +528,16 @@ test('should render the Bug Report link when available', async () => {
     },
   } = mockedProps;
 
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
   const bugReport = await screen.findByTitle('Report a bug');
   expect(bugReport).toHaveAttribute('href', bug_report_url);
 });
 
-test('should render the Login link when user is anonymous', () => {
+test('should render the Login link when user is anonymous', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: {
@@ -462,30 +545,48 @@ test('should render the Login link when user is anonymous', () => {
     },
   } = mockedProps;
 
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
-  const login = screen.getByText('Login');
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  const login = await screen.findByText('Login');
   expect(login).toHaveAttribute('href', user_login_url);
 });
 
-test('should render the Language Picker', () => {
+test('should render the Language Picker', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
-  expect(screen.getByLabelText('Languages')).toBeInTheDocument();
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  expect(await screen.findByLabelText('Languages')).toBeInTheDocument();
 });
 
-test('should hide create button without proper roles', () => {
+test('should hide create button without proper roles', async () => {
   useSelectorMock.mockReturnValue({ roles: [] });
-  render(<Menu {...mockedProps} />, { useRedux: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
+  expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });
 
-test('should render without QueryParamProvider', () => {
+test('should render without QueryParamProvider', async () => {
   useSelectorMock.mockReturnValue({ roles: [] });
-  render(<Menu {...mockedProps} />, { useRedux: true });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useRouter: true,
+    useQueryParams: true,
+  });
+  expect(await screen.findByText(/sources/i)).toBeInTheDocument();
   expect(screen.queryByTestId('new-dropdown')).not.toBeInTheDocument();
 });
 
-test('should render an extension component if one is supplied', () => {
+test('should render an extension component if one is supplied', async () => {
   const extensionsRegistry = getExtensionsRegistry();
 
   extensionsRegistry.set('navbar.right', () => (
@@ -494,9 +595,9 @@ test('should render an extension component if one is supplied', () => {
 
   setupExtensions();
 
-  render(<Menu {...mockedProps} />);
+  render(<Menu {...mockedProps} />, { useRouter: true, useQueryParams: true });
 
   expect(
-    screen.getByText('navbar.right extension component'),
+    await screen.findByText('navbar.right extension component'),
   ).toBeInTheDocument();
 });

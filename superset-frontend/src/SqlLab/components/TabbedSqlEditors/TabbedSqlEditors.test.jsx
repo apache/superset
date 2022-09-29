@@ -30,6 +30,8 @@ import { EditableTabs } from 'src/components/Tabs';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import { table, initialState } from 'src/SqlLab/fixtures';
+import { newQueryTabName } from 'src/SqlLab/utils/newQueryTabName';
+import QueryProvider from 'src/views/QueryProvider';
 
 fetchMock.get('glob:*/api/v1/database/*', {});
 fetchMock.get('glob:*/savedqueryviewapi/api/get/*', {});
@@ -55,7 +57,7 @@ describe('TabbedSqlEditors', () => {
       schema: null,
       selectedText: null,
       sql: 'SELECT ds...',
-      title: 'Untitled Query',
+      name: 'Untitled Query',
     },
   ];
   const queries = {
@@ -88,9 +90,11 @@ describe('TabbedSqlEditors', () => {
   const mountWithAct = async () =>
     act(async () => {
       mount(
-        <Provider store={store}>
-          <TabbedSqlEditors {...mockedProps} />
-        </Provider>,
+        <QueryProvider>
+          <Provider store={store}>
+            <TabbedSqlEditors {...mockedProps} />
+          </Provider>
+        </QueryProvider>,
         {
           wrappingComponent: ThemeProvider,
           wrappingComponentProps: { theme: supersetTheme },
@@ -150,18 +154,6 @@ describe('TabbedSqlEditors', () => {
       );
     });
   });
-  it('should rename Tab', () => {
-    global.prompt = () => 'new title';
-    wrapper = getWrapper();
-    sinon.stub(wrapper.instance().props.actions, 'queryEditorSetTitle');
-
-    wrapper.instance().renameTab(queryEditors[0]);
-    expect(
-      wrapper.instance().props.actions.queryEditorSetTitle.getCall(0).args[1],
-    ).toBe('new title');
-
-    delete global.prompt;
-  });
   it('should removeQueryEditor', () => {
     wrapper = getWrapper();
     sinon.stub(wrapper.instance().props.actions, 'removeQueryEditor');
@@ -177,17 +169,17 @@ describe('TabbedSqlEditors', () => {
 
     wrapper.instance().newQueryEditor();
     expect(
-      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title,
+      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].name,
     ).toContain('Untitled Query');
   });
   it('should properly increment query tab name', () => {
     wrapper = getWrapper();
     sinon.stub(wrapper.instance().props.actions, 'addQueryEditor');
-
+    const newTitle = newQueryTabName(wrapper.instance().props.queryEditors);
     wrapper.instance().newQueryEditor();
     expect(
-      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title,
-    ).toContain('Untitled Query 2');
+      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].name,
+    ).toContain(newTitle);
   });
   it('should duplicate query editor', () => {
     wrapper = getWrapper();

@@ -116,6 +116,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.async_events.api import AsyncEventsRestApi
+        from superset.available_domains.api import AvailableDomainsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
@@ -170,14 +171,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             DatabaseView,
             ExcelToDatabaseView,
         )
-        from superset.views.datasource.views import Datasource
+        from superset.views.datasource.views import DatasetEditor, Datasource
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.explore import ExplorePermalinkView, ExploreView
         from superset.views.key_value import KV
         from superset.views.log.api import LogRestApi
         from superset.views.log.views import LogModelView
         from superset.views.redirects import R
-        from superset.views.sql_lab import (
+        from superset.views.sql_lab.views import (
             SavedQueryView,
             SavedQueryViewApi,
             SqlLab,
@@ -196,6 +197,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AnnotationLayerRestApi)
         appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(AdvancedDataTypeRestApi)
+        appbuilder.add_api(AvailableDomainsRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
@@ -228,6 +230,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             href="/superset/welcome/",
             cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
         )
+
+        appbuilder.add_view(
+            DatabaseView,
+            "Databases",
+            label=__("Database Connections"),
+            icon="fa-database",
+            category="Data",
+            category_label=__("Data"),
+        )
+
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
@@ -253,6 +265,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="",
             category_icon="",
         )
+
+        appbuilder.add_link(
+            "Datasets",
+            label=__("Datasets"),
+            href="/tablemodelview/list/",
+            icon="fa-table",
+            category="",
+            category_icon="",
+        )
+
         appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
@@ -293,6 +315,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Dashboard)
         appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
+        appbuilder.add_view_no_menu(DatasetEditor)
         appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
@@ -330,18 +353,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "SQL Editor",
-            label=_("SQL Editor"),
+            label=_("SQL Lab"),
             href="/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL Lab"),
+            category_label=__("SQL"),
         )
         appbuilder.add_link(
             __("Saved Queries"),
             href="/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
+            category_label=__("SQL"),
         )
         appbuilder.add_link(
             "Query Search",

@@ -18,8 +18,6 @@
 import re
 from datetime import datetime
 
-from flask.ctx import AppContext
-
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.fixtures.common import dttm
 
@@ -28,7 +26,7 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-def test_convert_dttm(app_context: AppContext, dttm: datetime) -> None:
+def test_convert_dttm(dttm: datetime) -> None:
     """
     Test that date objects are converted correctly.
     """
@@ -43,7 +41,7 @@ def test_convert_dttm(app_context: AppContext, dttm: datetime) -> None:
     )
 
 
-def test_extract_errors(app_context: AppContext) -> None:
+def test_extract_errors() -> None:
     """
     Test that custom error messages are extracted correctly.
     """
@@ -70,7 +68,7 @@ def test_extract_errors(app_context: AppContext) -> None:
     ]
 
 
-def test_get_text_clause_with_colon(app_context: AppContext) -> None:
+def test_get_text_clause_with_colon() -> None:
     """
     Make sure text clauses don't escape the colon character
     """

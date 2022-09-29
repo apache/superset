@@ -96,8 +96,9 @@ const createFetchResourceMethod =
       : undefined;
 
     const data: { label: string; value: string | number }[] = [];
-    json?.result?.forEach(
-      ({ text, value }: { text: string; value: string | number }) => {
+    json?.result
+      ?.filter(({ text }: { text: string }) => text.trim().length > 0)
+      .forEach(({ text, value }: { text: string; value: string | number }) => {
         if (
           loggedUser &&
           value === loggedUser.value &&
@@ -110,8 +111,7 @@ const createFetchResourceMethod =
             value,
           });
         }
-      },
-    );
+      });
 
     if (loggedUser && (!filterValue || fetchedLoggedUser)) {
       data.unshift(loggedUser);

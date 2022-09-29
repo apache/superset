@@ -24,7 +24,7 @@ import Popover, {
 } from 'src/components/Popover';
 
 const sectionContainerId = 'controlSections';
-const getSectionContainerElement = () =>
+export const getSectionContainerElement = () =>
   document.getElementById(sectionContainerId)?.lastElementChild as HTMLElement;
 
 const getElementYVisibilityRatioOnContainer = (node: HTMLElement) => {

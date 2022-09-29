@@ -31,6 +31,7 @@ import StyledModal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
+import ResizableSidebar from 'src/components/ResizableSidebar';
 import { AntdDropdown, AntdSwitch } from 'src/components';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
@@ -43,10 +44,10 @@ import {
   persistEditorHeight,
   postStopQuery,
   queryEditorSetAutorun,
-  queryEditorSetQueryLimit,
   queryEditorSetSql,
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
+  runQueryFromSqlEditor,
   runQuery,
   saveQuery,
   addSavedQueryToTabState,
@@ -60,6 +61,7 @@ import {
   SQL_EDITOR_GUTTER_HEIGHT,
   SQL_EDITOR_GUTTER_MARGIN,
   SQL_TOOLBAR_HEIGHT,
+  SQL_EDITOR_LEFTBAR_WIDTH,
 } from 'src/SqlLab/constants';
 import {
   getItem,
@@ -79,8 +81,8 @@ import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import { newQueryTabName } from '../../utils/newQueryTabName';
+import QueryLimitSelect from '../QueryLimitSelect';
 
-const LIMIT_DROPDOWN = [10, 100, 1000, 10000, 100000];
 const SQL_EDITOR_PADDING = 10;
 const INITIAL_NORTH_PERCENT = 30;
 const INITIAL_SOUTH_PERCENT = 70;
@@ -95,26 +97,6 @@ const bootstrapData = JSON.parse(
 const validatorMap =
   bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
-
-const LimitSelectStyled = styled.span`
-  ${({ theme }) => `
-    .ant-dropdown-trigger {
-      align-items: center;
-      color: ${theme.colors.grayscale.dark2};
-      display: flex;
-      font-size: 12px;
-      margin-right: ${theme.gridUnit * 2}px;
-      text-decoration: none;
-      span {
-        display: inline-block;
-        margin-right: ${theme.gridUnit * 2}px;
-        &:last-of-type: {
-          margin-right: ${theme.gridUnit * 4}px;
-        }
-      }
-    }
-  `}
-`;
 
 const StyledToolbar = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
@@ -147,6 +129,15 @@ const StyledToolbar = styled.div`
   }
 `;
 
+const StyledSidebar = styled.div`
+  flex: 0 0 ${({ width }) => width}px;
+  width: ${({ width }) => width}px;
+  padding: ${({ hide }) => (hide ? 0 : 10)}px;
+  border-right: 1px solid
+    ${({ theme, hide }) =>
+      hide ? 'transparent' : theme.colors.grayscale.light2};
+`;
+
 const propTypes = {
   actions: PropTypes.object.isRequired,
   database: PropTypes.object,
@@ -154,7 +145,7 @@ const propTypes = {
   tables: PropTypes.array.isRequired,
   editorQueries: PropTypes.array.isRequired,
   dataPreviewQueries: PropTypes.array.isRequired,
-  queryEditorId: PropTypes.string.isRequired,
+  queryEditor: PropTypes.object.isRequired,
   hideLeftBar: PropTypes.bool,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
@@ -205,7 +196,6 @@ class SqlEditor extends React.PureComponent {
     );
     this.queryPane = this.queryPane.bind(this);
     this.getHotkeyConfig = this.getHotkeyConfig.bind(this);
-    this.renderQueryLimit = this.renderQueryLimit.bind(this);
     this.getAceEditorAndSouthPaneHeights =
       this.getAceEditorAndSouthPaneHeights.bind(this);
     this.getSqlEditorHeight = this.getSqlEditorHeight.bind(this);
@@ -345,10 +335,10 @@ class SqlEditor extends React.PureComponent {
         key: userOS === 'Windows' ? 'ctrl+q' : 'ctrl+t',
         descr: t('New tab'),
         func: () => {
-          const title = newQueryTabName(this.props.queryEditors || []);
+          const name = newQueryTabName(this.props.queryEditors || []);
           this.props.addQueryEditor({
             ...this.props.queryEditor,
-            title,
+            name,
           });
         },
       },
@@ -382,21 +372,10 @@ class SqlEditor extends React.PureComponent {
     this.props.queryEditorSetAndSaveSql(this.props.queryEditor, sql);
   }
 
-  setQueryLimit(queryLimit) {
-    this.props.queryEditorSetQueryLimit(this.props.queryEditor, queryLimit);
-  }
-
   getQueryCostEstimate() {
     if (this.props.database) {
       const qe = this.props.queryEditor;
-      const query = {
-        dbId: qe.dbId,
-        sql: qe.selectedText ? qe.selectedText : this.props.queryEditor.sql,
-        sqlEditorId: qe.id,
-        schema: qe.schema,
-        templateParams: qe.templateParams,
-      };
-      this.props.estimateQueryCost(query);
+      this.props.estimateQueryCost(qe);
     }
   }
 
@@ -425,16 +404,9 @@ class SqlEditor extends React.PureComponent {
   }
 
   requestValidation(sql) {
-    if (this.props.database) {
-      const qe = this.props.queryEditor;
-      const query = {
-        dbId: qe.dbId,
-        sql,
-        sqlEditorId: qe.id,
-        schema: qe.schema,
-        templateParams: qe.templateParams,
-      };
-      this.props.validateQuery(query);
+    const { database, queryEditor, validateQuery } = this.props;
+    if (database) {
+      validateQuery(queryEditor, sql);
     }
   }
 
@@ -458,25 +430,22 @@ class SqlEditor extends React.PureComponent {
   }
 
   startQuery(ctas = false, ctas_method = CtasEnum.TABLE) {
-    const qe = this.props.queryEditor;
-    const query = {
-      dbId: qe.dbId,
-      sql: qe.selectedText ? qe.selectedText : qe.sql,
-      sqlEditorId: qe.id,
-      tab: qe.title,
-      schema: qe.schema,
-      tempTable: ctas ? this.state.ctas : '',
-      templateParams: qe.templateParams,
-      queryLimit: qe.queryLimit || this.props.defaultQueryLimit,
-      runAsync: this.props.database
-        ? this.props.database.allow_run_async
-        : false,
+    const {
+      database,
+      runQueryFromSqlEditor,
+      setActiveSouthPaneTab,
+      queryEditor,
+      defaultQueryLimit,
+    } = this.props;
+    runQueryFromSqlEditor(
+      database,
+      queryEditor,
+      defaultQueryLimit,
+      ctas ? this.state.ctas : '',
       ctas,
       ctas_method,
-      updateTabState: !qe.selectedText,
-    };
-    this.props.runQuery(query);
-    this.props.setActiveSouthPaneTab('Results');
+    );
+    setActiveSouthPaneTab('Results');
   }
 
   stopQuery() {
@@ -529,11 +498,7 @@ class SqlEditor extends React.PureComponent {
             onBlur={this.setQueryEditorSql}
             onChange={this.onSqlChanged}
             queryEditor={this.props.queryEditor}
-            sql={this.props.queryEditor.sql}
             database={this.props.database}
-            schemas={this.props.queryEditor.schemaOptions}
-            tables={this.props.queryEditor.tableOptions}
-            functionNames={this.props.queryEditor.functionNames}
             extendedTables={this.props.tables}
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
@@ -577,14 +542,14 @@ class SqlEditor extends React.PureComponent {
               onChange={params => {
                 this.props.actions.queryEditorSetTemplateParams(qe, params);
               }}
-              code={qe.templateParams}
+              queryEditor={qe}
             />
           </Menu.Item>
         )}
         {scheduledQueriesConf && (
           <Menu.Item>
             <ScheduleQueryButton
-              defaultLabel={qe.title}
+              defaultLabel={qe.name}
               sql={qe.sql}
               onSchedule={this.props.actions.scheduleQuery}
               schema={qe.schema}
@@ -595,25 +560,6 @@ class SqlEditor extends React.PureComponent {
             />
           </Menu.Item>
         )}
-      </Menu>
-    );
-  }
-
-  renderQueryLimit() {
-    // Adding SQL_MAX_ROW value to dropdown
-    const { maxRow } = this.props;
-    LIMIT_DROPDOWN.push(maxRow);
-
-    return (
-      <Menu>
-        {[...new Set(LIMIT_DROPDOWN)].map(limit => (
-          <Menu.Item key={`${limit}`} onClick={() => this.setQueryLimit(limit)}>
-            {/* // eslint-disable-line no-use-before-define */}
-            <a role="button" styling="link">
-              {this.convertToNumWithSpaces(limit)}
-            </a>{' '}
-          </Menu.Item>
-        ))}
       </Menu>
     );
   }
@@ -673,11 +619,10 @@ class SqlEditor extends React.PureComponent {
                   ? this.props.database.allow_run_async
                   : false
               }
+              queryEditor={qe}
               queryState={this.props.latestQuery?.state}
               runQuery={this.runQuery}
-              selectedText={qe.selectedText}
               stopQuery={this.stopQuery}
-              sql={this.props.queryEditor.sql}
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />
           </span>
@@ -687,27 +632,17 @@ class SqlEditor extends React.PureComponent {
               <span>
                 <EstimateQueryCostButton
                   getEstimate={this.getQueryCostEstimate}
-                  queryCostEstimate={qe.queryCostEstimate}
-                  selectedText={qe.selectedText}
+                  queryEditor={qe}
                   tooltip={t('Estimate the cost before running a query')}
                 />
               </span>
             )}
           <span>
-            <LimitSelectStyled>
-              <AntdDropdown overlay={this.renderQueryLimit()} trigger="click">
-                <a onClick={e => e.preventDefault()}>
-                  <span>LIMIT:</span>
-                  <span className="limitDropdown">
-                    {this.convertToNumWithSpaces(
-                      this.props.queryEditor.queryLimit ||
-                        this.props.defaultQueryLimit,
-                    )}
-                  </span>
-                  <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
-                </a>
-              </AntdDropdown>
-            </LimitSelectStyled>
+            <QueryLimitSelect
+              queryEditor={this.props.queryEditor}
+              maxRow={this.props.maxRow}
+              defaultQueryLimit={this.props.defaultQueryLimit}
+            />
           </span>
           {this.props.latestQuery && (
             <Timer
@@ -721,11 +656,12 @@ class SqlEditor extends React.PureComponent {
         <div className="rightItems">
           <span>
             <SaveQuery
-              query={qe}
-              defaultLabel={qe.title || qe.description}
+              queryEditor={qe}
+              columns={this.props.latestQuery?.results?.columns || []}
               onSave={this.saveQuery}
               onUpdate={this.props.actions.updateSavedQuery}
               saveQueryWarning={this.props.saveQueryWarning}
+              database={this.props.database}
             />
           </span>
           <span>
@@ -749,7 +685,6 @@ class SqlEditor extends React.PureComponent {
       this.state.createAs === CtasEnum.VIEW
         ? 'Specify name to CREATE VIEW AS schema in: public'
         : 'Specify name to CREATE TABLE AS schema in: public';
-
     const leftBarStateClass = this.props.hideLeftBar
       ? 'schemaPane-exit-done'
       : 'schemaPane-enter-done';
@@ -760,15 +695,28 @@ class SqlEditor extends React.PureComponent {
           in={!this.props.hideLeftBar}
           timeout={300}
         >
-          <div className={`schemaPane ${leftBarStateClass}`}>
-            <SqlEditorLeftBar
-              database={this.props.database}
-              queryEditor={this.props.queryEditor}
-              tables={this.props.tables}
-              actions={this.props.actions}
-              setEmptyState={this.setEmptyState}
-            />
-          </div>
+          <ResizableSidebar
+            id={`sqllab:${this.props.queryEditor.id}`}
+            minWidth={SQL_EDITOR_LEFTBAR_WIDTH}
+            initialWidth={SQL_EDITOR_LEFTBAR_WIDTH}
+            enable={!this.props.hideLeftBar}
+          >
+            {adjustedWidth => (
+              <StyledSidebar
+                className={`schemaPane ${leftBarStateClass}`}
+                width={adjustedWidth}
+                hide={this.props.hideLeftBar}
+              >
+                <SqlEditorLeftBar
+                  database={this.props.database}
+                  queryEditor={this.props.queryEditor}
+                  tables={this.props.tables}
+                  actions={this.props.actions}
+                  setEmptyState={this.setEmptyState}
+                />
+              </StyledSidebar>
+            )}
+          </ResizableSidebar>
         </CSSTransition>
         {this.state.showEmptyState ? (
           <EmptyStateBig
@@ -828,12 +776,27 @@ class SqlEditor extends React.PureComponent {
 SqlEditor.defaultProps = defaultProps;
 SqlEditor.propTypes = propTypes;
 
-function mapStateToProps({ sqlLab }, props) {
-  const queryEditor = sqlLab.queryEditors.find(
-    editor => editor.id === props.queryEditorId,
-  );
+function mapStateToProps({ sqlLab }, { queryEditor }) {
+  let { latestQueryId, dbId, hideLeftBar } = queryEditor;
+  if (sqlLab.unsavedQueryEditor.id === queryEditor.id) {
+    const {
+      latestQueryId: unsavedQID,
+      dbId: unsavedDBID,
+      hideLeftBar: unsavedHideLeftBar,
+    } = sqlLab.unsavedQueryEditor;
+    latestQueryId = unsavedQID || latestQueryId;
+    dbId = unsavedDBID || dbId;
+    hideLeftBar = unsavedHideLeftBar || hideLeftBar;
+  }
+  const database = sqlLab.databases[dbId];
+  const latestQuery = sqlLab.queries[latestQueryId];
 
-  return { sqlLab, ...props, queryEditor, queryEditors: sqlLab.queryEditors };
+  return {
+    hideLeftBar,
+    queryEditors: sqlLab.queryEditors,
+    latestQuery,
+    database,
+  };
 }
 
 function mapDispatchToProps(dispatch) {
@@ -844,10 +807,10 @@ function mapDispatchToProps(dispatch) {
       persistEditorHeight,
       postStopQuery,
       queryEditorSetAutorun,
-      queryEditorSetQueryLimit,
       queryEditorSetSql,
       queryEditorSetAndSaveSql,
       queryEditorSetTemplateParams,
+      runQueryFromSqlEditor,
       runQuery,
       saveQuery,
       addSavedQueryToTabState,

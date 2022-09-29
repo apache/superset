@@ -90,6 +90,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
@@ -152,6 +153,7 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
+from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
     _deserialize_results_payload,
     bootstrap_user_data,
@@ -163,6 +165,7 @@ from superset.views.utils import (
     get_datasource_info,
     get_form_data,
     get_viz,
+    loads_request_json,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
@@ -178,7 +181,6 @@ DATABASE_KEYS = [
     "allow_ctas",
     "allow_cvas",
     "allow_dml",
-    "allow_multi_schema_metadata_fetch",
     "allow_run_async",
     "allows_subquery",
     "backend",
@@ -736,6 +738,39 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/import_dashboards.html", databases=databases
         )
 
+    @staticmethod
+    def get_redirect_url() -> str:
+        """Assembles the redirect URL to the new endpoint. It also replaces
+        the form_data param with a form_data_key by saving the original content
+        to the cache layer.
+        """
+        redirect_url = request.url.replace("/superset/explore", "/explore")
+        form_data_key = None
+        request_form_data = request.args.get("form_data")
+        if request_form_data:
+            parsed_form_data = loads_request_json(request_form_data)
+            slice_id = parsed_form_data.get(
+                "slice_id", int(request.args.get("slice_id", 0))
+            )
+            datasource = parsed_form_data.get("datasource")
+            if datasource:
+                datasource_id, datasource_type = datasource.split("__")
+                parameters = CommandParameters(
+                    datasource_id=datasource_id,
+                    datasource_type=datasource_type,
+                    chart_id=slice_id,
+                    form_data=request_form_data,
+                )
+                form_data_key = CreateFormDataCommand(parameters).run()
+        if form_data_key:
+            url = parse.urlparse(redirect_url)
+            query = parse.parse_qs(url.query)
+            query.pop("form_data")
+            query["form_data_key"] = [form_data_key]
+            url = url._replace(query=parse.urlencode(query, True))
+            redirect_url = parse.urlunparse(url)
+        return redirect_url
+
     @has_access
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
@@ -753,7 +788,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             self.__class__.__name__,
         )
         if request.method == "GET":
-            return redirect(request.url.replace("/superset/explore", "/explore"))
+            return redirect(Superset.get_redirect_url())
 
         initial_form_data = {}
 
@@ -928,7 +963,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "force": force,
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         if slc:
             title = slc.slice_name
@@ -986,14 +1021,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(payload)
 
     @staticmethod
-    def remove_extra_filters(filters: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Extra filters are ones inherited from the dashboard's temporary context
-        Those should not be saved when saving the chart"""
-        return [f for f in filters if not f.get("isExtra")]
-
     def save_or_overwrite_slice(
         # pylint: disable=too-many-arguments,too-many-locals
-        self,
         slc: Optional[Slice],
         slice_add_perm: bool,
         slice_overwrite_perm: bool,
@@ -1013,9 +1042,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 form_data.pop("slice_id")  # don't save old slice_id
             slc = Slice(owners=[g.user] if g.user else [])
 
-        form_data["adhoc_filters"] = self.remove_extra_filters(
-            form_data.get("adhoc_filters") or []
-        )
+        utils.remove_extra_adhoc_filters(form_data)
 
         assert slc
         slc.params = json.dumps(form_data, indent=2, sort_keys=True)
@@ -1110,34 +1137,40 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/tables/<int:db_id>/<schema>/<substr>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
-    def tables(  # pylint: disable=too-many-locals,no-self-use,too-many-arguments
+    @expose("/tables/<int:db_id>/<schema>/")
+    @expose("/tables/<int:db_id>/<schema>/<force_refresh>/")
+    def tables(  # pylint: disable=no-self-use
         self,
         db_id: int,
         schema: str,
-        substr: str,
         force_refresh: str = "false",
-        exact_match: str = "false",
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
-        # Guarantees database filtering by security access
-        query = db.session.query(Database)
-        query = DatabaseFilter("id", SQLAInterface(Database, db.session)).apply(
-            query, None
-        )
-        database = query.filter_by(id=db_id).one_or_none()
-        if not database:
-            return json_error_response("Not found", 404)
 
         force_refresh_parsed = force_refresh.lower() == "true"
-        exact_match_parsed = exact_match.lower() == "true"
         schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
-        if schema_parsed:
-            tables = [
+        if not schema_parsed:
+            return json_error_response(_("Schema undefined"), status=422)
+
+        # Guarantees database filtering by security access
+        database = (
+            DatabaseFilter("id", SQLAInterface(Database, db.session))
+            .apply(
+                db.session.query(Database),
+                None,
+            )
+            .filter_by(id=db_id)
+            .one_or_none()
+        )
+
+        if not database:
+            return json_error_response("Database not found", status=404)
+
+        tables = security_manager.get_datasources_accessible_by_user(
+            database=database,
+            schema=schema_parsed,
+            datasource_names=[
                 utils.DatasourceName(*datasource_name)
                 for datasource_name in database.get_all_table_names_in_schema(
                     schema=schema_parsed,
@@ -1145,8 +1178,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
-            ] or []
-            views = [
+            ],
+        )
+
+        views = security_manager.get_datasources_accessible_by_user(
+            database=database,
+            schema=schema_parsed,
+            datasource_names=[
                 utils.DatasourceName(*datasource_name)
                 for datasource_name in database.get_all_view_names_in_schema(
                     schema=schema_parsed,
@@ -1154,88 +1192,36 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     cache=database.table_cache_enabled,
                     cache_timeout=database.table_cache_timeout,
                 )
-            ] or []
-        else:
-            tables = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_database(
-                    cache=True, force=False, cache_timeout=24 * 60 * 60
-                )
-            ]
-            views = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_database(
-                    cache=True, force=False, cache_timeout=24 * 60 * 60
-                )
-            ]
-        tables = security_manager.get_datasources_accessible_by_user(
-            database, tables, schema_parsed
-        )
-        views = security_manager.get_datasources_accessible_by_user(
-            database, views, schema_parsed
+            ],
         )
 
-        def get_datasource_label(ds_name: utils.DatasourceName) -> str:
-            return (
-                ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
-            )
+        extra_dict_by_name = {
+            table.name: table.extra_dict
+            for table in (
+                db.session.query(SqlaTable).filter(SqlaTable.schema == schema_parsed)
+            ).all()
+        }
 
-        def is_match(src: str, target: utils.DatasourceName) -> bool:
-            target_label = get_datasource_label(target)
-            if exact_match_parsed:
-                return src == target_label
-            return src in target_label
-
-        if substr_parsed:
-            tables = [tn for tn in tables if is_match(substr_parsed, tn)]
-            views = [vn for vn in views if is_match(substr_parsed, vn)]
-
-        if not schema_parsed and database.default_schemas:
-            user_schemas = (
-                [g.user.email.split("@")[0]] if hasattr(g.user, "email") else []
-            )
-            valid_schemas = set(database.default_schemas + user_schemas)
-
-            tables = [tn for tn in tables if tn.schema in valid_schemas]
-            views = [vn for vn in views if vn.schema in valid_schemas]
-
-        max_items = config["MAX_TABLE_NAMES"] or len(tables)
-        total_items = len(tables) + len(views)
-        max_tables = len(tables)
-        max_views = len(views)
-        if total_items and substr_parsed:
-            max_tables = max_items * len(tables) // total_items
-            max_views = max_items * len(views) // total_items
-
-        dataset_tables = {table.name: table for table in database.tables}
-
-        table_options = [
-            {
-                "value": tn.table,
-                "schema": tn.schema,
-                "label": get_datasource_label(tn),
-                "title": get_datasource_label(tn),
-                "type": "table",
-                "extra": dataset_tables[f"{tn.schema}.{tn.table}"].extra_dict
-                if (f"{tn.schema}.{tn.table}" in dataset_tables)
-                else None,
-            }
-            for tn in tables[:max_tables]
-        ]
-        table_options.extend(
+        options = sorted(
             [
                 {
-                    "value": vn.table,
-                    "schema": vn.schema,
-                    "label": get_datasource_label(vn),
-                    "title": get_datasource_label(vn),
+                    "value": table.table,
+                    "type": "table",
+                    "extra": extra_dict_by_name.get(table.table, None),
+                }
+                for table in tables
+            ]
+            + [
+                {
+                    "value": view.table,
                     "type": "view",
                 }
-                for vn in views[:max_views]
-            ]
+                for view in views
+            ],
+            key=lambda item: item["value"],
         )
-        table_options.sort(key=lambda value: value["label"])
-        payload = {"tableLength": len(tables) + len(views), "options": table_options}
+
+        payload = {"tableLength": len(tables) + len(views), "options": options}
         return json_success(json.dumps(payload))
 
     @api
@@ -1556,12 +1542,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
-    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
+    def available_domains(self) -> FlaskResponse:
         """
         Returns the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
         leverage domain sharding if appropriately configured.
         """
+        logger.warning(
+            "%s.available_domains "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         return Response(
             json.dumps(conf.get("SUPERSET_WEBSERVER_DOMAINS")), mimetype="text/json"
         )
@@ -1976,7 +1967,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         bootstrap_data = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
 
         return self.render_template(
@@ -2093,8 +2084,20 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .filter_by(database_id=database_id, table_name=table_name)
             .one_or_none()
         )
-        if not table:
-            table = SqlaTable(table_name=table_name, owners=[g.user])
+
+        if table:
+            return json_errors_response(
+                [
+                    SupersetError(
+                        message=f"Dataset [{table_name}] already exists",
+                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                        level=ErrorLevel.WARNING,
+                    )
+                ],
+                status=422,
+            )
+
+        table = SqlaTable(table_name=table_name, owners=[g.user])
         table.database = database
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
@@ -2116,7 +2119,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         table.columns = cols
         table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
         db.session.commit()
-        return json_success(json.dumps({"table_id": table.id}))
+
+        return json_success(
+            json.dumps(
+                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
+            )
+        )
 
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
@@ -2409,6 +2417,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
     def sql_json(self) -> FlaskResponse:
+        errors = SqlJsonPayloadSchema().validate(request.json)
+        if errors:
+            return json_error_response(status=400, payload=errors)
+
         try:
             log_params = {
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
@@ -2696,7 +2708,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
 
         return self.render_template(
@@ -2715,12 +2727,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         user = (
             db.session.query(ab_models.User).filter_by(username=username).one_or_none()
         )
-        if not user:
-            abort(404, description=f"User: {username} does not exist.")
+        # Prevent returning 404 when user is not found to prevent username scanning
+        user_id = -1 if not user else user.id
+        # Prevent unauthorized access to other user's profiles,
+        # unless configured to do so on with ENABLE_BROAD_ACTIVITY_ACCESS
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
 
         payload = {
             "user": bootstrap_user_data(user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
 
         return self.render_template(
@@ -2784,7 +2801,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """SQL Editor"""
         payload = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
             **self._get_sqllab_tabs(get_user_id()),
         }
 

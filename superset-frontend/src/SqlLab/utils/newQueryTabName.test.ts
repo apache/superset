@@ -17,9 +17,11 @@
  * under the License.
  */
 
+import { defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { newQueryTabName } from './newQueryTabName';
 
 const emptyEditor = {
+  ...defaultQueryEditor,
   title: '',
   schema: '',
   autorun: false,
@@ -36,8 +38,8 @@ describe('newQueryTabName', () => {
   it('should return next available number if there are unsaved editors', () => {
     const untitledQueryText = 'Untitled Query';
     const unsavedEditors = [
-      { ...emptyEditor, title: `${untitledQueryText} 1` },
-      { ...emptyEditor, title: `${untitledQueryText} 2` },
+      { ...emptyEditor, name: `${untitledQueryText} 1` },
+      { ...emptyEditor, name: `${untitledQueryText} 2` },
     ];
 
     const nextTitle = newQueryTabName(unsavedEditors);

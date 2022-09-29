@@ -186,6 +186,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     ...(formData || {}),
   };
   const handleOverwriteDataset = async () => {
+    // if user wants to overwrite a dataset we need to prompt them
+    if (!shouldOverwriteDataset) {
+      setShouldOverwriteDataset(true);
+      return;
+    }
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
@@ -217,6 +222,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
     setShouldOverwriteDataset(false);
     setDatasetName(getDefaultDatasetName());
+    onHide();
   };
 
   const loadDatasetOverwriteOptions = useCallback(
@@ -257,12 +263,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   );
 
   const handleSaveInDataset = () => {
-    // if user wants to overwrite a dataset we need to prompt them
-    if (newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET) {
-      setShouldOverwriteDataset(true);
-      return;
-    }
-
     const selectedColumns = datasource?.columns ?? [];
 
     // The filters param is only used to test jinja templates.
@@ -304,13 +304,12 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           [URL_PARAMS.formDataKey.name]: key,
         });
         createWindow(url);
+        setDatasetName(getDefaultDatasetName());
+        onHide();
       })
       .catch(() => {
         addDangerToast(t('An error occurred saving dataset'));
       });
-
-    setDatasetName(getDefaultDatasetName());
-    onHide();
   };
 
   const handleOverwriteDatasetOption = (value: SelectValue, option: any) => {
@@ -346,7 +345,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       onHide={onHide}
       footer={
         <>
-          {!shouldOverwriteDataset && (
+          {newOrOverwrite === DatasetRadioState.SAVE_NEW && (
             <Button
               disabled={disableSaveAndExploreBtn}
               buttonStyle="primary"
@@ -355,9 +354,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
               {buttonTextOnSave}
             </Button>
           )}
-          {shouldOverwriteDataset && (
+          {newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET && (
             <>
-              <Button onClick={handleOverwriteCancel}>Back</Button>
+              {shouldOverwriteDataset && (
+                <Button onClick={handleOverwriteCancel}>Back</Button>
+              )}
               <Button
                 className="md"
                 buttonStyle="primary"

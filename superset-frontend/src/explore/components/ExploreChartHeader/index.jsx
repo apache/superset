@@ -120,10 +120,8 @@ export const ExploreChartHeader = ({
   };
 
   useEffect(() => {
-    if (dashboardId) {
-      fetchChartDashboardData();
-    }
-  }, [dashboardId]);
+    if (dashboardId) fetchChartDashboardData();
+  }, []);
 
   const openPropertiesModal = () => {
     setIsPropertiesModalOpen(true);

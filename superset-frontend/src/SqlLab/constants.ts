@@ -48,6 +48,7 @@ export const TIME_OPTIONS = [
 export const SQL_EDITOR_GUTTER_HEIGHT = 5;
 export const SQL_EDITOR_GUTTER_MARGIN = 3;
 export const SQL_TOOLBAR_HEIGHT = 51;
+export const SQL_EDITOR_LEFTBAR_WIDTH = 400;
 
 // kilobyte storage
 export const KB_STORAGE = 1024;

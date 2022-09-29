@@ -74,14 +74,12 @@ type DatabaseValue = {
   id: number;
   database_name: string;
   backend: string;
-  allow_multi_schema_metadata_fetch: boolean;
 };
 
 export type DatabaseObject = {
   id: number;
   database_name: string;
   backend: string;
-  allow_multi_schema_metadata_fetch: boolean;
 };
 
 type SchemaValue = { label: string; value: string };
@@ -199,8 +197,6 @@ export default function DatabaseSelector({
             id: row.id,
             database_name: row.database_name,
             backend: row.backend,
-            allow_multi_schema_metadata_fetch:
-              row.allow_multi_schema_metadata_fetch,
           }));
 
           return {
@@ -302,7 +298,6 @@ export default function DatabaseSelector({
         disabled={!currentDb || readOnly}
         header={<FormLabel>{t('Schema')}</FormLabel>}
         labelInValue
-        lazyLoading={false}
         loading={loadingSchemas}
         name="select-schema"
         placeholder={t('Select schema or type schema name')}

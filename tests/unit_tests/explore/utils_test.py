@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
 from pytest import raises
 from pytest_mock import MockFixture
@@ -51,7 +50,7 @@ query_datasources_by_name = (
 )
 
 
-def test_unsaved_chart_no_dataset_id(app_context: AppContext) -> None:
+def test_unsaved_chart_no_dataset_id() -> None:
     from superset.explore.utils import check_access as check_chart_access
 
     with raises(DatasourceNotFoundValidationError):
@@ -63,9 +62,7 @@ def test_unsaved_chart_no_dataset_id(app_context: AppContext) -> None:
             )
 
 
-def test_unsaved_chart_unknown_dataset_id(
-    mocker: MockFixture, app_context: AppContext
-) -> None:
+def test_unsaved_chart_unknown_dataset_id(mocker: MockFixture) -> None:
     from superset.explore.utils import check_access as check_chart_access
 
     with raises(DatasetNotFoundError):
@@ -79,9 +76,7 @@ def test_unsaved_chart_unknown_dataset_id(
             )
 
 
-def test_unsaved_chart_unknown_query_id(
-    mocker: MockFixture, app_context: AppContext
-) -> None:
+def test_unsaved_chart_unknown_query_id(mocker: MockFixture) -> None:
     from superset.explore.utils import check_access as check_chart_access
 
     with raises(QueryNotFoundValidationError):
@@ -95,9 +90,7 @@ def test_unsaved_chart_unknown_query_id(
             )
 
 
-def test_unsaved_chart_unauthorized_dataset(
-    mocker: MockFixture, app_context: AppContext
-) -> None:
+def test_unsaved_chart_unauthorized_dataset(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
 
@@ -113,9 +106,7 @@ def test_unsaved_chart_unauthorized_dataset(
             )
 
 
-def test_unsaved_chart_authorized_dataset(
-    mocker: MockFixture, app_context: AppContext
-) -> None:
+def test_unsaved_chart_authorized_dataset(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
 
@@ -130,9 +121,7 @@ def test_unsaved_chart_authorized_dataset(
         )
 
 
-def test_saved_chart_unknown_chart_id(
-    mocker: MockFixture, app_context: AppContext
-) -> None:
+def test_saved_chart_unknown_chart_id(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
 
@@ -149,9 +138,7 @@ def test_saved_chart_unknown_chart_id(
             )
 
 
-def test_saved_chart_unauthorized_dataset(
-    mocker: MockFixture, app_context: AppContext
-) -> None:
+def test_saved_chart_unauthorized_dataset(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
 
@@ -167,7 +154,7 @@ def test_saved_chart_unauthorized_dataset(
             )
 
 
-def test_saved_chart_is_admin(mocker: MockFixture, app_context: AppContext) -> None:
+def test_saved_chart_is_admin(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
@@ -185,7 +172,7 @@ def test_saved_chart_is_admin(mocker: MockFixture, app_context: AppContext) -> N
         )
 
 
-def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> None:
+def test_saved_chart_is_owner(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
@@ -204,7 +191,7 @@ def test_saved_chart_is_owner(mocker: MockFixture, app_context: AppContext) -> N
         )
 
 
-def test_saved_chart_has_access(mocker: MockFixture, app_context: AppContext) -> None:
+def test_saved_chart_has_access(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
@@ -224,7 +211,7 @@ def test_saved_chart_has_access(mocker: MockFixture, app_context: AppContext) ->
         )
 
 
-def test_saved_chart_no_access(mocker: MockFixture, app_context: AppContext) -> None:
+def test_saved_chart_no_access(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_access as check_chart_access
     from superset.models.slice import Slice
@@ -245,7 +232,7 @@ def test_saved_chart_no_access(mocker: MockFixture, app_context: AppContext) -> 
             )
 
 
-def test_dataset_has_access(mocker: MockFixture, app_context: AppContext) -> None:
+def test_dataset_has_access(mocker: MockFixture) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_datasource_access
 
@@ -263,7 +250,7 @@ def test_dataset_has_access(mocker: MockFixture, app_context: AppContext) -> Non
     )
 
 
-def test_query_has_access(mocker: MockFixture, app_context: AppContext) -> None:
+def test_query_has_access(mocker: MockFixture) -> None:
     from superset.explore.utils import check_datasource_access
     from superset.models.sql_lab import Query
 
@@ -281,7 +268,7 @@ def test_query_has_access(mocker: MockFixture, app_context: AppContext) -> None:
     )
 
 
-def test_query_no_access(mocker: MockFixture, client, app_context: AppContext) -> None:
+def test_query_no_access(mocker: MockFixture, client) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.explore.utils import check_datasource_access
     from superset.models.core import Database

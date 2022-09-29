@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+import logging
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 
@@ -762,7 +763,19 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "is_managed_externally": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["result"], expected_result)
+        self.assertIn("changed_on_delta_humanized", data["result"])
+        self.assertIn("id", data["result"])
+        self.assertIn("thumbnail_url", data["result"])
+        self.assertIn("url", data["result"])
+        for key, value in data["result"].items():
+            # We can't assert timestamp values or id/urls
+            if key not in (
+                "changed_on_delta_humanized",
+                "id",
+                "thumbnail_url",
+                "url",
+            ):
+                self.assertEqual(value, expected_result[key])
         db.session.delete(chart)
         db.session.commit()
 
@@ -1344,3 +1357,31 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 }
             ]
         }
+
+    def test_gets_created_by_user_charts_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_has_created_by", "value": True}],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 8)
+
+    def test_gets_not_created_by_user_charts_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_has_created_by", "value": False}],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 8)

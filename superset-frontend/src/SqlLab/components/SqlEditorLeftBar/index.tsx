@@ -25,6 +25,7 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
+import { useSelector } from 'react-redux';
 import querystring from 'query-string';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
@@ -32,7 +33,7 @@ import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
-import { QueryEditor } from 'src/SqlLab/types';
+import { QueryEditor, SchemaOption, SqlLabRootState } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import {
@@ -55,7 +56,10 @@ interface actionsTypes {
   setDatabases: (arg0: any) => {};
   addDangerToast: (msg: string) => void;
   queryEditorSetSchema: (queryEditor: QueryEditor, schema?: string) => void;
-  queryEditorSetSchemaOptions: () => void;
+  queryEditorSetSchemaOptions: (
+    queryEditor: QueryEditor,
+    options: SchemaOption[],
+  ) => void;
   queryEditorSetTableOptions: (
     queryEditor: QueryEditor,
     options: Array<any>,
@@ -70,7 +74,6 @@ interface SqlEditorLeftBarProps {
   actions: actionsTypes & TableElementProps['actions'];
   database: DatabaseObject;
   setEmptyState: Dispatch<SetStateAction<boolean>>;
-  showDisabled: boolean;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -113,6 +116,15 @@ export default function SqlEditorLeftBar({
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
+  );
+  const schema = useSelector<SqlLabRootState, string>(
+    ({ sqlLab: { unsavedQueryEditor } }) => {
+      const updatedQueryEditor = {
+        ...queryEditor,
+        ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
+      };
+      return updatedQueryEditor.schema;
+    },
   );
 
   useEffect(() => {
@@ -239,6 +251,15 @@ export default function SqlEditorLeftBar({
     [actions],
   );
 
+  const handleSchemasLoad = React.useCallback(
+    (options: Array<any>) => {
+      if (queryEditorRef.current) {
+        actions.queryEditorSetSchemaOptions(queryEditorRef.current, options);
+      }
+    },
+    [actions],
+  );
+
   return (
     <div className="SqlEditorLeftBar">
       <TableSelectorMultiple
@@ -249,10 +270,10 @@ export default function SqlEditorLeftBar({
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
-        onSchemasLoad={actions.queryEditorSetSchemaOptions}
+        onSchemasLoad={handleSchemasLoad}
         onTableSelectChange={onTablesChange}
         onTablesLoad={handleTablesLoad}
-        schema={queryEditor.schema}
+        schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode
       />

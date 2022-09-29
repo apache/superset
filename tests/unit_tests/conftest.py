@@ -53,6 +53,9 @@ def get_session(mocker: MockFixture) -> Callable[[], Session]:
         get_session.return_value = in_memory_session
         # FAB calls get_session.get_bind() to get a handler to the engine
         get_session.get_bind.return_value = engine
+        # Allow for queries on security manager
+        get_session.query = in_memory_session.query
+
         mocker.patch("superset.db.session", in_memory_session)
         return in_memory_session
 
@@ -102,7 +105,7 @@ def client(app: SupersetApp) -> Any:
         yield client
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def app_context(app: SupersetApp) -> Iterator[None]:
     """
     A fixture that yields and application context.
@@ -124,5 +127,6 @@ def full_api_access(mocker: MockFixture) -> Iterator[None]:
         return_value=True,
     )
     mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 
     yield

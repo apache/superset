@@ -20,6 +20,8 @@ import { SupersetClient, t } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 
+const ADHOC_FILTER_REGEX = /^adhoc_filters/;
+
 export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
 export function fetchDashboardsSucceeded(choices) {
   return { type: FETCH_DASHBOARDS_SUCCEEDED, choices };
@@ -66,11 +68,16 @@ export const getSlicePayload = (
   formDataWithNativeFilters,
   owners,
 ) => {
+  const adhocFilters = Object.entries(formDataWithNativeFilters).reduce(
+    (acc, [key, value]) =>
+      ADHOC_FILTER_REGEX.test(key)
+        ? { ...acc, [key]: value?.filter(f => !f.isExtra) }
+        : acc,
+    {},
+  );
   const formData = {
     ...formDataWithNativeFilters,
-    adhoc_filters: formDataWithNativeFilters.adhoc_filters?.filter(
-      f => !f.isExtra,
-    ),
+    ...adhocFilters,
   };
 
   const [datasourceId, datasourceType] = formData.datasource.split('__');
@@ -135,8 +142,13 @@ const addToasts = (isNewSlice, sliceName, addedToDashboard) => {
 
 //  Update existing slice
 export const updateSlice =
-  ({ slice_id: sliceId, owners }, sliceName, formData, addedToDashboard) =>
-  async dispatch => {
+  ({ slice_id: sliceId, owners }, sliceName, addedToDashboard) =>
+  async (dispatch, getState) => {
+    const {
+      explore: {
+        form_data: { url_params: _, ...formData },
+      },
+    } = getState();
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
@@ -154,7 +166,12 @@ export const updateSlice =
 
 //  Create new slice
 export const createSlice =
-  (sliceName, formData, addedToDashboard) => async dispatch => {
+  (sliceName, addedToDashboard) => async (dispatch, getState) => {
+    const {
+      explore: {
+        form_data: { url_params: _, ...formData },
+      },
+    } = getState();
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
