@@ -228,9 +228,7 @@ def test_unmask_encrypted_extra() -> None:
         }
     )
 
-    assert json.loads(
-        GSheetsEngineSpec.unmask_encrypted_extra(old, new)  # type:ignore
-    ) == {
+    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
         "service_account_info": {
             "project_id": "yellow-unicorn-314419",
             "private_key": "SECRET",
@@ -254,9 +252,7 @@ def test_unmask_encrypted_extra_when_old_is_none() -> None:
         }
     )
 
-    assert json.loads(
-        GSheetsEngineSpec.unmask_encrypted_extra(old, new)  # type:ignore
-    ) == {
+    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
         "service_account_info": {
             "project_id": "yellow-unicorn-314419",
             "private_key": "XXXXXXXXXX",

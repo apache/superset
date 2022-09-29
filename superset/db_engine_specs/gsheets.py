@@ -139,8 +139,11 @@ class GSheetsEngineSpec(SqliteEngineSpec):
 
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
+        if encrypted_extra is None:
+            return encrypted_extra
+
         try:
-            config = json.loads(encrypted_extra)  # type:ignore
+            config = json.loads(encrypted_extra)
         except (TypeError, json.JSONDecodeError):
             return encrypted_extra
 
@@ -158,9 +161,12 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         """
         Reuse ``private_key`` if available and unchanged.
         """
+        if old is None or new is None:
+            return new
+
         try:
-            old_config = json.loads(old)  # type:ignore
-            new_config = json.loads(new)  # type:ignore
+            old_config = json.loads(old)
+            new_config = json.loads(new)
         except (TypeError, json.JSONDecodeError):
             return new
 

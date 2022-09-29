@@ -261,10 +261,12 @@ class Database(
         masked_encrypted_extra = db_engine_spec.mask_encrypted_extra(
             self.encrypted_extra
         )
-        try:
-            encrypted_config = json.loads(masked_encrypted_extra)  # type: ignore
-        except (TypeError, json.JSONDecodeError):
-            encrypted_config = {}
+        encrypted_config = {}
+        if masked_encrypted_extra is not None:
+            try:
+                encrypted_config = json.loads(masked_encrypted_extra)
+            except (TypeError, json.JSONDecodeError):
+                pass
 
         try:
             # pylint: disable=useless-suppression
