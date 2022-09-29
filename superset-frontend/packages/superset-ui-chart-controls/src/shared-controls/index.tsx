@@ -46,6 +46,7 @@ import {
   isAdhocColumn,
   isPhysicalColumn,
   ensureIsArray,
+  isDefined,
 } from '@superset-ui/core';
 
 import {
@@ -183,7 +184,14 @@ const granularity: SharedControlConfig<'SelectControl'> = {
 const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   label: TIME_FILTER_LABELS.time_grain_sqla,
-  default: 'P1D',
+  initialValue: (control: ControlState, state: ControlPanelState) => {
+    if (!isDefined(state)) {
+      // should return control value if the chart is from Dashboard
+      return control.value;
+    }
+    // use default value 'P1D' for a new chart only.
+    return isDefined(state.slice) ? control.value : 'P1D';
+  },
   description: t(
     'The time granularity for the visualization. This ' +
       'applies a date transformation to alter ' +
@@ -192,7 +200,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       'engine basis in the Superset source code.',
   ),
   mapStateToProps: ({ datasource }) => ({
-    choices: (datasource as Dataset)?.time_grain_sqla || null,
+    choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
   visibility: ({ controls }) => {
     if (!isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {

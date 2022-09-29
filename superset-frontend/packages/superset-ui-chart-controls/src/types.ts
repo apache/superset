@@ -86,6 +86,7 @@ export interface ControlPanelState {
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
+  slice?: AnyDict;
 }
 
 /**
