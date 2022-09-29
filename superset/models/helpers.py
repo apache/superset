@@ -1172,6 +1172,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return ob
 
+    # pylint: disable=import-outside-toplevel, too-many-locals
     def adhoc_column_to_sqla(
         self,
         col: AdhocColumn,
@@ -1195,7 +1196,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             schema=self.schema,
             template_processor=template_processor,
         )
-        # note that: the column name is "name" instead of "column_name" in SQLLab query metadata
+        # note that: the column name is "name" instead of "column_name"
+        # in SQLLab query metadata
         col_in_metadata = (
             [col for col in self.columns if col.get("name") == expression] or [None]
         )[0]
