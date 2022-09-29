@@ -240,7 +240,7 @@ describe('Dashboard edit', () => {
       cy.get('[data-test="dashboard-markdown-editor"]')
         .should(
           'have.text',
-          '✨Header 1✨Header 2✨Header 3Click here to learn more about',
+          '✨Header 1✨Header 2✨Header 3Click here to learn more about markdown formatting',
         )
         .click();
 
