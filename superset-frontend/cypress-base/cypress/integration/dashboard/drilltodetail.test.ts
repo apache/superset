@@ -17,7 +17,7 @@
  * under the License.
  */
 import { waitForChartLoad } from 'cypress/utils';
-import { ECHARTS_DASHBOARD } from 'cypress/utils/urls';
+import { SUPPORTED_CHARTS_DASHBOARD } from 'cypress/utils/urls';
 import { ECHARTS_CHARTS } from './utils';
 
 function interceptSamples() {
@@ -60,7 +60,7 @@ function closeModal() {
 
 describe('Drill to detail modal', () => {
   before(() => {
-    cy.visit(ECHARTS_DASHBOARD);
+    cy.visit(SUPPORTED_CHARTS_DASHBOARD);
     ECHARTS_CHARTS.forEach(waitForChartLoad);
   });
 

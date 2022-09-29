@@ -34,7 +34,7 @@ from .helpers import (
     update_slice_ids,
 )
 
-DASH_SLUG = "echarts_dash"
+DASH_SLUG = "supported_charts_dash"
 
 
 def create_slices(tbl: SqlaTable) -> List[Slice]:
@@ -52,16 +52,6 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
         "granularity_sqla": "ds",
         "row_limit": "50000",
         "viz_type": "echarts_timeseries_bar",
-        "adhoc_filters": [
-            {
-                "clause": "WHERE",
-                "expressionType": "SIMPLE",
-                "filterOptionName": "filter_i7pmq9ob0vg_lvnj4s14yt",
-                "comparator": "10000",
-                "operator": ">",
-                "subject": "num_boys",
-            }
-        ],
     }
 
     slices = [
@@ -255,7 +245,7 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
                 viz_type="chord",
                 metric="sum__num",
                 groupby="gender",
-                column="state",
+                columns="state",
             ),
         ),
         Slice(
@@ -468,8 +458,8 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
     return slices
 
 
-def load_echarts_dashboard() -> None:
-    """Loading a dashboard featuring EChart charts"""
+def load_supported_charts_dashboard() -> None:
+    """Loading a dashboard featuring supported charts"""
 
     database = get_example_database()
     engine = database.get_sqla_engine()
@@ -511,7 +501,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 1,
       "height": 50,
       "sliceName": "Big Number",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -528,7 +518,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 2,
       "height": 50,
       "sliceName": "Big Number with Trendline",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -545,7 +535,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 3,
       "height": 50,
       "sliceName": "Table",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -562,7 +552,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 4,
       "height": 50,
       "sliceName": "Pivot Table",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -579,7 +569,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 5,
       "height": 50,
       "sliceName": "Time-Series Line Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -596,7 +586,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 6,
       "height": 50,
       "sliceName": "Time-Series Bar Chart V2",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -613,7 +603,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 7,
       "height": 50,
       "sliceName": "Time-Series Area Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -630,7 +620,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 8,
       "height": 50,
       "sliceName": "Time-Series Scatter Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -647,7 +637,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 9,
       "height": 50,
       "sliceName": "Pie Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -664,7 +654,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 10,
       "height": 50,
       "sliceName": "Bar Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -681,7 +671,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 11,
       "height": 50,
       "sliceName": "World Map",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -698,7 +688,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 12,
       "height": 50,
       "sliceName": "Box Plot Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -715,7 +705,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 13,
       "height": 50,
       "sliceName": "Bubble Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -732,7 +722,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 14,
       "height": 50,
       "sliceName": "Calendar Heatmap",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -749,7 +739,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 15,
       "height": 50,
       "sliceName": "Chord Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -766,7 +756,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 16,
       "height": 50,
       "sliceName": "Time-Series Percent Change Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -783,7 +773,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 17,
       "height": 50,
       "sliceName": "Time-Series Generic Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -800,7 +790,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 18,
       "height": 50,
       "sliceName": "Time-Series Smooth Line Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -817,7 +807,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 19,
       "height": 50,
       "sliceName": "Time-Series Step Line Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -834,7 +824,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 20,
       "height": 50,
       "sliceName": "Funnel Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -851,7 +841,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 21,
       "height": 50,
       "sliceName": "Gauge Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -868,7 +858,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 22,
       "height": 50,
       "sliceName": "Heatmap Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -885,7 +875,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 23,
       "height": 50,
       "sliceName": "Line Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -902,7 +892,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 24,
       "height": 50,
       "sliceName": "Mixed Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -919,7 +909,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 25,
       "height": 50,
       "sliceName": "Partition Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -936,7 +926,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 26,
       "height": 50,
       "sliceName": "Radar Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -953,7 +943,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 27,
       "height": 50,
       "sliceName": "Nightingale Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -970,7 +960,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 28,
       "height": 50,
       "sliceName": "Sankey Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -987,7 +977,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 29,
       "height": 50,
       "sliceName": "Sunburst Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -1004,7 +994,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 30,
       "height": 50,
       "sliceName": "Treemap Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -1021,7 +1011,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 31,
       "height": 50,
       "sliceName": "Treemap V2 Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -1038,7 +1028,7 @@ def load_echarts_dashboard() -> None:
       "chartId": 32,
       "height": 50,
       "sliceName": "Word Cloud Chart",
-      "width": 6
+      "width": 3
     },
     "type": "CHART"
   },
@@ -1050,7 +1040,7 @@ def load_echarts_dashboard() -> None:
   "HEADER_ID": {
     "id": "HEADER_ID",
     "meta": {
-      "text": "ECharts Dashboard"
+      "text": "Supported Charts"
     },
     "type": "HEADER"
   },
@@ -1282,7 +1272,8 @@ def load_echarts_dashboard() -> None:
   "ROW-11": {
     "children": [
       "CHART-30",
-      "CHART-31"
+      "CHART-31",
+      "CHART-32"
     ],
     "parents": [
       "ROOT_ID",
@@ -1302,7 +1293,7 @@ def load_echarts_dashboard() -> None:
 
     pos = json.loads(js)
     dash.slices = update_slice_ids(pos)
-    dash.dashboard_title = "Tier 1 and Tier 2 Charts Dashboard"
+    dash.dashboard_title = "Supported Charts Dashboard"
     dash.position_json = json.dumps(pos, indent=2)
     dash.slug = DASH_SLUG
     db.session.commit()
