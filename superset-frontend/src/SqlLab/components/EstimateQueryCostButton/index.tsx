@@ -17,8 +17,10 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import Alert from 'src/components/Alert';
+import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
+
+import Alert from 'src/components/Alert';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
@@ -29,31 +31,32 @@ import {
   QueryCostEstimate,
   QueryEditor,
 } from 'src/SqlLab/types';
-import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
-import { useSelector } from 'react-redux';
 
 export interface EstimateQueryCostButtonProps {
   getEstimate: Function;
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   tooltip?: string;
   disabled?: boolean;
 }
 
 const EstimateQueryCostButton = ({
   getEstimate,
-  queryEditor,
+  queryEditorId,
   tooltip = '',
   disabled = false,
 }: EstimateQueryCostButtonProps) => {
   const queryCostEstimate = useSelector<
     SqlLabRootState,
     QueryCostEstimate | undefined
-  >(state => state.sqlLab.queryCostEstimates?.[queryEditor.id]);
-  const selectedText = useSelector<SqlLabRootState, string | undefined>(
-    rootState =>
-      (getUpToDateQuery(rootState, queryEditor) as unknown as QueryEditor)
-        .selectedText,
+  >(state => state.sqlLab.queryCostEstimates?.[queryEditorId]);
+
+  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
+      ...queryEditors.find(({ id }) => id === queryEditorId),
+      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+    }),
   );
+  const { selectedText } = queryEditor;
   const { cost } = queryCostEstimate || {};
   const tableData = useMemo(() => (Array.isArray(cost) ? cost : []), [cost]);
   const columns = useMemo(

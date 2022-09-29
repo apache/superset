@@ -23,7 +23,11 @@ import { Store } from 'redux';
 
 import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
+import {
+  initialState,
+  defaultQueryEditor,
+  extraQueryEditor1,
+} from 'src/SqlLab/fixtures';
 import QueryLimitSelect, {
   LIMIT_DROPDOWN,
   QueryLimitSelectProps,
@@ -51,7 +55,7 @@ const defaultQueryLimit = 100;
 const setup = (props?: Partial<QueryLimitSelectProps>, store?: Store) =>
   render(
     <QueryLimitSelect
-      queryEditor={defaultQueryEditor}
+      queryEditorId={defaultQueryEditor.id}
       maxRow={100000}
       defaultQueryLimit={defaultQueryLimit}
       {...props}
@@ -67,10 +71,7 @@ describe('QueryLimitSelect', () => {
     const queryLimit = 10;
     const { getByText } = setup(
       {
-        queryEditor: {
-          ...defaultQueryEditor,
-          queryLimit,
-        },
+        queryEditorId: extraQueryEditor1.id,
       },
       mockStore(initialState),
     );

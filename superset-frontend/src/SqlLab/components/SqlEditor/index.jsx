@@ -476,7 +476,7 @@ const SqlEditor = ({
               onChange={params => {
                 dispatch(queryEditorSetTemplateParams(qe, params));
               }}
-              queryEditor={qe}
+              queryEditorId={qe.id}
             />
           </Menu.Item>
         )}
@@ -540,7 +540,7 @@ const SqlEditor = ({
           <span>
             <RunQueryActionButton
               allowAsync={database ? database.allow_run_async : false}
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               queryState={latestQuery?.state}
               runQuery={startQuery}
               stopQuery={stopQuery}
@@ -552,14 +552,14 @@ const SqlEditor = ({
               <span>
                 <EstimateQueryCostButton
                   getEstimate={getQueryCostEstimate}
-                  queryEditor={queryEditor}
+                  queryEditorId={queryEditor.id}
                   tooltip={t('Estimate the cost before running a query')}
                 />
               </span>
             )}
           <span>
             <QueryLimitSelect
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               maxRow={maxRow}
               defaultQueryLimit={defaultQueryLimit}
             />
@@ -576,7 +576,7 @@ const SqlEditor = ({
         <div className="rightItems">
           <span>
             <SaveQuery
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               columns={latestQuery?.results?.columns || []}
               onSave={onSaveQuery}
               onUpdate={query => dispatch(updateSavedQuery(query))}
@@ -585,7 +585,7 @@ const SqlEditor = ({
             />
           </span>
           <span>
-            <ShareSqlLabQuery queryEditor={queryEditor} />
+            <ShareSqlLabQuery queryEditorId={queryEditor.id} />
           </span>
           <AntdDropdown overlay={renderDropdown()} trigger="click">
             <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
@@ -665,9 +665,8 @@ const SqlEditor = ({
             >
               <SqlEditorLeftBar
                 database={database}
-                queryEditor={queryEditor}
+                queryEditorId={queryEditor.id}
                 tables={tables}
-                actions={actions}
                 setEmptyState={bool => setShowEmptyState(bool)}
               />
             </StyledSidebar>

@@ -55,7 +55,7 @@ const setup = (otherProps: Partial<Props> = {}, store?: Store) =>
     <TemplateParamsEditor
       language="json"
       onChange={() => {}}
-      queryEditor={defaultQueryEditor}
+      queryEditorId={defaultQueryEditor.id}
       {...otherProps}
     />,
     {

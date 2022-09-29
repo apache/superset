@@ -22,14 +22,14 @@ import thunk from 'redux-thunk';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
-import { initialState, databases } from 'src/SqlLab/fixtures';
+import {
+  initialState,
+  extraQueryEditor1,
+  databases,
+} from 'src/SqlLab/fixtures';
 
 const mockedProps = {
-  queryEditor: {
-    dbId: 1,
-    schema: 'main',
-    sql: 'SELECT * FROM t',
-  },
+  queryEditorId: extraQueryEditor1.id,
   animation: false,
   database: databases.result[0],
   onUpdate: () => {},
@@ -111,14 +111,7 @@ describe('SavedQuery', () => {
   });
 
   it('renders a "save as new" and "update" button if query already exists', () => {
-    const props = {
-      ...mockedProps,
-      queryEditor: {
-        ...mockedProps.query,
-        remoteId: '42',
-      },
-    };
-    render(<SaveQuery {...props} />, {
+    render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
       store: mockStore(initialState),
     });
