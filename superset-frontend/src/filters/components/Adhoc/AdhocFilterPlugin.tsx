@@ -19,6 +19,7 @@
 /* eslint-disable no-param-reassign */
 import {
   DataMask,
+  ensureIsArray,
   ExtraFormData,
   JsonObject,
   JsonResponse,
@@ -146,8 +147,8 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     }
   });
 
-  const labelString = (props: AdhocFilter) => {
-    if (props.comparator.length >= 1) {
+  const labelString: (props: AdhocFilter) => string = (props: AdhocFilter) => {
+    if (ensureIsArray(props.comparator).length >= 2) {
       return `${props.subject} ${props.operator} (${props.comparator.join(
         ', ',
       )})`;
