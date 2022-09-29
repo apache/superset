@@ -58,9 +58,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         if datasource:
             datasource_model_instance = self._convert_to_model(datasource)
 
-        slice = None
+        slice_ = None
         if form_data and form_data.get("slice_id") is not None:
-            slice = self._get_slice(form_data.get("slice_id"))
+            slice_ = self._get_slice(form_data.get("slice_id"))
 
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
@@ -79,7 +79,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         return QueryContext(
             datasource=datasource_model_instance,
             queries=queries_,
-            slice=slice,
+            slice_=slice_,
             form_data=form_data,
             result_type=result_type,
             result_format=result_format,
