@@ -60,8 +60,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         slice = None
         if form_data and form_data.get("slice_id") is not None:
-            slice_id = form_data.get("slice_id")
-            slice = self._get_slice(slice_id)
+            slice = self._get_slice(form_data.get("slice_id"))
 
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
