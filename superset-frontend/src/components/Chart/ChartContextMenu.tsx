@@ -66,7 +66,10 @@ const ChartContextMenu = (
   }>({ clientX: 0, clientY: 0 });
 
   const menuItems = [];
-  if (isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore) {
+  const showDrillToDetail =
+    isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore;
+
+  if (showDrillToDetail) {
     menuItems.push(
       <DrillDetailMenuItems
         chartId={id}
@@ -86,10 +89,10 @@ const ChartContextMenu = (
         window.innerHeight || 0,
       );
 
-      const itemsCount = [
-        2, // Drill to detail always has 2 top-level menu items
-        // Include additional menu item counts here
-      ].reduce((a, b) => a + b, 0);
+      const itemsCount =
+        [
+          showDrillToDetail ? 2 : 0, // Drill to detail always has 2 top-level menu items
+        ].reduce((a, b) => a + b, 0) || 1; // "No actions" appears if no actions in menu
 
       const menuHeight = MENU_ITEM_HEIGHT * itemsCount + MENU_VERTICAL_SPACING;
       // Always show the context menu inside the viewport
@@ -103,7 +106,7 @@ const ChartContextMenu = (
       // from the charts.
       document.getElementById(`hidden-span-${id}`)?.click();
     },
-    [id],
+    [id, showDrillToDetail],
   );
 
   useImperativeHandle(
