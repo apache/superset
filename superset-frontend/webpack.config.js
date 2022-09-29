@@ -170,7 +170,7 @@ if (!isDevMode) {
   plugins.push(
     // disable __REACT_DEVTOOLS_GLOBAL_HOOK__
     new webpack.DefinePlugin({
-      '__REACT_DEVTOOLS_GLOBAL_HOOK__': '({ isDisabled: true })'
+      '__REACT_DEVTOOLS_GLOBAL_HOOK__': '({ isDisabled: true })',
     }),
   );
 }
