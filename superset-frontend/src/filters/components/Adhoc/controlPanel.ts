@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, validateNonEmpty } from '@superset-ui/core';
-import {
-  ControlPanelConfig,
-  sections,
-  sharedControls,
-} from '@superset-ui/chart-controls';
+import { t } from '@superset-ui/core';
+import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 
 const { enableEmptyFilter } = DEFAULT_FORM_DATA;
@@ -30,22 +26,6 @@ const config: ControlPanelConfig = {
   controlPanelSections: [
     // @ts-ignore
     sections.legacyRegularTime,
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        [
-          {
-            name: 'groupby',
-            config: {
-              ...sharedControls.groupby,
-              label: 'Column',
-              required: true,
-            },
-          },
-        ],
-      ],
-    },
     {
       label: t('UI Configuration'),
       expanded: true,
@@ -67,12 +47,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  controlOverrides: {
-    groupby: {
-      multi: false,
-      validators: [validateNonEmpty],
-    },
-  },
 };
 
 export default config;
