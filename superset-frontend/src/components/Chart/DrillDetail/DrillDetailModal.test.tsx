@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { QueryObjectFilterClause, SqlaFormData } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import DrillDetailModalTrigger from './DrillDetailModalTrigger';
+import DrillDetailModal from './DrillDetailModal';
 
 jest.mock('./DrillDetailPane', () => () => null);
 const mockHistoryPush = jest.fn();
@@ -36,34 +36,47 @@ jest.mock('react-router-dom', () => ({
 
 const { id: chartId, form_data: chartFormData } = chartQueries[sliceId];
 const { slice_name: chartName } = chartFormData;
-const openModal = async (
+
+const renderModal = async (
   formData?: SqlaFormData,
   filters?: QueryObjectFilterClause[],
 ) => {
   const store = getMockStoreWithNativeFilters();
-  render(
-    <DrillDetailModalTrigger
-      chartId={chartId}
-      formData={formData || chartFormData}
-      filters={filters}
-    >
-      Open modal
-    </DrillDetailModalTrigger>,
-    { useRouter: true, useRedux: true, store },
-  );
+  const DrillDetailModalWrapper = () => {
+    const [showModal, setShowModal] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setShowModal(true)}>
+          Show modal
+        </button>
+        <DrillDetailModal
+          chartId={chartId}
+          formData={formData || chartFormData}
+          filters={filters}
+          showModal={showModal}
+          onHideModal={() => setShowModal(false)}
+        />
+      </>
+    );
+  };
 
-  const button = screen.getByRole('button', { name: 'Open modal' });
-  userEvent.click(button);
+  render(<DrillDetailModalWrapper />, {
+    useRouter: true,
+    useRedux: true,
+    store,
+  });
+
+  userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
   await screen.findByRole('dialog', { name: `Drill to detail: ${chartName}` });
 };
 
 test('should render the title', async () => {
-  await openModal();
+  await renderModal();
   expect(screen.getByText(`Drill to detail: ${chartName}`)).toBeInTheDocument();
 });
 
 test('should render the button', async () => {
-  await openModal();
+  await renderModal();
   expect(
     screen.getByRole('button', { name: 'Edit chart' }),
   ).toBeInTheDocument();
@@ -71,14 +84,14 @@ test('should render the button', async () => {
 });
 
 test('should close the modal', async () => {
-  await openModal();
+  await renderModal();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
   userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
 test('should forward to Explore', async () => {
-  await openModal();
+  await renderModal();
   userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
   expect(mockHistoryPush).toHaveBeenCalledWith(
     `/explore/?dashboard_page_id=&slice_id=${sliceId}`,

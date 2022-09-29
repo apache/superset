@@ -17,27 +17,19 @@
  * under the License.
  */
 
-import React, { ReactNode, useCallback, useContext, useMemo } from 'react';
-import { useHistory } from 'react-router-dom';
+import React, { ReactNode, useCallback, useMemo, useState } from 'react';
 import {
   Behavior,
-  QueryObjectFilterClause,
   css,
   getChartMetadataRegistry,
   SqlaFormData,
   styled,
   SupersetTheme,
   t,
-  useTheme,
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import ModalTrigger from 'src/components/ModalTrigger';
-import Button from 'src/components/Button';
-import { useSelector } from 'react-redux';
-import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-import { Slice } from 'src/types/Chart';
-import DrillDetailPane from './DrillDetailPane';
 import { ContextMenuPayload } from '../types';
+import DrillDetailModal from './DrillDetailModal';
 
 const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
   <Menu.Item disabled {...props}>
@@ -59,28 +51,13 @@ const Filter = styled.span`
    `}
 `;
 
-type ModalFooterProps = {
-  exploreChart: () => void;
-  closeModal?: () => void;
-};
-
-const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
-  <>
-    <Button buttonStyle="secondary" buttonSize="small" onClick={exploreChart}>
-      {t('Edit chart')}
-    </Button>
-    <Button buttonStyle="primary" buttonSize="small" onClick={closeModal}>
-      {t('Close')}
-    </Button>
-  </>
-);
-
 export type DrillDetailMenuItemsProps = {
   chartId: number;
   formData: SqlaFormData;
   isContextMenu?: boolean;
   contextPayload?: ContextMenuPayload;
   onSelection?: () => void;
+  onClick?: () => void;
 };
 
 export const DrillDetailMenuItems = ({
@@ -88,62 +65,25 @@ export const DrillDetailMenuItems = ({
   formData,
   isContextMenu,
   contextPayload,
-  onSelection,
+  onSelection = () => null,
+  onClick = () => null,
   ...props
 }: DrillDetailMenuItemsProps) => {
-  const theme = useTheme();
-  const history = useHistory();
-  const dashboardPageId = useContext(DashboardPageIdContext);
-  const { slice_name: chartName } = useSelector(
-    (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
-      state.sliceEntities.slices[chartId],
+  const [filters, setFilters] = useState<ContextMenuPayload['filters']>();
+  const [showModal, setShowModal] = useState(false);
+  const openModal = useCallback(
+    filters => {
+      onClick();
+      onSelection();
+      setFilters(filters);
+      setShowModal(true);
+    },
+    [onClick, onSelection],
   );
 
-  const exploreUrl = useMemo(
-    () => `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${chartId}`,
-    [chartId, dashboardPageId],
-  );
-
-  const exploreChart = useCallback(() => {
-    history.push(exploreUrl);
-  }, [exploreUrl, history]);
-
-  const getMenuItem = useCallback(
-    (key: string, content: ReactNode, filters?: QueryObjectFilterClause[]) => (
-      <Menu.Item
-        key={`drill-to-detail-${key}`}
-        onClick={onSelection}
-        {...props}
-      >
-        <ModalTrigger
-          css={css`
-            .ant-modal-body {
-              display: flex;
-              flex-direction: column;
-            }
-          `}
-          modalTitle={t('Drill to detail: %s', chartName)}
-          triggerNode={content}
-          modalFooter={<ModalFooter exploreChart={exploreChart} />}
-          modalBody={
-            <DrillDetailPane formData={formData} initialFilters={filters} />
-          }
-          responsive
-          resizable
-          resizableConfig={{
-            minHeight: theme.gridUnit * 128,
-            minWidth: theme.gridUnit * 128,
-            defaultSize: {
-              width: 'auto',
-              height: '75vh',
-            },
-          }}
-          draggable
-        />
-      </Menu.Item>
-    ),
-    [chartName, exploreChart, formData, onSelection, props, theme.gridUnit],
-  );
+  const closeModal = useCallback(() => {
+    setShowModal(false);
+  }, []);
 
   //  Check chart plugin metadata to see if the contextmenu event is handled
   //  by the chart plugin or the fallback handler
@@ -172,7 +112,9 @@ export const DrillDetailMenuItems = ({
       )}
     </DisabledMenuItem>
   ) : (
-    getMenuItem('no-filters', t('Drill to detail'))
+    <Menu.Item {...props} onClick={() => openModal([])}>
+      {t('Drill to detail')}
+    </Menu.Item>
   );
 
   let drillToDetailBy = (
@@ -185,25 +127,21 @@ export const DrillDetailMenuItems = ({
     if (contextPayload?.filters.length) {
       drillToDetailBy = (
         <>
-          {contextPayload.filters.map((filter, i) =>
-            getMenuItem(
-              `filter-${i}`,
-              <>
-                {`${t('Drill to detail by')} `}
-                <Filter>{filter.formattedVal}</Filter>)
-              </>,
-              [filter],
-            ),
+          {contextPayload.filters.map((filter, i) => (
+            <Menu.Item {...props} key={i} onClick={() => openModal([filter])}>
+              {`${t('Drill to detail by')} `}
+              <Filter>{filter.formattedVal}</Filter>
+            </Menu.Item>
+          ))}
+          {contextPayload.filters.length > 1 && (
+            <Menu.Item
+              {...props}
+              onClick={() => openModal(contextPayload.filters)}
+            >
+              {`${t('Drill to detail by')} `}
+              <Filter>{t('all')}</Filter>
+            </Menu.Item>
           )}
-          {contextPayload.filters.length > 1 &&
-            getMenuItem(
-              'filters-all',
-              <>
-                {`${t('Drill to detail by')} `}
-                <Filter>{t('all')}</Filter>
-              </>,
-              contextPayload.filters,
-            )}
         </>
       );
     } else {
@@ -225,6 +163,13 @@ export const DrillDetailMenuItems = ({
           <div data-test="drill-to-detail-by-submenu">{drillToDetailBy}</div>
         </Menu.SubMenu>
       )}
+      <DrillDetailModal
+        chartId={chartId}
+        formData={formData}
+        filters={filters}
+        showModal={showModal}
+        onHideModal={closeModal}
+      />
     </>
   );
 };

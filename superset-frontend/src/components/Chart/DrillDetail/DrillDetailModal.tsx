@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, useCallback, useContext, useMemo } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   QueryObjectFilterClause,
@@ -26,7 +26,7 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import ModalTrigger from 'src/components/ModalTrigger';
+import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
@@ -49,19 +49,21 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
   </>
 );
 
-interface DrillDetailModalTriggerProps {
-  children: ReactNode;
+interface DrillDetailModalProps {
   chartId: number;
   formData: SqlaFormData;
   filters?: QueryObjectFilterClause[];
+  showModal: boolean;
+  onHideModal: () => void;
 }
 
-export default function DrillDetailModalTrigger({
-  children,
+export default function DrillDetailModal({
   chartId,
   formData,
   filters,
-}: DrillDetailModalTriggerProps) {
+  showModal,
+  onHideModal,
+}: DrillDetailModalProps) {
   const theme = useTheme();
   const history = useHistory();
   const dashboardPageId = useContext(DashboardPageIdContext);
@@ -80,19 +82,17 @@ export default function DrillDetailModalTrigger({
   }, [exploreUrl, history]);
 
   return (
-    <ModalTrigger
+    <Modal
+      show={showModal}
+      onHide={onHideModal ?? (() => null)}
       css={css`
         .ant-modal-body {
           display: flex;
           flex-direction: column;
         }
       `}
-      modalTitle={t('Drill to detail: %s', chartName)}
-      triggerNode={children}
-      modalFooter={<ModalFooter exploreChart={exploreChart} />}
-      modalBody={
-        <DrillDetailPane formData={formData} initialFilters={filters} />
-      }
+      title={t('Drill to detail: %s', chartName)}
+      footer={<ModalFooter exploreChart={exploreChart} />}
       responsive
       resizable
       resizableConfig={{
@@ -104,6 +104,8 @@ export default function DrillDetailModalTrigger({
         },
       }}
       draggable
-    />
+    >
+      <DrillDetailPane formData={formData} initialFilters={filters} />
+    </Modal>
   );
 }
