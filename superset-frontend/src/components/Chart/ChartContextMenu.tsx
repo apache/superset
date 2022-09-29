@@ -23,10 +23,13 @@ import React, {
   useImperativeHandle,
   useState,
 } from 'react';
+import ReactDOM from 'react-dom';
+import { useSelector } from 'react-redux';
 import { FeatureFlag, isFeatureEnabled, SqlaFormData } from '@superset-ui/core';
+import { RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
-import ReactDOM from 'react-dom';
 import { DrillDetailMenuItems } from './DrillDetail';
 import { ContextMenuPayload } from './types';
 
@@ -52,26 +55,28 @@ const ChartContextMenu = (
   { id, formData, onSelection, onClose }: ChartContextMenuProps,
   ref: RefObject<Ref>,
 ) => {
+  const canExplore = useSelector((state: RootState) =>
+    findPermission('can_explore', 'Superset', state.user?.roles),
+  );
+
   const [{ clientX, clientY, payload }, setState] = useState<{
     clientX: number;
     clientY: number;
     payload?: ContextMenuPayload;
   }>({ clientX: 0, clientY: 0 });
 
-  const menu = (
-    <Menu>
-      {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && (
-        <DrillDetailMenuItems
-          chartId={id}
-          formData={formData}
-          isContextMenu
-          contextPayload={payload}
-          onSelection={onSelection}
-        />
-      )}
-      {/* Include additional menu content here */}
-    </Menu>
-  );
+  const menuItems = [];
+  if (isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore) {
+    menuItems.push(
+      <DrillDetailMenuItems
+        chartId={id}
+        formData={formData}
+        isContextMenu
+        contextPayload={payload}
+        onSelection={onSelection}
+      />,
+    );
+  }
 
   const open = useCallback(
     (clientX: number, clientY: number, payload?: ContextMenuPayload) => {
@@ -111,7 +116,15 @@ const ChartContextMenu = (
 
   return ReactDOM.createPortal(
     <Dropdown
-      overlay={menu}
+      overlay={
+        <Menu>
+          {menuItems.length ? (
+            menuItems
+          ) : (
+            <Menu.Item disabled>No actions</Menu.Item>
+          )}
+        </Menu>
+      }
       trigger={['click']}
       onVisibleChange={value => !value && onClose()}
     >
