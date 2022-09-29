@@ -166,6 +166,13 @@ if (!isDevMode) {
       },
     }),
   );
+
+  plugins.push(
+    // disable __REACT_DEVTOOLS_GLOBAL_HOOK__
+    new webpack.DefinePlugin({
+      '__REACT_DEVTOOLS_GLOBAL_HOOK__': '({ isDisabled: true })'
+    }),
+  );
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
