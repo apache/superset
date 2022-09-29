@@ -20,7 +20,7 @@
 import React, { useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
   css,
   SqlaFormData,
   t,
@@ -52,7 +52,7 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
 interface DrillDetailModalProps {
   chartId: number;
   formData: SqlaFormData;
-  filters?: QueryObjectFilterClause[];
+  filters?: BinaryQueryObjectFilterClause[];
   showModal: boolean;
   onHideModal: () => void;
 }

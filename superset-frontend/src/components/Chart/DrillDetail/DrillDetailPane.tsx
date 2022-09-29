@@ -25,7 +25,7 @@ import React, {
 } from 'react';
 import { useSelector } from 'react-redux';
 import {
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
   css,
   ensureIsArray,
   t,
@@ -55,7 +55,7 @@ export default function DrillDetailPane({
   initialFilters,
 }: {
   formData: QueryFormData;
-  initialFilters?: QueryObjectFilterClause[];
+  initialFilters?: BinaryQueryObjectFilterClause[];
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);

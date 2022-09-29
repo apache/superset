@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
 
 export type ContextMenuPayload = {
-  filters: QueryObjectFilterClause[];
+  filters: BinaryQueryObjectFilterClause[];
 };

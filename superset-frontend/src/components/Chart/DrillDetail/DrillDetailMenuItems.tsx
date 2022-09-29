@@ -62,7 +62,7 @@ export type DrillDetailMenuItemsProps = {
   onClick?: (event: MouseEvent) => void;
 };
 
-export const DrillDetailMenuItems = ({
+const DrillDetailMenuItems = ({
   chartId,
   formData,
   isContextMenu,
@@ -207,3 +207,5 @@ export const DrillDetailMenuItems = ({
     </>
   );
 };
+
+export default DrillDetailMenuItems;

@@ -17,5 +17,4 @@
  * under the License.
  */
 
-export { DrillDetailMenuItems } from './DrillDetailMenuItems';
-export { getDrillDetailMenuItemsCount } from './utils';
+export { default as DrillDetailMenuItems } from './DrillDetailMenuItems';

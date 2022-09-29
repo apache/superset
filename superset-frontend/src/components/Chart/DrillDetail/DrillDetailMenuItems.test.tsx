@@ -23,8 +23,7 @@ import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { QueryObjectFilterClause } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import {
-  DrillDetailMenuItems,
+import DrillDetailMenuItems, {
   DrillDetailMenuItemsProps,
 } from './DrillDetailMenuItems';
 

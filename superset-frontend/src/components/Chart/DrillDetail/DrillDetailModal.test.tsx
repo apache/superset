@@ -18,7 +18,7 @@
  */
 
 import React, { useState } from 'react';
-import { QueryObjectFilterClause, SqlaFormData } from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause, SqlaFormData } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
@@ -39,7 +39,7 @@ const { slice_name: chartName } = chartFormData;
 
 const renderModal = async (
   formData?: SqlaFormData,
-  filters?: QueryObjectFilterClause[],
+  filters?: BinaryQueryObjectFilterClause[],
 ) => {
   const store = getMockStoreWithNativeFilters();
   const DrillDetailModalWrapper = () => {

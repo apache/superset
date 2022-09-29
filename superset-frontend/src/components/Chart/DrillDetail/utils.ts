@@ -21,12 +21,12 @@ import {
   ensureIsArray,
   QueryFormData,
   buildQueryObject,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 
 export function getDrillPayload(
   queryFormData?: QueryFormData,
-  drillFilters?: QueryObjectFilterClause[],
+  drillFilters?: BinaryQueryObjectFilterClause[],
 ) {
   if (!queryFormData) {
     return undefined;
