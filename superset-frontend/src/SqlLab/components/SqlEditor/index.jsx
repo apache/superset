@@ -235,13 +235,14 @@ const SqlEditor = ({
     }
   };
 
-  useState(() => {
+  // hack the useMemo hook to imitate componentWillMount
+  useMemo(() => {
     if (autorun) {
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
       startQuery();
     }
-  });
+  }, []);
 
   // One layer of abstraction for easy spying in unit tests
   const getSqlEditorHeight = () =>
