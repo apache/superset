@@ -31,6 +31,7 @@ import {
 } from 'src/SqlLab/components/SaveDatasetModal';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { QueryEditor } from 'src/SqlLab/types';
 
 interface SaveQueryProps {
   queryEditorId: string;
@@ -42,30 +43,22 @@ interface SaveQueryProps {
 }
 
 type QueryPayload = {
-  autorun: boolean;
-  dbId: number;
+  name: string;
   description?: string;
   id?: string;
-  latestQueryId: string;
-  queryLimit: number;
-  remoteId: number;
-  schema: string;
-  schemaOptions: Array<{
-    label: string;
-    title: string;
-    value: string;
-  }>;
-  selectedText: string | null;
-  sql: string;
-  tableOptions: Array<{
-    label: string;
-    schema: string;
-    title: string;
-    type: string;
-    value: string;
-  }>;
-  name: string;
-};
+} & Pick<
+  QueryEditor,
+  | 'autorun'
+  | 'dbId'
+  | 'schema'
+  | 'sql'
+  | 'selectedText'
+  | 'remoteId'
+  | 'latestQueryId'
+  | 'queryLimit'
+  | 'tableOptions'
+  | 'schemaOptions'
+>;
 
 const Styles = styled.span`
   span[role='img'] {
@@ -88,9 +81,18 @@ export default function SaveQuery({
   columns,
 }: SaveQueryProps) {
   const queryEditor = useQueryEditor(queryEditorId, [
+    'autorun',
     'name',
     'description',
     'remoteId',
+    'dbId',
+    'latestQueryId',
+    'queryLimit',
+    'schema',
+    'schemaOptions',
+    'selectedText',
+    'sql',
+    'tableOptions',
   ]);
   const query = useMemo(
     () => ({
@@ -117,12 +119,12 @@ export default function SaveQuery({
     </Menu>
   );
 
-  const queryPayload = () =>
-    ({
-      ...query,
-      name: label,
-      description,
-    } as any as QueryPayload);
+  const queryPayload = () => ({
+    ...query,
+    name: label,
+    description,
+    dbId: query.dbId ?? 0,
+  });
 
   useEffect(() => {
     if (!isSaved) setLabel(defaultLabel);
