@@ -229,6 +229,12 @@ const SqlEditor = ({
     }
   };
 
+  const runQuery = () => {
+    if (database) {
+      startQuery();
+    }
+  };
+
   useState(() => {
     if (autorun) {
       setAutorun(false);
@@ -542,7 +548,7 @@ const SqlEditor = ({
               allowAsync={database ? database.allow_run_async : false}
               queryEditor={queryEditor}
               queryState={latestQuery?.state}
-              runQuery={startQuery}
+              runQuery={runQuery}
               stopQuery={stopQuery}
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />
