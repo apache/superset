@@ -186,11 +186,13 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   label: TIME_FILTER_LABELS.time_grain_sqla,
   initialValue: (control: ControlState, state: ControlPanelState) => {
     if (!isDefined(state)) {
-      // should return control value if the chart is from Dashboard
+      // If a chart is in a Dashboard, the ControlPanelState is empty.
       return control.value;
     }
-    // use default value 'P1D' for a new chart only.
-    return isDefined(state.slice) ? control.value : 'P1D';
+    // if a chart is a new one that isn't saved, the 'time_grain_sqla' isn't in the form_data.
+    return 'time_grain_sqla' in (state?.form_data ?? {})
+      ? state.form_data?.time_grain_sqla
+      : 'P1D';
   },
   description: t(
     'The time granularity for the visualization. This ' +
