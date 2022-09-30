@@ -27,9 +27,10 @@ export enum Behavior {
   NATIVE_FILTER = 'NATIVE_FILTER',
 
   /**
-   * Include `CONTEXT_MENU` behavior if plugin handles `contextmenu` event.
+   * Include `DRILL_TO_DETAIL` behavior if plugin handles `contextmenu` event
+   * when dimensions are right-clicked on.
    */
-  CONTEXT_MENU = 'CONTEXT_MENU',
+  DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
 }
 
 export enum AppSection {
