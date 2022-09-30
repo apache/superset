@@ -245,9 +245,17 @@ export default function exploreReducer(state = {}, action) {
         slice: {
           ...state.slice,
           ...action.slice,
-          owners: action.slice.owners ?? null,
+          owners: action.slice.owners
+            ? action.slice.owners.map(owner => owner.value)
+            : null,
         },
         sliceName: action.slice.slice_name ?? state.sliceName,
+        metadata: {
+          ...state.metadata,
+          owners: action.slice.owners
+            ? action.slice.owners.map(owner => owner.label)
+            : null,
+        },
       };
     },
     [actions.SET_FORCE_QUERY]() {

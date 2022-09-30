@@ -19,7 +19,14 @@ under the License.
 
 ## Change Log
 
-### 2.0 (Tue Jun 28 08:53:02 2022 -0400)
+- [2.0.0](#200-tue-jun-28-085302-2022--0400)
+- [1.5.2 (LTS)](#152-wed-sep-14-171151-2022-0530)
+- [1.5.1](#151-thu-may-26-144520-2022-0300)
+- [1.5.0](#150-fri-apr-22-172330-2022--0400)
+- [1.4.2](#142-sat-mar-19-000806-2022-0200)
+- [1.4.1](#141)
+
+### 2.0.0 (Tue Jun 28 08:53:02 2022 -0400)
 
 **Database Migrations**
 
@@ -512,6 +519,34 @@ under the License.
 - [#19046](https://github.com/apache/superset/pull/19046) chore(explore): Set Drag&Drop feature flags to True by default (@kgabryje)
 - [#19016](https://github.com/apache/superset/pull/19016) chore: Adding PR to Updating.md (@AAfghahi)
 - [#18970](https://github.com/apache/superset/pull/18970) chore: Change Dataset legacy editor flag to true (@AAfghahi)
+
+### 1.5.2 (Wed Sep 14 17:11:51 2022 +0530)
+
+**Fixes**
+
+- [#21461](https://github.com/apache/superset/pull/21461) fix: dashboard filter value is cleared when 2 similar dashboards opened in succession (@mayurnewase)
+- [#21419](https://github.com/apache/superset/pull/21419) fix: cached common bootstrap Revert (#21018) (@dpgaspar)
+- [#21302](https://github.com/apache/superset/pull/21302) fix: disallow users from viewing other user's profile on config (@dpgaspar)
+- [#21272](https://github.com/apache/superset/pull/21272) fix: adds TLS certificate validation option for SMTP (@dpgaspar)
+- [#21076](https://github.com/apache/superset/pull/21076) fix(celery cache warmup): add auth and use warm_up_cache endpoint (@nytai)
+- [#20178](https://github.com/apache/superset/pull/20178) fix: While exporting CSV , only the entries on first page are getting downloaded even when user is on other pages #17861 (@LahmerIlyas)
+- [#20058](https://github.com/apache/superset/pull/20058) fix: Support the Clipboard API in modern browsers (@diegomedina248)
+- [#20434](https://github.com/apache/superset/pull/20434) fix(20428): Address-Presto/Trino-Poll-Issue-Refactor (@Thelin90)
+- [#20348](https://github.com/apache/superset/pull/20348) fix(docker): Make Gunicorn Keepalive Adjustable (@mdeshmu)
+- [#20315](https://github.com/apache/superset/pull/20315) fix(chart): chart gets cut off on the dashboard (@stephenLYZ)
+- [#20235](https://github.com/apache/superset/pull/20235) fix: Box Plot Chart throws an error when the average (AVG) / SUM is being calculated on the Metrics (@diegomedina248)
+- [#20151](https://github.com/apache/superset/pull/20151) fix(csv): Ensure df_to_escaped_csv does not coerce integer columns to float (@john-bodley)
+- [#20173](https://github.com/apache/superset/pull/20173) fix: avoid while cycle in computeMaxFontSize for big Number run forever when css rule applied (@diegomedina248)
+- [#19570](https://github.com/apache/superset/pull/19570) fix: sqloxide optional (@betodealmeida)
+
+**Others**
+
+- [#21439](https://github.com/apache/superset/pull/21439) perf: Memoize the common_bootstrap_payload and include user param (#21018) (@bkyryliuk)
+- [#19703](https://github.com/apache/superset/pull/19703) chore(build): upgrade less-loader (@ktmud)
+- [#20550](https://github.com/apache/superset/pull/20550) chore: updating python docker image to 3.8.13 (@nisheldo)
+- [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
+- [#20974](https://github.com/apache/superset/pull/20974) perf: Implement model specific lookups by id to improve performance (@bkyryliuk)
+- [#20273](https://github.com/apache/superset/pull/20273) chore: adjust the psycopg2 version of k8s installation guide (@ensky)
 
 ### 1.5.1 (Thu May 26 14:45:20 2022 +0300)
 

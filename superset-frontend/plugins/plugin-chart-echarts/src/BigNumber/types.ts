@@ -43,7 +43,7 @@ export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
   compareLag?: string | number;
 };
 
-export type BigNumberTotalChartProps = ChartProps & {
+export type BigNumberTotalChartProps = ChartProps<QueryFormData> & {
   formData: BigNumberTotalFormData;
   queriesData: (ChartDataResponseResult & {
     data?: BigNumberDatum[];
