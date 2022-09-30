@@ -42,6 +42,7 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   style: PropTypes.object,
   onDrop: PropTypes.func,
+  onHover: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   useEmptyDragPreview: PropTypes.bool,
 
@@ -61,6 +62,7 @@ const defaultProps = {
   disableDragDrop: false,
   children() {},
   onDrop() {},
+  onHover() {},
   orientation: 'row',
   useEmptyDragPreview: false,
   isDragging: false,
