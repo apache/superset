@@ -43,14 +43,12 @@ export function fetchDashboards(userId) {
           value: id,
           label: (json.result[index] || {}).dashboard_title,
         }));
-        choices.sort((a, b) => {
-          const labelA = a.label.toUpperCase();
-          const labelB = b.label.toUpperCase();
-          return labelA.localeCompare(labelB, {
+        choices.sort((a, b) =>
+          a.label.localeCompare(b.label, {
             sensitivity: 'base',
             numeric: true,
-          });
-        });
+          }),
+        );
 
         return dispatch(fetchDashboardsSucceeded(choices));
       })
