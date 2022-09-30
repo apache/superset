@@ -24,6 +24,7 @@ import type {
   DatasourceType,
   JsonValue,
   Metric,
+  QueryColumn,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
@@ -449,9 +450,9 @@ export type ColorFormatters = {
 export default {};
 
 export function isColumnMeta(
-  column: AdhocColumn | ColumnMeta,
+  column: AdhocColumn | ColumnMeta | QueryColumn,
 ): column is ColumnMeta {
-  return 'column_name' in column;
+  return !!column && 'column_name' in column;
 }
 
 export function isSavedExpression(
@@ -477,9 +478,5 @@ export function isDataset(
 export function isQueryResponse(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is QueryResponse {
-  return (
-    !!datasource &&
-    ('results' in datasource ||
-      datasource?.type === ('query' as DatasourceType.Query))
-  );
+  return !!datasource && 'results' in datasource && 'sql' in datasource;
 }

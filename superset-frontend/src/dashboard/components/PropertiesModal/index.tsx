@@ -36,6 +36,7 @@ import Modal from 'src/components/Modal';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
+import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -657,6 +658,23 @@ const PropertiesModal = ({
                 <p className="help-block">
                   {t(
                     'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
+                  )}
+                  {onlyApply && (
+                    <>
+                      {' '}
+                      {t(
+                        'Please DO NOT overwrite the "filter_scopes" key.',
+                      )}{' '}
+                      <FilterScopeModal
+                        triggerNode={
+                          <span className="alert-link">
+                            {t('Use "%(menuName)s" menu instead.', {
+                              menuName: t('Set filter mapping'),
+                            })}
+                          </span>
+                        }
+                      />
+                    </>
                   )}
                 </p>
               </>
