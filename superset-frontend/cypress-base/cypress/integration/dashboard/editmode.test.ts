@@ -243,17 +243,17 @@ describe('Dashboard edit', () => {
         .click();
 
       // add new markdown component
-      dragComponent('Markdown', 'new-component', false);
+      dragComponent('Text', 'new-component', false);
 
-      cy.get('[data-test="dashboard-markdown-editor"]')
+      cy.getBySel('dashboard-markdown-editor')
         .should(
           'have.text',
-          '✨Markdown✨Markdown✨MarkdownClick here to edit markdown',
+          '✨Header 1✨Header 2✨Header 3Click here to learn more about markdown formatting',
         )
-        .click();
+        .click(10, 10);
 
       cy.getBySel('dashboard-component-chart-holder').contains(
-        'Click here to edit [markdown](https://bit.ly/1dQOfRK)',
+        'Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)',
       );
 
       cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
