@@ -189,7 +189,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       // If a chart is in a Dashboard, the ControlPanelState is empty.
       return control.value;
     }
-    // if a chart is a new one that isn't saved, the 'time_grain_sqla' isn't in the form_data.
+    // If a chart is a new one that isn't saved, the 'time_grain_sqla' isn't in the form_data.
     return 'time_grain_sqla' in (state?.form_data ?? {})
       ? state.form_data?.time_grain_sqla
       : 'P1D';
