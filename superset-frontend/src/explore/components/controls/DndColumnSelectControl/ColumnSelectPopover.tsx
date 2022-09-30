@@ -407,9 +407,7 @@ const ColumnSelectPopover = ({
         </Button>
         <Button
           disabled={stateIsValid && !hasUnsavedChanges}
-          buttonStyle={
-            hasUnsavedChanges && stateIsValid ? 'default' : 'primary'
-          }
+          buttonStyle="primary"
           buttonSize="small"
           onClick={onSave}
           data-test="ColumnEdit#save"
