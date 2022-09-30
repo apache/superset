@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { FeatureFlag } from '@superset-ui/core';
+import { DatasourceType, FeatureFlag } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -26,7 +26,11 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
+import {
+  DndMetricSelect,
+  retainCustomSQLMetric,
+  MetricExpression,
+} from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
 
@@ -405,4 +409,67 @@ test('title changes on custom SQL text change', async () => {
   expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
     'New metric',
   );
+});
+
+test('retainCustomSQLMetric', () => {
+  const metric: MetricExpression = {
+    expressionType: EXPRESSION_TYPES.SQL,
+  };
+
+  expect(
+    retainCustomSQLMetric(
+      metric,
+      { type: DatasourceType.Query },
+      { type: DatasourceType.Table },
+    ),
+  ).toBeTruthy();
+
+  expect(
+    retainCustomSQLMetric(
+      metric,
+      { type: DatasourceType.Query },
+      { type: DatasourceType.Dataset },
+    ),
+  ).toBeTruthy();
+
+  expect(
+    retainCustomSQLMetric(
+      // @ts-ignore
+      null,
+      { type: DatasourceType.Dataset },
+      { type: DatasourceType.Query },
+    ),
+  ).toBeFalsy();
+
+  expect(
+    retainCustomSQLMetric(
+      metric,
+      // @ts-ignore
+      { typeWrongName: DatasourceType.Dataset },
+      { type: DatasourceType.Query },
+    ),
+  ).toBeFalsy();
+
+  expect(
+    retainCustomSQLMetric(
+      metric,
+      // @ts-ignore
+      null,
+      { type: DatasourceType.Query },
+    ),
+  ).toBeFalsy();
+
+  expect(
+    retainCustomSQLMetric(
+      metric,
+      { type: DatasourceType.Query },
+      // @ts-ignore
+      null,
+    ),
+  ).toBeFalsy();
+
+  expect(
+    // @ts-ignore
+    retainCustomSQLMetric(),
+  ).toBeFalsy();
 });

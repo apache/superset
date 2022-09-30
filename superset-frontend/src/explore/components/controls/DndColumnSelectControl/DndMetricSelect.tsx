@@ -19,6 +19,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  DatasourceType,
   ensureIsArray,
   FeatureFlag,
   GenericDataType,
@@ -42,12 +43,47 @@ import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectContr
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
 import MetricsControl from '../MetricControl/MetricsControl';
+import { EXPRESSION_TYPES } from '../FilterControl/AdhocFilter';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
 
 const isDictionaryForAdhocMetric = (value: any) =>
   value && !(value instanceof AdhocMetric) && value.expressionType;
+
+export interface SimpleDatasource {
+  type?: DatasourceType;
+}
+
+export interface MetricExpression {
+  expressionType?: string;
+}
+
+export const retainCustomSQLMetric = (
+  metric: MetricExpression,
+  prevDatasource: SimpleDatasource,
+  datasource: SimpleDatasource,
+) => {
+  // We are dealing with custom SQL in metrics that are expressionType sql.  It is error prone to try to compare custom SQL
+  // to a different dataset so we normally drop them when the data set changes in Explore.
+  // In the case we are converting form a Query to a Dataset we will keep them because we can be sure the values are compatible
+  // Ideally the entire getMetricsMatchingCurrentDataset should be moved into a redux action / reducer on dataset change
+  // and the metric components should not have state management responsibility and just render whatever metrics they are given
+  // This change resolves an issue following current code structure without major refactor but is worth re-addressing big picture
+  // to improve state management lifecycle
+  let retainMetric = false;
+  if (metric?.expressionType === EXPRESSION_TYPES.SQL) {
+    // Ensure we are transitioning from a Query to a different type of datasource
+    if (
+      prevDatasource?.type === DatasourceType.Query &&
+      datasource?.type &&
+      datasource.type !== DatasourceType.Query
+    ) {
+      retainMetric = true;
+    }
+  }
+  return retainMetric;
+};
 
 const coerceAdhocMetrics = (value: any) => {
   if (!value) {
@@ -88,6 +124,8 @@ const getMetricsMatchingCurrentDataset = (
   savedMetrics: (savedMetricType | Metric)[],
   prevColumns: ColumnMeta[],
   prevSavedMetrics: (savedMetricType | Metric)[],
+  prevDatasource: SimpleDatasource,
+  datasource: SimpleDatasource,
 ): ValueType[] => {
   const areSavedMetricsEqual =
     !prevSavedMetrics || isEqual(prevSavedMetrics, savedMetrics);
@@ -118,6 +156,14 @@ const getMetricsMatchingCurrentDataset = (
       );
       if (newCol) {
         acc.push({ ...(metric as AdhocMetric), column: newCol });
+      } else if (
+        retainCustomSQLMetric(
+          metric as MetricExpression,
+          prevDatasource,
+          datasource,
+        )
+      ) {
+        acc.push(metric);
       }
     } else {
       acc.push(metric);
@@ -127,7 +173,7 @@ const getMetricsMatchingCurrentDataset = (
 };
 
 const DndMetricSelect = (props: any) => {
-  const { onChange, multi, columns, savedMetrics } = props;
+  const { onChange, multi, columns, savedMetrics, datasource } = props;
 
   const handleChange = useCallback(
     opts => {
@@ -161,6 +207,7 @@ const DndMetricSelect = (props: any) => {
   const [newMetricPopoverVisible, setNewMetricPopoverVisible] = useState(false);
   const prevColumns = usePrevious(columns);
   const prevSavedMetrics = usePrevious(savedMetrics);
+  const prevDatasource: SimpleDatasource = usePrevious(datasource);
 
   useEffect(() => {
     setValue(coerceAdhocMetrics(props.value));
@@ -180,6 +227,8 @@ const DndMetricSelect = (props: any) => {
       savedMetrics,
       prevColumns,
       prevSavedMetrics,
+      prevDatasource,
+      datasource,
     );
 
     if (!isEqual(propsValues, matchingMetrics)) {
