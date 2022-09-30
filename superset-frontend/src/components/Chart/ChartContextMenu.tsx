@@ -67,7 +67,7 @@ const ChartContextMenu = (
     filters: BinaryQueryObjectFilterClause[];
     clientX: number;
     clientY: number;
-  }>({ clientX: 0, clientY: 0, filters: [] });
+  }>({ filters: [], clientX: 0, clientY: 0 });
 
   const menuItems = [];
   const showDrillToDetail =

@@ -25,8 +25,10 @@ export type HandlerFunction = (...args: unknown[]) => void;
 export enum Behavior {
   INTERACTIVE_CHART = 'INTERACTIVE_CHART',
   NATIVE_FILTER = 'NATIVE_FILTER',
-  //  Include CONTEXT_MENU if chart handles the `contextmenu` event itself
-  //  rather than relying on the fallback handler
+
+  /**
+   * Include `CONTEXT_MENU` behavior if plugin handles `contextmenu` event.
+   */
   CONTEXT_MENU = 'CONTEXT_MENU',
 }
 
