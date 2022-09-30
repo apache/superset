@@ -29,6 +29,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from 'src/featureFlags';
+import setupExtensions from 'src/setup/setupExtensions';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
@@ -39,7 +40,6 @@ import {
 } from './utils/reduxStateToLocalStorageHelper';
 import { BYTES_PER_CHAR, KB_STORAGE } from './constants';
 import setupApp from '../setup/setupApp';
-import setupExtensions from 'src/setup/setupExtensions';
 
 import './main.less';
 import '../assets/stylesheets/reactable-pagination.less';
