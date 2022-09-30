@@ -49,6 +49,8 @@ FROM node:16-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
+# chromium already being installed - telling npm/pupeteer to skip download to fix mac M1 local build issue
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD true
 
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 RUN mkdir -p /app/superset-frontend
