@@ -456,6 +456,7 @@ class SliceHeaderControls extends React.PureComponent<
             <DrillDetailMenuItems
               chartId={slice.slice_id}
               formData={this.props.formData}
+              filters={[]}
             />
           )}
 

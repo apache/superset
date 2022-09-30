@@ -18,7 +18,6 @@
  */
 
 import React, { useState } from 'react';
-import { BinaryQueryObjectFilterClause, SqlaFormData } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
@@ -34,13 +33,10 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
-const { id: chartId, form_data: chartFormData } = chartQueries[sliceId];
-const { slice_name: chartName } = chartFormData;
+const { id: chartId, form_data: formData } = chartQueries[sliceId];
+const { slice_name: chartName } = formData;
 
-const renderModal = async (
-  formData?: SqlaFormData,
-  filters?: BinaryQueryObjectFilterClause[],
-) => {
+const renderModal = async () => {
   const store = getMockStoreWithNativeFilters();
   const DrillDetailModalWrapper = () => {
     const [showModal, setShowModal] = useState(false);
@@ -51,8 +47,8 @@ const renderModal = async (
         </button>
         <DrillDetailModal
           chartId={chartId}
-          formData={formData || chartFormData}
-          filters={filters}
+          formData={formData}
+          filters={[]}
           showModal={showModal}
           onHideModal={() => setShowModal(false)}
         />

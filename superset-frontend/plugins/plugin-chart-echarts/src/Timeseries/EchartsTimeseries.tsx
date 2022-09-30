@@ -216,9 +216,7 @@ export default function EchartsTimeseries({
               formattedVal: String(values[i]),
             }),
           );
-          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
-            filters,
-          });
+          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
         }
       }
     },

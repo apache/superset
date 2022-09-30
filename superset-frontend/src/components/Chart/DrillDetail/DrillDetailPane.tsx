@@ -55,12 +55,12 @@ export default function DrillDetailPane({
   initialFilters,
 }: {
   formData: QueryFormData;
-  initialFilters?: BinaryQueryObjectFilterClause[];
+  initialFilters: BinaryQueryObjectFilterClause[];
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
   const lastPageIndex = useRef(pageIndex);
-  const [filters, setFilters] = useState(initialFilters || []);
+  const [filters, setFilters] = useState(initialFilters);
   const [isLoading, setIsLoading] = useState(false);
   const [responseError, setResponseError] = useState('');
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(

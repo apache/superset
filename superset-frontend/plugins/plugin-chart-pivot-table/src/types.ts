@@ -74,9 +74,9 @@ interface PivotTableCustomizeProps {
   legacy_order_by: QueryFormMetric[] | QueryFormMetric | null;
   order_desc: boolean;
   onContextMenu?: (
+    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
-    payload: { filters: QueryObjectFilterClause[] },
   ) => void;
 }
 

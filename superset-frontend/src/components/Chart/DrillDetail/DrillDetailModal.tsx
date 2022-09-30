@@ -52,7 +52,7 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
 interface DrillDetailModalProps {
   chartId: number;
   formData: SqlaFormData;
-  filters?: BinaryQueryObjectFilterClause[];
+  filters: BinaryQueryObjectFilterClause[];
   showModal: boolean;
   onHideModal: () => void;
 }

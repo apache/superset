@@ -36,16 +36,17 @@ jest.mock(
       <pre data-test="modal-filters">{JSON.stringify(initialFilters)}</pre>,
 );
 
-const { id: chartId, form_data: chartFormData } = chartQueries[sliceId];
+const { id: defaultChartId, form_data: defaultFormData } =
+  chartQueries[sliceId];
 
-const { slice_name: chartName } = chartFormData;
+const { slice_name: chartName } = defaultFormData;
 const unsupportedChartFormData = {
-  ...chartFormData,
+  ...defaultFormData,
   viz_type: 'dist_bar',
 };
 
 const noDimensionsFormData = {
-  ...chartFormData,
+  ...defaultFormData,
   viz_type: 'table',
   query_mode: 'raw',
 };
@@ -64,11 +65,21 @@ const filterB: QueryObjectFilterClause = {
   formattedVal: 'Two days ago',
 };
 
-const renderMenu = (props: Omit<DrillDetailMenuItemsProps, 'chartId'>) => {
+const renderMenu = ({
+  chartId,
+  formData,
+  isContextMenu,
+  filters,
+}: Partial<DrillDetailMenuItemsProps>) => {
   const store = getMockStoreWithNativeFilters();
   return render(
     <Menu>
-      <DrillDetailMenuItems chartId={chartId} {...props} />
+      <DrillDetailMenuItems
+        chartId={chartId ?? defaultChartId}
+        formData={formData ?? defaultFormData}
+        filters={filters ?? []}
+        isContextMenu={isContextMenu}
+      />
     </Menu>,
     { useRouter: true, useRedux: true, store },
   );
@@ -301,7 +312,7 @@ test('context menu for supported chart, no dimensions, 1 filter', async () => {
   renderMenu({
     formData: noDimensionsFormData,
     isContextMenu: true,
-    contextPayload: { filters: [filterA] },
+    filters: [filterA],
   });
 
   await expectDrillToDetailMenuItemDisabled();
@@ -309,14 +320,14 @@ test('context menu for supported chart, no dimensions, 1 filter', async () => {
 });
 
 test('dropdown menu for supported chart, dimensions', async () => {
-  renderMenu({ formData: chartFormData });
+  renderMenu({ formData: defaultFormData });
   await expectDrillToDetailMenuItem();
   await expectNoDrillToDetailBySubMenu();
 });
 
 test('context menu for supported chart, dimensions, no filters', async () => {
   renderMenu({
-    formData: chartFormData,
+    formData: defaultFormData,
     isContextMenu: true,
   });
 
@@ -328,9 +339,9 @@ test('context menu for supported chart, dimensions, no filters', async () => {
 test('context menu for supported chart, dimensions, 1 filter', async () => {
   const filters = [filterA];
   renderMenu({
-    formData: chartFormData,
+    formData: defaultFormData,
     isContextMenu: true,
-    contextPayload: { filters },
+    filters,
   });
 
   await expectDrillToDetailMenuItem();
@@ -341,9 +352,9 @@ test('context menu for supported chart, dimensions, 1 filter', async () => {
 test('context menu for supported chart, dimensions, 2 filters', async () => {
   const filters = [filterA, filterB];
   renderMenu({
-    formData: chartFormData,
+    formData: defaultFormData,
     isContextMenu: true,
-    contextPayload: { filters },
+    filters,
   });
 
   await expectDrillToDetailMenuItem();

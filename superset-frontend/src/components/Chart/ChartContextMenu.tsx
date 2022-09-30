@@ -25,13 +25,17 @@ import React, {
 } from 'react';
 import ReactDOM from 'react-dom';
 import { useSelector } from 'react-redux';
-import { FeatureFlag, isFeatureEnabled, SqlaFormData } from '@superset-ui/core';
+import {
+  BinaryQueryObjectFilterClause,
+  FeatureFlag,
+  isFeatureEnabled,
+  SqlaFormData,
+} from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
 import { DrillDetailMenuItems } from './DrillDetail';
-import { ContextMenuPayload } from './types';
 
 const MENU_ITEM_HEIGHT = 32;
 const MENU_VERTICAL_SPACING = 32;
@@ -45,9 +49,9 @@ export interface ChartContextMenuProps {
 
 export interface Ref {
   open: (
+    filters: BinaryQueryObjectFilterClause[] | null,
     clientX: number,
     clientY: number,
-    payload?: ContextMenuPayload,
   ) => void;
 }
 
@@ -59,11 +63,11 @@ const ChartContextMenu = (
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
-  const [{ clientX, clientY, payload }, setState] = useState<{
+  const [{ filters, clientX, clientY }, setState] = useState<{
+    filters: BinaryQueryObjectFilterClause[];
     clientX: number;
     clientY: number;
-    payload?: ContextMenuPayload;
-  }>({ clientX: 0, clientY: 0 });
+  }>({ clientX: 0, clientY: 0, filters: [] });
 
   const menuItems = [];
   const showDrillToDetail =
@@ -75,14 +79,18 @@ const ChartContextMenu = (
         chartId={id}
         formData={formData}
         isContextMenu
-        contextPayload={payload}
+        filters={filters}
         onSelection={onSelection}
       />,
     );
   }
 
   const open = useCallback(
-    (clientX: number, clientY: number, payload?: ContextMenuPayload) => {
+    (
+      filters: BinaryQueryObjectFilterClause[] | null,
+      clientX: number,
+      clientY: number,
+    ) => {
       // Viewport height
       const vh = Math.max(
         document.documentElement.clientHeight || 0,
@@ -98,7 +106,11 @@ const ChartContextMenu = (
       // Always show the context menu inside the viewport
       const adjustedY = vh - clientY < menuHeight ? vh - menuHeight : clientY;
 
-      setState({ clientX, clientY: adjustedY, payload });
+      setState({
+        filters: filters ?? [],
+        clientX,
+        clientY: adjustedY,
+      });
 
       // Since Ant Design's Dropdown does not offer an imperative API
       // and we can't attach event triggers to charts SVG elements, we

@@ -154,9 +154,7 @@ export default function EchartsMixedTimeseries({
               formattedVal: String(values[i]),
             }),
           );
-          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
-            filters,
-          });
+          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
         }
       }
     },

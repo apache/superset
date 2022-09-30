@@ -20,6 +20,7 @@
 import React, { ReactNode, useCallback, useMemo, useState } from 'react';
 import {
   Behavior,
+  BinaryQueryObjectFilterClause,
   css,
   getChartMetadataRegistry,
   SqlaFormData,
@@ -30,7 +31,6 @@ import {
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
-import { ContextMenuPayload } from '../types';
 import DrillDetailModal from './DrillDetailModal';
 
 const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
@@ -56,8 +56,8 @@ const Filter = styled.span`
 export type DrillDetailMenuItemsProps = {
   chartId: number;
   formData: SqlaFormData;
+  filters: BinaryQueryObjectFilterClause[];
   isContextMenu?: boolean;
-  contextPayload?: ContextMenuPayload;
   onSelection?: () => void;
   onClick?: (event: MouseEvent) => void;
 };
@@ -65,13 +65,16 @@ export type DrillDetailMenuItemsProps = {
 const DrillDetailMenuItems = ({
   chartId,
   formData,
+  filters,
   isContextMenu,
-  contextPayload,
   onSelection = () => null,
   onClick = () => null,
   ...props
 }: DrillDetailMenuItemsProps) => {
-  const [filters, setFilters] = useState<ContextMenuPayload['filters']>();
+  const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
+    [],
+  );
+
   const [showModal, setShowModal] = useState(false);
   const openModal = useCallback(
     (filters, event) => {
@@ -149,10 +152,10 @@ const DrillDetailMenuItems = ({
   );
 
   if (chartHandlesContextMenuEvent) {
-    if (contextPayload?.filters.length) {
+    if (filters?.length) {
       drillToDetailBy = (
         <>
-          {contextPayload.filters.map((filter, i) => (
+          {filters.map((filter, i) => (
             <Menu.Item
               {...props}
               key={`drill-detail-filter-${i}`}
@@ -162,11 +165,11 @@ const DrillDetailMenuItems = ({
               <Filter>{filter.formattedVal}</Filter>
             </Menu.Item>
           ))}
-          {contextPayload.filters.length > 1 && (
+          {filters.length > 1 && (
             <Menu.Item
               {...props}
               key="drill-detail-filter-all"
-              onClick={openModal.bind(null, contextPayload.filters)}
+              onClick={openModal.bind(null, filters)}
             >
               {`${t('Drill to detail by')} `}
               <Filter>{t('all')}</Filter>
@@ -200,7 +203,7 @@ const DrillDetailMenuItems = ({
       <DrillDetailModal
         chartId={chartId}
         formData={formData}
-        filters={filters}
+        filters={modalFilters}
         showModal={showModal}
         onHideModal={closeModal}
       />

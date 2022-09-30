@@ -198,12 +198,12 @@ class ChartRenderer extends React.Component {
     }
   }
 
-  handleOnContextMenu(offsetX, offsetY, payload) {
-    this.contextMenuRef.current.open(offsetX, offsetY, payload);
+  handleOnContextMenu(filters, offsetX, offsetY) {
+    this.contextMenuRef.current.open(filters, offsetX, offsetY);
 
-    //  Don't update chart state if payload is undefined; that means viz plugin
+    //  Don't update chart state if `filters` is `null`; that means viz plugin
     //  didn't handle `contextmenu` event and may react badly to state update
-    if (payload) {
+    if (filters) {
       this.setState({ inContextMenu: true });
     }
   }
@@ -217,10 +217,10 @@ class ChartRenderer extends React.Component {
   }
 
   //  When viz plugins don't handle `contextmenu` event, fallback handler
-  //  calls `handleOnContextMenu` without a `payload` param
+  //  calls `handleOnContextMenu` with `filters: null`
   onContextMenuFallback(event) {
     event.preventDefault();
-    this.handleOnContextMenu(event.clientX, event.clientY);
+    this.handleOnContextMenu(null, event.clientX, event.clientY);
   }
 
   render() {
@@ -303,7 +303,7 @@ class ChartRenderer extends React.Component {
           this.state.showContextMenu ? this.onContextMenuFallback : undefined
         }
       >
-        {this.props.source === 'dashboard' && (
+        {this.state.showContextMenu && (
           <ChartContextMenu
             ref={this.contextMenuRef}
             id={chartId}
