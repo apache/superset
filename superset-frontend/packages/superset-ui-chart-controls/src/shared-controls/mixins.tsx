@@ -39,7 +39,7 @@ export const xAxisMixin = {
   description: (state: ControlPanelState) =>
     getAxisLabel(state?.form_data).description,
   validators: [validateNonEmpty],
-  initialValue: (control: ControlState, state: ControlPanelState) => {
+  initialValue: (control: ControlState, state: ControlPanelState | null) => {
     if (
       isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
       state?.form_data?.granularity_sqla &&
