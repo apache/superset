@@ -13,6 +13,7 @@ jobs:
     steps:
       - name: Welcome Message
         uses: actions/first-interaction@v1
+        continue-on-error: true
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           pr-message: |-
