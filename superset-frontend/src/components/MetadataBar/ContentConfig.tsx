@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import moment from 'moment';
 import { ensureIsArray, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { ContentType, MetadataType } from '.';
@@ -75,13 +74,10 @@ const config = (contentType: ContentType) => {
     case MetadataType.LAST_MODIFIED:
       return {
         icon: Icons.EditOutlined,
-        title: moment.utc(contentType.value).fromNow(),
+        title: contentType.value,
         tooltip: (
           <div>
-            <Info
-              header={t('Last modified')}
-              text={moment.utc(contentType.value).fromNow()}
-            />
+            <Info header={t('Last modified')} text={contentType.value} />
             <Info header={t('Modified by')} text={contentType.modifiedBy} />
           </div>
         ),
@@ -95,10 +91,7 @@ const config = (contentType: ContentType) => {
           <div>
             <Info header={t('Created by')} text={contentType.createdBy} />
             <Info header={t('Owners')} text={contentType.owners} />
-            <Info
-              header={t('Created on')}
-              text={moment.utc(contentType.createdOn).fromNow()}
-            />
+            <Info header={t('Created on')} text={contentType.createdOn} />
           </div>
         ),
       };

@@ -34,8 +34,8 @@ export type Dataset = {
     first_name: string;
     last_name: string;
   };
-  changed_on: Date;
-  created_on: Date;
+  changed_on_humanized: string;
+  created_on_humanized: string;
   description: string;
   table_name: string;
   owners: {

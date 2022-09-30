@@ -388,6 +388,7 @@ export class Tabs extends React.PureComponent {
                       availableColumnCount={availableColumnCount}
                       columnWidth={columnWidth}
                       onDropOnTab={this.handleDropOnTab}
+                      onHoverTab={() => this.handleClickTab(tabIndex)}
                       isFocused={activeKey === tabId}
                       isHighlighted={
                         activeKey !== tabId && tabsToHighlight?.includes(tabId)

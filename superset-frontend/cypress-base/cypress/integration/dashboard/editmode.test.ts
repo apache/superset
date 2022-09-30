@@ -50,7 +50,15 @@ function openAdvancedProperties() {
     .click({ force: true });
 }
 
-function dragComponent(component = 'Unicode Cloud', target = 'card-title') {
+function dragComponent(
+  component = 'Unicode Cloud',
+  target = 'card-title',
+  withFiltering = true,
+) {
+  if (withFiltering) {
+    cy.getBySel('dashboard-charts-filter-search-input').type(component);
+    cy.wait('@filtering');
+  }
   drag(`[data-test="${target}"]`, component).to(
     '[data-test="grid-content"] [data-test="dragdroppable-object"]',
   );
@@ -201,7 +209,7 @@ describe('Dashboard edit', () => {
     });
 
     it('should disable the Save button when undoing', () => {
-      dragComponent();
+      dragComponent('Unicode Cloud', 'card-title', false);
       cy.getBySel('header-save-button').should('be.enabled');
       discardChanges();
       cy.getBySel('header-save-button').should('be.disabled');
@@ -235,17 +243,17 @@ describe('Dashboard edit', () => {
         .click();
 
       // add new markdown component
-      dragComponent('Markdown', 'new-component');
+      dragComponent('Text', 'new-component', false);
 
-      cy.get('[data-test="dashboard-markdown-editor"]')
+      cy.getBySel('dashboard-markdown-editor')
         .should(
           'have.text',
-          '✨Markdown✨Markdown✨MarkdownClick here to edit markdown',
+          '✨Header 1✨Header 2✨Header 3Click here to learn more about markdown formatting',
         )
-        .click();
+        .click(10, 10);
 
       cy.getBySel('dashboard-component-chart-holder').contains(
-        'Click here to edit [markdown](https://bit.ly/1dQOfRK)',
+        'Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)',
       );
 
       cy.getBySel('dashboard-markdown-editor').click().type('Test resize');
