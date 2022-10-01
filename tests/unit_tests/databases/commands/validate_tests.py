@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.databases.commands.validate import get_engine_parameters
+from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 
 
 def test_get_engine_parameters():
     test_params = {"extra": {"engine_params": '{"foo": "bar"}'}}
-    assert get_engine_parameters(test_params) == {"foo": "bar"}
+    validate_command = ValidateDatabaseParametersCommand(test_params)
+    assert validate_command.get_engine_parameters() == {"foo": "bar"}

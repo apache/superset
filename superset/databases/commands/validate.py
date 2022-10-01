@@ -16,7 +16,6 @@
 # under the License.
 import json
 from contextlib import closing
-from symbol import parameters
 from typing import Any, Dict, Optional
 
 from flask_babel import gettext as __
@@ -37,15 +36,6 @@ from superset.extensions import event_logger
 from superset.models.core import Database
 
 BYPASS_VALIDATION_ENGINES = {"bigquery"}
-
-
-def get_engine_parameters(properties: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        if properties.get("extra"):
-            return json.loads(properties["extra"]).get("engine_params", {})
-        return {}
-    except:
-        raise DatabaseExtraJSONValidationError("Unable to parse extra_json data")
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
@@ -77,7 +67,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
         # perform initial validation
-        parameters = get_engine_parameters(self._properties)
+        parameters = self.get_engine_parameters()
         errors = engine_spec.validate_parameters(parameters)  # type: ignore
         if errors:
             event_logger.log_with_context(action="validation_error", engine=engine)
@@ -142,3 +132,13 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         database_id = self._properties.get("id")
         if database_id is not None:
             self._model = DatabaseDAO.find_by_id(database_id)
+
+    def get_engine_parameters(self) -> Dict[str, Any]:
+        try:
+            if self._properties.get("extra"):
+                return json.loads(self._properties["extra"]).get("engine_params", {})
+            return {}
+        except TypeError as ex:
+            raise DatabaseExtraJSONValidationError(
+                "Unable to parse extra_json data"
+            ) from ex
