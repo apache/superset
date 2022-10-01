@@ -30,6 +30,7 @@ import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { embeddedApi } from './api';
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 
@@ -183,19 +184,23 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
 
     let started = false;
 
-    Switchboard.defineMethod('guestToken', ({ guestToken }) => {
-      setupGuestClient(guestToken);
-      if (!started) {
-        start();
-        started = true;
-      }
-    });
+    Switchboard.defineMethod(
+      'guestToken',
+      ({ guestToken }: { guestToken: string }) => {
+        setupGuestClient(guestToken);
+        if (!started) {
+          start();
+          started = true;
+        }
+      },
+    );
 
-    Switchboard.defineMethod('getScrollSize', () => ({
-      width: document.body.scrollWidth,
-      height: document.body.scrollHeight,
-    }));
-
+    Switchboard.defineMethod('getScrollSize', embeddedApi.getScrollSize);
+    Switchboard.defineMethod(
+      'getDashboardPermalink',
+      embeddedApi.getDashboardPermalink,
+    );
+    Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     Switchboard.start();
   }
 });

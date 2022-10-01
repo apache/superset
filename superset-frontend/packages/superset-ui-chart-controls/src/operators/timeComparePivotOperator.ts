@@ -22,14 +22,15 @@ import {
   getColumnLabel,
   NumpyFunction,
   PostProcessingPivot,
+  getXAxis,
 } from '@superset-ui/core';
-import { getMetricOffsetsMap, isTimeComparison, getAxis } from './utils';
+import { getMetricOffsetsMap, isTimeComparison } from './utils';
 import { PostProcessingFactory } from './types';
 
 export const timeComparePivotOperator: PostProcessingFactory<PostProcessingPivot> =
   (formData, queryObject) => {
     const metricOffsetMap = getMetricOffsetsMap(formData, queryObject);
-    const xAxis = getAxis(formData);
+    const xAxis = getXAxis(formData);
 
     if (isTimeComparison(formData, queryObject) && xAxis) {
       const aggregates = Object.fromEntries(

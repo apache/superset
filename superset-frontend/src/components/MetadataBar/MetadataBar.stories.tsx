@@ -26,7 +26,7 @@ export default {
   component: MetadataBar,
 };
 
-const A_WEEK_AGO = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+const A_WEEK_AGO = 'a week ago';
 
 export const Component = ({
   items,

@@ -19,20 +19,8 @@
 import { t } from '@superset-ui/core';
 
 export const commonMenuData = {
-  name: t('Data'),
+  name: t('SQL'),
   tabs: [
-    {
-      name: 'Databases',
-      label: t('Databases'),
-      url: '/databaseview/list/',
-      usesRouter: true,
-    },
-    {
-      name: 'Datasets',
-      label: t('Datasets'),
-      url: '/tablemodelview/list/',
-      usesRouter: true,
-    },
     {
       name: 'Saved queries',
       label: t('Saved queries'),

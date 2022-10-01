@@ -21,21 +21,22 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
+import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
-  styled,
-  t,
-  SupersetClient,
-  getCategoricalSchemeRegistry,
   ensureIsArray,
+  getCategoricalSchemeRegistry,
   getSharedLabelColor,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
+import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -133,7 +134,9 @@ const PropertiesModal = ({
         endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
       }).then(response => ({
         data: response.json.result
-          .filter((item: { extra: { active: boolean } }) => item.extra.active)
+          .filter((item: { extra: { active: boolean } }) =>
+            item.extra.active !== undefined ? item.extra.active : true,
+          )
           .map((item: { value: number; text: string }) => ({
             value: item.value,
             label: item.text,
@@ -299,42 +302,47 @@ const PropertiesModal = ({
     let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;
 
-    // color scheme in json metadata has precedence over selection
-    if (currentJsonMetadata?.length) {
-      let metadata;
-      try {
-        metadata = JSON.parse(currentJsonMetadata);
-      } catch (error) {
-        addDangerToast(t('JSON metadata is invalid!'));
+    // validate currentJsonMetadata
+    let metadata;
+    try {
+      if (
+        !currentJsonMetadata.startsWith('{') ||
+        !currentJsonMetadata.endsWith('}')
+      ) {
+        throw new Error();
       }
-      currentColorScheme = metadata?.color_scheme || colorScheme;
-      colorNamespace = metadata?.color_namespace || '';
-
-      // filter shared_label_color from user input
-      if (metadata?.shared_label_colors) {
-        delete metadata.shared_label_colors;
-      }
-      if (metadata?.color_scheme_domain) {
-        delete metadata.color_scheme_domain;
-      }
-
-      const colorMap = getSharedLabelColor().getColorMap(
-        colorNamespace,
-        currentColorScheme,
-        true,
-      );
-
-      metadata.shared_label_colors = colorMap;
-
-      if (metadata?.color_scheme) {
-        metadata.color_scheme_domain =
-          categoricalSchemeRegistry.get(colorScheme)?.colors || [];
-      } else {
-        metadata.color_scheme_domain = [];
-      }
-
-      currentJsonMetadata = jsonStringify(metadata);
+      metadata = JSON.parse(currentJsonMetadata);
+    } catch (error) {
+      addDangerToast(t('JSON metadata is invalid!'));
+      return;
     }
+
+    // color scheme in json metadata has precedence over selection
+    currentColorScheme = metadata?.color_scheme || colorScheme;
+    colorNamespace = metadata?.color_namespace || '';
+
+    // filter shared_label_color from user input
+    if (metadata?.shared_label_colors) {
+      delete metadata.shared_label_colors;
+    }
+    if (metadata?.color_scheme_domain) {
+      delete metadata.color_scheme_domain;
+    }
+
+    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
+      colorNamespace,
+      currentColorScheme,
+      true,
+    );
+
+    if (metadata?.color_scheme) {
+      metadata.color_scheme_domain =
+        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
+    } else {
+      metadata.color_scheme_domain = [];
+    }
+
+    currentJsonMetadata = jsonStringify(metadata);
 
     onColorSchemeChange(currentColorScheme, {
       updateMetadata: false,
@@ -650,6 +658,23 @@ const PropertiesModal = ({
                 <p className="help-block">
                   {t(
                     'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
+                  )}
+                  {onlyApply && (
+                    <>
+                      {' '}
+                      {t(
+                        'Please DO NOT overwrite the "filter_scopes" key.',
+                      )}{' '}
+                      <FilterScopeModal
+                        triggerNode={
+                          <span className="alert-link">
+                            {t('Use "%(menuName)s" menu instead.', {
+                              menuName: t('Set filter mapping'),
+                            })}
+                          </span>
+                        }
+                      />
+                    </>
                   )}
                 </p>
               </>
