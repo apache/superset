@@ -359,7 +359,7 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
 
 const datetime_columns_lookup: SharedControlConfig<'HiddenControl'> = {
   type: 'HiddenControl',
-  initialValue: (control: ControlState, state: ControlPanelState) =>
+  initialValue: (control: ControlState, state: ControlPanelState | null) =>
     Object.fromEntries(
       ensureIsArray<Record<string, any>>(state?.datasource?.columns)
         .filter(option => option.is_dttm)
