@@ -301,7 +301,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
 
 
-class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public-methods
+class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
     engine_name = "Presto"
     allows_alias_to_source_column = False
@@ -795,26 +795,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):  # pylint: disable=too-many-public
             latest_partition,
             presto_cols,
         )
-
-    @classmethod
-    def get_all_datasource_names(
-        cls, database: Database, datasource_type: str
-    ) -> List[utils.DatasourceName]:
-        datasource_df = database.get_df(
-            "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
-            "ORDER BY concat(table_schema, '.', table_name)".format(
-                datasource_type.upper()
-            ),
-            None,
-        )
-        datasource_names: List[utils.DatasourceName] = []
-        for _unused, row in datasource_df.iterrows():
-            datasource_names.append(
-                utils.DatasourceName(
-                    schema=row["table_schema"], table=row["table_name"]
-                )
-            )
-        return datasource_names
 
     @classmethod
     def expand_data(  # pylint: disable=too-many-locals

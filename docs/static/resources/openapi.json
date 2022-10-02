@@ -3532,9 +3532,6 @@
       },
       "Database": {
         "properties": {
-          "allow_multi_schema_metadata_fetch": {
-            "type": "boolean"
-          },
           "allows_cost_estimate": {
             "type": "boolean"
           },
@@ -3560,6 +3557,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "engine_information": {
+            "type": "object"
           }
         },
         "type": "object"
@@ -3679,10 +3679,6 @@
             "nullable": true,
             "type": "boolean"
           },
-          "allow_multi_schema_metadata_fetch": {
-            "nullable": true,
-            "type": "boolean"
-          },
           "allow_run_async": {
             "nullable": true,
             "type": "boolean"
@@ -3745,6 +3741,9 @@
           "sqlalchemy_uri": {
             "maxLength": 1024,
             "type": "string"
+          },
+          "engine_information": {
+            "readOnly": true
           }
         },
         "required": [
@@ -3768,10 +3767,6 @@
             "type": "boolean"
           },
           "allow_file_upload": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "allow_multi_schema_metadata_fetch": {
             "nullable": true,
             "type": "boolean"
           },
@@ -3828,6 +3823,9 @@
           "id": {
             "format": "int32",
             "type": "integer"
+          },
+          "engine_information": {
+            "readOnly": true
           }
         },
         "required": [
@@ -3868,10 +3866,6 @@
           },
           "allow_file_upload": {
             "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
-            "type": "boolean"
-          },
-          "allow_multi_schema_metadata_fetch": {
-            "description": "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.",
             "type": "boolean"
           },
           "allow_run_async": {
@@ -3969,10 +3963,6 @@
           },
           "allow_file_upload": {
             "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
-            "type": "boolean"
-          },
-          "allow_multi_schema_metadata_fetch": {
-            "description": "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.",
             "type": "boolean"
           },
           "allow_run_async": {
@@ -13653,6 +13643,10 @@
                       "sqlalchemy_uri_placeholder": {
                         "description": "Example placeholder for the SQLAlchemy URI",
                         "type": "string"
+                      },
+                      "engine_information": {
+                        "description": "Object with properties we want to expose from our DB engine",
+                        "type": "object"
                       }
                     },
                     "type": "object"

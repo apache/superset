@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 
 // A few standard controls sections that are used internally.
@@ -34,6 +34,19 @@ export const legacyTimeseriesTime: ControlPanelSectionConfig = {
     ['granularity'],
     ['granularity_sqla'],
     ['time_grain_sqla'],
+    ['time_range'],
+  ],
+};
+
+export const genericTime: ControlPanelSectionConfig = {
+  ...baseTimeSection,
+  controlSetRows: [
+    ['granularity_sqla'],
+    [
+      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        ? null
+        : 'time_grain_sqla',
+    ],
     ['time_range'],
   ],
 };

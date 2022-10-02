@@ -175,6 +175,7 @@ type DBReducerActionType =
         database_name?: string;
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
+        engine_information?: {};
       };
     }
   | {
@@ -359,7 +360,7 @@ function dbReducer(
         .join('&');
 
       if (
-        action.payload.encrypted_extra &&
+        action.payload.masked_encrypted_extra &&
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
@@ -381,7 +382,7 @@ function dbReducer(
       }
       return {
         ...action.payload,
-        encrypted_extra: action.payload.encrypted_extra || '',
+        masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
@@ -498,7 +499,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       database_name: db?.database_name?.trim() || undefined,
       impersonate_user: db?.impersonate_user || undefined,
       extra: serializeExtra(db?.extra_json) || undefined,
-      encrypted_extra: db?.encrypted_extra || '',
+      masked_encrypted_extra: db?.masked_encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
     setTestInProgress(true);
@@ -565,10 +566,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...update } = db || {};
     // Clone DB object
-    const dbToUpdate = JSON.parse(JSON.stringify(update));
+    const dbToUpdate = JSON.parse(JSON.stringify(db || {}));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
@@ -580,25 +579,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ? dbToUpdate.parameters_schema.properties
         : dbModel?.parameters.properties;
       const additionalEncryptedExtra = JSON.parse(
-        dbToUpdate.encrypted_extra || '{}',
+        dbToUpdate.masked_encrypted_extra || '{}',
       );
       const paramConfigArray = Object.keys(parameters_schema || {});
 
       paramConfigArray.forEach(paramConfig => {
         /*
-         * Parameters that are annotated with the `x-encrypted-extra` properties should be moved to
-         * `encrypted_extra`, so that they are stored encrypted in the backend when the database is
-         * created or edited.
+         * Parameters that are annotated with the `x-encrypted-extra` properties should be
+         * moved to `masked_encrypted_extra`, so that they are stored encrypted in the
+         * backend when the database is created or edited.
          */
         if (
           parameters_schema[paramConfig]['x-encrypted-extra'] &&
           dbToUpdate.parameters?.[paramConfig]
         ) {
           if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
-            // add new encrypted extra to encrypted_extra object
+            // add new encrypted extra to masked_encrypted_extra object
             additionalEncryptedExtra[paramConfig] =
               dbToUpdate.parameters?.[paramConfig];
-            // The backend expects `encrypted_extra` as a string for historical reasons.
+            // The backend expects `masked_encrypted_extra` as a string for historical
+            // reasons.
             dbToUpdate.parameters[paramConfig] = JSON.stringify(
               dbToUpdate.parameters[paramConfig],
             );
@@ -610,7 +610,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       });
       // cast the new encrypted extra object into a string
-      dbToUpdate.encrypted_extra = JSON.stringify(additionalEncryptedExtra);
+      dbToUpdate.masked_encrypted_extra = JSON.stringify(
+        additionalEncryptedExtra,
+      );
       // this needs to be added by default to gsheets
       if (dbToUpdate.engine === Engines.GSheet) {
         dbToUpdate.impersonate_user = true;
@@ -717,7 +719,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const { engine, parameters } = selectedDbModel;
+      const { engine, parameters, engine_information } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -727,6 +729,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           configuration_method: isDynamic
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          engine_information,
         },
       });
     }
@@ -853,7 +856,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderModalFooter = () => {
     if (db) {
-      // if db show back + connenct
+      // if db show back + connect
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
@@ -907,7 +910,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
     }
 
-    return [];
+    return <></>;
   };
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
@@ -1155,9 +1158,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       return (
         <ErrorMessageWithStackTrace
           title={t('Database Creation Error')}
-          description={t(alertErrors[0])}
-          subtitle={t(validationErrors?.description)}
-          copyText={t(validationErrors?.description)}
+          description={alertErrors[0]}
+          subtitle={validationErrors?.description}
+          copyText={validationErrors?.description}
         />
       );
     }
@@ -1310,7 +1313,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </Modal>
     );
   }
-
+  const modalFooter = isEditMode
+    ? renderEditModalFooter(db)
+    : renderModalFooter();
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -1331,7 +1336,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={isEditMode ? renderEditModalFooter(db) : renderModalFooter()}
+      footer={modalFooter}
     >
       <StyledStickyHeader>
         <TabHeader>

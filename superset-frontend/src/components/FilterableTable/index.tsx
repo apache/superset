@@ -578,7 +578,7 @@ const FilterableTable = ({
 
     // fix height of filterable table
     return (
-      <StyledFilterableTable>
+      <StyledFilterableTable data-test="grid-container">
         <ScrollSync>
           {({ onScroll, scrollLeft }) => (
             <>
@@ -659,6 +659,7 @@ const FilterableTable = ({
     return (
       <StyledFilterableTable
         className="filterable-table-container"
+        data-test="table-container"
         ref={container}
       >
         {fitted && (

@@ -80,6 +80,7 @@ from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
+    DateColumn,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
     get_column_name,
@@ -301,9 +302,15 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         if not df.empty:
             utils.normalize_dttm_col(
                 df=df,
-                timestamp_format=timestamp_format,
-                offset=self.datasource.offset,
-                time_shift=self.time_shift,
+                dttm_cols=tuple(
+                    [
+                        DateColumn.get_legacy_time_column(
+                            timestamp_format=timestamp_format,
+                            offset=self.datasource.offset,
+                            time_shift=self.time_shift,
+                        )
+                    ]
+                ),
             )
 
             if self.enforce_numerical_metrics:

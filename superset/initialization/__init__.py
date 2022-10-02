@@ -49,6 +49,7 @@ from superset.extensions import (
 )
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
+from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -116,6 +117,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
         from superset.async_events.api import AsyncEventsRestApi
+        from superset.available_domains.api import AvailableDomainsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
@@ -193,6 +195,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AnnotationLayerRestApi)
         appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(AdvancedDataTypeRestApi)
+        appbuilder.add_api(AvailableDomainsRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
@@ -224,6 +227,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             href="/superset/welcome/",
             cond=lambda: bool(appbuilder.app.config["LOGO_TARGET_PATH"]),
         )
+
+        appbuilder.add_view(
+            DatabaseView,
+            "Databases",
+            label=__("Database Connections"),
+            icon="fa-database",
+            category="Data",
+            category_label=__("Data"),
+        )
+
         appbuilder.add_view(
             AnnotationLayerModelView,
             "Annotation Layers",
@@ -249,6 +262,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="",
             category_icon="",
         )
+
+        appbuilder.add_link(
+            "Datasets",
+            label=__("Datasets"),
+            href="/tablemodelview/list/",
+            icon="fa-table",
+            category="",
+            category_icon="",
+        )
+
         appbuilder.add_view(
             DynamicPluginsView,
             "Plugins",
@@ -326,18 +349,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_link(
             "SQL Editor",
-            label=_("SQL Editor"),
+            label=_("SQL Lab"),
             href="/superset/sqllab/",
             category_icon="fa-flask",
             icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL Lab"),
+            category_label=__("SQL"),
         )
         appbuilder.add_link(
             __("Saved Queries"),
             href="/savedqueryview/list/",
             icon="fa-save",
             category="SQL Lab",
+            category_label=__("SQL"),
         )
         appbuilder.add_link(
             "Query Search",
@@ -346,27 +370,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             icon="fa-search",
             category_icon="fa-flask",
             category="SQL Lab",
-            category_label=__("SQL Lab"),
+            category_label=__("SQL"),
         )
-        appbuilder.add_view(
-            DatabaseView,
-            "Databases",
-            label=__("Databases"),
-            icon="fa-database",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-        )
-        appbuilder.add_link(
-            "Datasets",
-            label=__("Datasets"),
-            href="/tablemodelview/list/",
-            icon="fa-table",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-table",
-        )
-        appbuilder.add_separator("Data")
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
@@ -421,6 +426,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
         if flask_app_mutator:
             flask_app_mutator(self.superset_app)
+
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            register_sqla_event_listeners()
 
         self.init_views()
 

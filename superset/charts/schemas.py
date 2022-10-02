@@ -1194,6 +1194,12 @@ class ChartDataQueryContextSchema(Schema):
     query_context_factory: Optional[QueryContextFactory] = None
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
+    custom_cache_timeout = fields.Integer(
+        description="Override the default cache timeout",
+        required=False,
+        allow_none=True,
+    )
+
     force = fields.Boolean(
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
@@ -1255,7 +1261,7 @@ class ChartDataResponseResult(Schema):
     )
     cache_timeout = fields.Integer(
         description="Cache timeout in following order: custom timeout, datasource "
-        "timeout, default config timeout.",
+        "timeout, cache default timeout, config default cache timeout.",
         required=True,
         allow_none=True,
     )

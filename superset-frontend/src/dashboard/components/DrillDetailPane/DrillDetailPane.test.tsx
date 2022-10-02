@@ -37,12 +37,46 @@ const setup = (overrides: Record<string, any> = {}) => {
     store,
   });
 };
+
 const waitForRender = (overrides: Record<string, any> = {}) =>
   waitFor(() => setup(overrides));
-const samplesEndpoint =
+
+const SAMPLES_ENDPOINT =
   'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1';
-const fetchWithNoData = () =>
-  fetchMock.post(samplesEndpoint, {
+
+const DATASET_ENDPOINT = 'glob:*/api/v1/dataset/*';
+
+const MOCKED_DATASET = {
+  changed_on_humanized: '2 days ago',
+  created_on_humanized: 'a week ago',
+  description: 'Simple description',
+  table_name: 'test_table',
+  changed_by: {
+    first_name: 'John',
+    last_name: 'Doe',
+  },
+  created_by: {
+    first_name: 'John',
+    last_name: 'Doe',
+  },
+  owners: [
+    {
+      first_name: 'John',
+      last_name: 'Doe',
+    },
+  ],
+};
+
+const setupDatasetEndpoint = () => {
+  fetchMock.get(DATASET_ENDPOINT, {
+    status: 'complete',
+    result: MOCKED_DATASET,
+  });
+};
+
+const fetchWithNoData = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
     result: {
       total_count: 0,
       data: [],
@@ -50,8 +84,11 @@ const fetchWithNoData = () =>
       coltypes: [],
     },
   });
-const fetchWithData = () =>
-  fetchMock.post(samplesEndpoint, {
+};
+
+const fetchWithData = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
     result: {
       total_count: 3,
       data: [
@@ -75,7 +112,7 @@ const fetchWithData = () =>
       coltypes: [0, 0, 0],
     },
   });
-const SupersetClientPost = jest.spyOn(SupersetClient, 'post');
+};
 
 afterEach(fetchMock.restore);
 
@@ -85,12 +122,12 @@ test('should render', async () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the loading component', async () => {
+test('should render metadata and table loading indicators', async () => {
   fetchWithData();
   setup();
-  await waitFor(() => {
-    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
-  });
+  await waitFor(() =>
+    expect(screen.getAllByLabelText('Loading').length).toBe(2),
+  );
 });
 
 test('should render the table with results', async () => {
@@ -117,8 +154,42 @@ test('should render the "No results" components', async () => {
   ).toBeInTheDocument();
 });
 
+test('should render the metadata bar', async () => {
+  fetchWithNoData();
+  setup();
+  expect(
+    await screen.findByText(MOCKED_DATASET.table_name),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText(MOCKED_DATASET.description),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText(
+      `${MOCKED_DATASET.created_by.first_name} ${MOCKED_DATASET.created_by.last_name}`,
+    ),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText(MOCKED_DATASET.changed_on_humanized),
+  ).toBeInTheDocument();
+});
+
+test('should render an error message when fails to load the metadata', async () => {
+  fetchWithNoData();
+  fetchMock.get(
+    DATASET_ENDPOINT,
+    { status: 'error', error: 'Some error' },
+    { overwriteRoutes: true },
+  );
+  setup();
+  expect(
+    await screen.findByText('There was an error loading the dataset metadata'),
+  ).toBeInTheDocument();
+});
+
 test('should render the error', async () => {
-  SupersetClientPost.mockRejectedValue(new Error('Something went wrong'));
+  jest
+    .spyOn(SupersetClient, 'post')
+    .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
 });

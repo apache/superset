@@ -27,7 +27,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, withDndFallback } from '@superset-ui/chart-controls';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -49,6 +49,7 @@ import {
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
+import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
@@ -69,7 +70,7 @@ export interface DndFilterSelectProps
   datasource: Datasource;
 }
 
-export const DndFilterSelect = (props: DndFilterSelectProps) => {
+const DndFilterSelect = (props: DndFilterSelectProps) => {
   const { datasource, onChange = () => {}, name: controlName } = props;
 
   const propsValues = Array.from(props.value ?? []);
@@ -407,3 +408,10 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
     </>
   );
 };
+
+const DndFilterSelectWithFallback = withDndFallback(
+  DndFilterSelect,
+  AdhocFilterControl,
+);
+
+export { DndFilterSelectWithFallback as DndFilterSelect };

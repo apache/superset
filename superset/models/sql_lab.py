@@ -49,7 +49,6 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.models.tags import QueryUpdater
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.superset_typing import ResultSetColumnType
@@ -509,9 +508,3 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
             "description": description,
             "expanded": self.expanded,
         }
-
-
-# events for updating tags
-sqla.event.listen(SavedQuery, "after_insert", QueryUpdater.after_insert)
-sqla.event.listen(SavedQuery, "after_update", QueryUpdater.after_update)
-sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)

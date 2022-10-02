@@ -21,6 +21,8 @@ import {
   optionFromValue,
   prepareCopyToClipboardTabularData,
   NULL_STRING,
+  TRUE_STRING,
+  FALSE_STRING,
 } from 'src/utils/common';
 
 describe('utils/common', () => {
@@ -28,9 +30,12 @@ describe('utils/common', () => {
     it('converts values as expected', () => {
       expect(optionFromValue(false)).toEqual({
         value: false,
-        label: '<false>',
+        label: FALSE_STRING,
       });
-      expect(optionFromValue(true)).toEqual({ value: true, label: '<true>' });
+      expect(optionFromValue(true)).toEqual({
+        value: true,
+        label: TRUE_STRING,
+      });
       expect(optionFromValue(null)).toEqual({
         value: NULL_STRING,
         label: NULL_STRING,

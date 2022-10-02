@@ -55,8 +55,7 @@ export const EncryptedField = ({
   const [isPublic, setIsPublic] = useState<boolean>(true);
   const showCredentialsInfo =
     db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
-  // a database that has an optional encrypted field has an encrypted_extra that is an empty object, this checks for that.
-  const isEncrypted = isEditMode && db?.encrypted_extra !== '{}';
+  const isEncrypted = isEditMode && db?.masked_encrypted_extra !== '{}';
   const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
   const encryptedValue =
     typeof db?.parameters?.[encryptedField] === 'object'

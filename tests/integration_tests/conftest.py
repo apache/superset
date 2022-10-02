@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import contextlib
 import functools
-from operator import ge
-from typing import Any, Callable, Optional, TYPE_CHECKING
+import os
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -255,6 +255,38 @@ def with_feature_flags(**mock_feature_flags):
     return decorate
 
 
+def with_config(override_config: Dict[str, Any]):
+    """
+    Use this decorator to mock specific config keys.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_config({"SOME_CONFIG": True})
+            def test_your_config(self):
+                self.assertEqual(curren_app.config["SOME_CONFIG"), True)
+
+    """
+
+    def decorate(test_fn):
+        config_backup = {}
+
+        def wrapper(*args, **kwargs):
+            from flask import current_app
+
+            for key, value in override_config.items():
+                config_backup[key] = current_app.config[key]
+                current_app.config[key] = value
+            test_fn(*args, **kwargs)
+            for key, value in config_backup.items():
+                current_app.config[key] = value
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate
+
+
 @pytest.fixture
 def virtual_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -303,34 +335,38 @@ def virtual_dataset():
 @pytest.fixture
 def physical_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.connectors.sqla.utils import get_identifier_quoter
 
     example_database = get_example_database()
     engine = example_database.get_sqla_engine()
+    quoter = get_identifier_quoter(engine.name)
     # sqlite can only execute one statement at a time
     engine.execute(
-        """
+        f"""
         CREATE TABLE IF NOT EXISTS physical_dataset(
           col1 INTEGER,
           col2 VARCHAR(255),
           col3 DECIMAL(4,2),
           col4 VARCHAR(255),
-          col5 TIMESTAMP
+          col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+          col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
+          {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
         );
         """
     )
     engine.execute(
         """
         INSERT INTO physical_dataset values
-        (0, 'a', 1.0, NULL, '2000-01-01 00:00:00'),
-        (1, 'b', 1.1, NULL, '2000-01-02 00:00:00'),
-        (2, 'c', 1.2, NULL, '2000-01-03 00:00:00'),
-        (3, 'd', 1.3, NULL, '2000-01-04 00:00:00'),
-        (4, 'e', 1.4, NULL, '2000-01-05 00:00:00'),
-        (5, 'f', 1.5, NULL, '2000-01-06 00:00:00'),
-        (6, 'g', 1.6, NULL, '2000-01-07 00:00:00'),
-        (7, 'h', 1.7, NULL, '2000-01-08 00:00:00'),
-        (8, 'i', 1.8, NULL, '2000-01-09 00:00:00'),
-        (9, 'j', 1.9, NULL, '2000-01-10 00:00:00');
+        (0, 'a', 1.0, NULL, '2000-01-01 00:00:00', '2002-01-03 00:00:00', '2002-01-03 00:00:00'),
+        (1, 'b', 1.1, NULL, '2000-01-02 00:00:00', '2002-02-04 00:00:00', '2002-02-04 00:00:00'),
+        (2, 'c', 1.2, NULL, '2000-01-03 00:00:00', '2002-03-07 00:00:00', '2002-03-07 00:00:00'),
+        (3, 'd', 1.3, NULL, '2000-01-04 00:00:00', '2002-04-12 00:00:00', '2002-04-12 00:00:00'),
+        (4, 'e', 1.4, NULL, '2000-01-05 00:00:00', '2002-05-11 00:00:00', '2002-05-11 00:00:00'),
+        (5, 'f', 1.5, NULL, '2000-01-06 00:00:00', '2002-06-13 00:00:00', '2002-06-13 00:00:00'),
+        (6, 'g', 1.6, NULL, '2000-01-07 00:00:00', '2002-07-15 00:00:00', '2002-07-15 00:00:00'),
+        (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
+        (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
+        (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
     """
     )
 
@@ -343,6 +379,13 @@ def physical_dataset():
     TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
     TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
     TableColumn(column_name="col5", type="TIMESTAMP", is_dttm=True, table=dataset)
+    TableColumn(column_name="col6", type="TIMESTAMP", is_dttm=True, table=dataset)
+    TableColumn(
+        column_name="time column with spaces",
+        type="TIMESTAMP",
+        is_dttm=True,
+        table=dataset,
+    )
     SqlMetric(metric_name="count", expression="count(*)", table=dataset)
     db.session.merge(dataset)
     db.session.commit()
@@ -385,3 +428,19 @@ def virtual_dataset_comma_in_column_value():
 
     db.session.delete(dataset)
     db.session.commit()
+
+
+only_postgresql = pytest.mark.skipif(
+    "postgresql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in Postgresql",
+)
+
+only_sqlite = pytest.mark.skipif(
+    "sqlite" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in SQLite",
+)
+
+only_mysql = pytest.mark.skipif(
+    "mysql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in MySQL",
+)

@@ -42,55 +42,6 @@ def test_convert_dttm_invalid_type(dttm: datetime) -> None:
     assert SqliteEngineSpec.convert_dttm("other", dttm) is None
 
 
-def test_get_all_datasource_names_table() -> None:
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-    database = mock.MagicMock()
-    database.get_all_schema_names.return_value = ["schema1"]
-    table_names = [("table1", "schema1"), ("table2", "schema1")]
-    get_tables = mock.MagicMock(return_value=table_names)
-    database.get_all_table_names_in_schema = get_tables
-    result = SqliteEngineSpec.get_all_datasource_names(database, "table")
-
-    assert result == table_names
-    get_tables.assert_called_once_with(
-        schema="schema1",
-        force=True,
-        cache=database.table_cache_enabled,
-        cache_timeout=database.table_cache_timeout,
-    )
-
-
-def test_get_all_datasource_names_view() -> None:
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-    database = mock.MagicMock()
-    database.get_all_schema_names.return_value = ["schema1"]
-    views_names = [("view1", "schema1"), ("view2", "schema1")]
-    get_views = mock.MagicMock(return_value=views_names)
-    database.get_all_view_names_in_schema = get_views
-    result = SqliteEngineSpec.get_all_datasource_names(database, "view")
-
-    assert result == views_names
-    get_views.assert_called_once_with(
-        schema="schema1",
-        force=True,
-        cache=database.table_cache_enabled,
-        cache_timeout=database.table_cache_timeout,
-    )
-
-
-def test_get_all_datasource_names_invalid_type() -> None:
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-    database = mock.MagicMock()
-    database.get_all_schema_names.return_value = ["schema1"]
-    invalid_type = "asdf"
-
-    with pytest.raises(Exception):
-        SqliteEngineSpec.get_all_datasource_names(database, invalid_type)
-
-
 @pytest.mark.parametrize(
     "dttm,grain,expected",
     [

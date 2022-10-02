@@ -16,14 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DATABASE_LIST } from './helper';
+import { DATABASE_LIST } from 'cypress/utils/urls';
+
+function closeModal() {
+  cy.get('body').then($body => {
+    if ($body.find('[data-test="database-modal"]').length) {
+      cy.get('[aria-label="Close"]').eq(1).click();
+    }
+  });
+}
 
 describe('Add database', () => {
-  beforeEach(() => {
-    cy.login();
+  before(() => {
     cy.visit(DATABASE_LIST);
-    cy.wait(3000);
-    cy.get('[data-test="btn-create-database"]').click();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
+    closeModal();
+    cy.getBySel('btn-create-database').click();
   });
 
   it('should open dynamic form', () => {
@@ -42,11 +53,11 @@ describe('Add database', () => {
     // click postgres dynamic form
     cy.get('.preferred > :nth-child(1)').click();
 
-    cy.get('[data-test="sqla-connect-btn"]').click();
+    cy.getBySel('sqla-connect-btn').click();
 
     // check if the sqlalchemy form is showing up
-    cy.get('[data-test=database-name-input]').should('be.visible');
-    cy.get('[data-test="sqlalchemy-uri-input"]').should('be.visible');
+    cy.getBySel('database-name-input').should('be.visible');
+    cy.getBySel('sqlalchemy-uri-input').should('be.visible');
   });
 
   it('show error alerts on dynamic form for bad host', () => {
