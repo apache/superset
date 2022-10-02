@@ -350,7 +350,7 @@ export default class CRUDCollection extends React.PureComponent<
   }
 
   renderCell(record: any, col: any) {
-    const renderer = this?.props?.itemRenderers?.[col];
+    const renderer = this.props.itemRenderers?.[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
     return renderer ? renderer(val, onChange, this.getLabel(col), record) : val;
