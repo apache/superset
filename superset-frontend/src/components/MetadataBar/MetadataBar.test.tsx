@@ -20,7 +20,6 @@ import React from 'react';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import * as resizeDetector from 'react-resize-detector';
-import moment from 'moment';
 import { supersetTheme } from '@superset-ui/core';
 import { hexToRgb } from 'src/utils/colorUtils';
 import MetadataBar, {
@@ -38,14 +37,22 @@ const ROWS_TITLE = '500 rows';
 const SQL_TITLE = 'Click to view query';
 const TABLE_TITLE = 'database.schema.table';
 const CREATED_BY = 'Jane Smith';
-const DATE = new Date(Date.parse('2022-01-01'));
 const MODIFIED_BY = 'Jane Smith';
 const OWNERS = ['John Doe', 'Mary Wilson'];
 const TAGS = ['management', 'research', 'poc'];
+const A_WEEK_AGO = 'a week ago';
+const TWO_DAYS_AGO = '2 days ago';
 
 const runWithBarCollapsed = async (func: Function) => {
   const spy = jest.spyOn(resizeDetector, 'useResizeDetector');
-  spy.mockReturnValue({ width: 80, ref: { current: undefined } });
+  let width: number;
+  spy.mockImplementation(props => {
+    if (props?.onResize && !width) {
+      width = 80;
+      props.onResize(width);
+    }
+    return { ref: { current: undefined } };
+  });
   await func();
   spy.mockRestore();
 };
@@ -62,14 +69,14 @@ const ITEMS: ContentType[] = [
   },
   {
     type: MetadataType.LAST_MODIFIED,
-    value: DATE,
+    value: TWO_DAYS_AGO,
     modifiedBy: MODIFIED_BY,
   },
   {
     type: MetadataType.OWNER,
     createdBy: CREATED_BY,
     owners: OWNERS,
-    createdOn: DATE,
+    createdOn: A_WEEK_AGO,
   },
   {
     type: MetadataType.ROWS,
@@ -162,7 +169,9 @@ test('renders clicable items with blue icons when the bar is collapsed', async (
     const clickableColor = window.getComputedStyle(images[0]).color;
     const nonClickableColor = window.getComputedStyle(images[1]).color;
     expect(clickableColor).toBe(hexToRgb(supersetTheme.colors.primary.base));
-    expect(nonClickableColor).toBeFalsy();
+    expect(nonClickableColor).toBe(
+      hexToRgb(supersetTheme.colors.grayscale.base),
+    );
   });
 });
 
@@ -196,23 +205,21 @@ test('correctly renders the description tooltip', async () => {
 });
 
 test('correctly renders the last modified tooltip', async () => {
-  const dateText = moment.utc(DATE).fromNow();
   render(<MetadataBar items={ITEMS.slice(0, 3)} />);
-  userEvent.hover(screen.getByText(dateText));
+  userEvent.hover(screen.getByText(TWO_DAYS_AGO));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
-  expect(within(tooltip).getByText(dateText)).toBeInTheDocument();
+  expect(within(tooltip).getByText(TWO_DAYS_AGO)).toBeInTheDocument();
   expect(within(tooltip).getByText(MODIFIED_BY)).toBeInTheDocument();
 });
 
 test('correctly renders the owner tooltip', async () => {
-  const dateText = moment.utc(DATE).fromNow();
   render(<MetadataBar items={ITEMS.slice(0, 4)} />);
   userEvent.hover(screen.getByText(CREATED_BY));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(within(tooltip).getByText(CREATED_BY)).toBeInTheDocument();
-  expect(within(tooltip).getByText(dateText)).toBeInTheDocument();
+  expect(within(tooltip).getByText(A_WEEK_AGO)).toBeInTheDocument();
   OWNERS.forEach(owner =>
     expect(within(tooltip).getByText(owner)).toBeInTheDocument(),
   );

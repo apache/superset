@@ -133,6 +133,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "server_cert",
         "sqlalchemy_uri",
         "is_managed_externally",
+        "engine_information",
     ]
     list_columns = [
         "allow_file_upload",
@@ -156,6 +157,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "id",
         "disable_data_preview",
         "has_catalogs",
+        "engine_information",
     ]
     add_columns = [
         "database_name",
@@ -1196,6 +1198,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         parameters:
                           description: JSON schema defining the needed parameters
                           type: object
+                        engine_information:
+                          description: Dict with public properties form the DB Engine
+                          type: object
+                          properties:
+                            supports_file_upload:
+                              description: Whether the engine supports file uploads
+                              type: boolean
             400:
               $ref: '#/components/responses/400'
             500:
@@ -1212,6 +1221,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "engine": engine_spec.engine,
                 "available_drivers": sorted(drivers),
                 "preferred": engine_spec.engine_name in preferred_databases,
+                "engine_information": engine_spec.get_public_information(),
             }
 
             if engine_spec.default_driver:
