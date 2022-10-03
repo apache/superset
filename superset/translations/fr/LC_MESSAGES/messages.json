@@ -3877,7 +3877,7 @@
       ],
       "Scope": ["Périmètre"],
       "Dependent on": ["Dépend de"],
-      "No matching records found": ["Aucun résultat trouvé"]
+      "No matching records found": ["Aucun résultat trouvé"],
       "Trend": ["Tendance"],
       "Total (Count)": ["Total (Somme)"],
       "Total (%s)": ["Total (%s)"],
