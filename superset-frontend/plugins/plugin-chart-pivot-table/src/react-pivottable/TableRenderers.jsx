@@ -56,7 +56,6 @@ function displayHeaderCell(
 }
 
 export class TableRenderer extends React.Component {
-  constAggregatorName;
   constructor(props) {
     super(props);
 
