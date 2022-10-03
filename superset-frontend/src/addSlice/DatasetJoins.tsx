@@ -25,10 +25,10 @@ import { Button, Col, Row, Tooltip } from 'antd';
 import { Select } from 'src/components';
 
 import { FormLabel } from 'src/components/Form';
-import { SelectOptionsType } from 'src/components/Select/utils';
 
 import { MinusCircleOutlined, PlusCircleOutlined } from '@ant-design/icons';
 
+import { SelectOptionsType } from 'src/components/Select/types';
 import { DatasourceJoin } from './types';
 
 const MAX_JOIN_COLUMNS_LIMIT = 2;

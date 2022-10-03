@@ -147,6 +147,9 @@ Join our growing community!
 ### HR / Staffing
 - [Symmetrics](https://www.symmetrics.fyi)
 
+### News
+- [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
+
 ### Others
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)

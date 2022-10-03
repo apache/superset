@@ -153,11 +153,29 @@ class GetExploreCommand(BaseCommand, ABC):
         except (SupersetException, SQLAlchemyError):
             dataset_data = dummy_dataset_data
 
+        metadata = None
+
+        if slc:
+            metadata = {
+                "created_on_humanized": slc.created_on_humanized,
+                "changed_on_humanized": slc.changed_on_humanized,
+                "owners": [owner.get_full_name() for owner in slc.owners],
+                "dashboards": [
+                    {"id": dashboard.id, "dashboard_title": dashboard.dashboard_title}
+                    for dashboard in slc.dashboards
+                ],
+            }
+            if slc.created_by:
+                metadata["created_by"] = slc.created_by.get_full_name()
+            if slc.changed_by:
+                metadata["changed_by"] = slc.changed_by.get_full_name()
+
         return {
             "dataset": sanitize_datasource_data(dataset_data),
             "form_data": form_data,
             "slice": slc.data if slc else None,
             "message": message,
+            "metadata": metadata,
         }
 
     def validate(self) -> None:

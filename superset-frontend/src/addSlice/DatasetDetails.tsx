@@ -28,9 +28,9 @@ import { FormLabel } from 'src/components/Form';
 import { MinusCircleOutlined } from '@ant-design/icons';
 
 import {
-  SelectOptionsPagePromise,
   SelectOptionsType,
-} from 'src/components/Select/utils';
+  SelectOptionsPagePromise,
+} from 'src/components/Select/types';
 import {
   StyledLabel,
   StyledStepDescription,

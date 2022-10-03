@@ -138,7 +138,7 @@ export default function SqlEditorLeftBar({
       setUserSelected(userSelected);
       setItem(LocalStorageKeys.db, null);
     } else setUserSelected(database);
-  }, []);
+  }, [database]);
 
   useEffect(() => {
     queryEditorRef.current = queryEditor;
