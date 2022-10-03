@@ -486,7 +486,11 @@ def add_favorites(metadata: MetaData) -> None:
     insert = tag.insert()
     for (id_,) in db.session.execute(ids):
         try:
-            db.session.execute(insert, name=f"favorited_by:{id_}", type=TagTypes.type)
+            db.session.execute(
+                insert,
+                name=f"favorited_by:{id_}",
+                type=TagTypes.type,
+            )
         except IntegrityError:
             pass  # already exists
 
