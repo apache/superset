@@ -110,7 +110,7 @@ test('should add renameOperator if does not exist x_axis', () => {
     renameOperator(
       {
         ...formData,
-        ...{ x_axis: null },
+        ...{ x_axis: null, granularity_sqla: 'time column' },
       },
       queryObject,
     ),

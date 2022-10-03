@@ -30,7 +30,6 @@ from superset.utils.core import (
     get_metric_names,
     get_time_filter_status,
     is_adhoc_metric,
-    NO_TIME_RANGE,
 )
 from tests.unit_tests.fixtures.datasets import get_dataset_mock
 

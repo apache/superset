@@ -43,6 +43,7 @@ import {
 } from 'src/dashboard/util/constants';
 import { slicePropShape } from 'src/dashboard/util/propShapes';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
+import moment from 'moment';
 import _ from 'lodash';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
@@ -269,7 +270,7 @@ class SliceAdder extends React.Component {
             innerRef={dragSourceRef}
             style={style}
             sliceName={cellData.slice_name}
-            lastModified={cellData.changed_on_humanized}
+            lastModified={moment.utc(cellData.changed_on).fromNow()}
             visType={cellData.viz_type}
             datasourceUrl={cellData.datasource_url}
             datasourceName={cellData.datasource_name}

@@ -134,9 +134,6 @@ class Database(
     allow_cvas = Column(Boolean, default=False)
     allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
-    allow_multi_schema_metadata_fetch = Column(  # pylint: disable=invalid-name
-        Boolean, default=False
-    )
     extra = Column(
         Text,
         default=textwrap.dedent(
@@ -228,7 +225,6 @@ class Database(
             "name": self.database_name,
             "backend": self.backend,
             "configuration_method": self.configuration_method,
-            "allow_multi_schema_metadata_fetch": self.allow_multi_schema_metadata_fetch,
             "allows_subquery": self.allows_subquery,
             "allows_cost_estimate": self.allows_cost_estimate,
             "allows_virtual_table_explore": self.allows_virtual_table_explore,
@@ -518,46 +514,6 @@ class Database(
         return sqla.inspect(engine)
 
     @cache_util.memoized_func(
-        key="db:{self.id}:schema:None:table_list",
-        cache=cache_manager.cache,
-    )
-    def get_all_table_names_in_database(  # pylint: disable=unused-argument
-        self,
-        cache: bool = False,
-        cache_timeout: Optional[bool] = None,
-        force: bool = False,
-    ) -> List[Tuple[str, str]]:
-        """Parameters need to be passed as keyword arguments."""
-        if not self.allow_multi_schema_metadata_fetch:
-            return []
-        return [
-            (datasource_name.table, datasource_name.schema)
-            for datasource_name in self.db_engine_spec.get_all_datasource_names(
-                self, "table"
-            )
-        ]
-
-    @cache_util.memoized_func(
-        key="db:{self.id}:schema:None:view_list",
-        cache=cache_manager.cache,
-    )
-    def get_all_view_names_in_database(  # pylint: disable=unused-argument
-        self,
-        cache: bool = False,
-        cache_timeout: Optional[bool] = None,
-        force: bool = False,
-    ) -> List[Tuple[str, str]]:
-        """Parameters need to be passed as keyword arguments."""
-        if not self.allow_multi_schema_metadata_fetch:
-            return []
-        return [
-            (datasource_name.table, datasource_name.schema)
-            for datasource_name in self.db_engine_spec.get_all_datasource_names(
-                self, "view"
-            )
-        ]
-
-    @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
         cache=cache_manager.cache,
     )
@@ -647,6 +603,7 @@ class Database(
         return self.get_db_engine_spec(url)
 
     @classmethod
+    @memoized
     def get_db_engine_spec(cls, url: URL) -> Type[db_engine_specs.BaseEngineSpec]:
         backend = url.get_backend_name()
         try:

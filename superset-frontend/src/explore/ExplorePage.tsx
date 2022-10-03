@@ -61,11 +61,20 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   }
 };
 
+const getDashboardPageContext = (pageId?: string | null) => {
+  if (!pageId) {
+    return null;
+  }
+  return (
+    getItem(LocalStorageKeys.dashboard__explore_context, {})[pageId] || null
+  );
+};
+
 const getDashboardContextFormData = () => {
   const dashboardPageId = getUrlParam(URL_PARAMS.dashboardPageId);
-  const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
-  let dashboardContextWithFilters = {};
-  if (dashboardPageId) {
+  const dashboardContext = getDashboardPageContext(dashboardPageId);
+  if (dashboardContext) {
+    const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
     const {
       labelColors,
       sharedLabelColors,
@@ -75,11 +84,8 @@ const getDashboardContextFormData = () => {
       filterBoxFilters,
       dataMask,
       dashboardId,
-    } =
-      getItem(LocalStorageKeys.dashboard__explore_context, {})[
-        dashboardPageId
-      ] || {};
-    dashboardContextWithFilters = getFormDataWithExtraFilters({
+    } = dashboardContext;
+    const dashboardContextWithFilters = getFormDataWithExtraFilters({
       chart: { id: sliceId },
       filters: getAppliedFilterValues(sliceId, filterBoxFilters),
       nativeFilters,
