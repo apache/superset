@@ -49,8 +49,12 @@ describe('Visualization > Big Number with Trendline', () => {
     });
   }
 
-  beforeEach(() => {
+  before(() => {
     cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
     interceptChart({ legacy: false }).as('chartData');
   });
 

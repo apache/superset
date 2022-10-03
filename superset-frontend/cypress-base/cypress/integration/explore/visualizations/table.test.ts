@@ -43,8 +43,12 @@ describe('Visualization > Table', () => {
     optionName: 'metric_6qwzgc8bh2v_zox7hil1mzs',
   };
 
-  beforeEach(() => {
+  before(() => {
     cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
     interceptChart({ legacy: false }).as('chartData');
   });
 

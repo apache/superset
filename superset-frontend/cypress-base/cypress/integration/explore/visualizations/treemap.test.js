@@ -42,8 +42,12 @@ describe('Visualization > Treemap', () => {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
-  beforeEach(() => {
+  before(() => {
     cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
@@ -82,6 +86,8 @@ describe('Visualization > Treemap', () => {
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
+    verify(TREEMAP_FORM_DATA);
+
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()

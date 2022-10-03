@@ -17,14 +17,13 @@
  * under the License.
  */
 
-// TODO(kgabryje): fix it and un-skip
-describe.skip('Visualization > Gauge', () => {
+describe('Visualization > Gauge', () => {
   const GAUGE_FORM_DATA = {
-    datasource: '2__table',
+    datasource: '3__table',
     viz_type: 'gauge_chart',
     metric: 'count',
     adhoc_filters: [],
-    slice_id: 49,
+    slice_id: 54,
     row_limit: 10,
   };
 
@@ -64,6 +63,7 @@ describe.skip('Visualization > Gauge', () => {
   });
 
   it('should allow type to search color schemes', () => {
+    verify(GAUGE_FORM_DATA);
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')

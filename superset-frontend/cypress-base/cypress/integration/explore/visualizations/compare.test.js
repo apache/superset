@@ -51,8 +51,12 @@ describe('Visualization > Compare', () => {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
-  beforeEach(() => {
+  before(() => {
     cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
@@ -88,6 +92,8 @@ describe('Visualization > Compare', () => {
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
+    verify(COMPARE_FORM_DATA);
+
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')

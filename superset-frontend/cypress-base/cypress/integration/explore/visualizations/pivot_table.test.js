@@ -58,8 +58,12 @@ describe('Visualization > Pivot Table', () => {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   }
 
-  beforeEach(() => {
+  before(() => {
     cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

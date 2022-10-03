@@ -25,8 +25,12 @@ describe('Visualization > Big Number Total', () => {
     viz_type: 'big_number_total',
   };
 
-  beforeEach(() => {
+  before(() => {
     cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
     interceptChart({ legacy: false }).as('chartData');
   });
 

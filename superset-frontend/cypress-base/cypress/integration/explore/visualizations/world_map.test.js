@@ -39,8 +39,12 @@ describe('Visualization > World Map', () => {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
-  beforeEach(() => {
+  before(() => {
     cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
@@ -82,6 +86,8 @@ describe('Visualization > World Map', () => {
   });
 
   it('should allow type to search color schemes', () => {
+    verify(WORLD_MAP_FORM_DATA);
+
     cy.get('.Control[data-test="linear_color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="linear_color_scheme"] input[type="search"]')
       .focus()

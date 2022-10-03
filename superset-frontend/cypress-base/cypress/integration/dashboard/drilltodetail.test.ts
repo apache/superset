@@ -65,6 +65,41 @@ function setTopLevelTab(tabName: string) {
   cy.get("div#TABS-TOP div[role='tab']").contains(tabName).click();
 }
 
+function testTimeChart(vizType: string) {
+  interceptSamples();
+
+  cy.get(`[data-test-viz-type='${vizType}'] canvas`).then($canvas => {
+    cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
+
+    openModalFromChartContext('Drill to detail by 1965');
+    cy.getBySel('filter-val').should('contain', '1965');
+    closeModal();
+
+    cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
+
+    openModalFromChartContext('Drill to detail by boy');
+    cy.getBySel('filter-val').should('contain', 'boy');
+    closeModal();
+
+    cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
+
+    openModalFromChartContext('Drill to detail by all');
+    cy.getBySel('filter-val').first().should('contain', '1965');
+    cy.getBySel('filter-val').eq(1).should('contain', 'boy');
+    closeModal();
+
+    cy.wrap($canvas).scrollIntoView().click(70, 145).rightclick(70, 145);
+    openModalFromChartContext('Drill to detail by girl');
+    cy.getBySel('filter-val').should('contain', 'girl');
+    closeModal();
+
+    cy.wrap($canvas).scrollIntoView().click(70, 145).rightclick(70, 145);
+    openModalFromChartContext('Drill to detail by all');
+    cy.getBySel('filter-val').first().should('contain', '1965');
+    cy.getBySel('filter-val').eq(1).should('contain', 'girl');
+  });
+}
+
 describe('Drill to detail modal', () => {
   beforeEach(() => {
     cy.preserveLogin();
@@ -264,46 +299,7 @@ describe('Drill to detail modal', () => {
 
     describe('Time-Series Line Chart', () => {
       it('opens the modal with the correct filters', () => {
-        interceptSamples();
-
-        cy.get("[data-test-viz-type='echarts_timeseries_line'] canvas").then(
-          $canvas => {
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by 1965');
-            cy.getBySel('filter-val').should('contain', '1965');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by boy');
-            cy.getBySel('filter-val').should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by girl');
-            cy.getBySel('filter-val').should('contain', 'girl');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'girl');
-          },
-        );
+        testTimeChart('echarts_timeseries_line');
       });
     });
 
@@ -336,15 +332,6 @@ describe('Drill to detail modal', () => {
 
             openModalFromChartContext('Drill to detail by girl');
             cy.getBySel('filter-val').should('contain', 'girl');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'girl');
           },
         );
       });
@@ -352,83 +339,13 @@ describe('Drill to detail modal', () => {
 
     describe('Time-Series Area Chart', () => {
       it('opens the modal with the correct filters', () => {
-        interceptSamples();
-
-        cy.get("[data-test-viz-type='echarts_area'] canvas").then($canvas => {
-          cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-          openModalFromChartContext('Drill to detail by 1965');
-          cy.getBySel('filter-val').should('contain', '1965');
-          closeModal();
-
-          cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-          openModalFromChartContext('Drill to detail by boy');
-          cy.getBySel('filter-val').should('contain', 'boy');
-          closeModal();
-
-          cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-          openModalFromChartContext('Drill to detail by all');
-          cy.getBySel('filter-val').first().should('contain', '1965');
-          cy.getBySel('filter-val').eq(1).should('contain', 'boy');
-          closeModal();
-
-          cy.wrap($canvas).scrollIntoView().click(70, 145).rightclick(70, 145);
-          openModalFromChartContext('Drill to detail by girl');
-          cy.getBySel('filter-val').should('contain', 'girl');
-          closeModal();
-
-          cy.wrap($canvas).scrollIntoView().click(70, 145).rightclick(70, 145);
-          openModalFromChartContext('Drill to detail by all');
-          cy.getBySel('filter-val').first().should('contain', '1965');
-          cy.getBySel('filter-val').eq(1).should('contain', 'girl');
-        });
+        testTimeChart('echarts_area');
       });
     });
 
     describe('Time-Series Scatter Chart', () => {
       it('opens the modal with the correct filters', () => {
-        interceptSamples();
-
-        cy.get("[data-test-viz-type='echarts_timeseries_scatter'] canvas").then(
-          $canvas => {
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by 1965');
-            cy.getBySel('filter-val').should('contain', '1965');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by boy');
-            cy.getBySel('filter-val').should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by girl');
-            cy.getBySel('filter-val').should('contain', 'girl');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'girl');
-          },
-        );
+        testTimeChart('echarts_timeseries_scatter');
       });
     });
 
@@ -448,6 +365,24 @@ describe('Drill to detail modal', () => {
 
           openModalFromChartContext('Drill to detail by boy');
           cy.getBySel('filter-val').should('contain', 'boy');
+        });
+      });
+    });
+
+    describe('World Map', () => {
+      it('opens the modal with the correct filters', () => {
+        interceptSamples();
+
+        cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
+          cy.wrap($canvas).scrollIntoView().rightclick(70, 150);
+          openModalFromChartContext('Drill to detail by United States');
+          cy.getBySel('filter-val').should('contain', 'United States');
+          closeModal();
+        });
+        cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
+          cy.wrap($canvas).scrollIntoView().rightclick(200, 140);
+          openModalFromChartContext('Drill to detail by Slovakia');
+          cy.getBySel('filter-val').should('contain', 'Slovakia');
         });
       });
     });
@@ -532,139 +467,19 @@ describe('Drill to detail modal', () => {
 
     describe('Time-Series Generic Chart', () => {
       it('opens the modal with the correct filters', () => {
-        interceptSamples();
-
-        cy.get("[data-test-viz-type='echarts_timeseries'] canvas").then(
-          $canvas => {
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by 1965');
-            cy.getBySel('filter-val').should('contain', '1965');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by boy');
-            cy.getBySel('filter-val').should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by girl');
-            cy.getBySel('filter-val').should('contain', 'girl');
-
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'girl');
-          },
-        );
+        testTimeChart('echarts_timeseries');
       });
     });
 
     describe('Time-Series Smooth Chart', () => {
       it('opens the modal with the correct filters', () => {
-        interceptSamples();
-
-        cy.get("[data-test-viz-type='echarts_timeseries_smooth'] canvas").then(
-          $canvas => {
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by 1965');
-            cy.getBySel('filter-val').should('contain', '1965');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by boy');
-            cy.getBySel('filter-val').should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by girl');
-            cy.getBySel('filter-val').should('contain', 'girl');
-
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'girl');
-          },
-        );
+        testTimeChart('echarts_timeseries_smooth');
       });
     });
 
     describe('Time-Series Step Line Chart', () => {
       it('opens the modal with the correct filters', () => {
-        interceptSamples();
-
-        cy.get("[data-test-viz-type='echarts_timeseries_step'] canvas").then(
-          $canvas => {
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by 1965');
-            cy.getBySel('filter-val').should('contain', '1965');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by boy');
-            cy.getBySel('filter-val').should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by girl');
-            cy.getBySel('filter-val').should('contain', 'girl');
-
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'girl');
-          },
-        );
+        testTimeChart('echarts_timeseries_step');
       });
     });
 
@@ -708,46 +523,7 @@ describe('Drill to detail modal', () => {
 
     describe('Mixed Chart', () => {
       it('opens the modal with the correct filters', () => {
-        interceptSamples();
-
-        cy.get("[data-test-viz-type='mixed_timeseries'] canvas").then(
-          $canvas => {
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by 1965');
-            cy.getBySel('filter-val').should('contain', '1965');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by boy');
-            cy.getBySel('filter-val').should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
-
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'boy');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by girl');
-            cy.getBySel('filter-val').should('contain', 'girl');
-            closeModal();
-
-            cy.wrap($canvas)
-              .scrollIntoView()
-              .click(70, 145)
-              .rightclick(70, 145);
-            openModalFromChartContext('Drill to detail by all');
-            cy.getBySel('filter-val').first().should('contain', '1965');
-            cy.getBySel('filter-val').eq(1).should('contain', 'girl');
-          },
-        );
+        testTimeChart('mixed_timeseries');
       });
     });
 
