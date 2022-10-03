@@ -701,9 +701,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         Dashboard API: Test get dashboards created by current user
         """
-        dashs = db.session.query(Dashboard).all()
-        dash_names = [f"{dash.dashboard_title}.{dash.created_by}" for dash in dashs]
-        raise Exception(dash_names)
         query = {
             "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
             "filters": [{"col": "created_by", "opr": "created_by_me", "value": "me"}],
@@ -713,6 +710,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "page_size": 100,
         }
         uri = f"api/v1/dashboard/?q={prison.dumps(query)}"
+        self.logout()
         self.login(username="gamma")
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
