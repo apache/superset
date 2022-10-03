@@ -55,6 +55,7 @@ class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-
     arg_name = "created_by_me"
 
     def apply(self, query: Query, value: Any) -> Query:
+        raise Exception(get_user_id())
         return query.filter(
             or_(
                 Dashboard.created_by_fk  # pylint: disable=comparison-with-callable

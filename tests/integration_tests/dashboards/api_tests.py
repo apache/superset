@@ -710,7 +710,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             "page_size": 100,
         }
         uri = f"api/v1/dashboard/?q={prison.dumps(query)}"
-        self.logout()
         self.login(username="gamma")
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
