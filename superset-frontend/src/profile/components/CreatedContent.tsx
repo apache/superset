@@ -25,7 +25,7 @@ import {
   User,
   DashboardResponse,
   ChartResponse,
-} from '../../types/bootstrapTypes';
+} from 'src/types/bootstrapTypes';
 
 interface CreatedContentProps {
   user: User;
