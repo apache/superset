@@ -88,8 +88,6 @@ export default function SaveQuery({
     'sql',
     'templateParams',
   ]);
-  console.log('editor ', queryEditor);
-
   const query = useMemo(
     () => ({
       ...queryEditor,
