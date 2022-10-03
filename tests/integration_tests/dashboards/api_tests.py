@@ -172,7 +172,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     [gamma.id],
                     created_by=gamma,
                 )
-                sleep(1)
                 dashboards.append(dashboard)
 
             yield dashboards
@@ -702,6 +701,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         Dashboard API: Test get dashboards created by current user
         """
+        dashs = db.session.query(Dashboard).all()
+        dash_names = [dash.dashboard_title for dash in dashs]
+        raise Exception(dash_names)
         query = {
             "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
             "filters": [{"col": "created_by", "opr": "created_by_me", "value": "me"}],
