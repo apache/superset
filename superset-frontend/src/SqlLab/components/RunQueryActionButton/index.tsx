@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useMemo } from 'react';
-import { useSelector } from 'react-redux';
 import { t, styled, useTheme } from '@superset-ui/core';
 
 import { Menu } from 'src/components/Menu';
@@ -25,11 +24,8 @@ import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { detectOS } from 'src/utils/common';
-import {
-  QueryEditor,
-  SqlLabRootState,
-  QueryButtonProps,
-} from 'src/SqlLab/types';
+import { QueryButtonProps } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 export interface RunQueryActionButtonProps {
   queryEditorId: string;
@@ -96,13 +92,10 @@ const RunQueryActionButton = ({
   const theme = useTheme();
   const userOS = detectOS();
 
-  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
-    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
-      ...queryEditors.find(({ id }) => id === queryEditorId),
-      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
-    }),
-  );
-  const { selectedText, sql } = queryEditor;
+  const { selectedText, sql } = useQueryEditor(queryEditorId, [
+    'selectedText',
+    'sql',
+  ]);
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
@@ -111,7 +104,10 @@ const RunQueryActionButton = ({
     ? (DropdownButton as React.FC)
     : Button;
 
-  const isDisabled = !sql || !sql.trim();
+  const sqlContent = selectedText || sql || '';
+  const isDisabled =
+    !sqlContent ||
+    !sqlContent.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '').trim();
 
   const stopButtonTooltipText = useMemo(
     () =>

@@ -105,7 +105,9 @@ describe('comms', () => {
   let originalConsoleError: any = null;
 
   beforeAll(() => {
-    global.MessageChannel = FakeMessageChannel; // yolo
+    Object.defineProperty(global, 'MessageChannel', {
+      value: FakeMessageChannel,
+    });
     originalConsoleDebug = console.debug;
     originalConsoleError = console.error;
   });

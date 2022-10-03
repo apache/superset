@@ -163,13 +163,8 @@ const SqlEditor = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
-  const { currentQueryEditor, database, latestQuery, hideLeftBar } =
-    useSelector(({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
-      const currentQueryEditor = {
-        ...queryEditor,
-        ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-      };
-
+  const { database, latestQuery, hideLeftBar } = useSelector(
+    ({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
       let { dbId, latestQueryId, hideLeftBar } = queryEditor;
       if (unsavedQueryEditor.id === queryEditor.id) {
         dbId = unsavedQueryEditor.dbId || dbId;
@@ -177,12 +172,12 @@ const SqlEditor = ({
         hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
       }
       return {
-        currentQueryEditor,
         database: databases[dbId],
         latestQuery: queries[latestQueryId],
         hideLeftBar,
       };
-    });
+    },
+  );
 
   const queryEditors = useSelector(({ sqlLab }) => sqlLab.queryEditors);
 
@@ -616,7 +611,7 @@ const SqlEditor = ({
             autocomplete={autocompleteEnabled}
             onBlur={setQueryEditorAndSaveSql}
             onChange={onSqlChanged}
-            queryEditor={currentQueryEditor}
+            queryEditorId={queryEditor.id}
             database={database}
             extendedTables={tables}
             height={`${aceEditorHeight}px`}

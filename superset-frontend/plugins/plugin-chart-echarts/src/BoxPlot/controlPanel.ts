@@ -172,10 +172,14 @@ const config: ControlPanelConfig = {
       label: t('Distribute across'),
       multi: true,
       description: t('Columns to calculate distribution across.'),
-      initialValue: (control: ControlState, state: ControlPanelState) => {
+      initialValue: (
+        control: ControlState,
+        state: ControlPanelState | null,
+      ) => {
         if (
-          (state && !control?.value) ||
-          (Array.isArray(control?.value) && control.value.length === 0)
+          state &&
+          (!control?.value ||
+            (Array.isArray(control?.value) && control.value.length === 0))
         ) {
           return [getTemporalColumns(state.datasource).defaultTemporalColumn];
         }

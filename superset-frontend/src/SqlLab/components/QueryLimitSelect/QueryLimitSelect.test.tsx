@@ -23,11 +23,7 @@ import { Store } from 'redux';
 
 import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import {
-  initialState,
-  defaultQueryEditor,
-  extraQueryEditor1,
-} from 'src/SqlLab/fixtures';
+import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import QueryLimitSelect, {
   LIMIT_DROPDOWN,
   QueryLimitSelectProps,
@@ -71,9 +67,20 @@ describe('QueryLimitSelect', () => {
     const queryLimit = 10;
     const { getByText } = setup(
       {
-        queryEditorId: extraQueryEditor1.id,
+        queryEditorId: defaultQueryEditor.id,
       },
-      mockStore(initialState),
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queryEditors: [
+            {
+              ...defaultQueryEditor,
+              queryLimit,
+            },
+          ],
+        },
+      }),
     );
     expect(getByText(queryLimit)).toBeInTheDocument();
   });
@@ -130,7 +137,9 @@ describe('QueryLimitSelect', () => {
         {
           type: 'QUERY_EDITOR_SET_QUERY_LIMIT',
           queryLimit: LIMIT_DROPDOWN[expectedIndex],
-          queryEditor: defaultQueryEditor,
+          queryEditor: {
+            id: defaultQueryEditor.id,
+          },
         },
       ]),
     );

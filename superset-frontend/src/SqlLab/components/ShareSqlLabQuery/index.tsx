@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { useSelector } from 'react-redux';
 import { t, useTheme, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -26,7 +25,7 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { storeQuery } from 'src/utils/common';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 interface ShareSqlLabQueryProps {
   queryEditorId: string;
@@ -49,14 +48,10 @@ const ShareSqlLabQuery = ({
 }: ShareSqlLabQueryProps) => {
   const theme = useTheme();
 
-  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
-    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
-      ...queryEditors.find(({ id }) => id === queryEditorId),
-      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
-    }),
+  const { dbId, name, schema, autorun, sql, remoteId } = useQueryEditor(
+    queryEditorId,
+    ['dbId', 'name', 'schema', 'autorun', 'sql', 'remoteId'],
   );
-
-  const { dbId, name, schema, autorun, sql, remoteId } = queryEditor;
 
   const getCopyUrlForKvStore = (callback: Function) => {
     const sharedQuery = { dbId, name, schema, autorun, sql };

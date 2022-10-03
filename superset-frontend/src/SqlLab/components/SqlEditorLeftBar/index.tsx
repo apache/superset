@@ -25,7 +25,6 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import querystring from 'query-string';
 
 import {
@@ -48,7 +47,8 @@ import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
-import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import { QueryEditor, SchemaOption } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import {
@@ -105,21 +105,14 @@ const SqlEditorLeftBar = ({
 }: SqlEditorLeftBarProps) => {
   const dispatch = useDispatch();
 
-  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
-    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
-      ...queryEditors.find(({ id }) => id === queryEditorId),
-      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
-    }),
-  );
-
   // Ref needed to avoid infinite rerenders on handlers
   // that require and modify the queryEditor
-  const queryEditorRef = useRef<Partial<QueryEditor>>(queryEditor);
+  const queryEditorRef = useRef<QueryEditor>(queryEditor);
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
-  const { schema } = queryEditor;
+  const { schema } = useQueryEditor(queryEditor.id, ['schema']);
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
