@@ -163,13 +163,8 @@ const SqlEditor = ({
   const theme = useTheme();
   const dispatch = useDispatch();
 
-  const { currentQueryEditor, database, latestQuery, hideLeftBar } =
-    useSelector(({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
-      const currentQueryEditor = {
-        ...queryEditor,
-        ...(queryEditor.id === unsavedQueryEditor.id && unsavedQueryEditor),
-      };
-
+  const { database, latestQuery, hideLeftBar } = useSelector(
+    ({ sqlLab: { unsavedQueryEditor, databases, queries } }) => {
       let { dbId, latestQueryId, hideLeftBar } = queryEditor;
       if (unsavedQueryEditor.id === queryEditor.id) {
         dbId = unsavedQueryEditor.dbId || dbId;
@@ -177,12 +172,12 @@ const SqlEditor = ({
         hideLeftBar = unsavedQueryEditor.hideLeftBar || hideLeftBar;
       }
       return {
-        currentQueryEditor,
         database: databases[dbId],
         latestQuery: queries[latestQueryId],
         hideLeftBar,
       };
-    });
+    },
+  );
 
   const queryEditors = useSelector(({ sqlLab }) => sqlLab.queryEditors);
 
@@ -540,7 +535,7 @@ const SqlEditor = ({
           <span>
             <RunQueryActionButton
               allowAsync={database ? database.allow_run_async : false}
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               queryState={latestQuery?.state}
               runQuery={startQuery}
               stopQuery={stopQuery}
@@ -559,7 +554,7 @@ const SqlEditor = ({
             )}
           <span>
             <QueryLimitSelect
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               maxRow={maxRow}
               defaultQueryLimit={defaultQueryLimit}
             />
@@ -576,7 +571,7 @@ const SqlEditor = ({
         <div className="rightItems">
           <span>
             <SaveQuery
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               columns={latestQuery?.results?.columns || []}
               onSave={onSaveQuery}
               onUpdate={query => dispatch(updateSavedQuery(query))}
@@ -585,7 +580,7 @@ const SqlEditor = ({
             />
           </span>
           <span>
-            <ShareSqlLabQuery queryEditor={queryEditor} />
+            <ShareSqlLabQuery queryEditorId={queryEditor.id} />
           </span>
           <AntdDropdown overlay={renderDropdown()} trigger="click">
             <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
@@ -616,7 +611,7 @@ const SqlEditor = ({
             autocomplete={autocompleteEnabled}
             onBlur={setQueryEditorAndSaveSql}
             onChange={onSqlChanged}
-            queryEditor={currentQueryEditor}
+            queryEditorId={queryEditor.id}
             database={database}
             extendedTables={tables}
             height={`${aceEditorHeight}px`}
