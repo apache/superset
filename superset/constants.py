@@ -20,7 +20,7 @@
 # string to use when None values *need* to be converted to/from strings
 from enum import Enum
 
-USER_AGENT = "Apache Superset"
+USER_AGENT = "Careem Insights"
 
 NULL_STRING = "<NULL>"
 EMPTY_STRING = "<empty string>"
