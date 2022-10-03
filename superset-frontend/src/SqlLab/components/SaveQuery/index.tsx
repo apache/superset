@@ -81,23 +81,18 @@ export default function SaveQuery({
   columns,
 }: SaveQueryProps) {
   const queryEditor = useQueryEditor(queryEditorId, [
-    'autorun',
     'name',
     'description',
-    'remoteId',
     'dbId',
-    'latestQueryId',
-    'queryLimit',
     'schema',
-    'schemaOptions',
-    'selectedText',
     'sql',
-    'tableOptions',
+    'templateParams',
   ]);
+  console.log('editor ', queryEditor);
+
   const query = useMemo(
     () => ({
       ...queryEditor,
-      columns,
     }),
     [queryEditor, columns],
   );

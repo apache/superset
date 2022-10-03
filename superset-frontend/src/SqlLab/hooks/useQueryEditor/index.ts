@@ -31,7 +31,7 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
           ...queryEditors.find(({ id }) => id === sqlEditorId),
           ...(sqlEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
         },
-        ['id'].concat(attributes),
+        attributes,
       ) as Pick<QueryEditor, T | 'id'>,
     shallowEqual,
   );

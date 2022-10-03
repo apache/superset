@@ -113,6 +113,7 @@ const queryClientMapping = {
   db_id: 'dbId',
   client_id: 'id',
   label: 'name',
+  template_parameters: 'templateParams',
 };
 const queryServerMapping = invert(queryClientMapping);
 
@@ -927,11 +928,10 @@ export function queryEditorSetTitle(queryEditor, name) {
 }
 
 export function saveQuery(query) {
-  return dispatch =>
-    SupersetClient.post({
-      endpoint: '/savedqueryviewapi/api/create',
-      postPayload: convertQueryToServer(query),
-      stringify: false,
+  return dispatch => {
+    return SupersetClient.post({
+      endpoint: 'api/v1/saved_query/',
+      jsonPayload: convertQueryToServer(query),
     })
       .then(result => {
         const savedQuery = convertQueryToClient(result.json.item);
@@ -946,6 +946,7 @@ export function saveQuery(query) {
       .catch(() =>
         dispatch(addDangerToast(t('Your query could not be saved'))),
       );
+  };
 }
 
 export const addSavedQueryToTabState =
