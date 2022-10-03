@@ -172,6 +172,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                     [gamma.id],
                     created_by=gamma,
                 )
+                sleep(1)
                 dashboards.append(dashboard)
 
             yield dashboards
