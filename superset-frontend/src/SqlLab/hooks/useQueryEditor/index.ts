@@ -16,19 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import pick from 'lodash/pick';
+import { shallowEqual, useSelector } from 'react-redux';
+import { SqlLabRootState, QueryEditor } from 'src/SqlLab/types';
 
-import { MARKDOWN_TYPE } from '../../../util/componentTypes';
-import { NEW_MARKDOWN_ID } from '../../../util/constants';
-import DraggableNewComponent from './DraggableNewComponent';
-
-export default function DraggableNewDivider() {
-  return (
-    <DraggableNewComponent
-      id={NEW_MARKDOWN_ID}
-      type={MARKDOWN_TYPE}
-      label="Text"
-      className="fa fa-font"
-    />
+export default function useQueryEditor<T extends keyof QueryEditor>(
+  sqlEditorId: string,
+  attributes: ReadonlyArray<T>,
+) {
+  return useSelector<SqlLabRootState, Pick<QueryEditor, T | 'id'>>(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) =>
+      pick(
+        {
+          ...queryEditors.find(({ id }) => id === sqlEditorId),
+          ...(sqlEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+        },
+        ['id'].concat(attributes),
+      ) as Pick<QueryEditor, T | 'id'>,
+    shallowEqual,
   );
 }

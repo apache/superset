@@ -25,7 +25,6 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
-import { useSelector } from 'react-redux';
 import querystring from 'query-string';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
@@ -33,7 +32,8 @@ import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
-import { QueryEditor, SchemaOption, SqlLabRootState } from 'src/SqlLab/types';
+import { QueryEditor, SchemaOption } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import {
@@ -117,15 +117,7 @@ export default function SqlEditorLeftBar({
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
-  const schema = useSelector<SqlLabRootState, string>(
-    ({ sqlLab: { unsavedQueryEditor } }) => {
-      const updatedQueryEditor = {
-        ...queryEditor,
-        ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
-      };
-      return updatedQueryEditor.schema;
-    },
-  );
+  const { schema } = useQueryEditor(queryEditor.id, ['schema']);
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
