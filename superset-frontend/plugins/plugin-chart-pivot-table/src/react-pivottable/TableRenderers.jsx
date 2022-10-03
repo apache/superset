@@ -56,6 +56,7 @@ function displayHeaderCell(
 }
 
 export class TableRenderer extends React.Component {
+  constAggregatorName;
   constructor(props) {
     super(props);
 
@@ -471,6 +472,8 @@ export class TableRenderer extends React.Component {
       i += colSpan;
     }
 
+    const constAggregatorName = `${this.props.aggregatorName}`
+
     const totalCell =
       attrIdx === 0 && rowTotals ? (
         <th
@@ -487,7 +490,7 @@ export class TableRenderer extends React.Component {
             true,
           )}
         >
-          {t(`Total (%s)`,t(`${this.props.aggregatorName}`))}
+          {t(`Total (%s)`, t(constAggregatorName))}
         </th>
       ) : null;
 
@@ -498,6 +501,8 @@ export class TableRenderer extends React.Component {
   renderRowHeaderRow(pivotSettings) {
     // Render just the attribute names of the rows (the actual attribute values
     // will show up in the individual rows).
+
+    const constAggregatorName = `${this.props.aggregatorName}`;
 
     const {
       rowAttrs,
@@ -536,6 +541,7 @@ export class TableRenderer extends React.Component {
             </th>
           );
         })}
+
         <th
           className="pvtTotalLabel"
           key="padding"
@@ -550,7 +556,7 @@ export class TableRenderer extends React.Component {
           )}
         >
           {colAttrs.length === 0
-            ? t(`Total (%s)`,t(`${this.props.aggregatorName}`))
+            ? t(`Total (%s)`, t(constAggregatorName))
             : null}
         </th>
       </tr>
@@ -749,6 +755,8 @@ export class TableRenderer extends React.Component {
       grandTotalCallback,
     } = pivotSettings;
 
+  const constAggregatorName = `${this.props.aggregatorName}`;
+
     const totalLabelCell = (
       <th
         key="label"
@@ -764,7 +772,7 @@ export class TableRenderer extends React.Component {
           true,
         )}
       >
-        {t(`Total (%s)`,t(`${this.props.aggregatorName}`))}
+        {t(`Total (%s)`, t(constAggregatorName))}
       </th>
     );
 
