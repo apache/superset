@@ -1870,7 +1870,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         arguments = {
             "filters": [
-                {"col": "id", "opr": "dashboard_has_created_by", "value": False}
+                {"col": "created_by", "opr": "dashboard_has_created_by", "value": False}
             ],
             "keys": ["none"],
             "columns": ["dashboard_title"],
