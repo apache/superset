@@ -222,7 +222,11 @@ def add_types(metadata: MetaData) -> None:
     insert = tag.insert()
     for type_ in ObjectTypes.__members__:
         try:
-            db.session.execute(insert, name=f"type:{type_}", type=TagTypes.type)
+            db.session.execute(
+                insert,
+                name=f"type:{type_}",
+                type=TagTypes.type,
+            )
         except IntegrityError:
             pass  # already exists
 
