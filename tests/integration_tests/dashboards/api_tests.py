@@ -702,7 +702,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         Dashboard API: Test get dashboards created by current user
         """
         dashs = db.session.query(Dashboard).all()
-        dash_names = [dash.dashboard_title for dash in dashs]
+        dash_names = [f"{dash.dashboard_title}.{dash.created_by}" for dash in dashs]
         raise Exception(dash_names)
         query = {
             "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
