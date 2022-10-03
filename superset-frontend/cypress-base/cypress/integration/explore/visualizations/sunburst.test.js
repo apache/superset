@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Sunburst', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const SUNBURST_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'sunburst',
@@ -35,15 +40,6 @@ describe('Visualization > Sunburst', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work without secondary metric', () => {
     verify(SUNBURST_FORM_DATA);

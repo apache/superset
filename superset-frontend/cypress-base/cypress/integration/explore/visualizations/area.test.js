@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Area', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const AREA_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'area',
@@ -54,15 +59,6 @@ describe('Visualization > Area', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work without groupby', () => {
     verify(AREA_FORM_DATA);

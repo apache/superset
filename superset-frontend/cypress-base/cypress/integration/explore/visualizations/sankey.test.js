@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Sankey', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const SANKEY_FORM_DATA = {
     datasource: '1__table',
     viz_type: 'sankey',
@@ -36,15 +41,6 @@ describe('Visualization > Sankey', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work', () => {
     verify(SANKEY_FORM_DATA);

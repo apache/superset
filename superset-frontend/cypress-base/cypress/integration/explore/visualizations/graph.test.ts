@@ -27,6 +27,11 @@ type adhocFilter = {
 };
 
 describe('Visualization > Graph', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+  });
+
   const GRAPH_FORM_DATA = {
     datasource: '1__table',
     viz_type: 'graph_chart',
@@ -49,15 +54,6 @@ describe('Visualization > Graph', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
-  });
 
   it('should work with ad-hoc metric', () => {
     verify(GRAPH_FORM_DATA);

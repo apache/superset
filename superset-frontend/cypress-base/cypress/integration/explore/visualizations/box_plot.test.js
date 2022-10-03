@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Box Plot', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+  });
+
   const BOX_PLOT_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'box_plot',
@@ -36,15 +41,6 @@ describe('Visualization > Box Plot', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
-  });
 
   it('should work', () => {
     verify(BOX_PLOT_FORM_DATA);

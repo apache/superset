@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Pie', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+  });
+
   const PIE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'pie',
@@ -40,15 +45,6 @@ describe('Visualization > Pie', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
-  });
 
   it('should work with ad-hoc metric', () => {
     verify(PIE_FORM_DATA);

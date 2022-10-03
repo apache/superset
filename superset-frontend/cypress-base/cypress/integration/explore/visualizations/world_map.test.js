@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > World Map', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const WORLD_MAP_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'world_map',
@@ -38,15 +43,6 @@ describe('Visualization > World Map', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work with ad-hoc metric', () => {
     verify(WORLD_MAP_FORM_DATA);

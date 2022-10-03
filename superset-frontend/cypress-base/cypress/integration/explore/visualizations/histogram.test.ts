@@ -19,6 +19,11 @@
 import { QueryFormData } from '@superset-ui/core';
 
 describe('Visualization > Histogram', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const HISTOGRAM_FORM_DATA: QueryFormData = {
     datasource: '3__table',
     viz_type: 'histogram',
@@ -42,15 +47,6 @@ describe('Visualization > Histogram', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work without groupby', () => {
     verify(HISTOGRAM_FORM_DATA);

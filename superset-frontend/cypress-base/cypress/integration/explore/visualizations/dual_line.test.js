@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Dual Line', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const DUAL_LINE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'dual_line',
@@ -38,15 +43,6 @@ describe('Visualization > Dual Line', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work', () => {
     verify(DUAL_LINE_FORM_DATA);

@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Compare', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const COMPARE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'compare',
@@ -50,15 +55,6 @@ describe('Visualization > Compare', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work without groupby', () => {
     verify(COMPARE_FORM_DATA);

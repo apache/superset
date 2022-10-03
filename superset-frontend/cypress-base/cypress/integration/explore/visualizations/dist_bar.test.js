@@ -19,21 +19,17 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 describe('Visualization > Distribution bar chart', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'dist_bar' };
   const DISTBAR_FORM_DATA = {
     ...VIZ_DEFAULTS,
     metrics: NUM_METRIC,
     groupby: ['state'],
   };
-
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work with adhoc metric', () => {
     cy.visitChartByParams(DISTBAR_FORM_DATA);

@@ -20,19 +20,15 @@ import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 describe('Visualization > Big Number Total', () => {
-  const BIG_NUMBER_DEFAULTS = {
-    ...FORM_DATA_DEFAULTS,
-    viz_type: 'big_number_total',
-  };
-
-  before(() => {
-    cy.login();
-  });
-
   beforeEach(() => {
     cy.preserveLogin();
     interceptChart({ legacy: false }).as('chartData');
   });
+
+  const BIG_NUMBER_DEFAULTS = {
+    ...FORM_DATA_DEFAULTS,
+    viz_type: 'big_number_total',
+  };
 
   it('Test big number chart with adhoc metric', () => {
     const formData = { ...BIG_NUMBER_DEFAULTS, metric: NUM_METRIC };

@@ -19,16 +19,12 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 describe('Visualization > Time TableViz', () => {
-  const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'time_table' };
-
-  before(() => {
-    cy.login();
-  });
-
   beforeEach(() => {
     cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
+
+  const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'time_table' };
 
   it('Test time series table multiple metrics last year total', () => {
     const formData = {
