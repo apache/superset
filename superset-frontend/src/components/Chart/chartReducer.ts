@@ -130,10 +130,7 @@ export default function chartReducer(
       return { ...state, latestQueryFormData: action.value };
     },
     [actions.ANNOTATION_QUERY_STARTED](state) {
-      if (
-        state.annotationQuery &&
-        state.annotationQuery[action.annotation.name]
-      ) {
+      if (state.annotationQuery?.[action.annotation.name]) {
         state.annotationQuery[action.annotation.name].abort();
       }
       const annotationQuery = {
