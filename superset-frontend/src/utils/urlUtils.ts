@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
+import {
+  isDefined,
+  JsonObject,
+  QueryFormData,
+  SupersetClient,
+} from '@superset-ui/core';
 import rison from 'rison';
 import { isEmpty } from 'lodash';
-import { getClientErrorObject } from './getClientErrorObject';
 import {
   RESERVED_CHART_URL_PARAMS,
   RESERVED_DASHBOARD_URL_PARAMS,
@@ -53,10 +57,10 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
       if (!urlParam) {
         return null;
       }
-      if (urlParam === 'true') {
+      if (urlParam.toLowerCase() === 'true') {
         return 1;
       }
-      if (urlParam === 'false') {
+      if (urlParam.toLowerCase() === 'false') {
         return 0;
       }
       if (!Number.isNaN(Number(urlParam))) {
@@ -72,7 +76,7 @@ export function getUrlParam({ name, type }: UrlParam): unknown {
       if (!urlParam) {
         return null;
       }
-      return urlParam !== 'false' && urlParam !== '0';
+      return urlParam.toLowerCase() !== 'false' && urlParam !== '0';
     case 'rison':
       if (!urlParam) {
         return null;
@@ -96,7 +100,7 @@ function getUrlParams(excludedParams: string[]): URLSearchParams {
   return urlParams;
 }
 
-type UrlParamEntries = [string, string][];
+export type UrlParamEntries = [string, string][];
 
 function getUrlParamEntries(urlParams: URLSearchParams): UrlParamEntries {
   const urlEntries: [string, string][] = [];
@@ -134,14 +138,7 @@ function getPermalink(endpoint: string, jsonPayload: JsonObject) {
   return SupersetClient.post({
     endpoint,
     jsonPayload,
-  })
-    .then(result => result.json.url as string)
-    .catch(response =>
-      // @ts-ignore
-      getClientErrorObject(response).then(({ error, statusText }) =>
-        Promise.reject(error || statusText),
-      ),
-    );
+  }).then(result => result.json.url as string);
 }
 
 export function getChartPermalink(
@@ -156,17 +153,56 @@ export function getChartPermalink(
 
 export function getDashboardPermalink({
   dashboardId,
-  filterState,
-  hash, // the anchor part of the link which corresponds to the tab/chart id
+  dataMask,
+  activeTabs,
+  anchor, // the anchor part of the link which corresponds to the tab/chart id
 }: {
   dashboardId: string | number;
-  filterState: JsonObject;
-  hash?: string;
+  /**
+   * Current applied data masks (for native filters).
+   */
+  dataMask: JsonObject;
+  /**
+   * Current active tabs in the dashboard.
+   */
+  activeTabs: string[];
+  /**
+   * The "anchor" component for the permalink. It will be scrolled into view
+   * and highlighted upon page load.
+   */
+  anchor?: string;
 }) {
   // only encode filter box state if non-empty
   return getPermalink(`/api/v1/dashboard/${dashboardId}/permalink`, {
-    filterState,
     urlParams: getDashboardUrlParams(),
-    hash,
+    dataMask,
+    activeTabs,
+    anchor,
   });
+}
+
+const externalUrlRegex =
+  /^([^:/?#]+:)?(?:(\/\/)?([^/?#]*))?([^?#]+)?(\?[^#]*)?(#.*)?/;
+
+// group 1 matches protocol
+// group 2 matches '//'
+// group 3 matches hostname
+export function isUrlExternal(url: string) {
+  const match = url.match(externalUrlRegex) || [];
+  return (
+    (typeof match[1] === 'string' && match[1].length > 0) ||
+    match[2] === '//' ||
+    (typeof match[3] === 'string' && match[3].length > 0)
+  );
+}
+
+export function parseUrl(url: string) {
+  const match = url.match(externalUrlRegex) || [];
+  // if url is external but start with protocol or '//',
+  // it can't be used correctly with <a> element
+  // in such case, add '//' prefix
+  if (isUrlExternal(url) && !isDefined(match[1]) && !url.startsWith('//')) {
+    return `//${url}`;
+  }
+  return url;
 }

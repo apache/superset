@@ -140,6 +140,8 @@ class SecurityRestApi(BaseApi):
                           type: string
             401:
               $ref: '#/components/responses/401'
+            400:
+              $ref: '#/components/responses/400'
             500:
               $ref: '#/components/responses/500'
         """

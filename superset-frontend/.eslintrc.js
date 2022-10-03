@@ -67,7 +67,13 @@ module.exports = {
       version: 'detect',
     },
   },
-  plugins: ['prettier', 'react', 'file-progress', 'theme-colors'],
+  plugins: [
+    'prettier',
+    'react',
+    'file-progress',
+    'theme-colors',
+    'translation-vars',
+  ],
   overrides: [
     {
       files: ['*.ts', '*.tsx'],
@@ -109,6 +115,7 @@ module.exports = {
         'jsx-a11y/anchor-is-valid': 1,
         'jsx-a11y/click-events-have-key-events': 0, // re-enable up for discussion
         'jsx-a11y/mouse-events-have-key-events': 0, // re-enable up for discussion
+        'max-classes-per-file': 0,
         'new-cap': 0,
         'no-bitwise': 0,
         'no-continue': 0,
@@ -198,12 +205,14 @@ module.exports = {
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,
+        'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
       },
     },
   ],
   rules: {
-    'theme-colors/no-literal-colors': 1,
+    'theme-colors/no-literal-colors': 'error',
+    'translation-vars/no-template-vars': ['error', true],
     camelcase: [
       'error',
       {
@@ -247,7 +256,7 @@ module.exports = {
           {
             name: 'antd',
             message:
-              'Please import Ant components from the index of common/components',
+              'Please import Ant components from the index of src/components',
           },
           {
             name: '@superset-ui/core',

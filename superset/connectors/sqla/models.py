@@ -31,6 +31,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Set,
     Tuple,
     Type,
     Union,
@@ -65,7 +66,9 @@ from sqlalchemy import (
     update,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table
@@ -74,11 +77,13 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
+from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.columns.models import Column as NewColumn, UNKOWN_TYPE
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     find_cached_objects_in_session,
+    get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
     validate_adhoc_subquery,
@@ -86,9 +91,12 @@ from superset.connectors.sqla.utils import (
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import (
+    AdvancedDataTypeResponseError,
+    DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
+from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -120,6 +128,7 @@ from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
     get_column_name,
+    get_username,
     is_adhoc_column,
     MediumText,
     QueryObjectFilterClause,
@@ -129,7 +138,7 @@ from superset.utils.core import (
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
-
+ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 VIRTUAL_TABLE_ALIAS = "virtual_table"
 
 # a non-exhaustive set of additive metrics
@@ -241,6 +250,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         "is_dttm",
         "is_active",
         "type",
+        "advanced_data_type",
         "groupby",
         "filterable",
         "expression",
@@ -365,9 +375,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
-        time_expr = self.db_engine_spec.get_timestamp_expr(
-            col, pdf, time_grain, self.type
-        )
+        time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
         return self.table.make_sqla_column_compatible(time_expr, label)
 
     def dttm_sql_literal(self, dttm: DateTime) -> str:
@@ -413,6 +421,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             "is_dttm",
             "type",
             "type_generic",
+            "advanced_data_type",
             "python_date_format",
             "is_certified",
             "certified_by",
@@ -430,6 +439,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         self, known_columns: Optional[Dict[str, NewColumn]] = None
     ) -> NewColumn:
         """Convert a TableColumn to NewColumn"""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -442,6 +452,22 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             value = getattr(self, attr)
             if value:
                 extra_json[attr] = value
+
+        # column id is primary key, so make sure that we check uuid against
+        # the id as well
+        if not column.id:
+            with session.no_autoflush:
+                saved_column: NewColumn = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+                if saved_column is not None:
+                    logger.warning(
+                        "sl_column already exists. Using this row for db update %s",
+                        self,
+                    )
+
+                    # overwrite the existing column instead of creating a new one
+                    column = saved_column
 
         column.uuid = self.uuid
         column.created_on = self.created_on
@@ -509,6 +535,9 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     update_from_object_fields = list(s for s in export_fields if s != "table_id")
     export_parent = "table"
 
+    def __repr__(self) -> str:
+        return str(self.metric_name)
+
     def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
         tp = self.table.get_template_processor()
@@ -546,6 +575,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     ) -> NewColumn:
         """Convert a SqlMetric to NewColumn. Find and update existing or
         create a new one."""
+        session: Session = inspect(self).session
         column = known_columns.get(self.uuid) if known_columns else None
         if not column:
             column = NewColumn()
@@ -558,6 +588,23 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
         is_additive = (
             self.metric_type and self.metric_type.lower() in ADDITIVE_METRIC_TYPES_LOWER
         )
+
+        # column id is primary key, so make sure that we check uuid against
+        # the id as well
+        if not column.id:
+            with session.no_autoflush:
+                saved_column: NewColumn = (
+                    session.query(NewColumn).filter_by(uuid=self.uuid).one_or_none()
+                )
+
+                if saved_column is not None:
+                    logger.warning(
+                        "sl_column already exists. Using this row for db update %s",
+                        self,
+                    )
+
+                    # overwrite the existing column instead of creating a new one
+                    column = saved_column
 
         column.uuid = self.uuid
         column.name = self.metric_name
@@ -694,7 +741,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         "MAX": sa.func.MAX,
     }
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name
 
     @staticmethod
@@ -779,13 +826,18 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return security_manager.get_schema_perm(self.database, self.schema)
 
     def get_perm(self) -> str:
+        """
+        Return this dataset permission name
+        :return: dataset permission name
+        :raises DatasetInvalidPermissionEvaluationException: When database is missing
+        """
+        if self.database is None:
+            raise DatasetInvalidPermissionEvaluationException()
         return f"[{self.database}].[{self.table_name}](id:{self.id})"
 
-    @property
-    def name(self) -> str:
-        if not self.schema:
-            return self.table_name
-        return "{}.{}".format(self.schema, self.table_name)
+    @hybrid_property
+    def name(self) -> str:  # pylint: disable=invalid-overridden-method
+        return self.schema + "." + self.table_name if self.schema else self.table_name
 
     @property
     def full_name(self) -> str:
@@ -866,6 +918,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             data_["is_sqllab_view"] = self.is_sqllab_view
             data_["health_check_message"] = self.health_check_message
             data_["extra"] = self.extra
+            data_["owners"] = self.owners_data
         return data_
 
     @property
@@ -917,10 +970,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         Typically adds comments to the query with context"""
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_query_mutator:
-            username = utils.get_username()
             sql = sql_query_mutator(
                 sql,
-                user_name=username,
+                # TODO(john-bodley): Deprecate in 3.0.
+                user_name=get_username(),
                 security_manager=security_manager,
                 database=self.database,
             )
@@ -1070,7 +1123,29 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             schema=self.schema,
             template_processor=template_processor,
         )
-        sqla_column = literal_column(expression)
+        col_in_metadata = self.get_column(expression)
+        if col_in_metadata:
+            sqla_column = col_in_metadata.get_sqla_col()
+            is_dttm = col_in_metadata.is_temporal
+        else:
+            sqla_column = literal_column(expression)
+            # probe adhoc column type
+            tbl, _ = self.get_from_clause(template_processor)
+            qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+            sql = self.database.compile_sqla_query(qry)
+            col_desc = get_columns_description(self.database, sql)
+            is_dttm = col_desc[0]["is_dttm"]
+
+        if (
+            is_dttm
+            and col.get("columnType") == "BASE_AXIS"
+            and (time_grain := col.get("timeGrain"))
+        ):
+            sqla_column = self.db_engine_spec.get_timestamp_expr(
+                col=sqla_column,
+                pdf=None,
+                time_grain=time_grain,
+            )
         return self.make_sqla_column_compatible(sqla_column, label)
 
     def make_sqla_column_compatible(
@@ -1120,14 +1195,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 col.name = f"{col.name}__"
 
     def get_sqla_row_level_filters(
-        self, template_processor: BaseTemplateProcessor
+        self,
+        template_processor: BaseTemplateProcessor,
     ) -> List[TextClause]:
         """
-        Return the appropriate row level security filters for
-        this table and the current user.
+        Return the appropriate row level security filters for this table and the
+        current user. A custom username can be passed when the user is not present in the
+        Flask global namespace.
 
-        :param BaseTemplateProcessor template_processor: The template
-        processor to apply to the filters.
+        :param template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
         """
         all_filters: List[TextClause] = []
@@ -1355,7 +1431,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         col=selected, template_processor=template_processor
                     )
                 groupby_all_columns[outer.name] = outer
-                if not series_column_names or outer.name in series_column_names:
+                if (
+                    is_timeseries and not series_column_names
+                ) or outer.name in series_column_names:
                     groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
@@ -1459,33 +1537,68 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     )
                 elif col_obj:
                     sqla_col = col_obj.get_sqla_col()
+                col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(
-                    col_obj.type if col_obj else None
+                    native_type=col_type,
+                    db_extra=self.database.get_extra(),
                 )
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
                 )
-                if col_spec:
-                    target_type = col_spec.generic_type
+
+                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
+
+                if col_spec and not col_advanced_data_type:
+                    target_generic_type = col_spec.generic_type
                 else:
-                    target_type = GenericDataType.STRING
+                    target_generic_type = GenericDataType.STRING
                 eq = self.filter_values_handler(
                     values=val,
-                    target_column_type=target_type,
+                    target_generic_type=target_generic_type,
+                    target_native_type=col_type,
                     is_list_target=is_list_target,
+                    db_engine_spec=db_engine_spec,
+                    db_extra=self.database.get_extra(),
                 )
-                if is_list_target:
+                if (
+                    col_advanced_data_type != ""
+                    and feature_flag_manager.is_feature_enabled(
+                        "ENABLE_ADVANCED_DATA_TYPES"
+                    )
+                    and col_advanced_data_type in ADVANCED_DATA_TYPES
+                ):
+                    values = eq if is_list_target else [eq]  # type: ignore
+                    bus_resp: AdvancedDataTypeResponse = ADVANCED_DATA_TYPES[
+                        col_advanced_data_type
+                    ].translate_type(
+                        {
+                            "type": col_advanced_data_type,
+                            "values": values,
+                        }
+                    )
+                    if bus_resp["error_message"]:
+                        raise AdvancedDataTypeResponseError(
+                            _(bus_resp["error_message"])
+                        )
+
+                    where_clause_and.append(
+                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
+                            sqla_col, op, bus_resp["values"]
+                        )
+                    )
+                elif is_list_target:
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
                             _("Filter value list cannot be empty")
                         )
-                    if None in eq:
-                        eq = [x for x in eq if x is not None]
+                    if len(eq) > len(
+                        eq_without_none := [x for x in eq if x is not None]
+                    ):
                         is_null_cond = sqla_col.is_(None)
                         if eq:
-                            cond = or_(is_null_cond, sqla_col.in_(eq))
+                            cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
                         else:
                             cond = is_null_cond
                     else:
@@ -1842,7 +1955,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         :return: Tuple with lists of added, removed and modified column names.
         """
         new_columns = self.external_metadata()
-        metrics = []
+        metrics = [
+            SqlMetric(**metric)
+            for metric in self.database.get_metrics(self.table_name, self.schema)
+        ]
         any_date_col = None
         db_engine_spec = self.db_engine_spec
 
@@ -1899,14 +2015,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         columns.extend([col for col in old_columns if col.expression])
         self.columns = columns
 
-        metrics.append(
-            SqlMetric(
-                metric_name="count",
-                verbose_name="COUNT(*)",
-                metric_type="count",
-                expression="COUNT(*)",
-            )
-        )
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
         self.add_missing_metrics(metrics)
@@ -1935,6 +2043,48 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if schema:
             query = query.filter_by(schema=schema)
         return query.all()
+
+    @classmethod
+    def query_datasources_by_permissions(  # pylint: disable=invalid-name
+        cls,
+        session: Session,
+        database: Database,
+        permissions: Set[str],
+        schema_perms: Set[str],
+    ) -> List["SqlaTable"]:
+        # TODO(hughhhh): add unit test
+        return (
+            session.query(cls)
+            .filter_by(database_id=database.id)
+            .filter(
+                or_(
+                    SqlaTable.perm.in_(permissions),
+                    SqlaTable.schema_perm.in_(schema_perms),
+                )
+            )
+            .all()
+        )
+
+    @classmethod
+    def get_eager_sqlatable_datasource(
+        cls, session: Session, datasource_id: int
+    ) -> "SqlaTable":
+        """Returns SqlaTable with columns and metrics."""
+        return (
+            session.query(cls)
+            .options(
+                sa.orm.subqueryload(cls.columns),
+                sa.orm.subqueryload(cls.metrics),
+            )
+            .filter_by(id=datasource_id)
+            .one()
+        )
+
+    @classmethod
+    def get_all_datasources(cls, session: Session) -> List["SqlaTable"]:
+        qry = session.query(cls)
+        qry = cls.default_query(qry)
+        return qry.all()
 
     @staticmethod
     def default_query(qry: Query) -> Query:
@@ -2052,10 +2202,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             uuids.remove(column.uuid)
 
         if uuids:
-            # load those not found from db
-            existing_columns |= set(
-                session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
-            )
+            with session.no_autoflush:
+                # load those not found from db
+                existing_columns |= set(
+                    session.query(NewColumn).filter(NewColumn.uuid.in_(uuids))
+                )
 
         known_columns = {column.uuid: column for column in existing_columns}
         return [
@@ -2063,7 +2214,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         ]
 
     @staticmethod
-    def update_table(  # pylint: disable=unused-argument
+    def update_column(  # pylint: disable=unused-argument
         mapper: Mapper, connection: Connection, target: Union[SqlMetric, TableColumn]
     ) -> None:
         """
@@ -2078,7 +2229,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         # table is updated. This busts the cache key for all charts that use the table.
         session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
 
-        # if table itself has changed, shadow-writing will happen in `after_udpate` anyway
+        # if table itself has changed, shadow-writing will happen in `after_update` anyway
         if target.table not in session.dirty:
             dataset: NewDataset = (
                 session.query(NewDataset)
@@ -2094,17 +2245,29 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
             # update changed_on timestamp
             session.execute(update(NewDataset).where(NewDataset.id == dataset.id))
-
-            # update `Column` model as well
-            session.add(
-                target.to_sl_column(
-                    {
-                        target.uuid: session.query(NewColumn)
-                        .filter_by(uuid=target.uuid)
-                        .one_or_none()
-                    }
+            try:
+                with session.no_autoflush:
+                    column = session.query(NewColumn).filter_by(uuid=target.uuid).one()
+                    # update `Column` model as well
+                    session.merge(target.to_sl_column({target.uuid: column}))
+            except NoResultFound:
+                logger.warning("No column was found for %s", target)
+                # see if the column is in cache
+                column = next(
+                    find_cached_objects_in_session(
+                        session, NewColumn, uuids=[target.uuid]
+                    ),
+                    None,
                 )
-            )
+                if column:
+                    logger.warning("New column was found in cache: %s", column)
+
+                else:
+                    # to be safe, use a different uuid and create a new column
+                    uuid = uuid4()
+                    target.uuid = uuid
+
+                session.add(target.to_sl_column())
 
     @staticmethod
     def after_insert(
@@ -2124,11 +2287,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
-        security_manager.set_perm(mapper, connection, sqla_table)
+        security_manager.dataset_after_insert(mapper, connection, sqla_table)
         sqla_table.write_shadow_dataset()
 
     @staticmethod
-    def after_delete(  # pylint: disable=unused-argument
+    def after_delete(
         mapper: Mapper,
         connection: Connection,
         sqla_table: "SqlaTable",
@@ -2145,6 +2308,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
+        security_manager.dataset_after_delete(mapper, connection, sqla_table)
         session = inspect(sqla_table).session
         dataset = (
             session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
@@ -2171,7 +2335,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         For more context: https://github.com/apache/superset/issues/14909
         """
         # set permissions
-        security_manager.set_perm(mapper, connection, sqla_table)
+        security_manager.dataset_after_update(mapper, connection, sqla_table)
 
         inspector = inspect(sqla_table)
         session = inspector.session
@@ -2389,9 +2553,9 @@ sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)
 sa.event.listen(SqlaTable, "after_insert", SqlaTable.after_insert)
 sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlaTable, "after_update", SqlaTable.after_update)
-sa.event.listen(SqlMetric, "after_update", SqlaTable.update_table)
+sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
 sa.event.listen(SqlMetric, "after_delete", SqlMetric.after_delete)
-sa.event.listen(TableColumn, "after_update", SqlaTable.update_table)
+sa.event.listen(TableColumn, "after_update", SqlaTable.update_column)
 sa.event.listen(TableColumn, "after_delete", TableColumn.after_delete)
 
 RLSFilterRoles = Table(
@@ -2418,6 +2582,8 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
 
     __tablename__ = "row_level_security_filters"
     id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)
+    description = Column(Text)
     filter_type = Column(
         Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
     )
@@ -2430,5 +2596,4 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     tables = relationship(
         SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
     )
-
     clause = Column(Text, nullable=False)

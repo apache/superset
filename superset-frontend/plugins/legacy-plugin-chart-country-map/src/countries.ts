@@ -72,6 +72,7 @@ import syria from './countries/syria.geojson';
 import tanzania from './countries/tanzania.geojson';
 import thailand from './countries/thailand.geojson';
 import timorleste from './countries/timorleste.geojson';
+import turkey from './countries/turkey.geojson';
 import united_arab_emirates from './countries/united_arab_emirates.geojson';
 import uganda from './countries/uganda.geojson';
 import uk from './countries/uk.geojson';
@@ -137,6 +138,7 @@ export const countries = {
   tanzania,
   thailand,
   timorleste,
+  turkey,
   united_arab_emirates,
   uganda,
   uk,

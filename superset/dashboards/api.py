@@ -23,12 +23,12 @@ from io import BytesIO
 from typing import Any, Callable, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import g, make_response, redirect, request, Response, send_file, url_for
+from flask import make_response, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
@@ -60,6 +60,7 @@ from superset.dashboards.filters import (
     DashboardCertifiedFilter,
     DashboardCreatedByMeFilter,
     DashboardFavoriteFilter,
+    DashboardHasCreatedByFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
 )
@@ -218,7 +219,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
-        "created_by": [DashboardCreatedByMeFilter],
+        "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
     }
     base_order = ("changed_on", "desc")
 
@@ -285,13 +286,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
-    )
     @with_dashboard
-    # pylint: disable=arguments-renamed, arguments-differ
-    def get(self, dash: Dashboard) -> Response:
+    @event_logger.log_this_with_extra_payload
+    # pylint: disable=arguments-differ
+    def get(
+        self,
+        dash: Dashboard,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Gets a dashboard
         ---
         get:
@@ -323,6 +325,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         result = self.dashboard_get_response_schema.dump(dash)
+        add_extra_log_payload(
+            dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
+        )
         return self.response(200, result=result)
 
     @etag_cache(
@@ -383,6 +388,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
             return self.response(200, result=result)
+        except (TypeError, ValueError) as err:
+            return self.response_400(
+                message=gettext(
+                    "Dataset schema is invalid, caused by: %(error)s", error=str(err)
+                )
+            )
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:
@@ -504,7 +515,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateDashboardCommand(g.user, item).run()
+            new_model = CreateDashboardCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -577,7 +588,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            changed_model = UpdateDashboardCommand(g.user, pk, item).run()
+            changed_model = UpdateDashboardCommand(pk, item).run()
             last_modified_time = changed_model.changed_on.replace(
                 microsecond=0
             ).timestamp()
@@ -644,7 +655,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDashboardCommand(g.user, pk).run()
+            DeleteDashboardCommand(pk).run()
             return self.response(200, message="OK")
         except DashboardNotFoundError:
             return self.response_404()
@@ -704,7 +715,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteDashboardCommand(g.user, item_ids).run()
+            BulkDeleteDashboardCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -853,6 +864,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+            302:
+              description: Redirects to the current digest
             401:
               $ref: '#/components/responses/401'
             404:
@@ -940,9 +953,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         dashboards = DashboardDAO.find_by_ids(requested_ids)
         if not dashboards:
             return self.response_404()
-        favorited_dashboard_ids = DashboardDAO.favorited_ids(
-            dashboards, g.user.get_id()
-        )
+
+        favorited_dashboard_ids = DashboardDAO.favorited_ids(dashboards)
         res = [
             {"id": request_id, "value": request_id in favorited_dashboard_ids}
             for request_id in requested_ids

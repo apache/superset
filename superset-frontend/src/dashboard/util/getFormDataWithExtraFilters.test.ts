@@ -35,7 +35,7 @@ describe('getFormDataWithExtraFilters', () => {
     queryController: null,
     queriesResponse: null,
     triggerQuery: false,
-    formData: {
+    form_data: {
       viz_type: 'filter_select',
       filters: [
         {
@@ -45,23 +45,18 @@ describe('getFormDataWithExtraFilters', () => {
         },
       ],
       datasource: '123',
+      url_params: {},
     },
   };
   const mockArgs: GetFormDataWithExtraFiltersArguments = {
     chartConfiguration: {},
-    charts: {
-      [chartId as number]: mockChart,
-    },
     chart: mockChart,
     filters: {
       region: ['Spain'],
       color: ['pink', 'purple'],
     },
     sliceId: chartId,
-    nativeFilters: {
-      filters: {},
-      filterSets: {},
-    },
+    nativeFilters: {},
     dataMask: {
       [filterId]: {
         id: filterId,
@@ -70,7 +65,10 @@ describe('getFormDataWithExtraFilters', () => {
         ownState: {},
       },
     },
-    layout: {},
+    extraControls: {
+      stack: 'Stacked',
+    },
+    allSliceIds: [chartId],
   };
 
   it('should include filters from the passed filters', () => {
@@ -86,5 +84,10 @@ describe('getFormDataWithExtraFilters', () => {
       op: 'IN',
       val: ['pink', 'purple'],
     });
+  });
+
+  it('should compose extra control', () => {
+    const result = getFormDataWithExtraFilters(mockArgs);
+    expect(result.stack).toEqual('Stacked');
   });
 });

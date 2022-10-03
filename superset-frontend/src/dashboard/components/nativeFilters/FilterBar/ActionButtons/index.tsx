@@ -27,9 +27,11 @@ import {
 import Button from 'src/components/Button';
 import { isNullish } from 'src/utils/common';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
+import { rgba } from 'emotion-rgba';
 import { getFilterBarTestId } from '../index';
 
 interface ActionButtonsProps {
+  width?: number;
   onApply: () => void;
   onClearAll: () => void;
   dataMaskSelected: DataMaskState;
@@ -37,8 +39,8 @@ interface ActionButtonsProps {
   isApplyDisabled: boolean;
 }
 
-const ActionButtonsContainer = styled.div`
-  ${({ theme }) => css`
+const ActionButtonsContainer = styled.div<{ width: number }>`
+  ${({ theme, width }) => css`
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -47,13 +49,16 @@ const ActionButtonsContainer = styled.div`
     z-index: 100;
 
     // filter bar width minus 1px for border
-    width: ${OPEN_FILTER_BAR_WIDTH - 1}px;
+    width: ${width - 1}px;
     bottom: 0;
 
     padding: ${theme.gridUnit * 4}px;
     padding-top: ${theme.gridUnit * 6}px;
 
-    background: linear-gradient(transparent, white 25%);
+    background: linear-gradient(
+      ${rgba(theme.colors.grayscale.light5, 0)},
+      ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+    );
 
     pointer-events: none;
 
@@ -81,6 +86,7 @@ const ActionButtonsContainer = styled.div`
 `;
 
 export const ActionButtons = ({
+  width = OPEN_FILTER_BAR_WIDTH,
   onApply,
   onClearAll,
   dataMaskApplied,
@@ -99,7 +105,7 @@ export const ActionButtons = ({
   );
 
   return (
-    <ActionButtonsContainer>
+    <ActionButtonsContainer data-test="filterbar-action-buttons" width={width}>
       <Button
         disabled={isApplyDisabled}
         buttonStyle="primary"

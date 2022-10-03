@@ -25,10 +25,11 @@ import { Row, Col, Grid } from 'src/components';
 import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
-import RightMenu from './MenuRight';
+import RightMenu from './RightMenu';
 import { Languages } from './LanguagePicker';
 
 interface BrandProps {
@@ -62,6 +63,10 @@ export interface MenuProps {
     brand: BrandProps;
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
+    environment_tag: {
+      text: string;
+      color: string;
+    };
   };
   isFrontendRoute?: (path?: string) => boolean;
 }
@@ -155,7 +160,7 @@ const StyledHeader = styled.header`
         .ant-menu > .ant-menu-item > a {
           padding: 0px;
         }
-        .main-nav .ant-menu-submenu-title > svg:nth-child(1) {
+        .main-nav .ant-menu-submenu-title > svg:nth-of-type(1) {
           display: none;
         }
         .ant-menu-item-active > a {
@@ -199,7 +204,13 @@ const { SubMenu } = DropdownMenu;
 const { useBreakpoint } = Grid;
 
 export function Menu({
-  data: { menu, brand, navbar_right: navbarRight, settings },
+  data: {
+    menu,
+    brand,
+    navbar_right: navbarRight,
+    settings,
+    environment_tag: environmentTag,
+  },
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
@@ -282,9 +293,15 @@ export function Menu({
             title={brand.tooltip}
             arrowPointAtCenter
           >
-            <a className="navbar-brand" href={brand.path}>
-              <img src={brand.icon} alt={brand.alt} />
-            </a>
+            {isFrontendRoute(window.location.pathname) ? (
+              <GenericLink className="navbar-brand" to={brand.path}>
+                <img src={brand.icon} alt={brand.alt} />
+              </GenericLink>
+            ) : (
+              <a className="navbar-brand" href={brand.path}>
+                <img src={brand.icon} alt={brand.alt} />
+              </a>
+            )}
           </Tooltip>
           {brand.text && (
             <div className="navbar-brand-text">
@@ -323,6 +340,7 @@ export function Menu({
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
+            environmentTag={environmentTag}
           />
         </Col>
       </Row>
@@ -337,6 +355,7 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
   };
   // Menu items that should go into settings dropdown
   const settingsMenus = {
+    Data: true,
     Security: true,
     Manage: true,
   };

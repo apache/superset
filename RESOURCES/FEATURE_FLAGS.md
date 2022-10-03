@@ -43,6 +43,7 @@ These features are **finished** but currently being tested. They are usable, but
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - VERSIONED_EXPORT
 - ENABLE_JAVASCRIPT_CONTROLS
+- GENERIC_CHART_AXES
 
 ## Stable
 These features flags are **safe for production** and have been tested.

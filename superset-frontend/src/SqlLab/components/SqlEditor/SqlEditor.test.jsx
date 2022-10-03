@@ -31,6 +31,7 @@ import {
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
+import QueryProvider from 'src/views/QueryProvider';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import { AntdDropdown } from 'src/components';
 import {
@@ -40,7 +41,12 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { initialState, queries, table } from 'src/SqlLab/fixtures';
+import {
+  initialState,
+  queries,
+  table,
+  defaultQueryEditor,
+} from 'src/SqlLab/fixtures';
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
@@ -48,7 +54,30 @@ fetchMock.get('glob:*/api/v1/database/*', { result: [] });
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-const store = mockStore(initialState);
+const store = mockStore({
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    databases: {
+      dbid1: {
+        allow_ctas: false,
+        allow_cvas: false,
+        allow_dml: false,
+        allow_file_upload: false,
+        allow_run_async: false,
+        backend: 'postgresql',
+        database_name: 'examples',
+        expose_in_sqllab: true,
+        force_ctas_schema: null,
+        id: 1,
+      },
+    },
+    unsavedQueryEditor: {
+      id: defaultQueryEditor.id,
+      dbId: 'dbid1',
+    },
+  },
+});
 
 describe('SqlEditor', () => {
   const mockedProps = {
@@ -57,21 +86,9 @@ describe('SqlEditor', () => {
       queryEditorSetSelectedText,
       queryEditorSetSchemaOptions,
       addDangerToast: jest.fn(),
+      removeDataPreview: jest.fn(),
     },
-    database: {
-      allow_ctas: false,
-      allow_cvas: false,
-      allow_dml: false,
-      allow_file_upload: false,
-      allow_multi_schema_metadata_fetch: false,
-      allow_run_async: false,
-      backend: 'postgresql',
-      database_name: 'examples',
-      expose_in_sqllab: true,
-      force_ctas_schema: null,
-      id: 1,
-    },
-    queryEditorId: initialState.sqlLab.queryEditors[0].id,
+    queryEditor: initialState.sqlLab.queryEditors[0],
     latestQuery: queries[0],
     tables: [table],
     getHeight: () => '100px',
@@ -84,9 +101,11 @@ describe('SqlEditor', () => {
 
   const buildWrapper = (props = {}) =>
     mount(
-      <Provider store={store}>
-        <SqlEditor {...mockedProps} {...props} />
-      </Provider>,
+      <QueryProvider>
+        <Provider store={store}>
+          <SqlEditor {...mockedProps} {...props} />
+        </Provider>
+      </QueryProvider>,
       {
         wrappingComponent: ThemeProvider,
         wrappingComponentProps: { theme: supersetTheme },
@@ -94,8 +113,8 @@ describe('SqlEditor', () => {
     );
 
   it('does not render SqlEditor if no db selected', () => {
-    const database = {};
-    const updatedProps = { ...mockedProps, database };
+    const queryEditor = initialState.sqlLab.queryEditors[1];
+    const updatedProps = { ...mockedProps, queryEditor };
     const wrapper = buildWrapper(updatedProps);
     expect(wrapper.find(EmptyStateBig)).toExist();
   });

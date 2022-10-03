@@ -187,3 +187,18 @@ class QueryCacheManager:
         """
         if key:
             set_and_log_cache(_cache[region], key, value, timeout, datasource_uid)
+
+    @staticmethod
+    def delete(
+        key: Optional[str],
+        region: CacheRegion = CacheRegion.DEFAULT,
+    ) -> None:
+        if key:
+            _cache[region].delete(key)
+
+    @staticmethod
+    def has(
+        key: Optional[str],
+        region: CacheRegion = CacheRegion.DEFAULT,
+    ) -> bool:
+        return bool(_cache[region].get(key)) if key else False

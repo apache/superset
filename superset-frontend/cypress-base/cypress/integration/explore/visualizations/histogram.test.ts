@@ -39,7 +39,7 @@ describe('Visualization > Histogram', () => {
   };
 
   function verify(formData: QueryFormData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
@@ -83,5 +83,20 @@ describe('Visualization > Histogram', () => {
       ],
     });
     cy.get('.chart-container svg .vx-bar').should('have.length', numBins);
+  });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('.histogram .vx-legend .vx-legend-shape div')
+      .first()
+      .should('have.css', 'background')
+      .and('contains', 'rgb(31, 168, 201)');
   });
 });

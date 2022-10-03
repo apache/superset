@@ -18,7 +18,11 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import { getChartControlPanelRegistry } from '@superset-ui/core';
+import {
+  getChartControlPanelRegistry,
+  getChartMetadataRegistry,
+  ChartMetadata,
+} from '@superset-ui/core';
 import { MemoryRouter, Route } from 'react-router-dom';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -26,7 +30,6 @@ import ExploreViewContainer from '.';
 
 const reduxState = {
   explore: {
-    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
     controls: {
       datasource: { value: '1__table' },
       viz_type: { value: 'table' },
@@ -37,10 +40,10 @@ const reduxState = {
       columns: [{ is_dttm: false }],
       metrics: [{ id: 1, metric_name: 'count' }],
     },
-    user: {
-      userId: 1,
-    },
     isStarred: false,
+    slice: {
+      slice_id: 1,
+    },
   },
   charts: {
     1: {
@@ -48,6 +51,18 @@ const reduxState = {
       latestQueryFormData: {
         datasource: '1__table',
       },
+    },
+  },
+  user: {
+    userId: 1,
+  },
+  common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+  datasources: {
+    '1__table': {
+      id: 1,
+      type: 'table',
+      columns: [{ is_dttm: false }],
+      metrics: [{ id: 1, metric_name: 'count' }],
     },
   },
 };
@@ -67,10 +82,23 @@ jest.mock('lodash/debounce', () => ({
 fetchMock.post('glob:*/api/v1/explore/form_data*', { key });
 fetchMock.put('glob:*/api/v1/explore/form_data*', { key });
 fetchMock.get('glob:*/api/v1/explore/form_data*', {});
+fetchMock.get('glob:*/favstar/slice*', { count: 0 });
 
-const renderWithRouter = (withKey?: boolean) => {
-  const path = '/superset/explore/';
+const defaultPath = '/explore/';
+const renderWithRouter = ({
+  withKey,
+  overridePathname,
+}: {
+  withKey?: boolean;
+  overridePathname?: string;
+} = {}) => {
+  const path = overridePathname ?? defaultPath;
   const search = withKey ? `?form_data_key=${key}&dataset_id=1` : '';
+  Object.defineProperty(window, 'location', {
+    get() {
+      return { pathname: path, search };
+    },
+  });
   return render(
     <MemoryRouter initialEntries={[`${path}${search}`]}>
       <Route path={path}>
@@ -82,6 +110,14 @@ const renderWithRouter = (withKey?: boolean) => {
 };
 
 test('generates a new form_data param when none is available', async () => {
+  getChartMetadataRegistry().registerValue(
+    'table',
+    new ChartMetadata({
+      name: 'fake table',
+      thumbnail: '.png',
+      useLegacyApi: false,
+    }),
+  );
   const replaceState = jest.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter());
   expect(replaceState).toHaveBeenCalledWith(
@@ -92,14 +128,14 @@ test('generates a new form_data param when none is available', async () => {
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
     undefined,
-    expect.stringMatching('dataset_id'),
+    expect.stringMatching('datasource_id'),
   );
   replaceState.mockRestore();
 });
 
 test('generates a different form_data param when one is provided and is mounting', async () => {
   const replaceState = jest.spyOn(window.history, 'replaceState');
-  await waitFor(() => renderWithRouter(true));
+  await waitFor(() => renderWithRouter({ withKey: true }));
   expect(replaceState).not.toHaveBeenLastCalledWith(
     0,
     expect.anything(),
@@ -109,7 +145,7 @@ test('generates a different form_data param when one is provided and is mounting
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
     undefined,
-    expect.stringMatching('dataset_id'),
+    expect.stringMatching('datasource_id'),
   );
   replaceState.mockRestore();
 });
@@ -120,7 +156,7 @@ test('reuses the same form_data param when updating', async () => {
   });
   const replaceState = jest.spyOn(window.history, 'replaceState');
   const pushState = jest.spyOn(window.history, 'pushState');
-  await waitFor(() => renderWithRouter());
+  await waitFor(() => renderWithRouter({ withKey: true }));
   expect(replaceState.mock.calls.length).toBe(1);
   userEvent.click(screen.getByText('Update chart'));
   await waitFor(() => expect(pushState.mock.calls.length).toBe(1));
@@ -128,4 +164,19 @@ test('reuses the same form_data param when updating', async () => {
   replaceState.mockRestore();
   pushState.mockRestore();
   getChartControlPanelRegistry().remove('table');
+});
+
+test('doesnt call replaceState when pathname is not /explore', async () => {
+  getChartMetadataRegistry().registerValue(
+    'table',
+    new ChartMetadata({
+      name: 'fake table',
+      thumbnail: '.png',
+      useLegacyApi: false,
+    }),
+  );
+  const replaceState = jest.spyOn(window.history, 'replaceState');
+  await waitFor(() => renderWithRouter({ overridePathname: '/dashboard' }));
+  expect(replaceState).not.toHaveBeenCalled();
+  replaceState.mockRestore();
 });

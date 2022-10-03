@@ -37,6 +37,7 @@ export interface EmptyStateSmallProps {
 export interface EmptyStateProps extends EmptyStateSmallProps {
   buttonText?: ReactNode;
   buttonAction?: React.MouseEventHandler<HTMLElement>;
+  className?: string;
 }
 
 export interface ImageContainerProps {
@@ -106,6 +107,7 @@ const BigDescription = styled(Description)`
 const SmallDescription = styled(Description)`
   ${({ theme }) => css`
     margin-top: ${theme.gridUnit}px;
+    line-height: 1.2;
   `}
 `;
 
@@ -151,8 +153,9 @@ export const EmptyStateBig = ({
   description,
   buttonAction,
   buttonText,
+  className,
 }: EmptyStateProps) => (
-  <EmptyStateContainer>
+  <EmptyStateContainer className={className}>
     <ImageContainer image={image} size={EmptyStateSize.Big} />
     <TextContainer
       css={(theme: SupersetTheme) =>

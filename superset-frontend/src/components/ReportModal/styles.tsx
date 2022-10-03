@@ -71,6 +71,7 @@ export const StyledScheduleTitle = styled.div`
 
 export const StyledCronPicker = styled(CronPicker)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  width: ${({ theme }) => theme.gridUnit * 120}px;
 `;
 
 export const StyledCronError = styled.p`
@@ -110,7 +111,8 @@ export const StyledRadioGroup = styled(Radio.Group)`
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   border: ${theme.colors.error.base} 1px solid;
   padding: ${theme.gridUnit * 4}px;
-  margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 4}px;
+  margin-top: 0;
   color: ${theme.colors.error.dark2};
   .ant-alert-message {
     font-size: ${theme.typography.sizes.m}px;

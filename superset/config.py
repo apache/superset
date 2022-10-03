@@ -30,7 +30,18 @@ import re
 import sys
 from collections import OrderedDict
 from datetime import timedelta
-from typing import Any, Callable, Dict, List, Optional, Type, TYPE_CHECKING, Union
+from email.mime.multipart import MIMEMultipart
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Type,
+    TYPE_CHECKING,
+    Union,
+)
 
 import pkg_resources
 from cachelib.base import BaseCache
@@ -39,8 +50,10 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
-from typing_extensions import Literal
 
+from superset.advanced_data_type.plugins.internet_address import internet_address
+from superset.advanced_data_type.plugins.internet_port import internet_port
+from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
@@ -130,7 +143,7 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
-# default viz used in chart explorer
+# default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
 # default row limit when requesting chart data
@@ -189,8 +202,31 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 # to the DB.
 #
 # Note: the default impl leverages SqlAlchemyUtils' EncryptedType, which defaults
-#  to AES-128 under the covers using the app's SECRET_KEY as key material.
+#  to AesEngine that uses AES-128 under the covers using the app's SECRET_KEY
+#  as key material. Do note that AesEngine allows for queryability over the
+#  encrypted fields.
 #
+#  To change the default engine you need to define your own adapter:
+#
+# e.g.:
+#
+# class AesGcmEncryptedAdapter(
+#     AbstractEncryptedFieldAdapter
+# ):
+#     def create(
+#         self,
+#         app_config: Optional[Dict[str, Any]],
+#         *args: List[Any],
+#         **kwargs: Optional[Dict[str, Any]],
+#     ) -> TypeDecorator:
+#         if app_config:
+#             return EncryptedType(
+#                 *args, app_config["SECRET_KEY"], engine=AesGcmEngine, **kwargs
+#             )
+#         raise Exception("Missing app_config kwarg")
+#
+#
+#  SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = AesGcmEncryptedAdapter
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
@@ -225,6 +261,9 @@ SHOW_STACKTRACE = True
 ENABLE_PROXY_FIX = False
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 
+# Configuration for scheduling queries from SQL Lab.
+SCHEDULED_QUERIES: Dict[str, Any] = {}
+
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
@@ -258,16 +297,6 @@ FAB_API_SWAGGER_UI = True
 DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ["cardinality"]
 
-# Legacy Druid NoSQL (native) connector
-# Druid supports a SQL interface in its newer versions.
-# Setting this flag to True enables the deprecated, API-based Druid
-# connector. This feature may be removed at a future date.
-DRUID_IS_ACTIVE = False
-
-# If Druid is active whether to include the links to scan/refresh Druid datasources.
-# This should be disabled if you are trying to wean yourself off of the Druid NoSQL
-# connector.
-DRUID_METADATA_LINKS_ENABLED = True
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -403,6 +432,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_FILTER_BOX_MIGRATION": False,
+    "ENABLE_ADVANCED_DATA_TYPES": False,
     "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
@@ -422,6 +452,17 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "UX_BETA": False,
     "GENERIC_CHART_AXES": False,
     "ALLOW_ADHOC_SUBQUERY": False,
+    "USE_ANALAGOUS_COLORS": True,
+    "DASHBOARD_EDIT_CHART_IN_NEW_TAB": False,
+    # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
+    # query, and might break queries and/or allow users to bypass RLS. Use with care!
+    "RLS_IN_SQLLAB": False,
+    # Enable caching per impersonation key (e.g username) in a datasource where user
+    # impersonation is enabled
+    "CACHE_IMPERSONATION": False,
+    # Enable sharing charts with embedding
+    "EMBEDDABLE_CHARTS": True,
+    "DRILL_TO_DETAIL": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -617,13 +658,13 @@ CSV_EXPORT = {"encoding": "utf-8"}
 # Time grain configurations
 # ---------------------------------------------------
 # List of time grains to disable in the application (see list of builtin
-# time grains in superset/db_engine_specs.builtin_time_grains).
+# time grains in superset/db_engine_specs/base.py).
 # For example: to disable 1 second time grain:
 # TIME_GRAIN_DENYLIST = ['PT1S']
 TIME_GRAIN_DENYLIST: List[str] = []
 
 # Additional time grains to be supported using similar definitions as in
-# superset/db_engine_specs.builtin_time_grains.
+# superset/db_engine_specs/base.py.
 # For example: To add a new 2 second time grain:
 # TIME_GRAIN_ADDONS = {'PT2S': '2 second'}
 TIME_GRAIN_ADDONS: Dict[str, str] = {}
@@ -646,19 +687,12 @@ TIME_GRAIN_ADDON_EXPRESSIONS: Dict[str, Dict[str, str]] = {}
 
 VIZ_TYPE_DENYLIST: List[str] = []
 
-# ---------------------------------------------------
-# List of data sources not to be refreshed in druid cluster
-# ---------------------------------------------------
-
-DRUID_DATA_SOURCE_DENYLIST: List[str] = []
-
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = OrderedDict(
     [
         ("superset.connectors.sqla.models", ["SqlaTable"]),
-        ("superset.connectors.druid.models", ["DruidDatasource"]),
     ]
 )
 ADDITIONAL_MODULE_DS_MAP: Dict[str, List[str]] = {}
@@ -694,7 +728,7 @@ BACKUP_COUNT = 30
 #     database,
 #     query,
 #     schema=None,
-#     user=None,
+#     user=None,  # TODO(john-bodley): Deprecate in 3.0.
 #     client=None,
 #     security_manager=None,
 #     log_params=None,
@@ -716,9 +750,6 @@ DISPLAY_MAX_ROW = 10000
 # Default row limit for SQL Lab queries. Is overridden by setting a new limit in
 # the SQL Lab UI
 DEFAULT_SQLLAB_LIMIT = 1000
-
-# Maximum number of tables/views displayed in the dropdown window in SQL Lab.
-MAX_TABLE_NAMES = 3000
 
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
@@ -953,7 +984,9 @@ SMTP_USER = "superset"
 SMTP_PORT = 25
 SMTP_PASSWORD = "superset"
 SMTP_MAIL_FROM = "superset@superset.com"
-
+# If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
+# default system root CA certificates.
+SMTP_SSL_SERVER_AUTH = False
 ENABLE_CHUNK_ENCODING = False
 
 # Whether to bump the logging level to ERROR on the flask_appbuilder package
@@ -984,7 +1017,16 @@ BLUEPRINTS: List[Blueprint] = []
 # Provide a callable that receives a tracking_url and returns another
 # URL. This is used to translate internal Hadoop job tracker URL
 # into a proxied one
-TRACKING_URL_TRANSFORMER = lambda x: x
+
+
+# Transform SQL query tracking url for Hive and Presto engines. You may also
+# access information about the query itself by adding a second parameter
+# to your transformer function, e.g.:
+#   TRACKING_URL_TRANSFORMER = (
+#       lambda url, query: url if is_fresh(query) else None
+#   )
+TRACKING_URL_TRANSFORMER = lambda url: url
+
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
@@ -1031,9 +1073,14 @@ DB_CONNECTION_MUTATOR = None
 # The use case is can be around adding some sort of comment header
 # with information such as the username and worker node information
 #
-#    def SQL_QUERY_MUTATOR(sql, user_name=user_name, security_manager=security_manager, database=database):
+#    def SQL_QUERY_MUTATOR(
+#        sql,
+#        user_name=user_name,  # TODO(john-bodley): Deprecate in 3.0.
+#        security_manager=security_manager,
+#        database=database,
+#    ):
 #        dttm = datetime.now().isoformat()
-#        return f"-- [SQL LAB] {username} {dttm}\n{sql}"
+#        return f"-- [SQL LAB] {user_name} {dttm}\n{sql}"
 # For backward compatibility, you can unpack any of the above arguments in your
 # function definition, but keep the **kwargs as the last argument to allow new args
 # to be added later without any errors.
@@ -1041,6 +1088,15 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     sql: str, **kwargs: Any
 ) -> str:
     return sql
+
+
+# This allows for a user to add header data to any outgoing emails. For example,
+# if you need to include metadata in the header or you want to change the specifications
+# of the email title, header, or sender.
+def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+    msg: MIMEMultipart, **kwargs: Any
+) -> MIMEMultipart:
+    return msg
 
 
 # This auth provider is used by background (offline) tasks that need to access
@@ -1064,6 +1120,9 @@ ALERT_REPORTS_WORKING_SOFT_TIME_OUT_LAG = int(timedelta(seconds=1).total_seconds
 # If set to true no notification is sent, the worker will just log a message.
 # Useful for debugging
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
+# Max tries to run queries to prevent false errors caused by transient errors
+# being returned to users. Set to a value >1 to enable retries.
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
@@ -1203,7 +1262,9 @@ SSL_CERT_PATH: Optional[str] = None
 # to allow mutating the object with this callback.
 # This can be used to set any properties of the object based on naming
 # conventions and such. You can find examples in the tests.
+
 SQLA_TABLE_MUTATOR = lambda table: table
+
 
 # Global async query config options.
 # Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
@@ -1271,7 +1332,30 @@ DATASET_HEALTH_CHECK: Optional[Callable[["SqlaTable"], str]] = None
 MENU_HIDE_USER_INFO = False
 
 # Set to False to only allow viewing own recent activity
+# or to disallow users from viewing other users profile page
 ENABLE_BROAD_ACTIVITY_ACCESS = True
+
+# the advanced data type key should correspond to that set in the column metadata
+ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
+    "internet_address": internet_address,
+    "port": internet_port,
+}
+
+# Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
+# 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
+ENVIRONMENT_TAG_CONFIG = {
+    "variable": "FLASK_ENV",
+    "values": {
+        "development": {
+            "color": "error.base",
+            "text": "Development",
+        },
+        "production": {
+            "color": "",
+            "text": "",
+        },
+    },
+}
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *

@@ -129,6 +129,7 @@ class DashboardJSONMetadataSchema(Schema):
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
     shared_label_colors = fields.Dict()
+    color_scheme_domain = fields.List(fields.Str())
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
@@ -173,7 +174,6 @@ class DatabaseSchema(Schema):
     id = fields.Int()
     name = fields.String()
     backend = fields.String()
-    allow_multi_schema_metadata_fetch = fields.Bool()  # pylint: disable=invalid-name
     allows_subquery = fields.Bool()
     allows_cost_estimate = fields.Bool()
     allows_virtual_table_explore = fields.Bool()
@@ -206,7 +206,7 @@ class DashboardDatasetSchema(Schema):
     health_check_message = fields.Str()
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
-    owners = fields.List(fields.Int())
+    owners = fields.List(fields.Dict())
     columns = fields.List(fields.Dict())
     column_types = fields.List(fields.Int())
     metrics = fields.List(fields.Dict())

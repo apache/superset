@@ -289,13 +289,6 @@ class TestTableViz(SupersetTestCase):
                     "comparator": "100",
                 },
                 {
-                    "expressionType": "SIMPLE",
-                    "clause": "HAVING",
-                    "subject": "SUM(value1)",
-                    "operator": "<",
-                    "comparator": "10",
-                },
-                {
                     "expressionType": "SQL",
                     "clause": "HAVING",
                     "sqlExpression": "SUM(value1) > 5",
@@ -312,10 +305,6 @@ class TestTableViz(SupersetTestCase):
         query_obj = test_viz.query_obj()
         self.assertEqual(
             [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
-        )
-        self.assertEqual(
-            [{"op": "<", "val": "10", "col": "SUM(value1)"}],
-            query_obj["extras"]["having_druid"],
         )
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("(SUM(value1) > 5)", query_obj["extras"]["having"])
@@ -352,7 +341,6 @@ class TestTableViz(SupersetTestCase):
         self.assertEqual(
             [{"col": "value2", "val": "100", "op": ">"}], query_obj["filter"]
         )
-        self.assertEqual([], query_obj["extras"]["having_druid"])
         self.assertEqual("(value3 in ('North America'))", query_obj["extras"]["where"])
         self.assertEqual("", query_obj["extras"]["having"])
 
@@ -728,7 +716,7 @@ class TestPairedTTest(SupersetTestCase):
         self.assertEqual(data, expected)
 
     def test_get_data_empty_null_keys(self):
-        form_data = {"groupby": [], "metrics": ["", None]}
+        form_data = {"groupby": [], "metrics": [""]}
         datasource = self.get_datasource_mock()
         # Test data
         raw = {}
@@ -751,18 +739,12 @@ class TestPairedTTest(SupersetTestCase):
                     "group": "All",
                 }
             ],
-            "NULL": [
-                {
-                    "values": [
-                        {"x": 100, "y": 10},
-                        {"x": 200, "y": 20},
-                        {"x": 300, "y": 30},
-                    ],
-                    "group": "All",
-                }
-            ],
         }
         self.assertEqual(data, expected)
+
+        form_data = {"groupby": [], "metrics": [None]}
+        with self.assertRaises(ValueError):
+            viz.viz_types["paired_ttest"](datasource, form_data)
 
 
 class TestPartitionViz(SupersetTestCase):

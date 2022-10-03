@@ -24,6 +24,7 @@ from superset.commands.exceptions import (
     ForbiddenError,
     ValidationError,
 )
+from superset.reports.models import ReportScheduleType
 
 
 class DatabaseNotFoundValidationError(ValidationError):
@@ -71,13 +72,24 @@ class ReportScheduleRequiredTypeValidationError(ValidationError):
         super().__init__(_("Type is required"), field_name="type")
 
 
-class ReportScheduleChartOrDashboardValidationError(ValidationError):
+class ReportScheduleOnlyChartOrDashboardError(ValidationError):
     """
     Marshmallow validation error for report schedule accept exlusive chart or dashboard
     """
 
     def __init__(self) -> None:
         super().__init__(_("Choose a chart or dashboard not both"), field_name="chart")
+
+
+class ReportScheduleEitherChartOrDashboardError(ValidationError):
+    """
+    Marshmallow validation error for report schedule missing both dashboard and chart id
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            _("Must choose either a chart or a dashboard"), field_name="chart"
+        )
 
 
 class ChartNotSavedValidationError(ValidationError):
@@ -163,18 +175,21 @@ class ReportScheduleNameUniquenessValidationError(ValidationError):
     Marshmallow validation error for Report Schedule name and type already exists
     """
 
-    def __init__(self) -> None:
-        super().__init__([_("Name must be unique")], field_name="name")
+    def __init__(self, report_type: ReportScheduleType, name: str) -> None:
+        message = _('A report named "%(name)s" already exists', name=name)
+        if report_type == ReportScheduleType.ALERT:
+            message = _('An alert named "%(name)s" already exists', name=name)
+        super().__init__([message], field_name="name")
 
 
 class ReportScheduleCreationMethodUniquenessValidationError(CommandException):
     status = 409
-    message = "Resource already has an attached report."
+    message = _("Resource already has an attached report.")
 
 
 class AlertQueryMultipleRowsError(CommandException):
 
-    message = _("Alert query returned more then one row.")
+    message = _("Alert query returned more than one row.")
 
 
 class AlertValidatorConfigError(CommandException):
@@ -183,7 +198,7 @@ class AlertValidatorConfigError(CommandException):
 
 
 class AlertQueryMultipleColumnsError(CommandException):
-    message = _("Alert query returned more then one column.")
+    message = _("Alert query returned more than one column.")
 
 
 class AlertQueryInvalidTypeError(CommandException):

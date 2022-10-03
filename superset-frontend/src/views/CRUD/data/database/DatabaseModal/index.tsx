@@ -18,6 +18,7 @@
  */
 import {
   t,
+  styled,
   SupersetTheme,
   FeatureFlag,
   isFeatureEnabled,
@@ -30,6 +31,7 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
 import { AntdSelect, Upload } from 'src/components';
@@ -40,6 +42,8 @@ import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -55,13 +59,13 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
   CatalogObject,
+  Engines,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
-  antDErrorAlertStyles,
   antDAlertStyles,
   antdWarningAlertStyles,
   StyledAlertMargin,
@@ -85,7 +89,7 @@ import {
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
 const engineSpecificAlertMapping = {
-  gsheets: {
+  [Engines.GSheet]: {
     message: 'Why do I need to create a database?',
     description:
       'To begin using your Google Sheets, you need to create a database first. ' +
@@ -96,7 +100,23 @@ const engineSpecificAlertMapping = {
   },
 };
 
-const googleSheetConnectionEngine = 'gsheets';
+const TabsStyled = styled(Tabs)`
+  .ant-tabs-content {
+    display: flex;
+    width: 100%;
+    overflow: inherit;
+
+    & > .ant-tabs-tabpane {
+      position: relative;
+    }
+  }
+`;
+
+const ErrorAlertContainer = styled.div`
+  ${({ theme }) => `
+    margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  `};
+`;
 
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
@@ -175,6 +195,11 @@ type DBReducerActionType =
       };
     };
 
+const StyledBtns = styled.div`
+  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-left: ${({ theme }) => theme.gridUnit * 3}px;
+`;
+
 function dbReducer(
   state: Partial<DatabaseObject> | null,
   action: DBReducerActionType,
@@ -184,7 +209,7 @@ function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let deserializeExtraJSON = {};
+  let deserializeExtraJSON = { allows_virtual_table_explore: true };
   let extra_json: DatabaseObject['extra_json'];
 
   switch (action.type) {
@@ -334,7 +359,7 @@ function dbReducer(
         .join('&');
 
       if (
-        action.payload.encrypted_extra &&
+        action.payload.masked_encrypted_extra &&
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
@@ -350,18 +375,17 @@ function dbReducer(
           configuration_method: action.payload.configuration_method,
           extra_json: deserializeExtraJSON,
           catalog: engineParamsCatalog,
-          parameters: action.payload.parameters,
+          parameters: action.payload.parameters || trimmedState.parameters,
           query_input,
         };
       }
-
       return {
         ...action.payload,
-        encrypted_extra: action.payload.encrypted_extra || '',
+        masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
         extra_json: deserializeExtraJSON,
-        parameters: action.payload.parameters,
+        parameters: action.payload.parameters || trimmedState.parameters,
         query_input,
       };
 
@@ -423,6 +447,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [validationErrors, getValidation, setValidationErrors] =
     useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
+  const [showCTAbtns, setShowCTAbtns] = useState(false);
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -431,6 +456,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModal, setImportingModal] = useState<boolean>(false);
+  const [importingErrorMessage, setImportingErrorMessage] = useState<string>();
+  const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
@@ -450,7 +477,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
-    data && Object.keys(data).length === 0;
+    !data || (data && Object.keys(data).length === 0);
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -471,7 +498,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       database_name: db?.database_name?.trim() || undefined,
       impersonate_user: db?.impersonate_user || undefined,
       extra: serializeExtra(db?.extra_json) || undefined,
-      encrypted_extra: db?.encrypted_extra || '',
+      masked_encrypted_extra: db?.masked_encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
     setTestInProgress(true);
@@ -488,6 +515,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
+  const getPlaceholder = (field: string) => {
+    if (field === 'database') {
+      switch (db?.engine) {
+        case Engines.Snowflake:
+          return t('e.g. xy12345.us-east-2.aws');
+        default:
+          return t('e.g. world_population');
+      }
+    }
+    return undefined;
+  };
+
   const removeFile = (removedFile: UploadFile) => {
     setFileList(fileList.filter(file => file.uid !== removedFile.uid));
     return false;
@@ -501,9 +540,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setEditNewDb(false);
     setFileList([]);
     setImportingModal(false);
+    setImportingErrorMessage('');
+    setPasswordFields([]);
     setPasswords({});
     setConfirmedOverwrite(false);
-    if (onDatabaseAdd) onDatabaseAdd();
     onHide();
   };
 
@@ -517,8 +557,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     },
     importResource,
   } = useImportResource('database', t('database'), msg => {
-    addDangerToast(msg);
-    onClose();
+    setImportingErrorMessage(msg);
   });
 
   const onChange = (type: any, payload: any) => {
@@ -526,10 +565,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...update } = db || {};
     // Clone DB object
-    const dbToUpdate = JSON.parse(JSON.stringify(update));
+    const dbToUpdate = JSON.parse(JSON.stringify(db || {}));
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
@@ -541,25 +578,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         ? dbToUpdate.parameters_schema.properties
         : dbModel?.parameters.properties;
       const additionalEncryptedExtra = JSON.parse(
-        dbToUpdate.encrypted_extra || '{}',
+        dbToUpdate.masked_encrypted_extra || '{}',
       );
       const paramConfigArray = Object.keys(parameters_schema || {});
 
       paramConfigArray.forEach(paramConfig => {
         /*
-         * Parameters that are annotated with the `x-encrypted-extra` properties should be moved to
-         * `encrypted_extra`, so that they are stored encrypted in the backend when the database is
-         * created or edited.
+         * Parameters that are annotated with the `x-encrypted-extra` properties should be
+         * moved to `masked_encrypted_extra`, so that they are stored encrypted in the
+         * backend when the database is created or edited.
          */
         if (
           parameters_schema[paramConfig]['x-encrypted-extra'] &&
           dbToUpdate.parameters?.[paramConfig]
         ) {
           if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
-            // add new encrypted extra to encrypted_extra object
+            // add new encrypted extra to masked_encrypted_extra object
             additionalEncryptedExtra[paramConfig] =
               dbToUpdate.parameters?.[paramConfig];
-            // The backend expects `encrypted_extra` as a string for historical reasons.
+            // The backend expects `masked_encrypted_extra` as a string for historical
+            // reasons.
             dbToUpdate.parameters[paramConfig] = JSON.stringify(
               dbToUpdate.parameters[paramConfig],
             );
@@ -571,9 +609,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       });
       // cast the new encrypted extra object into a string
-      dbToUpdate.encrypted_extra = JSON.stringify(additionalEncryptedExtra);
+      dbToUpdate.masked_encrypted_extra = JSON.stringify(
+        additionalEncryptedExtra,
+      );
       // this needs to be added by default to gsheets
-      if (dbToUpdate.engine === 'gsheets') {
+      if (dbToUpdate.engine === Engines.GSheet) {
         dbToUpdate.impersonate_user = true;
       }
     }
@@ -592,8 +632,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       dbToUpdate.extra = serializeExtra(dbToUpdate?.extra_json);
     }
 
+    setLoading(true);
     if (db?.id) {
-      setLoading(true);
       const result = await updateResource(
         db.id as number,
         dbToUpdate as DatabaseObject,
@@ -608,7 +648,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     } else if (db) {
       // Create
-      setLoading(true);
       const dbId = await createResource(
         dbToUpdate as DatabaseObject,
         dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM, // onShow toast on SQLA Forms
@@ -623,25 +662,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           addSuccessToast(t('Database connected'));
         }
       }
-    }
-
-    // Import - doesn't use db state
-    if (!db) {
-      setLoading(true);
+    } else {
+      // Import - doesn't use db state
       setImportingModal(true);
 
-      if (!(fileList[0].originFileObj instanceof File)) return;
+      if (!(fileList[0].originFileObj instanceof File)) {
+        return;
+      }
+
       const dbId = await importResource(
         fileList[0].originFileObj,
         passwords,
         confirmedOverwrite,
       );
       if (dbId) {
+        if (onDatabaseAdd) onDatabaseAdd();
         onClose();
         addSuccessToast(t('Database connected'));
       }
     }
 
+    setShowCTAbtns(true);
     setEditNewDb(false);
     setLoading(false);
   };
@@ -774,6 +815,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             onClick={() => setDatabaseModel(database.name)}
             buttonText={database.name}
             icon={dbImages?.[database.engine]}
+            key={`${database.name}`}
           />
         ))}
     </div>
@@ -783,12 +825,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbFetched) {
       fetchResource(dbFetched.id as number);
     }
+    setShowCTAbtns(false);
     setEditNewDb(true);
   };
 
   const handleBackButtonOnConnect = () => {
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
+    if (importErrored) {
+      setImportingModal(false);
+      setImportingErrorMessage('');
+      setPasswordFields([]);
+      setPasswords({});
+    }
     setDB({ type: ActionType.reset });
     setFileList([]);
   };
@@ -805,7 +854,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderModalFooter = () => {
     if (db) {
-      // if db show back + connenct
+      // if db show back + connect
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
@@ -859,7 +908,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
     }
 
-    return [];
+    return <></>;
   };
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
@@ -949,7 +998,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   }, [importingModal]);
 
+  useEffect(() => {
+    setPasswordFields([...passwordsNeeded]);
+  }, [passwordsNeeded]);
+
   const onDbImport = async (info: UploadChangeParam) => {
+    setImportingErrorMessage('');
+    setPasswordFields([]);
+    setPasswords({});
     setImportingModal(true);
     setFileList([
       {
@@ -959,17 +1015,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ]);
 
     if (!(info.file.originFileObj instanceof File)) return;
-    await importResource(
+    const dbId = await importResource(
       info.file.originFileObj,
       passwords,
       confirmedOverwrite,
     );
+    if (dbId) onDatabaseAdd?.();
   };
 
   const passwordNeededField = () => {
-    if (!passwordsNeeded.length) return null;
+    if (!passwordFields.length) return null;
 
-    return passwordsNeeded.map(database => (
+    return passwordFields.map(database => (
       <>
         <StyledAlertMargin>
           <Alert
@@ -998,6 +1055,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
       </>
     ));
+  };
+
+  const importingErrorAlert = () => {
+    if (!importingErrorMessage) return null;
+
+    return (
+      <StyledAlertMargin>
+        <ErrorAlert
+          errorMessage={importingErrorMessage}
+          showDbInstallInstructions={passwordFields.length > 0}
+        />
+      </StyledAlertMargin>
+    );
   };
 
   const confirmOverwrite = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1070,20 +1140,64 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   // eslint-disable-next-line consistent-return
   const errorAlert = () => {
-    if (isEmpty(dbErrors) === false) {
-      const message: Array<string> =
-        typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
+    let alertErrors: string[] = [];
+    if (!isEmpty(dbErrors)) {
+      alertErrors = typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
+    } else if (!isEmpty(validationErrors)) {
+      alertErrors =
+        validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
+          ? [
+              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
+            ]
+          : [];
+    }
+
+    if (alertErrors.length) {
       return (
-        <Alert
-          type="error"
-          css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-          message={t('Database Creation Error')}
-          description={message?.[0] || dbErrors}
+        <ErrorMessageWithStackTrace
+          title={t('Database Creation Error')}
+          description={alertErrors[0]}
+          subtitle={validationErrors?.description}
+          copyText={validationErrors?.description}
         />
       );
     }
     return <></>;
   };
+
+  const fetchAndSetDB = () => {
+    setLoading(true);
+    fetchResource(dbFetched?.id as number).then(r => {
+      setItem(LocalStorageKeys.db, r);
+    });
+  };
+
+  const renderCTABtns = () => (
+    <StyledBtns>
+      <Button
+        // eslint-disable-next-line no-return-assign
+        buttonStyle="secondary"
+        onClick={() => {
+          setLoading(true);
+          fetchAndSetDB();
+          window.location.href = '/tablemodelview/list#create';
+        }}
+      >
+        {t('CREATE DATASET')}
+      </Button>
+      <Button
+        buttonStyle="secondary"
+        // eslint-disable-next-line no-return-assign
+        onClick={() => {
+          setLoading(true);
+          fetchAndSetDB();
+          window.location.href = `/superset/sqllab/?db=true`;
+        }}
+      >
+        {t('QUERY DATA IN SQL LAB')}
+      </Button>
+    </StyledBtns>
+  );
 
   const renderFinishState = () => {
     if (!editNewDb) {
@@ -1162,7 +1276,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     );
   };
 
-  if (fileList.length > 0 && (alreadyExists.length || passwordsNeeded.length)) {
+  if (fileList.length > 0 && (alreadyExists.length || passwordFields.length)) {
     return (
       <Modal
         css={(theme: SupersetTheme) => [
@@ -1193,10 +1307,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         />
         {passwordNeededField()}
         {confirmOverwriteField()}
+        {importingErrorAlert()}
       </Modal>
     );
   }
-
+  const modalFooter = isEditMode
+    ? renderEditModalFooter(db)
+    : renderModalFooter();
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -1217,7 +1334,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={isEditMode ? renderEditModalFooter(db) : renderModalFooter()}
+      footer={modalFooter}
     >
       <StyledStickyHeader>
         <TabHeader>
@@ -1232,7 +1349,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         </TabHeader>
       </StyledStickyHeader>
-      <Tabs
+      <TabsStyled
         defaultActiveKey={DEFAULT_TAB_KEY}
         activeKey={tabKey}
         onTabClick={tabChange}
@@ -1253,7 +1370,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 }
                 conf={conf}
                 testConnection={testConnection}
-                isEditMode={isEditMode}
                 testInProgress={testInProgress}
               />
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
@@ -1383,9 +1499,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {showDBError && errorAlert()}
+          {showDBError && (
+            <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
+          )}
         </Tabs.TabPane>
-      </Tabs>
+      </TabsStyled>
     </Modal>
   ) : (
     <Modal
@@ -1405,7 +1523,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
     >
-      {hasConnectedDb ? (
+      {!isLoading && hasConnectedDb ? (
         <>
           <ModalHeader
             isLoading={isLoading}
@@ -1417,11 +1535,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             dbModel={dbModel}
             editNewDb={editNewDb}
           />
+          {showCTAbtns && renderCTABtns()}
           {renderFinishState()}
         </>
       ) : (
         <>
-          {/* Dyanmic Form Step 1 */}
+          {/* Dynamic Form Step 1 */}
           {!isLoading &&
             (!db ? (
               <SelectDatabaseStyles>
@@ -1456,6 +1575,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     </Button>
                   </Upload>
                 </StyledUploadWrapper>
+                {importingErrorAlert()}
               </SelectDatabaseStyles>
             ) : (
               <>
@@ -1508,9 +1628,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   }
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
+                  getPlaceholder={getPlaceholder}
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-                  {dbModel.engine !== googleSheetConnectionEngine && (
+                  {dbModel.engine !== Engines.GSheet && (
                     <>
                       <Button
                         data-test="sqla-connect-btn"
@@ -1542,7 +1663,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
                 {/* Step 2 */}
-                {showDBError && errorAlert()}
+                {showDBError && (
+                  <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
+                )}
               </>
             ))}
         </>

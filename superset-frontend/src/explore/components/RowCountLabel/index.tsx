@@ -17,36 +17,40 @@
  * under the License.
  */
 import React from 'react';
-import { getNumberFormatter, t } from '@superset-ui/core';
+import { getNumberFormatter, t, tn } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 
 type RowCountLabelProps = {
-  rowcount: number;
+  rowcount?: number;
   limit?: number;
-  suffix?: string;
   loading?: boolean;
 };
 
 export default function RowCountLabel(props: RowCountLabelProps) {
-  const { rowcount = 0, limit, suffix = t('rows'), loading } = props;
+  const { rowcount = 0, limit, loading } = props;
   const limitReached = rowcount === limit;
   const type =
     limitReached || (rowcount === 0 && !loading) ? 'danger' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
-  const tooltip = (
-    <span>
-      {limitReached && <div>{t('Limit reached')}</div>}
-      {loading ? 'Loading' : rowcount}
-    </span>
+  const label = (
+    <Label type={type}>
+      {loading ? (
+        t('Loading...')
+      ) : (
+        <span data-test="row-count-label">
+          {tn('%s row', '%s rows', rowcount, formattedRowCount)}
+        </span>
+      )}
+    </Label>
   );
-  return (
-    <Tooltip id="tt-rowcount-tooltip" title={tooltip}>
-      <Label type={type} data-test="row-count-label">
-        {loading ? 'Loading...' : `${formattedRowCount} ${suffix}`}
-      </Label>
+  return limitReached ? (
+    <Tooltip id="tt-rowcount-tooltip" title={<span>{t('Limit reached')}</span>}>
+      {label}
     </Tooltip>
+  ) : (
+    label
   );
 }
 

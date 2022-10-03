@@ -27,8 +27,7 @@ from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id, encode_permalink_key
 from superset.models.slice import Slice
-from tests.integration_tests.base_tests import login
-from tests.integration_tests.fixtures.client import client
+from superset.utils.core import DatasourceType
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -37,11 +36,10 @@ from tests.integration_tests.test_app import app
 
 
 @pytest.fixture
-def chart(load_world_bank_dashboard_with_slices) -> Slice:
-    with app.app_context() as ctx:
-        session: Session = ctx.app.appbuilder.get_session
-        chart = session.query(Slice).filter_by(slice_name="World's Population").one()
-        return chart
+def chart(app_context, load_world_bank_dashboard_with_slices) -> Slice:
+    session: Session = app_context.app.appbuilder.get_session
+    chart = session.query(Slice).filter_by(slice_name="World's Population").one()
+    return chart
 
 
 @pytest.fixture
@@ -69,9 +67,10 @@ def permalink_salt() -> Iterator[str]:
     db.session.commit()
 
 
-def test_post(client, form_data: Dict[str, Any], permalink_salt: str):
-    login(client, "admin")
-    resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
+def test_post(
+    test_client, login_as_admin, form_data: Dict[str, Any], permalink_salt: str
+):
+    resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     assert resp.status_code == 201
     data = json.loads(resp.data.decode("utf-8"))
     key = data["key"]
@@ -82,13 +81,15 @@ def test_post(client, form_data: Dict[str, Any], permalink_salt: str):
     db.session.commit()
 
 
-def test_post_access_denied(client, form_data):
-    login(client, "gamma")
-    resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
-    assert resp.status_code == 404
+def test_post_access_denied(test_client, login_as, form_data):
+    login_as("gamma")
+    resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
+    assert resp.status_code == 403
 
 
-def test_get_missing_chart(client, chart, permalink_salt: str) -> None:
+def test_get_missing_chart(
+    test_client, login_as_admin, chart, permalink_salt: str
+) -> None:
     from superset.key_value.models import KeyValueEntry
 
     chart_id = 1234
@@ -97,7 +98,8 @@ def test_get_missing_chart(client, chart, permalink_salt: str) -> None:
         value=pickle.dumps(
             {
                 "chartId": chart_id,
-                "datasetId": chart.datasource.id,
+                "datasourceId": chart.datasource.id,
+                "datasourceType": DatasourceType.TABLE,
                 "formData": {
                     "slice_id": chart_id,
                     "datasource": f"{chart.datasource.id}__{chart.datasource.type}",
@@ -108,25 +110,24 @@ def test_get_missing_chart(client, chart, permalink_salt: str) -> None:
     db.session.add(entry)
     db.session.commit()
     key = encode_permalink_key(entry.id, permalink_salt)
-    login(client, "admin")
-    resp = client.get(f"api/v1/explore/permalink/{key}")
+    resp = test_client.get(f"api/v1/explore/permalink/{key}")
     assert resp.status_code == 404
     db.session.delete(entry)
     db.session.commit()
 
 
-def test_post_invalid_schema(client) -> None:
-    login(client, "admin")
-    resp = client.post(f"api/v1/explore/permalink", json={"abc": 123})
+def test_post_invalid_schema(test_client, login_as_admin) -> None:
+    resp = test_client.post(f"api/v1/explore/permalink", json={"abc": 123})
     assert resp.status_code == 400
 
 
-def test_get(client, form_data: Dict[str, Any], permalink_salt: str) -> None:
-    login(client, "admin")
-    resp = client.post(f"api/v1/explore/permalink", json={"formData": form_data})
+def test_get(
+    test_client, login_as_admin, form_data: Dict[str, Any], permalink_salt: str
+) -> None:
+    resp = test_client.post(f"api/v1/explore/permalink", json={"formData": form_data})
     data = json.loads(resp.data.decode("utf-8"))
     key = data["key"]
-    resp = client.get(f"api/v1/explore/permalink/{key}")
+    resp = test_client.get(f"api/v1/explore/permalink/{key}")
     assert resp.status_code == 200
     result = json.loads(resp.data.decode("utf-8"))
     assert result["state"]["formData"] == form_data

@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  getStandardizedControls,
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
@@ -63,7 +64,7 @@ const config: ControlPanelConfig = {
             controlState,
           ) || {};
         timeserieslimitProps.value = state.controls?.limit?.value
-          ? controlState.value
+          ? controlState?.value
           : [];
         return timeserieslimitProps;
       },
@@ -122,6 +123,11 @@ const config: ControlPanelConfig = {
     timeSeriesSection[1],
     sections.annotations,
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;

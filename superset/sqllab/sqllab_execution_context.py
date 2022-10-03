@@ -28,7 +28,7 @@ from superset import is_feature_enabled
 from superset.models.sql_lab import Query
 from superset.sql_parse import CtasMethod
 from superset.utils import core as utils
-from superset.utils.core import apply_max_row_limit
+from superset.utils.core import apply_max_row_limit, get_user_id
 from superset.utils.dates import now_as_float
 from superset.views.utils import get_cta_schema_name
 
@@ -64,7 +64,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self.create_table_as_select = None
         self.database = None
         self._init_from_query_params(query_params)
-        self.user_id = self._get_user_id()
+        self.user_id = get_user_id()
         self.client_id_or_short_id = cast(str, self.client_id or utils.shortid()[:10])
 
     def set_query(self, query: Query) -> None:
@@ -111,12 +111,6 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             limit = 0
         return limit
 
-    def _get_user_id(self) -> Optional[int]:  # pylint: disable=no-self-use
-        try:
-            return g.user.get_id() if g.user else None
-        except RuntimeError:
-            return None
-
     def is_run_asynchronous(self) -> bool:
         return self.async_flag
 
@@ -159,6 +153,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
                 start_time=start_time,
                 tab_name=self.tab_name,
                 status=self.status,
+                limit=self.limit,
                 sql_editor_id=self.sql_editor_id,
                 tmp_table_name=self.create_table_as_select.target_table_name,  # type: ignore
                 tmp_schema_name=self.create_table_as_select.target_schema_name,  # type: ignore
@@ -172,6 +167,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
             select_as_cta=False,
             start_time=start_time,
             tab_name=self.tab_name,
+            limit=self.limit,
             status=self.status,
             sql_editor_id=self.sql_editor_id,
             user_id=self.user_id,

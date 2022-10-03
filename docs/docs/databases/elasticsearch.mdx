@@ -46,7 +46,7 @@ POST /_aliases
 }
 ```
 
-Then register your table with the alias name logstasg_all
+Then register your table with the alias name logstash_all
 
 **Time zone**
 
@@ -66,3 +66,11 @@ you need to use the `CAST` function,but this function does not support our `time
 After elasticsearch7.8, you can use the `DATETIME_PARSE` function to solve this problem.
 The DATETIME_PARSE function is to support our `time_zone` setting, and here you need to fill in your elasticsearch version number in the Other > VERSION setting.
 the superset will use the `DATETIME_PARSE` function for conversion.
+
+**Disable SSL Verification**
+
+To disable SSL verification, add the following to the **SQLALCHEMY URI** field:
+
+```
+elasticsearch+https://{user}:{password}@{host}:9200/?verify_certs=False
+```

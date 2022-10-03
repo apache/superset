@@ -15,14 +15,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+#
 -r base.in
-flask-cors>=2.0.0
-mysqlclient>=2.1.0
-pillow>=9.0.1,<10
-pydruid>=0.6.1,<0.7
-pyhive[hive]>=0.6.1
-psycopg2-binary==2.9.1
-tableschema
-thrift>=0.11.0,<1.0.0
+-e .[cors,druid,hive,mysql,postgres,thumbnails]
+ipython
 progress>=1.5,<2
 pyinstrument>=4.0.2,<5
+sqloxide

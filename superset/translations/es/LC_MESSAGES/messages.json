@@ -688,10 +688,10 @@
         "",
         "Deleted %(num)d report schedules"
       ],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "La consulta de alerta devolvió más de una fila. %s filas devueltas"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "La consulta de alerta devolvió más de una columna. %s columnas devueltas"
       ],
       "Dashboard does not exist": ["El dashboard no existe"],
@@ -734,13 +734,13 @@
       "Report Schedule reached a working timeout.": [
         "El informe programado alcanzó el tiempo de espera máximo."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "La consulta de alerta devolvió más de una fila."
       ],
       "Alert validator config error.": [
         "Error de configuración del validador de alertas."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "La consulta de alerta devolvió más de una columna."
       ],
       "Alert query returned a non-number value.": [
@@ -1432,6 +1432,7 @@
       "Run selection": ["Probar Conexión"],
       "Run": ["Ejecutar"],
       "Stop running (Ctrl + x)": ["Detener (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Detener (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Ejecutar consulta (Ctrl + Enter)"],
       "Save & Explore": ["Guardar y Explorar"],
       "Overwrite & Explore": ["Sobreescribir y Explorar"],

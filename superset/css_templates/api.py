@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from flask import g, Response
+from flask import Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -130,7 +130,7 @@ class CssTemplateRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteCssTemplateCommand(g.user, item_ids).run()
+            BulkDeleteCssTemplateCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

@@ -22,7 +22,8 @@ import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import { DatasourcesAction } from 'src/dashboard/actions/datasources';
 import { ChartState } from 'src/explore/types';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
-import { now } from 'src/modules/dates';
+import { HYDRATE_EXPLORE } from 'src/explore/actions/hydrateExplore';
+import { now } from 'src/utils/dates';
 import * as actions from './chartAction';
 
 export const chart: ChartState = {
@@ -194,7 +195,7 @@ export default function chartReducer(
     delete charts[key];
     return charts;
   }
-  if (action.type === HYDRATE_DASHBOARD) {
+  if (action.type === HYDRATE_DASHBOARD || action.type === HYDRATE_EXPLORE) {
     return { ...action.data.charts };
   }
   if (action.type === DatasourcesAction.SET_DATASOURCES) {

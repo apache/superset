@@ -211,10 +211,14 @@ const publishDataMask = debounce(
 
     // pathname could be updated somewhere else through window.history
     // keep react router history in sync with window history
-    history.location.pathname = window.location.pathname;
-    history.replace({
-      search: newParams.toString(),
-    });
+    // replace params only when current page is /superset/dashboard
+    // this prevents a race condition between updating filters and navigating to Explore
+    if (window.location.pathname.includes('/superset/dashboard')) {
+      history.location.pathname = window.location.pathname;
+      history.replace({
+        search: newParams.toString(),
+      });
+    }
   },
   SLOW_DEBOUNCE,
 );
@@ -246,6 +250,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const dashboardId = useSelector<any, string>(
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
+  const previousDashboardId = usePrevious(dashboardId);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -279,7 +284,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
 
   useEffect(() => {
-    if (previousFilters) {
+    if (previousFilters && dashboardId === previousDashboardId) {
       const updates = {};
       Object.values(filters).forEach(currentFilter => {
         const previousFilter = previousFilters?.[currentFilter.id];
@@ -306,7 +311,11 @@ const FilterBar: React.FC<FiltersBarProps> = ({
         Object.keys(updates).forEach(key => dispatch(clearDataMask(key)));
       }
     }
-  }, [JSON.stringify(filters), JSON.stringify(previousFilters)]);
+  }, [
+    JSON.stringify(filters),
+    JSON.stringify(previousFilters),
+    previousDashboardId,
+  ]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
 
@@ -493,6 +502,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
             </div>
           )}
           <ActionButtons
+            width={width}
             onApply={handleApply}
             onClearAll={handleClearAll}
             dataMaskSelected={dataMaskSelected}

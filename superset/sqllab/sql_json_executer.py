@@ -22,7 +22,6 @@ import logging
 from abc import ABC
 from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 
-from flask import g
 from flask_babel import gettext as __
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -34,6 +33,7 @@ from superset.exceptions import (
 )
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.utils import core as utils
+from superset.utils.core import get_username
 from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
@@ -139,9 +139,7 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             rendered_query,
             return_results=True,
             store_results=self._is_store_results(execution_context),
-            user_name=g.user.username
-            if g.user and hasattr(g.user, "username")
-            else None,
+            username=get_username(),
             expand_data=execution_context.expand_data,
             log_params=log_params,
         )
@@ -174,9 +172,7 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
                 rendered_query,
                 return_results=False,
                 store_results=not execution_context.select_as_cta,
-                user_name=g.user.username
-                if g.user and hasattr(g.user, "username")
-                else None,
+                username=get_username(),
                 start_time=now_as_float(),
                 expand_data=execution_context.expand_data,
                 log_params=log_params,

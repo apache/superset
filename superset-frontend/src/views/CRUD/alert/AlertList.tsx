@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import moment from 'moment';
@@ -109,6 +109,7 @@ function AlertList({
     },
     hasPerm,
     fetchData,
+    setResourceCollection,
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<AlertObject>(
@@ -188,14 +189,32 @@ function AlertList({
 
   const initialSort = [{ id: 'name', desc: true }];
 
-  const toggleActive = (data: AlertObject, checked: boolean) => {
-    if (data && data.id) {
-      const update_id = data.id;
-      updateResource(update_id, { active: checked }).then(() => {
-        refreshData();
-      });
-    }
-  };
+  const toggleActive = useCallback(
+    (data: AlertObject, checked: boolean) => {
+      if (data && data.id) {
+        const update_id = data.id;
+        const original = [...alerts];
+
+        setResourceCollection(
+          original.map(alert => {
+            if (alert?.id === data.id) {
+              return {
+                ...alert,
+                active: checked,
+              };
+            }
+
+            return alert;
+          }),
+        );
+
+        updateResource(update_id, { active: checked }, false, false)
+          .then()
+          .catch(() => setResourceCollection(original));
+      }
+    },
+    [alerts, setResourceCollection, updateResource],
+  );
 
   const columns = useMemo(
     () => [
@@ -238,11 +257,14 @@ function AlertList({
         size: 'xl',
         Cell: ({
           row: {
-            original: { crontab_humanized = '' },
+            original: { crontab_humanized = '', timezone },
           },
         }: any) => (
-          <Tooltip title={crontab_humanized} placement="topLeft">
-            <span>{crontab_humanized}</span>
+          <Tooltip
+            title={`${crontab_humanized} (${timezone})`}
+            placement="topLeft"
+          >
+            <span>{`${crontab_humanized} (${timezone})`}</span>
           </Tooltip>
         ),
       },
@@ -281,6 +303,16 @@ function AlertList({
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {
@@ -344,7 +376,7 @@ function AlertList({
         size: 'xl',
       },
     ],
-    [canDelete, canEdit, isReportEnabled],
+    [canDelete, canEdit, isReportEnabled, toggleActive],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];

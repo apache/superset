@@ -16,7 +16,8 @@
 # under the License.
 from __future__ import annotations
 
-from typing import List, TYPE_CHECKING
+import datetime
+from typing import Any, List, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -42,3 +43,15 @@ def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
             # soft-convert a metric column to numeric
             # will stay as strings if conversion fails
             df[col] = df[col].infer_objects()
+
+
+def is_datetime_series(series: Any) -> bool:
+    if series is None or not isinstance(series, pd.Series):
+        return False
+
+    if series.isnull().all():
+        return False
+
+    return pd.api.types.is_datetime64_any_dtype(series) or (
+        series.apply(lambda x: isinstance(x, datetime.date) or x is None).all()
+    )
