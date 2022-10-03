@@ -636,7 +636,7 @@ def test_email_chart_report_schedule(
             '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart.chart.id}%7D&"
-            'standalone=0&force=false">Explore in Superset</a>'
+            'standalone=0&force=false">Explore in Careem Insights</a>'
             in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
@@ -681,7 +681,7 @@ def test_email_chart_report_schedule_force_screenshot(
             '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart_force_screenshot.chart.id}%7D&"
-            'standalone=0&force=true">Explore in Superset</a>'
+            'standalone=0&force=true">Explore in Careem Insights</a>'
             in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
@@ -720,7 +720,7 @@ def test_email_chart_alert_schedule(
             '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
             f"{create_alert_email_chart.chart.id}%7D&"
-            'standalone=0&force=true">Explore in Superset</a>'
+            'standalone=0&force=true">Explore in Careem Insights</a>'
             in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
@@ -794,7 +794,7 @@ def test_email_chart_report_schedule_with_csv(
             '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
             f"{create_report_email_chart_with_csv.chart.id}%7D&"
-            'standalone=0&force=false">Explore in Superset</a>'
+            'standalone=0&force=false">Explore in Careem Insights</a>'
             in email_mock.call_args[0][2]
         )
         # Assert the email smtp address
@@ -1169,7 +1169,7 @@ def test_slack_chart_report_schedule_with_text(
 |  1 | c21  | c22  | c23       |"""
         assert table_markdown in post_message_mock.call_args[1]["text"]
         assert (
-            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A%20{create_report_slack_chart_with_text.chart.id}%7D&standalone=0&force=false|Explore in Superset>"
+            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22%3A%20{create_report_slack_chart_with_text.chart.id}%7D&standalone=0&force=false|Explore in Careem Insights>"
             in post_message_mock.call_args[1]["text"]
         )
 
