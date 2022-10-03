@@ -74,8 +74,7 @@ function UIFilters(
           },
           index,
         ) => {
-          const initialValue =
-            internalFilters[index] && internalFilters[index].value;
+          const initialValue = internalFilters?.[index]?.value;
           if (input === 'select') {
             return (
               <SelectFilter

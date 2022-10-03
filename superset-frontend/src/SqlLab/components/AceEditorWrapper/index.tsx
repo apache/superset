@@ -182,7 +182,7 @@ const AceEditorWrapper = ({
     const tableWords = tables.map(t => {
       const tableName = t.value;
       const extendedTable = extendedTables.find(et => et.name === tableName);
-      const cols = (extendedTable && extendedTable.columns) || [];
+      const cols = extendedTable?.columns || [];
       cols.forEach(col => {
         columns[col.name] = null; // using an object as a unique set
       });

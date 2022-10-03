@@ -78,9 +78,7 @@ function DashboardCard({
             role="button"
             tabIndex={0}
             className="action-button"
-            onClick={() =>
-              openDashboardEditModal && openDashboardEditModal(dashboard)
-            }
+            onClick={() => openDashboardEditModal?.(dashboard)}
             data-test="dashboard-card-option-edit-button"
           >
             <Icons.EditAlt iconSize="l" data-test="edit-alt" /> {t('Edit')}
