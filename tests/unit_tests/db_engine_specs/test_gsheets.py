@@ -32,10 +32,7 @@ class ProgrammingError(Exception):
 
 
 def test_validate_parameters_simple() -> None:
-    from superset.db_engine_specs.gsheets import (
-        GSheetsEngineSpec,
-        GSheetsPropertiesType,
-    )
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     engine_params = {
         "engine_params": {
@@ -59,10 +56,7 @@ def test_validate_parameters_simple() -> None:
 def test_validate_parameters_catalog(
     mocker: MockFixture,
 ) -> None:
-    from superset.db_engine_specs.gsheets import (
-        GSheetsEngineSpec,
-        GSheetsPropertiesType,
-    )
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
     g.user.email = "admin@example.com"
@@ -154,10 +148,7 @@ def test_validate_parameters_catalog(
 def test_validate_parameters_catalog_and_credentials(
     mocker: MockFixture,
 ) -> None:
-    from superset.db_engine_specs.gsheets import (
-        GSheetsEngineSpec,
-        GSheetsPropertiesType,
-    )
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
     g.user.email = "admin@example.com"
@@ -171,7 +162,7 @@ def test_validate_parameters_catalog_and_credentials(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    engine_params: GSheetsPropertiesType = {
+    engine_params = {
         "engine_params": {
             "service_account_info": "",
             "catalog": {
