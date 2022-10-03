@@ -20,7 +20,7 @@ import rison from 'rison';
 import React from 'react';
 import { t } from '@superset-ui/core';
 
-import TableLoader from '../../components/TableLoader';
+import TableLoader from 'src/components/TableLoader';
 import {
   User,
   DashboardResponse,
