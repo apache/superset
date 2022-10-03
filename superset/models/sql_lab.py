@@ -332,6 +332,14 @@ class Query(
     def tracking_url(self, value: str) -> None:
         self.tracking_url_raw = value
 
+    def get_column(self, column_name: Optional[str]) -> Optional[Dict[str, Any]]:
+        if not column_name:
+            return None
+        for col in self.columns:
+            if col.column_name == column_name:
+                return col
+        return None
+
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     """ORM model for SQL query"""
