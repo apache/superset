@@ -33,6 +33,14 @@ interface CRUDCollectionProps {
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
   itemGenerator?: () => any;
+  itemCellProps?: ((
+    val: unknown,
+    label: string,
+    record: any,
+  ) => React.DetailedHTMLProps<
+    React.TdHTMLAttributes<HTMLTableCellElement>,
+    HTMLTableCellElement
+  >)[];
   itemRenderers?: ((
     val: unknown,
     onChange: () => void,
@@ -128,6 +136,13 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
 const CrudButtonWrapper = styled.div`
   text-align: right;
   ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+`;
+
+const StyledButtonWrapper = styled.span`
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
 `;
 
 export default class CRUDCollection extends React.PureComponent<
@@ -328,6 +343,12 @@ export default class CRUDCollection extends React.PureComponent<
     );
   }
 
+  getCellProps(record: any, col: any) {
+    const cellPropsFn = this.props.itemCellProps?.[col];
+    const val = record[col];
+    return cellPropsFn ? cellPropsFn(val, this.getLabel(col), record) : {};
+  }
+
   renderCell(record: any, col: any) {
     const renderer = this.props.itemRenderers && this.props.itemRenderers[col];
     const val = record[col];
@@ -359,7 +380,9 @@ export default class CRUDCollection extends React.PureComponent<
     }
     tds = tds.concat(
       tableColumns.map(col => (
-        <td key={col}>{this.renderCell(record, col)}</td>
+        <td {...this.getCellProps(record, col)} key={col}>
+          {this.renderCell(record, col)}
+        </td>
       )),
     );
     if (allowAddItem) {
@@ -424,7 +447,7 @@ export default class CRUDCollection extends React.PureComponent<
       <>
         <CrudButtonWrapper>
           {this.props.allowAddItem && (
-            <span className="m-t-10 m-r-10">
+            <StyledButtonWrapper>
               <Button
                 buttonSize="small"
                 buttonStyle="tertiary"
@@ -434,7 +457,7 @@ export default class CRUDCollection extends React.PureComponent<
                 <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
                 {t('Add item')}
               </Button>
-            </span>
+            </StyledButtonWrapper>
           )}
         </CrudButtonWrapper>
         <CrudTableWrapper

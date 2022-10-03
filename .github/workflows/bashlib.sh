@@ -212,3 +212,34 @@ cypress-run-all() {
   # make sure the program exits
   kill $flaskProcessId
 }
+
+eyes-storybook-dependencies() {
+  say "::group::install eyes-storyook dependencies"
+  sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1
+  say "::endgroup::"
+}
+
+cypress-run-applitools() {
+  cd "$GITHUB_WORKSPACE/superset-frontend/cypress-base"
+
+  local flasklog="${HOME}/flask.log"
+  local port=8081
+  local cypress="./node_modules/.bin/cypress run"
+  local browser=${CYPRESS_BROWSER:-chrome}
+
+  export CYPRESS_BASE_URL="http://localhost:${port}"
+
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
+  local flaskProcessId=$!
+
+  $cypress --spec "cypress/integration/*/**/*.applitools.test.ts" --browser "$browser" --headless --config ignoreTestFiles="[]"
+
+  codecov -c -F "cypress" || true
+
+  say "::group::Flask log for default run"
+  cat "$flasklog"
+  say "::endgroup::"
+
+  # make sure the program exits
+  kill $flaskProcessId
+}

@@ -70,6 +70,7 @@ from superset.utils.core import (
     validate_json,
     zlib_compress,
     zlib_decompress,
+    DateColumn,
 )
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
@@ -228,7 +229,6 @@ class TestUtils(SupersetTestCase):
                 {"col": "__time_col", "op": "in", "val": "birth_year"},
                 {"col": "__time_grain", "op": "in", "val": "years"},
                 {"col": "A", "op": "like", "val": "hello"},
-                {"col": "__time_origin", "op": "in", "val": "now"},
                 {"col": "__granularity", "op": "in", "val": "90 seconds"},
             ]
         }
@@ -248,12 +248,10 @@ class TestUtils(SupersetTestCase):
             "granularity_sqla": "birth_year",
             "time_grain_sqla": "years",
             "granularity": "90 seconds",
-            "druid_time_origin": "now",
             "applied_time_extras": {
                 "__time_range": "1 year ago :",
                 "__time_col": "birth_year",
                 "__time_grain": "years",
-                "__time_origin": "now",
                 "__granularity": "90 seconds",
             },
         }
@@ -1065,7 +1063,18 @@ class TestUtils(SupersetTestCase):
             time_shift: Optional[timedelta],
         ) -> pd.DataFrame:
             df = df.copy()
-            normalize_dttm_col(df, timestamp_format, offset, time_shift)
+            normalize_dttm_col(
+                df,
+                tuple(
+                    [
+                        DateColumn.get_legacy_time_column(
+                            timestamp_format=timestamp_format,
+                            offset=offset,
+                            time_shift=time_shift,
+                        )
+                    ]
+                ),
+            )
             return df
 
         ts = pd.Timestamp(2021, 2, 15, 19, 0, 0, 0)
@@ -1093,3 +1102,8 @@ class TestUtils(SupersetTestCase):
         # test numeric epoch_ms format
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
+
+        # test that out of bounds timestamps are coerced to None instead of
+        # erroring out
+        df = pd.DataFrame([{"__timestamp": "1677-09-21 00:00:00", "a": 1}])
+        assert pd.isnull(normalize_col(df, None, 0, None)[DTTM_ALIAS][0])

@@ -264,10 +264,26 @@ class ApiOwnersTestCaseMixin:
         assert 4 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma2 user", "value": 3},
-            {"text": "gamma_no_csv user", "value": 6},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma2@fab.org"},
+                "text": "gamma2 user",
+                "value": 3,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_no_csv@fab.org"},
+                "text": "gamma_no_csv user",
+                "value": 6,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         # TODO Check me
         assert expected_results == sorted_results
@@ -286,8 +302,16 @@ class ApiOwnersTestCaseMixin:
         assert 2 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         assert expected_results == sorted_results
 
@@ -305,8 +329,16 @@ class ApiOwnersTestCaseMixin:
         assert 2 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         assert expected_results == sorted_results
 

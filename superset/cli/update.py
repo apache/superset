@@ -18,7 +18,6 @@ import json
 import logging
 import os
 import sys
-from datetime import datetime
 from typing import Optional
 
 import click
@@ -51,60 +50,6 @@ logger = logging.getLogger(__name__)
 def set_database_uri(database_name: str, uri: str, skip_create: bool) -> None:
     """Updates a database connection URI"""
     database_utils.get_or_create_db(database_name, uri, not skip_create)
-
-
-@click.command()
-@with_appcontext
-@click.option(
-    "--datasource",
-    "-d",
-    help="Specify which datasource name to load, if "
-    "omitted, all datasources will be refreshed",
-)
-@click.option(
-    "--merge",
-    "-m",
-    is_flag=True,
-    default=False,
-    help="Specify using 'merge' property during operation. " "Default value is False.",
-)
-def refresh_druid(datasource: str, merge: bool) -> None:
-    """Refresh druid datasources"""
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.druid.models import DruidCluster
-
-    session = db.session()
-
-    for cluster in session.query(DruidCluster).all():
-        try:
-            cluster.refresh_datasources(datasource_name=datasource, merge_flag=merge)
-        except Exception as ex:  # pylint: disable=broad-except
-            print("Error while processing cluster '{}'\n{}".format(cluster, str(ex)))
-            logger.exception(ex)
-        cluster.metadata_last_refreshed = datetime.now()
-        print("Refreshed metadata from cluster " "[" + cluster.cluster_name + "]")
-    session.commit()
-
-
-@click.command()
-@with_appcontext
-def update_datasources_cache() -> None:
-    """Refresh sqllab datasources cache"""
-    # pylint: disable=import-outside-toplevel
-    from superset.models.core import Database
-
-    for database in db.session.query(Database).all():
-        if database.allow_multi_schema_metadata_fetch:
-            print("Fetching {} datasources ...".format(database.name))
-            try:
-                database.get_all_table_names_in_database(
-                    force=True, cache=True, cache_timeout=24 * 60 * 60
-                )
-                database.get_all_view_names_in_database(
-                    force=True, cache=True, cache_timeout=24 * 60 * 60
-                )
-            except Exception as ex:  # pylint: disable=broad-except
-                print("{}".format(str(ex)))
 
 
 @click.command()

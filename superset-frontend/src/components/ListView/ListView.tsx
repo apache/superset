@@ -87,35 +87,38 @@ const ListViewStyles = styled.div`
 `;
 
 const BulkSelectWrapper = styled(Alert)`
-  border-radius: 0;
-  margin-bottom: 0;
-  color: #3d3d3d;
-  background-color: ${({ theme }) => theme.colors.primary.light4};
+  ${({ theme }) => `
+    border-radius: 0;
+    margin-bottom: 0;
+    color: ${theme.colors.grayscale.dark1};
+    background-color: ${theme.colors.primary.light4};
 
-  .selectedCopy {
-    display: inline-block;
-    padding: ${({ theme }) => theme.gridUnit * 2}px 0;
-  }
+    .selectedCopy {
+      display: inline-block;
+      padding: ${theme.gridUnit * 2}px 0;
+    }
 
-  .deselect-all {
-    color: #1985a0;
-    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
-  }
+    .deselect-all {
+      color: ${theme.colors.primary.base};
+      margin-left: ${theme.gridUnit * 4}px;
+    }
 
-  .divider {
-    margin: ${({ theme: { gridUnit } }) =>
-      `${-gridUnit * 2}px 0 ${-gridUnit * 2}px ${gridUnit * 4}px`};
-    width: 1px;
-    height: ${({ theme }) => theme.gridUnit * 8}px;
-    box-shadow: inset -1px 0px 0px #dadada;
-    display: inline-flex;
-    vertical-align: middle;
-    position: relative;
-  }
+    .divider {
+      margin: ${`${-theme.gridUnit * 2}px 0 ${-theme.gridUnit * 2}px ${
+        theme.gridUnit * 4
+      }px`};
+      width: 1px;
+      height: ${theme.gridUnit * 8}px;
+      box-shadow: inset -1px 0px 0px ${theme.colors.grayscale.light2};
+      display: inline-flex;
+      vertical-align: middle;
+      position: relative;
+    }
 
-  .ant-alert-close-icon {
-    margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
-  }
+    .ant-alert-close-icon {
+      margin-top: ${theme.gridUnit * 1.5}px;
+    }
+  `}
 `;
 
 const bulkSelectColumnConfig = {

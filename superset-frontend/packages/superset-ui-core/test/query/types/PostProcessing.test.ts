@@ -110,8 +110,6 @@ const PIVOT_RULE: PostProcessingPivot = {
     index: ['foo'],
     columns: ['bar'],
     aggregates: AGGREGATES_OPTION,
-    flatten_columns: true,
-    reset_index: true,
   },
 };
 

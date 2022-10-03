@@ -35,7 +35,7 @@ describe('Visualization > World Map', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
@@ -79,5 +79,15 @@ describe('Visualization > World Map', () => {
           .length,
       ).to.equal(0);
     });
+  });
+
+  it('should allow type to search color schemes', () => {
+    cy.get('.Control[data-test="linear_color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="linear_color_scheme"] input[type="search"]')
+      .focus()
+      .type('greens{enter}');
+    cy.get(
+      '.Control[data-test="linear_color_scheme"] .ant-select-selection-item [data-test="greens"]',
+    ).should('exist');
   });
 });

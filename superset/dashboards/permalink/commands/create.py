@@ -16,27 +16,32 @@
 # under the License.
 import logging
 
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.base import BaseDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkCreateFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkState
-from superset.key_value.commands.create import CreateKeyValueCommand
-from superset.key_value.utils import encode_permalink_key
+from superset.key_value.commands.upsert import UpsertKeyValueCommand
+from superset.key_value.utils import encode_permalink_key, get_deterministic_uuid
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
 
 class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
+    """
+    Get or create a permalink key for the dashboard.
+
+    The same dashboard_id and state for the same user will return the
+    same permalink.
+    """
+
     def __init__(
         self,
-        actor: User,
         dashboard_id: str,
         state: DashboardPermalinkState,
     ):
-        self.actor = actor
         self.dashboard_id = dashboard_id
         self.state = state
 
@@ -48,13 +53,13 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
                 "dashboardId": self.dashboard_id,
                 "state": self.state,
             }
-            key = CreateKeyValueCommand(
-                actor=self.actor,
+            user_id = get_user_id()
+            key = UpsertKeyValueCommand(
                 resource=self.resource,
+                key=get_deterministic_uuid(self.salt, (user_id, value)),
                 value=value,
             ).run()
-            if key.id is None:
-                raise DashboardPermalinkCreateFailedError("Unexpected missing key id")
+            assert key.id  # for type checks
             return encode_permalink_key(key=key.id, salt=self.salt)
         except SQLAlchemyError as ex:
             logger.exception("Error running create command")

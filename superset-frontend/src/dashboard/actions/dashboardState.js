@@ -240,6 +240,7 @@ export function saveDashboardRequest(data, id, saveType) {
         ...data.metadata,
         color_namespace: data.metadata?.color_namespace || undefined,
         color_scheme: data.metadata?.color_scheme || '',
+        color_scheme_domain: data.metadata?.color_scheme_domain || [],
         expanded_slices: data.metadata?.expanded_slices || {},
         label_colors: data.metadata?.label_colors || {},
         shared_label_colors: data.metadata?.shared_label_colors || {},
@@ -325,7 +326,7 @@ export function saveDashboardRequest(data, id, saveType) {
 
     const onError = async response => {
       const { error, message } = await getClientErrorObject(response);
-      let errorText = t('Sorry, an unknown error occured');
+      let errorText = t('Sorry, an unknown error occurred');
 
       if (error) {
         errorText = t(
@@ -489,8 +490,7 @@ export function addSliceToDashboard(id, component) {
     const newChart = {
       ...initChart,
       id,
-      form_data,
-      formData: applyDefaultFormData(form_data),
+      form_data: applyDefaultFormData(form_data),
     };
 
     return Promise.all([

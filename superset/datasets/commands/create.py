@@ -18,7 +18,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -32,14 +31,13 @@ from superset.datasets.commands.exceptions import (
     TableNotFoundValidationError,
 )
 from superset.datasets.dao import DatasetDAO
-from superset.extensions import db, security_manager
+from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 
 
 class CreateDatasetCommand(CreateMixin, BaseCommand):
-    def __init__(self, user: User, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, data: Dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -49,15 +47,6 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             dataset = DatasetDAO.create(self._properties, commit=False)
             # Updates columns and metrics from the dataset
             dataset.fetch_metadata(commit=False)
-            # Add datasource access permission
-            security_manager.add_permission_view_menu(
-                "datasource_access", dataset.get_perm()
-            )
-            # Add schema access permission if exists
-            if dataset.schema:
-                security_manager.add_permission_view_menu(
-                    "schema_access", dataset.schema_perm
-                )
             db.session.commit()
         except (SQLAlchemyError, DAOCreateFailedError) as ex:
             logger.warning(ex, exc_info=True)
@@ -89,7 +78,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(TableNotFoundValidationError(table_name))
 
         try:
-            owners = self.populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

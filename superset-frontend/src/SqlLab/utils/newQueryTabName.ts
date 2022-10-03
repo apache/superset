@@ -31,16 +31,16 @@ export const newQueryTabName = (
 
   if (queryEditors.length > 0) {
     const mappedUntitled = queryEditors.filter(qe =>
-      qe.title.match(untitledQueryRegex),
+      qe.name?.match(untitledQueryRegex),
     );
     const untitledQueryNumbers = mappedUntitled.map(
-      qe => +qe.title.replace(untitledQuery, ''),
+      qe => +qe.name.replace(untitledQuery, ''),
     );
     if (untitledQueryNumbers.length > 0) {
       // When there are query tabs open, and at least one is called "Untitled Query #"
       // Where # is a valid number
       const largestNumber: number = Math.max(...untitledQueryNumbers);
-      return t(`${untitledQuery}%s`, largestNumber + 1);
+      return t('%s%s', untitledQuery, largestNumber + 1);
     }
     return resultTitle;
   }

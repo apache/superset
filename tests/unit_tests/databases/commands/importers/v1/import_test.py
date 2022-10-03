@@ -21,7 +21,7 @@ import copy
 from sqlalchemy.orm.session import Session
 
 
-def test_import_database(app_context: None, session: Session) -> None:
+def test_import_database(session: Session) -> None:
     """
     Test importing a database.
     """
@@ -48,9 +48,7 @@ def test_import_database(app_context: None, session: Session) -> None:
     assert database.external_url is None
 
 
-def test_import_database_managed_externally(
-    app_context: None, session: Session
-) -> None:
+def test_import_database_managed_externally(session: Session) -> None:
     """
     Test importing a database that is managed externally.
     """

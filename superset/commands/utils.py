@@ -18,29 +18,31 @@ from __future__ import annotations
 
 from typing import List, Optional, TYPE_CHECKING
 
+from flask import g
 from flask_appbuilder.security.sqla.models import Role, User
 
+from superset import security_manager
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     OwnersNotFoundValidationError,
     RolesNotFoundValidationError,
 )
-from superset.connectors.connector_registry import ConnectorRegistry
-from superset.datasets.commands.exceptions import DatasetNotFoundError
-from superset.extensions import db, security_manager
+from superset.dao.exceptions import DatasourceNotFound
+from superset.datasource.dao import DatasourceDAO
+from superset.extensions import db
+from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
 
 
 def populate_owners(
-    user: User,
     owner_ids: Optional[List[int]],
     default_to_user: bool,
 ) -> List[User]:
     """
     Helper function for commands, will fetch all users from owners id's
-    :param user: current user
+
     :param owner_ids: list of owners by id's
     :param default_to_user: make user the owner if `owner_ids` is None or empty
     :raises OwnersNotFoundValidationError: if at least one owner id can't be resolved
@@ -49,12 +51,10 @@ def populate_owners(
     owner_ids = owner_ids or []
     owners = []
     if not owner_ids and default_to_user:
-        return [user]
-    if user.id not in owner_ids and "admin" not in [
-        role.name.lower() for role in user.roles
-    ]:
+        return [g.user]
+    if not (security_manager.is_admin() or get_user_id() in owner_ids):
         # make sure non-admins can't remove themselves as owner by mistake
-        owners.append(user)
+        owners.append(g.user)
     for owner_id in owner_ids:
         owner = security_manager.get_user_by_id(owner_id)
         if not owner:
@@ -79,8 +79,8 @@ def populate_roles(role_ids: Optional[List[int]] = None) -> List[Role]:
 
 def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
     try:
-        return ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
+        return DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), datasource_id
         )
-    except DatasetNotFoundError as ex:
+    except DatasourceNotFound as ex:
         raise DatasourceNotFoundValidationError() from ex

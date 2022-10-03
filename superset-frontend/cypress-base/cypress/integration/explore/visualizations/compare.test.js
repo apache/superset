@@ -47,7 +47,7 @@ describe('Visualization > Compare', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
@@ -85,5 +85,19 @@ describe('Visualization > Compare', () => {
       ],
     });
     cy.get('.chart-container .nvd3 path.nv-line').should('have.length', 1);
+  });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('.compare .nv-legend .nv-legend-symbol')
+      .first()
+      .should('have.css', 'fill', 'rgb(31, 168, 201)');
   });
 });

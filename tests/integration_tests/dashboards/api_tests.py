@@ -34,7 +34,7 @@ from sqlalchemy import and_
 from superset import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import backend
 from superset.views.base import generate_download_headers
@@ -72,7 +72,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         "slug": "slug1_changed",
         "position_json": '{"b": "B"}',
         "css": "css_changed",
-        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}}',
+        "json_metadata": '{"refresh_frequency": 30, "timed_refresh_immune_slices": [], "expanded_slices": {}, "color_scheme": "", "label_colors": {}, "shared_label_colors": {}, "color_scheme_domain": []}',
         "published": False,
     }
 
@@ -1836,3 +1836,39 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         # get returns 404
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 404)
+
+    @pytest.mark.usefixtures("create_created_by_admin_dashboards")
+    def test_gets_created_by_user_dashboards_filter(self):
+        arguments = {
+            "filters": [
+                {"col": "id", "opr": "dashboard_has_created_by", "value": True}
+            ],
+            "keys": ["none"],
+            "columns": ["dashboard_title"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 7)
+
+    def test_gets_not_created_by_user_dashboards_filter(self):
+        arguments = {
+            "filters": [
+                {"col": "id", "opr": "dashboard_has_created_by", "value": False}
+            ],
+            "keys": ["none"],
+            "columns": ["dashboard_title"],
+        }
+        dashboard = self.insert_dashboard(f"title", f"slug", [])
+        self.login(username="admin")
+
+        uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 6)
+        db.session.delete(dashboard)
+        db.session.commit()

@@ -112,7 +112,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         model: Dashboard, export_related: bool = True
     ) -> Iterator[Tuple[str, str]]:
         dashboard_slug = secure_filename(model.dashboard_title)
-        file_name = f"dashboards/{dashboard_slug}.yaml"
+        file_name = f"dashboards/{dashboard_slug}_{model.id}.yaml"
 
         payload = model.export_to_dict(
             recursive=False,

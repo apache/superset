@@ -21,6 +21,7 @@ import json
 from collections import defaultdict
 from io import BytesIO
 from unittest import mock
+from unittest.mock import patch, MagicMock
 from zipfile import is_zipfile, ZipFile
 from operator import itemgetter
 
@@ -42,7 +43,7 @@ from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
-from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -69,6 +70,19 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_data,
 )
 from tests.integration_tests.test_app import app
+
+
+SQL_VALIDATORS_BY_ENGINE = {
+    "presto": "PrestoDBSQLValidator",
+    "postgresql": "PostgreSQLValidator",
+}
+
+PRESTO_SQL_VALIDATORS_BY_ENGINE = {
+    "presto": "PrestoDBSQLValidator",
+    "sqlite": "PrestoDBSQLValidator",
+    "postgresql": "PrestoDBSQLValidator",
+    "mysql": "PrestoDBSQLValidator",
+}
 
 
 class TestDatabaseApi(SupersetTestCase):
@@ -171,7 +185,6 @@ class TestDatabaseApi(SupersetTestCase):
             "allow_cvas",
             "allow_dml",
             "allow_file_upload",
-            "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
             "allows_subquery",
@@ -360,7 +373,7 @@ class TestDatabaseApi(SupersetTestCase):
             "database_name": "test-create-database-invalid-json",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
-            "encrypted_extra": '{"A": "a", "B", "C"}',
+            "masked_encrypted_extra": '{"A": "a", "B", "C"}',
             "extra": '["A": "a", "B", "C"]',
         }
 
@@ -369,7 +382,7 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
             "message": {
-                "encrypted_extra": [
+                "masked_encrypted_extra": [
                     "Field cannot be decoded by JSON. Expecting ':' "
                     "delimiter: line 1 column 15 (char 14)"
                 ],
@@ -775,10 +788,30 @@ class TestDatabaseApi(SupersetTestCase):
         Database API: Test get invalid table from table metadata
         """
         example_db = get_example_database()
-        uri = f"api/v1/database/{example_db.id}/wrong_table/null/"
+        uri = f"api/v1/database/{example_db.id}/table/wrong_table/null/"
         self.login(username="admin")
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        data = json.loads(rv.data.decode("utf-8"))
+        if example_db.backend == "sqlite":
+            self.assertEqual(rv.status_code, 200)
+            self.assertEqual(
+                data,
+                {
+                    "columns": [],
+                    "comment": None,
+                    "foreignKeys": [],
+                    "indexes": [],
+                    "name": "wrong_table",
+                    "primaryKey": {"constrained_columns": None, "name": None},
+                    "selectStar": "SELECT\nFROM wrong_table\nLIMIT 100\nOFFSET 0",
+                },
+            )
+        elif example_db.backend == "mysql":
+            self.assertEqual(rv.status_code, 422)
+            self.assertEqual(data, {"message": "`wrong_table`"})
+        else:
+            self.assertEqual(rv.status_code, 422)
+            self.assertEqual(data, {"message": "wrong_table"})
 
     def test_get_table_metadata_no_db_permission(self):
         """
@@ -789,6 +822,46 @@ class TestDatabaseApi(SupersetTestCase):
         uri = f"api/v1/database/{example_db.id}/birth_names/null/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_get_table_extra_metadata(self):
+        """
+        Database API: Test get table extra metadata info
+        """
+        example_db = get_example_database()
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/table_extra/birth_names/null/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(response, {})
+
+    def test_get_invalid_database_table_extra_metadata(self):
+        """
+        Database API: Test get invalid database from table extra metadata
+        """
+        database_id = 1000
+        self.login(username="admin")
+        uri = f"api/v1/database/{database_id}/table_extra/some_table/some_schema/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+        uri = "api/v1/database/some_database/table_extra/some_table/some_schema/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_get_invalid_table_table_extra_metadata(self):
+        """
+        Database API: Test get invalid table from table extra metadata
+        """
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/table_extra/wrong_table/null/"
+        self.login(username="admin")
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(data, {})
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_select_star(self):
@@ -1279,13 +1352,13 @@ class TestDatabaseApi(SupersetTestCase):
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = {
             "database_name": "examples",
-            "encrypted_extra": "{}",
+            "masked_encrypted_extra": "{}",
             "extra": json.dumps(extra),
             "impersonate_user": False,
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
@@ -1314,7 +1387,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
@@ -1351,7 +1424,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "errors": [
                 {
-                    "message": "Could not load database driver: AzureSynapseSpec",
+                    "message": "Could not load database driver: MssqlEngineSpec",
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
@@ -1380,7 +1453,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
@@ -1439,7 +1512,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
 
         assert rv.status_code == 422
@@ -2047,7 +2120,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_invalid_payload_format(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         rv = self.client.post(url, data="INVALID", content_type="text/plain")
         response = json.loads(rv.data.decode("utf-8"))
 
@@ -2072,7 +2145,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_invalid_payload_schema(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {"foo": "bar"}
         rv = self.client.post(url, json=payload)
         response = json.loads(rv.data.decode("utf-8"))
@@ -2090,7 +2163,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1020,
-                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                "message": "Issue 1020 - The submitted payload"
+                                " has the incorrect schema.",
                             }
                         ],
                     },
@@ -2104,7 +2178,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1020,
-                                "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                                "message": "Issue 1020 - The submitted payload "
+                                "has the incorrect schema.",
                             }
                         ],
                     },
@@ -2114,7 +2189,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_missing_fields(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "engine": "postgresql",
@@ -2137,7 +2212,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {
             "errors": [
                 {
-                    "message": "One or more parameters are missing: database, host, username",
+                    "message": "One or more parameters are missing: database, host,"
+                    " username",
                     "error_type": "CONNECTION_MISSING_PARAMETERS_ERROR",
                     "level": "warning",
                     "extra": {
@@ -2145,7 +2221,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1018,
-                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                                "message": "Issue 1018 - One or more parameters "
+                                "needed to configure a database are missing.",
                             }
                         ],
                     },
@@ -2163,7 +2240,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_port_open.return_value = True
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2187,7 +2264,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_invalid_port(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2224,7 +2301,8 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                 },
                 {
-                    "message": "The port must be an integer between 0 and 65535 (inclusive).",
+                    "message": "The port must be an integer between "
+                    "0 and 65535 (inclusive).",
                     "error_type": "CONNECTION_INVALID_PORT_ERROR",
                     "level": "error",
                     "extra": {
@@ -2245,7 +2323,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_hostname_valid.return_value = False
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2276,7 +2354,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1018,
-                                "message": "Issue 1018 - One or more parameters needed to configure a database are missing.",
+                                "message": "Issue 1018 - One or more parameters"
+                                " needed to configure a database are missing.",
                             }
                         ],
                     },
@@ -2290,7 +2369,8 @@ class TestDatabaseApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1007,
-                                "message": "Issue 1007 - The hostname provided can't be resolved.",
+                                "message": "Issue 1007 - The hostname "
+                                "provided can't be resolved.",
                             }
                         ],
                     },
@@ -2303,7 +2383,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_hostname_valid.return_value = True
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2365,3 +2445,190 @@ class TestDatabaseApi(SupersetTestCase):
         assert "charts" in rv.json
         assert "dashboards" in rv.json
         assert "sqllab_tab_states" in rv.json
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql(self):
+        """
+        Database API: validate SQL success
+        """
+        request_payload = {
+            "sql": "SELECT * from birth_names",
+            "schema": None,
+            "template_params": None,
+        }
+
+        example_db = get_example_database()
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
+
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(response["result"], [])
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_errors(self):
+        """
+        Database API: validate SQL with errors
+        """
+        request_payload = {
+            "sql": "SELECT col1 froma table1",
+            "schema": None,
+            "template_params": None,
+        }
+
+        example_db = get_example_database()
+        if example_db.backend not in ("presto", "postgresql"):
+            pytest.skip("Only presto and PG are implemented")
+
+        self.login(username="admin")
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(
+            response["result"],
+            [
+                {
+                    "end_column": None,
+                    "line_number": 1,
+                    "message": 'ERROR: syntax error at or near "table1"',
+                    "start_column": None,
+                }
+            ],
+        )
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_not_found(self):
+        """
+        Database API: validate SQL database not found
+        """
+        request_payload = {
+            "sql": "SELECT * from birth_names",
+            "schema": None,
+            "template_params": None,
+        }
+        self.login(username="admin")
+        uri = (
+            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
+        )
+        rv = self.client.post(uri, json=request_payload)
+        self.assertEqual(rv.status_code, 404)
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_validation_fails(self):
+        """
+        Database API: validate SQL database payload validation fails
+        """
+        request_payload = {
+            "sql": None,
+            "schema": None,
+            "template_params": None,
+        }
+        self.login(username="admin")
+        uri = (
+            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
+        )
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(response, {"message": {"sql": ["Field may not be null."]}})
+
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        {},
+        clear=True,
+    )
+    def test_validate_sql_endpoint_noconfig(self):
+        """Assert that validate_sql_json errors out when no validators are
+        configured for any db"""
+        request_payload = {
+            "sql": "SELECT col1 from table1",
+            "schema": None,
+            "template_params": None,
+        }
+
+        self.login("admin")
+
+        example_db = get_example_database()
+
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 422)
+        self.assertEqual(
+            response,
+            {
+                "errors": [
+                    {
+                        "message": f"no SQL validator is configured for "
+                        f"{example_db.backend}",
+                        "error_type": "GENERIC_DB_ENGINE_ERROR",
+                        "level": "error",
+                        "extra": {
+                            "issue_codes": [
+                                {
+                                    "code": 1002,
+                                    "message": "Issue 1002 - The database returned an "
+                                    "unexpected error.",
+                                }
+                            ]
+                        },
+                    }
+                ]
+            },
+        )
+
+    @patch("superset.databases.commands.validate_sql.get_validator_by_name")
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        PRESTO_SQL_VALIDATORS_BY_ENGINE,
+        clear=True,
+    )
+    def test_validate_sql_endpoint_failure(self, get_validator_by_name):
+        """Assert that validate_sql_json errors out when the selected validator
+        raises an unexpected exception"""
+
+        request_payload = {
+            "sql": "SELECT * FROM birth_names",
+            "schema": None,
+            "template_params": None,
+        }
+
+        self.login("admin")
+
+        validator = MagicMock()
+        get_validator_by_name.return_value = validator
+        validator.validate.side_effect = Exception("Kaboom!")
+
+        self.login("admin")
+
+        example_db = get_example_database()
+
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
+        rv = self.client.post(uri, json=request_payload)
+        response = json.loads(rv.data.decode("utf-8"))
+
+        # TODO(bkyryliuk): properly handle hive error
+        if get_example_database().backend == "hive":
+            return
+        self.assertEqual(rv.status_code, 422)
+        self.assertIn("Kaboom!", response["errors"][0]["message"])

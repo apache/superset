@@ -25,15 +25,22 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
+import { useSelector } from 'react-redux';
+import querystring from 'query-string';
 import Button from 'src/components/Button';
 import { t, styled, css, SupersetTheme } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
 import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
-import { QueryEditor } from 'src/SqlLab/types';
+import { QueryEditor, SchemaOption, SqlLabRootState } from 'src/SqlLab/types';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
 import { EmptyStateSmall } from 'src/components/EmptyState';
+import {
+  getItem,
+  LocalStorageKeys,
+  setItem,
+} from 'src/utils/localStorageHelpers';
 import TableElement, { Table, TableElementProps } from '../TableElement';
 
 interface ExtendedTable extends Table {
@@ -49,7 +56,10 @@ interface actionsTypes {
   setDatabases: (arg0: any) => {};
   addDangerToast: (msg: string) => void;
   queryEditorSetSchema: (queryEditor: QueryEditor, schema?: string) => void;
-  queryEditorSetSchemaOptions: () => void;
+  queryEditorSetSchemaOptions: (
+    queryEditor: QueryEditor,
+    options: SchemaOption[],
+  ) => void;
   queryEditorSetTableOptions: (
     queryEditor: QueryEditor,
     options: Array<any>,
@@ -64,7 +74,6 @@ interface SqlEditorLeftBarProps {
   actions: actionsTypes & TableElementProps['actions'];
   database: DatabaseObject;
   setEmptyState: Dispatch<SetStateAction<boolean>>;
-  showDisabled: boolean;
 }
 
 const StyledScrollbarContainer = styled.div`
@@ -105,10 +114,35 @@ export default function SqlEditorLeftBar({
   // that require and modify the queryEditor
   const queryEditorRef = useRef<QueryEditor>(queryEditor);
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+  const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
+    null,
+  );
+  const schema = useSelector<SqlLabRootState, string>(
+    ({ sqlLab: { unsavedQueryEditor } }) => {
+      const updatedQueryEditor = {
+        ...queryEditor,
+        ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
+      };
+      return updatedQueryEditor.schema;
+    },
+  );
+
+  useEffect(() => {
+    const bool = querystring.parse(window.location.search).db;
+    const userSelected = getItem(
+      LocalStorageKeys.db,
+      null,
+    ) as DatabaseObject | null;
+
+    if (bool && userSelected) {
+      setUserSelected(userSelected);
+      setItem(LocalStorageKeys.db, null);
+    } else setUserSelected(database);
+  }, []);
 
   useEffect(() => {
     queryEditorRef.current = queryEditor;
-  }, [queryEditor]);
+  }, [queryEditor, database]);
 
   const onEmptyResults = (searchText?: string) => {
     setEmptyResultsWithSearch(!!searchText);
@@ -145,7 +179,7 @@ export default function SqlEditorLeftBar({
       actions.addTable(queryEditor, database, tableName, schemaName),
     );
 
-    currentTables.forEach(table => actions.removeTable(table));
+    actions.removeTables(currentTables);
   };
 
   const onToggleTable = (updatedTables: string[]) => {
@@ -217,20 +251,29 @@ export default function SqlEditorLeftBar({
     [actions],
   );
 
+  const handleSchemasLoad = React.useCallback(
+    (options: Array<any>) => {
+      if (queryEditorRef.current) {
+        actions.queryEditorSetSchemaOptions(queryEditorRef.current, options);
+      }
+    },
+    [actions],
+  );
+
   return (
     <div className="SqlEditorLeftBar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
-        database={database}
+        database={userSelectedDb}
         getDbList={actions.setDatabases}
         handleError={actions.addDangerToast}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
-        onSchemasLoad={actions.queryEditorSetSchemaOptions}
+        onSchemasLoad={handleSchemasLoad}
         onTableSelectChange={onTablesChange}
         onTablesLoad={handleTablesLoad}
-        schema={queryEditor.schema}
+        schema={schema}
         tableValue={selectedTableNames}
         sqlLabMode
       />

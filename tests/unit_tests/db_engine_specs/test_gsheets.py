@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask.ctx import AppContext
+
+# pylint: disable=import-outside-toplevel, invalid-name, line-too-long
+
+import json
+
 from pytest_mock import MockFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -26,10 +30,7 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple(
-    mocker: MockFixture,
-    app_context: AppContext,
-) -> None:
+def test_validate_parameters_simple() -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsParametersType,
@@ -40,12 +41,18 @@ def test_validate_parameters_simple(
         "catalog": {},
     }
     errors = GSheetsEngineSpec.validate_parameters(parameters)
-    assert errors == []
+    assert errors == [
+        SupersetError(
+            message="Sheet name is required",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={"catalog": {"idx": 0, "name": True}},
+        ),
+    ]
 
 
 def test_validate_parameters_catalog(
     mocker: MockFixture,
-    app_context: AppContext,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -136,7 +143,6 @@ def test_validate_parameters_catalog(
 
 def test_validate_parameters_catalog_and_credentials(
     mocker: MockFixture,
-    app_context: AppContext,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -197,3 +203,34 @@ def test_validate_parameters_catalog_and_credentials(
         service_account_info={},
         subject="admin@example.com",
     )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Test that the private key can be reused from the previous ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(GSheetsEngineSpec.unmask_encrypted_extra(old, new)) == {
+        "service_account_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "SECRET",
+        },
+    }

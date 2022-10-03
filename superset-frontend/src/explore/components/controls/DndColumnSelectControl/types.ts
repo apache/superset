@@ -46,6 +46,7 @@ export type DndControlProps<ValueType extends JsonValue> =
     multi?: boolean;
     canDelete?: boolean;
     ghostButtonText?: string;
+    clickEnabledGhostButtonText?: string;
     onChange: (value: ValueType | ValueType[] | null | undefined) => void;
   };
 

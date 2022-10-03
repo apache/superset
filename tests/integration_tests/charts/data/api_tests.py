@@ -21,7 +21,7 @@ import unittest
 import copy
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
+from typing import Any, Dict, Optional
 from unittest import mock
 from zipfile import ZipFile
 
@@ -181,7 +181,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         "superset.utils.core.current_app.config",
         {**app.config, "SQL_MAX_ROW": 5},
     )
-    def test_as_samples_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(
+    def test_as_samples_with_row_limit_bigger_then_sql_max_row_rowcount_as_sql_max_row(
         self,
     ):
         expected_row_count = app.config["SQL_MAX_ROW"]
@@ -333,12 +333,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
                 {"column": "num"},
                 {"column": "name"},
                 {"column": "__time_range"},
-            ],
-        )
-        self.assertEqual(
-            data["result"][0]["rejected_filters"],
-            [
-                {"column": "__time_origin", "reason": "not_druid_datasource"},
             ],
         )
         expected_row_count = self.get_expected_row_count("client_id_2")
@@ -798,7 +792,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "filters": [],
                         "extras": {
                             "having": "",
-                            "having_druid": [],
                             "where": "",
                         },
                         "applied_time_extras": {},
@@ -922,3 +915,64 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]
+
+
+@pytest.fixture()
+def physical_query_context(physical_dataset) -> Dict[str, Any]:
+    return {
+        "datasource": {
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        "queries": [
+            {
+                "columns": ["col1"],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+            }
+        ],
+        "result_type": ChartDataResultType.FULL,
+        "force": True,
+    }
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 1234,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": None,
+        },
+    },
+)
+def test_cache_default_timeout(test_client, login_as_admin, physical_query_context):
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1234
+
+
+def test_custom_cache_timeout(test_client, login_as_admin, physical_query_context):
+    physical_query_context["custom_cache_timeout"] = 5678
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 5678
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 3456,
+        },
+    },
+)
+def test_data_cache_default_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456

@@ -36,6 +36,10 @@ export const Styles = styled.div`
       top: 0;
     }
 
+    table tbody tr {
+      font-feature-settings: 'tnum' 1;
+    }
+
     table.pvtTable thead tr th,
     table.pvtTable tbody tr th {
       background-color: ${theme.colors.grayscale.light5};

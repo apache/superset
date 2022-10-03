@@ -21,7 +21,7 @@ import json
 from sqlalchemy.orm.session import Session
 
 
-def test_export(app_context: None, session: Session) -> None:
+def test_export(session: Session) -> None:
     """
     Test exporting a dataset.
     """
@@ -125,6 +125,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: revenue-expenses
@@ -137,6 +138,7 @@ columns:
   is_dttm: 1
   is_active: null
   type: TIMESTAMP
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -148,6 +150,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -159,6 +162,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null
@@ -170,6 +174,7 @@ columns:
   is_dttm: null
   is_active: null
   type: INTEGER
+  advanced_data_type: null
   groupby: null
   filterable: null
   expression: null

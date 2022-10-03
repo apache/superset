@@ -114,7 +114,7 @@ const ContentStyleWrapper = styled.div`
     .control-label {
       font-size: 11px;
       font-weight: ${theme.typography.weights.medium};
-      color: #b2b2b2;
+      color: ${theme.colors.grayscale.light2};
       line-height: 16px;
       text-transform: uppercase;
       margin: 8px 0;

@@ -62,7 +62,18 @@ function UIFilters(
   return (
     <>
       {filters.map(
-        ({ Header, fetchSelects, id, input, paginate, selects }, index) => {
+        (
+          {
+            Header,
+            fetchSelects,
+            id,
+            input,
+            paginate,
+            selects,
+            onFilterUpdate,
+          },
+          index,
+        ) => {
           const initialValue =
             internalFilters[index] && internalFilters[index].value;
           if (input === 'select') {
@@ -74,9 +85,19 @@ function UIFilters(
                 initialValue={initialValue}
                 key={id}
                 name={id}
-                onSelect={(option: SelectOption | undefined) =>
-                  updateFilterValue(index, option)
-                }
+                onSelect={(
+                  option: SelectOption | undefined,
+                  isClear?: boolean,
+                ) => {
+                  if (onFilterUpdate) {
+                    // Filter change triggers both onChange AND onClear, only want to track onChange
+                    if (!isClear) {
+                      onFilterUpdate(option);
+                    }
+                  }
+
+                  updateFilterValue(index, option);
+                }}
                 paginate={paginate}
                 selects={selects}
               />
@@ -90,7 +111,13 @@ function UIFilters(
                 initialValue={initialValue}
                 key={id}
                 name={id}
-                onSubmit={(value: string) => updateFilterValue(index, value)}
+                onSubmit={(value: string) => {
+                  if (onFilterUpdate) {
+                    onFilterUpdate(value);
+                  }
+
+                  updateFilterValue(index, value);
+                }}
               />
             );
           }

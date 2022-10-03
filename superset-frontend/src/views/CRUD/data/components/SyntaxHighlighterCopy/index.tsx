@@ -65,7 +65,7 @@ export default function SyntaxHighlighterCopy({
   language: 'sql' | 'markdown' | 'html' | 'json';
 }) {
   function copyToClipboard(textToCopy: string) {
-    copyTextToClipboard(textToCopy)
+    copyTextToClipboard(() => Promise.resolve(textToCopy))
       .then(() => {
         if (addSuccessToast) {
           addSuccessToast(t('SQL Copied!'));

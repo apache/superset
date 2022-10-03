@@ -22,14 +22,15 @@ from marshmallow import ValidationError
 from superset.charts.dao import ChartDAO
 from superset.commands.base import BaseCommand
 from superset.dashboards.dao import DashboardDAO
-from superset.models.reports import ReportCreationMethodType
 from superset.reports.commands.exceptions import (
     ChartNotFoundValidationError,
     ChartNotSavedValidationError,
     DashboardNotFoundValidationError,
     DashboardNotSavedValidationError,
-    ReportScheduleChartOrDashboardValidationError,
+    ReportScheduleEitherChartOrDashboardError,
+    ReportScheduleOnlyChartOrDashboardError,
 )
+from superset.reports.models import ReportCreationMethod
 
 logger = logging.getLogger(__name__)
 
@@ -52,17 +53,18 @@ class BaseReportScheduleCommand(BaseCommand):
         dashboard_id = self._properties.get("dashboard")
         creation_method = self._properties.get("creation_method")
 
-        if creation_method == ReportCreationMethodType.CHARTS and not chart_id:
+        if creation_method == ReportCreationMethod.CHARTS and not chart_id:
             # User has not saved chart yet in Explore view
             exceptions.append(ChartNotSavedValidationError())
             return
 
-        if creation_method == ReportCreationMethodType.DASHBOARDS and not dashboard_id:
+        if creation_method == ReportCreationMethod.DASHBOARDS and not dashboard_id:
             exceptions.append(DashboardNotSavedValidationError())
             return
 
         if chart_id and dashboard_id:
-            exceptions.append(ReportScheduleChartOrDashboardValidationError())
+            exceptions.append(ReportScheduleOnlyChartOrDashboardError())
+
         if chart_id:
             chart = ChartDAO.find_by_id(chart_id)
             if not chart:
@@ -74,4 +76,4 @@ class BaseReportScheduleCommand(BaseCommand):
                 exceptions.append(DashboardNotFoundValidationError())
             self._properties["dashboard"] = dashboard
         elif not update:
-            exceptions.append(ReportScheduleChartOrDashboardValidationError())
+            exceptions.append(ReportScheduleEitherChartOrDashboardError())

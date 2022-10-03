@@ -17,24 +17,23 @@
 import logging
 from typing import Optional
 
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.explore.permalink.commands.base import BaseExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.permalink.types import ExplorePermalinkValue
-from superset.explore.utils import check_access
+from superset.explore.utils import check_access as check_chart_access
 from superset.key_value.commands.get import GetKeyValueCommand
 from superset.key_value.exceptions import KeyValueGetFailedError, KeyValueParseKeyError
 from superset.key_value.utils import decode_permalink_id
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
 
 class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
-    def __init__(self, actor: User, key: str):
-        self.actor = actor
+    def __init__(self, key: str):
         self.key = key
 
     def run(self) -> Optional[ExplorePermalinkValue]:
@@ -47,8 +46,14 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
             ).run()
             if value:
                 chart_id: Optional[int] = value.get("chartId")
-                dataset_id = value["datasetId"]
-                check_access(dataset_id, chart_id, self.actor)
+                # keep this backward compatible for old permalinks
+                datasource_id: int = (
+                    value.get("datasourceId") or value.get("datasetId") or 0
+                )
+                datasource_type = DatasourceType(
+                    value.get("datasourceType", DatasourceType.TABLE)
+                )
+                check_chart_access(datasource_id, chart_id, datasource_type)
                 return value
             return None
         except (

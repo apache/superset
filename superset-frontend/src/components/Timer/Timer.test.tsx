@@ -22,7 +22,7 @@
 import React from 'react';
 import { render, sleep, waitFor } from 'spec/helpers/testing-library';
 import Timer, { TimerProps } from 'src/components/Timer';
-import { now } from 'src/modules/dates';
+import { now } from 'src/utils/dates';
 
 function parseTime(text?: string | null) {
   return !!text && Number(text.replace(/:/g, ''));

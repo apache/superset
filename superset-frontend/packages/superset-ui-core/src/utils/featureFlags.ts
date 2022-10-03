@@ -23,6 +23,7 @@ export enum FeatureFlag {
   ALERT_REPORTS = 'ALERT_REPORTS',
   CLIENT_CACHE = 'CLIENT_CACHE',
   DYNAMIC_PLUGINS = 'DYNAMIC_PLUGINS',
+  ENABLE_ADVANCED_DATA_TYPES = 'ENABLE_ADVANCED_DATA_TYPES',
   SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
   SQL_VALIDATORS_BY_ENGINE = 'SQL_VALIDATORS_BY_ENGINE',
   ESTIMATE_QUERY_COST = 'ESTIMATE_QUERY_COST',
@@ -53,6 +54,10 @@ export enum FeatureFlag {
   ALLOW_FULL_CSV_EXPORT = 'ALLOW_FULL_CSV_EXPORT',
   UX_BETA = 'UX_BETA',
   GENERIC_CHART_AXES = 'GENERIC_CHART_AXES',
+  USE_ANALAGOUS_COLORS = 'USE_ANALAGOUS_COLORS',
+  DASHBOARD_EDIT_CHART_IN_NEW_TAB = 'DASHBOARD_EDIT_CHART_IN_NEW_TAB',
+  EMBEDDABLE_CHARTS = 'EMBEDDABLE_CHARTS',
+  DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
 }
 export type ScheduleQueriesProps = {
   JSONSCHEMA: {
@@ -79,5 +84,13 @@ declare global {
 }
 
 export function isFeatureEnabled(feature: FeatureFlag) {
-  return window && window.featureFlags && !!window.featureFlags[feature];
+  try {
+    return !!window.featureFlags[feature];
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Failed to query feature flag ${feature} (see error below)`);
+    // eslint-disable-next-line no-console
+    console.error(error);
+    return false;
+  }
 }

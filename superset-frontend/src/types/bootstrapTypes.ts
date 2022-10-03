@@ -20,25 +20,30 @@ import { isPlainObject } from 'lodash';
  * under the License.
  */
 export type User = {
-  createdOn: string;
-  email: string;
+  createdOn?: string;
+  email?: string;
   firstName: string;
   isActive: boolean;
   isAnonymous: boolean;
   lastName: string;
-  userId: number;
+  userId?: number; // optional because guest user doesn't have a user id
   username: string;
 };
 
-export interface UserWithPermissionsAndRoles extends User {
+export type UserRoles = Record<string, [string, string][]>;
+export interface PermissionsAndRoles {
   permissions: {
     database_access?: string[];
     datasource_access?: string[];
   };
-  roles: Record<string, [string, string][]>;
+  roles: UserRoles;
 }
 
+export type UserWithPermissionsAndRoles = User & PermissionsAndRoles;
+
 export type UndefinedUser = {};
+
+export type BootstrapUser = UserWithPermissionsAndRoles | undefined;
 
 export type Dashboard = {
   dttm: number;

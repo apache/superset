@@ -13,13 +13,19 @@
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
-# under the License.o
+# under the License.
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
+from sqlalchemy.engine.reflection import Inspector
+
+from superset.constants import USER_AGENT
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
 
 time_grain_expressions = {
     None: "{col}",
@@ -41,18 +47,23 @@ time_grain_expressions = {
 
 
 class DatabricksHiveEngineSpec(HiveEngineSpec):
-    engine = "databricks"
     engine_name = "Databricks Interactive Cluster"
-    driver = "pyhive"
+
+    engine = "databricks"
+    drivers = {"pyhive": "Hive driver for Interactive Cluster"}
+    default_driver = "pyhive"
+
     _show_functions_column = "function"
 
     _time_grain_expressions = time_grain_expressions
 
 
 class DatabricksODBCEngineSpec(BaseEngineSpec):
-    engine = "databricks"
     engine_name = "Databricks SQL Endpoint"
-    driver = "pyodbc"
+
+    engine = "databricks"
+    drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
+    default_driver = "pyodbc"
 
     _time_grain_expressions = time_grain_expressions
 
@@ -65,3 +76,36 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return HiveEngineSpec.epoch_to_dttm()
+
+
+class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec):
+    engine_name = "Databricks Native Connector"
+
+    engine = "databricks"
+    drivers = {"connector": "Native all-purpose driver"}
+    default_driver = "connector"
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        Add a user agent to be used in the requests.
+        """
+        extra = {
+            "http_headers": [("User-Agent", USER_AGENT)],
+            "_user_agent_entry": USER_AGENT,
+        }
+        extra.update(BaseEngineSpec.get_extra_params(database))
+        return extra
+
+    @classmethod
+    def get_table_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> List[str]:
+        tables = set(super().get_table_names(database, inspector, schema))
+        views = set(cls.get_view_names(database, inspector, schema))
+        actual_tables = tables - views
+
+        return list(actual_tables)

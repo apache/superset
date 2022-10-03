@@ -51,7 +51,7 @@ describe('Visualization > Area', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
@@ -75,23 +75,21 @@ describe('Visualization > Area', () => {
   });
 
   it('should work with groupby and filter', () => {
-    cy.visitChartByParams(
-      JSON.stringify({
-        ...AREA_FORM_DATA,
-        groupby: ['region'],
-        adhoc_filters: [
-          {
-            expressionType: 'SIMPLE',
-            subject: 'region',
-            operator: 'IN',
-            comparator: ['South Asia', 'North America'],
-            clause: 'WHERE',
-            sqlExpression: null,
-            filterOptionName: 'filter_txje2ikiv6_wxmn0qwd1xo',
-          },
-        ],
-      }),
-    );
+    cy.visitChartByParams({
+      ...AREA_FORM_DATA,
+      groupby: ['region'],
+      adhoc_filters: [
+        {
+          expressionType: 'SIMPLE',
+          subject: 'region',
+          operator: 'IN',
+          comparator: ['South Asia', 'North America'],
+          clause: 'WHERE',
+          sqlExpression: null,
+          filterOptionName: 'filter_txje2ikiv6_wxmn0qwd1xo',
+        },
+      ],
+    });
 
     cy.wait('@getJson').then(async ({ response }) => {
       const responseBody = response?.body;
@@ -104,5 +102,19 @@ describe('Visualization > Area', () => {
       cy.verifySliceContainer('svg');
     });
     cy.get('.nv-area').should('have.length', 2);
+  });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('.area .nv-legend .nv-legend-symbol')
+      .first()
+      .should('have.css', 'fill', 'rgb(31, 168, 201)');
   });
 });
