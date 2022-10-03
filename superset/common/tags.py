@@ -345,7 +345,7 @@ def add_owners_to_saved_queries(
 
 
 def add_owners_to_datasets(
-     metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     tables = metadata.tables["tables"]
 
