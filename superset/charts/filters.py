@@ -114,7 +114,7 @@ class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-met
 
 class ChartCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Created by me")
-    arg_name = "created_by_me"
+    arg_name = "chart_created_by_me"
 
     def apply(self, query: Query, value: Any) -> Query:
         return query.filter(

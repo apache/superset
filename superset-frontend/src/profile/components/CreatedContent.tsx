@@ -33,7 +33,9 @@ interface CreatedContentProps {
 
 class CreatedContent extends React.PureComponent<CreatedContentProps> {
   renderSliceTable() {
-    const search = [{ col: 'created_by', opr: 'created_by_me', value: 'me' }];
+    const search = [
+      { col: 'created_by', opr: 'chart_created_by_me', value: 'me' },
+    ];
     const query = rison.encode({
       keys: ['none'],
       columns: ['created_on_delta_humanized', 'slice_name', 'url'],
@@ -63,7 +65,9 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
   }
 
   renderDashboardTable() {
-    const search = [{ col: 'created_by', opr: 'created_by_me', value: 'me' }];
+    const search = [
+      { col: 'created_by', opr: 'dashboard_created_by_me', value: 'me' },
+    ];
     const query = rison.encode({
       keys: ['none'],
       columns: ['created_on_delta_humanized', 'dashboard_title', 'url'],

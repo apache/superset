@@ -1147,7 +1147,9 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             db.session.query(Slice).filter(Slice.created_by_fk == gamma_user.id).all()
         )
         arguments = {
-            "filters": [{"col": "created_by", "opr": "created_by_me", "value": "me"}],
+            "filters": [
+                {"col": "created_by", "opr": "chart_created_by_me", "value": "me"}
+            ],
             "order_column": "slice_name",
             "order_direction": "asc",
             "keys": ["none"],
