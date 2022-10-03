@@ -31,6 +31,7 @@ from typing_extensions import TypedDict
 
 from superset import security_manager
 from superset.constants import PASSWORD_MASK
+from superset.databases.commands.exceptions import DatabaseExtraJSONValidationError
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -210,12 +211,24 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         return spec.to_dict()["components"]["schemas"][cls.__name__]
 
     @classmethod
+    def get_engine_parameters(cls, properties: Dict[str, Any]) -> Dict[str, Any]:
+        try:
+            if properties.get("extra"):
+                return json.loads(properties["extra"]).get("engine_params", {})
+            return {}
+        except TypeError as ex:
+            raise DatabaseExtraJSONValidationError(
+                "Unable to parse extra_json data"
+            ) from ex
+
+    @classmethod
     def validate_parameters(
         cls,
-        properties: GSheetsPropertiesType,
+        properties: Dict[str, Any],
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
-        parameters = properties.get("parameters", {})
+
+        parameters = cls.get_engine_parameters(properties)
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
         # On create the encrypted credentials are a string,

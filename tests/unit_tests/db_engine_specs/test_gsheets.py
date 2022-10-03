@@ -18,6 +18,7 @@
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
 import json
+from typing import Any, Dict
 
 from pytest_mock import MockFixture
 
@@ -36,12 +37,14 @@ def test_validate_parameters_simple() -> None:
         GSheetsPropertiesType,
     )
 
-    properties: GSheetsPropertiesType = {
-        "parameters": {
+    engine_params = {
+        "engine_params": {
             "service_account_info": "",
             "catalog": {},
         }
     }
+
+    properties: Dict[str, Any] = {"extra": json.dumps(engine_params)}
     errors = GSheetsEngineSpec.validate_parameters(properties)
     assert errors == [
         SupersetError(
@@ -73,8 +76,8 @@ def test_validate_parameters_catalog(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    properties: GSheetsPropertiesType = {
-        "parameters": {
+    engine_params = {
+        "engine_params": {
             "service_account_info": "",
             "catalog": {
                 "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
@@ -83,6 +86,9 @@ def test_validate_parameters_catalog(
             },
         }
     }
+
+    properties: Dict[str, Any] = {"extra": json.dumps(engine_params)}
+
     errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
 
     assert errors == [
@@ -165,8 +171,8 @@ def test_validate_parameters_catalog_and_credentials(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    properties: GSheetsPropertiesType = {
-        "parameters": {
+    engine_params: GSheetsPropertiesType = {
+        "engine_params": {
             "service_account_info": "",
             "catalog": {
                 "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
@@ -175,6 +181,9 @@ def test_validate_parameters_catalog_and_credentials(
             },
         }
     }
+
+    properties: Dict[str, Any] = {"extra": json.dumps(engine_params)}
+
     errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
     assert errors == [
         SupersetError(
