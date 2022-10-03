@@ -16,20 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DTTM_ALIAS,
-  getColumnLabel,
-  isDefined,
-  QueryFormData,
-} from '@superset-ui/core';
+import pick from 'lodash/pick';
+import { shallowEqual, useSelector } from 'react-redux';
+import { SqlLabRootState, QueryEditor } from 'src/SqlLab/types';
 
-export const getAxis = (formData: QueryFormData): string | undefined => {
-  // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
-  if (!(formData.granularity_sqla || formData.x_axis)) {
-    return undefined;
-  }
-
-  return isDefined(formData.x_axis)
-    ? getColumnLabel(formData.x_axis)
-    : DTTM_ALIAS;
-};
+export default function useQueryEditor<T extends keyof QueryEditor>(
+  sqlEditorId: string,
+  attributes: ReadonlyArray<T>,
+) {
+  return useSelector<SqlLabRootState, Pick<QueryEditor, T | 'id'>>(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) =>
+      pick(
+        {
+          ...queryEditors.find(({ id }) => id === sqlEditorId),
+          ...(sqlEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+        },
+        ['id'].concat(attributes),
+      ) as Pick<QueryEditor, T | 'id'>,
+    shallowEqual,
+  );
+}

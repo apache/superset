@@ -228,9 +228,52 @@ def test_unmask_encrypted_extra() -> None:
         }
     )
 
-    assert json.loads(GSheetsEngineSpec.unmask_encrypted_extra(old, new)) == {
+    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
         "service_account_info": {
             "project_id": "yellow-unicorn-314419",
             "private_key": "SECRET",
         },
     }
+
+
+def test_unmask_encrypted_extra_when_old_is_none() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = None
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "service_account_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "XXXXXXXXXX",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_new_is_none() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+    new = None
+
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) is None

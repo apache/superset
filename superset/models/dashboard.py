@@ -461,12 +461,6 @@ def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
 
-# events for updating tags
-if is_feature_enabled("TAGGING_SYSTEM"):
-    sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
-    sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
-    sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
-
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()
     sqla.event.listen(Dashboard, "after_insert", update_thumbnail)

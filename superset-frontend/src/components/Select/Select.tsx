@@ -32,34 +32,27 @@ import {
   getValue,
   hasOption,
   isLabeledValue,
-  DEFAULT_SORT_COMPARATOR,
-  EMPTY_OPTIONS,
-  MAX_TAG_COUNT,
-  SelectOptionsType,
-  StyledCheckOutlined,
-  StyledStopOutlined,
-  TOKEN_SEPARATORS,
   renderSelectOptions,
-  StyledSelect,
-  StyledContainer,
   hasCustomLabels,
-  BaseSelectProps,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   handleFilterOptionHelper,
   dropDownRenderHelper,
   getSuffixIcon,
 } from './utils';
-
-export interface SelectProps extends BaseSelectProps {
-  /**
-   * It defines the options of the Select.
-   * The options can be static, an array of options.
-   * The options can also be async, a promise that returns
-   * an array of options.
-   */
-  options: SelectOptionsType;
-}
+import { SelectOptionsType, SelectProps } from './types';
+import {
+  StyledCheckOutlined,
+  StyledContainer,
+  StyledSelect,
+  StyledStopOutlined,
+} from './styles';
+import {
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  TOKEN_SEPARATORS,
+  DEFAULT_SORT_COMPARATOR,
+} from './constants';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component

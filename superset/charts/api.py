@@ -81,7 +81,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 config = app.config
@@ -129,6 +129,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "tags.id",
         "tags.name",
         "tags.type",
+        "dashboards.id",
+        "dashboards.dashboard_title",
         "params",
         "slice_name",
         "thumbnail_url",
@@ -168,6 +170,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.id",
         "owners.last_name",
         "owners.username",
+        "dashboards.id",
+        "dashboards.dashboard_title",
         "params",
         "slice_name",
         "table.default_endpoint",
@@ -205,6 +209,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "id",
         "owners",
+        "dashboards",
         "slice_name",
         "tags",
         "viz_type",
@@ -243,7 +248,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-
+    filter_rel_fields = {
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),

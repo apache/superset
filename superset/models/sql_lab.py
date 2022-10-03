@@ -516,9 +516,3 @@ class TableSchema(Model, AuditMixinNullable, ExtraJSONMixin):
             "description": description,
             "expanded": self.expanded,
         }
-
-
-# events for updating tags
-sqla.event.listen(SavedQuery, "after_insert", QueryUpdater.after_insert)
-sqla.event.listen(SavedQuery, "after_update", QueryUpdater.after_update)
-sqla.event.listen(SavedQuery, "after_delete", QueryUpdater.after_delete)

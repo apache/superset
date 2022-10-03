@@ -201,6 +201,7 @@ function PropertiesModal({
         ...res.json.result,
         tags,
         id: slice.slice_id,
+        owners: selectedOwners,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));

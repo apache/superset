@@ -374,13 +374,6 @@ def event_after_chart_changed(
 sqla.event.listen(Slice, "before_insert", set_related_perm)
 sqla.event.listen(Slice, "before_update", set_related_perm)
 
-# events for updating tags
-if is_feature_enabled("TAGGING_SYSTEM"):
-    sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
-    sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
-    sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
-
-# events for updating tags
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
     sqla.event.listen(Slice, "after_update", event_after_chart_changed)

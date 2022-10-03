@@ -76,5 +76,4 @@ class DuckDBEngineSpec(BaseEngineSpec):
     def get_table_names(
         cls, database: Database, inspector: Inspector, schema: Optional[str]
     ) -> List[str]:
-        """Need to disregard the schema for DuckDB"""
-        return sorted(inspector.get_table_names())
+        return sorted(inspector.get_table_names(schema))

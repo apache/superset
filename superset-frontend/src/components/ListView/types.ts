@@ -52,6 +52,7 @@ export interface Filter {
   unfilteredLabel?: string;
   selects?: SelectOption[];
   onFilterOpen?: () => void;
+  onFilterUpdate?: (value?: any) => void;
   fetchSelects?: (
     filterValue: string,
     page: number,

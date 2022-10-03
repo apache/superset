@@ -293,7 +293,7 @@ export const hydrateDashboard =
 
     // find direct link component and path from root
     const directLinkComponentId = getLocationHash();
-    let directPathToChild = [];
+    let directPathToChild = dashboardState.directPathToChild || [];
     if (layout[directLinkComponentId]) {
       directPathToChild = (layout[directLinkComponentId].parents || []).slice();
       directPathToChild.push(directLinkComponentId);
