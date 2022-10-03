@@ -21,13 +21,14 @@ import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 export default {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
@@ -96,4 +97,8 @@ export default {
       label: t('Number format'),
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+  }),
 } as ControlPanelConfig;

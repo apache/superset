@@ -29,10 +29,11 @@ from superset.exceptions import NoDataException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
@@ -65,7 +66,8 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = pd.read_json(get_example_data("birth_names2.json.gz"))
+    url = get_example_url("birth_names2.json.gz")
+    pdf = pd.read_json(url, compression="gzip")
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
@@ -159,6 +161,9 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
             col.is_dttm = True
             break
 
+    datasource.columns = columns
+    datasource.metrics = metrics
+
 
 def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[Slice]]:
     metrics = [
@@ -205,13 +210,16 @@ def create_slices(tbl: SqlaTable, admin_owner: bool) -> Tuple[List[Slice], List[
     if admin_owner:
         slice_props = dict(
             datasource_id=tbl.id,
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             owners=[admin],
             created_by=admin,
         )
     else:
         slice_props = dict(
-            datasource_id=tbl.id, datasource_type="table", owners=[], created_by=admin
+            datasource_id=tbl.id,
+            datasource_type=DatasourceType.TABLE,
+            owners=[],
+            created_by=admin,
         )
 
     print("Creating some slices")
@@ -847,7 +855,7 @@ def create_dashboard(slices: List[Slice]) -> Dashboard:
     # pylint: enable=line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
-    update_slice_ids(pos, dash.slices)
+    update_slice_ids(pos)
     dash.dashboard_title = "USA Births Names"
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = "births"

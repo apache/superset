@@ -105,6 +105,10 @@ const Styles = styled.div`
 
   .slice_container {
     height: ${p => p.height}px;
+
+    .pivot_table tbody tr {
+      font-feature-settings: 'tnum' 1;
+    }
   }
 `;
 
@@ -199,7 +203,6 @@ class Chart extends React.PureComponent {
       height,
       datasetsStatus,
     } = this.props;
-
     const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
 

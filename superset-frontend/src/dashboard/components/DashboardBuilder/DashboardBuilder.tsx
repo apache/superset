@@ -61,6 +61,7 @@ import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { useUiConfig } from 'src/components/UiConfigContext';
+import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
   BUILDER_SIDEPANEL_WIDTH,
   CLOSED_FILTER_BAR_WIDTH,
@@ -68,6 +69,7 @@ import {
   FILTER_BAR_TABS_HEIGHT,
   MAIN_HEADER_HEIGHT,
   OPEN_FILTER_BAR_WIDTH,
+  OPEN_FILTER_BAR_MAX_WIDTH,
 } from 'src/dashboard/constants';
 import { shouldFocusTabs, getRootLevelTabsComponent } from './utils';
 import DashboardContainer from './DashboardContainer';
@@ -125,10 +127,11 @@ const StyledDiv = styled.div`
 `;
 
 // @z-index-above-dashboard-charts + 1 = 11
-const FiltersPanel = styled.div`
+const FiltersPanel = styled.div<{ width: number }>`
   grid-column: 1;
   grid-row: 1 / span 2;
   z-index: 11;
+  width: ${({ width }) => width}px;
 `;
 
 const StickyPanel = styled.div<{ width: number }>`
@@ -145,6 +148,7 @@ const StyledHeader = styled.div`
   position: sticky;
   top: 0;
   z-index: 100;
+  max-width: 100vw;
 `;
 
 const StyledContent = styled.div<{
@@ -219,6 +223,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
 
+  const dashboardId = useSelector<RootState, string>(
+    ({ dashboardInfo }) => `${dashboardInfo.id}`,
+  );
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -297,10 +304,6 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
   } = useNativeFilters();
-
-  const filterBarWidth = dashboardFiltersOpen
-    ? OPEN_FILTER_BAR_WIDTH
-    : CLOSED_FILTER_BAR_WIDTH;
 
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
     threshold: [1],
@@ -392,20 +395,40 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   return (
     <StyledDiv>
       {nativeFiltersEnabled && !editMode && (
-        <FiltersPanel>
-          <StickyPanel ref={containerRef} width={filterBarWidth}>
-            <ErrorBoundary>
-              <FilterBar
-                filtersOpen={dashboardFiltersOpen}
-                toggleFiltersBar={toggleDashboardFiltersOpen}
-                directPathToChild={directPathToChild}
-                width={filterBarWidth}
-                height={filterBarHeight}
-                offset={filterBarOffset}
-              />
-            </ErrorBoundary>
-          </StickyPanel>
-        </FiltersPanel>
+        <>
+          <ResizableSidebar
+            id={`dashboard:${dashboardId}`}
+            enable={dashboardFiltersOpen}
+            minWidth={OPEN_FILTER_BAR_WIDTH}
+            maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
+            initialWidth={OPEN_FILTER_BAR_WIDTH}
+          >
+            {adjustedWidth => {
+              const filterBarWidth = dashboardFiltersOpen
+                ? adjustedWidth
+                : CLOSED_FILTER_BAR_WIDTH;
+              return (
+                <FiltersPanel
+                  width={filterBarWidth}
+                  data-test="dashboard-filters-panel"
+                >
+                  <StickyPanel ref={containerRef} width={filterBarWidth}>
+                    <ErrorBoundary>
+                      <FilterBar
+                        filtersOpen={dashboardFiltersOpen}
+                        toggleFiltersBar={toggleDashboardFiltersOpen}
+                        directPathToChild={directPathToChild}
+                        width={filterBarWidth}
+                        height={filterBarHeight}
+                        offset={filterBarOffset}
+                      />
+                    </ErrorBoundary>
+                  </StickyPanel>
+                </FiltersPanel>
+              );
+            }}
+          </ResizableSidebar>
+        </>
       )}
       <StyledHeader ref={headerRef}>
         {/* @ts-ignore */}

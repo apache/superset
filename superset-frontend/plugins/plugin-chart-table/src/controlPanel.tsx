@@ -19,7 +19,6 @@
  */
 import React from 'react';
 import {
-  addLocaleData,
   ChartDataResponseResult,
   ensureIsArray,
   FeatureFlag,
@@ -41,15 +40,15 @@ import {
   sections,
   sharedControls,
   ControlPanelState,
-  ExtraControlProps,
   ControlState,
   emitFilterControl,
+  Dataset,
+  ColumnMeta,
+  defineSavedMetrics,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 
-import i18n from './i18n';
 import { PAGE_SIZE_OPTIONS } from './consts';
-
-addLocaleData(i18n);
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -96,15 +95,14 @@ const queryMode: ControlConfig<'RadioButtonControl'> = {
   rerender: ['all_columns', 'groupby', 'metrics', 'percent_metrics'],
 };
 
-const all_columns: typeof sharedControls.groupby = {
-  type: 'SelectControl',
+const allColumnsControl: typeof sharedControls.groupby = {
+  ...sharedControls.groupby,
   label: t('Columns'),
   description: t('Columns to display'),
   multi: true,
   freeForm: true,
   allowAll: true,
   commaChoosesOption: false,
-  default: [],
   optionRenderer: c => <ColumnOption showType column={c} />,
   valueRenderer: c => <ColumnOption column={c} />,
   valueKey: 'column_name',
@@ -112,7 +110,7 @@ const all_columns: typeof sharedControls.groupby = {
     options: datasource?.columns || [],
     queryMode: getQueryMode(controls),
     externalValidationErrors:
-      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
+      isRawMode({ controls }) && ensureIsArray(controlState?.value).length === 0
         ? [t('must have a value')]
         : [],
   }),
@@ -120,59 +118,29 @@ const all_columns: typeof sharedControls.groupby = {
   resetOnHide: false,
 };
 
-const dnd_all_columns: typeof sharedControls.groupby = {
-  type: 'DndColumnSelect',
-  label: t('Columns'),
-  description: t('Columns to display'),
-  default: [],
-  mapStateToProps({ datasource, controls }, controlState) {
-    const newState: ExtraControlProps = {};
-    if (datasource) {
-      const options = datasource.columns;
-      newState.options = Object.fromEntries(
-        options.map(option => [option.column_name, option]),
-      );
-    }
-    newState.queryMode = getQueryMode(controls);
-    newState.externalValidationErrors =
-      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
-        ? [t('must have a value')]
-        : [];
-    return newState;
-  },
-  visibility: isRawMode,
-  resetOnHide: false,
-};
-
-const percent_metrics: typeof sharedControls.metrics = {
-  type: 'MetricsControl',
+const percentMetricsControl: typeof sharedControls.metrics = {
+  ...sharedControls.metrics,
   label: t('Percentage metrics'),
   description: t(
     'Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.',
   ),
-  multi: true,
   visibility: isAggMode,
   resetOnHide: false,
   mapStateToProps: ({ datasource, controls }, controlState) => ({
     columns: datasource?.columns || [],
-    savedMetrics: datasource?.metrics || [],
+    savedMetrics: defineSavedMetrics(datasource),
     datasource,
     datasourceType: datasource?.type,
     queryMode: getQueryMode(controls),
     externalValidationErrors: validateAggControlValues(controls, [
       controls.groupby?.value,
       controls.metrics?.value,
-      controlState.value,
+      controlState?.value,
     ]),
   }),
   rerender: ['groupby', 'metrics'],
   default: [],
   validators: [],
-};
-
-const dnd_percent_metrics = {
-  ...percent_metrics,
-  type: 'DndMetricSelect',
 };
 
 const config: ControlPanelConfig = {
@@ -229,8 +197,12 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns.filter(c => c.filterable) || [],
-                savedMetrics: datasource?.metrics || [],
+                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
+                  ? (datasource as Dataset)?.columns?.filter(
+                      (c: ColumnMeta) => c.filterable,
+                    )
+                  : datasource?.columns,
+                savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
                   form_data.metrics ||
@@ -247,19 +219,13 @@ const config: ControlPanelConfig = {
           },
           {
             name: 'all_columns',
-            config: isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-              ? dnd_all_columns
-              : all_columns,
+            config: allColumnsControl,
           },
         ],
         [
           {
             name: 'percent_metrics',
-            config: {
-              ...(isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-                ? dnd_percent_metrics
-                : percent_metrics),
-            },
+            config: percentMetricsControl,
           },
         ],
         ['adhoc_filters'],
@@ -280,7 +246,9 @@ const config: ControlPanelConfig = {
               multi: true,
               default: [],
               mapStateToProps: ({ datasource }) => ({
-                choices: datasource?.order_by_choices || [],
+                choices: datasource?.hasOwnProperty('order_by_choices')
+                  ? (datasource as Dataset)?.order_by_choices
+                  : datasource?.columns || [],
               }),
               visibility: isRawMode,
               resetOnHide: false,
@@ -307,6 +275,7 @@ const config: ControlPanelConfig = {
           {
             name: 'row_limit',
             override: {
+              default: 1000,
               visibility: ({ controls }: ControlPanelsContainerProps) =>
                 !controls?.server_pagination?.value,
             },
@@ -457,6 +426,20 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'allow_rearrange_columns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow columns to be rearranged'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'column_config',
             config: {
               type: 'ColumnConfigControl',
@@ -491,7 +474,11 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const verboseMap = explore?.datasource?.verbose_map ?? {};
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : explore?.datasource?.columns ?? {};
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
                 const numericColumns =
@@ -517,6 +504,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;

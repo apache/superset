@@ -34,18 +34,13 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 from tests.integration_tests.test_app import app
 from superset.dashboards.commands.importers.v0 import decode_dashboards
 from superset import db, security_manager
-from superset.connectors.druid.models import (
-    DruidColumn,
-    DruidDatasource,
-    DruidMetric,
-    DruidCluster,
-)
+
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dashboards.commands.importers.v0 import import_chart, import_dashboard
 from superset.datasets.commands.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -55,36 +50,30 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from .base_tests import SupersetTestCase
 
 
+def delete_imports():
+    with app.app_context():
+        # Imported data clean up
+        session = db.session
+        for slc in session.query(Slice):
+            if "remote_id" in slc.params_dict:
+                session.delete(slc)
+        for dash in session.query(Dashboard):
+            if "remote_id" in dash.params_dict:
+                session.delete(dash)
+        for table in session.query(SqlaTable):
+            if "remote_id" in table.params_dict:
+                session.delete(table)
+        session.commit()
+
+
+@pytest.fixture(autouse=True, scope="module")
+def clean_imports():
+    yield
+    delete_imports()
+
+
 class TestImportExport(SupersetTestCase):
     """Testing export import functionality for dashboards"""
-
-    @classmethod
-    def delete_imports(cls):
-        with app.app_context():
-            # Imported data clean up
-            session = db.session
-            for slc in session.query(Slice):
-                if "remote_id" in slc.params_dict:
-                    session.delete(slc)
-            for dash in session.query(Dashboard):
-                if "remote_id" in dash.params_dict:
-                    session.delete(dash)
-            for table in session.query(SqlaTable):
-                if "remote_id" in table.params_dict:
-                    session.delete(table)
-            for datasource in session.query(DruidDatasource):
-                if "remote_id" in datasource.params_dict:
-                    session.delete(datasource)
-            session.commit()
-
-    @classmethod
-    def setUpClass(cls):
-        cls.delete_imports()
-        cls.create_druid_test_objects()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.delete_imports()
 
     def create_slice(
         self,
@@ -112,7 +101,7 @@ class TestImportExport(SupersetTestCase):
 
         return Slice(
             slice_name=name,
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             viz_type="bubble",
             params=json.dumps(params),
             datasource_id=ds_id,
@@ -141,25 +130,6 @@ class TestImportExport(SupersetTestCase):
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
         return table
 
-    def create_druid_datasource(self, name, id=0, cols_names=[], metric_names=[]):
-        cluster_name = "druid_test"
-        cluster = self.get_or_create(
-            DruidCluster, {"cluster_name": cluster_name}, db.session
-        )
-
-        params = {"remote_id": id, "database_name": cluster_name}
-        datasource = DruidDatasource(
-            id=id,
-            datasource_name=name,
-            cluster_id=cluster.id,
-            params=json.dumps(params),
-        )
-        for col_name in cols_names:
-            datasource.columns.append(DruidColumn(column_name=col_name))
-        for metric_name in metric_names:
-            datasource.metrics.append(DruidMetric(metric_name=metric_name, json="{}"))
-        return datasource
-
     def get_slice(self, slc_id):
         return db.session.query(Slice).filter_by(id=slc_id).first()
 
@@ -168,9 +138,6 @@ class TestImportExport(SupersetTestCase):
 
     def get_dash(self, dash_id):
         return db.session.query(Dashboard).filter_by(id=dash_id).first()
-
-    def get_datasource(self, datasource_id):
-        return db.session.query(DruidDatasource).filter_by(id=datasource_id).first()
 
     def assert_dash_equals(
         self, expected_dash, actual_dash, check_position=True, check_slugs=True
@@ -703,78 +670,6 @@ class TestImportExport(SupersetTestCase):
 
         self.assertEqual(imported_id, imported_id_copy)
         self.assert_table_equals(copy_table, self.get_table_by_id(imported_id))
-
-    def test_import_druid_no_metadata(self):
-        datasource = self.create_druid_datasource("pure_druid", id=10001)
-        imported_id = import_dataset(datasource, import_time=1989)
-        imported = self.get_datasource(imported_id)
-        self.assert_datasource_equals(datasource, imported)
-
-    def test_import_druid_1_col_1_met(self):
-        datasource = self.create_druid_datasource(
-            "druid_1_col_1_met", id=10002, cols_names=["col1"], metric_names=["metric1"]
-        )
-        imported_id = import_dataset(datasource, import_time=1990)
-        imported = self.get_datasource(imported_id)
-        self.assert_datasource_equals(datasource, imported)
-        self.assertEqual(
-            {"remote_id": 10002, "import_time": 1990, "database_name": "druid_test"},
-            json.loads(imported.params),
-        )
-
-    def test_import_druid_2_col_2_met(self):
-        datasource = self.create_druid_datasource(
-            "druid_2_col_2_met",
-            id=10003,
-            cols_names=["c1", "c2"],
-            metric_names=["m1", "m2"],
-        )
-        imported_id = import_dataset(datasource, import_time=1991)
-        imported = self.get_datasource(imported_id)
-        self.assert_datasource_equals(datasource, imported)
-
-    def test_import_druid_override(self):
-        datasource = self.create_druid_datasource(
-            "druid_override", id=10004, cols_names=["col1"], metric_names=["m1"]
-        )
-        imported_id = import_dataset(datasource, import_time=1991)
-        table_over = self.create_druid_datasource(
-            "druid_override",
-            id=10004,
-            cols_names=["new_col1", "col2", "col3"],
-            metric_names=["new_metric1"],
-        )
-        imported_over_id = import_dataset(table_over, import_time=1992)
-
-        imported_over = self.get_datasource(imported_over_id)
-        self.assertEqual(imported_id, imported_over.id)
-        expected_datasource = self.create_druid_datasource(
-            "druid_override",
-            id=10004,
-            metric_names=["new_metric1", "m1"],
-            cols_names=["col1", "new_col1", "col2", "col3"],
-        )
-        self.assert_datasource_equals(expected_datasource, imported_over)
-
-    def test_import_druid_override_identical(self):
-        datasource = self.create_druid_datasource(
-            "copy_cat",
-            id=10005,
-            cols_names=["new_col1", "col2", "col3"],
-            metric_names=["new_metric1"],
-        )
-        imported_id = import_dataset(datasource, import_time=1993)
-
-        copy_datasource = self.create_druid_datasource(
-            "copy_cat",
-            id=10005,
-            cols_names=["new_col1", "col2", "col3"],
-            metric_names=["new_metric1"],
-        )
-        imported_id_copy = import_dataset(copy_datasource, import_time=1994)
-
-        self.assertEqual(imported_id, imported_id_copy)
-        self.assert_datasource_equals(copy_datasource, self.get_datasource(imported_id))
 
 
 if __name__ == "__main__":

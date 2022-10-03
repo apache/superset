@@ -1406,7 +1406,9 @@ def test_insert_rls(
 
     # pylint: disable=unused-argument
     def get_rls_for_table(
-        candidate: Token, database_id: int, default_schema: str
+        candidate: Token,
+        database_id: int,
+        default_schema: str,
     ) -> Optional[TokenList]:
         """
         Return the RLS ``condition`` if ``candidate`` matches ``table``.
@@ -1443,7 +1445,7 @@ def test_add_table_name(rls: str, table: str, expected: str) -> None:
     assert str(condition) == expected
 
 
-def test_get_rls_for_table(mocker: MockerFixture, app_context: None) -> None:
+def test_get_rls_for_table(mocker: MockerFixture) -> None:
     """
     Tests for ``get_rls_for_table``.
     """

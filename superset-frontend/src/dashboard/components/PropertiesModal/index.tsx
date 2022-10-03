@@ -21,15 +21,15 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { Select, Row, Col, AntdForm } from 'src/components';
+import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
-  styled,
-  t,
-  SupersetClient,
-  getCategoricalSchemeRegistry,
   ensureIsArray,
+  getCategoricalSchemeRegistry,
   getSharedLabelColor,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -59,6 +59,7 @@ type PropertiesModalProps = {
   setColorSchemeAndUnsavedChanges?: () => void;
   onSubmit?: (params: Record<string, any>) => void;
   addSuccessToast: (message: string) => void;
+  addDangerToast: (message: string) => void;
   onlyApply?: boolean;
 };
 
@@ -80,6 +81,7 @@ type DashboardInfo = {
 
 const PropertiesModal = ({
   addSuccessToast,
+  addDangerToast,
   colorScheme: currentColorScheme,
   dashboardId,
   dashboardInfo: currentDashboardInfo,
@@ -98,6 +100,7 @@ const PropertiesModal = ({
   const [owners, setOwners] = useState<Owners>([]);
   const [roles, setRoles] = useState<Roles>([]);
   const saveLabel = onlyApply ? t('Apply') : t('Save');
+  const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -129,12 +132,12 @@ const PropertiesModal = ({
       return SupersetClient.get({
         endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
       }).then(response => ({
-        data: response.json.result.map(
-          (item: { value: number; text: string }) => ({
+        data: response.json.result
+          .filter((item: { extra: { active: boolean } }) => item.extra.active)
+          .map((item: { value: number; text: string }) => ({
             value: item.value,
             label: item.text,
-          }),
-        ),
+          })),
         totalCount: response.json.count,
       }));
     },
@@ -174,9 +177,13 @@ const PropertiesModal = ({
         delete metadata.positions;
       }
       const metaDataCopy = { ...metadata };
+
       if (metaDataCopy?.shared_label_colors) {
         delete metaDataCopy.shared_label_colors;
       }
+
+      delete metaDataCopy.color_scheme_domain;
+
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
     },
     [form],
@@ -262,7 +269,7 @@ const PropertiesModal = ({
     { updateMetadata = true } = {},
   ) => {
     // check that color_scheme is valid
-    const colorChoices = getCategoricalSchemeRegistry().keys();
+    const colorChoices = categoricalSchemeRegistry.keys();
     const jsonMetadataObj = getJsonMetadata();
 
     // only fire if the color_scheme is present and invalid
@@ -292,24 +299,47 @@ const PropertiesModal = ({
     let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;
 
-    // color scheme in json metadata has precedence over selection
-    if (currentJsonMetadata?.length) {
-      const metadata = JSON.parse(currentJsonMetadata);
-      currentColorScheme = metadata?.color_scheme || colorScheme;
-      colorNamespace = metadata?.color_namespace || '';
-
-      // filter shared_label_color from user input
-      if (metadata?.shared_label_colors) {
-        delete metadata.shared_label_colors;
+    // validate currentJsonMetadata
+    let metadata;
+    try {
+      if (
+        !currentJsonMetadata.startsWith('{') ||
+        !currentJsonMetadata.endsWith('}')
+      ) {
+        throw new Error();
       }
-      const colorMap = getSharedLabelColor().getColorMap(
-        colorNamespace,
-        currentColorScheme,
-        true,
-      );
-      metadata.shared_label_colors = colorMap;
-      currentJsonMetadata = jsonStringify(metadata);
+      metadata = JSON.parse(currentJsonMetadata);
+    } catch (error) {
+      addDangerToast(t('JSON metadata is invalid!'));
+      return;
     }
+
+    // color scheme in json metadata has precedence over selection
+    currentColorScheme = metadata?.color_scheme || colorScheme;
+    colorNamespace = metadata?.color_namespace || '';
+
+    // filter shared_label_color from user input
+    if (metadata?.shared_label_colors) {
+      delete metadata.shared_label_colors;
+    }
+    if (metadata?.color_scheme_domain) {
+      delete metadata.color_scheme_domain;
+    }
+
+    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
+      colorNamespace,
+      currentColorScheme,
+      true,
+    );
+
+    if (metadata?.color_scheme) {
+      metadata.color_scheme_domain =
+        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
+    } else {
+      metadata.color_scheme_domain = [];
+    }
+
+    currentJsonMetadata = jsonStringify(metadata);
 
     onColorSchemeChange(currentColorScheme, {
       updateMetadata: false,
@@ -370,7 +400,7 @@ const PropertiesModal = ({
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
           <StyledFormItem label={t('Owners')}>
-            <Select
+            <AsyncSelect
               allowClear
               ariaLabel={t('Owners')}
               disabled={isLoading}
@@ -417,7 +447,7 @@ const PropertiesModal = ({
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('Owners')}>
-              <Select
+              <AsyncSelect
                 allowClear
                 ariaLabel={t('Owners')}
                 disabled={isLoading}
@@ -437,7 +467,7 @@ const PropertiesModal = ({
           </Col>
           <Col xs={24} md={12}>
             <StyledFormItem label={t('Roles')}>
-              <Select
+              <AsyncSelect
                 allowClear
                 ariaLabel={t('Roles')}
                 disabled={isLoading}
@@ -513,6 +543,7 @@ const PropertiesModal = ({
             {t('Cancel')}
           </Button>
           <Button
+            data-test="properties-modal-apply-button"
             onClick={form.submit}
             buttonSize="small"
             buttonStyle="primary"

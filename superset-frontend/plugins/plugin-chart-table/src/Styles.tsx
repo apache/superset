@@ -51,6 +51,10 @@ export default styled.div`
       border-top: 0;
     }
 
+    .table > tbody tr td {
+      font-feature-settings: 'tnum' 1;
+    }
+
     .dt-controls {
       padding-bottom: 0.65em;
     }
@@ -76,6 +80,17 @@ export default styled.div`
 
     .dt-global-filter {
       float: right;
+    }
+
+    .dt-truncate-cell {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .dt-truncate-cell:hover {
+      overflow: visible;
+      white-space: normal;
+      height: auto;
     }
 
     .dt-pagination {

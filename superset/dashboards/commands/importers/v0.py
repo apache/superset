@@ -24,7 +24,7 @@ from typing import Any, Dict, Optional
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import make_transient, Session
 
-from superset import ConnectorRegistry, db
+from superset import db
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.datasets.commands.importers.v0 import import_dataset
@@ -63,12 +63,11 @@ def import_chart(
     slc_to_import = slc_to_import.copy()
     slc_to_import.reset_ownership()
     params = slc_to_import.params_dict
-    datasource = ConnectorRegistry.get_datasource_by_name(
-        session,
-        slc_to_import.datasource_type,
-        params["datasource_name"],
-        params["schema"],
-        params["database_name"],
+    datasource = SqlaTable.get_datasource_by_name(
+        session=session,
+        datasource_name=params["datasource_name"],
+        database_name=params["database_name"],
+        schema=params["schema"],
     )
     slc_to_import.datasource_id = datasource.id  # type: ignore
     if slc_to_override:
@@ -269,20 +268,11 @@ def import_dashboard(
     return dashboard_to_import.id  # type: ignore
 
 
-def decode_dashboards(  # pylint: disable=too-many-return-statements
-    o: Dict[str, Any]
-) -> Any:
+def decode_dashboards(o: Dict[str, Any]) -> Any:
     """
     Function to be passed into json.loads obj_hook parameter
     Recreates the dashboard object from a json representation.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.connectors.druid.models import (
-        DruidCluster,
-        DruidColumn,
-        DruidDatasource,
-        DruidMetric,
-    )
 
     if "__Dashboard__" in o:
         return Dashboard(**o["__Dashboard__"])
@@ -294,14 +284,6 @@ def decode_dashboards(  # pylint: disable=too-many-return-statements
         return SqlaTable(**o["__SqlaTable__"])
     if "__SqlMetric__" in o:
         return SqlMetric(**o["__SqlMetric__"])
-    if "__DruidCluster__" in o:
-        return DruidCluster(**o["__DruidCluster__"])
-    if "__DruidColumn__" in o:
-        return DruidColumn(**o["__DruidColumn__"])
-    if "__DruidDatasource__" in o:
-        return DruidDatasource(**o["__DruidDatasource__"])
-    if "__DruidMetric__" in o:
-        return DruidMetric(**o["__DruidMetric__"])
     if "__datetime__" in o:
         return datetime.strptime(o["__datetime__"], "%Y-%m-%dT%H:%M:%S")
 

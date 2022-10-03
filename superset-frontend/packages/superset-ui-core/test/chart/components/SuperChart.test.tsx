@@ -29,9 +29,7 @@ import {
   ThemeProvider,
 } from '@superset-ui/core';
 import { mount as enzymeMount } from 'enzyme';
-import RealSuperChart, {
-  WrapperProps,
-} from '../../../src/chart/components/SuperChart';
+import { WrapperProps } from '../../../src/chart/components/SuperChart';
 import NoResultsComponent from '../../../src/chart/components/NoResultsComponent';
 
 import {
@@ -111,9 +109,8 @@ describe('SuperChart', () => {
       expectedErrors = 0;
     });
 
-    it('renders default FallbackComponent', () => {
+    it('renders default FallbackComponent', async () => {
       expectedErrors = 1;
-      jest.spyOn(RealSuperChart.defaultProps, 'FallbackComponent');
       const wrapper = mount(
         <SuperChart
           chartType={ChartKeys.BUGGY}
@@ -122,14 +119,9 @@ describe('SuperChart', () => {
           height="200"
         />,
       );
-      const renderedWrapper = wrapper.render();
-
-      return promiseTimeout(() => {
-        expect(renderedWrapper.find('div.test-component')).toHaveLength(0);
-        expect(
-          RealSuperChart.defaultProps.FallbackComponent,
-        ).toHaveBeenCalledTimes(1);
-      }, 100);
+      await new Promise(resolve => setImmediate(resolve));
+      wrapper.update();
+      expect(wrapper.text()).toContain('Oops! An error occurred!');
     });
     it('renders custom FallbackComponent', () => {
       expectedErrors = 1;

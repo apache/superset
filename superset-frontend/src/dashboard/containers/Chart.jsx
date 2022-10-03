@@ -46,7 +46,6 @@ function mapStateToProps(
     charts: chartQueries,
     dashboardInfo,
     dashboardState,
-    dashboardLayout,
     dataMask,
     datasources,
     sliceEntities,
@@ -55,7 +54,7 @@ function mapStateToProps(
   },
   ownProps,
 ) {
-  const { id } = ownProps;
+  const { id, extraControls, setControlValue } = ownProps;
   const chart = chartQueries[id] || EMPTY_OBJECT;
   const datasource =
     (chart && chart.form_data && datasources[chart.form_data.datasource]) ||
@@ -65,17 +64,17 @@ function mapStateToProps(
   const sharedLabelColors = dashboardInfo?.metadata?.shared_label_colors || {};
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
-    layout: dashboardLayout.present,
     chart,
-    // eslint-disable-next-line camelcase
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,
     charts: chartQueries,
     filters: getAppliedFilterValues(id),
     colorScheme,
     colorNamespace,
     sliceId: id,
-    nativeFilters,
+    nativeFilters: nativeFilters?.filters,
+    allSliceIds: dashboardState.sliceIds,
     dataMask,
+    extraControls,
     labelColors,
     sharedLabelColors,
   });
@@ -100,6 +99,7 @@ function mapStateToProps(
     ownState: dataMask[id]?.ownState,
     filterState: dataMask[id]?.filterState,
     maxRows: common.conf.SQL_MAX_ROW,
+    setControlValue,
     filterboxMigrationState: dashboardState.filterboxMigrationState,
     datasetsStatus,
   };

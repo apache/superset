@@ -38,7 +38,7 @@ describe('Visualization > Treemap', () => {
   const level2 = '.chart-container rect[style="fill: rgb(0, 122, 135);"]';
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
@@ -79,5 +79,17 @@ describe('Visualization > Treemap', () => {
       ],
     });
     cy.get(level1).should('have.length', 8);
+  });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('[data-test=run-query-button]').click();
+    cy.get('#rect-IND').should('have.css', 'fill', 'rgb(69, 78, 124)');
   });
 });

@@ -53,6 +53,7 @@ g.window.performance = { now: () => new Date().getTime() };
 g.window.Worker = Worker;
 g.window.IntersectionObserver = IntersectionObserver;
 g.window.ResizeObserver = ResizeObserver;
+g.window.featureFlags = {};
 g.URL.createObjectURL = () => '';
 g.caches = new CacheStorage();
 
@@ -81,3 +82,5 @@ setupSupersetClient();
 jest.mock('src/hooks/useTabId', () => ({
   useTabId: () => 1,
 }));
+
+process.env.WEBPACK_MODE = 'test';

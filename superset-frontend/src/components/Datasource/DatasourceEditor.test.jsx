@@ -19,10 +19,18 @@
 import React from 'react';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import * as featureFlags from 'src/featureFlags';
+
+jest.mock('src/components/Icons/Icon', () => ({ fileName, role, ...rest }) => (
+  <span
+    role={role ?? 'img'}
+    aria-label={fileName.replace('_', '-')}
+    {...rest}
+  />
+));
 
 const props = {
   datasource: mockDatasource['7__table'],
@@ -32,26 +40,26 @@ const props = {
 };
 const DATASOURCE_ENDPOINT = 'glob:*/datasource/external_metadata_by_name/*';
 
+const asyncRender = props =>
+  waitFor(() => render(<DatasourceEditor {...props} />, { useRedux: true }));
+
 describe('DatasourceEditor', () => {
   fetchMock.get(DATASOURCE_ENDPOINT, []);
 
-  let el;
   let isFeatureEnabledMock;
 
-  beforeEach(() => {
-    el = <DatasourceEditor {...props} />;
-    render(el, { useRedux: true });
-  });
-
-  it('is valid', () => {
-    expect(React.isValidElement(el)).toBe(true);
+  beforeEach(async () => {
+    await asyncRender({
+      ...props,
+      datasource: { ...props.datasource, table_name: 'Vehicle Sales +' },
+    });
   });
 
   it('renders Tabs', () => {
     expect(screen.getByTestId('edit-dataset-tabs')).toBeInTheDocument();
   });
 
-  it('makes an async request', () =>
+  it('can sync columns from source', () =>
     new Promise(done => {
       const columnsTab = screen.getByTestId('collection-tab-Columns');
 
@@ -63,6 +71,9 @@ describe('DatasourceEditor', () => {
 
       setTimeout(() => {
         expect(fetchMock.calls(DATASOURCE_ENDPOINT)).toHaveLength(1);
+        expect(fetchMock.calls(DATASOURCE_ENDPOINT)[0][0]).toContain(
+          'Vehicle%20Sales%20%2B%27',
+        );
         fetchMock.reset();
         done();
       }, 0);
@@ -88,7 +99,7 @@ describe('DatasourceEditor', () => {
       'Certification details',
     );
 
-    userEvent.type(await inputLabel, 'test_lable');
+    userEvent.type(await inputLabel, 'test_label');
     userEvent.type(await inputDescription, 'test');
     userEvent.type(await inputDtmFormat, 'test');
     userEvent.type(await inputCertifiedBy, 'test');
@@ -157,11 +168,11 @@ describe('DatasourceEditor', () => {
       const physicalRadioBtn = screen.getByRole('radio', {
         name: /physical \(table or view\)/i,
       });
-      const vituralRadioBtn = screen.getByRole('radio', {
+      const virtualRadioBtn = screen.getByRole('radio', {
         name: /virtual \(sql\)/i,
       });
       expect(physicalRadioBtn).toBeEnabled();
-      expect(vituralRadioBtn).toBeEnabled();
+      expect(virtualRadioBtn).toBeEnabled();
     });
 
     it('Source Tab: readOnly mode', () => {
@@ -170,11 +181,11 @@ describe('DatasourceEditor', () => {
       const physicalRadioBtn = screen.getByRole('radio', {
         name: /physical \(table or view\)/i,
       });
-      const vituralRadioBtn = screen.getByRole('radio', {
+      const virtualRadioBtn = screen.getByRole('radio', {
         name: /virtual \(sql\)/i,
       });
       expect(physicalRadioBtn).toBeDisabled();
-      expect(vituralRadioBtn).toBeDisabled();
+      expect(virtualRadioBtn).toBeDisabled();
     });
   });
 
@@ -185,11 +196,8 @@ describe('DatasourceEditor', () => {
         .mockImplementation(() => true);
     });
 
-    beforeEach(() => {
-      render(el, { useRedux: true });
-    });
-
-    it('disable edit Source tab', () => {
+    it('disable edit Source tab', async () => {
+      await asyncRender(props);
       expect(
         screen.queryByRole('img', { name: /lock-locked/i }),
       ).not.toBeInTheDocument();
@@ -200,7 +208,7 @@ describe('DatasourceEditor', () => {
 
 describe('DatasourceEditor RTL', () => {
   it('properly renders the metric information', async () => {
-    render(<DatasourceEditor {...props} />, { useRedux: true });
+    await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     userEvent.click(metricButton);
     const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
@@ -213,9 +221,7 @@ describe('DatasourceEditor RTL', () => {
     expect(warningMarkdown.value).toEqual('someone');
   });
   it('properly updates the metric information', async () => {
-    render(<DatasourceEditor {...props} />, {
-      useRedux: true,
-    });
+    await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');
     userEvent.click(metricButton);
     const expandToggle = await screen.findAllByLabelText(/toggle expand/i);
@@ -230,26 +236,22 @@ describe('DatasourceEditor RTL', () => {
     expect(certificationDetails.value).toEqual('I am typing something new');
   });
   it('shows the default datetime column', async () => {
-    render(<DatasourceEditor {...props} />, { useRedux: true });
+    await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Columns');
     userEvent.click(metricButton);
-
     const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
     expect(dsDefaultDatetimeRadio).toBeChecked();
-
     const genderDefaultDatetimeRadio = screen.getByTestId(
       'radio-default-dttm-gender',
     );
     expect(genderDefaultDatetimeRadio).not.toBeChecked();
   });
   it('allows choosing only temporal columns as the default datetime', async () => {
-    render(<DatasourceEditor {...props} />, { useRedux: true });
+    await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Columns');
     userEvent.click(metricButton);
-
     const dsDefaultDatetimeRadio = screen.getByTestId('radio-default-dttm-ds');
     expect(dsDefaultDatetimeRadio).toBeEnabled();
-
     const genderDefaultDatetimeRadio = screen.getByTestId(
       'radio-default-dttm-gender',
     );

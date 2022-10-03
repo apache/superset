@@ -33,7 +33,7 @@ describe('Visualization > Time TableViz', () => {
       column_collection: [
         {
           key: '9g4K-B-YL',
-          label: 'Last+Year',
+          label: 'Last Year',
           colType: 'time',
           timeLag: '1',
           comparisonType: 'value',
@@ -42,7 +42,7 @@ describe('Visualization > Time TableViz', () => {
       url: '',
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,
@@ -61,7 +61,7 @@ describe('Visualization > Time TableViz', () => {
       column_collection: [
         {
           key: '9g4K-B-YL',
-          label: 'Last+Year',
+          label: 'Last Year',
           colType: 'time',
           timeLag: '1',
           comparisonType: 'value',
@@ -70,7 +70,7 @@ describe('Visualization > Time TableViz', () => {
       url: '',
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,
@@ -107,7 +107,7 @@ describe('Visualization > Time TableViz', () => {
       url: '',
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,

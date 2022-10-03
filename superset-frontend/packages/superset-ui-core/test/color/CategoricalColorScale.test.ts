@@ -18,7 +18,7 @@
  */
 
 import { ScaleOrdinal } from 'd3-scale';
-import { CategoricalColorScale } from '@superset-ui/core';
+import { CategoricalColorScale, FeatureFlag } from '@superset-ui/core';
 
 describe('CategoricalColorScale', () => {
   it('exists', () => {
@@ -62,7 +62,36 @@ describe('CategoricalColorScale', () => {
       expect(c2).not.toBe(c3);
       expect(c3).not.toBe(c1);
     });
+    it('recycles colors when number of items exceed available colors', () => {
+      window.featureFlags = {
+        [FeatureFlag.USE_ANALAGOUS_COLORS]: false,
+      };
+      const colorSet: { [key: string]: number } = {};
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      const colors = [
+        scale.getColor('pig'),
+        scale.getColor('horse'),
+        scale.getColor('cat'),
+        scale.getColor('cow'),
+        scale.getColor('donkey'),
+        scale.getColor('goat'),
+      ];
+      colors.forEach(color => {
+        if (colorSet[color]) {
+          colorSet[color] += 1;
+        } else {
+          colorSet[color] = 1;
+        }
+      });
+      expect(Object.keys(colorSet)).toHaveLength(3);
+      ['blue', 'red', 'green'].forEach(color => {
+        expect(colorSet[color]).toBe(2);
+      });
+    });
     it('get analogous colors when number of items exceed available colors', () => {
+      window.featureFlags = {
+        [FeatureFlag.USE_ANALAGOUS_COLORS]: true,
+      };
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.getColor('pig');
       scale.getColor('horse');

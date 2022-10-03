@@ -288,6 +288,17 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         )
 
     @classmethod
+    def get_datatype(cls, type_code: Any) -> Optional[str]:
+        # pylint: disable=import-outside-toplevel
+        from psycopg2.extensions import binary_types, string_types
+
+        types = binary_types.copy()
+        types.update(string_types)
+        if type_code in types:
+            return types[type_code].name
+        return None
+
+    @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
         """
         Get Postgres PID that will be used to cancel all other running

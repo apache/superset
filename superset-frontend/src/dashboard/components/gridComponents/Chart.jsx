@@ -19,8 +19,15 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, logging } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  logging,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { isEqual } from 'lodash';
+import { withRouter } from 'react-router-dom';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
@@ -51,6 +58,7 @@ const propTypes = {
   updateSliceName: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool,
   handleToggleFullSize: PropTypes.func.isRequired,
+  setControlValue: PropTypes.func,
 
   // from redux
   chart: chartPropShape.isRequired,
@@ -119,7 +127,7 @@ const SliceContainer = styled.div`
   max-height: 100%;
 `;
 
-export default class Chart extends React.Component {
+class Chart extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -150,6 +158,14 @@ export default class Chart extends React.Component {
       nextState.height !== this.state.height ||
       nextState.descriptionHeight !== this.state.descriptionHeight ||
       !isEqual(nextProps.datasource, this.props.datasource)
+    ) {
+      return true;
+    }
+
+    // allow chart to update if the status changed and the previous status was loading.
+    if (
+      this.props?.chart?.chartStatus !== nextProps?.chart?.chartStatus &&
+      this.props?.chart?.chartStatus === 'loading'
     ) {
       return true;
     }
@@ -223,9 +239,14 @@ export default class Chart extends React.Component {
   }
 
   getHeaderHeight() {
-    return (
-      (this.headerRef && this.headerRef.offsetHeight) || DEFAULT_HEADER_HEIGHT
-    );
+    if (this.headerRef) {
+      const computedStyle = getComputedStyle(this.headerRef).getPropertyValue(
+        'margin-bottom',
+      );
+      const marginBottom = parseInt(computedStyle, 10) || 0;
+      return this.headerRef.offsetHeight + marginBottom;
+    }
+    return DEFAULT_HEADER_HEIGHT;
   }
 
   setDescriptionRef(ref) {
@@ -264,7 +285,9 @@ export default class Chart extends React.Component {
     });
   };
 
-  onExploreChart = async () => {
+  onExploreChart = async clickEvent => {
+    const isOpenInNewTab =
+      clickEvent.shiftKey || clickEvent.ctrlKey || clickEvent.metaKey;
     try {
       const lastTabId = window.localStorage.getItem('last_tab_id');
       const nextTabId = lastTabId
@@ -272,6 +295,7 @@ export default class Chart extends React.Component {
         : undefined;
       const key = await postFormData(
         this.props.datasource.id,
+        this.props.datasource.type,
         this.props.formData,
         this.props.slice.slice_id,
         nextTabId,
@@ -280,7 +304,14 @@ export default class Chart extends React.Component {
         [URL_PARAMS.formDataKey.name]: key,
         [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
       });
-      window.open(url, '_blank', 'noreferrer');
+      if (
+        isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB) ||
+        isOpenInNewTab
+      ) {
+        window.open(url, '_blank', 'noreferrer');
+      } else {
+        this.props.history.push(url);
+      }
     } catch (error) {
       logging.error(error);
       this.props.addDangerToast(t('An error occurred while opening Explore'));
@@ -299,6 +330,7 @@ export default class Chart extends React.Component {
       resultType: 'full',
       resultFormat: 'csv',
       force: true,
+      ownState: this.props.ownState,
     });
   }
 
@@ -346,6 +378,7 @@ export default class Chart extends React.Component {
       filterState,
       handleToggleFullSize,
       isFullSize,
+      setControlValue,
       filterboxMigrationState,
       postTransformProps,
       datasetsStatus,
@@ -389,7 +422,7 @@ export default class Chart extends React.Component {
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
-          isExpanded={!!isExpanded}
+          isExpanded={isExpanded}
           isCached={isCached}
           cachedDttm={cachedDttm}
           updatedDttm={chartUpdateEndTime}
@@ -473,6 +506,7 @@ export default class Chart extends React.Component {
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
+            setControlValue={setControlValue}
             isDeactivatedViz={isDeactivatedViz}
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
@@ -486,3 +520,5 @@ export default class Chart extends React.Component {
 
 Chart.propTypes = propTypes;
 Chart.defaultProps = defaultProps;
+
+export default withRouter(Chart);

@@ -16,9 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useCallback } from 'react';
+import React, {
+  ReactNode,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from 'react';
+import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Select, { SelectProps, OptionsTypePage, OptionsType } from './Select';
+import AsyncSelect, { AsyncSelectProps, AsyncSelectRef } from './AsyncSelect';
+import { SelectOptionsType, SelectOptionsTypePage } from './utils';
+
+import Select, { SelectProps } from './Select';
 
 export default {
   title: 'Select',
@@ -27,7 +37,7 @@ export default {
 
 const DEFAULT_WIDTH = 200;
 
-const options: OptionsType = [
+const options: SelectOptionsType = [
   {
     label: 'Such an incredibly awesome long long label',
     value: 'Such an incredibly awesome long long label',
@@ -147,7 +157,7 @@ const mountHeader = (type: String) => {
   return header;
 };
 
-const generateOptions = (opts: OptionsType, count: number) => {
+const generateOptions = (opts: SelectOptionsType, count: number) => {
   let generated = opts.slice();
   let iteration = 0;
   while (generated.length < count) {
@@ -375,18 +385,19 @@ const USERS = [
   'Ilenia',
 ].sort();
 
-export const AsyncSelect = ({
+export const AsynchronousSelect = ({
   fetchOnlyOnSearch,
   withError,
   withInitialValue,
   responseTime,
   ...rest
-}: SelectProps & {
+}: AsyncSelectProps & {
   withError: boolean;
   withInitialValue: boolean;
   responseTime: number;
 }) => {
   const [requests, setRequests] = useState<ReactNode[]>([]);
+  const ref = useRef<AsyncSelectRef>(null);
 
   const getResults = (username?: string) => {
     let results: { label: string; value: string }[] = [];
@@ -426,7 +437,7 @@ export const AsyncSelect = ({
       search: string,
       page: number,
       pageSize: number,
-    ): Promise<OptionsTypePage> => {
+    ): Promise<SelectOptionsTypePage> => {
       const username = search.trim().toLowerCase();
       return new Promise(resolve => {
         let results = getResults(username);
@@ -444,10 +455,15 @@ export const AsyncSelect = ({
     [responseTime],
   );
 
-  const fetchUserListError = async (): Promise<OptionsTypePage> =>
+  const fetchUserListError = async (): Promise<SelectOptionsTypePage> =>
     new Promise((_, reject) => {
       reject(new Error('Error while fetching the names from the server'));
     });
+
+  const initialValue = useMemo(
+    () => ({ label: 'Valentina', value: 'Valentina' }),
+    [],
+  );
 
   return (
     <>
@@ -456,16 +472,13 @@ export const AsyncSelect = ({
           width: DEFAULT_WIDTH,
         }}
       >
-        <Select
+        <AsyncSelect
           {...rest}
+          ref={ref}
           fetchOnlyOnSearch={fetchOnlyOnSearch}
           options={withError ? fetchUserListError : fetchUserListPage}
-          placeholder={fetchOnlyOnSearch ? 'Type anything' : 'Select...'}
-          value={
-            withInitialValue
-              ? { label: 'Valentina', value: 'Valentina' }
-              : undefined
-          }
+          placeholder={fetchOnlyOnSearch ? 'Type anything' : 'AsyncSelect...'}
+          value={withInitialValue ? initialValue : undefined}
         />
       </div>
       <div
@@ -484,11 +497,24 @@ export const AsyncSelect = ({
           <p key={`request-${index}`}>{request}</p>
         ))}
       </div>
+      <Button
+        style={{
+          position: 'absolute',
+          top: 452,
+          left: DEFAULT_WIDTH + 580,
+        }}
+        onClick={() => {
+          ref.current?.clearCache();
+          setRequests([]);
+        }}
+      >
+        Clear cache
+      </Button>
     </>
   );
 };
 
-AsyncSelect.args = {
+AsynchronousSelect.args = {
   allowClear: false,
   allowNewOptions: false,
   fetchOnlyOnSearch: false,
@@ -498,7 +524,7 @@ AsyncSelect.args = {
   tokenSeparators: ['\n', '\t', ';'],
 };
 
-AsyncSelect.argTypes = {
+AsynchronousSelect.argTypes = {
   ...ARG_TYPES,
   header: {
     table: {
@@ -531,7 +557,7 @@ AsyncSelect.argTypes = {
   },
 };
 
-AsyncSelect.story = {
+AsynchronousSelect.story = {
   parameters: {
     knobs: {
       disable: true,

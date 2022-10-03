@@ -25,7 +25,7 @@ import ListView from 'src/components/ListView';
 import { Tooltip } from 'src/components/Tooltip';
 import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { fDuration } from 'src/modules/dates';
+import { fDuration } from 'src/utils/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
   useListViewResource,

@@ -151,24 +151,6 @@ const ExtraOptions = ({
             <StyledInputContainer css={no_margin_bottom}>
               <div className="input-container">
                 <IndeterminateCheckbox
-                  id="allow_multi_schema_metadata_fetch"
-                  indeterminate={false}
-                  checked={!!db?.allow_multi_schema_metadata_fetch}
-                  onChange={onInputChange}
-                  labelText={t('Allow Multi Schema Metadata Fetch')}
-                />
-                <InfoTooltip
-                  tooltip={t(
-                    'Allow SQL Lab to fetch a list of all tables and all views across all database ' +
-                      'schemas. For large data warehouse with thousands of tables, this can be ' +
-                      'expensive and put strain on the system.',
-                  )}
-                />
-              </div>
-            </StyledInputContainer>
-            <StyledInputContainer css={no_margin_bottom}>
-              <div className="input-container">
-                <IndeterminateCheckbox
                   id="cost_estimate_enabled"
                   indeterminate={false}
                   checked={!!db?.extra_json?.cost_estimate_enabled}
@@ -344,11 +326,11 @@ const ExtraOptions = ({
           <div className="control-label">{t('Secure extra')}</div>
           <div className="input-container">
             <StyledJsonEditor
-              name="encrypted_extra"
-              value={db?.encrypted_extra || ''}
+              name="masked_encrypted_extra"
+              value={db?.masked_encrypted_extra || ''}
               placeholder={t('Secure extra')}
               onChange={(json: string) =>
-                onEditorChange({ json, name: 'encrypted_extra' })
+                onEditorChange({ json, name: 'masked_encrypted_extra' })
               }
               width="100%"
               height="160px"

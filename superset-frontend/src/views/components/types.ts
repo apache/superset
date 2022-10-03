@@ -31,6 +31,10 @@ export interface RightMenuProps {
   settings: MenuObjectProps[];
   navbarRight: NavBarProps;
   isFrontendRoute: (path?: string) => boolean;
+  environmentTag: {
+    text: string;
+    color: string;
+  };
 }
 
 export enum GlobalMenuDataOptions {

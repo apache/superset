@@ -68,7 +68,7 @@ export const getColumnTooltipNode = (
   labelRef?: React.RefObject<any>,
 ): ReactNode => {
   if (
-    !column.verbose_name &&
+    (!column.column_name || !column.verbose_name) &&
     !column.description &&
     !isLabelTruncated(labelRef)
   ) {
@@ -77,7 +77,9 @@ export const getColumnTooltipNode = (
 
   return (
     <>
-      <TooltipSection label={t('Column name')} text={column.column_name} />
+      {column.column_name && (
+        <TooltipSection label={t('Column name')} text={column.column_name} />
+      )}
       {column.verbose_name && (
         <TooltipSection label={t('Label')} text={column.verbose_name} />
       )}

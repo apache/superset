@@ -33,6 +33,8 @@ import {
   fakePluginControls,
 } from './AlteredSliceTagMocks';
 
+jest.mock('src/components/Icons/Icon', () => () => <span />);
+
 const getTableWrapperFromModalBody = modalBody =>
   modalBody.find(TableView).find(TableCollection);
 
@@ -62,6 +64,17 @@ describe('AlteredSliceTag', () => {
     props = {
       origFormData: props.origFormData,
       currentFormData: props.origFormData,
+    };
+    wrapper = mount(<AlteredSliceTag {...props} />);
+    expect(wrapper.instance().state.rows).toEqual([]);
+    expect(wrapper.instance().state.hasDiffs).toBe(false);
+    expect(wrapper.instance().render()).toBeNull();
+  });
+
+  it('does not run when temporary controls have changes', () => {
+    props = {
+      origFormData: { ...props.origFormData, url_params: { foo: 'foo' } },
+      currentFormData: { ...props.origFormData, url_params: { bar: 'bar' } },
     };
     wrapper = mount(<AlteredSliceTag {...props} />);
     expect(wrapper.instance().state.rows).toEqual([]);

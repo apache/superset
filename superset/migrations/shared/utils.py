@@ -14,19 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import json
 import logging
 import os
 import time
-from typing import Any
+from typing import Any, Callable, Dict, Iterator, Optional, Union
 from uuid import uuid4
 
 from alembic import op
-from sqlalchemy import engine_from_config
+from sqlalchemy import engine_from_config, inspect
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
 from sqlalchemy.engine import reflection
 from sqlalchemy.exc import NoSuchTableError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query, Session
 
 logger = logging.getLogger(__name__)
 
@@ -80,16 +81,46 @@ def assign_uuids(
             print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
             return
 
-    # Othwewise Use Python uuid function
+    for obj in paginated_update(
+        session.query(model),
+        lambda current, total: print(
+            f"  uuid assigned to {current} out of {total}", end="\r"
+        ),
+        batch_size=batch_size,
+    ):
+        obj.uuid = uuid4
+    print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
+
+
+def paginated_update(
+    query: Query,
+    print_page_progress: Optional[Union[Callable[[int, int], None], bool]] = None,
+    batch_size: int = DEFAULT_BATCH_SIZE,
+) -> Iterator[Any]:
+    """
+    Update models in small batches so we don't have to load everything in memory.
+    """
     start = 0
+    count = query.count()
+    session: Session = inspect(query).session
+    if print_page_progress is None or print_page_progress is True:
+        print_page_progress = lambda current, total: print(
+            f"    {current}/{total}", end="\r"
+        )
     while start < count:
         end = min(start + batch_size, count)
-        for obj in session.query(model)[start:end]:
-            obj.uuid = uuid4()
+        for obj in query[start:end]:
+            yield obj
             session.merge(obj)
         session.commit()
-        if start + batch_size < count:
-            print(f"  uuid assigned to {end} out of {count}\r", end="")
+        if print_page_progress:
+            print_page_progress(end, count)
         start += batch_size
 
-    print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
+
+def try_load_json(data: Optional[str]) -> Dict[str, Any]:
+    try:
+        return data and json.loads(data) or {}
+    except json.decoder.JSONDecodeError:
+        print(f"Failed to parse: {data}")
+        return {}

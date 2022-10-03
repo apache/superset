@@ -33,7 +33,7 @@ describe('Visualization > Distribution bar chart', () => {
       groupby: ['state'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,
@@ -49,7 +49,7 @@ describe('Visualization > Distribution bar chart', () => {
       columns: ['gender'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -61,7 +61,7 @@ describe('Visualization > Distribution bar chart', () => {
       row_limit: 10,
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -74,7 +74,21 @@ describe('Visualization > Distribution bar chart', () => {
       contribution: true,
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+  });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('bnbColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
+    ).should('exist');
+    cy.get('.dist_bar .nv-legend .nv-legend-symbol')
+      .first()
+      .should('have.css', 'fill', 'rgb(255, 90, 95)');
   });
 });
