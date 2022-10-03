@@ -54,7 +54,4 @@ jobs:
             pip-upgrade
             pip install -r requirements/base.txt
       - name: Test babel extraction
-        run: |
-          flask fab babel-extract --target superset/translations \
-            --output superset/translations/messages.pot \
-            --config superset/translations/babel.cfg -k _,__,t,tn,tct
+        run: ./scripts/babel_update.sh

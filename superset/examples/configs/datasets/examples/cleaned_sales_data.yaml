@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 table_name: cleaned_sales_data
-main_dttm_col: OrderDate
+main_dttm_col: order_date
 description: null
 default_endpoint: null
 offset: 0

@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataMask } from '@superset-ui/core';
-import { FilterConfiguration } from '../dashboard/components/nativeFilters/types';
+import { DataMask, FilterConfiguration, Filters } from '@superset-ui/core';
 import { FeatureFlag, isFeatureEnabled } from '../featureFlags';
-import { Filters } from '../dashboard/reducers/types';
 import { getInitialDataMask } from './reducer';
 
 export const CLEAR_DATA_MASK_STATE = 'CLEAR_DATA_MASK_STATE';
@@ -31,6 +29,12 @@ export const UPDATE_DATA_MASK = 'UPDATE_DATA_MASK';
 export interface UpdateDataMask {
   type: typeof UPDATE_DATA_MASK;
   filterId: string | number;
+  dataMask: DataMask;
+}
+
+export const INIT_DATAMASK = 'INIT_DATAMASK';
+export interface INITDATAMASK {
+  type: typeof INIT_DATAMASK;
   dataMask: DataMask;
 }
 

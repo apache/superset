@@ -49,10 +49,6 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
-
-  .ant-modal-body {
-    overflow: visible;
-  }
 `;
 
 interface DatasourceModalProps {
@@ -88,6 +84,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
 
@@ -183,6 +180,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     });
   };
 
+  const showLegacyDatasourceEditor = !isFeatureEnabled(
+    FeatureFlag.DISABLE_LEGACY_DATASOURCE_EDITOR,
+  );
+
   return (
     <StyledDatasourceModal
       show={show}
@@ -193,9 +194,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <strong>{currentDatasource.table_name}</strong>
         </span>
       }
+      maskClosable={!isEditing}
       footer={
         <>
-          {isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS) && (
+          {showLegacyDatasourceEditor && (
             <Button
               buttonSize="small"
               buttonStyle="default"
@@ -222,7 +224,18 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             buttonStyle="primary"
             data-test="datasource-modal-save"
             onClick={onClickSave}
-            disabled={isSaving || errors.length > 0}
+            disabled={
+              isSaving ||
+              errors.length > 0 ||
+              currentDatasource.is_managed_externally
+            }
+            tooltip={
+              currentDatasource.is_managed_externally
+                ? t(
+                    "This dataset is managed externally, and can't be edited in Superset",
+                  )
+                : ''
+            }
           >
             {t('Save')}
           </Button>
@@ -235,6 +248,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         height={500}
         datasource={currentDatasource}
         onChange={onDatasourceChange}
+        setIsEditing={setIsEditing}
       />
       {contextHolder}
     </StyledDatasourceModal>

@@ -16,68 +16,70 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
 
 export const Pill = styled.div`
-  display: inline-block;
-  color: ${({ theme }) => theme.colors.grayscale.light5};
-  background: ${({ theme }) => theme.colors.grayscale.base};
-  border-radius: 1em;
-  vertical-align: text-top;
-  padding: ${({ theme }) => `${theme.gridUnit}px ${theme.gridUnit * 2}px`};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
-  font-weight: bold;
-  min-width: 1em;
-  min-height: 1em;
-  line-height: 1em;
-  vertical-align: middle;
-  white-space: nowrap;
-
-  svg {
-    position: relative;
-    top: -2px;
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-    width: 1em;
-    height: 1em;
+  ${({ theme }) => css`
     display: inline-block;
+    color: ${theme.colors.grayscale.light5};
+    background: ${theme.colors.grayscale.base};
+    border-radius: 1em;
+    vertical-align: text-top;
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    font-size: ${theme.typography.sizes.m}px;
+    font-weight: ${theme.typography.weights.bold};
+    min-width: 1em;
+    min-height: 1em;
+    line-height: 1em;
     vertical-align: middle;
-  }
+    white-space: nowrap;
 
-  &:hover {
-    cursor: pointer;
-    background: ${({ theme }) => theme.colors.grayscale.dark1};
-  }
-
-  &.has-cross-filters {
-    background: ${({ theme }) => theme.colors.primary.base};
-    &:hover {
-      background: ${({ theme }) => theme.colors.primary.dark1};
-    }
-  }
-
-  &.has-incompatible-filters {
-    color: ${({ theme }) => theme.colors.grayscale.dark2};
-    background: ${({ theme }) => theme.colors.alert.base};
-    &:hover {
-      background: ${({ theme }) => theme.colors.alert.dark1};
-    }
     svg {
-      color: ${({ theme }) => theme.colors.grayscale.dark2};
+      position: relative;
+      top: -2px;
+      color: ${theme.colors.grayscale.light5};
+      width: 1em;
+      height: 1em;
+      display: inline-block;
+      vertical-align: middle;
     }
-  }
-
-  &.filters-inactive {
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-    background: ${({ theme }) => theme.colors.grayscale.light1};
-    padding: ${({ theme }) => theme.gridUnit}px;
-    text-align: center;
-    height: 22px;
-    width: 22px;
 
     &:hover {
-      background: ${({ theme }) => theme.colors.grayscale.base};
+      cursor: pointer;
+      background: ${theme.colors.grayscale.dark1};
     }
-  }
+
+    &.has-cross-filters {
+      background: ${theme.colors.primary.base};
+      &:hover {
+        background: ${theme.colors.primary.dark1};
+      }
+    }
+
+    &.has-incompatible-filters {
+      color: ${theme.colors.grayscale.dark2};
+      background: ${theme.colors.alert.base};
+      &:hover {
+        background: ${theme.colors.alert.dark1};
+      }
+      svg {
+        color: ${theme.colors.grayscale.dark2};
+      }
+    }
+
+    &.filters-inactive {
+      color: ${theme.colors.grayscale.light5};
+      background: ${theme.colors.grayscale.light1};
+      padding: ${theme.gridUnit}px;
+      text-align: center;
+      height: 22px;
+      width: 22px;
+
+      &:hover {
+        background: ${theme.colors.grayscale.base};
+      }
+    }
+  `}
 `;
 
 export interface TitleProps {

@@ -24,28 +24,37 @@ import React, {
   useRef,
 } from 'react';
 import { uniq, isEqual, sortBy, debounce } from 'lodash';
-import { t, styled, SLOW_DEBOUNCE } from '@superset-ui/core';
-import { Form } from 'src/common/components';
+import {
+  Filter,
+  FilterConfiguration,
+  NativeFilterType,
+  Divider,
+  styled,
+  SLOW_DEBOUNCE,
+  t,
+} from '@superset-ui/core';
+import { AntdForm } from 'src/components';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
 import { testWithId } from 'src/utils/testUtils';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
-import { FilterConfiguration } from '../types';
-import FiltureConfigurePane from './FilterConfigurePane';
+import FilterConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm, {
   FilterPanels,
 } from './FiltersConfigForm/FiltersConfigForm';
 import Footer from './Footer/Footer';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
-import { FilterRemoval, NativeFiltersForm, FilterHierarchy } from './types';
+import { FilterRemoval, NativeFiltersForm } from './types';
 import {
   createHandleSave,
-  createHandleTabEdit,
+  createHandleRemoveItem,
   generateFilterId,
   getFilterIds,
-  buildFilterGroup,
   validateForm,
+  NATIVE_FILTER_DIVIDER_PREFIX,
+  hasCircularDependency,
 } from './utils';
+import DividerConfigForm from './DividerConfigForm';
 
 const StyledModalWrapper = styled(StyledModal)`
   min-width: 700px;
@@ -64,7 +73,7 @@ export const StyledModalBody = styled.div`
   }
 `;
 
-export const StyledForm = styled(Form)`
+export const StyledForm = styled(AntdForm)`
   width: 100%;
 `;
 
@@ -80,7 +89,7 @@ export interface FiltersConfigModalProps {
   onSave: (filterConfig: FilterConfiguration) => Promise<void>;
   onCancel: () => void;
 }
-export const CASCADING_FILTERS = ['filter_select'];
+export const ALLOW_DEPENDENCIES = ['filter_select'];
 
 /**
  * This is the modal to configure all the dashboard-native filters.
@@ -97,7 +106,7 @@ export function FiltersConfigModal({
   onSave,
   onCancel,
 }: FiltersConfigModalProps) {
-  const [form] = Form.useForm<NativeFiltersForm>();
+  const [form] = AntdForm.useForm<NativeFiltersForm>();
 
   const configFormRef = useRef<any>();
 
@@ -150,49 +159,45 @@ export function FiltersConfigModal({
     if (removal?.isPending) clearTimeout(removal.timerId);
     setRemovedFilters(current => ({ ...current, [id]: null }));
   };
-  const getInitialFilterHierarchy = () =>
-    filterConfig.map(filter => ({
-      id: filter.id,
-      parentId: filter.cascadeParentIds[0] || null,
-    }));
-
-  const [filterHierarchy, setFilterHierarchy] = useState<FilterHierarchy>(() =>
-    getInitialFilterHierarchy(),
-  );
+  const getInitialFilterOrder = () => Object.keys(filterConfigMap);
 
   // State for tracking the re-ordering of filters
-  const [orderedFilters, setOrderedFilters] = useState<string[][]>(() =>
-    buildFilterGroup(filterHierarchy),
+  const [orderedFilters, setOrderedFilters] = useState<string[]>(
+    getInitialFilterOrder(),
   );
+
+  const getActiveFilterPanelKey = (filterId: string) => [
+    `${filterId}-${FilterPanels.configuration.key}`,
+    `${filterId}-${FilterPanels.settings.key}`,
+  ];
 
   const [activeFilterPanelKey, setActiveFilterPanelKey] = useState<
     string | string[]
-  >(`${initialCurrentFilterId}-${FilterPanels.basic.key}`);
+  >(getActiveFilterPanelKey(initialCurrentFilterId));
 
   const onTabChange = (filterId: string) => {
     setCurrentFilterId(filterId);
-    setActiveFilterPanelKey(`${filterId}-${FilterPanels.basic.key}`);
+    setActiveFilterPanelKey(getActiveFilterPanelKey(filterId));
   };
 
   // generates a new filter id and appends it to the newFilterIds
-  const addFilter = useCallback(() => {
-    const newFilterId = generateFilterId();
-    setNewFilterIds([...newFilterIds, newFilterId]);
-    setCurrentFilterId(newFilterId);
-    setSaveAlertVisible(false);
-    setFilterHierarchy(previousState => [
-      ...previousState,
-      { id: newFilterId, parentId: null },
-    ]);
-    setOrderedFilters([...orderedFilters, [newFilterId]]);
-    setActiveFilterPanelKey(`${newFilterId}-${FilterPanels.basic.key}`);
-  }, [
-    newFilterIds,
-    orderedFilters,
-    setCurrentFilterId,
-    setFilterHierarchy,
-    setOrderedFilters,
-  ]);
+  const addFilter = useCallback(
+    (type: NativeFilterType) => {
+      const newFilterId = generateFilterId(type);
+      setNewFilterIds([...newFilterIds, newFilterId]);
+      setCurrentFilterId(newFilterId);
+      setSaveAlertVisible(false);
+      setOrderedFilters([...orderedFilters, newFilterId]);
+      setActiveFilterPanelKey(getActiveFilterPanelKey(newFilterId));
+    },
+    [
+      newFilterIds,
+      orderedFilters,
+      setCurrentFilterId,
+      setOrderedFilters,
+      setNewFilterIds,
+    ],
+  );
 
   useOpenModal(isOpen, addFilter, createNewOnOpen);
 
@@ -203,13 +208,10 @@ export function FiltersConfigModal({
     setCurrentFilterId,
   );
 
-  const handleTabEdit = createHandleTabEdit(
+  const handleRemoveItem = createHandleRemoveItem(
     setRemovedFilters,
-    setSaveAlertVisible,
     setOrderedFilters,
-    setFilterHierarchy,
-    addFilter,
-    filterHierarchy,
+    setSaveAlertVisible,
   );
 
   // After this, it should be as if the modal was just opened fresh.
@@ -221,41 +223,70 @@ export function FiltersConfigModal({
     setSaveAlertVisible(false);
     setFormValues({ filters: {} });
     setErroredFilters([]);
-    if (!isSaving) {
-      const initialFilterHierarchy = getInitialFilterHierarchy();
-      setFilterHierarchy(initialFilterHierarchy);
-      setOrderedFilters(buildFilterGroup(initialFilterHierarchy));
-      form.resetFields(['filters']);
+    if (filterIds.length > 0) {
+      setActiveFilterPanelKey(getActiveFilterPanelKey(filterIds[0]));
     }
+    if (!isSaving) {
+      setOrderedFilters(getInitialFilterOrder());
+    }
+    form.resetFields(['filters']);
     form.setFieldsValue({ changed: false });
   };
 
-  const getFilterTitle = (id: string) =>
-    formValues.filters[id]?.name ||
-    filterConfigMap[id]?.name ||
-    t('[untitled]');
+  const getFilterTitle = useCallback(
+    (id: string) => {
+      const formValue = formValues.filters[id];
+      const config = filterConfigMap[id];
+      return (
+        (formValue && 'name' in formValue && formValue.name) ||
+        (formValue && 'title' in formValue && formValue.title) ||
+        (config && 'name' in config && config.name) ||
+        (config && 'title' in config && config.title) ||
+        t('[untitled]')
+      );
+    },
+    [filterConfigMap, formValues.filters],
+  );
 
-  const getParentFilters = (id: string) =>
-    filterIds
-      .filter(filterId => filterId !== id && !removedFilters[filterId])
-      .filter(filterId =>
-        CASCADING_FILTERS.includes(
-          formValues.filters[filterId]
-            ? formValues.filters[filterId].filterType
-            : filterConfigMap[filterId]?.filterType,
-        ),
-      )
-      .map(id => ({
-        id,
-        title: getFilterTitle(id),
-      }));
+  const canBeUsedAsDependency = useCallback(
+    (filterId: string) => {
+      if (removedFilters[filterId]) {
+        return false;
+      }
+      const component =
+        form.getFieldValue('filters')?.[filterId] || filterConfigMap[filterId];
+      return (
+        component &&
+        'filterType' in component &&
+        ALLOW_DEPENDENCIES.includes(component.filterType)
+      );
+    },
+    [filterConfigMap, form, removedFilters],
+  );
+
+  const getAvailableFilters = useCallback(
+    (filterId: string) =>
+      filterIds
+        .filter(key => key !== filterId)
+        .filter(filterId => canBeUsedAsDependency(filterId))
+        .map(key => ({
+          label: getFilterTitle(key),
+          value: key,
+        })),
+    [canBeUsedAsDependency, filterIds, getFilterTitle],
+  );
 
   const cleanDeletedParents = (values: NativeFiltersForm | null) => {
     Object.keys(filterConfigMap).forEach(key => {
       const filter = filterConfigMap[key];
-      const parentId = filter.cascadeParentIds?.[0];
-      if (parentId && removedFilters[parentId]) {
-        filter.cascadeParentIds = [];
+      if (!('cascadeParentIds' in filter)) {
+        return;
+      }
+      const { cascadeParentIds } = filter;
+      if (cascadeParentIds) {
+        filter.cascadeParentIds = cascadeParentIds.filter(id =>
+          canBeUsedAsDependency(id),
+        );
       }
     });
 
@@ -263,9 +294,14 @@ export function FiltersConfigModal({
     if (filters) {
       Object.keys(filters).forEach(key => {
         const filter = filters[key];
-        const parentId = filter.parentFilter?.value;
-        if (parentId && removedFilters[parentId]) {
-          filter.parentFilter = undefined;
+        if (!('dependencies' in filter)) {
+          return;
+        }
+        const { dependencies } = filter;
+        if (dependencies) {
+          filter.dependencies = dependencies.filter(id =>
+            canBeUsedAsDependency(id),
+          );
         }
       });
     }
@@ -301,9 +337,6 @@ export function FiltersConfigModal({
     const values: NativeFiltersForm | null = await validateForm(
       form,
       currentFilterId,
-      filterConfigMap,
-      filterIds,
-      removedFilters,
       setCurrentFilterId,
     );
 
@@ -313,7 +346,7 @@ export function FiltersConfigModal({
       cleanDeletedParents(values);
       createHandleSave(
         filterConfigMap,
-        orderedFilters.flat(),
+        orderedFilters,
         removedFilters,
         onSave,
         values,
@@ -331,10 +364,10 @@ export function FiltersConfigModal({
 
   const handleCancel = () => {
     const changed = form.getFieldValue('changed');
-    const initialOrder = buildFilterGroup(getInitialFilterHierarchy()).flat();
+    const initialOrder = getInitialFilterOrder();
     const didChangeOrder =
-      orderedFilters.flat().length !== initialOrder.length ||
-      orderedFilters.flat().some((val, index) => val !== initialOrder[index]);
+      orderedFilters.length !== initialOrder.length ||
+      orderedFilters.some((val, index) => val !== initialOrder[index]);
     if (
       unsavedFiltersIds.length > 0 ||
       form.isFieldsTouched() ||
@@ -346,55 +379,85 @@ export function FiltersConfigModal({
       handleConfirmCancel();
     }
   };
-  const onRearrage = (dragIndex: number, targetIndex: number) => {
-    const newOrderedFilter = orderedFilters.map(group => [...group]);
+  const onRearrange = (dragIndex: number, targetIndex: number) => {
+    const newOrderedFilter = [...orderedFilters];
     const removed = newOrderedFilter.splice(dragIndex, 1)[0];
     newOrderedFilter.splice(targetIndex, 0, removed);
     setOrderedFilters(newOrderedFilter);
   };
-  const handleFilterHierarchyChange = useCallback(
-    (filterId: string, parentFilter?: { value: string; label: string }) => {
-      const index = filterHierarchy.findIndex(item => item.id === filterId);
-      const newState = [...filterHierarchy];
-      newState.splice(index, 1, {
-        id: filterId,
-        parentId: parentFilter ? parentFilter.value : null,
+
+  const buildDependencyMap = useCallback(() => {
+    const dependencyMap = new Map<string, string[]>();
+    const filters = form.getFieldValue('filters');
+    if (filters) {
+      Object.keys(filters).forEach(key => {
+        const formItem = filters[key];
+        const configItem = filterConfigMap[key];
+        let array: string[] = [];
+        if (formItem && 'dependencies' in formItem) {
+          array = [...formItem.dependencies];
+        } else if (configItem && configItem.cascadeParentIds) {
+          array = [...configItem.cascadeParentIds];
+        }
+        dependencyMap.set(key, array);
       });
-      setFilterHierarchy(newState);
-      setOrderedFilters(buildFilterGroup(newState));
-    },
-    [setFilterHierarchy, setOrderedFilters, filterHierarchy],
-  );
+    }
+    return dependencyMap;
+  }, [filterConfigMap, form]);
+
+  const validateDependencies = () => {
+    const dependencyMap = buildDependencyMap();
+    filterIds
+      .filter(id => !removedFilters[id])
+      .forEach(filterId => {
+        const result = hasCircularDependency(dependencyMap, filterId);
+        const field = {
+          name: ['filters', filterId, 'dependencies'],
+          errors: result ? [t('Cyclic dependency detected')] : [],
+        };
+        form.setFields([field]);
+      });
+    handleErroredFilters();
+  };
+
+  const getDependencySuggestion = (filterId: string) => {
+    const dependencyMap = buildDependencyMap();
+    const possibleDependencies = orderedFilters.filter(
+      key => key !== filterId && canBeUsedAsDependency(key),
+    );
+    const found = possibleDependencies.find(filter => {
+      const dependencies = dependencyMap.get(filterId) || [];
+      dependencies.push(filter);
+      if (hasCircularDependency(dependencyMap, filterId)) {
+        dependencies.pop();
+        return false;
+      }
+      return true;
+    });
+    return found || possibleDependencies[0];
+  };
 
   const onValuesChange = useMemo(
     () =>
       debounce((changes: any, values: NativeFiltersForm) => {
-        if (
+        const didChangeFilterName =
           changes.filters &&
           Object.values(changes.filters).some(
-            (filter: any) => filter.name != null,
-          )
-        ) {
-          // we only need to set this if a name changed
-          setFormValues(values);
-        }
-        const changedFilterHierarchies = Object.keys(changes.filters)
-          .filter(key => changes.filters[key].parentFilter)
-          .map(key => ({
-            id: key,
-            parentFilter: changes.filters[key].parentFilter,
-          }));
-        if (changedFilterHierarchies.length > 0) {
-          const changedFilterId = changedFilterHierarchies[0];
-          handleFilterHierarchyChange(
-            changedFilterId.id,
-            changedFilterId.parentFilter,
+            (filter: any) => filter.name && filter.name !== null,
           );
+        const didChangeSectionTitle =
+          changes.filters &&
+          Object.values(changes.filters).some(
+            (filter: any) => filter.title && filter.title !== null,
+          );
+        if (didChangeFilterName || didChangeSectionTitle) {
+          // we only need to set this if a name/title changed
+          setFormValues(values);
         }
         setSaveAlertVisible(false);
         handleErroredFilters();
       }, SLOW_DEBOUNCE),
-    [handleFilterHierarchyChange, handleErroredFilters],
+    [handleErroredFilters],
   );
 
   useEffect(() => {
@@ -403,11 +466,38 @@ export function FiltersConfigModal({
     );
   }, [removedFilters]);
 
+  const getForm = (id: string) => {
+    const isDivider = id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
+    return isDivider ? (
+      <DividerConfigForm
+        componentId={id}
+        divider={filterConfigMap[id] as Divider}
+      />
+    ) : (
+      <FiltersConfigForm
+        ref={configFormRef}
+        form={form}
+        filterId={id}
+        filterToEdit={filterConfigMap[id] as Filter}
+        removedFilters={removedFilters}
+        restoreFilter={restoreFilter}
+        getAvailableFilters={getAvailableFilters}
+        key={id}
+        activeFilterPanelKeys={activeFilterPanelKey}
+        handleActiveFilterPanelChange={key => setActiveFilterPanelKey(key)}
+        isActive={currentFilterId === id}
+        setErroredFilters={setErroredFilters}
+        validateDependencies={validateDependencies}
+        getDependencySuggestion={getDependencySuggestion}
+      />
+    );
+  };
+
   return (
     <StyledModalWrapper
       visible={isOpen}
       maskClosable={false}
-      title={t('Filters configuration and scoping')}
+      title={t('Add and edit filters')}
       width="50%"
       destroyOnClose
       onCancel={handleCancel}
@@ -432,37 +522,20 @@ export function FiltersConfigModal({
             onValuesChange={onValuesChange}
             layout="vertical"
           >
-            <FiltureConfigurePane
+            <FilterConfigurePane
               erroredFilters={erroredFilters}
-              onEdit={handleTabEdit}
+              onRemove={handleRemoveItem}
+              onAdd={addFilter}
               onChange={onTabChange}
               getFilterTitle={getFilterTitle}
               currentFilterId={currentFilterId}
               removedFilters={removedFilters}
               restoreFilter={restoreFilter}
-              onRearrange={onRearrage}
-              filterGroups={orderedFilters}
+              onRearrange={onRearrange}
+              filters={orderedFilters}
             >
-              {(id: string) => (
-                <FiltersConfigForm
-                  ref={configFormRef}
-                  form={form}
-                  filterId={id}
-                  filterToEdit={filterConfigMap[id]}
-                  removedFilters={removedFilters}
-                  restoreFilter={restoreFilter}
-                  parentFilters={getParentFilters(id)}
-                  onFilterHierarchyChange={handleFilterHierarchyChange}
-                  key={id}
-                  activeFilterPanelKeys={activeFilterPanelKey}
-                  handleActiveFilterPanelChange={key =>
-                    setActiveFilterPanelKey(key)
-                  }
-                  isActive={currentFilterId === id}
-                  setErroredFilters={setErroredFilters}
-                />
-              )}
-            </FiltureConfigurePane>
+              {(id: string) => getForm(id)}
+            </FilterConfigurePane>
           </StyledForm>
         </StyledModalBody>
       </ErrorBoundary>

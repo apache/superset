@@ -19,9 +19,6 @@
 @import '../../assets/stylesheets/less/variables.less';
 
 .dashboard-builder-sidepane {
-  flex: 0 0 @builder-pane-width;
-  position: relative;
-
   .dashboard-builder-sidepane-header {
     font-size: @font-size-l;
     font-weight: @font-weight-bold;
@@ -52,6 +49,7 @@
     width: @builder-pane-width;
     height: 100%;
     box-shadow: -4px 0 4px 0 fade(@darkest, @opacity-light);
+    background-color: @lightest;
   }
 
   .slider-container {

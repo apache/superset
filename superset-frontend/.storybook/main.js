@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const path = require('path');
-
 // Superset's webpack.config.js
 const customConfig = require('../webpack.config.js');
 
@@ -25,7 +23,9 @@ module.exports = {
   core: {
     builder: 'webpack5',
   },
-  stories: ['../src/@(components|common|filters)/**/*.stories.@(t|j)sx'],
+  stories: [
+    '../src/@(components|common|filters|explore)/**/*.stories.@(tsx|jsx|mdx)',
+  ],
   addons: [
     '@storybook/addon-essentials',
     '@storybook/addon-links',
@@ -33,6 +33,7 @@ module.exports = {
     '@storybook/addon-knobs',
     'storybook-addon-paddings',
   ],
+  staticDirs: ['../src/assets/images'],
   webpackFinal: config => ({
     ...config,
     module: {
@@ -46,6 +47,6 @@ module.exports = {
     plugins: [...config.plugins, ...customConfig.plugins],
   }),
   typescript: {
-    reactDocgen: 'none',
+    reactDocgen: 'react-docgen-typescript',
   },
 };

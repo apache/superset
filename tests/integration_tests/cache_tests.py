@@ -24,6 +24,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.extensions import cache_manager
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 from .base_tests import SupersetTestCase
@@ -42,7 +43,7 @@ class TestCache(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_no_data_cache(self):
         data_cache_config = app.config["DATA_CACHE_CONFIG"]
-        app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "null"}
+        app.config["DATA_CACHE_CONFIG"] = {"CACHE_TYPE": "NullCache"}
         cache_manager.init_app(app)
 
         slc = self.get_slice("Girls", db.session)
@@ -67,9 +68,8 @@ class TestCache(SupersetTestCase):
         cache_default_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
         app.config["CACHE_DEFAULT_TIMEOUT"] = 100
         app.config["DATA_CACHE_CONFIG"] = {
-            "CACHE_TYPE": "simple",
+            "CACHE_TYPE": "SimpleCache",
             "CACHE_DEFAULT_TIMEOUT": 10,
-            "CACHE_KEY_PREFIX": "superset_data_cache",
         }
         cache_manager.init_app(app)
 

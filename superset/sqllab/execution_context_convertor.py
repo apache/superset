@@ -16,14 +16,16 @@
 # under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import logging
+from typing import Any, Dict, TYPE_CHECKING
 
 import simplejson as json
 
 import superset.utils.core as utils
-from superset.sqllab.command import ExecutionContextConvertor
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.models.sql_lab import Query
@@ -31,37 +33,36 @@ if TYPE_CHECKING:
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 
-class ExecutionContextConvertorImpl(ExecutionContextConvertor):
+class ExecutionContextConvertor:
     _max_row_in_display_configuration: int  # pylint: disable=invalid-name
+    _exc_status: SqlJsonExecutionStatus
+    payload: Dict[str, Any]
 
     def set_max_row_in_display(self, value: int) -> None:
         self._max_row_in_display_configuration = value  # pylint: disable=invalid-name
 
-    def to_payload(
+    def set_payload(
         self,
         execution_context: SqlJsonExecutionContext,
         execution_status: SqlJsonExecutionStatus,
-    ) -> str:
-
+    ) -> None:
+        self._exc_status = execution_status
         if execution_status == SqlJsonExecutionStatus.HAS_RESULTS:
-            return self._to_payload_results_based(
-                execution_context.get_execution_result() or {}
+            self.payload = execution_context.get_execution_result() or {}
+        else:
+            self.payload = execution_context.query.to_dict()
+
+    def serialize_payload(self) -> str:
+        if self._exc_status == SqlJsonExecutionStatus.HAS_RESULTS:
+            return json.dumps(
+                apply_display_max_row_configuration_if_require(
+                    self.payload, self._max_row_in_display_configuration
+                ),
+                default=utils.pessimistic_json_iso_dttm_ser,
+                ignore_nan=True,
+                encoding=None,
             )
-        return self._to_payload_query_based(execution_context.query)
 
-    def _to_payload_results_based(self, execution_result: SqlResults) -> str:
         return json.dumps(
-            apply_display_max_row_configuration_if_require(
-                execution_result, self._max_row_in_display_configuration
-            ),
-            default=utils.pessimistic_json_iso_dttm_ser,
-            ignore_nan=True,
-            encoding=None,
-        )
-
-    def _to_payload_query_based(  # pylint: disable=no-self-use
-        self, query: Query
-    ) -> str:
-        return json.dumps(
-            {"query": query.to_dict()}, default=utils.json_int_dttm_ser, ignore_nan=True
+            {"query": self.payload}, default=utils.json_int_dttm_ser, ignore_nan=True
         )

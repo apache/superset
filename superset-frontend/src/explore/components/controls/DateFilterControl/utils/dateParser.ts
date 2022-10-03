@@ -35,7 +35,7 @@ import { SEVEN_DAYS_AGO, MIDNIGHT, MOMENT_FORMAT } from './constants';
  * @see: https://www.w3.org/TR/NOTE-datetime
  */
 const iso8601 = String.raw`\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:(?:[+-]\d\d:\d\d)|Z)?`;
-const datetimeConstant = String.raw`TODAY|NOW`;
+const datetimeConstant = String.raw`(?:TODAY|NOW)`;
 const grainValue = String.raw`[+-]?[1-9][0-9]*`;
 const grain = String.raw`YEAR|QUARTER|MONTH|WEEK|DAY|HOUR|MINUTE|SECOND`;
 const CUSTOM_RANGE_EXPRESSION = RegExp(
@@ -84,12 +84,12 @@ export const customTimeRangeDecode = (
 
     // specific : specific
     if (ISO8601_AND_CONSTANT.test(since) && ISO8601_AND_CONSTANT.test(until)) {
-      const sinceMode = (DATETIME_CONSTANT.includes(since)
-        ? since
-        : 'specific') as DateTimeModeType;
-      const untilMode = (DATETIME_CONSTANT.includes(until)
-        ? until
-        : 'specific') as DateTimeModeType;
+      const sinceMode = (
+        DATETIME_CONSTANT.includes(since) ? since : 'specific'
+      ) as DateTimeModeType;
+      const untilMode = (
+        DATETIME_CONSTANT.includes(until) ? until : 'specific'
+      ) as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,
@@ -110,9 +110,9 @@ export const customTimeRangeDecode = (
       since.includes(until)
     ) {
       const [dttm, grainValue, grain] = sinceCapturedGroup.slice(1);
-      const untilMode = (DATETIME_CONSTANT.includes(until)
-        ? until
-        : 'specific') as DateTimeModeType;
+      const untilMode = (
+        DATETIME_CONSTANT.includes(until) ? until : 'specific'
+      ) as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,
@@ -135,9 +135,9 @@ export const customTimeRangeDecode = (
       until.includes(since)
     ) {
       const [dttm, grainValue, grain] = [...untilCapturedGroup.slice(1)];
-      const sinceMode = (DATETIME_CONSTANT.includes(since)
-        ? since
-        : 'specific') as DateTimeModeType;
+      const sinceMode = (
+        DATETIME_CONSTANT.includes(since) ? since : 'specific'
+      ) as DateTimeModeType;
       return {
         customRange: {
           ...defaultCustomRange,

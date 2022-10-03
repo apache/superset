@@ -27,7 +27,7 @@ import AnnotationList from 'src/views/CRUD/annotation/AnnotationList';
 import DeleteModal from 'src/components/DeleteModal';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import ListView from 'src/components/ListView';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';

@@ -33,3 +33,18 @@ def headless_url(path: str, user_friendly: bool = False) -> str:
 def get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
     with current_app.test_request_context():
         return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
+
+
+def modify_url_query(url: str, **kwargs: Any) -> str:
+    """
+    Replace or add parameters to a URL.
+    """
+    parts = list(urllib.parse.urlsplit(url))
+    params = urllib.parse.parse_qs(parts[3])
+    for k, v in kwargs.items():
+        if not isinstance(v, list):
+            v = [v]
+        params[k] = v
+
+    parts[3] = "&".join(f"{k}={urllib.parse.quote(v[0])}" for k, v in params.items())
+    return urllib.parse.urlunsplit(parts)

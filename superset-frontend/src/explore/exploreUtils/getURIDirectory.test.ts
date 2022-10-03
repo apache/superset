@@ -25,6 +25,6 @@ test('Cases in which the "explore_json" will be returned', () => {
 });
 
 test('Cases in which the "explore" will be returned', () => {
-  expect(getURIDirectory('any-string')).toBe('/superset/explore/');
-  expect(getURIDirectory()).toBe('/superset/explore/');
+  expect(getURIDirectory('any-string')).toBe('/explore/');
+  expect(getURIDirectory()).toBe('/explore/');
 });

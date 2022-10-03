@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -49,7 +49,11 @@ from superset.annotation_layers.schemas import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.annotations import AnnotationLayer
-from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    requires_json,
+    statsd_metrics,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +151,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteAnnotationLayerCommand(g.user, pk).run()
+            DeleteAnnotationLayerCommand(pk).run()
             return self.response(200, message="OK")
         except AnnotationLayerNotFoundError:
             return self.response_404()
@@ -171,6 +175,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
+    @requires_json
     def post(self) -> Response:
         """Creates a new Annotation Layer
         ---
@@ -205,15 +210,13 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.add_model_schema.load(request.json)
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateAnnotationLayerCommand(g.user, item).run()
+            new_model = CreateAnnotationLayerCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except AnnotationLayerNotFoundError as ex:
             return self.response_400(message=str(ex))
@@ -237,6 +240,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
         log_to_statsd=False,
     )
+    @requires_json
     def put(self, pk: int) -> Response:
         """Updates an Annotation Layer
         ---
@@ -277,8 +281,6 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not request.is_json:
-            return self.response_400(message="Request is not JSON")
         try:
             item = self.edit_model_schema.load(request.json)
             item["layer"] = pk
@@ -286,7 +288,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = UpdateAnnotationLayerCommand(g.user, pk, item).run()
+            new_model = UpdateAnnotationLayerCommand(pk, item).run()
             return self.response(200, id=new_model.id, result=item)
         except AnnotationLayerNotFoundError:
             return self.response_404()
@@ -344,7 +346,7 @@ class AnnotationLayerRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteAnnotationLayerCommand(g.user, item_ids).run()
+            BulkDeleteAnnotationLayerCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

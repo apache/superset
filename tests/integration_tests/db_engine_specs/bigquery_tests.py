@@ -29,6 +29,7 @@ from superset.sql_parse import Table
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 
@@ -76,8 +77,9 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             "TIMESTAMP": "TIMESTAMP_TRUNC(temporal, HOUR)",
         }
         for type_, expected in test_cases.items():
+            col.type = type_
             actual = BigQueryEngineSpec.get_timestamp_expr(
-                col=col, pdf=None, time_grain="PT1H", type_=type_
+                col=col, pdf=None, time_grain="PT1H"
             )
             self.assertEqual(str(actual), expected)
 
@@ -98,8 +100,9 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             ") AS TIMESTAMP)",
         }
         for type_, expected in test_cases.items():
+            col.type = type_
             actual = BigQueryEngineSpec.get_timestamp_expr(
-                col=col, pdf=None, time_grain="PT5M", type_=type_
+                col=col, pdf=None, time_grain="PT5M"
             )
             assert str(actual) == expected
 
@@ -138,8 +141,14 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         self.assertEqual(result, {})
 
         index_metadata = [
-            {"name": "clustering", "column_names": ["c_col1", "c_col2", "c_col3"],},
-            {"name": "partition", "column_names": ["p_col1", "p_col2", "p_col3"],},
+            {
+                "name": "clustering",
+                "column_names": ["c_col1", "c_col2", "c_col3"],
+            },
+            {
+                "name": "partition",
+                "column_names": ["p_col1", "p_col2", "p_col3"],
+            },
         ]
         expected_result = {
             "partitions": {"cols": [["p_col1", "p_col2", "p_col3"]]},
@@ -200,7 +209,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         # Test check for missing schema.
         sys.modules["google.oauth2"] = mock.MagicMock()
         for invalid_kwarg in invalid_kwargs:
-            self.assertRaisesRegexp(
+            self.assertRaisesRegex(
                 Exception,
                 "The table schema must be defined",
                 BigQueryEngineSpec.df_to_sql,
@@ -246,7 +255,12 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
                 level=ErrorLevel.ERROR,
                 extra={
                     "engine_name": "Google BigQuery",
-                    "issue_codes": [{"code": 1017, "message": "",}],
+                    "issue_codes": [
+                        {
+                            "code": 1017,
+                            "message": "",
+                        }
+                    ],
                 },
             )
         ]
@@ -350,8 +364,8 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             table=table,
             expression="""
             case
-              when gender=true then "male"
-              else "female"
+              when gender='boy' then 'male'
+              else 'female'
             end
             """,
         )

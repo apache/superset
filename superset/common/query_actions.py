@@ -14,21 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import copy
 from typing import Any, Callable, cast, Dict, List, Optional, TYPE_CHECKING
 
 from flask_babel import _
 
 from superset import app
+from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
-    ChartDataResultType,
     extract_column_dtype,
     extract_dataframe_dtypes,
     ExtraFiltersReasonType,
+    get_column_name,
     get_time_filter_status,
+    is_adhoc_column,
 )
 
 if TYPE_CHECKING:
@@ -39,13 +43,13 @@ config = app.config
 
 
 def _get_datasource(
-    query_context: "QueryContext", query_obj: "QueryObject"
+    query_context: QueryContext, query_obj: QueryObject
 ) -> BaseDatasource:
     return query_obj.datasource or query_context.datasource
 
 
 def _get_columns(
-    query_context: "QueryContext", query_obj: "QueryObject", _: bool
+    query_context: QueryContext, query_obj: QueryObject, _: bool
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     return {
@@ -61,7 +65,7 @@ def _get_columns(
 
 
 def _get_timegrains(
-    query_context: "QueryContext", query_obj: "QueryObject", _: bool
+    query_context: QueryContext, query_obj: QueryObject, _: bool
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     return {
@@ -77,7 +81,9 @@ def _get_timegrains(
 
 
 def _get_query(
-    query_context: "QueryContext", query_obj: "QueryObject", _: bool,
+    query_context: QueryContext,
+    query_obj: QueryObject,
+    _: bool,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     result = {"language": datasource.query_language}
@@ -89,8 +95,8 @@ def _get_query(
 
 
 def _get_full(
-    query_context: "QueryContext",
-    query_obj: "QueryObject",
+    query_context: QueryContext,
+    query_obj: QueryObject,
     force_cached: Optional[bool] = False,
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
@@ -102,7 +108,7 @@ def _get_full(
     if status != QueryStatus.FAILED:
         payload["colnames"] = list(df.columns)
         payload["indexnames"] = list(df.index)
-        payload["coltypes"] = extract_dataframe_dtypes(df)
+        payload["coltypes"] = extract_dataframe_dtypes(df, datasource)
         payload["data"] = query_context.get_data(df)
         payload["result_format"] = query_context.result_format
     del payload["df"]
@@ -114,43 +120,78 @@ def _get_full(
         datasource, query_obj.applied_time_extras
     )
     payload["applied_filters"] = [
-        {"column": col}
+        {"column": get_column_name(col)}
         for col in filter_columns
-        if col in columns or col in applied_template_filters
+        if is_adhoc_column(col) or col in columns or col in applied_template_filters
     ] + applied_time_columns
     payload["rejected_filters"] = [
         {"reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE, "column": col}
         for col in filter_columns
-        if col not in columns and col not in applied_template_filters
+        if not is_adhoc_column(col)
+        and col not in columns
+        and col not in applied_template_filters
     ] + rejected_time_columns
 
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
-        return {"data": payload.get("data")}
+        return {
+            "data": payload.get("data"),
+            "colnames": payload.get("colnames"),
+            "coltypes": payload.get("coltypes"),
+        }
     return payload
 
 
 def _get_samples(
-    query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False
+    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     query_obj = copy.copy(query_obj)
     query_obj.is_timeseries = False
     query_obj.orderby = []
-    query_obj.metrics = []
+    query_obj.metrics = None
     query_obj.post_processing = []
-    query_obj.columns = [o.column_name for o in datasource.columns]
+    qry_obj_cols = []
+    for o in datasource.columns:
+        if isinstance(o, dict):
+            qry_obj_cols.append(o.get("column_name"))
+        else:
+            qry_obj_cols.append(o.column_name)
+    query_obj.columns = qry_obj_cols
+    query_obj.from_dttm = None
+    query_obj.to_dttm = None
+    return _get_full(query_context, query_obj, force_cached)
+
+
+def _get_drill_detail(
+    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
+) -> Dict[str, Any]:
+    # todo(yongjie): Remove this function,
+    #  when determining whether samples should be applied to the time filter.
+    datasource = _get_datasource(query_context, query_obj)
+    query_obj = copy.copy(query_obj)
+    query_obj.is_timeseries = False
+    query_obj.orderby = []
+    query_obj.metrics = None
+    query_obj.post_processing = []
+    qry_obj_cols = []
+    for o in datasource.columns:
+        if isinstance(o, dict):
+            qry_obj_cols.append(o.get("column_name"))
+        else:
+            qry_obj_cols.append(o.column_name)
+    query_obj.columns = qry_obj_cols
     return _get_full(query_context, query_obj, force_cached)
 
 
 def _get_results(
-    query_context: "QueryContext", query_obj: "QueryObject", force_cached: bool = False
+    query_context: QueryContext, query_obj: QueryObject, force_cached: bool = False
 ) -> Dict[str, Any]:
     payload = _get_full(query_context, query_obj, force_cached)
-    return {"data": payload.get("data"), "error": payload.get("error")}
+    return payload
 
 
 _result_type_functions: Dict[
-    ChartDataResultType, Callable[["QueryContext", "QueryObject", bool], Dict[str, Any]]
+    ChartDataResultType, Callable[[QueryContext, QueryObject, bool], Dict[str, Any]]
 ] = {
     ChartDataResultType.COLUMNS: _get_columns,
     ChartDataResultType.TIMEGRAINS: _get_timegrains,
@@ -162,13 +203,14 @@ _result_type_functions: Dict[
     # and post-process it later where we have the chart context, since
     # post-processing is unique to each visualization type
     ChartDataResultType.POST_PROCESSED: _get_full,
+    ChartDataResultType.DRILL_DETAIL: _get_drill_detail,
 }
 
 
 def get_query_results(
     result_type: ChartDataResultType,
-    query_context: "QueryContext",
-    query_obj: "QueryObject",
+    query_context: QueryContext,
+    query_obj: QueryObject,
     force_cached: bool,
 ) -> Dict[str, Any]:
     """

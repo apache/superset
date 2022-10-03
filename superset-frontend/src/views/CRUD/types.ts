@@ -48,6 +48,8 @@ export interface DashboardTableProps {
 }
 
 export interface Dashboard {
+  certified_by?: string;
+  certification_details?: string;
   changed_by_name: string;
   changed_by_url: string;
   changed_on_delta_humanized?: string;

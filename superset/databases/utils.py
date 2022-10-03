@@ -14,16 +14,17 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
-from superset import app
-from superset.models.core import Database
+from sqlalchemy.engine.url import make_url, URL
 
-custom_password_store = app.config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
+from superset.databases.commands.exceptions import DatabaseInvalidError
 
 
 def get_foreign_keys_metadata(
-    database: Database, table_name: str, schema_name: Optional[str]
+    database: Any,
+    table_name: str,
+    schema_name: Optional[str],
 ) -> List[Dict[str, Any]]:
     foreign_keys = database.get_foreign_keys(table_name, schema_name)
     for fk in foreign_keys:
@@ -33,7 +34,7 @@ def get_foreign_keys_metadata(
 
 
 def get_indexes_metadata(
-    database: Database, table_name: str, schema_name: Optional[str]
+    database: Any, table_name: str, schema_name: Optional[str]
 ) -> List[Dict[str, Any]]:
     indexes = database.get_indexes(table_name, schema_name)
     for idx in indexes:
@@ -51,7 +52,7 @@ def get_col_type(col: Dict[Any, Any]) -> str:
 
 
 def get_table_metadata(
-    database: Database, table_name: str, schema_name: Optional[str]
+    database: Any, table_name: str, schema_name: Optional[str]
 ) -> Dict[str, Any]:
     """
     Get table metadata information, including type, pk, fks.
@@ -101,3 +102,23 @@ def get_table_metadata(
         "indexes": keys,
         "comment": table_comment,
     }
+
+
+def make_url_safe(raw_url: Union[str, URL]) -> URL:
+    """
+    Wrapper for SQLAlchemy's make_url(), which tends to raise too detailed of
+    errors, which inevitably find their way into server logs. ArgumentErrors
+    tend to contain usernames and passwords, which makes them non-log-friendly
+    :param raw_url:
+    :return:
+    """
+
+    if isinstance(raw_url, str):
+        url = raw_url.strip()
+        try:
+            return make_url(url)  # noqa
+        except Exception:
+            raise DatabaseInvalidError()  # pylint: disable=raise-missing-from
+
+    else:
+        return raw_url

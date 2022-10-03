@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FilterSet } from 'src/dashboard/reducers/types';
+import { FilterSet } from '@superset-ui/core';
 import { findExistingFilterSet } from '.';
 
 const createDataMaskSelected = () => ({

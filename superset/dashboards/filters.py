@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+import uuid
+from typing import Any, Optional, Union
 
+from flask import g
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
@@ -24,8 +26,11 @@ from sqlalchemy.orm.query import Query
 from superset import db, is_feature_enabled, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
-from superset.views.base import BaseFilter, get_user_roles, is_user_admin
+from superset.security.guest_token import GuestTokenResourceType, GuestUser
+from superset.utils.core import get_user_id
+from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 
 
@@ -45,6 +50,21 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
         )
 
 
+class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = _("Created by me")
+    arg_name = "created_by_me"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        return query.filter(
+            or_(
+                Dashboard.created_by_fk  # pylint: disable=comparison-with-callable
+                == get_user_id(),
+                Dashboard.changed_by_fk  # pylint: disable=comparison-with-callable
+                == get_user_id(),
+            )
+        )
+
+
 class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     BaseFavoriteFilter
 ):
@@ -55,6 +75,14 @@ class DashboardFavoriteFilter(  # pylint: disable=too-few-public-methods
     arg_name = "dashboard_is_favorite"
     class_name = "Dashboard"
     model = Dashboard
+
+
+def is_uuid(value: Union[str, int]) -> bool:
+    try:
+        uuid.UUID(str(value))
+        return True
+    except ValueError:
+        return False
 
 
 class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -70,7 +98,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        if is_user_admin():
+        if security_manager.is_admin():
             return query
 
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
@@ -83,7 +111,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         datasource_perm_query = (
             db.session.query(Dashboard.id)
-            .join(Dashboard.slices)
+            .join(Dashboard.slices, isouter=True)
             .filter(
                 and_(
                     Dashboard.published.is_(True),
@@ -99,20 +127,17 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         users_favorite_dash_query = db.session.query(FavStar.obj_id).filter(
             and_(
-                FavStar.user_id == security_manager.user_model.get_user_id(),
+                FavStar.user_id == get_user_id(),
                 FavStar.class_name == "Dashboard",
             )
         )
         owner_ids_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.owners)
-            .filter(
-                security_manager.user_model.id
-                == security_manager.user_model.get_user_id()
-            )
+            .filter(security_manager.user_model.id == get_user_id())
         )
 
-        dashboard_rbac_or_filters = []
+        feature_flagged_filters = []
         if is_feature_enabled("DASHBOARD_RBAC"):
             roles_based_query = (
                 db.session.query(Dashboard.id)
@@ -121,19 +146,40 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                     and_(
                         Dashboard.published.is_(True),
                         dashboard_has_roles,
-                        Role.id.in_([x.id for x in get_user_roles()]),
+                        Role.id.in_([x.id for x in security_manager.get_user_roles()]),
                     ),
                 )
             )
 
-            dashboard_rbac_or_filters.append(Dashboard.id.in_(roles_based_query))
+            feature_flagged_filters.append(Dashboard.id.in_(roles_based_query))
+
+        if is_feature_enabled("EMBEDDED_SUPERSET") and security_manager.is_guest_user(
+            g.user
+        ):
+            guest_user: GuestUser = g.user
+            embedded_dashboard_ids = [
+                r["id"]
+                for r in guest_user.resources
+                if r["type"] == GuestTokenResourceType.DASHBOARD.value
+            ]
+
+            # TODO (embedded): only use uuid filter once uuids are rolled out
+            condition = (
+                Dashboard.embedded.any(
+                    EmbeddedDashboard.uuid.in_(embedded_dashboard_ids)
+                )
+                if any(is_uuid(id_) for id_ in embedded_dashboard_ids)
+                else Dashboard.id.in_(embedded_dashboard_ids)
+            )
+
+            feature_flagged_filters.append(condition)
 
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
                 Dashboard.id.in_(users_favorite_dash_query),
-                *dashboard_rbac_or_filters,
+                *feature_flagged_filters,
             )
         )
 
@@ -156,5 +202,49 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         role_model = security_manager.role_model
         if value:
-            return query.filter(role_model.name.ilike(f"%{value}%"),)
+            return query.filter(
+                role_model.name.ilike(f"%{value}%"),
+            )
+        return query
+
+
+class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all certified dashboards
+    """
+
+    name = _("Is certified")
+    arg_name = "dashboard_is_certified"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value is True:
+            return query.filter(
+                and_(
+                    Dashboard.certified_by.isnot(None),
+                    Dashboard.certified_by != "",
+                )
+            )
+        if value is False:
+            return query.filter(
+                or_(
+                    Dashboard.certified_by.is_(None),
+                    Dashboard.certified_by == "",
+                )
+            )
+        return query
+
+
+class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters all dashboards created by user
+    """
+
+    name = _("Has created by")
+    arg_name = "dashboard_has_created_by"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        if value is True:
+            return query.filter(and_(Dashboard.created_by_fk.isnot(None)))
+        if value is False:
+            return query.filter(and_(Dashboard.created_by_fk.is_(None)))
         return query

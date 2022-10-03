@@ -38,28 +38,31 @@ export const UPDATE_COMPONENTS = 'UPDATE_COMPONENTS';
 // an additional setUnsavedChanges(true) action after the dispatch in the case
 // that dashboardState.hasUnsavedChanges is false.
 function setUnsavedChangesAfterAction(action) {
-  return (...args) => (dispatch, getState) => {
-    const result = action(...args);
-    if (typeof result === 'function') {
-      dispatch(result(dispatch, getState));
-    } else {
-      dispatch(result);
-    }
+  return (...args) =>
+    (dispatch, getState) => {
+      const result = action(...args);
+      if (typeof result === 'function') {
+        dispatch(result(dispatch, getState));
+      } else {
+        dispatch(result);
+      }
 
-    const isComponentLevelEvent =
-      result.type === UPDATE_COMPONENTS &&
-      result.payload &&
-      result.payload.nextComponents;
-    // trigger dashboardFilters state update if dashboard layout is changed.
-    if (!isComponentLevelEvent) {
-      const components = getState().dashboardLayout.present;
-      dispatch(updateLayoutComponents(components));
-    }
+      const { dashboardLayout, dashboardState } = getState();
 
-    if (!getState().dashboardState.hasUnsavedChanges) {
-      dispatch(setUnsavedChanges(true));
-    }
-  };
+      const isComponentLevelEvent =
+        result.type === UPDATE_COMPONENTS &&
+        result.payload &&
+        result.payload.nextComponents;
+      // trigger dashboardFilters state update if dashboard layout is changed.
+      if (!isComponentLevelEvent) {
+        const components = dashboardLayout.present;
+        dispatch(updateLayoutComponents(components));
+      }
+
+      if (!dashboardState.hasUnsavedChanges) {
+        dispatch(setUnsavedChanges(true));
+      }
+    };
 }
 
 export const updateComponents = setUnsavedChangesAfterAction(
@@ -207,7 +210,7 @@ export function handleComponentDrop(dropResult) {
       destination.id !== rootChildId
     ) {
       return dispatch(
-        addWarningToast(t(`Can not move top level tab into nested tabs`)),
+        addWarningToast(t('Can not move top level tab into nested tabs')),
       );
     } else if (
       destination &&

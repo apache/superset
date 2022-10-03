@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from typing import Any, Dict, Optional, Type, TYPE_CHECKING
@@ -23,15 +25,23 @@ import sqlalchemy as sqla
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table, Text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+)
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
-from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
-from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -40,6 +50,8 @@ from superset.utils.urls import get_url_path
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
+    from superset.common.query_context import QueryContext
+    from superset.common.query_context_factory import QueryContextFactory
     from superset.connectors.base.models import BaseDatasource
 
 metadata = Model.metadata  # pylint: disable=no-member
@@ -58,6 +70,8 @@ class Slice(  # pylint: disable=too-many-public-methods
 ):
     """A slice is essentially a report or a view on data"""
 
+    query_context_factory: Optional[QueryContextFactory] = None
+
     __tablename__ = "slices"
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
@@ -75,6 +89,10 @@ class Slice(  # pylint: disable=too-many-public-methods
     # when the database row was last written
     last_saved_at = Column(DateTime, nullable=True)
     last_saved_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
+    certified_by = Column(Text)
+    certification_details = Column(Text)
+    is_managed_externally = Column(Boolean, nullable=False, default=False)
+    external_url = Column(Text, nullable=True)
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
@@ -100,13 +118,17 @@ class Slice(  # pylint: disable=too-many-public-methods
         "cache_timeout",
     ]
     export_parent = "table"
+    extra_import_fields = ["is_managed_externally", "external_url"]
 
     def __repr__(self) -> str:
         return self.slice_name or str(self.id)
 
     @property
     def cls_model(self) -> Type["BaseDatasource"]:
-        return ConnectorRegistry.sources[self.datasource_type]
+        # pylint: disable=import-outside-toplevel
+        from superset.datasource.dao import DatasourceDAO
+
+        return DatasourceDAO.sources[self.datasource_type]
 
     @property
     def datasource(self) -> Optional["BaseDatasource"]:
@@ -205,6 +227,9 @@ class Slice(  # pylint: disable=too-many-public-methods
             "slice_id": self.id,
             "slice_name": self.slice_name,
             "slice_url": self.slice_url,
+            "certified_by": self.certified_by,
+            "certification_details": self.certification_details,
+            "is_managed_externally": self.is_managed_externally,
         }
 
     @property
@@ -247,16 +272,27 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
+    def get_query_context(self) -> Optional[QueryContext]:
+        if self.query_context:
+            try:
+                return self.get_query_context_factory().create(
+                    **json.loads(self.query_context)
+                )
+            except json.decoder.JSONDecodeError as ex:
+                logger.error("Malformed json in slice's query context", exc_info=True)
+                logger.exception(ex)
+        return None
+
     def get_explore_url(
         self,
-        base_url: str = "/superset/explore",
+        base_url: str = "/explore",
         overrides: Optional[Dict[str, Any]] = None,
     ) -> str:
         overrides = overrides or {}
         form_data = {"slice_id": self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return f"{base_url}/?form_data={params}"
+        return f"{base_url}/?slice_id={self.id}&form_data={params}"
 
     @property
     def slice_url(self) -> str:
@@ -298,7 +334,16 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def url(self) -> str:
-        return f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{self.id}%7D"
+        form_data = f"%7B%22slice_id%22%3A%20{self.id}%7D"
+        return f"/explore/?slice_id={self.id}&form_data={form_data}"
+
+    def get_query_context_factory(self) -> QueryContextFactory:
+        if self.query_context_factory is None:
+            # pylint: disable=import-outside-toplevel
+            from superset.common.query_context_factory import QueryContextFactory
+
+            self.query_context_factory = QueryContextFactory()
+        return self.query_context_factory
 
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
@@ -321,13 +366,6 @@ def event_after_chart_changed(
 sqla.event.listen(Slice, "before_insert", set_related_perm)
 sqla.event.listen(Slice, "before_update", set_related_perm)
 
-# events for updating tags
-if is_feature_enabled("TAGGING_SYSTEM"):
-    sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
-    sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
-    sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
-
-# events for updating tags
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
     sqla.event.listen(Slice, "after_update", event_after_chart_changed)

@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { styled, css, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { useComponentDidUpdate } from 'src/common/hooks/useComponentDidUpdate';
+import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate';
 import { FormattingPopover } from './FormattingPopover';
 import {
   COMPARATOR,
@@ -74,10 +74,8 @@ const ConditionalFormattingControl = ({
   ...props
 }: ConditionalFormattingControlProps) => {
   const theme = useTheme();
-  const [
-    conditionalFormattingConfigs,
-    setConditionalFormattingConfigs,
-  ] = useState<ConditionalFormattingConfig[]>(value ?? []);
+  const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
+    useState<ConditionalFormattingConfig[]>(value ?? []);
 
   useEffect(() => {
     if (onChange) {

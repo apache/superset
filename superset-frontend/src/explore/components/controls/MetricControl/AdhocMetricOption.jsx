@@ -32,7 +32,7 @@ const propTypes = {
   columns: PropTypes.arrayOf(columnType),
   savedMetricsOptions: PropTypes.arrayOf(savedMetricType),
   savedMetric: savedMetricType,
-  datasourceType: PropTypes.string,
+  datasource: PropTypes.object,
   onMoveLabel: PropTypes.func,
   onDropLabel: PropTypes.func,
   index: PropTypes.number,
@@ -58,7 +58,7 @@ class AdhocMetricOption extends React.PureComponent {
       columns,
       savedMetricsOptions,
       savedMetric,
-      datasourceType,
+      datasource,
       onMoveLabel,
       onDropLabel,
       index,
@@ -73,7 +73,7 @@ class AdhocMetricOption extends React.PureComponent {
         columns={columns}
         savedMetricsOptions={savedMetricsOptions}
         savedMetric={savedMetric}
-        datasourceType={datasourceType}
+        datasource={datasource}
       >
         <OptionControlLabel
           savedMetric={savedMetric}

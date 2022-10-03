@@ -16,7 +16,9 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any, Dict, TYPE_CHECKING
+from typing import Any, Dict
+
+from flask.testing import FlaskClient
 
 from superset.dashboards.filter_sets.consts import (
     DASHBOARD_OWNER_TYPE,
@@ -27,7 +29,6 @@ from superset.dashboards.filter_sets.consts import (
     OWNER_TYPE_FIELD,
     USER_OWNER_TYPE,
 )
-from tests.integration_tests.base_tests import login
 from tests.integration_tests.dashboards.filter_sets.consts import (
     ADMIN_USERNAME_FOR_TEST,
     DASHBOARD_OWNER_USERNAME,
@@ -38,9 +39,7 @@ from tests.integration_tests.dashboards.filter_sets.utils import (
     get_filter_set_by_dashboard_id,
     get_filter_set_by_name,
 )
-
-if TYPE_CHECKING:
-    from flask.testing import FlaskClient
+from tests.integration_tests.test_app import login
 
 
 def assert_filterset_was_not_created(filter_set_data: Dict[str, Any]) -> None:
@@ -94,14 +93,14 @@ class TestCreateFilterSetsApi:
 
     def test_with_dashboard_not_exists__404(
         self,
-        not_exists_dashboard: int,
+        not_exists_dashboard_id: int,
         valid_filter_set_data_for_create: Dict[str, Any],
         client: FlaskClient[Any],
     ):
         # act
         login(client, "admin")
         response = call_create_filter_set(
-            client, not_exists_dashboard, valid_filter_set_data_for_create
+            client, not_exists_dashboard_id, valid_filter_set_data_for_create
         )
 
         # assert

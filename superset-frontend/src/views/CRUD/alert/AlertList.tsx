@@ -17,12 +17,11 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import Button from 'src/components/Button';
 import FacePile from 'src/components/FacePile';
 import { Tooltip } from 'src/components/Tooltip';
 import ListView, {
@@ -30,7 +29,7 @@ import ListView, {
   Filters,
   ListViewProps,
 } from 'src/components/ListView';
-import SubMenu, { SubMenuProps } from 'src/components/Menu/SubMenu';
+import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import { Switch } from 'src/components/Switch';
 import { DATETIME_WITH_TIME_ZONE } from 'src/constants';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -49,6 +48,14 @@ import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState } from './types';
 
 const PAGE_SIZE = 25;
+
+const AlertStateLabel: Record<AlertState, string> = {
+  [AlertState.Success]: t('Success'),
+  [AlertState.Working]: t('Working'),
+  [AlertState.Error]: t('Error'),
+  [AlertState.Noop]: t('Not triggered'),
+  [AlertState.Grace]: t('On Grace'),
+};
 
 interface AlertListProps {
   addDangerToast: (msg: string) => void;
@@ -82,7 +89,7 @@ function AlertList({
   const title = isReportEnabled ? t('report') : t('alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
-  const initalFilters = useMemo(
+  const initialFilters = useMemo(
     () => [
       {
         id: 'type',
@@ -102,6 +109,7 @@ function AlertList({
     },
     hasPerm,
     fetchData,
+    setResourceCollection,
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<AlertObject>(
@@ -110,7 +118,7 @@ function AlertList({
     addDangerToast,
     true,
     undefined,
-    initalFilters,
+    initialFilters,
   );
 
   const { updateResource } = useSingleViewResource<Partial<AlertObject>>(
@@ -123,10 +131,8 @@ function AlertList({
   const [currentAlert, setCurrentAlert] = useState<Partial<AlertObject> | null>(
     null,
   );
-  const [
-    currentAlertDeleting,
-    setCurrentAlertDeleting,
-  ] = useState<AlertObject | null>(null);
+  const [currentAlertDeleting, setCurrentAlertDeleting] =
+    useState<AlertObject | null>(null);
 
   // Actions
   function handleAlertEdit(alert: AlertObject | null) {
@@ -183,14 +189,32 @@ function AlertList({
 
   const initialSort = [{ id: 'name', desc: true }];
 
-  const toggleActive = (data: AlertObject, checked: boolean) => {
-    if (data && data.id) {
-      const update_id = data.id;
-      updateResource(update_id, { active: checked }).then(() => {
-        refreshData();
-      });
-    }
-  };
+  const toggleActive = useCallback(
+    (data: AlertObject, checked: boolean) => {
+      if (data && data.id) {
+        const update_id = data.id;
+        const original = [...alerts];
+
+        setResourceCollection(
+          original.map(alert => {
+            if (alert?.id === data.id) {
+              return {
+                ...alert,
+                active: checked,
+              };
+            }
+
+            return alert;
+          }),
+        );
+
+        updateResource(update_id, { active: checked }, false, false)
+          .then()
+          .catch(() => setResourceCollection(original));
+      }
+    },
+    [alerts, setResourceCollection, updateResource],
+  );
 
   const columns = useMemo(
     () => [
@@ -233,11 +257,14 @@ function AlertList({
         size: 'xl',
         Cell: ({
           row: {
-            original: { crontab_humanized = '' },
+            original: { crontab_humanized = '', timezone },
           },
         }: any) => (
-          <Tooltip title={crontab_humanized} placement="topLeft">
-            <span>{crontab_humanized}</span>
+          <Tooltip
+            title={`${crontab_humanized} (${timezone})`}
+            placement="topLeft"
+          >
+            <span>{`${crontab_humanized} (${timezone})`}</span>
           </Tooltip>
         ),
       },
@@ -256,9 +283,15 @@ function AlertList({
         size: 'xl',
       },
       {
-        accessor: 'created_by',
+        Cell: ({
+          row: {
+            original: { created_by },
+          },
+        }: any) =>
+          created_by ? `${created_by.first_name} ${created_by.last_name}` : '',
+        Header: t('Created by'),
+        id: 'created_by',
         disableSortBy: true,
-        hidden: true,
         size: 'xl',
       },
       {
@@ -270,6 +303,16 @@ function AlertList({
         Header: t('Owners'),
         id: 'owners',
         disableSortBy: true,
+        size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
         size: 'xl',
       },
       {
@@ -333,7 +376,7 @@ function AlertList({
         size: 'xl',
       },
     ],
-    [canDelete, canEdit, isReportEnabled],
+    [canDelete, canEdit, isReportEnabled, toggleActive],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -360,19 +403,35 @@ function AlertList({
     });
   }
 
-  const EmptyStateButton = (
-    <Button buttonStyle="primary" onClick={() => handleAlertEdit(null)}>
-      <i className="fa fa-plus" /> {title}
-    </Button>
-  );
-
   const emptyState = {
-    message: t('No %s yet', titlePlural),
-    slot: canCreate ? EmptyStateButton : null,
+    title: t('No %s yet', titlePlural),
+    image: 'filter-results.svg',
+    buttonAction: () => handleAlertEdit(null),
+    buttonText: canCreate ? (
+      <>
+        <i className="fa fa-plus" /> {title}{' '}
+      </>
+    ) : null,
   };
 
   const filters: Filters = useMemo(
     () => [
+      {
+        Header: t('Owner'),
+        id: 'owners',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'report',
+          'owners',
+          createErrorHandler(errMsg =>
+            t('An error occurred while fetching owners values: %s', errMsg),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
       {
         Header: t('Created by'),
         id: 'created_by',
@@ -396,11 +455,17 @@ function AlertList({
         operator: FilterOperator.equals,
         unfilteredLabel: 'Any',
         selects: [
-          { label: t(`${AlertState.success}`), value: AlertState.success },
-          { label: t(`${AlertState.working}`), value: AlertState.working },
-          { label: t(`${AlertState.error}`), value: AlertState.error },
-          { label: t(`${AlertState.noop}`), value: AlertState.noop },
-          { label: t(`${AlertState.grace}`), value: AlertState.grace },
+          {
+            label: AlertStateLabel[AlertState.Success],
+            value: AlertState.Success,
+          },
+          {
+            label: AlertStateLabel[AlertState.Working],
+            value: AlertState.Working,
+          },
+          { label: AlertStateLabel[AlertState.Error], value: AlertState.Error },
+          { label: AlertStateLabel[AlertState.Noop], value: AlertState.Noop },
+          { label: AlertStateLabel[AlertState.Grace], value: AlertState.Grace },
         ],
       },
       {

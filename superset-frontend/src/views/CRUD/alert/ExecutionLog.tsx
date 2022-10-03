@@ -17,14 +17,15 @@
  * under the License.
  */
 
-import { styled, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import moment from 'moment';
 import React, { useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import ListView from 'src/components/ListView';
-import SubMenu from 'src/components/Menu/SubMenu';
+import { Tooltip } from 'src/components/Tooltip';
+import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { fDuration } from 'src/modules/dates';
+import { fDuration } from 'src/utils/dates';
 import AlertStatusIcon from 'src/views/CRUD/alert/components/AlertStatusIcon';
 import {
   useListViewResource,
@@ -35,16 +36,18 @@ import { AlertObject, LogObject } from './types';
 const PAGE_SIZE = 25;
 
 const StyledHeader = styled.div`
-  display: flex;
-  flex-direction: row;
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
 
-  a,
-  Link {
-    margin-left: 16px;
-    font-size: 12px;
-    font-weight: normal;
-    text-decoration: underline;
-  }
+    a,
+    Link {
+      margin-left: ${theme.gridUnit * 4}px;
+      font-size: ${theme.typography.sizes.s};
+      font-weight: ${theme.typography.weights.normal};
+      text-decoration: underline;
+    }
+  `}
 `;
 
 interface ExecutionLogProps {
@@ -142,6 +145,15 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
       {
         accessor: 'error_message',
         Header: t('Error message'),
+        Cell: ({
+          row: {
+            original: { error_message = '' },
+          },
+        }: any) => (
+          <Tooltip title={error_message} placement="topLeft">
+            <span>{error_message}</span>
+          </Tooltip>
+        ),
       },
     ],
     [isReportEnabled],
@@ -153,7 +165,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
         name={
           <StyledHeader>
             <span>
-              {t(`${alertResource?.type}`)} {alertResource?.name}
+              {alertResource?.type} {alertResource?.name}
             </span>
             <span>
               <Link to={path}>Back to all</Link>

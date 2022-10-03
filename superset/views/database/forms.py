@@ -29,7 +29,7 @@ from wtforms import (
     StringField,
 )
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.validators import DataRequired, Length, NumberRange, Optional
+from wtforms.validators import DataRequired, Length, NumberRange, Optional, Regexp
 
 from superset import app, db, security_manager
 from superset.forms import (
@@ -52,6 +52,7 @@ class UploadToDatabaseForm(DynamicForm):
             file_enabled_db
             for file_enabled_db in file_enabled_dbs
             if UploadToDatabaseForm.at_least_one_schema_is_allowed(file_enabled_db)
+            and UploadToDatabaseForm.is_engine_allowed_to_file_upl(file_enabled_db)
         ]
 
     @staticmethod
@@ -89,12 +90,28 @@ class UploadToDatabaseForm(DynamicForm):
             return True
         return False
 
+    @staticmethod
+    def is_engine_allowed_to_file_upl(database: Database) -> bool:
+        """
+        This method is mainly used for existing Gsheets and Clickhouse DBs
+        that have allow_file_upload set as True but they are no longer valid
+        DBs for file uploading.
+        New GSheets and Clickhouse DBs won't have the option to set
+        allow_file_upload set as True.
+        """
+        if database.db_engine_spec.supports_file_upload:
+            return True
+        return False
+
 
 class CsvToDatabaseForm(UploadToDatabaseForm):
     name = StringField(
         _("Table Name"),
         description=_("Name of table to be created from csv data."),
-        validators=[DataRequired()],
+        validators=[
+            DataRequired(),
+            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema")),
+        ],
         widget=BS3TextFieldWidget(),
     )
     csv_file = FileField(
@@ -245,7 +262,10 @@ class ExcelToDatabaseForm(UploadToDatabaseForm):
     name = StringField(
         _("Table Name"),
         description=_("Name of table to be created from excel data."),
-        validators=[DataRequired()],
+        validators=[
+            DataRequired(),
+            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema")),
+        ],
         widget=BS3TextFieldWidget(),
     )
     excel_file = FileField(
@@ -378,7 +398,10 @@ class ColumnarToDatabaseForm(UploadToDatabaseForm):
     name = StringField(
         _("Table Name"),
         description=_("Name of table to be created from columnar data."),
-        validators=[DataRequired()],
+        validators=[
+            DataRequired(),
+            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema")),
+        ],
         widget=BS3TextFieldWidget(),
     )
     columnar_file = MultipleFileField(

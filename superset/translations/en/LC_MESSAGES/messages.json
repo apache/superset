@@ -455,8 +455,8 @@
         "",
         "Deleted %(num)d report schedules"
       ],
-      "Alert query returned more then one row. %s rows returned": [""],
-      "Alert query returned more then one column. %s columns returned": [""],
+      "Alert query returned more than one row. %s rows returned": [""],
+      "Alert query returned more than one column. %s columns returned": [""],
       "Dashboard does not exist": [""],
       "Chart does not exist": [""],
       "Database is required for alerts": [""],
@@ -473,9 +473,9 @@
       "Report Schedule execution got an unexpected error.": [""],
       "Report Schedule is still working, refusing to re-compute.": [""],
       "Report Schedule reached a working timeout.": [""],
-      "Alert query returned more then one row.": [""],
+      "Alert query returned more than one row.": [""],
       "Alert validator config error.": [""],
-      "Alert query returned more then one column.": [""],
+      "Alert query returned more than one column.": [""],
       "Alert query returned a non-number value.": [""],
       "Alert found an error while executing a query.": [""],
       "Alert fired during grace period.": [""],
@@ -793,7 +793,7 @@
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         ""
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         ""
       ],
       "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
@@ -985,6 +985,7 @@
       "Run selection": [""],
       "Run": [""],
       "Stop running (Ctrl + x)": [""],
+      "Stop running (Ctrl + e)": [""],
       "Run query (Ctrl + Return)": [""],
       "Save & Explore": [""],
       "Overwrite & Explore": [""],
@@ -1907,8 +1908,8 @@
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
         ""
       ],
-      "Impersonate Logged In User (Presto & Hive)": [""],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "Impersonate Logged In User (Presto, Trino, Drill & Hive)": [""],
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         ""
       ],
       "Allow data upload": [""],

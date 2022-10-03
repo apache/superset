@@ -20,7 +20,11 @@ from superset.db_engine_specs.sqlite import SqliteEngineSpec
 class ShillelaghEngineSpec(SqliteEngineSpec):
     """Engine for shillelagh"""
 
-    engine = "shillelagh"
     engine_name = "Shillelagh"
+    engine = "shillelagh"
+    drivers = {"apsw": "SQLite driver"}
+    default_driver = "apsw"
+    sqlalchemy_uri_placeholder = "shillelagh://"
+
     allows_joins = True
     allows_subqueries = True

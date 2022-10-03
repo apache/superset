@@ -17,16 +17,17 @@
 import datetime
 
 import pandas as pd
-from sqlalchemy import BigInteger, Date, String
+from sqlalchemy import BigInteger, Date, inspect, String
 from sqlalchemy.sql import column
 
+import superset.utils.database as database_utils
 from superset import db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.slice import Slice
-from superset.utils import core as utils
+from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
@@ -37,18 +38,19 @@ from .helpers import (
 def load_country_map_data(only_metadata: bool = False, force: bool = False) -> None:
     """Loading data for map with country map"""
     tbl_name = "birth_france_by_region"
-    database = utils.get_example_database()
+    database = database_utils.get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        csv_bytes = get_example_data(
-            "birth_france_data_for_country_map.csv", is_gzip=False, make_bytes=True
-        )
-        data = pd.read_csv(csv_bytes, encoding="utf-8")
+        url = get_example_url("birth_france_data_for_country_map.csv")
+        data = pd.read_csv(url, encoding="utf-8")
         data["dttm"] = datetime.datetime.now().date()
         data.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
+            schema=schema,
             if_exists="replace",
             chunksize=500,
             dtype={
@@ -76,7 +78,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = table(table_name=tbl_name)
+        obj = table(table_name=tbl_name, schema=schema)
     obj.main_dttm_col = "dttm"
     obj.database = database
     obj.filter_select_enabled = True
@@ -109,7 +111,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     slc = Slice(
         slice_name="Birth in France by department in 2016",
         viz_type="country_map",
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )

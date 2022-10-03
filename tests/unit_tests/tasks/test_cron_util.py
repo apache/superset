@@ -20,7 +20,6 @@ from typing import List
 import pytest
 import pytz
 from dateutil import parser
-from flask.ctx import AppContext
 from freezegun import freeze_time
 from freezegun.api import FakeDatetime  # type: ignore
 
@@ -50,7 +49,7 @@ from superset.tasks.cron_util import cron_schedule_window
     ],
 )
 def test_cron_schedule_window_los_angeles(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: List[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "America/Los_Angeles"
@@ -58,6 +57,44 @@ def test_cron_schedule_window_los_angeles(
 
     with freeze_time(current_dttm):
         datetimes = cron_schedule_window(cron, "America/Los_Angeles")
+        assert (
+            list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes)
+            == expected
+        )
+
+
+@pytest.mark.parametrize(
+    "current_dttm, cron, expected",
+    [
+        ("2020-01-01T00:59:01Z", "0 1 * * *", []),
+        (
+            "2020-01-01T00:59:02Z",
+            "0 1 * * *",
+            [FakeDatetime(2020, 1, 1, 1, 0).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        (
+            "2020-01-01T00:59:59Z",
+            "0 1 * * *",
+            [FakeDatetime(2020, 1, 1, 1, 0).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        (
+            "2020-01-01T01:00:00Z",
+            "0 1 * * *",
+            [FakeDatetime(2020, 1, 1, 1, 0).strftime("%A, %d %B %Y, %H:%M:%S")],
+        ),
+        ("2020-01-01T01:00:01Z", "0 1 * * *", []),
+    ],
+)
+def test_cron_schedule_window_invalid_timezone(
+    current_dttm: str, cron: str, expected: List[FakeDatetime]
+) -> None:
+    """
+    Reports scheduler: Test cron schedule window for "invalid timezone"
+    """
+
+    with freeze_time(current_dttm):
+        datetimes = cron_schedule_window(cron, "invalid timezone")
+        # it should default to UTC
         assert (
             list(cron.strftime("%A, %d %B %Y, %H:%M:%S") for cron in datetimes)
             == expected
@@ -87,7 +124,7 @@ def test_cron_schedule_window_los_angeles(
     ],
 )
 def test_cron_schedule_window_new_york(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: List[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "America/New_York"
@@ -124,7 +161,7 @@ def test_cron_schedule_window_new_york(
     ],
 )
 def test_cron_schedule_window_chicago(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: List[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "America/Chicago"
@@ -161,7 +198,7 @@ def test_cron_schedule_window_chicago(
     ],
 )
 def test_cron_schedule_window_chicago_daylight(
-    app_context: AppContext, current_dttm: str, cron: str, expected: List[FakeDatetime]
+    current_dttm: str, cron: str, expected: List[FakeDatetime]
 ) -> None:
     """
     Reports scheduler: Test cron schedule window for "America/Chicago"

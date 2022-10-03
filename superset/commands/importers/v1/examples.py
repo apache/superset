@@ -42,7 +42,8 @@ from superset.datasets.commands.importers.v1 import ImportDatasetsCommand
 from superset.datasets.commands.importers.v1.utils import import_dataset
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 
 
 class ImportExamplesCommand(ImportModelsCommand):
@@ -85,7 +86,7 @@ class ImportExamplesCommand(ImportModelsCommand):
         )
 
     @staticmethod
-    def _import(  # pylint: disable=arguments-differ,too-many-locals
+    def _import(  # pylint: disable=arguments-differ, too-many-locals, too-many-branches
         session: Session,
         configs: Dict[str, Any],
         overwrite: bool = False,
@@ -114,6 +115,10 @@ class ImportExamplesCommand(ImportModelsCommand):
                 else:
                     config["database_id"] = database_ids[config["database_uuid"]]
 
+                # set schema
+                if config["schema"] is None:
+                    config["schema"] = get_example_default_schema()
+
                 dataset = import_dataset(
                     session, config, overwrite=overwrite, force_data=force_data
                 )
@@ -133,7 +138,7 @@ class ImportExamplesCommand(ImportModelsCommand):
 
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
-                    "datasource_type": "view" if dataset.is_sqllab_view else "table",
+                    "datasource_type": "table",
                     "datasource_name": dataset.table_name,
                 }
 
@@ -176,5 +181,4 @@ class ImportExamplesCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
         session.execute(dashboard_slices.insert(), values)

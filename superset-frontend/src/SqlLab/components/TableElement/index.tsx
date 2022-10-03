@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
@@ -37,7 +37,7 @@ interface Column {
   type: string;
 }
 
-interface Table {
+export interface Table {
   id: string;
   name: string;
   partitions?: {
@@ -53,11 +53,11 @@ interface Table {
   columns: Column[];
 }
 
-interface TableElementProps {
+export interface TableElementProps {
   table: Table;
   actions: {
     removeDataPreview: (table: Table) => void;
-    removeTable: (table: Table) => void;
+    removeTables: (tables: Table[]) => void;
   };
 }
 
@@ -77,6 +77,7 @@ const Fade = styled.div`
 const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const tableNameRef = useRef<HTMLInputElement>(null);
 
   const setHover = (hovered: boolean) => {
     debounce(() => setHovered(hovered), 100)();
@@ -84,7 +85,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
 
   const removeTable = () => {
     actions.removeDataPreview(table);
-    actions.removeTable(table);
+    actions.removeTables([table]);
   };
 
   const toggleSortColumns = () => {
@@ -151,11 +152,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
     if (table?.indexes?.length) {
       keyLink = (
         <ModalTrigger
-          modalTitle={
-            <div>
-              {t('Keys for table')} <strong>{table.name}</strong>
-            </div>
-          }
+          modalTitle={`${t('Keys for table')} ${table.name}`}
           modalBody={table.indexes.map((ix, i) => (
             <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
           ))}
@@ -213,39 +210,50 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
     );
   };
 
-  const renderHeader = () => (
-    <div
-      className="clearfix header-container"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <Tooltip
-        id="copy-to-clipboard-tooltip"
-        placement="topLeft"
-        style={{ cursor: 'pointer' }}
-        title={table.name}
-        trigger={['hover']}
-      >
-        <StyledSpan data-test="collapse" className="table-name">
-          <strong>{table.name}</strong>
-        </StyledSpan>
-      </Tooltip>
+  const renderHeader = () => {
+    const element: HTMLInputElement | null = tableNameRef.current;
+    let trigger: string[] = [];
+    if (element && element.offsetWidth < element.scrollWidth) {
+      trigger = ['hover'];
+    }
 
-      <div className="pull-right header-right-side">
-        {table.isMetadataLoading || table.isExtraMetadataLoading ? (
-          <Loading position="inline" />
-        ) : (
-          <Fade
-            data-test="fade"
-            hovered={hovered}
-            onClick={e => e.stopPropagation()}
+    return (
+      <div
+        className="clearfix header-container"
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+      >
+        <Tooltip
+          id="copy-to-clipboard-tooltip"
+          style={{ cursor: 'pointer' }}
+          title={table.name}
+          trigger={trigger}
+        >
+          <StyledSpan
+            data-test="collapse"
+            ref={tableNameRef}
+            className="table-name"
           >
-            {renderControls()}
-          </Fade>
-        )}
+            <strong>{table.name}</strong>
+          </StyledSpan>
+        </Tooltip>
+
+        <div className="pull-right header-right-side">
+          {table.isMetadataLoading || table.isExtraMetadataLoading ? (
+            <Loading position="inline" />
+          ) : (
+            <Fade
+              data-test="fade"
+              hovered={hovered}
+              onClick={e => e.stopPropagation()}
+            >
+              {renderControls()}
+            </Fade>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderBody = () => {
     let cols;
@@ -262,6 +270,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
 
     const metadata = (
       <div
+        data-test="table-element"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         css={{ paddingTop: 6 }}

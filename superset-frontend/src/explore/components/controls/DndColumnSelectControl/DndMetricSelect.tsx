@@ -27,9 +27,9 @@ import {
   QueryFormMetric,
   tn,
 } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, withDndFallback } from '@superset-ui/chart-controls';
 import { isEqual } from 'lodash';
-import { usePrevious } from 'src/common/hooks/usePrevious';
+import { usePrevious } from 'src/hooks/usePrevious';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricPopoverTrigger from 'src/explore/components/controls/MetricControl/AdhocMetricPopoverTrigger';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
@@ -41,6 +41,7 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import { AGGREGATES } from 'src/explore/constants';
+import MetricsControl from '../MetricControl/MetricsControl';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
@@ -87,7 +88,7 @@ const getMetricsMatchingCurrentDataset = (
   savedMetrics: (savedMetricType | Metric)[],
   prevColumns: ColumnMeta[],
   prevSavedMetrics: (savedMetricType | Metric)[],
-) => {
+): ValueType[] => {
   const areSavedMetricsEqual =
     !prevSavedMetrics || isEqual(prevSavedMetrics, savedMetrics);
   const areColsEqual = !prevColumns || isEqual(prevColumns, columns);
@@ -96,16 +97,17 @@ const getMetricsMatchingCurrentDataset = (
     return values;
   }
   return values.reduce((acc: ValueType[], metric) => {
-    if (
-      (typeof metric === 'string' || (metric as Metric).metric_name) &&
-      (areSavedMetricsEqual ||
+    if (typeof metric === 'string' || (metric as Metric).metric_name) {
+      if (
+        areSavedMetricsEqual ||
         savedMetrics?.some(
           savedMetric =>
             savedMetric.metric_name === metric ||
             savedMetric.metric_name === (metric as Metric).metric_name,
-        ))
-    ) {
-      acc.push(metric);
+        )
+      ) {
+        acc.push(metric);
+      }
       return acc;
     }
 
@@ -124,7 +126,7 @@ const getMetricsMatchingCurrentDataset = (
   }, []);
 };
 
-export const DndMetricSelect = (props: any) => {
+const DndMetricSelect = (props: any) => {
   const { onChange, multi, columns, savedMetrics } = props;
 
   const handleChange = useCallback(
@@ -236,9 +238,9 @@ export const DndMetricSelect = (props: any) => {
       const valuesCopy = [...value];
       valuesCopy.splice(index, 1);
       setValue(valuesCopy);
-      onChange(valuesCopy);
+      handleChange(valuesCopy);
     },
-    [onChange, value],
+    [handleChange, value],
   );
 
   const moveLabel = useCallback(
@@ -284,7 +286,7 @@ export const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetrics={props.savedMetrics}
         savedMetricsOptions={getSavedMetricOptionsForMetric(index)}
-        datasourceType={props.datasourceType}
+        datasource={props.datasource}
         onMoveLabel={moveLabel}
         onDropLabel={handleDropLabel}
         type={`${DndItemType.AdhocMetricOption}_${props.name}_${props.label}`}
@@ -299,7 +301,7 @@ export const DndMetricSelect = (props: any) => {
       onMetricEdit,
       onRemoveMetric,
       props.columns,
-      props.datasourceType,
+      props.datasource,
       props.label,
       props.name,
       props.savedMetrics,
@@ -396,7 +398,7 @@ export const DndMetricSelect = (props: any) => {
         columns={props.columns}
         savedMetricsOptions={newSavedMetricOptions}
         savedMetric={EMPTY_OBJECT as savedMetricType}
-        datasourceType={props.datasourceType}
+        datasource={props.datasource}
         isControlledComponent
         visible={newMetricPopoverVisible}
         togglePopover={togglePopover}
@@ -407,3 +409,10 @@ export const DndMetricSelect = (props: any) => {
     </div>
   );
 };
+
+const DndMetricSelectWithFallback = withDndFallback(
+  DndMetricSelect,
+  MetricsControl,
+);
+
+export { DndMetricSelectWithFallback as DndMetricSelect };

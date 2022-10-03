@@ -28,7 +28,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
 import * as featureFlags from 'src/featureFlags';
 import SavedQueryList from 'src/views/CRUD/data/savedquery/SavedQueryList';
-import SubMenu from 'src/components/Menu/SubMenu';
+import SubMenu from 'src/views/components/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import ActionsBar from 'src/components/ListView/ActionsBar';
@@ -111,7 +111,7 @@ const mockImportFile = new File(
 );
 
 fetchMock.get(queriesInfoEndpoint, {
-  permissions: ['can_write', 'can_read'],
+  permissions: ['can_write', 'can_read', 'can_export'],
 });
 fetchMock.get(queriesEndpoint, {
   result: mockqueries,
@@ -151,6 +151,24 @@ describe('SavedQueryList', () => {
 
   it('renders a SubMenu', () => {
     expect(wrapper.find(SubMenu)).toExist();
+  });
+
+  it('renders a SubMenu with Saved queries and Query History links', () => {
+    expect(wrapper.find(SubMenu).props().tabs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Saved queries' }),
+        expect.objectContaining({ label: 'Query history' }),
+      ]),
+    );
+  });
+
+  it('renders a SubMenu without Databases and Datasets links', () => {
+    expect(wrapper.find(SubMenu).props().tabs).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Databases' }),
+        expect.objectContaining({ label: 'Datasets' }),
+      ]),
+    );
   });
 
   it('renders a ListView', () => {

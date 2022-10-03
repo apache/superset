@@ -29,10 +29,4 @@ export const ExplorePopoverContent = styled.div`
   .filter-sql-editor {
     border: ${({ theme }) => theme.colors.grayscale.light2} solid thin;
   }
-  .custom-sql-disabled-message {
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-    text-align: center;
-    margin-top: ${({ theme }) => theme.gridUnit * 15}px;
-  }
 `;

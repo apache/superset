@@ -20,8 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import { t, supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { t } from '@superset-ui/core';
 import throttle from 'lodash/throttle';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import {
@@ -32,7 +31,6 @@ import {
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 import QueryAutoRefresh from '../QueryAutoRefresh';
-import QuerySearch from '../QuerySearch';
 
 class App extends React.PureComponent {
   constructor(props) {
@@ -50,6 +48,11 @@ class App extends React.PureComponent {
 
   componentDidMount() {
     window.addEventListener('hashchange', this.onHashChanged.bind(this));
+
+    // Horrible hack to disable side swipe navigation when in SQL Lab. Even though the
+    // docs say setting this style on any div will prevent it, turns out it only works
+    // when set on the body element.
+    document.body.style.overscrollBehaviorX = 'none';
   }
 
   componentDidUpdate() {
@@ -65,6 +68,9 @@ class App extends React.PureComponent {
 
   componentWillUnmount() {
     window.removeEventListener('hashchange', this.onHashChanged.bind(this));
+
+    // And now we need to reset the overscroll behavior back to the default.
+    document.body.style.overscrollBehaviorX = 'auto';
   }
 
   onHashChanged() {
@@ -75,43 +81,33 @@ class App extends React.PureComponent {
     this.props.actions.addDangerToast(
       t(
         "SQL Lab uses your browser's local storage to store queries and results." +
-          `\n Currently, you are using ${currentUsage.toFixed(
-            2,
-          )} KB out of ${LOCALSTORAGE_MAX_USAGE_KB} KB. storage space.` +
-          '\n To keep SQL Lab from crashing, please delete some query tabs.' +
-          '\n You can re-access these queries by using the Save feature before you delete the tab. ' +
-          'Note that you will need to close other SQL Lab windows before you do this.',
+          '\nCurrently, you are using %(currentUsage)s KB out of %(maxStorage)d KB storage space.' +
+          '\nTo keep SQL Lab from crashing, please delete some query tabs.' +
+          '\nYou can re-access these queries by using the Save feature before you delete the tab.' +
+          '\nNote that you will need to close other SQL Lab windows before you do this.',
+        {
+          currentUsage: currentUsage.toFixed(2),
+          maxStorage: LOCALSTORAGE_MAX_USAGE_KB,
+        },
       ),
     );
   }
 
   render() {
-    let content;
+    const { queries, actions, queriesLastUpdate } = this.props;
     if (this.state.hash && this.state.hash === '#search') {
-      if (isFeatureEnabled(FeatureFlag.ENABLE_REACT_CRUD_VIEWS)) {
-        return window.location.replace('/superset/sqllab/history/');
-      }
-      content = (
-        <QuerySearch
-          actions={this.props.actions}
-          displayLimit={this.props.common.conf.DISPLAY_MAX_ROW}
-        />
-      );
-    } else {
-      content = (
-        <>
-          <QueryAutoRefresh />
-          <TabbedSqlEditors />
-        </>
-      );
+      return window.location.replace('/superset/sqllab/history/');
     }
     return (
-      <ThemeProvider theme={supersetTheme}>
-        <div className="App SqlLab">
-          {content}
-          <ToastContainer />
-        </div>
-      </ThemeProvider>
+      <div className="App SqlLab">
+        <QueryAutoRefresh
+          queries={queries}
+          refreshQueries={actions?.refreshQueries}
+          queriesLastUpdate={queriesLastUpdate}
+        />
+        <TabbedSqlEditors />
+        <ToastContainer />
+      </div>
     );
   }
 }
@@ -123,10 +119,12 @@ App.propTypes = {
 };
 
 function mapStateToProps(state) {
-  const { common, localStorageUsageInKilobytes } = state;
+  const { common, localStorageUsageInKilobytes, sqlLab } = state;
   return {
     common,
     localStorageUsageInKilobytes,
+    queries: sqlLab?.queries,
+    queriesLastUpdate: sqlLab?.queriesLastUpdate,
   };
 }
 

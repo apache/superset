@@ -16,12 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, {
+  useState,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import moment, { Moment } from 'moment';
 import { styled } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';
 import { FormLabel } from 'src/components/Form';
-import { BaseFilter } from './Base';
+import { BaseFilter, FilterHandler } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {
   onSubmit: (val: number[]) => void;
@@ -38,16 +43,22 @@ const RangeFilterContainer = styled.div`
   width: 360px;
 `;
 
-export default function DateRangeFilter({
-  Header,
-  initialValue,
-  onSubmit,
-}: DateRangeFilterProps) {
+function DateRangeFilter(
+  { Header, initialValue, onSubmit }: DateRangeFilterProps,
+  ref: React.RefObject<FilterHandler>,
+) {
   const [value, setValue] = useState<ValueState | null>(initialValue ?? null);
   const momentValue = useMemo((): [Moment, Moment] | null => {
     if (!value || (Array.isArray(value) && !value.length)) return null;
     return [moment(value[0]), moment(value[1])];
   }, [value]);
+
+  useImperativeHandle(ref, () => ({
+    clearFilter: () => {
+      setValue(null);
+      onSubmit([]);
+    },
+  }));
 
   return (
     <RangeFilterContainer>
@@ -72,3 +83,5 @@ export default function DateRangeFilter({
     </RangeFilterContainer>
   );
 }
+
+export default forwardRef(DateRangeFilter);

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { styled, logging } from '@superset-ui/core';
 
 export type BackgroundPosition = 'top' | 'bottom';
@@ -52,7 +52,7 @@ export default function ImageLoader({
   position,
   ...rest
 }: ImageLoaderProps) {
-  const [imgSrc, setImgSrc] = React.useState<string>(fallback);
+  const [imgSrc, setImgSrc] = useState<string>(fallback);
 
   useEffect(() => {
     if (src) {

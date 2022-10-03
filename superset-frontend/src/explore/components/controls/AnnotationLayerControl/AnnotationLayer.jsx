@@ -27,6 +27,8 @@ import {
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
+  styled,
+  withTheme,
 } from '@superset-ui/core';
 
 import SelectControl from 'src/explore/components/controls/SelectControl';
@@ -42,6 +44,7 @@ import {
 } from 'src/modules/AnnotationTypes';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { EmptyStateSmall } from 'src/components/EmptyState';
 
 const AUTOMATIC_COLOR = '';
 
@@ -58,6 +61,7 @@ const propTypes = {
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   overrides: PropTypes.object,
   show: PropTypes.bool,
+  showLabel: PropTypes.bool,
   titleColumn: PropTypes.string,
   descriptionColumns: PropTypes.arrayOf(PropTypes.string),
   timeColumn: PropTypes.string,
@@ -85,6 +89,7 @@ const defaultProps = {
   overrides: {},
   colorScheme: 'd3Category10',
   show: true,
+  showLabel: false,
   titleColumn: '',
   descriptionColumns: [],
   timeColumn: '',
@@ -95,7 +100,36 @@ const defaultProps = {
   close: () => {},
 };
 
-export default class AnnotationLayer extends React.PureComponent {
+const NotFoundContentWrapper = styled.div`
+  && > div:first-child {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
+
+const NotFoundContent = () => (
+  <NotFoundContentWrapper>
+    <EmptyStateSmall
+      title={t('No annotation layers')}
+      description={
+        <span>
+          {t('Add an annotation layer')}{' '}
+          <a
+            href="/annotationlayermodelview/list"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('here')}
+          </a>
+          .
+        </span>
+      }
+      image="empty.svg"
+    />
+  </NotFoundContentWrapper>
+);
+
+class AnnotationLayer extends React.PureComponent {
   constructor(props) {
     super(props);
     const {
@@ -111,6 +145,7 @@ export default class AnnotationLayer extends React.PureComponent {
       value,
       overrides,
       show,
+      showLabel,
       titleColumn,
       descriptionColumns,
       timeColumn,
@@ -142,6 +177,7 @@ export default class AnnotationLayer extends React.PureComponent {
       value,
       overrides,
       show,
+      showLabel,
       // slice
       titleColumn,
       descriptionColumns,
@@ -164,9 +200,8 @@ export default class AnnotationLayer extends React.PureComponent {
     this.applyAnnotation = this.applyAnnotation.bind(this);
     this.fetchOptions = this.fetchOptions.bind(this);
     this.handleAnnotationType = this.handleAnnotationType.bind(this);
-    this.handleAnnotationSourceType = this.handleAnnotationSourceType.bind(
-      this,
-    );
+    this.handleAnnotationSourceType =
+      this.handleAnnotationSourceType.bind(this);
     this.handleValue = this.handleValue.bind(this);
     this.isValidForm = this.isValidForm.bind(this);
   }
@@ -324,6 +359,7 @@ export default class AnnotationLayer extends React.PureComponent {
         'value',
         'overrides',
         'show',
+        'showLabel',
         'titleColumn',
         'descriptionColumns',
         'timeColumn',
@@ -381,11 +417,13 @@ export default class AnnotationLayer extends React.PureComponent {
         description = 'Select the Annotation Layer you would like to use.';
       } else {
         label = t('Chart');
-        description = `Use a pre defined Superset Chart as a source for annotations and overlays.
-        your chart must be one of these visualization types:
-        [${this.getSupportedSourceTypes(annotationType)
-          .map(x => x.label)
-          .join(', ')}]`;
+        description = t(
+          `Use another existing chart as a source for annotations and overlays.
+          Your chart must be one of these visualization types: [%s]`,
+          this.getSupportedSourceTypes(annotationType)
+            .map(x => x.label)
+            .join(', '),
+        );
       }
     } else if (annotationType === ANNOTATION_TYPES.FORMULA) {
       label = 'Formula';
@@ -409,6 +447,7 @@ export default class AnnotationLayer extends React.PureComponent {
           onChange={this.handleValue}
           validationErrors={!value ? ['Mandatory'] : []}
           optionRenderer={this.renderOption}
+          notFoundContent={<NotFoundContent />}
         />
       );
     }
@@ -690,7 +729,8 @@ export default class AnnotationLayer extends React.PureComponent {
   }
 
   render() {
-    const { isNew, name, annotationType, sourceType, show } = this.state;
+    const { isNew, name, annotationType, sourceType, show, showLabel } =
+      this.state;
     const isValid = this.isValidForm();
     const metadata = getChartMetadataRegistry().get(this.props.vizType);
     const supportedAnnotationTypes = metadata
@@ -703,7 +743,9 @@ export default class AnnotationLayer extends React.PureComponent {
     return (
       <>
         {this.props.error && (
-          <span style={{ color: 'red' }}>ERROR: {this.props.error}</span>
+          <span style={{ color: this.props.theme.colors.error.base }}>
+            ERROR: {this.props.error}
+          </span>
         )}
         <div style={{ display: 'flex', flexDirection: 'row' }}>
           <div style={{ marginRight: '2rem' }}>
@@ -726,6 +768,14 @@ export default class AnnotationLayer extends React.PureComponent {
                 value={!show}
                 onChange={v => this.setState({ show: !v })}
               />
+              <CheckboxControl
+                name="annotation-label-show"
+                label={t('Show label')}
+                value={showLabel}
+                hovered
+                description={t('Whether to always show the annotation label')}
+                onChange={v => this.setState({ showLabel: v })}
+              />
               <SelectControl
                 ariaLabel={t('Annotation layer type')}
                 hovered
@@ -742,9 +792,10 @@ export default class AnnotationLayer extends React.PureComponent {
                   ariaLabel={t('Annotation source type')}
                   hovered
                   description={t('Choose the source of your annotations')}
-                  label={t('Annotation Source')}
+                  label={t('Annotation source')}
                   name="annotation-source-type"
                   options={supportedSourceTypes}
+                  notFoundContent={<NotFoundContent />}
                   value={sourceType}
                   onChange={this.handleAnnotationSourceType}
                   validationErrors={!sourceType ? [t('Mandatory')] : []}
@@ -792,3 +843,5 @@ export default class AnnotationLayer extends React.PureComponent {
 
 AnnotationLayer.propTypes = propTypes;
 AnnotationLayer.defaultProps = defaultProps;
+
+export default withTheme(AnnotationLayer);

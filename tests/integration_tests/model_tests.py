@@ -15,13 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+import json
+from superset.utils.core import DatasourceType
 import textwrap
 import unittest
 from unittest import mock
 
+from superset import security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetException
+from superset.utils.core import override_user
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 
 import pytest
@@ -34,11 +40,13 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.models.sql_types.base import literal_dttm_type_factory
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
-from .fixtures.energy_dashboard import load_energy_table_with_slice
+from .fixtures.energy_dashboard import (
+    load_energy_table_with_slice,
+    load_energy_table_data,
+)
 
 
 class TestDatabaseModel(SupersetTestCase):
@@ -107,21 +115,22 @@ class TestDatabaseModel(SupersetTestCase):
     )
     def test_database_impersonate_user(self):
         uri = "mysql://root@localhost"
-        example_user = "giuseppe"
+        example_user = security_manager.find_user(username="gamma")
         model = Database(database_name="test_database", sqlalchemy_uri=uri)
 
-        model.impersonate_user = True
-        user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
-        self.assertEqual(example_user, user_name)
+        with override_user(example_user):
+            model.impersonate_user = True
+            username = make_url(model.get_sqla_engine().url).username
+            self.assertEqual(example_user.username, username)
 
-        model.impersonate_user = False
-        user_name = make_url(model.get_sqla_engine(user_name=example_user).url).username
-        self.assertNotEqual(example_user, user_name)
+            model.impersonate_user = False
+            username = make_url(model.get_sqla_engine().url).username
+            self.assertNotEqual(example_user.username, username)
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_presto(self, mocked_create_engine):
         uri = "presto://localhost"
-        principal_user = "logged_in_user"
+        principal_user = security_manager.find_user(username="gamma")
         extra = """
                 {
                     "metadata_params": {},
@@ -137,64 +146,69 @@ class TestDatabaseModel(SupersetTestCase):
                 }
                 """
 
-        model = Database(database_name="test_database", sqlalchemy_uri=uri, extra=extra)
+        with override_user(principal_user):
+            model = Database(
+                database_name="test_database", sqlalchemy_uri=uri, extra=extra
+            )
+            model.impersonate_user = True
+            model.get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = True
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
+            assert str(call_args[0][0]) == "presto://gamma@localhost"
 
-        assert str(call_args[0][0]) == "presto://logged_in_user@localhost"
+            assert call_args[1]["connect_args"] == {
+                "protocol": "https",
+                "username": "original_user",
+                "password": "original_user_password",
+                "principal_username": "gamma",
+            }
 
-        assert call_args[1]["connect_args"] == {
-            "protocol": "https",
-            "username": "original_user",
-            "password": "original_user_password",
-            "principal_username": "logged_in_user",
-        }
+            model.impersonate_user = False
+            model.get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = False
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
+            assert str(call_args[0][0]) == "presto://localhost"
 
-        assert str(call_args[0][0]) == "presto://localhost"
-
-        assert call_args[1]["connect_args"] == {
-            "protocol": "https",
-            "username": "original_user",
-            "password": "original_user_password",
-        }
+            assert call_args[1]["connect_args"] == {
+                "protocol": "https",
+                "username": "original_user",
+                "password": "original_user_password",
+            }
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_trino(self, mocked_create_engine):
-        uri = "trino://localhost"
-        principal_user = "logged_in_user"
+        principal_user = security_manager.find_user(username="gamma")
 
-        model = Database(database_name="test_database", sqlalchemy_uri=uri)
+        with override_user(principal_user):
+            model = Database(
+                database_name="test_database", sqlalchemy_uri="trino://localhost"
+            )
+            model.impersonate_user = True
+            model.get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = True
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
+            assert str(call_args[0][0]) == "trino://localhost"
+            assert call_args[1]["connect_args"]["user"] == "gamma"
 
-        assert str(call_args[0][0]) == "trino://localhost"
+            model = Database(
+                database_name="test_database",
+                sqlalchemy_uri="trino://original_user:original_user_password@localhost",
+            )
 
-        assert call_args[1]["connect_args"] == {
-            "user": "logged_in_user",
-        }
+            model.impersonate_user = True
+            model.get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        uri = "trino://original_user:original_user_password@localhost"
-        model = Database(database_name="test_database", sqlalchemy_uri=uri)
-        model.impersonate_user = True
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
-
-        assert str(call_args[0][0]) == "trino://original_user@localhost"
-
-        assert call_args[1]["connect_args"] == {"user": "logged_in_user"}
+            assert (
+                str(call_args[0][0])
+                == "trino://original_user:original_user_password@localhost"
+            )
+            assert call_args[1]["connect_args"]["user"] == "gamma"
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_hive(self, mocked_create_engine):
         uri = "hive://localhost"
-        principal_user = "logged_in_user"
+        principal_user = security_manager.find_user(username="gamma")
         extra = """
                 {
                     "metadata_params": {},
@@ -210,32 +224,34 @@ class TestDatabaseModel(SupersetTestCase):
                 }
                 """
 
-        model = Database(database_name="test_database", sqlalchemy_uri=uri, extra=extra)
+        with override_user(principal_user):
+            model = Database(
+                database_name="test_database", sqlalchemy_uri=uri, extra=extra
+            )
+            model.impersonate_user = True
+            model.get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = True
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
+            assert str(call_args[0][0]) == "hive://localhost"
 
-        assert str(call_args[0][0]) == "hive://localhost"
+            assert call_args[1]["connect_args"] == {
+                "protocol": "https",
+                "username": "original_user",
+                "password": "original_user_password",
+                "configuration": {"hive.server2.proxy.user": "gamma"},
+            }
 
-        assert call_args[1]["connect_args"] == {
-            "protocol": "https",
-            "username": "original_user",
-            "password": "original_user_password",
-            "configuration": {"hive.server2.proxy.user": "logged_in_user"},
-        }
+            model.impersonate_user = False
+            model.get_sqla_engine()
+            call_args = mocked_create_engine.call_args
 
-        model.impersonate_user = False
-        model.get_sqla_engine(user_name=principal_user)
-        call_args = mocked_create_engine.call_args
+            assert str(call_args[0][0]) == "hive://localhost"
 
-        assert str(call_args[0][0]) == "hive://localhost"
-
-        assert call_args[1]["connect_args"] == {
-            "protocol": "https",
-            "username": "original_user",
-            "password": "original_user_password",
-        }
+            assert call_args[1]["connect_args"] == {
+                "protocol": "https",
+                "username": "original_user",
+                "password": "original_user_password",
+            }
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_select_star(self):
@@ -343,7 +359,8 @@ class TestDatabaseModel(SupersetTestCase):
     @mock.patch("superset.models.core.create_engine")
     def test_get_sqla_engine(self, mocked_create_engine):
         model = Database(
-            database_name="test_database", sqlalchemy_uri="mysql://root@localhost",
+            database_name="test_database",
+            sqlalchemy_uri="mysql://root@localhost",
         )
         model.db_engine_spec.get_dbapi_exception_mapping = mock.Mock(
             return_value={Exception: SupersetException}
@@ -356,30 +373,22 @@ class TestDatabaseModel(SupersetTestCase):
 class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression(self):
-        col_type = (
-            "VARCHAR"
-            if get_example_database().backend == "presto"
-            else "TemporalWrapperType"
-        )
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
         sqla_literal = ds_col.get_timestamp_expression(None)
-        self.assertEqual(str(sqla_literal.compile()), "ds")
-        assert type(sqla_literal.type).__name__ == col_type
+        assert str(sqla_literal.compile()) == "ds"
 
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "DATE(ds)")
+            assert compiled == "DATE(ds)"
 
         prev_ds_expr = ds_col.expression
         ds_col.expression = "DATE_ADD(ds, 1)"
         sqla_literal = ds_col.get_timestamp_expression("P1D")
-        assert type(sqla_literal.type).__name__ == col_type
         compiled = "{}".format(sqla_literal.compile())
         if tbl.database.backend == "mysql":
-            self.assertEqual(compiled, "DATE(DATE_ADD(ds, 1))")
+            assert compiled == "DATE(DATE_ADD(ds, 1))"
         ds_col.expression = prev_ds_expr
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -488,12 +497,39 @@ class TestSqlaTableModel(SupersetTestCase):
         sql = tbl.get_query_str(query_obj)
         self.assertNotIn("-- COMMENT", sql)
 
-        def mutator(*args):
+        def mutator(*args, **kwargs):
             return "-- COMMENT\n" + args[0]
 
         app.config["SQL_QUERY_MUTATOR"] = mutator
         sql = tbl.get_query_str(query_obj)
         self.assertIn("-- COMMENT", sql)
+
+        app.config["SQL_QUERY_MUTATOR"] = None
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_sql_mutator_different_params(self):
+        tbl = self.get_table(name="birth_names")
+        query_obj = dict(
+            groupby=[],
+            metrics=None,
+            filter=[],
+            is_timeseries=False,
+            columns=["name"],
+            granularity=None,
+            from_dttm=None,
+            to_dttm=None,
+            extras={},
+        )
+        sql = tbl.get_query_str(query_obj)
+        self.assertNotIn("-- COMMENT", sql)
+
+        def mutator(sql, database=None, **kwargs):
+            return "-- COMMENT\n--" + "\n" + str(database) + "\n" + sql
+
+        app.config["SQL_QUERY_MUTATOR"] = mutator
+        mutated_sql = tbl.get_query_str(query_obj)
+        self.assertIn("-- COMMENT", mutated_sql)
+        self.assertIn(tbl.database.name, mutated_sql)
 
         app.config["SQL_QUERY_MUTATOR"] = None
 
@@ -518,12 +554,14 @@ class TestSqlaTableModel(SupersetTestCase):
         self.assertTrue("Metric 'invalid' does not exist", context.exception)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_data_for_slices(self):
+    def test_data_for_slices_with_no_query_context(self):
         tbl = self.get_table(name="birth_names")
         slc = (
             metadata_db.session.query(Slice)
             .filter_by(
-                datasource_id=tbl.id, datasource_type=tbl.type, slice_name="Genders",
+                datasource_id=tbl.id,
+                datasource_type=tbl.type,
+                slice_name="Genders",
             )
             .first()
         )
@@ -532,13 +570,64 @@ class TestSqlaTableModel(SupersetTestCase):
         assert len(data_for_slices["columns"]) == 1
         assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
         assert data_for_slices["columns"][0]["column_name"] == "gender"
-        assert set(data_for_slices["verbose_map"].keys()) == set(
-            ["__timestamp", "sum__num", "gender",]
+        assert set(data_for_slices["verbose_map"].keys()) == {
+            "__timestamp",
+            "sum__num",
+            "gender",
+        }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_query_context(self):
+        tbl = self.get_table(name="birth_names")
+        slc = (
+            metadata_db.session.query(Slice)
+            .filter_by(
+                datasource_id=tbl.id,
+                datasource_type=tbl.type,
+                slice_name="Pivot Table v2",
+            )
+            .first()
         )
+        data_for_slices = tbl.data_for_slices([slc])
+        assert len(data_for_slices["metrics"]) == 1
+        assert len(data_for_slices["columns"]) == 2
+        assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
+        assert data_for_slices["columns"][0]["column_name"] == "name"
+        assert set(data_for_slices["verbose_map"].keys()) == {
+            "__timestamp",
+            "sum__num",
+            "name",
+            "state",
+        }
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_data_for_slices_with_adhoc_column(self):
+        # should perform sqla.model.BaseDatasource.data_for_slices() with adhoc
+        # column and legacy chart
+        tbl = self.get_table(name="birth_names")
+        dashboard = self.get_dash_by_slug("births")
+        slc = Slice(
+            slice_name="slice with adhoc column",
+            datasource_type=DatasourceType.TABLE,
+            viz_type="table",
+            params=json.dumps(
+                {
+                    "adhoc_filters": [],
+                    "granularity_sqla": "ds",
+                    "groupby": [
+                        "name",
+                        {"label": "adhoc_column", "sqlExpression": "name"},
+                    ],
+                    "metrics": ["sum__num"],
+                    "time_range": "No filter",
+                    "viz_type": "table",
+                }
+            ),
+            datasource_id=tbl.id,
+        )
+        dashboard.slices.append(slc)
+        datasource_info = slc.datasource.data_for_slices([slc])
+        assert "database" in datasource_info
 
-def test_literal_dttm_type_factory():
-    orig_type = DateTime()
-    new_type = literal_dttm_type_factory(orig_type, PostgresEngineSpec, "TIMESTAMP")
-    assert type(new_type).__name__ == "TemporalWrapperType"
-    assert str(new_type) == str(orig_type)
+        # clean up and auto commit
+        metadata_db.session.delete(slc)

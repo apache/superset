@@ -18,7 +18,7 @@
 ######################################################################
 # PY stage that simply does a pip install on our requirements
 ######################################################################
-ARG PY_VER=3.8.12
+ARG PY_VER=3.8.13-slim
 FROM python:${PY_VER} AS superset-py
 
 RUN mkdir /app \
@@ -45,10 +45,7 @@ RUN cd /app \
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-FROM node:16 AS superset-node
-
-ARG NPM_VER=7
-RUN npm install -g npm@${NPM_VER}
+FROM node:16-slim AS superset-node
 
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
@@ -57,13 +54,11 @@ ENV BUILD_CMD=${NPM_BUILD_CMD}
 RUN mkdir -p /app/superset-frontend
 RUN mkdir -p /app/superset/assets
 COPY ./docker/frontend-mem-nag.sh /
-COPY ./superset-frontend/package* /app/superset-frontend/
+COPY ./superset-frontend /app/superset-frontend
 RUN /frontend-mem-nag.sh \
         && cd /app/superset-frontend \
         && npm ci
 
-# Next, copy in the rest and let webpack do its thing
-COPY ./superset-frontend /app/superset-frontend
 # This seems to be the most expensive step
 RUN cd /app/superset-frontend \
         && npm run ${BUILD_CMD} \
@@ -73,7 +68,7 @@ RUN cd /app/superset-frontend \
 ######################################################################
 # Final lean image...
 ######################################################################
-ARG PY_VER=3.8.12
+ARG PY_VER=3.8.13-slim
 FROM python:${PY_VER} AS lean
 
 ENV LANG=C.UTF-8 \
@@ -92,6 +87,7 @@ RUN mkdir -p ${PYTHONPATH} \
             default-libmysqlclient-dev \
             libsasl2-modules-gssapi-mit \
             libpq-dev \
+            libecpg-dev \
         && rm -rf /var/lib/apt/lists/*
 
 COPY --from=superset-py /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
@@ -105,9 +101,12 @@ COPY superset /app/superset
 COPY setup.py MANIFEST.in README.md /app/
 RUN cd /app \
         && chown -R superset:superset * \
-        && pip install -e .
+        && pip install -e . \
+        && flask fab babel-compile --target superset/translations
 
-COPY ./docker/docker-entrypoint.sh /usr/bin/
+COPY ./docker/run-server.sh /usr/bin/
+
+RUN chmod a+x /usr/bin/run-server.sh
 
 WORKDIR /app
 
@@ -117,7 +116,7 @@ HEALTHCHECK CMD curl -f "http://localhost:$SUPERSET_PORT/health"
 
 EXPOSE ${SUPERSET_PORT}
 
-ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
+CMD /usr/bin/run-server.sh
 
 ######################################################################
 # Dev image...
@@ -131,7 +130,7 @@ COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 USER root
 
 RUN apt-get update -y \
-    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1
+    && apt-get install -y --no-install-recommends libnss3 libdbus-glib-1-2 libgtk-3-0 libx11-xcb1 wget
 
 # Install GeckoDriver WebDriver
 RUN wget https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O /tmp/geckodriver.tar.gz && \

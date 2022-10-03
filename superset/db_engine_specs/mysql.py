@@ -16,7 +16,7 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Callable, Dict, Match, Optional, Pattern, Tuple, Union
+from typing import Any, Dict, Optional, Pattern, Tuple
 from urllib import parse
 
 from flask_babel import gettext as __
@@ -33,9 +33,12 @@ from sqlalchemy.dialects.mysql import (
     TINYTEXT,
 )
 from sqlalchemy.engine.url import URL
-from sqlalchemy.types import TypeEngine
 
-from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersMixin,
+    ColumnTypeMapping,
+)
 from superset.errors import SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
@@ -70,32 +73,57 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     )
     encryption_parameters = {"ssl": "1"}
 
-    column_type_mappings: Tuple[
-        Tuple[
-            Pattern[str],
-            Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-            GenericDataType,
-        ],
-        ...,
-    ] = (
-        (re.compile(r"^int.*", re.IGNORECASE), INTEGER(), GenericDataType.NUMERIC,),
-        (re.compile(r"^tinyint", re.IGNORECASE), TINYINT(), GenericDataType.NUMERIC,),
+    column_type_mappings = (
+        (
+            re.compile(r"^int.*", re.IGNORECASE),
+            INTEGER(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tinyint", re.IGNORECASE),
+            TINYINT(),
+            GenericDataType.NUMERIC,
+        ),
         (
             re.compile(r"^mediumint", re.IGNORECASE),
             MEDIUMINT(),
             GenericDataType.NUMERIC,
         ),
-        (re.compile(r"^decimal", re.IGNORECASE), DECIMAL(), GenericDataType.NUMERIC,),
-        (re.compile(r"^float", re.IGNORECASE), FLOAT(), GenericDataType.NUMERIC,),
-        (re.compile(r"^double", re.IGNORECASE), DOUBLE(), GenericDataType.NUMERIC,),
-        (re.compile(r"^bit", re.IGNORECASE), BIT(), GenericDataType.NUMERIC,),
-        (re.compile(r"^tinytext", re.IGNORECASE), TINYTEXT(), GenericDataType.STRING,),
+        (
+            re.compile(r"^decimal", re.IGNORECASE),
+            DECIMAL(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^float", re.IGNORECASE),
+            FLOAT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^double", re.IGNORECASE),
+            DOUBLE(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^bit", re.IGNORECASE),
+            BIT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tinytext", re.IGNORECASE),
+            TINYTEXT(),
+            GenericDataType.STRING,
+        ),
         (
             re.compile(r"^mediumtext", re.IGNORECASE),
             MEDIUMTEXT(),
             GenericDataType.STRING,
         ),
-        (re.compile(r"^longtext", re.IGNORECASE), LONGTEXT(), GenericDataType.STRING,),
+        (
+            re.compile(r"^longtext", re.IGNORECASE),
+            LONGTEXT(),
+            GenericDataType.STRING,
+        ),
     )
 
     _time_grain_expressions = {
@@ -151,7 +179,9 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     }
 
     @classmethod
-    def convert_dttm(cls, target_type: str, dttm: datetime) -> Optional[str]:
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         tt = target_type.upper()
         if tt == utils.TemporalType.DATE:
             return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
@@ -163,9 +193,11 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> None:
+    ) -> URL:
         if selected_schema:
-            uri.database = parse.quote(selected_schema, safe="")
+            uri = uri.set(database=parse.quote(selected_schema, safe=""))
+
+        return uri
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:
@@ -204,16 +236,10 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def get_column_spec(
         cls,
         native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[
-            Tuple[
-                Pattern[str],
-                Union[TypeEngine, Callable[[Match[str]], TypeEngine]],
-                GenericDataType,
-            ],
-            ...,
-        ] = column_type_mappings,
-    ) -> Union[ColumnSpec, None]:
+        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
+    ) -> Optional[ColumnSpec]:
 
         column_spec = super().get_column_spec(native_type)
         if column_spec:

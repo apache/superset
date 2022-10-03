@@ -17,13 +17,45 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import { makeApi } from '@superset-ui/core';
+import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
+import { isString } from 'lodash';
 import { ChartConfiguration, DashboardInfo } from '../reducers/types';
 
 export const DASHBOARD_INFO_UPDATED = 'DASHBOARD_INFO_UPDATED';
 
+export function updateColorSchema(
+  metadata: Record<string, any>,
+  labelColors: Record<string, string>,
+) {
+  const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+    metadata?.color_namespace,
+  );
+  const colorMap = isString(labelColors)
+    ? JSON.parse(labelColors)
+    : labelColors;
+  Object.keys(colorMap).forEach(label => {
+    categoricalNamespace.setColor(label, colorMap[label]);
+  });
+}
+
 // updates partially changed dashboard info
 export function dashboardInfoChanged(newInfo: { metadata: any }) {
+  const { metadata } = newInfo;
+
+  const categoricalNamespace = CategoricalColorNamespace.getNamespace(
+    metadata?.color_namespace,
+  );
+
+  categoricalNamespace.resetColors();
+
+  if (metadata?.shared_label_colors) {
+    updateColorSchema(metadata, metadata?.shared_label_colors);
+  }
+
+  if (metadata?.label_colors) {
+    updateColorSchema(metadata, metadata?.label_colors);
+  }
+
   return { type: DASHBOARD_INFO_UPDATED, newInfo };
 }
 export const SET_CHART_CONFIG_BEGIN = 'SET_CHART_CONFIG_BEGIN';
@@ -41,41 +73,41 @@ export interface SetChartConfigFail {
   type: typeof SET_CHART_CONFIG_FAIL;
   chartConfiguration: ChartConfiguration;
 }
-export const setChartConfiguration = (
-  chartConfiguration: ChartConfiguration,
-) => async (dispatch: Dispatch, getState: () => any) => {
-  dispatch({
-    type: SET_CHART_CONFIG_BEGIN,
-    chartConfiguration,
-  });
-  const { id, metadata } = getState().dashboardInfo;
-
-  // TODO extract this out when makeApi supports url parameters
-  const updateDashboard = makeApi<
-    Partial<DashboardInfo>,
-    { result: DashboardInfo }
-  >({
-    method: 'PUT',
-    endpoint: `/api/v1/dashboard/${id}`,
-  });
-
-  try {
-    const response = await updateDashboard({
-      json_metadata: JSON.stringify({
-        ...metadata,
-        chart_configuration: chartConfiguration,
-      }),
-    });
-    dispatch(
-      dashboardInfoChanged({
-        metadata: JSON.parse(response.result.json_metadata),
-      }),
-    );
+export const setChartConfiguration =
+  (chartConfiguration: ChartConfiguration) =>
+  async (dispatch: Dispatch, getState: () => any) => {
     dispatch({
-      type: SET_CHART_CONFIG_COMPLETE,
+      type: SET_CHART_CONFIG_BEGIN,
       chartConfiguration,
     });
-  } catch (err) {
-    dispatch({ type: SET_CHART_CONFIG_FAIL, chartConfiguration });
-  }
-};
+    const { id, metadata } = getState().dashboardInfo;
+
+    // TODO extract this out when makeApi supports url parameters
+    const updateDashboard = makeApi<
+      Partial<DashboardInfo>,
+      { result: DashboardInfo }
+    >({
+      method: 'PUT',
+      endpoint: `/api/v1/dashboard/${id}`,
+    });
+
+    try {
+      const response = await updateDashboard({
+        json_metadata: JSON.stringify({
+          ...metadata,
+          chart_configuration: chartConfiguration,
+        }),
+      });
+      dispatch(
+        dashboardInfoChanged({
+          metadata: JSON.parse(response.result.json_metadata),
+        }),
+      );
+      dispatch({
+        type: SET_CHART_CONFIG_COMPLETE,
+        chartConfiguration,
+      });
+    } catch (err) {
+      dispatch({ type: SET_CHART_CONFIG_FAIL, chartConfiguration });
+    }
+  };

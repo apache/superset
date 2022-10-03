@@ -18,30 +18,33 @@
 """Unit tests for Superset"""
 from typing import Dict, Any
 
-from tests.integration_tests.test_app import app  # noqa
+import pytest
 
 from superset.extensions import cache_manager, db
 from superset.models.cache import CacheKey
+from superset.utils.core import get_example_default_schema
 from tests.integration_tests.base_tests import (
     SupersetTestCase,
     post_assert_metric,
-    test_client,
-    logged_in_admin,
-)  # noqa
+)
 
 
-def invalidate(params: Dict[str, Any]):
-    return post_assert_metric(
-        test_client, "api/v1/cachekey/invalidate", params, "invalidate"
-    )
+@pytest.fixture
+def invalidate(test_client, login_as_admin):
+    def _invalidate(params: Dict[str, Any]):
+        return post_assert_metric(
+            test_client, "api/v1/cachekey/invalidate", params, "invalidate"
+        )
+
+    return _invalidate
 
 
-def test_invalidate_cache(logged_in_admin):
+def test_invalidate_cache(invalidate):
     rv = invalidate({"datasource_uids": ["3__table"]})
     assert rv.status_code == 201
 
 
-def test_invalidate_existing_cache(logged_in_admin):
+def test_invalidate_existing_cache(invalidate):
     db.session.add(CacheKey(cache_key="cache_key", datasource_uid="3__table"))
     db.session.commit()
     cache_manager.cache.set("cache_key", "value")
@@ -55,7 +58,7 @@ def test_invalidate_existing_cache(logged_in_admin):
     )
 
 
-def test_invalidate_cache_empty_input(logged_in_admin):
+def test_invalidate_cache_empty_input(invalidate):
     rv = invalidate({"datasource_uids": []})
     assert rv.status_code == 201
 
@@ -66,7 +69,7 @@ def test_invalidate_cache_empty_input(logged_in_admin):
     assert rv.status_code == 201
 
 
-def test_invalidate_cache_bad_request(logged_in_admin):
+def test_invalidate_cache_bad_request(invalidate):
     rv = invalidate(
         {
             "datasource_uids": [],
@@ -92,7 +95,8 @@ def test_invalidate_cache_bad_request(logged_in_admin):
     assert rv.status_code == 400
 
 
-def test_invalidate_existing_caches(logged_in_admin):
+def test_invalidate_existing_caches(invalidate):
+    schema = get_example_default_schema() or ""
     bn = SupersetTestCase.get_birth_names_dataset()
 
     db.session.add(CacheKey(cache_key="cache_key1", datasource_uid="3__druid"))
@@ -113,25 +117,25 @@ def test_invalidate_existing_caches(logged_in_admin):
                 {
                     "datasource_name": "birth_names",
                     "database_name": "examples",
-                    "schema": "",
+                    "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # table exists, no cache to invalidate
                     "datasource_name": "energy_usage",
                     "database_name": "examples",
-                    "schema": "",
+                    "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # table doesn't exist
                     "datasource_name": "does_not_exist",
                     "database_name": "examples",
-                    "schema": "",
+                    "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # database doesn't exist
                     "datasource_name": "birth_names",
                     "database_name": "does_not_exist",
-                    "schema": "",
+                    "schema": schema,
                     "datasource_type": "table",
                 },
                 {  # database doesn't exist

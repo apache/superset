@@ -705,10 +705,10 @@
         "%(num)d agendamento de relatório deletado",
         "%(num)d agendamentos de relatório deletados"
       ],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "A consulta de alerta retornou mais de uma linha. %s linhas retornadas"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "A consulta de alerta retornou mais de uma coluna. %s colunas retornadas"
       ],
       "Dashboard does not exist": ["Painel não existe"],
@@ -753,13 +753,13 @@
       "Report Schedule reached a working timeout.": [
         "O agendamento de relatório atingiu o timeout de trabalho."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "A consulta de alerta retornou mais de uma linha."
       ],
       "Alert validator config error.": [
         "Erro de configuração do validador de alerta."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "A consulta de alerta retornou mais de uma coluna."
       ],
       "Alert query returned a non-number value.": [
@@ -1215,7 +1215,7 @@
       "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema": [
         "Ao permitir a opção CREATE TABLE AS no SQL Lab, esta opção força a tabela a ser criada neste esquema"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Se Presto, todas as consultas no SQL Lab serão executadas como o usuário atualmente conectado que deve ter permissão para executá-las. <br/> Se hive e hive.server2.enable.doAs estiver habilitado, será executado as consultas como conta de serviço, mas personifique o usuário atualmente conectado usando a propriedade hive.server2.proxy.user."
       ],
       "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.": [
@@ -1445,6 +1445,7 @@
       "Run selection": ["Executar seleção"],
       "Run": ["Executar"],
       "Stop running (Ctrl + x)": ["Parar execução (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Parar execução (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Executar query (Ctrl + Return)"],
       "Save & Explore": ["Salvar e explorar"],
       "Overwrite & Explore": ["Sobrescrever & explorar"],
@@ -2641,10 +2642,10 @@
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
         "Conteúdo CA_BUNDLE opcional para validar requisições HTTPS. Disponível apenas em certos bancos de dados."
       ],
-      "Impersonate Logged In User (Presto & Hive)": [
+      "Impersonate Logged In User (Presto, Trino, Drill & Hive)": [
         "Personificar usuário logado (Presto e Hive)"
       ],
-      "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
+      "If Presto, Trino or Drill all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Se Presto, todas as consultas no SQL Lab serão executadas utilizando o usuário logado atual que deve ter permissão para executá-las. Se Hive e hive.server2.enable.doAs for habilitado, as consultas serão executadas como conta de serviço, mas personificarão o usuário logado atual via propriedade hive.server2.proxy.user."
       ],
       "Allow data upload": ["Permitir carga de dados"],

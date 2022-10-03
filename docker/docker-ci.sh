@@ -20,16 +20,7 @@
 # TODO: copy config overrides from ENV vars
 
 # TODO: run celery in detached state
-
+export SERVER_THREADS_AMOUNT=8
 # start up the web server
-gunicorn \
-    --bind  "0.0.0.0:${SUPERSET_PORT}" \
-    --access-logfile '-' \
-    --error-logfile '-' \
-    --workers 1 \
-    --worker-class gthread \
-    --threads 8 \
-    --timeout 60 \
-    --limit-request-line 0 \
-    --limit-request-field_size 0 \
-    "${FLASK_APP}"
+
+/usr/bin/run-server.sh

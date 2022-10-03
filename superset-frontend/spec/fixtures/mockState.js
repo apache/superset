@@ -21,7 +21,7 @@ import messageToasts from 'src/components/MessageToasts/mockMessageToasts';
 import {
   nativeFiltersInfo,
   mockDataMaskInfo,
-} from 'spec/javascripts/dashboard/fixtures/mockNativeFilters';
+} from 'src/dashboard/fixtures/mockNativeFilters';
 import { user } from 'src/SqlLab/fixtures';
 import chartQueries from './mockChartQueries';
 import { dashboardLayout } from './mockDashboardLayout';
@@ -35,6 +35,11 @@ export default {
   sliceEntities: sliceEntitiesForChart,
   charts: chartQueries,
   nativeFilters: nativeFiltersInfo,
+  common: {
+    conf: {
+      SAMPLES_ROW_LIMIT: 10,
+    },
+  },
   dataMask: mockDataMaskInfo,
   dashboardInfo,
   dashboardFilters: emptyFilters,

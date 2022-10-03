@@ -24,16 +24,17 @@ from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException, CommandInvalidError
 from superset.commands.importers.v1.utils import (
+    load_configs,
     load_metadata,
     load_yaml,
     METADATA_FILE_NAME,
+    validate_metadata_type,
 )
 from superset.dao.base import BaseDAO
 from superset.models.core import Database
 
 
 class ImportModelsCommand(BaseCommand):
-
     """Import models"""
 
     dao = BaseDAO
@@ -73,55 +74,30 @@ class ImportModelsCommand(BaseCommand):
     def validate(self) -> None:
         exceptions: List[ValidationError] = []
 
-        # load existing databases so we can apply the password validation
-        db_passwords = {
-            str(uuid): password
-            for uuid, password in db.session.query(
-                Database.uuid, Database.password
-            ).all()
-        }
-
         # verify that the metadata file is present and valid
         try:
             metadata: Optional[Dict[str, str]] = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None
+        if self.dao.model_cls:
+            validate_metadata_type(metadata, self.dao.model_cls.__name__, exceptions)
 
-        # validate that the type declared in METADATA_FILE_NAME is correct
-        if metadata and "type" in metadata:
-            type_validator = validate.Equal(self.dao.model_cls.__name__)  # type: ignore
-            try:
-                type_validator(metadata["type"])
-            except ValidationError as exc:
-                exc.messages = {METADATA_FILE_NAME: {"type": exc.messages}}
-                exceptions.append(exc)
+        # load the configs and make sure we have confirmation to overwrite existing models
+        self._configs = load_configs(
+            self.contents, self.schemas, self.passwords, exceptions
+        )
+        self._prevent_overwrite_existing_model(exceptions)
 
-        # validate objects
-        for file_name, content in self.contents.items():
-            # skip directories
-            if not content:
-                continue
+        if exceptions:
+            exception = CommandInvalidError(f"Error importing {self.model_name}")
+            exception.add_list(exceptions)
+            raise exception
 
-            prefix = file_name.split("/")[0]
-            schema = self.schemas.get(f"{prefix}/")
-            if schema:
-                try:
-                    config = load_yaml(file_name, content)
-
-                    # populate passwords from the request or from existing DBs
-                    if file_name in self.passwords:
-                        config["password"] = self.passwords[file_name]
-                    elif prefix == "databases" and config["uuid"] in db_passwords:
-                        config["password"] = db_passwords[config["uuid"]]
-
-                    schema.load(config)
-                    self._configs[file_name] = config
-                except ValidationError as exc:
-                    exc.messages = {file_name: exc.messages}
-                    exceptions.append(exc)
-
-        # check if the object exists and shouldn't be overwritten
+    def _prevent_overwrite_existing_model(  # pylint: disable=invalid-name
+        self, exceptions: List[ValidationError]
+    ) -> None:
+        """check if the object exists and shouldn't be overwritten"""
         if not self.overwrite:
             existing_uuids = self._get_uuids()
             for file_name, config in self._configs.items():
@@ -139,8 +115,3 @@ class ImportModelsCommand(BaseCommand):
                             }
                         )
                     )
-
-        if exceptions:
-            exception = CommandInvalidError(f"Error importing {self.model_name}")
-            exception.add_list(exceptions)
-            raise exception

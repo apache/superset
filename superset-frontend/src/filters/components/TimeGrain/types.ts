@@ -33,6 +33,7 @@ export type PluginFilterTimeGrainProps = PluginFilterStylesProps & {
   data: DataRecord[];
   filterState: FilterState;
   formData: PluginFilterTimeGrainQueryFormData;
+  inputRef: RefObject<HTMLInputElement>;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterTimeGrainCustomizeProps = {

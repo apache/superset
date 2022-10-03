@@ -19,46 +19,47 @@
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import EmptyState from 'src/views/CRUD/welcome/EmptyState';
+import { WelcomeTable } from './types';
 
 describe('EmptyState', () => {
   const variants = [
     {
       tab: 'Favorite',
-      tableName: 'DASHBOARDS',
+      tableName: WelcomeTable.Dashboards,
     },
     {
       tab: 'Mine',
-      tableName: 'DASHBOARDS',
+      tableName: WelcomeTable.Dashboards,
     },
     {
       tab: 'Favorite',
-      tableName: 'CHARTS',
+      tableName: WelcomeTable.Charts,
     },
     {
       tab: 'Mine',
-      tableName: 'CHARTS',
+      tableName: WelcomeTable.Charts,
     },
     {
       tab: 'Favorite',
-      tableName: 'SAVED_QUERIES',
+      tableName: WelcomeTable.SavedQueries,
     },
     {
       tab: 'Mine',
-      tableName: 'SAVED_QUEREIS',
+      tableName: WelcomeTable.SavedQueries,
     },
   ];
   const recents = [
     {
       tab: 'Viewed',
-      tableName: 'RECENTS',
+      tableName: WelcomeTable.Recents,
     },
     {
       tab: 'Edited',
-      tableName: 'RECENTS',
+      tableName: WelcomeTable.Recents,
     },
     {
       tab: 'Created',
-      tableName: 'RECENTS',
+      tableName: WelcomeTable.Recents,
     },
   ];
   variants.forEach(variant => {

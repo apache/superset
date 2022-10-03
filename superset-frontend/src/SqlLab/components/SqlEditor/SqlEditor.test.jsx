@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
@@ -31,15 +32,29 @@ import {
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
+import QueryProvider from 'src/views/QueryProvider';
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
-import { Dropdown } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
 import {
   queryEditorSetFunctionNames,
   queryEditorSetSelectedText,
   queryEditorSetSchemaOptions,
 } from 'src/SqlLab/actions/sqlLab';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { initialState, queries, table } from 'src/SqlLab/fixtures';
+import {
+  initialState,
+  queries,
+  table,
+  defaultQueryEditor,
+} from 'src/SqlLab/fixtures';
+
+jest.mock('src/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('src/components/AsyncAceEditor'),
+  FullSQLEditor: props => (
+    <div data-test="react-ace">{JSON.stringify(props)}</div>
+  ),
+}));
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
@@ -47,7 +62,36 @@ fetchMock.get('glob:*/api/v1/database/*', { result: [] });
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-const store = mockStore(initialState);
+const store = mockStore({
+  ...initialState,
+  sqlLab: {
+    ...initialState.sqlLab,
+    databases: {
+      dbid1: {
+        allow_ctas: false,
+        allow_cvas: false,
+        allow_dml: false,
+        allow_file_upload: false,
+        allow_run_async: false,
+        backend: 'postgresql',
+        database_name: 'examples',
+        expose_in_sqllab: true,
+        force_ctas_schema: null,
+        id: 1,
+      },
+    },
+    unsavedQueryEditor: {
+      id: defaultQueryEditor.id,
+      dbId: 'dbid1',
+    },
+  },
+});
+
+const setup = (props = {}, store) =>
+  render(<SqlEditor {...props} />, {
+    useRedux: true,
+    ...(store && { store }),
+  });
 
 describe('SqlEditor', () => {
   const mockedProps = {
@@ -56,9 +100,9 @@ describe('SqlEditor', () => {
       queryEditorSetSelectedText,
       queryEditorSetSchemaOptions,
       addDangerToast: jest.fn(),
+      removeDataPreview: jest.fn(),
     },
-    database: {},
-    queryEditorId: initialState.sqlLab.queryEditors[0].id,
+    queryEditor: initialState.sqlLab.queryEditors[0],
     latestQuery: queries[0],
     tables: [table],
     getHeight: () => '100px',
@@ -71,30 +115,78 @@ describe('SqlEditor', () => {
 
   const buildWrapper = (props = {}) =>
     mount(
-      <Provider store={store}>
-        <SqlEditor {...mockedProps} {...props} />
-      </Provider>,
+      <QueryProvider>
+        <Provider store={store}>
+          <SqlEditor {...mockedProps} {...props} />
+        </Provider>
+      </QueryProvider>,
       {
         wrappingComponent: ThemeProvider,
         wrappingComponentProps: { theme: supersetTheme },
       },
     );
 
+  it('does not render SqlEditor if no db selected', () => {
+    const queryEditor = initialState.sqlLab.queryEditors[1];
+    const updatedProps = { ...mockedProps, queryEditor };
+    const wrapper = buildWrapper(updatedProps);
+    expect(wrapper.find(EmptyStateBig)).toExist();
+  });
+
   it('render a SqlEditorLeftBar', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(SqlEditorLeftBar)).toExist();
   });
+
   it('render an AceEditorWrapper', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(AceEditorWrapper)).toExist();
   });
+
+  it('renders sql from unsaved change', () => {
+    const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          databases: {
+            dbid1: {
+              allow_ctas: false,
+              allow_cvas: false,
+              allow_dml: false,
+              allow_file_upload: false,
+              allow_run_async: false,
+              backend: 'postgresql',
+              database_name: 'examples',
+              expose_in_sqllab: true,
+              force_ctas_schema: null,
+              id: 1,
+            },
+          },
+          unsavedQueryEditor: {
+            id: defaultQueryEditor.id,
+            dbId: 'dbid1',
+            sql: expectedSql,
+          },
+        },
+      }),
+    );
+
+    expect(getByTestId('react-ace')).toHaveTextContent(
+      JSON.stringify({ value: expectedSql }).slice(1, -1),
+    );
+  });
+
   it('render a SouthPane', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConnectedSouthPane)).toExist();
   });
+
   // TODO eschutho convert tests to RTL
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('does not overflow the editor window', async () => {
@@ -108,6 +200,7 @@ describe('SqlEditor', () => {
       SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(MOCKED_SQL_EDITOR_HEIGHT);
   });
+
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('does not overflow the editor window after resizing', async () => {
     const wrapper = buildWrapper();
@@ -121,11 +214,12 @@ describe('SqlEditor', () => {
       SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(450);
   });
+
   it('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
     const wrapper = buildWrapper(updatedProps);
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(Dropdown)).toExist();
+    expect(wrapper.find(AntdDropdown)).toExist();
   });
 });

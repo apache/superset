@@ -31,7 +31,7 @@ from superset import db
 from superset.models.core import Database
 from superset.models.core import FavStar
 from superset.models.sql_lab import SavedQuery
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
@@ -434,9 +434,7 @@ class TestSavedQueryApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert "can_read" in data["permissions"]
-        assert "can_write" in data["permissions"]
-        assert len(data["permissions"]) == 2
+        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
 
     def test_related_saved_query(self):
         """
@@ -447,7 +445,8 @@ class TestSavedQueryApi(SupersetTestCase):
         expected_result = {
             "count": len(databases),
             "result": [
-                {"text": str(database), "value": database.id} for database in databases
+                {"extra": {}, "text": str(database), "value": database.id}
+                for database in databases
             ],
         }
 
@@ -527,8 +526,10 @@ class TestSavedQueryApi(SupersetTestCase):
             "label": "label1",
         }
         data = json.loads(rv.data.decode("utf-8"))
+        self.assertIn("changed_on_delta_humanized", data["result"])
         for key, value in data["result"].items():
-            assert value == expected_result[key]
+            if key not in ("changed_on_delta_humanized",):
+                assert value == expected_result[key]
 
     def test_get_saved_query_not_found(self):
         """

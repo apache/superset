@@ -18,16 +18,23 @@
  */
 import React, { ReactNode } from 'react';
 import rison from 'rison';
+import querystring from 'query-string';
 import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
-import { Steps } from 'src/common/components';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import { isNullish } from 'src/utils/common';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
-import { FormLabel } from 'src/components/Form';
+import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
+import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
+import _ from 'lodash';
+import { findPermission } from 'src/utils/findPermission';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 type Dataset = {
   id: number;
@@ -36,11 +43,16 @@ type Dataset = {
   datasource_type: string;
 };
 
-export type AddSliceContainerProps = {};
+export interface AddSliceContainerProps extends RouteComponentProps {
+  user: UserWithPermissionsAndRoles;
+  addSuccessToast: (arg: string) => void;
+}
 
 export type AddSliceContainerState = {
   datasource?: { label: string; value: string };
-  visType: string | null;
+  datasetName?: string | string[] | null;
+  vizType: string | null;
+  canCreateDataset: boolean;
 };
 
 const ESTIMATED_NAV_HEIGHT = 56;
@@ -71,7 +83,6 @@ const StyledContainer = styled.div`
       display: flex;
       flex-direction: row;
       align-items: center;
-      margin-bottom: ${theme.gridUnit * 2}px;
 
       & > div {
         min-width: 200px;
@@ -178,47 +189,91 @@ const StyledLabel = styled.span`
   `}
 `;
 
-export default class AddSliceContainer extends React.PureComponent<
+const StyledStepTitle = styled.span`
+  ${({
+    theme: {
+      typography: { sizes, weights },
+    },
+  }) => `
+      font-size: ${sizes.m}px;
+      font-weight: ${weights.bold};
+    `}
+`;
+
+const StyledStepDescription = styled.div`
+  ${({ theme: { gridUnit } }) => `
+    margin-top: ${gridUnit * 4}px;
+    margin-bottom: ${gridUnit * 3}px;
+  `}
+`;
+
+export class AddSliceContainer extends React.PureComponent<
   AddSliceContainerProps,
   AddSliceContainerState
 > {
   constructor(props: AddSliceContainerProps) {
     super(props);
     this.state = {
-      visType: null,
+      vizType: null,
+      canCreateDataset: findPermission(
+        'can_write',
+        'Dataset',
+        props.user.roles,
+      ),
     };
 
     this.changeDatasource = this.changeDatasource.bind(this);
-    this.changeVisType = this.changeVisType.bind(this);
+    this.changeVizType = this.changeVizType.bind(this);
     this.gotoSlice = this.gotoSlice.bind(this);
     this.newLabel = this.newLabel.bind(this);
     this.loadDatasources = this.loadDatasources.bind(this);
+    this.onVizTypeDoubleClick = this.onVizTypeDoubleClick.bind(this);
+  }
+
+  componentDidMount() {
+    const params = querystring.parse(window.location.search)?.dataset as string;
+    if (params) {
+      this.loadDatasources(params, 0, 1).then(r => {
+        const datasource = r.data[0];
+        // override here to force styling of option label
+        // which expects a reactnode instead of string
+        // @ts-expect-error
+        datasource.label = datasource.customLabel;
+        this.setState({ datasource });
+      });
+      this.props.addSuccessToast(t('The dataset has been saved'));
+    }
   }
 
   exploreUrl() {
-    const formData = encodeURIComponent(
-      JSON.stringify({
-        viz_type: this.state.visType,
-        datasource: this.state.datasource?.value,
-      }),
-    );
-    return `/superset/explore/?form_data=${formData}`;
+    const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
+    let url = `/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
+    if (!isNullish(dashboardId)) {
+      url += `&dashboard_id=${dashboardId}`;
+    }
+    return url;
   }
 
   gotoSlice() {
-    window.location.href = this.exploreUrl();
+    this.props.history.push(this.exploreUrl());
   }
 
   changeDatasource(datasource: { label: string; value: string }) {
     this.setState({ datasource });
   }
 
-  changeVisType(visType: string | null) {
-    this.setState({ visType });
+  changeVizType(vizType: string | null) {
+    this.setState({ vizType });
   }
 
   isBtnDisabled() {
-    return !(this.state.datasource?.value && this.state.visType);
+    return !(this.state.datasource?.value && this.state.vizType);
+  }
+
+  onVizTypeDoubleClick() {
+    if (!this.isBtnDisabled()) {
+      this.gotoSlice();
+    }
   }
 
   newLabel(item: Dataset) {
@@ -254,9 +309,11 @@ export default class AddSliceContainer extends React.PureComponent<
     }).then((response: JsonResponse) => {
       const list: {
         customLabel: ReactNode;
+        id: number;
         label: string;
         value: string;
       }[] = response.json.result.map((item: Dataset) => ({
+        id: item.id,
         value: `${item.id}__${item.datasource_type}`,
         customLabel: this.newLabel(item),
         label: item.table_name,
@@ -270,49 +327,76 @@ export default class AddSliceContainer extends React.PureComponent<
 
   render() {
     const isButtonDisabled = this.isBtnDisabled();
+    const datasetHelpText = this.state.canCreateDataset ? (
+      <span data-test="dataset-write">
+        <a
+          href="/tablemodelview/list/#create"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {t('Add a dataset')}
+        </a>
+        {` ${t('or')} `}
+        <a
+          href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {`${t('view instructions')} `}
+          <i className="fa fa-external-link" />
+        </a>
+        .
+      </span>
+    ) : (
+      <span data-test="no-dataset-write">
+        <a
+          href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          {`${t('View instructions')} `}
+          <i className="fa fa-external-link" />
+        </a>
+        .
+      </span>
+    );
+
     return (
       <StyledContainer>
         <h3>{t('Create a new chart')}</h3>
         <Steps direction="vertical" size="small">
           <Steps.Step
-            title={<FormLabel>{t('Choose a dataset')}</FormLabel>}
+            title={<StyledStepTitle>{t('Choose a dataset')}</StyledStepTitle>}
             status={this.state.datasource?.value ? 'finish' : 'process'}
             description={
-              <div className="dataset">
-                <Select
+              <StyledStepDescription className="dataset">
+                <AsyncSelect
                   autoFocus
                   ariaLabel={t('Dataset')}
                   name="select-datasource"
                   onChange={this.changeDatasource}
                   options={this.loadDatasources}
+                  optionFilterProps={['id', 'label']}
                   placeholder={t('Choose a dataset')}
                   showSearch
                   value={this.state.datasource}
                 />
-                <span>
-                  {t(
-                    'Instructions to add a dataset are available in the Superset tutorial.',
-                  )}{' '}
-                  <a
-                    href="https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#adding-a-new-table"
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    <i className="fa fa-external-link" />
-                  </a>
-                </span>
-              </div>
+                {datasetHelpText}
+              </StyledStepDescription>
             }
           />
           <Steps.Step
-            title={<FormLabel>{t('Choose chart type')}</FormLabel>}
-            status={this.state.visType ? 'finish' : 'process'}
+            title={<StyledStepTitle>{t('Choose chart type')}</StyledStepTitle>}
+            status={this.state.vizType ? 'finish' : 'process'}
             description={
-              <VizTypeGallery
-                className="viz-gallery"
-                onChange={this.changeVisType}
-                selectedViz={this.state.visType}
-              />
+              <StyledStepDescription>
+                <VizTypeGallery
+                  className="viz-gallery"
+                  onChange={this.changeVizType}
+                  onDoubleClick={this.onVizTypeDoubleClick}
+                  selectedViz={this.state.vizType}
+                />
+              </StyledStepDescription>
             }
           />
         </Steps>
@@ -334,3 +418,5 @@ export default class AddSliceContainer extends React.PureComponent<
     );
   }
 }
+
+export default withRouter(withToasts(AddSliceContainer));

@@ -16,42 +16,59 @@
 # under the License.
 import pandas as pd
 import pytest
-from pandas import DataFrame
 from sqlalchemy import String
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from tests.integration_tests.dashboard_utils import (
     create_dashboard,
     create_slice,
-    create_table_for_dashboard,
+    create_table_metadata,
 )
 from tests.integration_tests.test_app import app
 
+UNICODE_TBL_NAME = "unicode_test"
+
+
+@pytest.fixture(scope="session")
+def load_unicode_data():
+    with app.app_context():
+        _get_dataframe().to_sql(
+            UNICODE_TBL_NAME,
+            get_example_database().get_sqla_engine(),
+            if_exists="replace",
+            chunksize=500,
+            dtype={"phrase": String(500)},
+            index=False,
+            method="multi",
+            schema=get_example_default_schema(),
+        )
+
+    yield
+    with app.app_context():
+        engine = get_example_database().get_sqla_engine()
+        engine.execute("DROP TABLE IF EXISTS unicode_test")
+
 
 @pytest.fixture()
-def load_unicode_dashboard_with_slice():
-    table_name = "unicode_test"
+def load_unicode_dashboard_with_slice(load_unicode_data):
     slice_name = "Unicode Cloud"
-    df = _get_dataframe()
     with app.app_context():
-        dash = _create_unicode_dashboard(df, table_name, slice_name, None)
+        dash = _create_unicode_dashboard(slice_name, None)
         yield
-
         _cleanup(dash, slice_name)
 
 
 @pytest.fixture()
-def load_unicode_dashboard_with_position():
-    table_name = "unicode_test"
+def load_unicode_dashboard_with_position(load_unicode_data):
     slice_name = "Unicode Cloud"
-    df = _get_dataframe()
     position = "{}"
     with app.app_context():
-        dash = _create_unicode_dashboard(df, table_name, slice_name, position)
+        dash = _create_unicode_dashboard(slice_name, position)
         yield
         _cleanup(dash, slice_name)
 
@@ -74,14 +91,8 @@ def _get_unicode_data():
     ]
 
 
-def _create_unicode_dashboard(
-    df: DataFrame, table_name: str, slice_title: str, position: str
-) -> Dashboard:
-    database = get_example_database()
-    dtype = {
-        "phrase": String(500),
-    }
-    table = create_table_for_dashboard(df, table_name, database, dtype)
+def _create_unicode_dashboard(slice_title: str, position: str) -> Dashboard:
+    table = create_table_metadata(UNICODE_TBL_NAME, get_example_database())
     table.fetch_metadata()
 
     if slice_title:
@@ -101,8 +112,6 @@ def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
 
 
 def _cleanup(dash: Dashboard, slice_name: str) -> None:
-    engine = get_example_database().get_sqla_engine()
-    engine.execute("DROP TABLE IF EXISTS unicode_test")
     db.session.delete(dash)
     if slice_name:
         slice = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()

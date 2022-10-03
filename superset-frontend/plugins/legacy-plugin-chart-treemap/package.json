@@ -1,0 +1,37 @@
+{
+  "name": "@superset-ui/legacy-plugin-chart-treemap",
+  "version": "0.18.25",
+  "description": "Superset Legacy Chart - Treemap",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache-superset/superset-ui#readme",
+  "bugs": {
+    "url": "https://github.com/apache-superset/superset-ui/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apache-superset/superset-ui.git"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "dependencies": {
+    "d3-hierarchy": "^1.1.8",
+    "d3-selection": "^1.4.0",
+    "prop-types": "^15.6.2"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^16.13.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

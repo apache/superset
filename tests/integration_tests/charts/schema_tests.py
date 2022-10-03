@@ -26,34 +26,20 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
 )
 from tests.integration_tests.fixtures.query_context import get_query_context
 
 
 class TestSchema(SupersetTestCase):
     @mock.patch(
-        "superset.common.query_object.config", {**app.config, "ROW_LIMIT": 5000},
+        "superset.common.query_context_factory.config",
+        {**app.config, "ROW_LIMIT": 5000},
     )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_query_context_limit_and_offset(self):
         self.login(username="admin")
         payload = get_query_context("birth_names")
-
-        # Use defaults
-        payload["queries"][0].pop("row_limit", None)
-        payload["queries"][0].pop("row_offset", None)
-        query_context = ChartDataQueryContextSchema().load(payload)
-        query_object = query_context.queries[0]
-        self.assertEqual(query_object.row_limit, 5000)
-        self.assertEqual(query_object.row_offset, 0)
-
-        # Valid limit and offset
-        payload["queries"][0]["row_limit"] = 100
-        payload["queries"][0]["row_offset"] = 200
-        query_context = ChartDataQueryContextSchema().load(payload)
-        query_object = query_context.queries[0]
-        self.assertEqual(query_object.row_limit, 100)
-        self.assertEqual(query_object.row_offset, 200)
 
         # too low limit and offset
         payload["queries"][0]["row_limit"] = -1
@@ -91,12 +77,3 @@ class TestSchema(SupersetTestCase):
             "label": "COUNT_DISTINCT(gender)",
         }
         _ = ChartDataQueryContextSchema().load(payload)
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_query_context_null_post_processing_op(self):
-        self.login(username="admin")
-        payload = get_query_context("birth_names")
-
-        payload["queries"][0]["post_processing"] = [None]
-        query_context = ChartDataQueryContextSchema().load(payload)
-        self.assertEqual(query_context.queries[0].post_processing, [])

@@ -84,13 +84,16 @@ def update_id_refs(  # pylint: disable=too-many-locals
         metadata["filter_scopes"] = {
             str(id_map[int(old_id)]): columns
             for old_id, columns in metadata["filter_scopes"].items()
+            if int(old_id) in id_map
         }
 
         # now update columns to use new IDs:
         for columns in metadata["filter_scopes"].values():
             for attributes in columns.values():
                 attributes["immune"] = [
-                    id_map[old_id] for old_id in attributes["immune"]
+                    id_map[old_id]
+                    for old_id in attributes["immune"]
+                    if old_id in id_map
                 ]
 
     if "expanded_slices" in metadata:
@@ -105,6 +108,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
             {
                 str(id_map[int(old_id)]): value
                 for old_id, value in default_filters.items()
+                if int(old_id) in id_map
             }
         )
 
@@ -129,6 +133,12 @@ def update_id_refs(  # pylint: disable=too-many-locals
             dataset_uuid = target.pop("datasetUuid", None)
             if dataset_uuid:
                 target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
+
+        scope_excluded = native_filter.get("scope", {}).get("excluded", [])
+        if scope_excluded:
+            native_filter["scope"]["excluded"] = [
+                id_map[old_id] for old_id in scope_excluded if old_id in id_map
+            ]
 
     return fixed
 

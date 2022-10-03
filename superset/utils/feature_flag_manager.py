@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from copy import deepcopy
-from typing import Any, Dict
+from typing import Dict
 
 from flask import Flask
 
@@ -25,7 +25,7 @@ class FeatureFlagManager:
         super().__init__()
         self._get_feature_flags_func = None
         self._is_feature_enabled_func = None
-        self._feature_flags: Dict[str, Any] = {}
+        self._feature_flags: Dict[str, bool] = {}
 
     def init_app(self, app: Flask) -> None:
         self._get_feature_flags_func = app.config["GET_FEATURE_FLAGS_FUNC"]
@@ -33,7 +33,7 @@ class FeatureFlagManager:
         self._feature_flags = app.config["DEFAULT_FEATURE_FLAGS"]
         self._feature_flags.update(app.config["FEATURE_FLAGS"])
 
-    def get_feature_flags(self) -> Dict[str, Any]:
+    def get_feature_flags(self) -> Dict[str, bool]:
         if self._get_feature_flags_func:
             return self._get_feature_flags_func(deepcopy(self._feature_flags))
         if callable(self._is_feature_enabled_func):

@@ -22,14 +22,15 @@ import { styled, t } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
-import { Upload } from 'src/common/components';
+import { Upload } from 'src/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
+import ErrorAlert from './ErrorAlert';
 
 const HelperMessage = styled.div`
   display: block;
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
 `;
 
 const StyledInputContainer = styled.div`
@@ -116,8 +117,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
   resourceLabel,
   passwordsNeededMessage,
   confirmOverwriteMessage,
-  addDangerToast,
-  addSuccessToast,
   onModelImport,
   show,
   onHide,
@@ -126,12 +125,12 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
 }) => {
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [passwords, setPasswords] = useState<Record<string, string>>({});
-  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] = useState<boolean>(
-    false,
-  );
+  const [needsOverwriteConfirm, setNeedsOverwriteConfirm] =
+    useState<boolean>(false);
   const [confirmedOverwrite, setConfirmedOverwrite] = useState<boolean>(false);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [importingModel, setImportingModel] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>();
 
   const clearModal = () => {
     setFileList([]);
@@ -140,11 +139,11 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
     setNeedsOverwriteConfirm(false);
     setConfirmedOverwrite(false);
     setImportingModel(false);
+    setErrorMessage('');
   };
 
   const handleErrorMsg = (msg: string) => {
-    clearModal();
-    addDangerToast(msg);
+    setErrorMessage(msg);
   };
 
   const {
@@ -185,7 +184,6 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
       confirmedOverwrite,
     ).then(result => {
       if (result) {
-        addSuccessToast(t('The import was successful'));
         clearModal();
         onModelImport();
       }
@@ -297,10 +295,17 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           onRemove={removeFile}
           // upload is handled by hook
           customRequest={() => {}}
+          disabled={importingModel}
         >
           <Button loading={importingModel}>Select file</Button>
         </Upload>
       </StyledInputContainer>
+      {errorMessage && (
+        <ErrorAlert
+          errorMessage={errorMessage}
+          showDbInstallInstructions={passwordFields.length > 0}
+        />
+      )}
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
     </Modal>

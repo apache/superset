@@ -26,6 +26,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const createMdxCompiler = require('@storybook/addon-docs/mdx-compiler-plugin');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
@@ -95,10 +96,10 @@ const plugins = [
         entryFiles[entry] = {
           css: chunks
             .filter(x => x.endsWith('.css'))
-            .map(x => path.join(output.publicPath, x)),
+            .map(x => `${output.publicPath}${x}`),
           js: chunks
             .filter(x => x.endsWith('.js'))
-            .map(x => path.join(output.publicPath, x)),
+            .map(x => `${output.publicPath}${x}`),
         };
       });
 
@@ -115,14 +116,6 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
-  }),
-
-  // runs type checking on a separate process to speed up the build
-  new ForkTsCheckerWebpackPlugin({
-    eslint: {
-      files: './src/**/*.{ts,tsx,js,jsx}',
-      memoryLimit: 4096,
-    },
   }),
 
   new CopyPlugin({
@@ -158,6 +151,19 @@ if (!isDevMode) {
     new MiniCssExtractPlugin({
       filename: '[name].[chunkhash].entry.css',
       chunkFilename: '[name].[chunkhash].chunk.css',
+    }),
+  );
+
+  plugins.push(
+    // runs type checking on a separate process to speed up the build
+    new ForkTsCheckerWebpackPlugin({
+      eslint: {
+        files: './{src,packages,plugins}/**/*.{ts,tsx,js,jsx}',
+        memoryLimit: 4096,
+        options: {
+          ignorePath: './.eslintignore',
+        },
+      },
     }),
   );
 }
@@ -203,8 +209,7 @@ const config = {
     theme: path.join(APP_DIR, '/src/theme.ts'),
     menu: addPreamble('src/views/menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
-    addSlice: addPreamble('/src/addSlice/index.tsx'),
-    explore: addPreamble('/src/explore/index.jsx'),
+    embedded: addPreamble('/src/embedded/index.tsx'),
     sqllab: addPreamble('/src/SqlLab/index.tsx'),
     profile: addPreamble('/src/profile/index.tsx'),
     showSavedQuery: [path.join(APP_DIR, '/src/showSavedQuery/index.jsx')],
@@ -277,25 +282,18 @@ const config = {
     minimizer: [new CssMinimizerPlugin(), '...'],
   },
   resolve: {
-    modules: [APP_DIR, 'node_modules', ROOT_DIR],
+    // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
+    modules: ['node_modules', APP_DIR],
     alias: {
-      'react-dom': '@hot-loader/react-dom',
-      // Force using absolute import path of some packages in the root node_modules,
-      // as they can be dependencies of other packages via `npm link`.
-      '@superset-ui/core': path.resolve(
-        APP_DIR,
-        './node_modules/@superset-ui/core',
-      ),
-      '@superset-ui/chart-controls': path.resolve(
-        APP_DIR,
-        './node_modules/@superset-ui/chart-controls',
-      ),
-      react: path.resolve('./node_modules/react'),
+      // TODO: remove aliases once React has been upgraded to v. 17 and
+      //  AntD version conflict has been resolved
+      antd: path.resolve(path.join(APP_DIR, './node_modules/antd')),
+      react: path.resolve(path.join(APP_DIR, './node_modules/react')),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
       fs: false,
-      vm: false,
+      vm: require.resolve('vm-browserify'),
       path: false,
     },
   },
@@ -340,12 +338,21 @@ const config = {
         // include source code for plugins, but exclude node_modules and test files within them
         exclude: [/superset-ui.*\/node_modules\//, /\.test.jsx?$/],
         include: [
-          new RegExp(`${APP_DIR}/src`),
-          /superset-ui.*\/src/,
-          new RegExp(`${APP_DIR}/.storybook`),
+          new RegExp(`${APP_DIR}/(src|.storybook|plugins|packages)`),
+          ...['./src', './.storybook', './plugins', './packages'].map(p =>
+            path.resolve(__dirname, p),
+          ), // redundant but required for windows
           /@encodable/,
         ],
         use: [babelLoader],
+      },
+      // react-hot-loader use "ProxyFacade", which is a wrapper for react Component
+      // see https://github.com/gaearon/react-hot-loader/issues/1311
+      // TODO: refactor recurseReactClone
+      {
+        test: /\.js$/,
+        include: /node_modules\/react-dom/,
+        use: ['react-hot-loader/webpack'],
       },
       {
         test: /\.css$/,
@@ -355,7 +362,7 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: isDevMode,
+              sourceMap: true,
             },
           },
         ],
@@ -368,14 +375,16 @@ const config = {
           {
             loader: 'css-loader',
             options: {
-              sourceMap: isDevMode,
+              sourceMap: true,
             },
           },
           {
             loader: 'less-loader',
             options: {
-              sourceMap: isDevMode,
-              javascriptEnabled: true,
+              sourceMap: true,
+              lessOptions: {
+                javascriptEnabled: true,
+              },
             },
           },
         ],
@@ -399,7 +408,19 @@ const config = {
       {
         test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
         issuer: /\.([jt])sx?$/,
-        use: ['@svgr/webpack'],
+        use: [
+          {
+            loader: '@svgr/webpack',
+            options: {
+              svgoConfig: {
+                plugins: {
+                  removeViewBox: false,
+                  icon: true,
+                },
+              },
+            },
+          },
+        ],
       },
       {
         test: /\.(jpg|gif)$/,
@@ -418,6 +439,28 @@ const config = {
         include: ROOT_DIR,
         loader: 'js-yaml-loader',
       },
+      {
+        test: /\.geojson$/,
+        type: 'asset/resource',
+      },
+      {
+        test: /\.(stories|story)\.mdx$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            // may or may not need this line depending on your app's setup
+            options: {
+              plugins: ['@babel/plugin-transform-react-jsx'],
+            },
+          },
+          {
+            loader: '@mdx-js/loader',
+            options: {
+              compilers: [createMdxCompiler({})],
+            },
+          },
+        ],
+      },
     ],
   },
   externals: {
@@ -426,8 +469,20 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: false,
+  devtool: 'source-map',
 };
+
+// find all the symlinked plugins and use their source code for imports
+Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
+  const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
+  const dir = relativeDir.replace('file:', '');
+
+  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+    console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
+    config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
+  }
+});
+console.log(''); // pure cosmetic new line
 
 let proxyConfig = getProxyConfig();
 
@@ -456,34 +511,6 @@ if (isDevMode) {
     },
     static: path.join(process.cwd(), '../static/assets'),
   };
-
-  // make sure to use @emotion/* modules in the root directory
-  fs.readdirSync(path.resolve(APP_DIR, './node_modules/@emotion'), pkg => {
-    config.resolve.alias[pkg] = path.resolve(
-      APP_DIR,
-      './node_modules/@emotion',
-      pkg,
-    );
-  });
-
-  // find all the symlinked plugins and use their source code for imports
-  let hasSymlink = false;
-  Object.entries(packageConfig.dependencies).forEach(([pkg, version]) => {
-    const srcPath = `./node_modules/${pkg}/src`;
-    if (/superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
-      console.log(
-        `[Superset Plugin] Use symlink source for ${pkg} @ ${version}`,
-      );
-      // only allow exact match so imports like `@superset-ui/plugin-name/lib`
-      // and `@superset-ui/plugin-name/esm` can still work.
-      config.resolve.alias[`${pkg}$`] = `${pkg}/src`;
-      delete config.resolve.alias[pkg];
-      hasSymlink = true;
-    }
-  });
-  if (hasSymlink) {
-    console.log(''); // pure cosmetic new line
-  }
 }
 
 // Bundle analyzer is disabled by default

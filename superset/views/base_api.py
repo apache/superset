@@ -18,9 +18,7 @@ import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from apispec import APISpec
-from apispec.exceptions import DuplicateComponentNameError
-from flask import Blueprint, g, Response
+from flask import Blueprint, request, Response
 from flask_appbuilder import AppBuilder, Model, ModelRestApi
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
@@ -31,6 +29,7 @@ from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
 
+from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
@@ -38,8 +37,9 @@ from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
-from superset.typing import FlaskResponse
-from superset.utils.core import time_function
+from superset.superset_typing import FlaskResponse
+from superset.utils.core import get_user_id, time_function
+from superset.views.base import handle_api_exception
 
 logger = logging.getLogger(__name__)
 get_related_schema = {
@@ -56,6 +56,7 @@ get_related_schema = {
 class RelatedResultResponseSchema(Schema):
     value = fields.Integer(description="The related item identifier")
     text = fields.String(description="The related item string representation")
+    extra = fields.Dict(description="The extra metadata for related item")
 
 
 class RelatedResponseSchema(Schema):
@@ -70,6 +71,34 @@ class DistinctResultResponseSchema(Schema):
 class DistincResponseSchema(Schema):
     count = fields.Integer(description="The total number of distinct values")
     result = fields.List(fields.Nested(DistinctResultResponseSchema))
+
+
+def requires_json(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Require JSON-like formatted request to the REST API
+    """
+
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+        if not request.is_json:
+            raise InvalidPayloadFormatError(message="Request is not JSON")
+        return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
+
+
+def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Require 'multipart/form-data' as request MIME type
+    """
+
+    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+        if not request.mimetype == "multipart/form-data":
+            raise InvalidPayloadFormatError(
+                message="Request MIME type is not 'multipart/form-data'"
+            )
+        return f(self, *args, **kwargs)
+
+    return functools.update_wrapper(wraps, f)
 
 
 def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
@@ -117,7 +146,7 @@ class BaseFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return query
         users_favorite_query = db.session.query(FavStar.obj_id).filter(
             and_(
-                FavStar.user_id == g.user.get_id(),
+                FavStar.user_id == get_user_id(),
                 FavStar.class_name == self.class_name,
             )
         )
@@ -195,10 +224,17 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """
 
+    extra_fields_rel_fields: Dict[str, List[str]] = {"owners": ["email", "active"]}
+    """
+    Declare extra fields for the representation of the Model object::
+
+        extra_fields_rel_fields = {
+            "<RELATED_FIELD>": "[<RELATED_OBJECT_FIELD_1>, <RELATED_OBJECT_FIELD_2>]"
+        }
+    """
+
     allowed_distinct_fields: Set[str] = set()
 
-    openapi_spec_component_schemas: Tuple[Type[Schema], ...] = tuple()
-    # Add extra schemas to the OpenAPI component schemas section.
     add_columns: List[str]
     edit_columns: List[str]
     list_columns: List[str]
@@ -217,33 +253,19 @@ class BaseSupersetModelRestApi(ModelRestApi):
     }
 
     def __init__(self) -> None:
+        super().__init__()
         # Setup statsd
         self.stats_logger = BaseStatsLogger()
         # Add base API spec base query parameter schemas
         if self.apispec_parameter_schemas is None:  # type: ignore
             self.apispec_parameter_schemas = {}
         self.apispec_parameter_schemas["get_related_schema"] = get_related_schema
-        if self.openapi_spec_component_schemas is None:
-            self.openapi_spec_component_schemas = ()
-        self.openapi_spec_component_schemas = self.openapi_spec_component_schemas + (
+        self.openapi_spec_component_schemas: Tuple[
+            Type[Schema], ...
+        ] = self.openapi_spec_component_schemas + (
             RelatedResponseSchema,
             DistincResponseSchema,
         )
-        super().__init__()
-
-    def add_apispec_components(self, api_spec: APISpec) -> None:
-        """
-        Adds extra OpenApi schema spec components, these are declared
-        on the `openapi_spec_component_schemas` class property
-        """
-        for schema in self.openapi_spec_component_schemas:
-            try:
-                api_spec.components.schema(
-                    schema.__name__, schema=schema,
-                )
-            except DuplicateComponentNameError:
-                pass
-        super().add_apispec_components(api_spec)
 
     def create_blueprint(
         self, appbuilder: AppBuilder, *args: Any, **kwargs: Any
@@ -252,6 +274,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         return super().create_blueprint(appbuilder, *args, **kwargs)
 
     def _init_properties(self) -> None:
+        """
+        Lock down initial not configured REST API columns. We want to just expose
+        model ids, if something is misconfigured. By default FAB exposes all available
+        columns on a Model
+        """
         model_id = self.datamodel.get_pk_name()
         if self.list_columns is None and not self.list_model_schema:
             self.list_columns = [model_id]
@@ -300,6 +327,17 @@ class BaseSupersetModelRestApi(ModelRestApi):
                 return getattr(model, model_column_name)
         return str(model)
 
+    def _get_extra_field_for_model(
+        self, model: Model, column_name: str
+    ) -> Dict[str, str]:
+        ret = {}
+        if column_name in self.extra_fields_rel_fields:
+            model_column_names = self.extra_fields_rel_fields.get(column_name)
+            if model_column_names:
+                for key in model_column_names:
+                    ret[key] = getattr(model, key)
+        return ret
+
     def _get_result_from_rows(
         self, datamodel: SQLAInterface, rows: List[Model], column_name: str
     ) -> List[Dict[str, Any]]:
@@ -307,6 +345,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
             {
                 "value": datamodel.get_pk_value(row),
                 "text": self._get_text_for_model(row, column_name),
+                "extra": self._get_extra_field_for_model(row, column_name),
             }
             for row in rows
         ]
@@ -370,6 +409,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         object_ref=False,
         log_to_statsd=False,
     )
+    @handle_api_exception
     def info_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB _info endpoint
@@ -383,6 +423,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         object_ref=False,
         log_to_statsd=False,
     )
+    @handle_api_exception
     def get_headless(self, pk: int, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET endpoint
@@ -396,6 +437,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         object_ref=False,
         log_to_statsd=False,
     )
+    @handle_api_exception
     def get_list_headless(self, **kwargs: Any) -> Response:
         """
         Add statsd metrics to builtin FAB GET list endpoint
@@ -409,6 +451,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         object_ref=False,
         log_to_statsd=False,
     )
+    @handle_api_exception
     def post_headless(self) -> Response:
         """
         Add statsd metrics to builtin FAB POST endpoint
@@ -422,6 +465,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         object_ref=False,
         log_to_statsd=False,
     )
+    @handle_api_exception
     def put_headless(self, pk: int) -> Response:
         """
         Add statsd metrics to builtin FAB PUT endpoint
@@ -435,6 +479,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         object_ref=False,
         log_to_statsd=False,
     )
+    @handle_api_exception
     def delete_headless(self, pk: int) -> Response:
         """
         Add statsd metrics to builtin FAB DELETE endpoint
@@ -448,6 +493,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_related_schema)
+    @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get related fields data
         ---
@@ -526,6 +572,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_related_schema)
+    @handle_api_exception
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get distinct values from field data
         ---

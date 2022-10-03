@@ -21,41 +21,39 @@ from typing import Any, Dict, List, Optional
 
 from pandas import DataFrame
 
-from superset import ConnectorRegistry, db
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType, get_example_default_schema
 
 
-def create_table_for_dashboard(
-    df: DataFrame,
+def get_table(
     table_name: str,
     database: Database,
-    dtype: Dict[str, Any],
+    schema: Optional[str] = None,
+):
+    schema = schema or get_example_default_schema()
+    return (
+        db.session.query(SqlaTable)
+        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
+        .one_or_none()
+    )
+
+
+def create_table_metadata(
+    table_name: str,
+    database: Database,
     table_description: str = "",
     fetch_values_predicate: Optional[str] = None,
     schema: Optional[str] = None,
 ) -> SqlaTable:
-    df.to_sql(
-        table_name,
-        database.get_sqla_engine(),
-        if_exists="replace",
-        chunksize=500,
-        dtype=dtype,
-        index=False,
-        method="multi",
-        schema=schema,
-    )
+    schema = schema or get_example_default_schema()
 
-    table_source = ConnectorRegistry.sources["table"]
-    table = (
-        db.session.query(table_source)
-        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
-        .one_or_none()
-    )
+    table = get_table(table_name, database, schema)
     if not table:
-        table = table_source(schema=schema, table_name=table_name)
+        table = SqlaTable(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database
@@ -72,7 +70,7 @@ def create_slice(
     return Slice(
         slice_name=title,
         viz_type=viz_type,
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=table.id,
         params=json.dumps(slices_dict, indent=4, sort_keys=True),
     )
@@ -82,7 +80,6 @@ def create_dashboard(
     slug: str, title: str, position: str, slices: List[Slice]
 ) -> Dashboard:
     dash = db.session.query(Dashboard).filter_by(slug=slug).one_or_none()
-
     if not dash:
         dash = Dashboard()
     dash.dashboard_title = title

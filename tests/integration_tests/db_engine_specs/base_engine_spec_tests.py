@@ -20,7 +20,7 @@ from unittest import mock
 import pytest
 
 from superset.connectors.sqla.models import TableColumn
-from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
@@ -31,12 +31,18 @@ from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery
-from superset.utils.core import get_example_database
+from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.test_app import app
 
-from ..fixtures.birth_names_dashboard import load_birth_names_dashboard_with_slices
-from ..fixtures.energy_dashboard import load_energy_table_with_slice
+from ..fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
+from ..fixtures.energy_dashboard import (
+    load_energy_table_data,
+    load_energy_table_with_slice,
+)
 from ..fixtures.pyodbcRow import Row
 
 
@@ -87,7 +93,9 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
     def test_limit_query_without_force(self):
         self.sql_limit_regex(
-            "SELECT * FROM a LIMIT 10", "SELECT * FROM a LIMIT 10", limit=11,
+            "SELECT * FROM a LIMIT 10",
+            "SELECT * FROM a LIMIT 10",
+            limit=11,
         )
 
     def test_limit_query_with_force(self):
@@ -187,7 +195,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
-        for engine in get_engine_specs().values():
+        for engine in load_engine_specs():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
                 self.assertGreater(len(engine.get_time_grain_expressions()), 0)
@@ -251,7 +259,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
     def test_convert_dttm(self):
         dttm = self.get_dttm()
-        self.assertIsNone(BaseEngineSpec.convert_dttm("", dttm))
+        self.assertIsNone(BaseEngineSpec.convert_dttm("", dttm, db_extra=None))
 
     def test_pyodbc_rows_to_tuples(self):
         # Test for case when pyodbc.Row is returned (odbc driver)
@@ -285,8 +293,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             table=table,
             expression="""
             case
-              when gender=true then "male"
-              else "female"
+              when gender='boy' then 'male'
+              else 'female'
             end
             """,
         )
@@ -301,8 +309,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         sql = table.get_query_str(query_obj)
         assert (
             """ORDER BY case
-             when gender=true then "male"
-             else "female"
+             when gender='boy' then 'male'
+             else 'female'
          end ASC;"""
             in sql
         )
@@ -393,7 +401,11 @@ def test_get_time_grain_with_unkown_values():
     config = app.config.copy()
 
     app.config["TIME_GRAIN_ADDON_EXPRESSIONS"] = {
-        "mysql": {"PT2H": "foo", "weird": "foo", "PT12H": "foo",}
+        "mysql": {
+            "PT2H": "foo",
+            "weird": "foo",
+            "PT12H": "foo",
+        }
     }
 
     with app.app_context():

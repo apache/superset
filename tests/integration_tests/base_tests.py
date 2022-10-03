@@ -21,40 +21,34 @@ import imp
 import json
 from contextlib import contextmanager
 from typing import Any, Dict, Union, List, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
-import pytest
 from flask import Response
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.engine.interfaces import Dialect
-from sqlalchemy.ext.declarative.api import DeclarativeMeta
+from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.druid.models import DruidCluster, DruidDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
-from superset.utils.core import get_example_database
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
 test_client = app.test_client()
-
-
-def login(client: Any, username: str = "admin", password: str = "general"):
-    resp = get_resp(client, "/login/", data=dict(username=username, password=password))
-    assert "User confirmation needed" not in resp
 
 
 def get_resp(
@@ -101,15 +95,6 @@ def post_assert_metric(
     return rv
 
 
-@pytest.fixture
-def logged_in_admin():
-    """Fixture with app context and logged in admin user."""
-    with app.app_context():
-        login(test_client, username="admin")
-        yield
-        test_client.get("/logout/", follow_redirects=True)
-
-
 class SupersetTestCase(TestCase):
     default_schema_backend_map = {
         "sqlite": "main",
@@ -152,7 +137,7 @@ class SupersetTestCase(TestCase):
         user_to_create.roles = []
         for chosen_user_role in roles:
             if should_create_roles:
-                ## copy role from gamma but without data permissions
+                # copy role from gamma but without data permissions
                 security_manager.copy_role("Gamma", chosen_user_role, merge=False)
             user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
@@ -190,30 +175,6 @@ class SupersetTestCase(TestCase):
         )
         return user
 
-    @classmethod
-    def create_druid_test_objects(cls):
-        # create druid cluster and druid datasources
-
-        with app.app_context():
-            session = db.session
-            cluster = (
-                session.query(DruidCluster).filter_by(cluster_name="druid_test").first()
-            )
-            if not cluster:
-                cluster = DruidCluster(cluster_name="druid_test")
-                session.add(cluster)
-                session.commit()
-
-                druid_datasource1 = DruidDatasource(
-                    datasource_name="druid_ds_1", cluster=cluster
-                )
-                session.add(druid_datasource1)
-                druid_datasource2 = DruidDatasource(
-                    datasource_name="druid_ds_2", cluster=cluster
-                )
-                session.add(druid_datasource2)
-                session.commit()
-
     @staticmethod
     def get_table_by_id(table_id: int) -> SqlaTable:
         return db.session.query(SqlaTable).filter_by(id=table_id).one()
@@ -250,6 +211,8 @@ class SupersetTestCase(TestCase):
     def get_table(
         name: str, database_id: Optional[int] = None, schema: Optional[str] = None
     ) -> SqlaTable:
+        schema = schema or get_example_default_schema()
+
         return (
             db.session.query(SqlaTable)
             .filter_by(
@@ -273,12 +236,8 @@ class SupersetTestCase(TestCase):
             raise ValueError("Database doesn't exist")
 
     @staticmethod
-    def get_druid_ds_by_name(name: str) -> DruidDatasource:
-        return db.session.query(DruidDatasource).filter_by(datasource_name=name).first()
-
-    @staticmethod
     def get_datasource_mock() -> BaseDatasource:
-        datasource = Mock()
+        datasource = MagicMock()
         results = Mock()
         results.query = Mock()
         results.status = Mock()
@@ -292,6 +251,7 @@ class SupersetTestCase(TestCase):
         datasource.database = Mock()
         datasource.database.db_engine_spec = Mock()
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
+        datasource.owners = MagicMock()
         return datasource
 
     def get_resp(
@@ -355,7 +315,7 @@ class SupersetTestCase(TestCase):
         self,
         sql,
         client_id=None,
-        user_name=None,
+        username=None,
         raise_on_error=False,
         query_limit=None,
         database_name="examples",
@@ -366,9 +326,9 @@ class SupersetTestCase(TestCase):
         ctas_method=CtasMethod.TABLE,
         template_params="{}",
     ):
-        if user_name:
+        if username:
             self.logout()
-            self.login(username=(user_name or "admin"))
+            self.login(username=username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         json_payload = {
             "database_id": dbid,
@@ -453,18 +413,24 @@ class SupersetTestCase(TestCase):
         self,
         sql,
         client_id=None,
-        user_name=None,
+        username=None,
         raise_on_error=False,
         database_name="examples",
+        template_params=None,
     ):
-        if user_name:
+        if username:
             self.logout()
-            self.login(username=(user_name if user_name else "admin"))
+            self.login(username=username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         resp = self.get_json_resp(
             "/superset/validate_sql_json/",
             raise_on_error=False,
-            data=dict(database_id=dbid, sql=sql, client_id=client_id),
+            data=dict(
+                database_id=dbid,
+                sql=sql,
+                client_id=client_id,
+                templateParams=template_params,
+            ),
         )
         if raise_on_error and "error" in resp:
             raise Exception("validate_sql failed")

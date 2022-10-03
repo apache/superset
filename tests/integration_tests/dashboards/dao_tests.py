@@ -28,21 +28,24 @@ from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
 )
 
 
 class TestDashboardDAO(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_set_dash_metadata(self):
-        dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        dash: Dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
         data = dash.data
         positions = data["position_json"]
         data.update({"positions": positions})
         original_data = copy.deepcopy(data)
 
         # add filter scopes
-        filter_slice = dash.slices[0]
-        immune_slices = dash.slices[2:]
+        filter_slice = next(slc for slc in dash.slices if slc.viz_type == "filter_box")
+        immune_slices = [slc for slc in dash.slices if slc != filter_slice]
         filter_scopes = {
             str(filter_slice.id): {
                 "region": {
@@ -58,14 +61,15 @@ class TestDashboardDAO(SupersetTestCase):
 
         # remove a slice and change slice ids (as copy slices)
         removed_slice = immune_slices.pop()
-        removed_component = [
+        removed_components = [
             key
             for (key, value) in positions.items()
             if isinstance(value, dict)
             and value.get("type") == "CHART"
             and value["meta"]["chartId"] == removed_slice.id
         ]
-        positions.pop(removed_component[0], None)
+        for component_id in removed_components:
+            del positions[component_id]
 
         data.update({"positions": positions})
         DashboardDAO.set_dash_metadata(dash, data)
@@ -85,6 +89,7 @@ class TestDashboardDAO(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_changed_on(self):
+        self.login(username="admin")
         session = db.session()
         dashboard = session.query(Dashboard).filter_by(slug="world_health").first()
 

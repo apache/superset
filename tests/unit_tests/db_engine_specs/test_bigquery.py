@@ -14,16 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
-from flask.ctx import AppContext
+# pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
+
+import json
+
 from pybigquery.sqlalchemy_bigquery import BigQueryDialect
 from pytest_mock import MockFixture
 from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
 
 
-def test_get_fields(app_context: AppContext) -> None:
+def test_get_fields() -> None:
     """
     Test the custom ``_get_fields`` method.
 
@@ -66,7 +68,7 @@ def test_get_fields(app_context: AppContext) -> None:
     )
 
 
-def test_select_star(mocker: MockFixture, app_context: AppContext) -> None:
+def test_select_star(mocker: MockFixture) -> None:
     """
     Test the ``select_star`` method.
 
@@ -145,3 +147,100 @@ def test_select_star(mocker: MockFixture, app_context: AppContext) -> None:
 FROM `my_table`
 LIMIT :param_1"""
     )
+
+
+def test_get_parameters_from_uri_serializable() -> None:
+    """
+    Test that the result from ``get_parameters_from_uri`` is JSON serializable.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    parameters = BigQueryEngineSpec.get_parameters_from_uri(
+        "bigquery://dbt-tutorial-347100/",
+        {"access_token": "TOP_SECRET"},
+    )
+    assert parameters == {"access_token": "TOP_SECRET", "query": {}}
+    assert json.loads(json.dumps(parameters)) == parameters
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Test that the private key can be reused from the previous ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(BigQueryEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "credentials_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "SECRET",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_empty() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = None
+    new = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(BigQueryEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "credentials_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "XXXXXXXXXX",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_new_is_empty() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = None
+
+    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) is None
+
+
+def test_mask_encrypted_extra_when_empty() -> None:
+    """
+    Test that the encrypted extra will return a none value if the field is empty.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    assert BigQueryEngineSpec.mask_encrypted_extra(None) is None

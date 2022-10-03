@@ -17,14 +17,15 @@
 from typing import Dict, Optional, Tuple
 
 import pandas as pd
-from sqlalchemy import BigInteger, Date, DateTime, String
+from sqlalchemy import BigInteger, Date, DateTime, inspect, String
 
 from superset import app, db
 from superset.models.slice import Slice
-from superset.utils.core import get_example_database
+from superset.utils.core import DatasourceType
 
+from ..utils.database import get_example_database
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
@@ -38,11 +39,13 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     """Loading time series data from a zip file in the repo"""
     tbl_name = "multiformat_time_series"
     database = get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("multiformat_time_series.json.gz")
-        pdf = pd.read_json(data)
+        url = get_example_url("multiformat_time_series.json.gz")
+        pdf = pd.read_json(url, compression="gzip")
         # TODO(bkyryliuk): move load examples data into the pytest fixture
         if database.backend == "presto":
             pdf.ds = pd.to_datetime(pdf.ds, unit="s")
@@ -55,7 +58,8 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
 
         pdf.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
+            schema=schema,
             if_exists="replace",
             chunksize=500,
             dtype={
@@ -77,7 +81,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
-        obj = table(table_name=tbl_name)
+        obj = table(table_name=tbl_name, schema=schema)
     obj.main_dttm_col = "ds"
     obj.database = database
     obj.filter_select_enabled = True
@@ -117,7 +121,7 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
         slc = Slice(
             slice_name=f"Calendar Heatmap multiformat {i}",
             viz_type="cal_heatmap",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(slice_data),
         )

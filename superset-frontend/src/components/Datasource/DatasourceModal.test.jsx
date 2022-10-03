@@ -32,6 +32,7 @@ import { DatasourceModal } from 'src/components/Datasource';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import * as featureFlags from 'src/featureFlags';
 import mockDatasource from 'spec/fixtures/mockDatasource';
+import QueryProvider from 'src/views/QueryProvider';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -53,9 +54,11 @@ const mockedProps = {
 
 async function mountAndWait(props = mockedProps) {
   const mounted = mount(
-    <Provider store={store}>
-      <DatasourceModal {...props} />
-    </Provider>,
+    <QueryProvider>
+      <Provider store={store}>
+        <DatasourceModal {...props} />
+      </Provider>
+    </QueryProvider>,
     {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
@@ -70,9 +73,7 @@ describe('DatasourceModal', () => {
   let wrapper;
   let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockReturnValue(true);
+    isFeatureEnabledMock = jest.spyOn(featureFlags, 'isFeatureEnabled');
     fetchMock.reset();
     wrapper = await mountAndWait();
   });
@@ -117,33 +118,9 @@ describe('DatasourceModal', () => {
   });
 
   it('renders a legacy data source btn', () => {
+    featureFlags.DISABLE_LEGACY_DATASOURCE_EDITOR = false;
     expect(
       wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
     ).toExist();
-  });
-});
-
-describe('DatasourceModal without legacy data btn', () => {
-  let wrapper;
-  let isFeatureEnabledMock;
-  beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockReturnValue(false);
-    fetchMock.reset();
-    wrapper = await mountAndWait();
-  });
-
-  afterAll(() => {
-    isFeatureEnabledMock.restore();
-  });
-
-  it('hides legacy data source btn', () => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockReturnValue(false);
-    expect(
-      wrapper.find('button[data-test="datasource-modal-legacy-edit"]'),
-    ).not.toExist();
   });
 });

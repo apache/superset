@@ -18,29 +18,32 @@ import json
 
 import pandas as pd
 import polyline
-from sqlalchemy import String, Text
+from sqlalchemy import inspect, String, Text
 
 from superset import db
-from superset.utils.core import get_example_database
 
-from .helpers import get_example_data, get_table_connector_registry
+from ..utils.database import get_example_database
+from .helpers import get_example_url, get_table_connector_registry
 
 
 def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     tbl_name = "bart_lines"
     database = get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        content = get_example_data("bart-lines.json.gz")
-        df = pd.read_json(content, encoding="latin-1")
+        url = get_example_url("bart-lines.json.gz")
+        df = pd.read_json(url, encoding="latin-1", compression="gzip")
         df["path_json"] = df.path.map(json.dumps)
         df["polyline"] = df.path.map(polyline.encode)
         del df["path"]
 
         df.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
+            schema=schema,
             if_exists="replace",
             chunksize=500,
             dtype={
@@ -56,7 +59,7 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = table(table_name=tbl_name)
+        tbl = table(table_name=tbl_name, schema=schema)
     tbl.description = "BART lines"
     tbl.database = database
     tbl.filter_select_enabled = True

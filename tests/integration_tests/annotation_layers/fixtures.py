@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 import pytest
-import dateutil.parser
 from datetime import datetime
 from typing import Optional
 
@@ -29,10 +28,6 @@ from tests.integration_tests.test_app import app
 
 ANNOTATION_LAYERS_COUNT = 10
 ANNOTATIONS_COUNT = 5
-START_STR = "2019-01-02T03:04:05.678900"
-END_STR = "2020-01-02T03:04:05.678900"
-START_DTTM = dateutil.parser.parse(START_STR)
-END_DTTM = dateutil.parser.parse(END_STR)
 
 
 def get_start_dttm(annotation_id: int) -> datetime:
@@ -44,7 +39,10 @@ def get_end_dttm(annotation_id: int) -> datetime:
 
 
 def _insert_annotation_layer(name: str = "", descr: str = "") -> AnnotationLayer:
-    annotation_layer = AnnotationLayer(name=name, descr=descr,)
+    annotation_layer = AnnotationLayer(
+        name=name,
+        descr=descr,
+    )
     db.session.add(annotation_layer)
     db.session.commit()
     return annotation_layer

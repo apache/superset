@@ -60,7 +60,8 @@ def request(
 
 
 def list_runs(
-    repo: str, params: Optional[Dict[str, str]] = None,
+    repo: str,
+    params: Optional[Dict[str, str]] = None,
 ) -> Iterator[Dict[str, Any]]:
     """List all github workflow runs.
     Returns:
@@ -193,7 +194,11 @@ def cancel_github_workflows(
         if branch and ":" in branch:
             [user, branch] = branch.split(":", 2)
         runs = get_runs(
-            repo, branch=branch, user=user, statuses=statuses, events=events,
+            repo,
+            branch=branch,
+            user=user,
+            statuses=statuses,
+            events=events,
         )
 
     # sort old jobs to the front, so to cancel older jobs first

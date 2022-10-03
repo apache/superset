@@ -30,7 +30,8 @@ const defaultProps = {
 };
 
 test('renders with unpublished status and readonly permissions', async () => {
-  const tooltip = /This dashboard is not published which means it will not show up in the list of dashboards/;
+  const tooltip =
+    /This dashboard is not published which means it will not show up in the list of dashboards/;
   render(<PublishedStatus {...defaultProps} />);
   expect(screen.getByText('Draft')).toBeInTheDocument();
   userEvent.hover(screen.getByText('Draft'));
@@ -38,7 +39,8 @@ test('renders with unpublished status and readonly permissions', async () => {
 });
 
 test('renders with unpublished status and write permissions', async () => {
-  const tooltip = /This dashboard is not published, it will not show up in the list of dashboards/;
+  const tooltip =
+    /This dashboard is not published, it will not show up in the list of dashboards/;
   const savePublished = jest.fn();
   render(
     <PublishedStatus

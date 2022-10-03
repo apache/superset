@@ -30,7 +30,7 @@ import getKeyForFilterScopeTree from 'src/dashboard/util/getKeyForFilterScopeTre
 import getSelectedChartIdForFilterScopeTree from 'src/dashboard/util/getSelectedChartIdForFilterScopeTree';
 import getFilterScopeFromNodesTree from 'src/dashboard/util/getFilterScopeFromNodesTree';
 import getRevertedFilterScope from 'src/dashboard/util/getRevertedFilterScope';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import {
   getChartIdAndColumnFromFilterKey,
   getDashboardFilterKey,
@@ -50,21 +50,22 @@ const propTypes = {
 };
 
 const ActionsContainer = styled.div`
-  height: ${({ theme }) => theme.gridUnit * 16}px;
+  ${({ theme }) => `
+    height: ${theme.gridUnit * 16}px;
 
-  // TODO: replace hardcoded color with theme variable after refactoring filter-scope-selector.less to Emotion
-  border-top: ${({ theme }) => theme.gridUnit / 4}px solid #cfd8dc;
-  padding: ${({ theme }) => theme.gridUnit * 6}px;
-  margin: 0 0 0 ${({ theme }) => -theme.gridUnit * 6}px;
-  text-align: right;
+    border-top: ${theme.gridUnit / 4}px solid ${theme.colors.primary.light3};
+    padding: ${theme.gridUnit * 6}px;
+    margin: 0 0 0 ${-theme.gridUnit * 6}px;
+    text-align: right;
 
-  .btn {
-    margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+    .btn {
+      margin-right: ${theme.gridUnit * 4}px;
 
-    &:last-child {
-      margin-right: 0;
+      &:last-child {
+        margin-right: 0;
+      }
     }
-  }
+  `}
 `;
 
 export default class FilterScopeSelector extends React.PureComponent {
@@ -106,7 +107,7 @@ export default class FilterScopeSelector extends React.PureComponent {
               const expanded = getFilterScopeParentNodes(nodes, 1);
               // force display filter_box chart as unchecked, but show checkbox as disabled
               const chartIdsInFilterScope = (
-                getChartIdsInFilterScope({
+                getChartIdsInFilterBoxScope({
                   filterScope: dashboardFilters[filterId].scopes[columnName],
                 }) || []
               ).filter(id => id !== filterId);
@@ -179,11 +180,8 @@ export default class FilterScopeSelector extends React.PureComponent {
   }
 
   onCheckFilterScope(checked = []) {
-    const {
-      activeFilterField,
-      filterScopeMap,
-      checkedFilterFields,
-    } = this.state;
+    const { activeFilterField, filterScopeMap, checkedFilterFields } =
+      this.state;
 
     const key = getKeyForFilterScopeTree({
       activeFilterField,
@@ -213,11 +211,8 @@ export default class FilterScopeSelector extends React.PureComponent {
   }
 
   onExpandFilterScope(expanded = []) {
-    const {
-      activeFilterField,
-      checkedFilterFields,
-      filterScopeMap,
-    } = this.state;
+    const { activeFilterField, checkedFilterFields, filterScopeMap } =
+      this.state;
     const key = getKeyForFilterScopeTree({
       activeFilterField,
       checkedFilterFields,
@@ -347,11 +342,8 @@ export default class FilterScopeSelector extends React.PureComponent {
     // Reset nodes back to unfiltered state
     if (!this.state.searchText) {
       this.setState(prevState => {
-        const {
-          activeFilterField,
-          checkedFilterFields,
-          filterScopeMap,
-        } = prevState;
+        const { activeFilterField, checkedFilterFields, filterScopeMap } =
+          prevState;
         const key = getKeyForFilterScopeTree({
           activeFilterField,
           checkedFilterFields,
@@ -370,11 +362,8 @@ export default class FilterScopeSelector extends React.PureComponent {
       });
     } else {
       const updater = prevState => {
-        const {
-          activeFilterField,
-          checkedFilterFields,
-          filterScopeMap,
-        } = prevState;
+        const { activeFilterField, checkedFilterFields, filterScopeMap } =
+          prevState;
         const key = getKeyForFilterScopeTree({
           activeFilterField,
           checkedFilterFields,

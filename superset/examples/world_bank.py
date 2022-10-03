@@ -20,18 +20,20 @@ import os
 from typing import List
 
 import pandas as pd
-from sqlalchemy import DateTime, String
+from sqlalchemy import DateTime, inspect, String
 from sqlalchemy.sql import column
 
+import superset.utils.database
 from superset import app, db
 from superset.connectors.sqla.models import SqlMetric
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import core as utils
+from superset.utils.core import DatasourceType
 
 from ..connectors.base.models import BaseDatasource
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_examples_folder,
     get_slice_json,
     get_table_connector_registry,
@@ -41,17 +43,21 @@ from .helpers import (
 )
 
 
-def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
-    only_metadata: bool = False, force: bool = False, sample: bool = False,
+def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
+    only_metadata: bool = False,
+    force: bool = False,
+    sample: bool = False,
 ) -> None:
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
-    database = utils.get_example_database()
+    database = superset.utils.database.get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("countries.json.gz")
-        pdf = pd.read_json(data)
+        url = get_example_url("countries.json.gz")
+        pdf = pd.read_json(url, compression="gzip")
         pdf.columns = [col.replace(".", "_") for col in pdf.columns]
         if database.backend == "presto":
             pdf.year = pd.to_datetime(pdf.year)
@@ -62,7 +68,8 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
 
         pdf.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
+            schema=schema,
             if_exists="replace",
             chunksize=50,
             dtype={
@@ -80,7 +87,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = table(table_name=tbl_name)
+        tbl = table(table_name=tbl_name, schema=schema)
     tbl.description = utils.readfile(
         os.path.join(get_examples_folder(), "countries.md")
     )
@@ -122,13 +129,12 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
         dash = Dashboard()
     dash.published = True
     pos = dashboard_positions
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
 
     dash.dashboard_title = dash_name
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
-
-    dash.slices = slices[:-1]
+    dash.slices = slices
     db.session.merge(dash)
     db.session.commit()
 
@@ -157,7 +163,6 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         "since": "2014-01-01",
         "until": "2014-01-02",
         "time_range": "2014-01-01 : 2014-01-02",
-        "time_range_endpoints": ["inclusive", "exclusive"],
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
         "entity": "country_code",
@@ -168,7 +173,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Region Filter",
             viz_type="filter_box",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -197,7 +202,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="World's Population",
             viz_type="big_number",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -211,7 +216,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Most Populated Countries",
             viz_type="table",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -223,7 +228,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Growth Rate",
             viz_type="line",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -237,7 +242,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="% Rural",
             viz_type="world_map",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -250,7 +255,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Life Expectancy VS Rural %",
             viz_type="bubble",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -294,7 +299,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Rural Breakdown",
             viz_type="sunburst",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -309,7 +314,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="World's Pop Growth",
             viz_type="area",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -323,7 +328,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Box plot",
             viz_type="box_plot",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -339,7 +344,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Treemap",
             viz_type="treemap",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -353,7 +358,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Parallel Coordinates",
             viz_type="para",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -453,12 +458,6 @@ dashboard_positions = {
         "children": [],
         "id": "CHART-a4808bba",
         "meta": {"chartId": 49, "height": 50, "sliceName": "Treemap", "width": 8},
-        "type": "CHART",
-    },
-    "CHART-3nc0d8sk": {
-        "children": [],
-        "id": "CHART-3nc0d8sk",
-        "meta": {"chartId": 50, "height": 50, "sliceName": "Treemap", "width": 8},
         "type": "CHART",
     },
     "COLUMN-071bbbad": {
