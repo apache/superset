@@ -149,6 +149,7 @@ export const ExploreChartHeader = ({
       actions.redirectSQLLab,
       openPropertiesModal,
       ownState,
+      metadata?.dashboards,
     );
 
   const metadataBar = useMemo(() => {
@@ -162,6 +163,12 @@ export const ExploreChartHeader = ({
         metadata.dashboards.length > 0
           ? t('Added to %s dashboard(s)', metadata.dashboards.length)
           : t('Not added to any dashboard'),
+      description:
+        metadata.dashboards.length > 0
+          ? t(
+              'To preview the list of dashboards go to "more" settings on the right.',
+            )
+          : undefined,
     });
     items.push({
       type: MetadataType.LAST_MODIFIED,
