@@ -188,13 +188,14 @@ function DatasetDetails({
             <AsyncSelect
               autoFocus
               showSearch
-              value={dataset.value}
               ariaLabel={t('Dataset')}
               name="select-datasource"
               options={datasetOptions}
               onChange={changeDatasource}
               placeholder={t('Choose a dataset')}
               optionFilterProps={['id', 'label']}
+              // @ts-ignore:next-line
+              value={dataset?.value ? dataset : undefined}
               header={<FormLabel>{t('Dataset')}</FormLabel>}
             />
           </StyledStepDescription>
