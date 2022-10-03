@@ -166,9 +166,6 @@ class AlertCommand(BaseCommand):
             logger.warning("A timeout occurred while executing the alert query: %s", ex)
             raise AlertQueryTimeout() from ex
         except Exception as ex:
-            logger.warning(
-                "A general exception occurred while executing the alert query: %s", ex
-            )
             raise AlertQueryError(message=str(ex)) from ex
 
     def validate(self) -> None:
