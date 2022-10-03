@@ -471,7 +471,7 @@ export class TableRenderer extends React.Component {
       i += colSpan;
     }
 
-    const constAggregatorName = `${this.props.aggregatorName}`
+    const constAggregatorName = `${this.props.aggregatorName}`;
 
     const totalCell =
       attrIdx === 0 && rowTotals ? (
@@ -754,7 +754,7 @@ export class TableRenderer extends React.Component {
       grandTotalCallback,
     } = pivotSettings;
 
-  const constAggregatorName = `${this.props.aggregatorName}`;
+    const constAggregatorName = `${this.props.aggregatorName}`;
 
     const totalLabelCell = (
       <th
