@@ -436,6 +436,7 @@ class BaseReportState:
         """
         header_data = self._get_log_data()
         header_data["error_text"] = message
+        logger.info("header_data info %s", header_data)
         notification_content = NotificationContent(
             name=name, text=message, header_data=header_data
         )
