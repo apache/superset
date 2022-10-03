@@ -235,8 +235,7 @@ const SqlEditor = ({
     }
   };
 
-  // hack the useMemo hook to imitate componentWillMount
-  useMemo(() => {
+  useEffect(() => {
     if (autorun) {
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
