@@ -70,6 +70,7 @@ from superset.utils.core import (
     validate_json,
     zlib_compress,
     zlib_decompress,
+    DateColumn,
 )
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
@@ -1062,7 +1063,18 @@ class TestUtils(SupersetTestCase):
             time_shift: Optional[timedelta],
         ) -> pd.DataFrame:
             df = df.copy()
-            normalize_dttm_col(df, timestamp_format, offset, time_shift)
+            normalize_dttm_col(
+                df,
+                tuple(
+                    [
+                        DateColumn.get_legacy_time_column(
+                            timestamp_format=timestamp_format,
+                            offset=offset,
+                            time_shift=time_shift,
+                        )
+                    ]
+                ),
+            )
             return df
 
         ts = pd.Timestamp(2021, 2, 15, 19, 0, 0, 0)

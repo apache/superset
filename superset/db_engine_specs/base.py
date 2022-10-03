@@ -361,6 +361,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]
     ] = {}
 
+    # Whether the engine supports file uploads
+    # if True, database will be listed as option in the upload file form
+    supports_file_upload = True
+
     @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
@@ -476,7 +480,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         col: ColumnClause,
         pdf: Optional[str],
         time_grain: Optional[str],
-        type_: Optional[str] = None,
     ) -> TimestampExpression:
         """
         Construct a TimestampExpression to be used in a SQLAlchemy query.
@@ -484,10 +487,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
-        :param type_: the source column type
         :return: TimestampExpression object
         """
         if time_grain:
+            type_ = str(getattr(col, "type", ""))
             time_expr = cls.get_time_grain_expressions().get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
@@ -1615,7 +1618,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return user.username if user else None
 
     @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
         """
         Mask ``encrypted_extra``.
 
@@ -1628,7 +1631,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # pylint: disable=unused-argument
     @classmethod
-    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
+    def unmask_encrypted_extra(
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
         """
         Remove masks from ``encrypted_extra``.
 
@@ -1637,6 +1642,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         without having to provide sensitive data to the client.
         """
         return new
+
+    @classmethod
+    def get_public_information(cls) -> Dict[str, Any]:
+        """
+        Construct a Dict with properties we want to expose.
+
+        :returns: Dict with properties of our class like supports_file_upload
+        """
+        return {
+            "supports_file_upload": cls.supports_file_upload,
+        }
 
 
 # schema for adding a database by providing parameters instead of the

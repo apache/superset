@@ -24,12 +24,13 @@ import type {
   DatasourceType,
   JsonValue,
   Metric,
+  QueryColumn,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
 } from '@superset-ui/core';
-import { sharedControls } from './shared-controls';
+import sharedControls from './shared-controls';
 import sharedControlComponents from './shared-controls/components';
 
 export type { Metric } from '@superset-ui/core';
@@ -238,7 +239,7 @@ export interface BaseControlConfig<
   ) => boolean;
   mapStateToProps?: (
     state: ControlPanelState,
-    controlState: ControlState,
+    controlState?: ControlState,
     // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
     chartState?: AnyDict,
   ) => ExtraControlProps;
@@ -449,9 +450,9 @@ export type ColorFormatters = {
 export default {};
 
 export function isColumnMeta(
-  column: AdhocColumn | ColumnMeta,
+  column: AdhocColumn | ColumnMeta | QueryColumn,
 ): column is ColumnMeta {
-  return 'column_name' in column;
+  return !!column && 'column_name' in column;
 }
 
 export function isSavedExpression(
@@ -477,9 +478,5 @@ export function isDataset(
 export function isQueryResponse(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is QueryResponse {
-  return (
-    !!datasource &&
-    ('results' in datasource ||
-      datasource?.type === ('query' as DatasourceType.Query))
-  );
+  return !!datasource && 'results' in datasource && 'sql' in datasource;
 }

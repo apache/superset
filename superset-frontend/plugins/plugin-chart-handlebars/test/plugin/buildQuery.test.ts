@@ -32,6 +32,6 @@ describe('Handlebars buildQuery', () => {
   it('should build groupby with series in form data', () => {
     const queryContext = buildQuery(formData);
     const [query] = queryContext.queries;
-    expect(query.groupby).toEqual(['foo']);
+    expect(query.columns).toEqual(['foo']);
   });
 });

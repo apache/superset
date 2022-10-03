@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, within } from 'spec/helpers/testing-library';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
 import ChartContainer from 'src/explore/components/ExploreChartPanel';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
@@ -158,9 +158,14 @@ describe('ChartContainer', () => {
     const { container } = render(<ChartContainer {...props} />, {
       useRedux: true,
     });
+    const tabpanel = screen.getByRole('tabpanel', { name: /results/i });
+    expect(await within(tabpanel).findByText(/0 rows/i)).toBeInTheDocument();
+
     const gutter = container.querySelector('.gutter');
-    expect(window.getComputedStyle(gutter).display).toBe('block');
+    expect(gutter).toBeVisible();
+
     userEvent.click(screen.getByLabelText('Collapse data panel'));
-    expect(window.getComputedStyle(gutter).display).toBe('none');
+    expect(await screen.findByRole('timer')).toBeInTheDocument();
+    expect(gutter).not.toBeVisible();
   });
 });

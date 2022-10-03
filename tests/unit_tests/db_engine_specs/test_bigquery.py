@@ -186,9 +186,61 @@ def test_unmask_encrypted_extra() -> None:
         }
     )
 
-    assert json.loads(BigQueryEngineSpec.unmask_encrypted_extra(old, new)) == {
+    assert json.loads(str(BigQueryEngineSpec.unmask_encrypted_extra(old, new))) == {
         "credentials_info": {
             "project_id": "yellow-unicorn-314419",
             "private_key": "SECRET",
         },
     }
+
+
+def test_unmask_encrypted_extra_when_empty() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = None
+    new = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(BigQueryEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "credentials_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "XXXXXXXXXX",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_new_is_empty() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    old = json.dumps(
+        {
+            "credentials_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = None
+
+    assert BigQueryEngineSpec.unmask_encrypted_extra(old, new) is None
+
+
+def test_mask_encrypted_extra_when_empty() -> None:
+    """
+    Test that the encrypted extra will return a none value if the field is empty.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    assert BigQueryEngineSpec.mask_encrypted_extra(None) is None

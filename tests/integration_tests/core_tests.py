@@ -1694,6 +1694,20 @@ class TestCore(SupersetTestCase):
 
         assert rv.status_code == 422
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch("superset.explore.form_data.commands.create.CreateFormDataCommand.run")
+    def test_explore_redirect(self, mock_command: mock.Mock):
+        self.login(username="admin")
+        random_key = "random_key"
+        mock_command.return_value = random_key
+        slice_name = f"Energy Sankey"
+        slice_id = self.get_slice(slice_name, db.session).id
+        form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
+        rv = self.client.get(
+            f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
+        )
+        self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
+
 
 if __name__ == "__main__":
     unittest.main()

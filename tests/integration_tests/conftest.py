@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -255,6 +255,38 @@ def with_feature_flags(**mock_feature_flags):
     return decorate
 
 
+def with_config(override_config: Dict[str, Any]):
+    """
+    Use this decorator to mock specific config keys.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_config({"SOME_CONFIG": True})
+            def test_your_config(self):
+                self.assertEqual(curren_app.config["SOME_CONFIG"), True)
+
+    """
+
+    def decorate(test_fn):
+        config_backup = {}
+
+        def wrapper(*args, **kwargs):
+            from flask import current_app
+
+            for key, value in override_config.items():
+                config_backup[key] = current_app.config[key]
+                current_app.config[key] = value
+            test_fn(*args, **kwargs)
+            for key, value in config_backup.items():
+                current_app.config[key] = value
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate
+
+
 @pytest.fixture
 def virtual_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -401,4 +433,14 @@ def virtual_dataset_comma_in_column_value():
 only_postgresql = pytest.mark.skipif(
     "postgresql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
     reason="Only run test case in Postgresql",
+)
+
+only_sqlite = pytest.mark.skipif(
+    "sqlite" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in SQLite",
+)
+
+only_mysql = pytest.mark.skipif(
+    "mysql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
+    reason="Only run test case in MySQL",
 )

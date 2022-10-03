@@ -1101,7 +1101,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .where(view_menu_table.c.id == db_pvm.view_menu_id)
             .values(name=new_view_menu_name)
         )
-        new_db_view_menu = self.find_view_menu(new_view_menu_name)
+        new_db_view_menu = self._find_view_menu_on_sqla_event(
+            connection, new_view_menu_name
+        )
 
         self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
         return new_db_view_menu
@@ -1155,7 +1157,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(name=new_dataset_vm_name)
             )
             # After update refresh
-            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+            new_dataset_view_menu = self._find_view_menu_on_sqla_event(
+                connection, new_dataset_vm_name
+            )
 
             # Update dataset (SqlaTable perm field)
             connection.execute(
@@ -1194,11 +1198,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+            Database,
+        )
+
         try:
             dataset_perm = target.get_perm()
+            database = target.database
         except DatasetInvalidPermissionEvaluationException:
-            logger.warning("Dataset has no database refusing to set permission")
-            return
+            logger.warning(
+                "Dataset has no database will retry with database_id to set permission"
+            )
+            database = self.get_session.query(Database).get(target.database_id)
+            dataset_perm = self.get_dataset_perm(
+                target.id, target.table_name, database.database_name
+            )
         dataset_table = target.__table__
 
         self._insert_pvm_on_sqla_event(
@@ -1214,7 +1228,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if target.schema:
             dataset_schema_perm = self.get_schema_perm(
-                target.database.database_name, target.schema
+                database.database_name, target.schema
             )
             self._insert_pvm_on_sqla_event(
                 mapper, connection, "schema_access", dataset_schema_perm
@@ -1481,6 +1495,56 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             view_menu_table.delete().where(view_menu_table.c.id == pvm.view_menu_id)
         )
 
+    def _find_permission_on_sqla_event(
+        self, connection: Connection, name: str
+    ) -> Permission:
+        """
+        Find a FAB Permission using a SQLA connection.
+
+        A session.query may not return the latest results on newly created/updated
+        objects/rows using connection. On this case we should use a connection also
+
+        :param connection: SQLAlchemy connection
+        :param name: The permission name (it's unique)
+        :return: Permission
+        """
+        permission_table = self.permission_model.__table__  # pylint: disable=no-member
+
+        permission_ = connection.execute(
+            permission_table.select().where(permission_table.c.name == name)
+        ).fetchone()
+        permission = Permission()
+        # ensures this object is never persisted
+        permission.metadata = None
+        permission.id = permission_.id
+        permission.name = permission_.name
+        return permission
+
+    def _find_view_menu_on_sqla_event(
+        self, connection: Connection, name: str
+    ) -> ViewMenu:
+        """
+        Find a FAB ViewMenu using a SQLA connection.
+
+        A session.query may not return the latest results on newly created/updated
+        objects/rows using connection. On this case we should use a connection also
+
+        :param connection: SQLAlchemy connection
+        :param name: The ViewMenu name (it's unique)
+        :return: ViewMenu
+        """
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+
+        view_menu_ = connection.execute(
+            view_menu_table.select().where(view_menu_table.c.name == name)
+        ).fetchone()
+        view_menu = ViewMenu()
+        # ensures this object is never persisted
+        view_menu.metadata = None
+        view_menu.id = view_menu_.id
+        view_menu.name = view_menu_.name
+        return view_menu
+
     def _insert_pvm_on_sqla_event(
         self,
         mapper: Mapper,
@@ -1511,20 +1575,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         permission = self.find_permission(permission_name)
         view_menu = self.find_view_menu(view_menu_name)
         if not permission:
-            connection.execute(permission_table.insert().values(name=permission_name))
-            permission = self.find_permission(permission_name)
+            _ = connection.execute(
+                permission_table.insert().values(name=permission_name)
+            )
+            permission = self._find_permission_on_sqla_event(
+                connection, permission_name
+            )
             self.on_permission_after_insert(mapper, connection, permission)
         if not view_menu:
-            connection.execute(view_menu_table.insert().values(name=view_menu_name))
-            view_menu = self.find_view_menu(view_menu_name)
+            _ = connection.execute(view_menu_table.insert().values(name=view_menu_name))
+            view_menu = self._find_view_menu_on_sqla_event(connection, view_menu_name)
             self.on_view_menu_after_insert(mapper, connection, view_menu)
         connection.execute(
             permission_view_table.insert().values(
                 permission_id=permission.id, view_menu_id=view_menu.id
             )
         )
-        permission = self.find_permission_view_menu(permission_name, view_menu_name)
-        self.on_permission_view_after_insert(mapper, connection, permission)
+        permission_view = connection.execute(
+            permission_view_table.select().where(
+                permission_view_table.c.permission_id == permission.id,
+                permission_view_table.c.view_menu_id == view_menu.id,
+            )
+        ).fetchone()
+        permission_view_model = PermissionView()
+        permission_view_model.metadata = None
+        permission_view_model.id = permission_view.id
+        permission_view_model.permission_id = permission.id
+        permission_view_model.view_menu_id = view_menu.id
+        permission_view_model.permission = permission
+        permission_view_model.view_menu = view_menu
+        self.on_permission_view_after_insert(mapper, connection, permission_view_model)
 
     def on_role_after_update(
         self, mapper: Mapper, connection: Connection, target: Role
@@ -1621,6 +1701,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
+
+    @staticmethod
+    def get_exclude_users_from_lists() -> List[str]:
+        """
+        Override to dynamically identify a list of usernames to exclude from
+        all UI dropdown lists, owners, created_by filters etc...
+
+        It will exclude all users from the all endpoints of the form
+        ``/api/v1/<modelview>/related/<column>``
+
+        Optionally you can also exclude them using the `EXCLUDE_USERS_FROM_LISTS`
+        config setting.
+
+        :return: A list of usernames
+        """
+        return []
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals

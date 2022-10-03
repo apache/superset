@@ -90,6 +90,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
@@ -164,6 +165,7 @@ from superset.views.utils import (
     get_datasource_info,
     get_form_data,
     get_viz,
+    loads_request_json,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
@@ -736,6 +738,39 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/import_dashboards.html", databases=databases
         )
 
+    @staticmethod
+    def get_redirect_url() -> str:
+        """Assembles the redirect URL to the new endpoint. It also replaces
+        the form_data param with a form_data_key by saving the original content
+        to the cache layer.
+        """
+        redirect_url = request.url.replace("/superset/explore", "/explore")
+        form_data_key = None
+        request_form_data = request.args.get("form_data")
+        if request_form_data:
+            parsed_form_data = loads_request_json(request_form_data)
+            slice_id = parsed_form_data.get(
+                "slice_id", int(request.args.get("slice_id", 0))
+            )
+            datasource = parsed_form_data.get("datasource")
+            if datasource:
+                datasource_id, datasource_type = datasource.split("__")
+                parameters = CommandParameters(
+                    datasource_id=datasource_id,
+                    datasource_type=datasource_type,
+                    chart_id=slice_id,
+                    form_data=request_form_data,
+                )
+                form_data_key = CreateFormDataCommand(parameters).run()
+        if form_data_key:
+            url = parse.urlparse(redirect_url)
+            query = parse.parse_qs(url.query)
+            query.pop("form_data")
+            query["form_data_key"] = [form_data_key]
+            url = url._replace(query=parse.urlencode(query, True))
+            redirect_url = parse.urlunparse(url)
+        return redirect_url
+
     @has_access
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
@@ -753,7 +788,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             self.__class__.__name__,
         )
         if request.method == "GET":
-            return redirect(request.url.replace("/superset/explore", "/explore"))
+            return redirect(Superset.get_redirect_url())
 
         initial_form_data = {}
 

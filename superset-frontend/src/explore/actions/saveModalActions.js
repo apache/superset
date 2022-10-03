@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import { SupersetClient, t } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import { buildV1ChartDataPayload } from '../exploreUtils';
@@ -66,6 +67,7 @@ export function removeSaveModalAlert() {
 export const getSlicePayload = (
   sliceName,
   formDataWithNativeFilters,
+  dashboards,
   owners,
 ) => {
   const adhocFilters = Object.entries(formDataWithNativeFilters).reduce(
@@ -78,6 +80,7 @@ export const getSlicePayload = (
   const formData = {
     ...formDataWithNativeFilters,
     ...adhocFilters,
+    dashboards,
   };
 
   const [datasourceId, datasourceType] = formData.datasource.split('__');
@@ -87,7 +90,7 @@ export const getSlicePayload = (
     viz_type: formData.viz_type,
     datasource_id: parseInt(datasourceId, 10),
     datasource_type: datasourceType,
-    dashboards: formData.dashboards,
+    dashboards,
     owners,
     query_context: JSON.stringify(
       buildV1ChartDataPayload({
@@ -142,7 +145,7 @@ const addToasts = (isNewSlice, sliceName, addedToDashboard) => {
 
 //  Update existing slice
 export const updateSlice =
-  ({ slice_id: sliceId, owners }, sliceName, addedToDashboard) =>
+  ({ slice_id: sliceId, owners }, sliceName, dashboards, addedToDashboard) =>
   async (dispatch, getState) => {
     const {
       explore: {
@@ -152,7 +155,7 @@ export const updateSlice =
     try {
       const response = await SupersetClient.put({
         endpoint: `/api/v1/chart/${sliceId}`,
-        jsonPayload: getSlicePayload(sliceName, formData, owners),
+        jsonPayload: getSlicePayload(sliceName, formData, dashboards, owners),
       });
 
       dispatch(saveSliceSuccess());
@@ -166,7 +169,7 @@ export const updateSlice =
 
 //  Create new slice
 export const createSlice =
-  (sliceName, addedToDashboard) => async (dispatch, getState) => {
+  (sliceName, dashboards, addedToDashboard) => async (dispatch, getState) => {
     const {
       explore: {
         form_data: { url_params: _, ...formData },
@@ -175,7 +178,7 @@ export const createSlice =
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/chart/`,
-        jsonPayload: getSlicePayload(sliceName, formData),
+        jsonPayload: getSlicePayload(sliceName, formData, dashboards),
       });
 
       dispatch(saveSliceSuccess());
@@ -210,6 +213,22 @@ export const getDashboard = dashboardId => async dispatch => {
     });
 
     return response.json;
+  } catch (error) {
+    dispatch(saveSliceFailed());
+    throw error;
+  }
+};
+
+//  Get dashboards the slice is added to
+export const getSliceDashboards = slice => async dispatch => {
+  try {
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/chart/${slice.slice_id}?q=${rison.encode({
+        columns: ['dashboards.id'],
+      })}`,
+    });
+
+    return response.json.result.dashboards.map(({ id }) => id);
   } catch (error) {
     dispatch(saveSliceFailed());
     throw error;
