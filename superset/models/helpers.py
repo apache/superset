@@ -1570,26 +1570,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 groupby_all_columns[timestamp.name] = timestamp
 
             # Use main dttm column to support index with secondary dttm columns.
-            if (
-                db_engine_spec.time_secondary_columns
-                and self.main_dttm_col in self.dttm_cols
-                and self.main_dttm_col != dttm_col.column_name
-            ):
-                if isinstance(self.main_dttm_col, dict):
-                    time_filters.append(
-                        self.get_time_filter(
-                            self.main_dttm_col,
-                            from_dttm,
-                            to_dttm,
-                        )
-                    )
+            if db_engine_spec.time_secondary_columns:
+                if isinstance(dttm_col, dict):
+                    dttm_col_name = dttm_col.get("column_name")
                 else:
-                    time_filters.append(
-                        columns_by_name[self.main_dttm_col].get_time_filter(
-                            from_dttm,
-                            to_dttm,
+                    dttm_col_name = dttm_col.column_name
+
+                if (
+                    self.main_dttm_col in self.dttm_cols
+                    and self.main_dttm_col != dttm_col_name
+                ):
+                    if isinstance(self.main_dttm_col, dict):
+                        time_filters.append(
+                            self.get_time_filter(
+                                self.main_dttm_col,
+                                from_dttm,
+                                to_dttm,
+                            )
                         )
-                    )
+                    else:
+                        time_filters.append(
+                            columns_by_name[self.main_dttm_col].get_time_filter(
+                                from_dttm,
+                                to_dttm,
+                            )
+                        )
 
             if isinstance(dttm_col, dict):
                 time_filters.append(self.get_time_filter(dttm_col, from_dttm, to_dttm))
