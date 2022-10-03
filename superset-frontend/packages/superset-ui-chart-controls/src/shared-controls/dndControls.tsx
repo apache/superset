@@ -77,10 +77,8 @@ export const dndGroupByControl: SharedControlConfig<
   valueKey: 'column_name',
   allowAll: true,
   filterOption: ({ data: opt }: FilterOption<ColumnMeta>, text: string) =>
-    (opt.column_name &&
-      opt.column_name.toLowerCase().includes(text.toLowerCase())) ||
-    (opt.verbose_name &&
-      opt.verbose_name.toLowerCase().includes(text.toLowerCase())) ||
+    opt.column_name?.toLowerCase().includes(text.toLowerCase()) ||
+    opt.verbose_name?.toLowerCase().includes(text.toLowerCase()) ||
     false,
   promptTextCreator: (label: unknown) => label,
   mapStateToProps(state, controlState) {

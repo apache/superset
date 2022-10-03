@@ -101,7 +101,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   const onSave = () => {
     if (isEditMode) {
       // Edit
-      if (currentCssTemplate && currentCssTemplate.id) {
+      if (currentCssTemplate?.id) {
         const update_id = currentCssTemplate.id;
         delete currentCssTemplate.id;
         delete currentCssTemplate.created_by;
@@ -157,10 +157,8 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
 
   const validate = () => {
     if (
-      currentCssTemplate &&
-      currentCssTemplate.template_name.length &&
-      currentCssTemplate.css &&
-      currentCssTemplate.css.length
+      currentCssTemplate?.template_name.length &&
+      currentCssTemplate?.css?.length
     ) {
       setDisableSave(false);
     } else {
@@ -174,10 +172,10 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       isEditMode &&
       (!currentCssTemplate ||
         !currentCssTemplate.id ||
-        (cssTemplate && cssTemplate.id !== currentCssTemplate.id) ||
+        (cssTemplate && cssTemplate?.id !== currentCssTemplate.id) ||
         (isHidden && show))
     ) {
-      if (cssTemplate && cssTemplate.id !== null && !loading) {
+      if (cssTemplate?.id !== null && !loading) {
         const id = cssTemplate.id || 0;
 
         fetchResource(id);

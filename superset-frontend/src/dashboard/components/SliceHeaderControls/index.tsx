@@ -282,25 +282,22 @@ class SliceHeaderControls extends React.PureComponent<
         break;
       case MENU_KEYS.TOGGLE_CHART_DESCRIPTION:
         // eslint-disable-next-line no-unused-expressions
-        this.props.toggleExpandSlice &&
-          this.props.toggleExpandSlice(this.props.slice.slice_id);
+        this.props.toggleExpandSlice?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.EXPLORE_CHART:
         // eslint-disable-next-line no-unused-expressions
-        this.props.logExploreChart &&
-          this.props.logExploreChart(this.props.slice.slice_id);
+        this.props.logExploreChart?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.EXPORT_CSV:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportCSV && this.props.exportCSV(this.props.slice.slice_id);
+        this.props.exportCSV?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.FULLSCREEN:
         this.props.handleToggleFullSize();
         break;
       case MENU_KEYS.EXPORT_FULL_CSV:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportFullCSV &&
-          this.props.exportFullCSV(this.props.slice.slice_id);
+        this.props.exportFullCSV?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
         // menu closes with a delay, we need to hide it manually,
