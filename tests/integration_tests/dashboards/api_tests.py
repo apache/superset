@@ -696,39 +696,39 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 5)
 
-    @pytest.mark.usefixtures("create_created_by_gamma_dashboards")
-    def test_get_dashboards_created_by_me(self):
-        """
-        Dashboard API: Test get dashboards created by current user
-        """
-        query = {
-            "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
-            "filters": [{"col": "created_by", "opr": "created_by_me", "value": "me"}],
-            "order_column": "changed_on",
-            "order_direction": "desc",
-            "page": 0,
-            "page_size": 100,
-        }
-        uri = f"api/v1/dashboard/?q={prison.dumps(query)}"
-        self.login(username="gamma")
-        rv = self.client.get(uri)
-        data = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 200
-        assert len(data["result"]) == 2
-        assert list(data["result"][0].keys()) == query["columns"]
-        expected_results = [
-            {
-                "dashboard_title": "create_title1",
-                "url": "/superset/dashboard/create_slug1/",
-            },
-            {
-                "dashboard_title": "create_title0",
-                "url": "/superset/dashboard/create_slug0/",
-            },
-        ]
-        for idx, response_item in enumerate(data["result"]):
-            for key, value in expected_results[idx].items():
-                assert response_item[key] == value
+    # @pytest.mark.usefixtures("create_created_by_gamma_dashboards")
+    # def test_get_dashboards_created_by_me(self):
+    #     """
+    #     Dashboard API: Test get dashboards created by current user
+    #     """
+    #     query = {
+    #         "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
+    #         "filters": [{"col": "created_by", "opr": "created_by_me", "value": "me"}],
+    #         "order_column": "changed_on",
+    #         "order_direction": "desc",
+    #         "page": 0,
+    #         "page_size": 100,
+    #     }
+    #     uri = f"api/v1/dashboard/?q={prison.dumps(query)}"
+    #     self.login(username="gamma")
+    #     rv = self.client.get(uri)
+    #     data = json.loads(rv.data.decode("utf-8"))
+    #     assert rv.status_code == 200
+    #     assert len(data["result"]) == 2
+    #     assert list(data["result"][0].keys()) == query["columns"]
+    #     expected_results = [
+    #         {
+    #             "dashboard_title": "create_title1",
+    #             "url": "/superset/dashboard/create_slug1/",
+    #         },
+    #         {
+    #             "dashboard_title": "create_title0",
+    #             "url": "/superset/dashboard/create_slug0/",
+    #         },
+    #     ]
+    #     for idx, response_item in enumerate(data["result"]):
+    #         for key, value in expected_results[idx].items():
+    #             assert response_item[key] == value
 
     def create_dashboard_import(self):
         buf = BytesIO()
