@@ -140,6 +140,9 @@ RUN mkdir -p ${PYTHONPATH} \
             libecpg-dev \
         && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends firefox-esr
+
 COPY --from=superset-py /usr/local/lib/python3.8/site-packages/ /usr/local/lib/python3.8/site-packages/
 
 COPY --from=superset-py /usr/local/bin/gunicorn /usr/local/bin/celery /usr/local/bin/flask /usr/bin/
