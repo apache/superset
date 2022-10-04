@@ -544,7 +544,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     if (isEditMode) {
       // Edit
-      if (currentAlert && currentAlert.id) {
+      if (currentAlert?.id) {
         const update_id = currentAlert.id;
 
         delete data.id;
@@ -664,8 +664,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
-  const databaseLabel =
-    currentAlert && currentAlert.database && !currentAlert.database.label;
+  const databaseLabel = currentAlert?.database && !currentAlert.database.label;
   useEffect(() => {
     // Find source if current alert has one set
     if (databaseLabel) {
@@ -738,8 +737,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [chartOptions, currentAlert?.chart],
   );
 
-  const noChartLabel =
-    currentAlert && currentAlert.chart && !currentAlert.chart.label;
+  const noChartLabel = currentAlert?.chart && !currentAlert?.chart.label;
   useEffect(() => {
     // Find source if current alert has one set
     if (noChartLabel) {
@@ -899,13 +897,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const validate = () => {
     if (
-      currentAlert &&
-      currentAlert.name?.length &&
-      currentAlert.owners?.length &&
-      currentAlert.crontab?.length &&
-      currentAlert.working_timeout !== undefined &&
-      ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
-        (contentType === 'chart' && !!currentAlert.chart)) &&
+      currentAlert?.name?.length &&
+      currentAlert?.owners?.length &&
+      currentAlert?.crontab?.length &&
+      currentAlert?.working_timeout !== undefined &&
+      ((contentType === 'dashboard' && !!currentAlert?.dashboard) ||
+        (contentType === 'chart' && !!currentAlert?.chart)) &&
       checkNotificationSettings()
     ) {
       if (isReport) {
@@ -932,7 +929,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       isEditMode &&
       (!currentAlert?.id || alert?.id !== currentAlert.id || (isHidden && show))
     ) {
-      if (alert && alert.id !== null && !loading && !fetchError) {
+      if (alert?.id !== null && !loading && !fetchError) {
         const id = alert.id || 0;
         fetchResource(id);
       }
@@ -1214,10 +1211,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       name="threshold"
                       disabled={conditionNotNull}
                       value={
-                        currentAlert &&
-                        currentAlert.validator_config_json &&
-                        currentAlert.validator_config_json.threshold !==
-                          undefined
+                        currentAlert?.validator_config_json?.threshold !==
+                        undefined
                           ? currentAlert.validator_config_json.threshold
                           : ''
                       }

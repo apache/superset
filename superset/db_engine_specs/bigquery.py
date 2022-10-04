@@ -34,7 +34,7 @@ from typing_extensions import TypedDict
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
@@ -450,7 +450,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+        cls,
+        properties: BasicPropertiesType,  # pylint: disable=unused-argument
     ) -> List[SupersetError]:
         return []
 

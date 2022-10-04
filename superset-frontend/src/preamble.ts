@@ -52,7 +52,7 @@ if (typeof window !== 'undefined') {
   bootstrapData = root
     ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
     : {};
-  if (bootstrapData.common && bootstrapData.common.language_pack) {
+  if (bootstrapData?.common?.language_pack) {
     const languagePack = bootstrapData.common.language_pack;
     configure({ languagePack });
     moment.locale(bootstrapData.common.locale);
