@@ -120,6 +120,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_cvas",
         "allow_dml",
         "backend",
+        "driver",
         "force_ctas_schema",
         "impersonate_user",
         "masked_encrypted_extra",
@@ -268,6 +269,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             # If parameters are available return them in the payload
             if new_model.parameters:
                 item["parameters"] = new_model.parameters
+
+            if new_model.driver:
+                item["driver"] = new_model.driver
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
