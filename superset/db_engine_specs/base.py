@@ -67,6 +67,8 @@ from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType, get_username
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
+from flask._compat import text_type
+
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -94,26 +96,26 @@ class TimeGrain(NamedTuple):
 
 
 builtin_time_grains: Dict[Optional[str], str] = {
-    None: _("Original value"),
-    "PT1S": _("Second"),
-    "PT5S": _("5 second"),
-    "PT30S": _("30 second"),
-    "PT1M": _("Minute"),
-    "PT5M": _("5 minute"),
-    "PT10M": _("10 minute"),
-    "PT15M": _("15 minute"),
-    "PT30M": _("30 minute"),
-    "PT1H": _("Hour"),
-    "PT6H": _("6 hour"),
-    "P1D": _("Day"),
-    "P1W": _("Week"),
-    "P1M": _("Month"),
-    "P3M": _("Quarter"),
-    "P1Y": _("Year"),
-    "1969-12-28T00:00:00Z/P1W": _("Week starting Sunday"),
-    "1969-12-29T00:00:00Z/P1W": _("Week starting Monday"),
-    "P1W/1970-01-03T00:00:00Z": _("Week ending Saturday"),
-    "P1W/1970-01-04T00:00:00Z": _("Week_ending Sunday"),
+    None: text_type(_("Original value")),
+    "PT1S": text_type(_("Second")),
+    "PT5S": text_type(_("5 second")),
+    "PT30S": text_type(_("30 second")),
+    "PT1M": text_type(_("Minute")),
+    "PT5M": text_type(_("5 minute")),
+    "PT10M": text_type(_("10 minute")),
+    "PT15M": text_type(_("15 minute")),
+    "PT30M": text_type(_("30 minute")),
+    "PT1H": text_type(_("Hour")),
+    "PT6H": text_type(_("6 hour")),
+    "P1D": text_type(_("Day")),
+    "P1W": text_type(_("Week")),
+    "P1M": text_type(_("Month")),
+    "P3M": text_type(_("Quarter")),
+    "P1Y": text_type(_("Year")),
+    "1969-12-28T00:00:00Z/P1W": text_type(_("Week starting Sunday")),
+    "1969-12-29T00:00:00Z/P1W": text_type(_("Week starting Monday")),
+    "P1W/1970-01-03T00:00:00Z": text_type(_("Week ending Saturday")),
+    "P1W/1970-01-04T00:00:00Z": text_type(_("Week_ending Sunday")),
 }
 
 
