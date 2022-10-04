@@ -532,8 +532,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(500, message="Database does not support catalogs")
         try:
             catalogs = database.get_all_catalog_names(
-                cache=database.schema_cache_enabled,
-                cache_timeout=database.schema_cache_timeout,
                 force=kwargs["rison"].get("force", False),
             )
             return self.response(200, result=catalogs)
@@ -599,8 +597,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             schemas = database.get_all_catalog_schema_names(
                 catalog_name=catalog_name,
-                cache=database.schema_cache_enabled,
-                cache_timeout=database.schema_cache_timeout,
                 force=kwargs["rison"].get("force", False),
             )
             schemas = security_manager.get_schemas_accessible_by_user(database, schemas)
