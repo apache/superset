@@ -26,10 +26,18 @@ import { StyledInputContainer } from '../AlertReportModal';
 const StyledNotificationMethod = styled.div`
   margin-bottom: 10px;
 
+  .error-text {
+    color: red;
+    font-size: 11px;
+  }
   .input-container {
     textarea {
       height: auto;
     }
+  }
+
+  .prominent-error-input {
+    border: 1px solid red;
   }
 
   .inline-container {
@@ -61,6 +69,7 @@ interface NotificationMethodProps {
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
+  invalid: boolean;
 }
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
@@ -68,11 +77,13 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   index,
   onUpdate,
   onRemove,
+  invalid,
 }) => {
   const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  const [invalidEmail, setInvalidEmail] = useState<boolean>(invalid);
   const theme = useTheme();
 
   if (!setting) {
@@ -97,7 +108,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
     const { target } = event;
-
+    setInvalidEmail(false);
     setRecipientValue(target.value);
 
     if (onUpdate) {
@@ -151,13 +162,23 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="control-label">{t(method)}</div>
           <div className="input-container">
             <textarea
+              className={invalid ? 'prominent-error-input' : ''}
               name="recipients"
               value={recipientValue}
               onChange={onRecipientsChange}
             />
           </div>
+          {invalidEmail || invalid ? (
+            <div className="error-text">
+              {t(
+                'Email must contain careem domain e.g abc@careem.com OR abc@ext.careem.com',
+              )}
+            </div>
+          ) : null}
           <div className="helper">
-            {t('Recipients are separated by "," or ";"')}
+            {t(
+              'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
+            )}
           </div>
         </StyledInputContainer>
       ) : null}

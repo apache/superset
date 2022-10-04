@@ -58,6 +58,7 @@ import {
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import { concat } from 'lodash';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -412,6 +413,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
+  const [invalidEmail, setInvalidEmail] = useState<boolean>(false);
+
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
@@ -500,10 +503,26 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onSave = () => {
     // Notification Settings
+    setInvalidEmail(false);
     const recipients: Recipient[] = [];
-
+    let invalidEmails = [];
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
+        let emailStr = setting.recipients;
+
+        let emails = ([] as string[])
+          .concat(...emailStr.split(',').map(item => item.split(';')))
+          .map(item => item.trim())
+          .filter(item => item !== '');
+
+        invalidEmails = emails.filter(
+          email =>
+            !email.includes('@careem.com') &&
+            !email.includes('@ext.careem.com'),
+        );
+
+        console.log(invalidEmails);
+
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
@@ -512,6 +531,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         });
       }
     });
+
+    if (invalidEmails.length > 0) {
+      setInvalidEmail(true);
+      addDangerToast(
+        t(
+          'Emails must contain careem domains e.g: abc@careem.com OR abc@ext.careem.com',
+        ),
+      );
+      return;
+    }
 
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
@@ -1394,6 +1423,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
+                invalid={invalidEmail}
               />
             ))}
             <NotificationMethodAdd
