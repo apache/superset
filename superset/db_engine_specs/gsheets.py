@@ -259,6 +259,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         idx = 0
 
         for name, url in table_catalog.items():
+
             if not name:
                 errors.append(
                     SupersetError(

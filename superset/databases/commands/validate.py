@@ -16,14 +16,12 @@
 # under the License.
 import json
 from contextlib import closing
-from symbol import parameters
 from typing import Any, Dict, Optional
 
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
-    DatabaseExtraJSONValidationError,
     DatabaseOfflineError,
     DatabaseTestConnectionFailedError,
     InvalidEngineError,
@@ -37,15 +35,6 @@ from superset.extensions import event_logger
 from superset.models.core import Database
 
 BYPASS_VALIDATION_ENGINES = {"bigquery"}
-
-
-def get_engine_parameters(properties: Dict[str, Any]) -> Dict[str, Any]:
-    try:
-        if properties.get("extra"):
-            return json.loads(properties["extra"]).get("engine_params", {})
-        return {}
-    except:
-        raise DatabaseExtraJSONValidationError("Unable to parse extra_json data")
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
@@ -98,7 +87,6 @@ class ValidateDatabaseParametersCommand(BaseCommand):
 
         # try to connect
         sqlalchemy_uri = engine_spec.build_sqlalchemy_uri(  # type: ignore
-            parameters,
             encrypted_extra,
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
