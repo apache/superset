@@ -16,25 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
+import { WfsLayerConf } from './types';
 
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
+/**
+ * Get the available versions of WFS and WMS.
+ *
+ * @returns the versions
+ */
+export const getServiceVersions = () => ({
+  WMS: ['1.3.0', '1.1.1'],
+  WFS: ['2.0.2', '2.0.0', '1.1.0'],
+});
 
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/ControlSubSectionHeader';
-export * from './components/Dropdown';
-export * from './components/Menu';
-export * from './components/MetricOption';
-export * from './components/Tooltip';
-export { default as ControlHeader } from './components/ControlHeader';
-
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+/**
+ * Checks if all required WFS params are provided.
+ *
+ * @param layerConf The config to check
+ * @returns True, if all required params are provided. False, otherwise.
+ */
+export const hasAllRequiredWfsParams = (layerConf: WfsLayerConf) =>
+  layerConf.url && layerConf.version && layerConf.typeName;
