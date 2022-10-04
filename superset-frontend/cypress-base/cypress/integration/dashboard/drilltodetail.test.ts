@@ -183,7 +183,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe.only('Big number with trendline', () => {
+    describe('Big number with trendline', () => {
       it('opens the modal with the correct data', () => {
         interceptSamples();
 
@@ -200,12 +200,12 @@ describe('Drill to detail modal', () => {
 
         // opens the modal by clicking on the trendline
         cy.get("[data-test-viz-type='big_number'] canvas").then($canvas => {
-          cy.wrap($canvas).scrollIntoView().click(40, 15).rightclick(40, 15);
+          cy.wrap($canvas).scrollIntoView().click(1, 14).rightclick(1, 14);
 
-          openModalFromChartContext('Drill to detail by 1970-01-01');
+          openModalFromChartContext('Drill to detail by 1965-01-01');
 
           // checking the filter
-          cy.getBySel('filter-val').should('contain', '1970-01-01');
+          cy.getBySel('filter-val').should('contain', '1965-01-01');
         });
       });
     });
