@@ -198,7 +198,6 @@ describe('Drill to detail modal', () => {
 
         // TODO(geido): opens the modal by clicking on the trendline
         // proved to be flaky, requires deeper investigation
-
       });
     });
 
