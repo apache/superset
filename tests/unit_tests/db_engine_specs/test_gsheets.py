@@ -33,14 +33,16 @@ class ProgrammingError(Exception):
 def test_validate_parameters_simple() -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
-        "catalog": {},
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {},
+        }
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)
+    errors = GSheetsEngineSpec.validate_parameters(properties)
     assert errors == [
         SupersetError(
             message="Sheet name is required",
@@ -56,7 +58,7 @@ def test_validate_parameters_catalog(
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
@@ -71,15 +73,17 @@ def test_validate_parameters_catalog(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
-        "catalog": {
-            "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
-            "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
-            "not_a_sheet": "https://www.google.com/",
-        },
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {
+                "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
+                "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
+                "not_a_sheet": "https://www.google.com/",
+            },
+        }
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
+    errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
 
     assert errors == [
         SupersetError(
@@ -146,7 +150,7 @@ def test_validate_parameters_catalog_and_credentials(
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
@@ -161,15 +165,17 @@ def test_validate_parameters_catalog_and_credentials(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
-        "catalog": {
-            "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
-            "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
-            "not_a_sheet": "https://www.google.com/",
-        },
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {
+                "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
+                "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
+                "not_a_sheet": "https://www.google.com/",
+            },
+        }
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
+    errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
     assert errors == [
         SupersetError(
             message=(

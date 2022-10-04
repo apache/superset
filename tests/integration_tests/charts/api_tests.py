@@ -102,6 +102,19 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             db.session.commit()
 
     @pytest.fixture()
+    def create_charts_created_by_gamma(self):
+        with self.create_app().app_context():
+            charts = []
+            user = self.get_user("gamma")
+            for cx in range(CHARTS_FIXTURE_COUNT - 1):
+                charts.append(self.insert_chart(f"gamma{cx}", [user.id], 1))
+            yield charts
+            # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
+            db.session.commit()
+
+    @pytest.fixture()
     def create_certified_charts(self):
         with self.create_app().app_context():
             certified_charts = []
@@ -1123,6 +1136,33 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert len(expected_models) == data["count"]
+
+    @pytest.mark.usefixtures("create_charts_created_by_gamma")
+    def test_get_charts_created_by_me_filter(self):
+        """
+        Chart API: Test get charts with created by me special filter
+        """
+        gamma_user = self.get_user("gamma")
+        expected_models = (
+            db.session.query(Slice).filter(Slice.created_by_fk == gamma_user.id).all()
+        )
+        arguments = {
+            "filters": [
+                {"col": "created_by", "opr": "chart_created_by_me", "value": "me"}
+            ],
+            "order_column": "slice_name",
+            "order_direction": "asc",
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="gamma")
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
+        for i, expected_model in enumerate(expected_models):
+            assert expected_model.slice_name == data["result"][i]["slice_name"]
 
     @pytest.mark.usefixtures("create_charts")
     def test_get_current_user_favorite_status(self):
