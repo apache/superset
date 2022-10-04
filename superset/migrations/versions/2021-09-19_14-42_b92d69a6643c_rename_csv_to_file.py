@@ -39,7 +39,7 @@ def upgrade():
                 new_column_name="allow_file_upload",
                 existing_type=sa.Boolean(),
             )
-    except sa.exc.OperationalError:
+    except (sa.exc.OperationalError, sa.exc.DatabaseError):
         # In MySQL 8.0 renaming the column rename fails because it has
         # a constraint check; we can safely remove it in that case, see
         # https://github.com/sqlalchemy/alembic/issues/699
