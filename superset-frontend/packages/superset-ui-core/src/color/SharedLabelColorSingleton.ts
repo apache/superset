@@ -35,17 +35,17 @@ export class SharedLabelColor {
     const categoricalNamespace =
       CategoricalColorNamespace.getNamespace(colorNamespace);
     const colorScale = categoricalNamespace.getScale(colorScheme);
-    const newSliceLabelColorMap = new Map();
-    this.sliceLabelColorMap.forEach((colorMap, sliceId) => {
+    const newSliceLabelColorMap = new Map(this.sliceLabelColorMap);
+    this.clear();
+    newSliceLabelColorMap.forEach((colorMap, sliceId) => {
       const newColorMap = new Map();
       colorMap.forEach((_, label) => {
         const newColor = colorScale(label);
         newColorMap.set(label, newColor);
         this.allColorMap.set(label, newColor);
       });
-      newSliceLabelColorMap.set(sliceId, newColorMap);
+      this.sliceLabelColorMap.set(sliceId, newColorMap);
     });
-    this.sliceLabelColorMap = newSliceLabelColorMap;
   }
 
   getColorMap() {
@@ -53,7 +53,7 @@ export class SharedLabelColor {
   }
 
   addSlice(label: string, color: string, sliceId?: number) {
-    if (!sliceId) return;
+    if (sliceId === undefined) return;
     let colorMap = this.sliceLabelColorMap.get(sliceId);
     if (!colorMap) {
       colorMap = new Map();
