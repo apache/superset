@@ -118,26 +118,14 @@ test('Clicking on "Close" should call onClose', () => {
   expect(props.onClose).toBeCalledTimes(1);
 });
 
-test('Clicking on "Save" should call onChange and onClose', () => {
+test('Clicking on "Save" should not call onChange and onClose', () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
   expect(props.onChange).toBeCalledTimes(0);
   expect(props.onClose).toBeCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
-  expect(props.onChange).toBeCalledTimes(1);
-  expect(props.onChange).toBeCalledWith(
-    {
-      id: 64,
-      metric_name: 'count',
-      expression: 'COUNT(*)',
-    },
-    {
-      id: 64,
-      metric_name: 'count',
-      expression: 'COUNT(*)',
-    },
-  );
-  expect(props.onClose).toBeCalledTimes(1);
+  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onClose).toBeCalledTimes(0);
 });
 
 test('Should switch to tab:Simple', () => {
