@@ -149,13 +149,13 @@ const ExploreChartPanel = ({
     refreshRate: 300,
   });
   const [splitSizes, setSplitSizes] = useState(
-    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT) ?
-      INITIAL_SIZES
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? INITIAL_SIZES
       : getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
   );
   const [showSplite, setShowSplit] = useState(
-    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT) ?
-      false
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? false
       : getItem(LocalStorageKeys.is_datapanel_open, false),
   );
 
