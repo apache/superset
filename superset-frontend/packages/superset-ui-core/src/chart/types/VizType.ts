@@ -26,6 +26,7 @@ export enum VizType {
   Bubble = 'bubble_v2',
   Bullet = 'bullet',
   Calendar = 'cal_heatmap',
+  Cartodiagram = 'cartodiagram',
   Chord = 'chord',
   Compare = 'compare',
   CountryMap = 'country_map',
