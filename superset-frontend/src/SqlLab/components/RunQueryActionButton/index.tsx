@@ -130,6 +130,7 @@ const RunQueryActionButton = ({
   return (
     <StyledButton>
       <ButtonComponent
+        data-test="run-query-action"
         onClick={() =>
           onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery)
         }
