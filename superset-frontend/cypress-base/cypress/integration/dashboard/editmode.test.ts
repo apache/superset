@@ -180,7 +180,9 @@ describe('Dashboard edit', () => {
       });
 
       // label Anthony
-      cy.get('[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol')
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .first()
         .should('have.css', 'fill', 'rgb(31, 168, 201)');
     });
@@ -199,7 +201,9 @@ describe('Dashboard edit', () => {
       });
 
       // label Anthony
-      cy.get('[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol')
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .first()
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
 
@@ -227,7 +231,9 @@ describe('Dashboard edit', () => {
       });
 
       // label Anthony
-      cy.get('[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol')
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .first()
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
 
@@ -256,7 +262,9 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
 
       // label Anthony
-      cy.get('[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol')
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .first()
         .should('have.css', 'fill', 'rgb(0, 209, 193)');
     });
@@ -344,7 +352,9 @@ describe('Dashboard edit', () => {
         name: 'Top 10 California Names Timeseries',
         viz: 'line',
       });
-      cy.get('[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol')
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .first()
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
 
@@ -372,7 +382,9 @@ describe('Dashboard edit', () => {
         name: 'Top 10 California Names Timeseries',
         viz: 'line',
       });
-      cy.get('[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol')
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .first()
         .should('have.css', 'fill', 'rgb(255, 0, 0)');
 
@@ -402,7 +414,9 @@ describe('Dashboard edit', () => {
       // re-open the tab
       openTab(1, 1);
 
-      cy.get('[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol')
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .first()
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
     });
@@ -428,7 +442,9 @@ describe('Dashboard edit', () => {
 
       // re-open the tab
       openTab(1, 1);
-      cy.get('[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol')
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
         .first()
         .should('have.css', 'fill', 'rgb(255, 0, 0)');
     });
