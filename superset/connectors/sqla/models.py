@@ -1451,7 +1451,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(
                     columns_by_name[selected_query].get_sqla_col()
                     if selected_query in columns_by_name
-                    else self.make_sqla_column_compatible(literal_column(selected_query))
+                    else self.make_sqla_column_compatible(
+                        literal_column(selected_query)
+                    )
                 )
             metrics_exprs = []
 
