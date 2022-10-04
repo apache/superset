@@ -41,7 +41,12 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 // eslint-disable-next-line import/no-unresolved
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { PluginFilterAdhocProps } from './types';
-import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
+import {
+  StyledFormItem,
+  FilterPluginStyle,
+  StatusMessage,
+  ControlContainer,
+} from '../common';
 import { getDataRecordFormatter, getAdhocExtraFormData } from '../../utils';
 
 type DataMaskAction =
@@ -80,8 +85,17 @@ function reducer(
 }
 
 export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
-  const { filterState, formData, height, width, setDataMask, appSection } =
-    props;
+  const {
+    filterState,
+    formData,
+    height,
+    width,
+    setDataMask,
+    setFocusedFilter,
+    unsetFocusedFilter,
+    setFilterActive,
+    appSection,
+  } = props;
   const { enableEmptyFilter, inverseSelection, defaultToFirstItem } = formData;
   const datasetId = useMemo(
     () => formData.datasource.split('_')[0],
@@ -218,17 +232,23 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
-        <AdhocFilterControl
-          columns={columns || []}
-          savedMetrics={[]}
-          datasource={datasetDetails}
-          onChange={(filters: AdhocFilter[]) => {
-            // New Adhoc Filters Selected
-            updateDataMask(filters);
-          }}
-          label={' '}
-          value={filterState.filters || []}
-        />
+        <ControlContainer
+          onMouseEnter={setFocusedFilter}
+          onMouseLeave={unsetFocusedFilter}
+          validateStatus={filterState.validateStatus}
+        >
+          <AdhocFilterControl
+            columns={columns || []}
+            savedMetrics={[]}
+            datasource={datasetDetails}
+            onChange={(filters: AdhocFilter[]) => {
+              // New Adhoc Filters Selected
+              updateDataMask(filters);
+            }}
+            label={' '}
+            value={filterState.filters || []}
+          />
+        </ControlContainer>
       </StyledFormItem>
     </FilterPluginStyle>
   );
