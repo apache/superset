@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
+import {
+  t,
+  ChartMetadata,
+  ChartPlugin,
+  Behavior,
+  QueryMode,
+} from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/Table.jpg';
@@ -51,7 +57,7 @@ const metadata = new ChartMetadata({
     t('Description'),
   ],
   thumbnail,
-  noAggregations: ({ query_mode }) => query_mode === 'raw',
+  noAggregations: ({ query_mode }) => query_mode === QueryMode.raw,
 });
 
 export default class TableChartPlugin extends ChartPlugin<
