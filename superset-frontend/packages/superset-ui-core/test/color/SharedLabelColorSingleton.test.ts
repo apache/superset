@@ -113,14 +113,6 @@ describe('SharedLabelColor', () => {
       sharedLabelColor.removeSlice(1);
       expect(sharedLabelColor.sliceLabelColorMap.has(1)).toEqual(true);
     });
-
-    it('should remove sliceId when remove map does not exist', () => {
-      const sharedLabelColor = getSharedLabelColor();
-      sharedLabelColor.addSlice('a', 'red', 1);
-      sharedLabelColor.removeSlice(2);
-      expect(sharedLabelColor.sliceLabelColorMap.has(1)).toEqual(true);
-      expect(sharedLabelColor.sliceLabelColorMap.has(2)).toEqual(false);
-    });
   });
 
   describe('.updateColorMap(namespace, scheme)', () => {

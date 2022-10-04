@@ -25,7 +25,7 @@ export enum SharedLabelColorSource {
   explore,
 }
 export class SharedLabelColor {
-  sliceLabelColorMap: Map<number, Map<string, string | undefined>>;
+  sliceLabelColorMap: Map<number, Map<string, string>>;
 
   allColorMap: Map<string, string>;
 
@@ -42,9 +42,10 @@ export class SharedLabelColor {
     const categoricalNamespace =
       CategoricalColorNamespace.getNamespace(colorNamespace);
     const colorScale = categoricalNamespace.getScale(colorScheme);
-    const newSliceLabelColorMap = new Map(this.sliceLabelColorMap);
+    colorScale.domain([...this.allColorMap.keys()]);
+    const copySliceLabelColorMap = new Map(this.sliceLabelColorMap);
     this.clear();
-    newSliceLabelColorMap.forEach((colorMap, sliceId) => {
+    copySliceLabelColorMap.forEach((colorMap, sliceId) => {
       const newColorMap = new Map();
       colorMap.forEach((_, label) => {
         const newColor = colorScale(label);
@@ -56,6 +57,12 @@ export class SharedLabelColor {
   }
 
   getColorMap() {
+    this.allColorMap.clear();
+    this.sliceLabelColorMap.forEach(colorMap => {
+      colorMap.forEach((color, label) => {
+        this.allColorMap.set(label, color);
+      });
+    });
     return Object.fromEntries(this.allColorMap);
   }
 
@@ -73,12 +80,6 @@ export class SharedLabelColor {
 
   removeSlice(sliceId: number) {
     if (this.source !== SharedLabelColorSource.dashboard) return;
-    const removeColorMap = this.sliceLabelColorMap.get(sliceId);
-    if (removeColorMap) {
-      removeColorMap.forEach((_, label) => {
-        this.allColorMap.delete(label);
-      });
-    }
     this.sliceLabelColorMap.delete(sliceId);
   }
 
