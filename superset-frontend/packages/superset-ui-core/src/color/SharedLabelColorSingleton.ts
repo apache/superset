@@ -20,15 +20,22 @@
 import { CategoricalColorNamespace } from '.';
 import { makeSingleton } from '../utils';
 
+export enum SharedLabelColorSource {
+  dashboard,
+  explore,
+}
 export class SharedLabelColor {
   sliceLabelColorMap: Map<number, Map<string, string | undefined>>;
 
   allColorMap: Map<string, string>;
 
+  source: SharedLabelColorSource;
+
   constructor() {
     // { sliceId1: { label1: color1 }, sliceId2: { label2: color2 } }
     this.sliceLabelColorMap = new Map();
     this.allColorMap = new Map();
+    this.source = SharedLabelColorSource.dashboard;
   }
 
   updateColorMap(colorNamespace?: string, colorScheme?: string) {
@@ -53,6 +60,7 @@ export class SharedLabelColor {
   }
 
   addSlice(label: string, color: string, sliceId?: number) {
+    if (this.source !== SharedLabelColorSource.dashboard) return;
     if (sliceId === undefined) return;
     let colorMap = this.sliceLabelColorMap.get(sliceId);
     if (!colorMap) {
@@ -64,6 +72,7 @@ export class SharedLabelColor {
   }
 
   removeSlice(sliceId: number) {
+    if (this.source !== SharedLabelColorSource.dashboard) return;
     const removeColorMap = this.sliceLabelColorMap.get(sliceId);
     if (removeColorMap) {
       removeColorMap.forEach((_, label) => {
