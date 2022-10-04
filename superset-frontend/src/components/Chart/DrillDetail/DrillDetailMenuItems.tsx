@@ -33,6 +33,25 @@ import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import DrillDetailModal from './DrillDetailModal';
 
+const DisabledMenuItemTooltip = ({ title }: { title: ReactNode }) => (
+  <Tooltip title={title} placement="top">
+    <Icons.InfoCircleOutlined
+      data-test="tooltip-trigger"
+      css={(theme: SupersetTheme) => css`
+        color: ${theme.colors.text.label};
+        margin-left: ${theme.gridUnit * 2}px;
+        &.anticon {
+          font-size: unset;
+          .anticon {
+            line-height: unset;
+            vertical-align: unset;
+          }
+        }
+      `}
+    />
+  </Tooltip>
+);
+
 const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
   <Menu.Item disabled {...props}>
     <div
@@ -111,29 +130,13 @@ const DrillDetailMenuItems = ({
   );
 
   const drillToDetail = noAggregations ? (
-    <DisabledMenuItem {...props} key="drill-detail-no-aggregations-message">
+    <DisabledMenuItem {...props} key="drill-detail-no-aggregations">
       {t('Drill to detail')}
-      <Tooltip
+      <DisabledMenuItemTooltip
         title={t(
           'Drill to detail is disabled because this chart does not group data by dimension value.',
         )}
-        placement="top"
-      >
-        <Icons.InfoCircleOutlined
-          data-test="no-aggregations-tooltip-trigger"
-          css={(theme: SupersetTheme) => css`
-            color: ${theme.colors.text.label};
-            margin-left: ${theme.gridUnit * 2}px;
-            &.anticon {
-              font-size: unset;
-              .anticon {
-                line-height: unset;
-                vertical-align: unset;
-              }
-            }
-          `}
-        />
-      </Tooltip>
+      />
     </DisabledMenuItem>
   ) : (
     <Menu.Item
@@ -145,61 +148,72 @@ const DrillDetailMenuItems = ({
     </Menu.Item>
   );
 
-  let drillToDetailBy = (
-    <DisabledMenuItem {...props} key="drill-detail-filters-disabled-message">
-      {t('Drill to detail by value is not yet supported for this chart type.')}
-    </DisabledMenuItem>
-  );
+  let drillToDetailBy;
+  if (noAggregations) {
+    drillToDetailBy = (
+      <DisabledMenuItem {...props} key="drill-detail-by-no-aggregations">
+        {t('Drill to detail by')}
+      </DisabledMenuItem>
+    );
+  } else {
+    drillToDetailBy = (
+      <DisabledMenuItem {...props} key="drill-detail-by-chart-not-supported">
+        {t('Drill to detail by')}
+        <DisabledMenuItemTooltip
+          title={t(
+            'Drill to detail by value is not yet supported for this chart type.',
+          )}
+        />
+      </DisabledMenuItem>
+    );
 
-  if (chartHandlesContextMenuEvent) {
-    if (filters?.length) {
-      drillToDetailBy = (
-        <>
-          {filters.map((filter, i) => (
-            <Menu.Item
-              {...props}
-              key={`drill-detail-filter-${i}`}
-              onClick={openModal.bind(null, [filter])}
-            >
-              {`${t('Drill to detail by')} `}
-              <Filter>{filter.formattedVal}</Filter>
-            </Menu.Item>
-          ))}
-          {filters.length > 1 && (
-            <Menu.Item
-              {...props}
-              key="drill-detail-filter-all"
-              onClick={openModal.bind(null, filters)}
-            >
-              {`${t('Drill to detail by')} `}
-              <Filter>{t('all')}</Filter>
-            </Menu.Item>
-          )}
-        </>
-      );
-    } else {
-      drillToDetailBy = (
-        <DisabledMenuItem {...props} key="drill-detail-no-filters-message">
-          {t(
-            'Right-click on a dimension value to drill to detail by that value.',
-          )}
-        </DisabledMenuItem>
-      );
+    if (chartHandlesContextMenuEvent) {
+      if (filters?.length) {
+        drillToDetailBy = (
+          <Menu.SubMenu {...props} title={t('Drill to detail by')}>
+            <div data-test="drill-to-detail-by-submenu">
+              {filters.map((filter, i) => (
+                <Menu.Item
+                  {...props}
+                  key={`drill-detail-filter-${i}`}
+                  onClick={openModal.bind(null, [filter])}
+                >
+                  {`${t('Drill to detail by')} `}
+                  <Filter>{filter.formattedVal}</Filter>
+                </Menu.Item>
+              ))}
+              {filters.length > 1 && (
+                <Menu.Item
+                  {...props}
+                  key="drill-detail-filter-all"
+                  onClick={openModal.bind(null, filters)}
+                >
+                  {`${t('Drill to detail by')} `}
+                  <Filter>{t('all')}</Filter>
+                </Menu.Item>
+              )}
+            </div>
+          </Menu.SubMenu>
+        );
+      } else {
+        drillToDetailBy = (
+          <DisabledMenuItem {...props} key="drill-detail-by-select-aggregation">
+            {t('Drill to detail by')}
+            <DisabledMenuItemTooltip
+              title={t(
+                'Right-click on a dimension value to drill to detail by that value.',
+              )}
+            />
+          </DisabledMenuItem>
+        );
+      }
     }
   }
 
   return (
     <>
       {drillToDetail}
-      {isContextMenu && (
-        <Menu.SubMenu
-          {...props}
-          title={t('Drill to detail by')}
-          disabled={noAggregations}
-        >
-          <div data-test="drill-to-detail-by-submenu">{drillToDetailBy}</div>
-        </Menu.SubMenu>
-      )}
+      {isContextMenu && drillToDetailBy}
       <DrillDetailModal
         chartId={chartId}
         formData={formData}
