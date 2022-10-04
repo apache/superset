@@ -62,6 +62,60 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
             self.assertEqual(response.getcode(), 202)
 
 
+class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    @patch("superset.utils.webdriver.WebDriverProxy.find_unexpected_errors")
+    def test_not_call_find_unexpected_errors_if_feature_disabled(
+        self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
+    ):
+        webdriver_proxy = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
+        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
+
+        assert not mock_find_unexpected_errors.called
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    @patch("superset.utils.webdriver.WebDriverProxy.find_unexpected_errors")
+    def test_call_find_unexpected_errors_if_feature_enabled(
+        self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
+    ):
+        app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
+        webdriver_proxy = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
+        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
+
+        assert mock_find_unexpected_errors.called
+
+        app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = False
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    def test_find_unexpected_errors(self, mock_webdriver, mock_webdriver_wait):
+        app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
+
+        webdriver_proxy = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        webdriver = webdriver_proxy.auth(user)
+        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
+        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
+
+        # there is no error in example dashboards, unexpected_errors should return 0
+        # and no error should be raised
+        unexpected_errors = webdriver_proxy.find_unexpected_errors(driver=webdriver)
+        assert len(unexpected_errors) == 0
+
+
 class TestWebDriverProxy(SupersetTestCase):
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
