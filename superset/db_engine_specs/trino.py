@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from contextlib import closing
 
 import simplejson as json
 from flask import current_app
@@ -25,6 +26,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 
+from superset import is_feature_enabled
 from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -179,6 +181,49 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return False
 
         return True
+
+    @classmethod
+    def get_table_names(
+        cls, database: Database, inspector: Inspector, schema: Optional[str]
+    ) -> List[str]:
+        tables = super().get_table_names(database, inspector, schema)
+        if not is_feature_enabled("TRINO_SPLIT_VIEWS_FROM_TABLES"):
+            return tables
+
+        views = set(cls.get_view_names(database, inspector, schema))
+        actual_tables = set(tables) - views
+        return list(actual_tables)
+
+    @classmethod
+    def get_view_names(
+        cls, database: Database, inspector: Inspector, schema: Optional[str]
+    ) -> List[str]:
+        """Returns an empty list
+
+        get_table_names() function returns all table names and view names,
+        and get_view_names() is not implemented in sqlalchemy_presto.py
+        https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
+        """
+        if not is_feature_enabled("TRINO_SPLIT_VIEWS_FROM_TABLES"):
+            return []
+
+        if schema:
+            sql = (
+                "SELECT table_name FROM information_schema.views "
+                "WHERE table_schema=%(schema)s"
+            )
+            params = {"schema": schema}
+        else:
+            sql = "SELECT table_name FROM information_schema.views"
+            params = {}
+
+        engine = cls.get_engine(database, schema=schema)
+        with closing(engine.raw_connection()) as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            results = cursor.fetchall()
+
+        return [row[0] for row in results]
 
     @staticmethod
     def get_extra_params(database: Database) -> Dict[str, Any]:

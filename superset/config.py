@@ -754,6 +754,7 @@ LANGUAGES = {}
 DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # allow dashboard to use sub-domains to send chart request
     # you also need ENABLE_CORS and
+    "TRINO_SPLIT_VIEWS_FROM_TABLES": False,
     # SUPERSET_WEBSERVER_DOMAINS for list of domains
     "ALLOW_DASHBOARD_DOMAIN_SHARDING": True,
     # Experimental feature introducing a client (browser) cache
