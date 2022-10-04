@@ -370,6 +370,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     ) => {
       if (onContextMenu) {
         e.preventDefault();
+        e.stopPropagation();
         const filters: QueryObjectFilterClause[] = [];
         if (colKey && colKey.length > 1) {
           colKey.forEach((val, i) => {
