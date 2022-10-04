@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import ColorSchemeControl from '.';
+import ColorSchemeControl, { ColorSchemes } from '.';
 
 const defaultProps = {
   hasCustomLabelColors: false,
@@ -28,7 +28,7 @@ const defaultProps = {
   value: 'supersetDefault',
   clearable: true,
   choices: [],
-  schemes: () => null,
+  schemes: () => ({} as ColorSchemes),
   isLinear: false,
 };
 

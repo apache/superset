@@ -60,18 +60,21 @@ describe('SharedLabelColor', () => {
   });
 
   describe('.addSlice(value, color, sliceId)', () => {
-    it('should add to valueSliceMap when first adding label', () => {
+    it('should add to sliceLabelColorMap when first adding label', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
-      expect(sharedLabelColor.sliceLabelColorMap).toHaveProperty('1', {
-        a: 'red',
-      });
+      expect(sharedLabelColor.sliceLabelColorMap.has(1)).toEqual(true);
+      const colorMap = sharedLabelColor.sliceLabelColorMap.get(1);
+      expect(colorMap?.has('a')).toEqual(true);
+      expect(colorMap?.get('a')).toEqual('red');
     });
 
     it('should do nothing when sliceId is undefined', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red');
-      expect(sharedLabelColor.sliceLabelColorMap).toEqual({});
+      expect(Object.fromEntries(sharedLabelColor.sliceLabelColorMap)).toEqual(
+        {},
+      );
     });
   });
 
@@ -80,7 +83,9 @@ describe('SharedLabelColor', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.removeSlice(1);
-      expect(sharedLabelColor.sliceLabelColorMap).toEqual({});
+      expect(Object.fromEntries(sharedLabelColor.sliceLabelColorMap)).toEqual(
+        {},
+      );
     });
   });
 

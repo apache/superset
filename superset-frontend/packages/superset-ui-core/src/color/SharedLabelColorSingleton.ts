@@ -21,59 +21,61 @@ import { CategoricalColorNamespace } from '.';
 import { makeSingleton } from '../utils';
 
 export class SharedLabelColor {
-  sliceLabelColorMap: Record<number, Record<string, string | undefined>>;
+  sliceLabelColorMap: Map<number, Map<string, string | undefined>>;
+
+  allColorMap: Map<string, string>;
 
   constructor() {
     // { sliceId1: { label1: color1 }, sliceId2: { label2: color2 } }
-    this.sliceLabelColorMap = {};
+    this.sliceLabelColorMap = new Map();
+    this.allColorMap = new Map();
   }
 
   updateColorMap(colorNamespace?: string, colorScheme?: string) {
     const categoricalNamespace =
       CategoricalColorNamespace.getNamespace(colorNamespace);
     const colorScale = categoricalNamespace.getScale(colorScheme);
-    const newSliceLabelColorMap = {};
-    Object.keys(this.sliceLabelColorMap).forEach(sliceId => {
-      Object.keys(this.sliceLabelColorMap[sliceId]).forEach(label => {
-        newSliceLabelColorMap[sliceId] = {
-          ...newSliceLabelColorMap[sliceId],
-          [label]: colorScale(label),
-        };
+    const newSliceLabelColorMap = new Map(this.sliceLabelColorMap);
+    this.clear();
+    newSliceLabelColorMap.forEach((colorMap, sliceId) => {
+      const newColorMap = new Map();
+      colorMap.forEach((_, label) => {
+        const newColor = colorScale(label);
+        newColorMap.set(label, newColor);
+        this.allColorMap.set(label, newColor);
       });
+      this.sliceLabelColorMap.set(sliceId, newColorMap);
     });
-    this.sliceLabelColorMap = newSliceLabelColorMap;
   }
 
   getColorMap() {
-    return Object.keys(this.sliceLabelColorMap).reduce(
-      (res, sliceId) => ({
-        ...res,
-        ...Object.keys(this.sliceLabelColorMap[sliceId]).reduce(
-          (res, label) => ({
-            ...res,
-            [label]: this.sliceLabelColorMap[sliceId][label],
-          }),
-          {},
-        ),
-      }),
-      {} as Record<string, string>,
-    );
+    return Object.fromEntries(this.allColorMap);
   }
 
   addSlice(label: string, color: string, sliceId?: number) {
-    if (!sliceId) return;
-    this.sliceLabelColorMap[sliceId] = {
-      ...this.sliceLabelColorMap[sliceId],
-      [label]: color,
-    };
+    if (sliceId === undefined) return;
+    let colorMap = this.sliceLabelColorMap.get(sliceId);
+    if (!colorMap) {
+      colorMap = new Map();
+    }
+    colorMap.set(label, color);
+    this.sliceLabelColorMap.set(sliceId, colorMap);
+    this.allColorMap.set(label, color);
   }
 
   removeSlice(sliceId: number) {
-    delete this.sliceLabelColorMap[sliceId];
+    const removeColorMap = this.sliceLabelColorMap.get(sliceId);
+    if (removeColorMap) {
+      removeColorMap.forEach((_, label) => {
+        this.allColorMap.delete(label);
+      });
+    }
+    this.sliceLabelColorMap.delete(sliceId);
   }
 
   clear() {
-    this.sliceLabelColorMap = {};
+    this.sliceLabelColorMap.clear();
+    this.allColorMap.clear();
   }
 }
 

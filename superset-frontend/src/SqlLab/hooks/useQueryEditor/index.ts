@@ -16,28 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
-import React from 'react';
-import { Select } from 'src/components';
-import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-import { styledMount as mount } from 'spec/helpers/theming';
-import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
+import pick from 'lodash/pick';
+import { shallowEqual, useSelector } from 'react-redux';
+import { SqlLabRootState, QueryEditor } from 'src/SqlLab/types';
 
-const defaultProps = {
-  name: 'color_scheme',
-  label: 'Color Scheme',
-  options: getCategoricalSchemeRegistry()
-    .keys()
-    .map(s => [s, s]),
-};
-
-describe('ColorSchemeControl', () => {
-  let wrapper;
-  beforeEach(() => {
-    wrapper = mount(<ColorSchemeControl {...defaultProps} />);
-  });
-
-  it('renders a Select', () => {
-    expect(wrapper.find(Select)).toExist();
-  });
-});
+export default function useQueryEditor<T extends keyof QueryEditor>(
+  sqlEditorId: string,
+  attributes: ReadonlyArray<T>,
+) {
+  return useSelector<SqlLabRootState, Pick<QueryEditor, T | 'id'>>(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) =>
+      pick(
+        {
+          ...queryEditors.find(({ id }) => id === sqlEditorId),
+          ...(sqlEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+        },
+        ['id'].concat(attributes),
+      ) as Pick<QueryEditor, T | 'id'>,
+    shallowEqual,
+  );
+}

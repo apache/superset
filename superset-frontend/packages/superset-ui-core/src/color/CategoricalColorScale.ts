@@ -67,10 +67,11 @@ class CategoricalColorScale extends ExtensibleFunction {
     const cleanedValue = stringifyAndTrim(value);
     const sharedLabelColor = getSharedLabelColor();
 
-    // priority: parentForcedColors > forcedColors
+    // priority: parentForcedColors > forcedColors > labelColors
     let color =
       this.parentForcedColors?.[cleanedValue] ||
-      this.forcedColors?.[cleanedValue];
+      this.forcedColors?.[cleanedValue] ||
+      sharedLabelColor.allColorMap.get(cleanedValue);
 
     if (!color) {
       if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {

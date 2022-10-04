@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { mount } from 'enzyme';
+import { render } from 'spec/helpers/testing-library';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
@@ -47,6 +48,13 @@ import {
   table,
   defaultQueryEditor,
 } from 'src/SqlLab/fixtures';
+
+jest.mock('src/components/AsyncAceEditor', () => ({
+  ...jest.requireActual('src/components/AsyncAceEditor'),
+  FullSQLEditor: props => (
+    <div data-test="react-ace">{JSON.stringify(props)}</div>
+  ),
+}));
 
 const MOCKED_SQL_EDITOR_HEIGHT = 500;
 
@@ -78,6 +86,12 @@ const store = mockStore({
     },
   },
 });
+
+const setup = (props = {}, store) =>
+  render(<SqlEditor {...props} />, {
+    useRedux: true,
+    ...(store && { store }),
+  });
 
 describe('SqlEditor', () => {
   const mockedProps = {
@@ -118,21 +132,61 @@ describe('SqlEditor', () => {
     const wrapper = buildWrapper(updatedProps);
     expect(wrapper.find(EmptyStateBig)).toExist();
   });
+
   it('render a SqlEditorLeftBar', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(SqlEditorLeftBar)).toExist();
   });
+
   it('render an AceEditorWrapper', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(AceEditorWrapper)).toExist();
   });
+
+  it('renders sql from unsaved change', () => {
+    const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
+    const { getByTestId } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          databases: {
+            dbid1: {
+              allow_ctas: false,
+              allow_cvas: false,
+              allow_dml: false,
+              allow_file_upload: false,
+              allow_run_async: false,
+              backend: 'postgresql',
+              database_name: 'examples',
+              expose_in_sqllab: true,
+              force_ctas_schema: null,
+              id: 1,
+            },
+          },
+          unsavedQueryEditor: {
+            id: defaultQueryEditor.id,
+            dbId: 'dbid1',
+            sql: expectedSql,
+          },
+        },
+      }),
+    );
+
+    expect(getByTestId('react-ace')).toHaveTextContent(
+      JSON.stringify({ value: expectedSql }).slice(1, -1),
+    );
+  });
+
   it('render a SouthPane', async () => {
     const wrapper = buildWrapper();
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConnectedSouthPane)).toExist();
   });
+
   // TODO eschutho convert tests to RTL
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('does not overflow the editor window', async () => {
@@ -146,6 +200,7 @@ describe('SqlEditor', () => {
       SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(MOCKED_SQL_EDITOR_HEIGHT);
   });
+
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip('does not overflow the editor window after resizing', async () => {
     const wrapper = buildWrapper();
@@ -159,6 +214,7 @@ describe('SqlEditor', () => {
       SQL_EDITOR_GUTTER_HEIGHT;
     expect(totalSize).toEqual(450);
   });
+
   it('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };

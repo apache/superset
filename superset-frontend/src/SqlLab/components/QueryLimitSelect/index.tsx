@@ -17,16 +17,16 @@
  * under the License.
  */
 import React from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { styled, useTheme } from '@superset-ui/core';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
-import { SqlLabRootState, QueryEditor } from 'src/SqlLab/types';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 export interface QueryLimitSelectProps {
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   maxRow: number;
   defaultQueryLimit: number;
 }
@@ -79,19 +79,12 @@ function renderQueryLimit(
 }
 
 const QueryLimitSelect = ({
-  queryEditor,
+  queryEditorId,
   maxRow,
   defaultQueryLimit,
 }: QueryLimitSelectProps) => {
-  const queryLimit = useSelector<SqlLabRootState, number>(
-    ({ sqlLab: { unsavedQueryEditor } }) => {
-      const updatedQueryEditor = {
-        ...queryEditor,
-        ...(unsavedQueryEditor.id === queryEditor.id && unsavedQueryEditor),
-      };
-      return updatedQueryEditor.queryLimit || defaultQueryLimit;
-    },
-  );
+  const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
+  const queryLimit = queryEditor.queryLimit || defaultQueryLimit;
   const dispatch = useDispatch();
   const setQueryLimit = (updatedQueryLimit: number) =>
     dispatch(queryEditorSetQueryLimit(queryEditor, updatedQueryLimit));
