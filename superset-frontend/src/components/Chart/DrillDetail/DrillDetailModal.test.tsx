@@ -48,7 +48,7 @@ const renderModal = async () => {
         <DrillDetailModal
           chartId={chartId}
           formData={formData}
-          filters={[]}
+          initialFilters={[]}
           showModal={showModal}
           onHideModal={() => setShowModal(false)}
         />

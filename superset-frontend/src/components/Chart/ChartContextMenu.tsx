@@ -29,7 +29,7 @@ import {
   BinaryQueryObjectFilterClause,
   FeatureFlag,
   isFeatureEnabled,
-  SqlaFormData,
+  QueryFormData,
 } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
@@ -42,7 +42,7 @@ const MENU_VERTICAL_SPACING = 32;
 
 export interface ChartContextMenuProps {
   id: number;
-  formData: SqlaFormData;
+  formData: QueryFormData;
   onSelection: () => void;
   onClose: () => void;
 }

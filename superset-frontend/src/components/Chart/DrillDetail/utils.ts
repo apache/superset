@@ -20,8 +20,8 @@ import { omit } from 'lodash';
 import {
   ensureIsArray,
   QueryFormData,
-  buildQueryObject,
   BinaryQueryObjectFilterClause,
+  buildQueryObject,
 } from '@superset-ui/core';
 
 export function getDrillPayload(
@@ -44,5 +44,3 @@ export function getDrillPayload(
     extras,
   };
 }
-
-export const getDrillDetailMenuItemsCount = () => 2;

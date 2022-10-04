@@ -22,7 +22,7 @@ import { useHistory } from 'react-router-dom';
 import {
   BinaryQueryObjectFilterClause,
   css,
-  SqlaFormData,
+  QueryFormData,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -56,8 +56,8 @@ const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
 
 interface DrillDetailModalProps {
   chartId: number;
-  formData: SqlaFormData;
-  filters: BinaryQueryObjectFilterClause[];
+  formData: QueryFormData;
+  initialFilters: BinaryQueryObjectFilterClause[];
   showModal: boolean;
   onHideModal: () => void;
 }
@@ -65,7 +65,7 @@ interface DrillDetailModalProps {
 export default function DrillDetailModal({
   chartId,
   formData,
-  filters,
+  initialFilters,
   showModal,
   onHideModal,
 }: DrillDetailModalProps) {
@@ -111,7 +111,7 @@ export default function DrillDetailModal({
       draggable
       destroyOnClose
     >
-      <DrillDetailPane formData={formData} initialFilters={filters} />
+      <DrillDetailPane formData={formData} initialFilters={initialFilters} />
     </Modal>
   );
 }

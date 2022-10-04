@@ -23,7 +23,7 @@ import {
   BinaryQueryObjectFilterClause,
   css,
   getChartMetadataRegistry,
-  SqlaFormData,
+  QueryFormData,
   styled,
   SupersetTheme,
   t,
@@ -55,7 +55,7 @@ const Filter = styled.span`
 
 export type DrillDetailMenuItemsProps = {
   chartId: number;
-  formData: SqlaFormData;
+  formData: QueryFormData;
   filters: BinaryQueryObjectFilterClause[];
   isContextMenu?: boolean;
   onSelection?: () => void;
@@ -203,7 +203,7 @@ const DrillDetailMenuItems = ({
       <DrillDetailModal
         chartId={chartId}
         formData={formData}
-        filters={modalFilters}
+        initialFilters={modalFilters}
         showModal={showModal}
         onHideModal={closeModal}
       />
