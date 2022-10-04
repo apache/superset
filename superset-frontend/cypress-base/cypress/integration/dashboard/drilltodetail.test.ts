@@ -196,8 +196,17 @@ describe('Drill to detail modal', () => {
 
         cy.getBySel('filter-val').should('not.exist');
 
-        // TODO(geido): opens the modal by clicking on the trendline
-        // proved to be flaky, requires deeper investigation
+        closeModal();
+
+        // opens the modal by clicking on the trendline
+        cy.get("[data-test-viz-type='big_number'] canvas").then($canvas => {
+          cy.wrap($canvas).scrollIntoView().click(1, 14).rightclick(1, 14);
+
+          openModalFromChartContext('Drill to detail by 1965');
+
+          // checking the filter
+          cy.getBySel('filter-val').should('contain', '1965');
+        });
       });
     });
 
