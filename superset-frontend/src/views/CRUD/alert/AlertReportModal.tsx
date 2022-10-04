@@ -521,8 +521,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             !email.includes('@ext.careem.com'),
         );
 
-        console.log(invalidEmails);
-
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,

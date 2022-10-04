@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState } from 'react';
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -69,7 +69,7 @@ interface NotificationMethodProps {
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
-  invalid: boolean;
+  invalid?: boolean;
 }
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
@@ -83,7 +83,15 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
-  const [invalidEmail, setInvalidEmail] = useState<boolean>(invalid);
+  const [invalidEmail, setInvalidEmail] = useState<boolean | null>(
+    invalid || null,
+  );
+
+  useEffect(() => {
+    if (invalid) {
+      setInvalidEmail(invalid);
+    }
+  }, [invalid]);
   const theme = useTheme();
 
   if (!setting) {
@@ -92,6 +100,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
 
   const onMethodChange = (method: NotificationMethodOption) => {
     // Since we're swapping the method, reset the recipients
+    setInvalidEmail(false);
     setRecipientValue('');
     if (onUpdate) {
       const updatedSetting = {
@@ -108,7 +117,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
     const { target } = event;
-    setInvalidEmail(false);
     setRecipientValue(target.value);
 
     if (onUpdate) {
@@ -162,13 +170,13 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="control-label">{t(method)}</div>
           <div className="input-container">
             <textarea
-              className={invalid ? 'prominent-error-input' : ''}
+              className={invalidEmail ? 'prominent-error-input' : ''}
               name="recipients"
               value={recipientValue}
               onChange={onRecipientsChange}
             />
           </div>
-          {invalidEmail || invalid ? (
+          {invalidEmail ? (
             <div className="error-text">
               {t(
                 'Email must contain careem domain e.g abc@careem.com OR abc@ext.careem.com',
