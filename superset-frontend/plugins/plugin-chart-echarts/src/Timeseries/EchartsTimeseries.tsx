@@ -26,6 +26,7 @@ import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
 import { currentSeries } from '../utils/series';
 import { ExtraControls } from '../components/ExtraControls';
+import { NULL_STRING } from '../constants';
 
 const TIMER_DURATION = 300;
 
@@ -187,16 +188,16 @@ export default function EchartsTimeseries({
           filters.push({
             col: formData.granularitySqla,
             grain: formData.timeGrainSqla,
-            op: '==',
-            val: data[0],
             formattedVal: xValueFormatter(data[0]),
+            ...(data[0] ? { op: '==', val: data[0] } : { op: 'IS NULL' }),
           });
           formData.groupby.forEach((dimension, i) =>
             filters.push({
               col: dimension,
-              op: '==',
-              val: values[i],
               formattedVal: String(values[i]),
+              ...(eventParams.seriesName === NULL_STRING
+                ? { op: 'IS NULL' }
+                : { op: '==', val: values[i] }),
             }),
           );
           onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);

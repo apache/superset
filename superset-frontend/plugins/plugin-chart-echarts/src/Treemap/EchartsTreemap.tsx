@@ -96,9 +96,10 @@ export default function EchartsTreemap({
           treePath.forEach((path, i) =>
             filters.push({
               col: groupby[i],
-              op: '==',
-              val: path,
               formattedVal: path,
+              ...(path === 'null'
+                ? { op: 'IS NULL' }
+                : { op: '==', val: path }),
             }),
           );
           onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);

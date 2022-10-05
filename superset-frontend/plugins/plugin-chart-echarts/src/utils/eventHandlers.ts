@@ -54,9 +54,8 @@ export const contextMenuEventHandler =
         groupby.forEach((dimension, i) =>
           filters.push({
             col: dimension,
-            op: '==',
-            val: values[i],
             formattedVal: String(values[i]),
+            ...(values[i] ? { op: '==', val: values[i] } : { op: 'IS NULL' }),
           }),
         );
       }

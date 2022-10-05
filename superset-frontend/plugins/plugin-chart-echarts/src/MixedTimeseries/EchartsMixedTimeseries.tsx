@@ -22,6 +22,7 @@ import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 import { currentSeries } from '../utils/series';
+import { NULL_STRING } from '../constants';
 
 export default function EchartsMixedTimeseries({
   height,
@@ -123,16 +124,16 @@ export default function EchartsMixedTimeseries({
           filters.push({
             col: formData.granularitySqla,
             grain: formData.timeGrainSqla,
-            op: '==',
-            val: data[0],
             formattedVal: xValueFormatter(data[0]),
+            ...(data[0] ? { op: '==', val: data[0] } : { op: 'IS NULL' }),
           });
           groupby.forEach((dimension, i) =>
             filters.push({
               col: dimension,
-              op: '==',
-              val: values[i],
               formattedVal: String(values[i]),
+              ...(eventParams.seriesName === NULL_STRING
+                ? { op: 'IS NULL' }
+                : { op: '==', val: values[i] }),
             }),
           );
           onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);

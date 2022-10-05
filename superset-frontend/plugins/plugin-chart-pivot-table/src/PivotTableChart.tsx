@@ -379,9 +379,8 @@ export default function PivotTableChart(props: PivotTableProps) {
             if (i > 0) {
               filters.push({
                 col,
-                op: '==',
-                val,
                 formattedVal,
+                ...(val ? { val, op: '==' } : { op: 'IS NULL' }),
               });
             }
           });
@@ -393,9 +392,8 @@ export default function PivotTableChart(props: PivotTableProps) {
               dateFormatters[col]?.(val as number) || String(val);
             filters.push({
               col,
-              op: '==',
-              val,
               formattedVal,
+              ...(val ? { val, op: '==' } : { op: 'IS NULL' }),
             });
           });
         }
