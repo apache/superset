@@ -267,7 +267,7 @@ class QueryContextProcessor:
             and hasattr(datasource, "get_column")
             and (col := datasource.get_column(label))
             # todo(hugh) standardize column object in Query datasource
-            and (col.get('is_dttm') if isinstance(col, dict) else col.is_dttm)
+            and (col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
         )
         dttm_cols = [
             DateColumn(
