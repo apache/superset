@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Treemap', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const TREEMAP_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'treemap',
@@ -41,11 +46,6 @@ describe('Visualization > Treemap', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work', () => {
     verify(TREEMAP_FORM_DATA);
@@ -82,6 +82,8 @@ describe('Visualization > Treemap', () => {
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
+    verify(TREEMAP_FORM_DATA);
+
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()
