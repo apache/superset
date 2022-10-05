@@ -390,7 +390,7 @@ const config: ControlPanelConfig = {
         [
           isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
             ? {
-                name: 'table_filter',
+                name: 'emitFilter',
                 config: {
                   type: 'CheckboxControl',
                   label: t('Emit dashboard cross filters'),
