@@ -29,6 +29,7 @@ import simplejson as json
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as __
+from psycopg2.errors import SyntaxError
 from sqlalchemy.orm import Session
 
 from superset import (
@@ -81,6 +82,10 @@ class SqlLabSecurityException(SqlLabException):
 
 
 class SqlLabQueryStoppedException(SqlLabException):
+    pass
+
+
+class SqlUserError(SyntaxError):
     pass
 
 
@@ -204,6 +209,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
+    print('in 1')
     parsed_query = ParsedQuery(sql_statement)
     if is_feature_enabled("RLS_IN_SQLLAB"):
         # Insert any applicable RLS predicates
@@ -303,6 +309,14 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                     sqllab_timeout=SQLLAB_TIMEOUT,
                 ),
                 error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        ) from ex
+    except SqlUserError as ex:
+        raise SupersetErrorException(
+            SupersetError(
+                message=ex,
+                error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
             )
         ) from ex
@@ -494,6 +508,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             query.set_extra_json_key("progress", msg)
             session.commit()
             try:
+                print('calling execute_sql_statement')
                 result_set = execute_sql_statement(
                     statement,
                     query,
@@ -506,6 +521,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
             except Exception as ex:  # pylint: disable=broad-except
+                print('in exc')
+                print(ex)
+                raise ex
                 msg = str(ex)
                 prefix_message = (
                     f"[Statement {i+1} out of {statement_count}]"
