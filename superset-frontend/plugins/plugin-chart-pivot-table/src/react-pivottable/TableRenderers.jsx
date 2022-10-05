@@ -463,7 +463,7 @@ export class TableRenderer extends React.Component {
               true,
             )}
           >
-            {t(`Subtotal`)}
+            {t('Subtotal')}
           </th>,
         );
       }
@@ -659,7 +659,7 @@ export class TableRenderer extends React.Component {
             true,
           )}
         >
-          {t(`Subtotal`)}
+          {t('Subtotal')}
         </th>
       ) : null;
 
