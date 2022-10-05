@@ -29,7 +29,6 @@ import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
-import { newQueryTabName } from '../../utils/newQueryTabName';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -242,10 +241,7 @@ class TabbedSqlEditors extends React.PureComponent {
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
         );
 
-    const newTitle = newQueryTabName(this.props.queryEditors || []);
-
     const qe = {
-      name: newTitle,
       dbId:
         activeQueryEditor && activeQueryEditor.dbId
           ? activeQueryEditor.dbId
@@ -255,7 +251,7 @@ class TabbedSqlEditors extends React.PureComponent {
       sql: `${warning}SELECT ...`,
       queryLimit: this.props.defaultQueryLimit,
     };
-    this.props.actions.addQueryEditor(qe);
+    this.props.actions.addNewQueryEditor(qe);
   }
 
   handleSelect(key) {

@@ -22,6 +22,7 @@ import thunk from 'redux-thunk';
 import URI from 'urijs';
 import { Provider } from 'react-redux';
 import { shallow, mount } from 'enzyme';
+import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import sinon from 'sinon';
 import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
@@ -101,6 +102,11 @@ describe('TabbedSqlEditors', () => {
         },
       );
     });
+  const setup = (props = {}, overridesStore) =>
+    render(<TabbedSqlEditors {...props} />, {
+      useRedux: true,
+      store: overridesStore || store,
+    });
 
   let wrapper;
   it('is valid', () => {
@@ -163,23 +169,32 @@ describe('TabbedSqlEditors', () => {
       wrapper.instance().props.actions.removeQueryEditor.getCall(0).args[0],
     ).toBe(queryEditors[0]);
   });
-  it('should add new query editor', () => {
-    wrapper = getWrapper();
-    sinon.stub(wrapper.instance().props.actions, 'addQueryEditor');
-
-    wrapper.instance().newQueryEditor();
-    expect(
-      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].name,
-    ).toContain('Untitled Query');
+  it('should add new query editor', async () => {
+    const { getAllByLabelText } = setup(mockedProps);
+    fireEvent.click(getAllByLabelText('Add tab')[0]);
+    const actions = store.getActions();
+    await waitFor(() =>
+      expect(actions).toContainEqual({
+        type: 'ADD_QUERY_EDITOR',
+        queryEditor: expect.objectContaining({
+          name: expect.stringMatching(/Untitled Query (\d+)+/),
+        }),
+      }),
+    );
   });
-  it('should properly increment query tab name', () => {
-    wrapper = getWrapper();
-    sinon.stub(wrapper.instance().props.actions, 'addQueryEditor');
-    const newTitle = newQueryTabName(wrapper.instance().props.queryEditors);
-    wrapper.instance().newQueryEditor();
-    expect(
-      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].name,
-    ).toContain(newTitle);
+  it('should properly increment query tab name', async () => {
+    const { getAllByLabelText } = setup(mockedProps);
+    const newTitle = newQueryTabName(store.getState().sqlLab.queryEditors);
+    fireEvent.click(getAllByLabelText('Add tab')[0]);
+    const actions = store.getActions();
+    await waitFor(() =>
+      expect(actions).toContainEqual({
+        type: 'ADD_QUERY_EDITOR',
+        queryEditor: expect.objectContaining({
+          name: newTitle,
+        }),
+      }),
+    );
   });
   it('should duplicate query editor', () => {
     wrapper = getWrapper();
