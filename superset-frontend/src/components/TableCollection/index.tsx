@@ -292,9 +292,9 @@ export default React.memo(
                 {row.cells.map(cell => {
                   if (cell.column.hidden) return null;
                   const columnCellProps = cell.column.cellProps || {};
-                  const isWrapText =
-                    columnsForWrapText &&
-                    columnsForWrapText.includes(cell.column.Header as string);
+                  const isWrapText = columnsForWrapText?.includes(
+                    cell.column.Header as string,
+                  );
 
                   return (
                     <td

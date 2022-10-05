@@ -53,6 +53,7 @@ describe('Tabs', () => {
     editMode: false,
     availableColumnCount: 12,
     columnWidth: 50,
+    dashboardId: 1,
     onResizeStart() {},
     onResize() {},
     onResizeStop() {},
@@ -201,5 +202,16 @@ describe('Tabs', () => {
     wrapper.find('.ant-tabs-tab-remove').at(0).simulate('click');
     expect(modalMock.mock.calls).toHaveLength(1);
     expect(deleteComponent.callCount).toBe(0);
+  });
+
+  it('should set new tab key if dashboardId was changed', () => {
+    const wrapper = shallow(<Tabs {...props} />);
+    expect(wrapper.state('activeKey')).toBe('TAB_ID');
+    wrapper.setProps({
+      ...props,
+      dashboardId: 2,
+      component: dashboardLayoutWithTabs.present.TAB_ID,
+    });
+    expect(wrapper.state('activeKey')).toBe('ROW_ID');
   });
 });

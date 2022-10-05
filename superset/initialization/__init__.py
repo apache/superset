@@ -49,6 +49,7 @@ from superset.extensions import (
 )
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
+from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -425,6 +426,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         flask_app_mutator = self.config["FLASK_APP_MUTATOR"]
         if flask_app_mutator:
             flask_app_mutator(self.superset_app)
+
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            register_sqla_event_listeners()
 
         self.init_views()
 

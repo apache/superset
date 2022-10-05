@@ -22,7 +22,6 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   QueryColumn,
-  QueryResponse,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
@@ -39,8 +38,9 @@ import {
   ColumnOption,
   ColumnMeta,
   FilterOption,
+  temporalColumnMixin,
 } from '..';
-import { xAxisControlConfig } from './constants';
+import { xAxisMixin } from './mixins';
 
 type Control = {
   savedMetrics?: Metric[] | null;
@@ -77,10 +77,8 @@ export const dndGroupByControl: SharedControlConfig<
   valueKey: 'column_name',
   allowAll: true,
   filterOption: ({ data: opt }: FilterOption<ColumnMeta>, text: string) =>
-    (opt.column_name &&
-      opt.column_name.toLowerCase().includes(text.toLowerCase())) ||
-    (opt.verbose_name &&
-      opt.verbose_name.toLowerCase().includes(text.toLowerCase())) ||
+    opt.column_name?.toLowerCase().includes(text.toLowerCase()) ||
+    opt.verbose_name?.toLowerCase().includes(text.toLowerCase()) ||
     false,
   promptTextCreator: (label: unknown) => label,
   mapStateToProps(state, controlState) {
@@ -231,6 +229,7 @@ export const dndSecondaryMetricControl: typeof dndAdhocMetricControl = {
 
 export const dndGranularitySqlaControl: typeof dndSeriesControl = {
   ...dndSeriesControl,
+  ...temporalColumnMixin,
   label: TIME_FILTER_LABELS.granularity_sqla,
   description: t(
     'The time column for the visualization. Note that you ' +
@@ -247,33 +246,11 @@ export const dndGranularitySqlaControl: typeof dndSeriesControl = {
   optionRenderer: (c: ColumnMeta) => <ColumnOption showType column={c} />,
   valueRenderer: (c: ColumnMeta) => <ColumnOption column={c} />,
   valueKey: 'column_name',
-  mapStateToProps: ({ datasource }) => {
-    if (datasource?.columns[0]?.hasOwnProperty('column_name')) {
-      const temporalColumns =
-        (datasource as Dataset)?.columns?.filter(c => c.is_dttm) ?? [];
-      return {
-        options: temporalColumns,
-        default:
-          (datasource as Dataset)?.main_dttm_col ||
-          temporalColumns[0]?.column_name ||
-          null,
-        isTemporal: true,
-      };
-    }
-    const sortedQueryColumns = (datasource as QueryResponse)?.columns?.sort(
-      query => (query?.is_dttm ? -1 : 1),
-    );
-    return {
-      options: sortedQueryColumns,
-      default: sortedQueryColumns[0]?.name || null,
-      isTemporal: true,
-    };
-  },
 };
 
 export const dndXAxisControl: typeof dndGroupByControl = {
   ...dndGroupByControl,
-  ...xAxisControlConfig,
+  ...xAxisMixin,
 };
 
 export function withDndFallback(

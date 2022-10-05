@@ -227,10 +227,8 @@ export function createErrorHandler(
     const errorsArray = parsedError?.errors;
     const config = await SupersetText;
     if (
-      errorsArray &&
-      errorsArray.length &&
-      config &&
-      config.ERRORS &&
+      errorsArray?.length &&
+      config?.ERRORS &&
       errorsArray[0].error_type in config.ERRORS
     ) {
       parsedError.message = config.ERRORS[errorsArray[0].error_type];

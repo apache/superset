@@ -60,6 +60,8 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+    healthcheck:
+      disable: true
 
   superset-worker:
     image: *superset-image
@@ -70,6 +72,8 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+    healthcheck:
+      test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
 
   superset-worker-beat:
     image: *superset-image
@@ -80,6 +84,8 @@ services:
     depends_on: *superset-depends-on
     user: "root"
     volumes: *superset-volumes
+    healthcheck:
+      disable: true
 
 volumes:
   superset_home:
