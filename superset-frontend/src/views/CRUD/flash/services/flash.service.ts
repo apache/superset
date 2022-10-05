@@ -48,3 +48,6 @@ export const updateFlash = (
 
 export const removeFlash = (id: number): Promise<any> =>
   FlashClient.delete<FlashServiceObject>(`v1/flash/${id}`);
+
+  export const validateSqlQuery = (payload: FlashUpdateQuery): Promise<any> =>
+  FlashClient.post<any>('v1/flash/sql/validate', payload);

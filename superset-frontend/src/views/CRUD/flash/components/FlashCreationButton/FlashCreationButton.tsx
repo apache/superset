@@ -39,7 +39,11 @@ import { useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { createFlash, fetchDatabases } from '../../services/flash.service';
+import {
+  createFlash,
+  fetchDatabases,
+  validateSqlQuery,
+} from '../../services/flash.service';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -370,6 +374,24 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     }
   };
 
+  const validateQuery = async (sql: string): Promise<any> => {
+    let payload = {
+      sqlQuery: sql,
+    };
+    return await validateSqlQuery(payload)
+      .then(({ data }) => {
+        console.log('query validation ===', data);
+        if (data && data?.valid === true) {
+          saveModal?.current?.open({ preventDefault: () => {} });
+        } else {
+          addDangerToast(t('Please Add a valid Sql Query', data?.message));
+        }
+      })
+      .catch(error => {
+        addDangerToast(t('Please Add a valid Sql Query', error?.data?.message));
+      });
+  };
+
   const renderModalBody = () => (
     <Form layout="vertical">
       <Row>
@@ -418,6 +440,12 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
             disabled={!canCreateFlashObject}
             buttonSize="small"
             buttonStyle="primary"
+            onClick={e => {
+              e.stopPropagation();
+              if (sql) {
+                validateQuery(sql);
+              }
+            }}
           >
             <Icons.PlusOutlined iconSize="l" />
             {t('Create Flash Object')}
