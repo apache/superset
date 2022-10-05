@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SqlaFormData } from '../../query';
+import { QueryFormData } from '@superset-ui/core';
 import { Behavior, ChartLabel } from '../types/Base';
 
 interface LookupTable {
@@ -50,7 +50,7 @@ export interface ChartMetadataConfig {
   label?: ChartLabel | null;
   labelExplanation?: string | null;
   queryObjectCount?: number;
-  noAggregations?: (formData: SqlaFormData) => boolean;
+  noAggregations?: (formData: QueryFormData) => boolean;
 }
 
 export default class ChartMetadata {
@@ -95,7 +95,7 @@ export default class ChartMetadata {
   //  Optional function allowing a chart to indicate if its current configuration
   //  lacks data aggregations (e.g. to determine if Drill to Detail should be
   //  enabled)
-  noAggregations?: (formData: SqlaFormData) => boolean;
+  noAggregations?: (formData: QueryFormData) => boolean;
 
   constructor(config: ChartMetadataConfig) {
     const {
