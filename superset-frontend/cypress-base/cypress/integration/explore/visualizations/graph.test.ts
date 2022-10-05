@@ -27,6 +27,11 @@ type adhocFilter = {
 };
 
 describe('Visualization > Graph', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+  });
+
   const GRAPH_FORM_DATA = {
     datasource: '1__table',
     viz_type: 'graph_chart',
@@ -49,11 +54,6 @@ describe('Visualization > Graph', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
-  });
 
   it('should work with ad-hoc metric', () => {
     verify(GRAPH_FORM_DATA);
@@ -79,6 +79,8 @@ describe('Visualization > Graph', () => {
   });
 
   it('should allow type to search color schemes', () => {
+    verify(GRAPH_FORM_DATA);
+
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
