@@ -1702,6 +1702,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The mapped instance being persisted
         """
 
+    @staticmethod
+    def get_exclude_users_from_lists() -> List[str]:
+        """
+        Override to dynamically identify a list of usernames to exclude from
+        all UI dropdown lists, owners, created_by filters etc...
+
+        It will exclude all users from the all endpoints of the form
+        ``/api/v1/<modelview>/related/<column>``
+
+        Optionally you can also exclude them using the `EXCLUDE_USERS_FROM_LISTS`
+        config setting.
+
+        :return: A list of usernames
+        """
+        return []
+
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
         self,

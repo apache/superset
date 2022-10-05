@@ -224,13 +224,19 @@ const SqlEditor = ({
     }
   };
 
-  useState(() => {
+  const runQuery = () => {
+    if (database) {
+      startQuery();
+    }
+  };
+
+  useEffect(() => {
     if (autorun) {
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
       startQuery();
     }
-  });
+  }, []);
 
   // One layer of abstraction for easy spying in unit tests
   const getSqlEditorHeight = () =>
@@ -535,9 +541,9 @@ const SqlEditor = ({
           <span>
             <RunQueryActionButton
               allowAsync={database ? database.allow_run_async : false}
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               queryState={latestQuery?.state}
-              runQuery={startQuery}
+              runQuery={runQuery}
               stopQuery={stopQuery}
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />
@@ -554,7 +560,7 @@ const SqlEditor = ({
             )}
           <span>
             <QueryLimitSelect
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               maxRow={maxRow}
               defaultQueryLimit={defaultQueryLimit}
             />
@@ -571,7 +577,7 @@ const SqlEditor = ({
         <div className="rightItems">
           <span>
             <SaveQuery
-              queryEditor={queryEditor}
+              queryEditorId={queryEditor.id}
               columns={latestQuery?.results?.columns || []}
               onSave={onSaveQuery}
               onUpdate={query => dispatch(updateSavedQuery(query))}
@@ -580,7 +586,7 @@ const SqlEditor = ({
             />
           </span>
           <span>
-            <ShareSqlLabQuery queryEditor={queryEditor} />
+            <ShareSqlLabQuery queryEditorId={queryEditor.id} />
           </span>
           <AntdDropdown overlay={renderDropdown()} trigger="click">
             <Icons.MoreHoriz iconColor={theme.colors.grayscale.base} />
@@ -608,11 +614,10 @@ const SqlEditor = ({
       >
         <div ref={northPaneRef} className="north-pane">
           <AceEditorWrapper
-            actions={actions}
             autocomplete={autocompleteEnabled}
             onBlur={setQueryEditorAndSaveSql}
             onChange={onSqlChanged}
-            queryEditor={queryEditor}
+            queryEditorId={queryEditor.id}
             database={database}
             extendedTables={tables}
             height={`${aceEditorHeight}px`}

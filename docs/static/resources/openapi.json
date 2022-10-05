@@ -3557,6 +3557,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "engine_information": {
+            "type": "object"
           }
         },
         "type": "object"
@@ -3738,6 +3741,9 @@
           "sqlalchemy_uri": {
             "maxLength": 1024,
             "type": "string"
+          },
+          "engine_information": {
+            "readOnly": true
           }
         },
         "required": [
@@ -3817,6 +3823,9 @@
           "id": {
             "format": "int32",
             "type": "integer"
+          },
+          "engine_information": {
+            "readOnly": true
           }
         },
         "required": [
@@ -13634,6 +13643,10 @@
                       "sqlalchemy_uri_placeholder": {
                         "description": "Example placeholder for the SQLAlchemy URI",
                         "type": "string"
+                      },
+                      "engine_information": {
+                        "description": "Object with properties we want to expose from our DB engine",
+                        "type": "object"
                       }
                     },
                     "type": "object"

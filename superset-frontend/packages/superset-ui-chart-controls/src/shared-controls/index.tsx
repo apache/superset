@@ -46,6 +46,7 @@ import {
   isAdhocColumn,
   isPhysicalColumn,
   ensureIsArray,
+  isDefined,
 } from '@superset-ui/core';
 
 import {
@@ -183,7 +184,16 @@ const granularity: SharedControlConfig<'SelectControl'> = {
 const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   label: TIME_FILTER_LABELS.time_grain_sqla,
-  default: 'P1D',
+  initialValue: (control: ControlState, state: ControlPanelState) => {
+    if (!isDefined(state)) {
+      // If a chart is in a Dashboard, the ControlPanelState is empty.
+      return control.value;
+    }
+    // If a chart is a new one that isn't saved, the 'time_grain_sqla' isn't in the form_data.
+    return 'time_grain_sqla' in (state?.form_data ?? {})
+      ? state.form_data?.time_grain_sqla
+      : 'P1D';
+  },
   description: t(
     'The time granularity for the visualization. This ' +
       'applies a date transformation to alter ' +
@@ -192,7 +202,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
       'engine basis in the Superset source code.',
   ),
   mapStateToProps: ({ datasource }) => ({
-    choices: (datasource as Dataset)?.time_grain_sqla || null,
+    choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
   visibility: ({ controls }) => {
     if (!isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
@@ -349,7 +359,7 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
 
 const datetime_columns_lookup: SharedControlConfig<'HiddenControl'> = {
   type: 'HiddenControl',
-  initialValue: (control: ControlState, state: ControlPanelState) =>
+  initialValue: (control: ControlState, state: ControlPanelState | null) =>
     Object.fromEntries(
       ensureIsArray<Record<string, any>>(state?.datasource?.columns)
         .filter(option => option.is_dttm)

@@ -32,6 +32,7 @@ import {
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,
@@ -148,10 +149,14 @@ const ExploreChartPanel = ({
     refreshRate: 300,
   });
   const [splitSizes, setSplitSizes] = useState(
-    getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? INITIAL_SIZES
+      : getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
   );
   const [showSplite, setShowSplit] = useState(
-    getItem(LocalStorageKeys.is_datapanel_open, false),
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? false
+      : getItem(LocalStorageKeys.is_datapanel_open, false),
   );
 
   const [showDatasetModal, setShowDatasetModal] = useState(false);

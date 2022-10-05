@@ -174,7 +174,7 @@ export function getAllControlsState(
   getSectionsToRender(vizType, datasourceType).forEach(section =>
     section.controlSetRows.forEach(fieldsetRow =>
       fieldsetRow.forEach((field: CustomControlItem) => {
-        if (field && field.config && field.name) {
+        if (field?.config && field.name) {
           const { config, name } = field;
           controlsState[name] = getControlStateFromControlConfig(
             config,

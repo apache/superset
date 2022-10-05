@@ -19,10 +19,12 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from superset import app, db
+from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object_factory import QueryObjectFactory
 from superset.datasource.dao import DatasourceDAO
+from superset.models.slice import Slice
 from superset.utils.core import DatasourceDict, DatasourceType
 
 if TYPE_CHECKING:
@@ -55,6 +57,11 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         datasource_model_instance = None
         if datasource:
             datasource_model_instance = self._convert_to_model(datasource)
+
+        slice_ = None
+        if form_data and form_data.get("slice_id") is not None:
+            slice_ = self._get_slice(form_data.get("slice_id"))
+
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
         queries_ = [
@@ -72,6 +79,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         return QueryContext(
             datasource=datasource_model_instance,
             queries=queries_,
+            slice_=slice_,
             form_data=form_data,
             result_type=result_type,
             result_format=result_format,
@@ -88,3 +96,6 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             datasource_type=DatasourceType(datasource["type"]),
             datasource_id=int(datasource["id"]),
         )
+
+    def _get_slice(self, slice_id: Any) -> Optional[Slice]:
+        return ChartDAO.find_by_id(slice_id)
