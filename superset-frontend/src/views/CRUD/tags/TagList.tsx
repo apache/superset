@@ -99,72 +99,15 @@ import { Link } from 'react-router-dom';
    }
  
    function handleTagEdit(edits: Tag) {
-     return SupersetClient.get({
-       endpoint: `/api/v1/tag/${edits.id}`,
-     }).then(
-       ({ json = {} }) => {
-         setTags(
-           tags.map(tag => {
-             if (tag.id === json?.result?.id) {
-               const {
-                 changed_by_name,
-                 changed_by_url,
-                 changed_by,
-                 dashboard_title = '',
-                 slug = '',
-                 json_metadata = '',
-                 changed_on_delta_humanized,
-                 url = '',
-                 certified_by = '',
-                 certification_details = '',
-                 owners,
-                 tags,
-               } = json.result;
-               return {
-                 ...tag,
-                 changed_by_name,
-                 changed_by_url,
-                 changed_by,
-                 dashboard_title,
-                 slug,
-                 json_metadata,
-                 changed_on_delta_humanized,
-                 url,
-                 certified_by,
-                 certification_details,
-                 owners,
-                 tags,
-               };
-             }
-             return tag;
-           }),
-         );
-       },
-       createErrorHandler(errMsg =>
-         addDangerToast(
-           t('An error occurred while fetching dashboards: %s', errMsg),
-         ),
-       ),
-     );
+     /* TODO: 
+      what permissions need to be checked here?
+        */
+     return
    }
  
    function handleBulkTagDelete(tagsToDelete: Tag[]) {
-     // TODO fix bulk tag delete
-     return SupersetClient.delete({
-       endpoint: `/api/v1/tag/?q=${rison.encode(
-         tagsToDelete.map(({ id }) => id),
-       )}`,
-     }).then(
-       ({ json = {} }) => {
-         refreshData();
-         addSuccessToast(json.message);
-       },
-       createErrorHandler(errMsg =>
-         addDangerToast(
-           t('There was an issue deleting the selected tags: ', errMsg),
-         ),
-       ),
-     );
+     // TODO what permissions need to be checked here?
+     return
    }
  
    const columns = useMemo(
