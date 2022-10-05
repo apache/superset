@@ -171,18 +171,6 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
                 groupby=["gender"],
             ),
         ),
-        # TODO: use a different dataset for world map
-        Slice(
-            **slice_props,
-            slice_name="World Map",
-            viz_type="world_map",
-            params=get_slice_json(
-                defaults,
-                viz_type="world_map",
-                metric="sum__num",
-                entity="gender",
-            ),
-        ),
         # ---------------------
         # TIER 2
         # ---------------------
@@ -673,7 +661,7 @@ def load_supported_charts_dashboard() -> None:
     "meta": {
       "chartId": 11,
       "height": 50,
-      "sliceName": "World Map",
+      "sliceName": "% Rural",
       "width": 4
     },
     "type": "CHART"
