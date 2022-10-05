@@ -56,9 +56,9 @@ import {
   Recipient,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { concat } from 'lodash';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
-import { concat } from 'lodash';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -508,17 +508,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     let invalidEmails = [];
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
-        let emailStr = setting.recipients;
+        const emailStr = setting.recipients;
 
-        let emails = ([] as string[])
+        const emails = ([] as string[])
           .concat(...emailStr.split(',').map(item => item.split(';')))
           .map(item => item.trim())
           .filter(item => item !== '');
 
         invalidEmails = emails.filter(
-          email =>
-            !email.includes('@careem.com') &&
-            !email.includes('@ext.careem.com'),
+          email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
         );
 
         recipients.push({
