@@ -52,7 +52,6 @@ class GetKeyValueCommand(BaseCommand):
         try:
             return self.get()
         except SQLAlchemyError as ex:
-            logger.exception("Error running get command")
             raise KeyValueGetFailedError() from ex
 
     def validate(self) -> None:

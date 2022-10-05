@@ -224,13 +224,19 @@ const SqlEditor = ({
     }
   };
 
-  useState(() => {
+  const runQuery = () => {
+    if (database) {
+      startQuery();
+    }
+  };
+
+  useEffect(() => {
     if (autorun) {
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
       startQuery();
     }
-  });
+  }, []);
 
   // One layer of abstraction for easy spying in unit tests
   const getSqlEditorHeight = () =>
@@ -537,7 +543,7 @@ const SqlEditor = ({
               allowAsync={database ? database.allow_run_async : false}
               queryEditorId={queryEditor.id}
               queryState={latestQuery?.state}
-              runQuery={startQuery}
+              runQuery={runQuery}
               stopQuery={stopQuery}
               overlayCreateAsMenu={showMenu ? runMenuBtn : null}
             />

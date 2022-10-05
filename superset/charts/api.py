@@ -50,6 +50,7 @@ from superset.charts.dao import ChartDAO
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
+    ChartCreatedByMeFilter,
     ChartFavoriteFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
@@ -150,6 +151,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
+        "created_on_delta_humanized",
         "datasource_id",
         "datasource_name_text",
         "datasource_type",
@@ -211,7 +213,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "id": [ChartFavoriteFilter, ChartCertifiedFilter],
         "slice_name": [ChartAllTextFilter],
-        "created_by": [ChartHasCreatedByFilter],
+        "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
     }
 
     # Will just affect _info endpoint

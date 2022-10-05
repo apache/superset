@@ -170,7 +170,7 @@ export const handleFilterOptionHelper = (
 
   if (filterOption) {
     const searchValue = search.trim().toLowerCase();
-    if (optionFilterProps && optionFilterProps.length) {
+    if (optionFilterProps?.length) {
       return optionFilterProps.some(prop => {
         const optionProp = option?.[prop]
           ? String(option[prop]).trim().toLowerCase()
