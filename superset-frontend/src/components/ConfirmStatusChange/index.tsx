@@ -69,7 +69,7 @@ export default function ConfirmStatusChange({
 
   return (
     <>
-      {children && children(showConfirm)}
+      {children?.(showConfirm)}
       <DeleteModal
         description={description}
         onConfirm={confirm}

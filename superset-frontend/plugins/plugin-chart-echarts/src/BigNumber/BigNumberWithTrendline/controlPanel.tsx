@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { smartDateFormatter, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  smartDateFormatter,
+  t,
+} from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
@@ -24,17 +29,27 @@ import {
   formatSelectOptions,
   getStandardizedControls,
   sections,
+  temporalColumnMixin,
 } from '@superset-ui/chart-controls';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['metric'], ['adhoc_filters']],
+      controlSetRows: [
+        [isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? 'x_axis' : null],
+        [
+          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+            ? 'time_grain_sqla'
+            : null,
+        ],
+        ['metric'],
+        ['adhoc_filters'],
+      ],
     },
     {
       label: t('Options'),
@@ -269,6 +284,10 @@ const config: ControlPanelConfig = {
   controlOverrides: {
     y_axis_format: {
       label: t('Number format'),
+    },
+    x_axis: {
+      label: t('TEMPORAL X-AXIS'),
+      ...temporalColumnMixin,
     },
   },
   formDataOverrides: formData => ({

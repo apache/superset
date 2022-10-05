@@ -36,7 +36,7 @@ window.featureFlags = {
   [FeatureFlag.EMBEDDABLE_CHARTS]: true,
 };
 
-const createProps = () => ({
+const createProps = (additionalProps = {}) => ({
   chart: {
     id: 1,
     latestQueryFormData: {
@@ -63,7 +63,7 @@ const createProps = () => ({
     changed_on: '2021-03-19T16:30:56.750230',
     changed_on_humanized: '7 days ago',
     datasource: 'FCC 2018 Survey',
-    description: null,
+    description: 'Simple description',
     description_markeddown: '',
     edit_url: '/chart/edit/318',
     form_data: {
@@ -106,10 +106,19 @@ const createProps = () => ({
   user: {
     userId: 1,
   },
+  metadata: {
+    created_on_humanized: 'a week ago',
+    changed_on_humanized: '2 days ago',
+    owners: ['John Doe'],
+    created_by: 'John Doe',
+    changed_by: 'John Doe',
+    dashboards: [{ id: 1, dashboard_title: 'Test' }],
+  },
   onSaveChart: jest.fn(),
   canOverwrite: false,
   canDownload: false,
   isStarred: false,
+  ...additionalProps,
 });
 
 fetchMock.post(
@@ -145,6 +154,27 @@ test('Cancelling changes to the properties should reset previous properties', as
   userEvent.click(screen.getByText('Edit chart properties'));
 
   expect(await screen.findByDisplayValue(prevChartName)).toBeInTheDocument();
+});
+
+test('renders the metadata bar when saved', async () => {
+  const props = createProps({ showTitlePanelItems: true });
+  render(<ExploreHeader {...props} />, { useRedux: true });
+  expect(
+    await screen.findByText('Added to 1 dashboard(s)'),
+  ).toBeInTheDocument();
+  expect(await screen.findByText('Simple description')).toBeInTheDocument();
+  expect(await screen.findByText('John Doe')).toBeInTheDocument();
+  expect(await screen.findByText('2 days ago')).toBeInTheDocument();
+});
+
+test('does not render the metadata bar when not saved', async () => {
+  const props = createProps({ showTitlePanelItems: true, slice: null });
+  render(<ExploreHeader {...props} />, { useRedux: true });
+  await waitFor(() =>
+    expect(
+      screen.queryByText('Added to 1 dashboard(s)'),
+    ).not.toBeInTheDocument(),
+  );
 });
 
 test('Save chart', async () => {

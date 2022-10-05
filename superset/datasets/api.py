@@ -71,7 +71,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -179,9 +179,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "extra",
         "kind",
         "created_on",
+        "created_on_humanized",
         "created_by.first_name",
         "created_by.last_name",
         "changed_on",
+        "changed_on_humanized",
         "changed_by.first_name",
         "changed_by.last_name",
     ]
@@ -214,6 +216,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "extra",
     ]
     openapi_spec_tag = "Datasets"
+
+    filter_rel_fields = {
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "database": [["id", DatabaseFilter, lambda: []]],
+    }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
@@ -223,7 +230,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "id": [DatasetCertifiedFilter],
     }
     search_columns = ["id", "database", "owners", "schema", "sql", "table_name"]
-    filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
 
