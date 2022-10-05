@@ -27,6 +27,11 @@ import {
 
 // Table
 describe('Visualization > Table', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    interceptChart({ legacy: false }).as('chartData');
+  });
+
   const VIZ_DEFAULTS = {
     ...FORM_DATA_DEFAULTS,
     viz_type: 'table',
@@ -42,11 +47,6 @@ describe('Visualization > Table', () => {
     label: 'Girls',
     optionName: 'metric_6qwzgc8bh2v_zox7hil1mzs',
   };
-
-  beforeEach(() => {
-    cy.login();
-    interceptChart({ legacy: false }).as('chartData');
-  });
 
   it('Use default time column', () => {
     cy.visitChartByParams({

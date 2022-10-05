@@ -64,7 +64,7 @@ function visitDashboard() {
   cy.wait('@get');
   cy.wait('@getCharts');
   cy.wait('@getDatasets');
-  cy.wait(500);
+  cy.url().should('contain', 'native_filters_key');
 }
 
 function prepareDashboardFilters(
@@ -454,6 +454,7 @@ describe('Native filters', () => {
       let filterKey: string;
       const removeFirstChar = (search: string) =>
         search.split('').slice(1, search.length).join('');
+
       cy.location().then(loc => {
         const queryParams = qs.parse(removeFirstChar(loc.search));
         filterKey = queryParams.native_filters_key as string;
