@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
@@ -27,7 +26,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
-import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
@@ -49,13 +48,8 @@ const TemplateParamsEditor = ({
   const [parsedJSON, setParsedJSON] = useState({});
   const [isValid, setIsValid] = useState(true);
 
-  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
-    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
-      ...queryEditors.find(({ id }) => id === queryEditorId),
-      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
-    }),
-  );
-  const code = queryEditor.templateParams ?? '{}';
+  const { templateParams } = useQueryEditor(queryEditorId, ['templateParams']);
+  const code = templateParams ?? '{}';
 
   useEffect(() => {
     try {
@@ -127,6 +121,6 @@ const TemplateParamsEditor = ({
       modalBody={modalBody}
     />
   );
-}
+};
 
 export default TemplateParamsEditor;

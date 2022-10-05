@@ -26,11 +26,8 @@ import Button from 'src/components/Button';
 import Loading from 'src/components/Loading';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { EmptyWrapperType } from 'src/components/TableView/TableView';
-import {
-  SqlLabRootState,
-  QueryCostEstimate,
-  QueryEditor,
-} from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { SqlLabRootState, QueryCostEstimate } from 'src/SqlLab/types';
 
 export interface EstimateQueryCostButtonProps {
   getEstimate: Function;
@@ -50,13 +47,7 @@ const EstimateQueryCostButton = ({
     QueryCostEstimate | undefined
   >(state => state.sqlLab.queryCostEstimates?.[queryEditorId]);
 
-  const queryEditor = useSelector<SqlLabRootState, Partial<QueryEditor>>(
-    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) => ({
-      ...queryEditors.find(({ id }) => id === queryEditorId),
-      ...(queryEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
-    }),
-  );
-  const { selectedText } = queryEditor;
+  const { selectedText } = useQueryEditor(queryEditorId, ['selectedText']);
   const { cost } = queryCostEstimate || {};
   const tableData = useMemo(() => (Array.isArray(cost) ? cost : []), [cost]);
   const columns = useMemo(
