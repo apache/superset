@@ -26,6 +26,7 @@ import {
   t,
   isFeatureEnabled,
   FeatureFlag,
+  getChartMetadataRegistry,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
@@ -200,12 +201,7 @@ class ChartRenderer extends React.Component {
 
   handleOnContextMenu(filters, offsetX, offsetY) {
     this.contextMenuRef.current.open(filters, offsetX, offsetY);
-
-    //  Don't update chart state if `filters` is `null`; that means viz plugin
-    //  didn't handle `contextmenu` event and may react badly to state update
-    if (filters) {
-      this.setState({ inContextMenu: true });
-    }
+    this.setState({ inContextMenu: true });
   }
 
   handleContextMenuSelected() {
@@ -217,10 +213,12 @@ class ChartRenderer extends React.Component {
   }
 
   //  When viz plugins don't handle `contextmenu` event, fallback handler
-  //  calls `handleOnContextMenu` with `filters: null`
+  //  calls `handleOnContextMenu` with `filters: null`.
   onContextMenuFallback(event) {
-    event.preventDefault();
-    this.handleOnContextMenu(null, event.clientX, event.clientY);
+    if (!this.state.inContextMenu) {
+      event.preventDefault();
+      this.handleOnContextMenu(null, event.clientX, event.clientY);
+    }
   }
 
   render() {
@@ -297,6 +295,14 @@ class ChartRenderer extends React.Component {
       );
     }
 
+    //  Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
+    //  Detail props or if it'll cause side-effects (e.g. excessive re-renders).
+    const drillToDetailProps = getChartMetadataRegistry()
+      .get(formData.viz_type)
+      ?.behaviors.find(behavior => behavior === Behavior.DRILL_TO_DETAIL)
+      ? { inContextMenu: this.state.inContextMenu }
+      : {};
+
     return (
       <div
         onContextMenu={
@@ -333,7 +339,7 @@ class ChartRenderer extends React.Component {
           onRenderFailure={this.handleRenderFailure}
           noResults={noResultsComponent}
           postTransformProps={postTransformProps}
-          inContextMenu={this.state.inContextMenu}
+          {...drillToDetailProps}
         />
       </div>
     );

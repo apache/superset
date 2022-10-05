@@ -86,6 +86,15 @@ export default function DrillDetailModal({
     history.push(exploreUrl);
   }, [exploreUrl, history]);
 
+  const disableContextMenu = useCallback(element => {
+    if (element) {
+      const modalWrapper = element.closest('.ant-modal-wrap');
+      modalWrapper.addEventListener('contextmenu', (e: MouseEvent) => {
+        e.stopPropagation();
+      });
+    }
+  }, []);
+
   return (
     <Modal
       show={showModal}
@@ -111,7 +120,10 @@ export default function DrillDetailModal({
       draggable
       destroyOnClose
     >
-      <DrillDetailPane formData={formData} initialFilters={initialFilters} />
+      <>
+        <DrillDetailPane formData={formData} initialFilters={initialFilters} />
+        <div ref={disableContextMenu} />
+      </>
     </Modal>
   );
 }
