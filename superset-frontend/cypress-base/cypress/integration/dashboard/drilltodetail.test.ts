@@ -69,31 +69,46 @@ function testTimeChart(vizType: string) {
   interceptSamples();
 
   cy.get(`[data-test-viz-type='${vizType}'] canvas`).then($canvas => {
-    cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
+    cy.wrap($canvas)
+      .scrollIntoView()
+      .trigger('mousemove', 70, 93)
+      .rightclick(70, 93);
 
     openModalFromChartContext('Drill to detail by 1965');
     cy.getBySel('filter-val').should('contain', '1965');
     closeModal();
 
-    cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
+    cy.wrap($canvas)
+      .scrollIntoView()
+      .trigger('mousemove', 70, 93)
+      .rightclick(70, 93);
 
     openModalFromChartContext('Drill to detail by boy');
     cy.getBySel('filter-val').should('contain', 'boy');
     closeModal();
 
-    cy.wrap($canvas).scrollIntoView().click(70, 93).rightclick(70, 93);
+    cy.wrap($canvas)
+      .scrollIntoView()
+      .trigger('mousemove', 70, 93)
+      .rightclick(70, 93);
 
     openModalFromChartContext('Drill to detail by all');
     cy.getBySel('filter-val').first().should('contain', '1965');
     cy.getBySel('filter-val').eq(1).should('contain', 'boy');
     closeModal();
 
-    cy.wrap($canvas).scrollIntoView().click(70, 145).rightclick(70, 145);
+    cy.wrap($canvas)
+      .scrollIntoView()
+      .trigger('mousemove', 70, 145)
+      .rightclick(70, 145);
     openModalFromChartContext('Drill to detail by girl');
     cy.getBySel('filter-val').should('contain', 'girl');
     closeModal();
 
-    cy.wrap($canvas).scrollIntoView().click(70, 145).rightclick(70, 145);
+    cy.wrap($canvas)
+      .scrollIntoView()
+      .trigger('mousemove', 70, 145)
+      .rightclick(70, 145);
     openModalFromChartContext('Drill to detail by all');
     cy.getBySel('filter-val').first().should('contain', '1965');
     cy.getBySel('filter-val').eq(1).should('contain', 'girl');
@@ -200,7 +215,10 @@ describe('Drill to detail modal', () => {
 
         // opens the modal by clicking on the trendline
         cy.get("[data-test-viz-type='big_number'] canvas").then($canvas => {
-          cy.wrap($canvas).scrollIntoView().click(1, 14).rightclick(1, 14);
+          cy.wrap($canvas)
+            .scrollIntoView()
+            .trigger('mousemove', 1, 14)
+            .rightclick(1, 14);
 
           openModalFromChartContext('Drill to detail by 1965');
 
@@ -447,7 +465,7 @@ describe('Drill to detail modal', () => {
         cy.get("[data-test-viz-type='box_plot'] canvas").then($canvas => {
           cy.wrap($canvas)
             .scrollIntoView()
-            .click(135, 275)
+            .trigger('mousemove', 135, 275)
             .rightclick(135, 275);
 
           openModalFromChartContext('Drill to detail by boy');
@@ -456,7 +474,7 @@ describe('Drill to detail modal', () => {
 
           cy.wrap($canvas)
             .scrollIntoView()
-            .click(270, 280)
+            .trigger('mousemove', 270, 280)
             .rightclick(270, 280);
 
           openModalFromChartContext('Drill to detail by girl');
