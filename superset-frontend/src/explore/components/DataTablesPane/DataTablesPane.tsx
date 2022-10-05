@@ -26,6 +26,7 @@ import React, {
 import { styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Tabs from 'src/components/Tabs';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,
@@ -96,11 +97,14 @@ export const DataTablesPane = ({
     samples: false,
   });
   const [panelOpen, setPanelOpen] = useState(
-    getItem(LocalStorageKeys.is_datapanel_open, false),
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? false
+      : getItem(LocalStorageKeys.is_datapanel_open, false),
   );
 
   useEffect(() => {
-    setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
+    if (!isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT))
+      setItem(LocalStorageKeys.is_datapanel_open, panelOpen);
   }, [panelOpen]);
 
   useEffect(() => {
