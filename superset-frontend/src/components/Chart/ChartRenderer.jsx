@@ -30,6 +30,7 @@ import {
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
+import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu';
 
 const propTypes = {
@@ -60,7 +61,7 @@ const propTypes = {
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
-  source: PropTypes.oneOf(['dashboard', 'explore']),
+  source: PropTypes.oneOf([ChartSource.dashboard, ChartSource.explore]),
 };
 
 const BLANK = {};
@@ -84,7 +85,7 @@ class ChartRenderer extends React.Component {
     super(props);
     this.state = {
       showContextMenu:
-        props.source === 'dashboard' &&
+        props.source === ChartSource.dashboard &&
         isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
       inContextMenu: false,
     };
@@ -275,7 +276,7 @@ class ChartRenderer extends React.Component {
     let noResultsComponent;
     const noResultTitle = t('No results were returned for this query');
     const noResultDescription =
-      this.props.source === 'explore'
+      this.props.source === ChartSource.explore
         ? t(
             'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
           )
