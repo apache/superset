@@ -51,7 +51,7 @@ export type DatabaseObject = {
     credentials_info?: string;
     service_account_info?: string;
     query?: Record<string, string>;
-    catalog?: Record<string, string>;
+    catalog?: Record<string, string | undefined>;
     properties?: Record<string, any>;
     warehouse?: string;
     role?: string;
@@ -158,7 +158,7 @@ export interface ExtraJson {
   cost_estimate_enabled?: boolean; // in SQL Lab
   disable_data_preview?: boolean; // in SQL Lab
   engine_params?: {
-    catalog?: Record<any, any>;
+    catalog?: Record<string, string>;
     connect_args?: {
       http_path?: string;
     };

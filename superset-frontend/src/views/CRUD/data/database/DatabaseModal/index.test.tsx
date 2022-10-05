@@ -27,7 +27,6 @@ import {
   act,
 } from 'spec/helpers/testing-library';
 import * as hooks from 'src/views/CRUD/hooks';
-import DatabaseModal from './index';
 import {
   DatabaseObject,
   CONFIGURATION_METHOD,
@@ -658,8 +657,6 @@ describe('DatabaseModal', () => {
         checkboxOffSVGs[2],
         checkboxOffSVGs[3],
         checkboxOffSVGs[4],
-        checkboxOffSVGs[5],
-        checkboxOffSVGs[6],
         tooltipIcons[0],
         tooltipIcons[1],
         tooltipIcons[2],
@@ -688,14 +685,13 @@ describe('DatabaseModal', () => {
         allowDbExplorationCheckbox,
         disableSQLLabDataPreviewQueriesCheckbox,
       ];
-
       visibleComponents.forEach(component => {
         expect(component).toBeVisible();
       });
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
       });
-      expect(checkboxOffSVGs).toHaveLength(7);
+      expect(checkboxOffSVGs).toHaveLength(5);
       expect(tooltipIcons).toHaveLength(7);
     });
 
@@ -1311,6 +1307,7 @@ describe('DatabaseModal', () => {
       createResource: jest.fn(),
       updateResource: jest.fn(),
       clearError: jest.fn(),
+      setResource: jest.fn(),
     });
 
     const renderAndWait = async () => {
@@ -1355,6 +1352,7 @@ describe('DatabaseModal', () => {
       createResource: jest.fn(),
       updateResource: jest.fn(),
       clearError: jest.fn(),
+      setResource: jest.fn(),
     });
 
     const renderAndWait = async () => {
@@ -1603,6 +1601,88 @@ describe('dbReducer', () => {
       foo: true,
     });
   });
+
+  test('it will change state to payload from input change for checkbox', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.inputChange,
+      payload: { name: 'allow_ctas', type: 'checkbox', checked: false },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        allow_ctas: true,
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      allow_ctas: false,
+    });
+  });
+
+  test('it will add a parameter', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersChange,
+      payload: { name: 'host', value: '127.0.0.1' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      parameters: {
+        host: '127.0.0.1',
+      },
+    });
+  });
+
+  test('it will add a parameter with existing parameters', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersChange,
+      payload: { name: 'port', value: '1234' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        parameters: {
+          host: '127.0.0.1',
+        },
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      parameters: {
+        host: '127.0.0.1',
+        port: '1234',
+      },
+    });
+  });
+
+  test('it will change a parameter with existing parameters', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersChange,
+      payload: { name: 'host', value: 'localhost' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        parameters: {
+          host: '127.0.0.1',
+        },
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      parameters: {
+        host: 'localhost',
+      },
+    });
+  });
+
   test('it will set state to payload from parametersChange with catalog', () => {
     const action: DBReducerActionType = {
       type: ActionType.parametersChange,
@@ -1633,7 +1713,9 @@ describe('dbReducer', () => {
     expect(currentState).toEqual({
       ...databaseFixture,
       parameters: {
-        foo: 'bar',
+        catalog: {
+          '': 'bar',
+        },
       },
     });
   });

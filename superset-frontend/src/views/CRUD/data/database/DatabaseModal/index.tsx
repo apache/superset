@@ -89,6 +89,8 @@ import {
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
+const DEFAULT_EXTRA = JSON.stringify({ allows_virtual_table_explore: true });
+
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
     message: 'Why do I need to create a database?',
@@ -211,12 +213,12 @@ export function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let extraJson: ExtraJson;
+  let parametersCatalog;
+  const extraJson: ExtraJson = JSON.parse(trimmedState.extra || '{}');
 
   switch (action.type) {
     case ActionType.extraEditorChange:
       // "extra" payload in state is a string
-      extraJson = JSON.parse(trimmedState.extra || '{}');
       return {
         ...trimmedState,
         extra: JSON.stringify({
@@ -226,7 +228,6 @@ export function dbReducer(
       };
     case ActionType.extraInputChange:
       // "extra" payload in state is a string
-      extraJson = JSON.parse(trimmedState.extra || '{}');
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
@@ -275,26 +276,44 @@ export function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
-      if (
-        trimmedState.catalog !== undefined &&
-        action.payload.type?.startsWith('catalog')
-      ) {
-        // Formatting wrapping google sheets table catalog
-        const idx = action.payload.type?.split('-')[1];
-        const catalogToUpdate = trimmedState?.catalog[idx] || {};
-        catalogToUpdate[action.payload.name] = action.payload.value;
+      if (action.payload.type?.startsWith('catalog')) {
+        if (trimmedState.catalog !== undefined) {
+          // Formatting wrapping google sheets table catalog
+          const catalogCopy: CatalogObject[] = [...trimmedState.catalog];
+          const idx = action.payload.type?.split('-')[1];
+          const catalogToUpdate: CatalogObject = catalogCopy[idx] || {};
+          catalogToUpdate[action.payload.name] = action.payload.value;
 
-        const paramatersCatalog = {};
-        // eslint-disable-next-line array-callback-return
-        trimmedState.catalog?.map((item: CatalogObject) => {
-          paramatersCatalog[item.name] = item.value;
-        });
+          // insert updated catalog to existing state
+          catalogCopy.splice(parseInt(idx, 10), 1, catalogToUpdate);
 
+          // format catalog for state
+          // eslint-disable-next-line array-callback-return
+          parametersCatalog = catalogCopy.reduce((obj, item: any) => {
+            const catalog = { ...obj };
+            catalog[item.name] = item.value;
+            return catalog;
+          }, {});
+
+          return {
+            ...trimmedState,
+            catalog: catalogCopy,
+            parameters: {
+              ...trimmedState.parameters,
+              catalog: parametersCatalog,
+            },
+          };
+        }
+        if (action.payload.name === 'name') {
+          parametersCatalog = { [action.payload.value as string]: undefined };
+        } else {
+          parametersCatalog = { '': action.payload.value };
+        }
         return {
           ...trimmedState,
           parameters: {
             ...trimmedState.parameters,
-            catalog: paramatersCatalog,
+            catalog: parametersCatalog,
           },
         };
       }
@@ -305,6 +324,7 @@ export function dbReducer(
           [action.payload.name]: action.payload.value,
         },
       };
+
     case ActionType.addTableCatalogSheet:
       if (trimmedState.catalog !== undefined) {
         return {
@@ -353,21 +373,25 @@ export function dbReducer(
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
         // "extra" payload from the api is a string
-        extraJson = {
+        const extraJsonPayload: ExtraJson = {
           ...JSON.parse((action.payload.extra as string) || '{}'),
         };
-        const engineParamsCatalog = Object.entries(
-          extraJson?.engine_params?.catalog || {},
-        ).map(([key, value]) => ({
-          name: key,
-          value,
-        }));
+
+        const payloadCatalog = extraJsonPayload.engine_params?.catalog;
+
+        const engineRootCatalog = Object.entries(payloadCatalog || {}).map(
+          ([name, value]: string[]) => ({ name, value }),
+        );
+
         return {
           ...action.payload,
           engine: action.payload.backend || trimmedState.engine,
           configuration_method: action.payload.configuration_method,
-          catalog: engineParamsCatalog,
-          parameters: action.payload.parameters || trimmedState.parameters,
+          catalog: engineRootCatalog,
+          parameters: {
+            ...(action.payload.parameters || trimmedState.parameters),
+            catalog: payloadCatalog,
+          },
           query_input,
         };
       }
@@ -381,6 +405,12 @@ export function dbReducer(
       };
 
     case ActionType.dbSelected:
+      // set initial state for blank form
+      return {
+        ...action.payload,
+        extra: DEFAULT_EXTRA,
+        expose_in_sqllab: true,
+      };
     case ActionType.configMethodChange:
       return {
         ...action.payload,
@@ -545,20 +575,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Clone DB object
     const dbToUpdate = { ...(db || {}) };
 
-    if (dbToUpdate.catalog) {
-      // convert catalog to fit /validate_parameters endpoint
-      dbToUpdate.catalog = Object.assign(
-        {},
-        ...dbToUpdate.catalog.map((x: { name: string; value: string }) => ({
-          [x.name]: x.value,
-        })),
-      );
-    } else {
-      dbToUpdate.catalog = {};
-    }
-
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
+      if (dbToUpdate?.parameters?.catalog) {
+        // need to stringify gsheets catalog to allow it to be serialized
+        dbToUpdate.extra = JSON.stringify({
+          ...JSON.parse(dbToUpdate.extra || '{}'),
+          engine_params: {
+            catalog: dbToUpdate.parameters.catalog,
+          },
+        });
+      }
       const errors = await getValidation(dbToUpdate, true);
       if ((validationErrors && !isEmpty(validationErrors)) || errors) {
         return;
@@ -605,6 +632,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (dbToUpdate.engine === Engines.GSheet) {
         dbToUpdate.impersonate_user = true;
       }
+    }
+
+    if (dbToUpdate?.parameters?.catalog) {
+      // need to stringify gsheets catalog to allow it to be seralized
+      dbToUpdate.extra = JSON.stringify({
+        ...JSON.parse(dbToUpdate.extra || '{}'),
+        engine_params: {
+          catalog: dbToUpdate.parameters.catalog,
+        },
+      });
     }
 
     setLoading(true);

@@ -300,7 +300,7 @@ const ExtraOptions = ({
             <IndeterminateCheckbox
               id="cancel_query_on_windows_unload"
               indeterminate={false}
-              checked={!extraJson?.cancel_query_on_windows_unload}
+              checked={!!extraJson?.cancel_query_on_windows_unload}
               onChange={onExtraInputChange}
               labelText={t('Cancel query on window unload event')}
             />
