@@ -102,6 +102,19 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             db.session.commit()
 
     @pytest.fixture()
+    def create_charts_created_by_gamma(self):
+        with self.create_app().app_context():
+            charts = []
+            user = self.get_user("gamma")
+            for cx in range(CHARTS_FIXTURE_COUNT - 1):
+                charts.append(self.insert_chart(f"gamma{cx}", [user.id], 1))
+            yield charts
+            # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
+            db.session.commit()
+
+    @pytest.fixture()
     def create_certified_charts(self):
         with self.create_app().app_context():
             certified_charts = []
@@ -821,6 +834,51 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 34)
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
+    def test_get_charts_dashboards(self):
+        """
+        Chart API: Test get charts with related dashboards
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {"col": "slice_name", "opr": "eq", "value": self.chart.slice_name}
+            ]
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"][0]["dashboards"] == [
+            {
+                "id": self.original_dashboard.id,
+                "dashboard_title": self.original_dashboard.dashboard_title,
+            }
+        ]
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
+    def test_get_charts_dashboard_filter(self):
+        """
+        Chart API: Test get charts with dashboard filter
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {
+                    "col": "dashboards",
+                    "opr": "rel_m_m",
+                    "value": self.original_dashboard.id,
+                }
+            ]
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert len(result) == 1
+        assert result[0]["slice_name"] == self.chart.slice_name
+
     def test_get_charts_changed_on(self):
         """
         Dashboard API: Test get charts changed on
@@ -1078,6 +1136,33 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert len(expected_models) == data["count"]
+
+    @pytest.mark.usefixtures("create_charts_created_by_gamma")
+    def test_get_charts_created_by_me_filter(self):
+        """
+        Chart API: Test get charts with created by me special filter
+        """
+        gamma_user = self.get_user("gamma")
+        expected_models = (
+            db.session.query(Slice).filter(Slice.created_by_fk == gamma_user.id).all()
+        )
+        arguments = {
+            "filters": [
+                {"col": "created_by", "opr": "chart_created_by_me", "value": "me"}
+            ],
+            "order_column": "slice_name",
+            "order_direction": "asc",
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="gamma")
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
+        for i, expected_model in enumerate(expected_models):
+            assert expected_model.slice_name == data["result"][i]["slice_name"]
 
     @pytest.mark.usefixtures("create_charts")
     def test_get_current_user_favorite_status(self):

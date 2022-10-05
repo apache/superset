@@ -415,9 +415,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
               .forEach(formatter => {
-                const formatterResult = formatter.getColorFromValue(
-                  value as number,
-                );
+                const formatterResult = value
+                  ? formatter.getColorFromValue(value as number)
+                  : false;
                 if (formatterResult) {
                   backgroundColor = formatterResult;
                 }

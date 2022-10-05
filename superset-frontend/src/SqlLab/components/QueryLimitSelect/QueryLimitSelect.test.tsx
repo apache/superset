@@ -51,7 +51,7 @@ const defaultQueryLimit = 100;
 const setup = (props?: Partial<QueryLimitSelectProps>, store?: Store) =>
   render(
     <QueryLimitSelect
-      queryEditor={defaultQueryEditor}
+      queryEditorId={defaultQueryEditor.id}
       maxRow={100000}
       defaultQueryLimit={defaultQueryLimit}
       {...props}
@@ -67,12 +67,20 @@ describe('QueryLimitSelect', () => {
     const queryLimit = 10;
     const { getByText } = setup(
       {
-        queryEditor: {
-          ...defaultQueryEditor,
-          queryLimit,
-        },
+        queryEditorId: defaultQueryEditor.id,
       },
-      mockStore(initialState),
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queryEditors: [
+            {
+              ...defaultQueryEditor,
+              queryLimit,
+            },
+          ],
+        },
+      }),
     );
     expect(getByText(queryLimit)).toBeInTheDocument();
   });
@@ -129,7 +137,9 @@ describe('QueryLimitSelect', () => {
         {
           type: 'QUERY_EDITOR_SET_QUERY_LIMIT',
           queryLimit: LIMIT_DROPDOWN[expectedIndex],
-          queryEditor: defaultQueryEditor,
+          queryEditor: {
+            id: defaultQueryEditor.id,
+          },
         },
       ]),
     );

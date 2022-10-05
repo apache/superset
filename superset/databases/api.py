@@ -120,6 +120,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_cvas",
         "allow_dml",
         "backend",
+        "driver",
         "force_ctas_schema",
         "impersonate_user",
         "masked_encrypted_extra",
@@ -129,6 +130,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "server_cert",
         "sqlalchemy_uri",
         "is_managed_externally",
+        "engine_information",
     ]
     list_columns = [
         "allow_file_upload",
@@ -151,6 +153,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "force_ctas_schema",
         "id",
         "disable_data_preview",
+        "engine_information",
     ]
     add_columns = [
         "database_name",
@@ -266,6 +269,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             # If parameters are available return them in the payload
             if new_model.parameters:
                 item["parameters"] = new_model.parameters
+
+            if new_model.driver:
+                item["driver"] = new_model.driver
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
@@ -1062,6 +1068,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         parameters:
                           description: JSON schema defining the needed parameters
                           type: object
+                        engine_information:
+                          description: Dict with public properties form the DB Engine
+                          type: object
+                          properties:
+                            supports_file_upload:
+                              description: Whether the engine supports file uploads
+                              type: boolean
             400:
               $ref: '#/components/responses/400'
             500:
@@ -1078,6 +1091,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "engine": engine_spec.engine,
                 "available_drivers": sorted(drivers),
                 "preferred": engine_spec.engine_name in preferred_databases,
+                "engine_information": engine_spec.get_public_information(),
             }
 
             if engine_spec.default_driver:

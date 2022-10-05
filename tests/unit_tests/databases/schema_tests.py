@@ -134,7 +134,6 @@ def test_database_parameters_schema_mixin_invalid_engine(
     try:
         dummy_schema.load(payload)
     except ValidationError as err:
-        print(err.messages)
         assert err.messages == {
             "_schema": ['Engine "dummy_engine" is not a valid engine.']
         }
