@@ -19,12 +19,12 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
 describe('Visualization > Line', () => {
-  const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
-
   beforeEach(() => {
-    cy.login();
+    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
+
+  const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
 
   it('should show validator error when no metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };

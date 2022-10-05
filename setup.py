@@ -94,7 +94,7 @@ setup(
         "graphlib-backport",
         "gunicorn>=20.1.0",
         "hashids>=1.3.1, <2",
-        "holidays==0.14.2",
+        "holidays>=0.16.0, <0.17",
         "humanize",
         "isodate",
         "markdown>=3.0",
@@ -114,11 +114,11 @@ setup(
         "redis",
         "selenium>=3.141.0",
         "simplejson>=3.15.0",
-        "slackclient==2.5.0",  # PINNED! slack changes file upload api in the future versions
+        "slack_sdk>=3.1.1, <4",
         "sqlalchemy>=1.4, <2",
         "sqlalchemy-utils>=0.38.3, <0.39",
         "sqlparse>=0.4.3, <0.5",
-        "tabulate==0.8.9",
+        "tabulate>=0.8.9, <0.9",
         # needed to support Literal (3.8) and TypeGuard (3.10)
         "typing-extensions>=3.10, <4",
         "wtforms-json",

@@ -261,13 +261,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   useEffect(() => {
     if (enableSingleMaxValue) {
-      handleAfterChange([min, minMax[minIndex]]);
+      handleAfterChange([min, minMax[maxIndex]]);
     }
   }, [enableSingleMaxValue]);
 
   useEffect(() => {
     if (enableSingleMinValue) {
-      handleAfterChange([minMax[maxIndex], max]);
+      handleAfterChange([minMax[minIndex], max]);
     }
   }, [enableSingleMinValue]);
 
