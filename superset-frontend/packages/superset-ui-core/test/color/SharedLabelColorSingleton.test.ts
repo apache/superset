@@ -23,6 +23,7 @@ import {
   getCategoricalSchemeRegistry,
   getSharedLabelColor,
   SharedLabelColor,
+  SharedLabelColorSource,
 } from '@superset-ui/core';
 import { getAnalogousColors } from '../../src/color/utils';
 
@@ -52,6 +53,7 @@ describe('SharedLabelColor', () => {
   });
 
   beforeEach(() => {
+    getSharedLabelColor().source = SharedLabelColorSource.dashboard;
     getSharedLabelColor().clear();
   });
 
@@ -69,6 +71,24 @@ describe('SharedLabelColor', () => {
       expect(colorMap?.get('a')).toEqual('red');
     });
 
+    it('should add to sliceLabelColorMap when label exist', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('b', 'blue', 1);
+      const colorMap = sharedLabelColor.sliceLabelColorMap.get(1);
+      expect(colorMap?.has('b')).toEqual(true);
+      expect(colorMap?.get('b')).toEqual('blue');
+    });
+
+    it('should do nothing when source is not dashboard', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.source = SharedLabelColorSource.explore;
+      sharedLabelColor.addSlice('a', 'red');
+      expect(Object.fromEntries(sharedLabelColor.sliceLabelColorMap)).toEqual(
+        {},
+      );
+    });
+
     it('should do nothing when sliceId is undefined', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red');
@@ -83,9 +103,15 @@ describe('SharedLabelColor', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.removeSlice(1);
-      expect(Object.fromEntries(sharedLabelColor.sliceLabelColorMap)).toEqual(
-        {},
-      );
+      expect(sharedLabelColor.sliceLabelColorMap.has(1)).toEqual(false);
+    });
+
+    it('should do nothing when source is not dashboard', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.source = SharedLabelColorSource.explore;
+      sharedLabelColor.removeSlice(1);
+      expect(sharedLabelColor.sliceLabelColorMap.has(1)).toEqual(true);
     });
   });
 

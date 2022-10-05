@@ -19,7 +19,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { isDefined, JsonObject, makeApi, t } from '@superset-ui/core';
+import {
+  getSharedLabelColor,
+  isDefined,
+  JsonObject,
+  makeApi,
+  SharedLabelColorSource,
+  t,
+} from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -137,6 +144,7 @@ export default function ExplorePage() {
           isExploreInitialized.current = true;
         });
     }
+    getSharedLabelColor().source = SharedLabelColorSource.explore;
   }, [dispatch, location]);
 
   if (!isLoaded) {

@@ -20,24 +20,32 @@
 import { CategoricalColorNamespace } from '.';
 import { makeSingleton } from '../utils';
 
+export enum SharedLabelColorSource {
+  dashboard,
+  explore,
+}
 export class SharedLabelColor {
-  sliceLabelColorMap: Map<number, Map<string, string | undefined>>;
+  sliceLabelColorMap: Map<number, Map<string, string>>;
 
   allColorMap: Map<string, string>;
+
+  source: SharedLabelColorSource;
 
   constructor() {
     // { sliceId1: { label1: color1 }, sliceId2: { label2: color2 } }
     this.sliceLabelColorMap = new Map();
     this.allColorMap = new Map();
+    this.source = SharedLabelColorSource.dashboard;
   }
 
   updateColorMap(colorNamespace?: string, colorScheme?: string) {
     const categoricalNamespace =
       CategoricalColorNamespace.getNamespace(colorNamespace);
     const colorScale = categoricalNamespace.getScale(colorScheme);
-    const newSliceLabelColorMap = new Map(this.sliceLabelColorMap);
+    colorScale.domain([...this.allColorMap.keys()]);
+    const copySliceLabelColorMap = new Map(this.sliceLabelColorMap);
     this.clear();
-    newSliceLabelColorMap.forEach((colorMap, sliceId) => {
+    copySliceLabelColorMap.forEach((colorMap, sliceId) => {
       const newColorMap = new Map();
       colorMap.forEach((_, label) => {
         const newColor = colorScale(label);
@@ -49,10 +57,17 @@ export class SharedLabelColor {
   }
 
   getColorMap() {
+    this.allColorMap.clear();
+    this.sliceLabelColorMap.forEach(colorMap => {
+      colorMap.forEach((color, label) => {
+        this.allColorMap.set(label, color);
+      });
+    });
     return Object.fromEntries(this.allColorMap);
   }
 
   addSlice(label: string, color: string, sliceId?: number) {
+    if (this.source !== SharedLabelColorSource.dashboard) return;
     if (sliceId === undefined) return;
     let colorMap = this.sliceLabelColorMap.get(sliceId);
     if (!colorMap) {
@@ -64,12 +79,7 @@ export class SharedLabelColor {
   }
 
   removeSlice(sliceId: number) {
-    const removeColorMap = this.sliceLabelColorMap.get(sliceId);
-    if (removeColorMap) {
-      removeColorMap.forEach((_, label) => {
-        this.allColorMap.delete(label);
-      });
-    }
+    if (this.source !== SharedLabelColorSource.dashboard) return;
     this.sliceLabelColorMap.delete(sliceId);
   }
 
