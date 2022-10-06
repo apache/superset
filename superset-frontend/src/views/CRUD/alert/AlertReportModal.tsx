@@ -56,7 +56,6 @@ import {
   Recipient,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { concat } from 'lodash';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 
