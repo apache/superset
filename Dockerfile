@@ -32,7 +32,7 @@ RUN /frontend-mem-nag.sh
 
 WORKDIR /app/superset-frontend/
 
-COPY superset-frontend/package*.json .
+COPY superset-frontend/package*.json ./
 RUN npm ci
 
 COPY ./superset-frontend .
