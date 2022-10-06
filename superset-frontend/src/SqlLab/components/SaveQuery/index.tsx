@@ -125,8 +125,6 @@ export default function SaveQuery({
   const close = () => setShowSave(false);
 
   const onSaveWrapper = () => {
-    console.log('save wrapper ', query, query.id, queryEditorId);
-
     onSave(queryPayload(), query.id);
     close();
   };

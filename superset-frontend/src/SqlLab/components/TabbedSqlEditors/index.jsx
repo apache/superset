@@ -291,8 +291,6 @@ class TabbedSqlEditors extends React.PureComponent {
   }
 
   render() {
-    console.log('editors ', this.props.queryEditors);
-
     const noQueryEditors = this.props.queryEditors?.length === 0;
     const editors = this.props.queryEditors?.map(qe => (
       <EditableTabs.TabPane
