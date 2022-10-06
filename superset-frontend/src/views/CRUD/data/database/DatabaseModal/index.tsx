@@ -1154,7 +1154,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const errorAlert = () => {
     let alertErrors: string[] = [];
     if (!isEmpty(dbErrors)) {
-      alertErrors = typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
+      alertErrors =
+        typeof dbErrors === 'object'
+          ? Object.values(dbErrors)
+          : typeof dbErrors === 'string'
+          ? [dbErrors]
+          : [];
     } else if (!isEmpty(validationErrors)) {
       alertErrors =
         validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'

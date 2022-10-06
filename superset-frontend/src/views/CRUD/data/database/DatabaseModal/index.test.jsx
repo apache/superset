@@ -26,6 +26,7 @@ import {
   cleanup,
   act,
 } from 'spec/helpers/testing-library';
+import * as hooks from 'src/views/CRUD/hooks';
 import DatabaseModal from './index';
 
 const dbProps = {
@@ -1267,6 +1268,96 @@ describe('DatabaseModal', () => {
       });
       expect(allowFileUploadText).not.toBeInTheDocument();
       expect(schemasForFileUploadText).not.toBeInTheDocument();
+    });
+  });
+
+  describe('DatabaseModal w errors as objects', () => {
+    jest.mock('src/views/CRUD/hooks', () => ({
+      ...jest.requireActual('src/views/CRUD/hooks'),
+      useSingleViewResource: jest.fn(),
+    }));
+    const useSingleViewResourceMock = jest.spyOn(
+      hooks,
+      'useSingleViewResource',
+    );
+
+    useSingleViewResourceMock.mockReturnValue({
+      state: {
+        loading: false,
+        resource: null,
+        error: { _schema: 'Test Error With Object' },
+      },
+      fetchResource: jest.fn(),
+      createResource: jest.fn(),
+      updateResource: jest.fn(),
+      clearError: jest.fn(),
+    });
+
+    const renderAndWait = async () => {
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    test('Error displays when it is an object', async () => {
+      const step2of3text = screen.getByText(/step 2 of 3/i);
+      const errorSection = screen.getByText(/Database Creation Error/i);
+      expect(step2of3text).toBeVisible();
+      expect(errorSection).toBeVisible();
+    });
+  });
+
+  describe('DatabaseModal w errors as strings', () => {
+    jest.mock('src/views/CRUD/hooks', () => ({
+      ...jest.requireActual('src/views/CRUD/hooks'),
+      useSingleViewResource: jest.fn(),
+    }));
+    const useSingleViewResourceMock = jest.spyOn(
+      hooks,
+      'useSingleViewResource',
+    );
+
+    useSingleViewResourceMock.mockReturnValue({
+      state: {
+        loading: false,
+        resource: null,
+        error: 'Test Error With String',
+      },
+      fetchResource: jest.fn(),
+      createResource: jest.fn(),
+      updateResource: jest.fn(),
+      clearError: jest.fn(),
+    });
+
+    const renderAndWait = async () => {
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    test('Error displays when it is a string', async () => {
+      const step2of3text = screen.getByText(/step 2 of 3/i);
+      const errorTitleMessage = screen.getByText(/Database Creation Error/i);
+      const errorMessage = screen.getByText(/Test Error With String/i);
+      expect(step2of3text).toBeVisible();
+      expect(errorTitleMessage).toBeVisible();
+      expect(errorMessage).toBeVisible();
     });
   });
 });
