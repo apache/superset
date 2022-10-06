@@ -74,7 +74,7 @@ const DashboardsSubMenu = ({
       >
         {filteredDashboards.map(dashboard => (
           <Menu.Item
-            key={`${dashboard.id}`}
+            key={String(dashboard.id)}
             onMouseEnter={() => setHoveredItem(dashboard.id)}
             onMouseLeave={() => {
               if (hoveredItem === dashboard.id) {
@@ -85,6 +85,7 @@ const DashboardsSubMenu = ({
           >
             <Link
               target="_blank"
+              rel="noreferer noopener"
               to={`/superset/dashboard/${dashboard.id}${urlQueryString}`}
             >
               <div

@@ -169,7 +169,7 @@ export const ExploreChartHeader = ({
         metadata.dashboards.length > 0 &&
         isFeatureEnabled(FeatureFlag.CROSS_REFERENCES)
           ? t(
-              'To preview the list of dashboards go to "more" settings on the right.',
+              'You can preview the list of dashboards on the chart settings dropdown.',
             )
           : undefined,
     });
