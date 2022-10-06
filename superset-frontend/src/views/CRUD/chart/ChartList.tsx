@@ -49,6 +49,7 @@ import ListView, {
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
+import CrossLinks from 'src/components/ListView/CrossLinks';
 import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -135,6 +136,47 @@ const createFetchDatasets = async (
   };
 };
 
+const createFetchDashboards = async (
+  filterValue = '',
+  page: number,
+  pageSize: number,
+) => {
+  // add filters if filterValue
+  const filters = filterValue
+    ? { filters: [{ col: 'dashboards', opr: 'rel_m_m', value: filterValue }] }
+    : {};
+  const queryParams = rison.encode({
+    columns: ['dashboard_title', 'id'],
+    keys: ['none'],
+    order_column: 'dashboard_title',
+    order_direction: 'asc',
+    page,
+    page_size: pageSize,
+    ...filters,
+  });
+  const { json = {} } = await SupersetClient.get({
+    endpoint: !filterValue
+      ? `/api/v1/dashboard/?q=${queryParams}`
+      : `/api/v1/chart/?q=${queryParams}`,
+  });
+  const dashboards = json?.result?.map(
+    ({
+      dashboard_title: dashboardTitle,
+      id,
+    }: {
+      dashboard_title: string;
+      id: number;
+    }) => ({
+      label: dashboardTitle,
+      value: id,
+    }),
+  );
+  return {
+    data: uniqBy<SelectOption>(dashboards, 'value'),
+    totalCount: json?.count,
+  };
+};
+
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -144,6 +186,11 @@ interface ChartListProps {
     lastName: string;
   };
 }
+
+type ChartLinkedDashboard = {
+  id: number;
+  dashboard_title: string;
+};
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
@@ -323,6 +370,24 @@ function ChartList(props: ChartListProps) {
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { dashboards },
+          },
+        }: any) => (
+          <CrossLinks
+            crossLinks={dashboards.map((d: ChartLinkedDashboard) => ({
+              title: d.dashboard_title,
+              id: d.id,
+            }))}
+          />
+        ),
+        Header: t('Dashboards added to'),
+        accessor: 'dashboards',
+        disableSortBy: true,
+        size: 'xxl',
       },
       {
         Cell: ({
@@ -566,6 +631,15 @@ function ChartList(props: ChartListProps) {
         operator: FilterOperator.equals,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
+        paginate: true,
+      },
+      {
+        Header: t('Dashboards'),
+        id: 'dashboards',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchDashboards,
         paginate: true,
       },
       ...(userId ? [favoritesFilter] : []),
