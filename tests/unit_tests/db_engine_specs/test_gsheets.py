@@ -61,7 +61,9 @@ def test_validate_parameters_simple_with_in_root_catalog() -> None:
     )
 
     properties: GSheetsPropertiesType = {
-        "properties": {},
+        "parameters": {
+            "catalog": {},
+        },
         "catalog": {},
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)
@@ -98,6 +100,7 @@ def test_validate_parameters_catalog(
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
+            "catalog": None,
         },
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
@@ -190,6 +193,7 @@ def test_validate_parameters_catalog_and_credentials(
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
+            "catalog": None,
         },
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
