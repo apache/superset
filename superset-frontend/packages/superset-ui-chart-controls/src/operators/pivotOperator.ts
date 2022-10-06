@@ -17,11 +17,11 @@
  * under the License.
  */
 import {
-  DTTM_ALIAS,
   ensureIsArray,
   getColumnLabel,
   getMetricLabel,
   PostProcessingPivot,
+  getXAxis,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
@@ -30,14 +30,13 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   queryObject,
 ) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
-  const { x_axis: xAxis } = formData;
+  const xAxis = getXAxis(formData);
 
-  if ((xAxis || queryObject.is_timeseries) && metricLabels.length) {
-    const index = [getColumnLabel(xAxis || DTTM_ALIAS)];
+  if (xAxis && metricLabels.length) {
     return {
       operation: 'pivot',
       options: {
-        index,
+        index: [xAxis],
         columns: ensureIsArray(queryObject.columns).map(getColumnLabel),
         // Create 'dummy' mean aggregates to assign cell values in pivot table
         // use the 'mean' aggregates to avoid drop NaN. PR: https://github.com/apache-superset/superset-ui/pull/1231

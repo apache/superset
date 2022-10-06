@@ -21,9 +21,10 @@ import { css, styled, SupersetTheme } from '@superset-ui/core';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 import Button from 'src/components/Button';
 
-const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 102;
+const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 108;
 const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
 const EXPOSE_ALL_FORM_HEIGHT = EXPOSE_IN_SQLLAB_FORM_HEIGHT + 102;
+const MODAL_BODY_HEIGHT = 180.5;
 
 const anticonHeight = 12;
 
@@ -49,6 +50,10 @@ export const StyledFormHeader = styled.header`
     color: ${({ theme }) => theme.colors.grayscale.base};
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     margin: 0;
+  }
+
+  .subheader-text {
+    line-height: ${({ theme }) => theme.gridUnit * 4.25}px;
   }
 
   .helper-bottom {
@@ -152,7 +157,7 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
   }
 
   .ant-modal-body {
-    height: ${theme.gridUnit * 180.5}px;
+    height: ${theme.gridUnit * MODAL_BODY_HEIGHT}px;
   }
 
   .ant-modal-footer {
@@ -273,7 +278,6 @@ export const formStyles = (theme: SupersetTheme) => css`
       width: ${`calc(50% - ${theme.gridUnit * 4}px)`};
       & + .form-group-w-50 {
         margin-left: ${theme.gridUnit * 8}px;
-        margin-bottom: ${theme.gridUnit * 10}px;
       }
     }
   }

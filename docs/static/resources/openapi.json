@@ -1666,7 +1666,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
           },
           "datasource_id": {
             "format": "int32",
@@ -1707,7 +1707,7 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "owners": {
             "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
@@ -2424,7 +2424,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "datasource_id": {
             "format": "int32",
@@ -2465,7 +2465,7 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "owners": {
             "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
@@ -3242,6 +3242,9 @@
           "created_on_delta_humanized": {
             "readOnly": true
           },
+          "created_on_delta_humanized": {
+            "readOnly": true
+          },
           "css": {
             "nullable": true,
             "type": "string"
@@ -3263,7 +3266,7 @@
             "type": "string"
           },
           "owners": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User2"
           },
           "position_json": {
             "nullable": true,
@@ -3532,9 +3535,6 @@
       },
       "Database": {
         "properties": {
-          "allow_multi_schema_metadata_fetch": {
-            "type": "boolean"
-          },
           "allows_cost_estimate": {
             "type": "boolean"
           },
@@ -3559,6 +3559,17 @@
             "type": "integer"
           },
           "name": {
+            "type": "string"
+          },
+          "engine_information": {
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "Database1": {
+        "properties": {
+          "database_name": {
             "type": "string"
           }
         },
@@ -3679,10 +3690,6 @@
             "nullable": true,
             "type": "boolean"
           },
-          "allow_multi_schema_metadata_fetch": {
-            "nullable": true,
-            "type": "boolean"
-          },
           "allow_run_async": {
             "nullable": true,
             "type": "boolean"
@@ -3745,6 +3752,9 @@
           "sqlalchemy_uri": {
             "maxLength": 1024,
             "type": "string"
+          },
+          "engine_information": {
+            "readOnly": true
           }
         },
         "required": [
@@ -3768,10 +3778,6 @@
             "type": "boolean"
           },
           "allow_file_upload": {
-            "nullable": true,
-            "type": "boolean"
-          },
-          "allow_multi_schema_metadata_fetch": {
             "nullable": true,
             "type": "boolean"
           },
@@ -3828,6 +3834,9 @@
           "id": {
             "format": "int32",
             "type": "integer"
+          },
+          "engine_information": {
+            "readOnly": true
           }
         },
         "required": [
@@ -3868,10 +3877,6 @@
           },
           "allow_file_upload": {
             "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
-            "type": "boolean"
-          },
-          "allow_multi_schema_metadata_fetch": {
-            "description": "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.",
             "type": "boolean"
           },
           "allow_run_async": {
@@ -3969,10 +3974,6 @@
           },
           "allow_file_upload": {
             "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
-            "type": "boolean"
-          },
-          "allow_multi_schema_metadata_fetch": {
-            "description": "Allow SQL Lab to fetch a list of all tables and all views across all database schemas. For large data warehouse with thousands of tables, this can be expensive and put strain on the system.",
             "type": "boolean"
           },
           "allow_run_async": {
@@ -4250,6 +4251,24 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "DatasetDuplicateSchema": {
+        "properties": {
+          "base_model_id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "table_name": {
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "base_model_id",
+          "table_name"
+        ],
         "type": "object"
       },
       "DatasetMetricRestApi.get": {
@@ -5022,6 +5041,80 @@
         "type": "object"
       },
       "EmbeddedDashboardConfig": {
+        "properties": {
+          "allowed_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "allowed_domains"
+        ],
+        "type": "object"
+      },
+      "EmbeddedDashboardResponseSchema": {
+        "properties": {
+          "allowed_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/User"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dashboard_id": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EmbeddedDashboardRestApi.get": {
+        "properties": {
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EmbeddedDashboardRestApi.get_list": {
+        "properties": {
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EmbeddedDashboardRestApi.post": {
+        "properties": {
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EmbeddedDashboardRestApi.put": {
+        "properties": {
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ExplorePermalinkPostSchema": {
         "properties": {
           "allowed_domains": {
             "items": {
@@ -8584,6 +8677,99 @@
   "paths": {
     "/api/v1/advanced_data_type/convert": {
       "get": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/advanced_data_type_convert_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdvancedDataTypeSchema"
+                }
+              }
+            },
+            "description": "AdvancedDataTypeResponse object has been returned."
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Returns a AdvancedDataTypeResponse object populated with the passed in args.",
+        "tags": [
+          "Advanced Data Type"
+        ]
+      }
+    },
+    "/api/v1/advanced_data_type/types": {
+      "get": {
+        "description": "Returns a list of available advanced data types.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "a successful return of the available advanced data types has taken place."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Advanced Data Type"
+        ]
+      }
+    },
+    "/api/v1/annotation_layer/": {
+      "delete": {
+        "description": "Deletes multiple annotation layers in a bulk operation.",
         "parameters": [
           {
             "content": {
@@ -13635,6 +13821,10 @@
                       "sqlalchemy_uri_placeholder": {
                         "description": "Example placeholder for the SQLAlchemy URI",
                         "type": "string"
+                      },
+                      "engine_information": {
+                        "description": "Object with properties we want to expose from our DB engine",
+                        "type": "object"
                       }
                     },
                     "type": "object"
@@ -13776,7 +13966,7 @@
         ]
       }
     },
-    "/api/v1/database/test_connection": {
+    "/api/v1/database/test_connection/": {
       "post": {
         "description": "Tests a database connection",
         "requestBody": {
@@ -13826,7 +14016,7 @@
         ]
       }
     },
-    "/api/v1/database/validate_parameters": {
+    "/api/v1/database/validate_parameters/": {
       "post": {
         "description": "Validates parameters used to connect to a database",
         "requestBody": {
@@ -14249,6 +14439,75 @@
       }
     },
     "/api/v1/database/{pk}/select_star/{table_name}/": {
+      "get": {
+        "description": "Get database select star for table",
+        "parameters": [
+          {
+            "description": "The database id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Table name",
+            "in": "path",
+            "name": "table_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Table schema",
+            "in": "path",
+            "name": "schema_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SelectStarResponseSchema"
+                }
+              }
+            },
+            "description": "SQL statement for a select star for table"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/select_star/{table_name}/{schema_name}/": {
       "get": {
         "description": "Get database select star for table",
         "parameters": [
@@ -14943,6 +15202,75 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/duplicate": {
+      "post": {
+        "description": "Duplicates a Dataset",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetDuplicateSchema"
+              }
+            }
+          },
+          "description": "Dataset schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset duplicate"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
           },
           "500": {
             "$ref": "#/components/responses/500"

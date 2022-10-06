@@ -23,6 +23,7 @@ import {
   isAdhocMetricSimple,
   isSavedMetric,
   isSimpleAdhocFilter,
+  isFreeFormAdhocFilter,
   JsonValue,
   SimpleAdhocFilter,
 } from '@superset-ui/core';
@@ -35,11 +36,12 @@ const isControlValueCompatibleWithDatasource = (
 ) => {
   if (controlState.options && typeof value === 'string') {
     if (
-      (Array.isArray(controlState.options) &&
-        controlState.options.some(
-          (option: [string | number, string]) => option[0] === value,
-        )) ||
-      value in controlState.options
+      controlState.options.some(
+        (option: [string | number, string] | { column_name: string }) =>
+          Array.isArray(option)
+            ? option[0] === value
+            : option.column_name === value,
+      )
     ) {
       return datasource.columns.some(column => column.column_name === value);
     }
@@ -70,6 +72,7 @@ const isControlValueCompatibleWithDatasource = (
         column.column_name === (value as SimpleAdhocFilter).subject,
     );
   }
+  if (isFreeFormAdhocFilter(value)) return true;
   return false;
 };
 

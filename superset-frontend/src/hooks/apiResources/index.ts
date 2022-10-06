@@ -28,3 +28,4 @@ export {
 // different files for different resource types.
 export * from './charts';
 export * from './dashboards';
+export * from './tables';

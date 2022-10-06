@@ -51,6 +51,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
+from .conftest import only_postgresql
 
 VIRTUAL_TABLE_INT_TYPES: Dict[str, Pattern[str]] = {
     "hive": re.compile(r"^INT_TYPE$"),
@@ -453,7 +454,8 @@ class TestDatabaseModel(SupersetTestCase):
 
         # make sure the columns have been mapped properly
         assert len(table.columns) == 4
-        table.fetch_metadata(commit=False)
+        with db.session.no_autoflush:
+            table.fetch_metadata(commit=False)
 
         # assert that the removed column has been dropped and
         # the physical and calculated columns are present
@@ -465,14 +467,12 @@ class TestDatabaseModel(SupersetTestCase):
         }
         cols: Dict[str, TableColumn] = {col.column_name: col for col in table.columns}
         # assert that the type for intcol has been updated (asserting CI types)
-        backend = get_example_database().backend
+        backend = table.database.backend
         assert VIRTUAL_TABLE_INT_TYPES[backend].match(cols["intcol"].type)
         # assert that the expression has been replaced with the new physical column
         assert cols["mycase"].expression == ""
         assert VIRTUAL_TABLE_STRING_TYPES[backend].match(cols["mycase"].type)
         assert cols["expr"].expression == "case when 1 then 1 else 0 end"
-
-        db.session.delete(table)
 
     @patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
     def test_labels_expected_on_mutated_query(self):
@@ -660,51 +660,90 @@ def test_filter_on_text_column(text_column_table):
     assert result_object.df["count"][0] == 1
 
 
-def test_should_generate_closed_and_open_time_filter_range():
-    with app.app_context():
-        if backend() != "postgresql":
-            pytest.skip(f"{backend()} has different dialect for datetime column")
+@only_postgresql
+def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
+    table = SqlaTable(
+        table_name="temporal_column_table",
+        sql=(
+            "SELECT '2021-12-31'::timestamp as datetime_col "
+            "UNION SELECT '2022-01-01'::timestamp "
+            "UNION SELECT '2022-03-10'::timestamp "
+            "UNION SELECT '2023-01-01'::timestamp "
+            "UNION SELECT '2023-03-10'::timestamp "
+        ),
+        database=get_example_database(),
+    )
+    TableColumn(
+        column_name="datetime_col",
+        type="TIMESTAMP",
+        table=table,
+        is_dttm=True,
+    )
+    SqlMetric(metric_name="count", expression="count(*)", table=table)
+    result_object = table.query(
+        {
+            "metrics": ["count"],
+            "is_timeseries": False,
+            "filter": [],
+            "from_dttm": datetime(2022, 1, 1),
+            "to_dttm": datetime(2023, 1, 1),
+            "granularity": "datetime_col",
+        }
+    )
+    """ >>> result_object.query
+            SELECT count(*) AS count
+            FROM
+              (SELECT '2021-12-31'::timestamp as datetime_col
+               UNION SELECT '2022-01-01'::timestamp
+               UNION SELECT '2022-03-10'::timestamp
+               UNION SELECT '2023-01-01'::timestamp
+               UNION SELECT '2023-03-10'::timestamp) AS virtual_table
+            WHERE datetime_col >= TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+              AND datetime_col < TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+    """
+    assert result_object.df.iloc[0]["count"] == 2
 
-        table = SqlaTable(
-            table_name="temporal_column_table",
-            sql=(
-                "SELECT '2021-12-31'::timestamp as datetime_col "
-                "UNION SELECT '2022-01-01'::timestamp "
-                "UNION SELECT '2022-03-10'::timestamp "
-                "UNION SELECT '2023-01-01'::timestamp "
-                "UNION SELECT '2023-03-10'::timestamp "
-            ),
-            database=get_example_database(),
-        )
-        TableColumn(
-            column_name="datetime_col",
-            type="TIMESTAMP",
-            table=table,
-            is_dttm=True,
-        )
-        SqlMetric(metric_name="count", expression="count(*)", table=table)
-        result_object = table.query(
+
+def test_none_operand_in_filter(login_as_admin, physical_dataset):
+    expected_results = [
+        {
+            "operator": FilterOperator.EQUALS.value,
+            "count": 10,
+            "sql_should_contain": "COL4 IS NULL",
+        },
+        {
+            "operator": FilterOperator.NOT_EQUALS.value,
+            "count": 0,
+            "sql_should_contain": "COL4 IS NOT NULL",
+        },
+    ]
+    for expected in expected_results:
+        result = physical_dataset.query(
             {
                 "metrics": ["count"],
+                "filter": [{"col": "col4", "val": None, "op": expected["operator"]}],
                 "is_timeseries": False,
-                "filter": [],
-                "from_dttm": datetime(2022, 1, 1),
-                "to_dttm": datetime(2023, 1, 1),
-                "granularity": "datetime_col",
             }
         )
-        """ >>> result_object.query
-                SELECT count(*) AS count
-                FROM
-                  (SELECT '2021-12-31'::timestamp as datetime_col
-                   UNION SELECT '2022-01-01'::timestamp
-                   UNION SELECT '2022-03-10'::timestamp
-                   UNION SELECT '2023-01-01'::timestamp
-                   UNION SELECT '2023-03-10'::timestamp) AS virtual_table
-                WHERE datetime_col >= TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-                  AND datetime_col < TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-        """
-        assert result_object.df.iloc[0]["count"] == 2
+        assert result.df["count"][0] == expected["count"]
+        assert expected["sql_should_contain"] in result.query.upper()
+
+    with pytest.raises(QueryObjectValidationError):
+        for flt in [
+            FilterOperator.GREATER_THAN,
+            FilterOperator.LESS_THAN,
+            FilterOperator.GREATER_THAN_OR_EQUALS,
+            FilterOperator.LESS_THAN_OR_EQUALS,
+            FilterOperator.LIKE,
+            FilterOperator.ILIKE,
+        ]:
+            physical_dataset.query(
+                {
+                    "metrics": ["count"],
+                    "filter": [{"col": "col4", "val": None, "op": flt.value}],
+                    "is_timeseries": False,
+                }
+            )
 
 
 @pytest.mark.parametrize(

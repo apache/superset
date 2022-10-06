@@ -66,10 +66,10 @@ export function optionLabel(opt) {
     return EMPTY_STRING;
   }
   if (opt === true) {
-    return '<true>';
+    return TRUE_STRING;
   }
   if (opt === false) {
-    return '<false>';
+    return FALSE_STRING;
   }
   if (typeof opt !== 'string' && opt.toString) {
     return opt.toString();
@@ -97,7 +97,7 @@ export function prepareCopyToClipboardTabularData(data, columns) {
       // JavaScript does not maintain the order of a mixed set of keys (i.e integers and strings)
       // the below function orders the keys based on the column names.
       const key = columns[j].name || columns[j];
-      if (data[i][key]) {
+      if (key in data[i]) {
         row[j] = data[i][key];
       } else {
         row[j] = data[i][parseFloat(key)];

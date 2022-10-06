@@ -19,12 +19,12 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
 describe('Visualization > Line', () => {
-  const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
-
   beforeEach(() => {
-    cy.login();
+    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
+
+  const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
 
   it('should show validator error when no metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
@@ -40,7 +40,10 @@ describe('Visualization > Line', () => {
     cy.get('.panel-body').contains(
       `Add required control values to preview chart`,
     );
-    cy.get('.text-danger').contains('Metrics');
+    cy.get('[data-test="metrics-header"]').contains('Metrics');
+    cy.get('[data-test="metrics-header"] [data-test="error-tooltip"]').should(
+      'exist',
+    );
 
     cy.get('[data-test=metrics]')
       .contains('Drop columns/metrics here or click')
@@ -55,7 +58,11 @@ describe('Visualization > Line', () => {
       .type('sum{enter}');
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
-    cy.get('.text-danger').should('not.exist');
+    cy.get('[data-test="metrics-header"]').contains('Metrics');
+    cy.get('[data-test="metrics-header"] [data-test="error-tooltip"]').should(
+      'not.exist',
+    );
+
     cy.get('.ant-alert-warning').should('not.exist');
   });
 
@@ -68,15 +75,18 @@ describe('Visualization > Line', () => {
     cy.get('.ant-alert-warning').should('not.exist');
   });
 
-  it('should allow type to search color schemes', () => {
+  it('should allow type to search color schemes and apply the scheme', () => {
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()
       .type('bnbColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="bnbColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
     ).should('exist');
+    cy.get('.line .nv-legend .nv-legend-symbol')
+      .first()
+      .should('have.css', 'fill', 'rgb(255, 90, 95)');
   });
 
   it('should work with adhoc metric', () => {

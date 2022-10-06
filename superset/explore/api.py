@@ -16,22 +16,14 @@
 # under the License.
 import logging
 
-import simplejson
-from flask import g, make_response, request, Response
+from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dao.exceptions import DatasourceNotFound
 from superset.explore.commands.get import GetExploreCommand
 from superset.explore.commands.parameters import CommandParameters
-from superset.explore.commands.samples import SamplesDatasourceCommand
-from superset.explore.exceptions import (
-    DatasetAccessDeniedError,
-    DatasourceForbiddenError,
-    DatasourceSamplesFailedError,
-    WrongEndpointError,
-)
+from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
 from superset.extensions import event_logger
@@ -39,16 +31,13 @@ from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
-from superset.utils.core import json_int_dttm_ser, parse_boolean_string
 
 logger = logging.getLogger(__name__)
 
 
 class ExploreRestApi(BaseApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-    include_route_methods = {RouteMethod.GET} | {
-        "samples",
-    }
+    include_route_methods = {RouteMethod.GET}
     allow_browser_login = True
     class_permission_name = "Explore"
     resource_name = "explore"
@@ -146,70 +135,3 @@ class ExploreRestApi(BaseApi):
             return self.response(403, message=str(ex))
         except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
-
-    @expose("/samples", methods=["GET"])
-    @protect()
-    @safe
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.samples",
-        log_to_statsd=False,
-    )
-    def samples(self) -> Response:
-        """get samples from a Datasource
-        ---
-        get:
-          description: >-
-            get samples from a Datasource
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          - in: query
-            schema:
-              type: boolean
-            name: force
-          responses:
-            200:
-              description: Datasource samples
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/ChartDataResponseResult'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            force = parse_boolean_string(request.args.get("force"))
-            rv = SamplesDatasourceCommand(
-                user=g.user,
-                datasource_type=request.args.get("datasource_type", type=str),
-                datasource_id=request.args.get("datasource_id", type=int),
-                force=force,
-            ).run()
-
-            response_data = simplejson.dumps(
-                {"result": rv},
-                default=json_int_dttm_ser,
-                ignore_nan=True,
-            )
-            resp = make_response(response_data, 200)
-            resp.headers["Content-Type"] = "application/json; charset=utf-8"
-            return resp
-        except DatasourceNotFound:
-            return self.response_404()
-        except DatasourceForbiddenError:
-            return self.response_403()
-        except DatasourceSamplesFailedError as ex:
-            return self.response_400(message=str(ex))

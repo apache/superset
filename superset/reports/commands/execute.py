@@ -17,7 +17,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 from uuid import UUID
 
 import pandas as pd
@@ -29,16 +29,10 @@ from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.extensions import feature_flag_manager, machine_auth_provider_factory
-from superset.models.reports import (
-    ReportDataFormat,
-    ReportExecutionLog,
-    ReportRecipients,
-    ReportRecipientType,
-    ReportSchedule,
-    ReportScheduleType,
-    ReportState,
+from superset.dashboards.permalink.commands.create import (
+    CreateDashboardPermalinkCommand,
 )
+from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
     ReportScheduleAlertGracePeriodError,
@@ -48,7 +42,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleNotFoundError,
-    ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -61,16 +54,23 @@ from superset.reports.dao import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
     ReportScheduleDAO,
 )
+from superset.reports.models import (
+    ReportDataFormat,
+    ReportExecutionLog,
+    ReportRecipients,
+    ReportRecipientType,
+    ReportSchedule,
+    ReportScheduleType,
+    ReportSourceFormat,
+    ReportState,
+)
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
+from superset.utils.core import HeaderDataType
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.screenshots import (
-    BaseScreenshot,
-    ChartScreenshot,
-    DashboardScreenshot,
-)
+from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import DashboardStandaloneMode
 
@@ -174,6 +174,16 @@ class BaseReportState:
                 force=force,
                 **kwargs,
             )
+
+        # If we need to render dashboard in a specific sate, use stateful permalink
+        dashboard_state = self._report_schedule.extra.get("dashboard")
+        if dashboard_state:
+            permalink_key = CreateDashboardPermalinkCommand(
+                dashboard_id=self._report_schedule.dashboard_id,
+                state=dashboard_state,
+            ).run()
+            return get_url_path("Superset.dashboard_permalink", key=permalink_key)
+
         return get_url_path(
             "Superset.dashboard",
             user_friendly=user_friendly,
@@ -197,53 +207,34 @@ class BaseReportState:
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        image_data = []
-        screenshots: List[BaseScreenshot] = []
-        if self._report_schedule.chart:
-            url = self._get_url()
-            logger.info("Screenshotting chart at %s", url)
-            screenshots = [
-                ChartScreenshot(
-                    url,
-                    self._report_schedule.chart.digest,
-                    window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-                    thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-                )
-            ]
-        else:
-            tabs: Optional[List[str]] = json.loads(self._report_schedule.extra).get(
-                "dashboard_tab_ids", None
-            )
-            dashboard_base_url = self._get_url()
-            if tabs is None:
-                urls = [dashboard_base_url]
-            else:
-                urls = [f"{dashboard_base_url}#{tab_id}" for tab_id in tabs]
-            screenshots = [
-                DashboardScreenshot(
-                    url,
-                    self._report_schedule.dashboard.digest,
-                    window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
-                    thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
-                )
-                for url in urls
-            ]
+        url = self._get_url()
         user = self._get_user()
-        for screenshot in screenshots:
-            try:
-                image = screenshot.get_screenshot(user=user)
-            except SoftTimeLimitExceeded as ex:
-                logger.warning("A timeout occurred while taking a screenshot.")
-                raise ReportScheduleScreenshotTimeout() from ex
-            except Exception as ex:
-                raise ReportScheduleScreenshotFailedError(
-                    f"Failed taking a screenshot {str(ex)}"
-                ) from ex
-            if image is not None:
-                image_data.append(image)
-        if not image_data:
+        if self._report_schedule.chart:
+            screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
+                url,
+                self._report_schedule.chart.digest,
+                window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+            )
+        else:
+            screenshot = DashboardScreenshot(
+                url,
+                self._report_schedule.dashboard.digest,
+                window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+            )
+        try:
+            image = screenshot.get_screenshot(user=user)
+        except SoftTimeLimitExceeded as ex:
+            logger.warning("A timeout occurred while taking a screenshot.")
+            raise ReportScheduleScreenshotTimeout() from ex
+        except Exception as ex:
+            raise ReportScheduleScreenshotFailedError(
+                f"Failed taking a screenshot {str(ex)}"
+            ) from ex
+        if not image:
             raise ReportScheduleScreenshotFailedError()
-        return image_data
+        return [image]
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
@@ -315,6 +306,28 @@ class BaseReportState:
                 "Please try loading the chart and saving it again."
             ) from ex
 
+    def _get_log_data(self) -> HeaderDataType:
+        chart_id = None
+        dashboard_id = None
+        report_source = None
+        if self._report_schedule.chart:
+            report_source = ReportSourceFormat.CHART
+            chart_id = self._report_schedule.chart_id
+        else:
+            report_source = ReportSourceFormat.DASHBOARD
+            dashboard_id = self._report_schedule.dashboard_id
+
+        log_data: HeaderDataType = {
+            "notification_type": self._report_schedule.type,
+            "notification_source": report_source,
+            "notification_format": self._report_schedule.report_format,
+            "chart_id": chart_id,
+            "dashboard_id": dashboard_id,
+            "owners": self._report_schedule.owners,
+            "error_text": None,
+        }
+        return log_data
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -325,6 +338,7 @@ class BaseReportState:
         embedded_data = None
         error_text = None
         screenshot_data = []
+        header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -342,8 +356,11 @@ class BaseReportState:
                 if not csv_data:
                     error_text = "Unexpected missing csv file"
             if error_text:
+                header_data["error_text"] = error_text
                 return NotificationContent(
-                    name=self._report_schedule.name, text=error_text
+                    name=self._report_schedule.name,
+                    text=error_text,
+                    header_data=header_data,
                 )
 
         if (
@@ -362,6 +379,7 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
+
         return NotificationContent(
             name=name,
             url=url,
@@ -369,6 +387,7 @@ class BaseReportState:
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
+            header_data=header_data,
         )
 
     def _send(
@@ -379,9 +398,9 @@ class BaseReportState:
         """
         Sends a notification to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
-        notification_errors = []
+        notification_errors: List[NotificationError] = []
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
@@ -395,15 +414,17 @@ class BaseReportState:
                     notification.send()
             except NotificationError as ex:
                 # collect notification errors but keep processing them
-                notification_errors.append(str(ex))
+                notification_errors.append(ex)
         if notification_errors:
-            raise ReportScheduleNotificationError(";".join(notification_errors))
+            # raise errors separately so that we can utilize error status codes
+            for error in notification_errors:
+                raise error
 
     def send(self) -> None:
         """
         Creates the notification content and sends them to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
         notification_content = self._get_notification_content()
         self._send(notification_content, self._report_schedule.recipients)
@@ -412,9 +433,14 @@ class BaseReportState:
         """
         Creates and sends a notification for an error, to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
-        notification_content = NotificationContent(name=name, text=message)
+        header_data = self._get_log_data()
+        header_data["error_text"] = message
+        logger.info("header_data info %s", header_data)
+        notification_content = NotificationContent(
+            name=name, text=message, header_data=header_data
+        )
 
         # filter recipients to recipients who are also owners
         owner_recipients = [
@@ -502,7 +528,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except CommandException as first_ex:
+        except Exception as first_ex:
             self.update_report_schedule_and_log(
                 ReportState.ERROR, error_message=str(first_ex)
             )
@@ -518,7 +544,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                         ReportState.ERROR,
                         error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                     )
-                except CommandException as second_ex:
+                except Exception as second_ex:  # pylint: disable=broad-except
                     self.update_report_schedule_and_log(
                         ReportState.ERROR, error_message=str(second_ex)
                     )
@@ -575,7 +601,7 @@ class ReportSuccessState(BaseReportState):
                 if not AlertCommand(self._report_schedule).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
-            except CommandException as ex:
+            except Exception as ex:
                 self.send_error(
                     f"Error occurred for {self._report_schedule.type}:"
                     f" {self._report_schedule.name}",
@@ -590,7 +616,7 @@ class ReportSuccessState(BaseReportState):
         try:
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except CommandException as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             self.update_report_schedule_and_log(
                 ReportState.ERROR, error_message=str(ex)
             )

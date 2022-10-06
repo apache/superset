@@ -97,10 +97,12 @@ describe('ControlPanelsContainer', () => {
     } as ControlPanelsContainerProps;
   }
 
-  it('renders ControlPanelSections', () => {
-    render(<ControlPanelsContainer {...getDefaultProps()} />);
+  test('renders ControlPanelSections', async () => {
+    render(<ControlPanelsContainer {...getDefaultProps()} />, {
+      useRedux: true,
+    });
     expect(
-      screen.getAllByTestId('collapsible-control-panel-header'),
+      await screen.findAllByTestId('collapsible-control-panel-header'),
     ).toHaveLength(4);
   });
 });

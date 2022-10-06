@@ -819,7 +819,8 @@ class ChartDataFilterSchema(Schema):
     )
     val = fields.Raw(
         description="The value or values to compare against. Can be a string, "
-        "integer, decimal or list, depending on the operator.",
+        "integer, decimal, None or list, depending on the operator.",
+        allow_none=True,
         example=["China", "France", "Japan"],
     )
     grain = fields.String(
@@ -850,6 +851,12 @@ class ChartDataExtrasSchema(Schema):
     having = fields.String(
         description="HAVING clause to be added to aggregate queries using "
         "AND operator.",
+    )
+    having_druid = fields.List(
+        fields.Nested(ChartDataFilterSchema),
+        description="HAVING filters to be added to legacy Druid datasource queries. "
+        "This field is deprecated",
+        deprecated=True,
     )
     time_grain_sqla = fields.String(
         description="To what level of granularity should the temporal column be "
@@ -1188,6 +1195,12 @@ class ChartDataQueryContextSchema(Schema):
     query_context_factory: Optional[QueryContextFactory] = None
     datasource = fields.Nested(ChartDataDatasourceSchema)
     queries = fields.List(fields.Nested(ChartDataQueryObjectSchema))
+    custom_cache_timeout = fields.Integer(
+        description="Override the default cache timeout",
+        required=False,
+        allow_none=True,
+    )
+
     force = fields.Boolean(
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
@@ -1249,7 +1262,7 @@ class ChartDataResponseResult(Schema):
     )
     cache_timeout = fields.Integer(
         description="Cache timeout in following order: custom timeout, datasource "
-        "timeout, default config timeout.",
+        "timeout, cache default timeout, config default cache timeout.",
         required=True,
         allow_none=True,
     )

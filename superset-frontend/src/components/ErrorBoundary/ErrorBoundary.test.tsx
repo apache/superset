@@ -20,6 +20,8 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import ErrorBoundary from '.';
 
+jest.mock('src/components/Icons/Icon', () => () => <span />);
+
 const mockedProps = {
   children: <span>Error children</span>,
   onError: () => null,

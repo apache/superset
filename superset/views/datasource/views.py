@@ -18,10 +18,10 @@ import json
 from collections import Counter
 from typing import Any
 
-from flask import request
-from flask_appbuilder import expose
+from flask import redirect, request
+from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison
-from flask_appbuilder.security.decorators import has_access_api
+from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError
@@ -50,7 +50,10 @@ from superset.views.datasource.schemas import (
     ExternalMetadataParams,
     ExternalMetadataSchema,
     get_external_metadata_schema,
+    SamplesPayloadSchema,
+    SamplesRequestSchema,
 )
+from superset.views.datasource.utils import get_samples
 from superset.views.utils import sanitize_datasource_data
 
 
@@ -179,3 +182,48 @@ class Datasource(BaseSupersetView):
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)
+
+    @expose("/samples", methods=["POST"])
+    @has_access_api
+    @api
+    @handle_api_exception
+    def samples(self) -> FlaskResponse:
+        try:
+            params = SamplesRequestSchema().load(request.args)
+            payload = SamplesPayloadSchema().load(request.json)
+        except ValidationError as err:
+            return json_error_response(err.messages, status=400)
+
+        rv = get_samples(
+            datasource_type=params["datasource_type"],
+            datasource_id=params["datasource_id"],
+            force=params["force"],
+            page=params["page"],
+            per_page=params["per_page"],
+            payload=payload,
+        )
+        return self.json_response({"result": rv})
+
+
+class DatasetEditor(BaseSupersetView):
+    route_base = "/dataset"
+    class_permission_name = "Dataset"
+
+    @expose("/add/")
+    @has_access
+    @permission_name("read")
+    def root(self) -> FlaskResponse:
+        dev = request.args.get("testing")
+        if dev is not None:
+            return super().render_app_template()
+        return redirect("/")
+
+    @expose("/<pk>", methods=["GET"])
+    @has_access
+    @permission_name("read")
+    # pylint: disable=unused-argument
+    def show(self, pk: int) -> FlaskResponse:
+        dev = request.args.get("testing")
+        if dev is not None:
+            return super().render_app_template()
+        return redirect("/")

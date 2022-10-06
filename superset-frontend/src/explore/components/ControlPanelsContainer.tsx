@@ -35,6 +35,7 @@ import {
   DatasourceType,
   css,
   SupersetTheme,
+  useTheme,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -42,7 +43,6 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
-  InfoTooltipWithTrigger,
   sections,
 } from '@superset-ui/chart-controls';
 
@@ -56,8 +56,10 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
 
 import { rgba } from 'emotion-rgba';
+import { kebabCase } from 'lodash';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -84,6 +86,16 @@ export type ExpandedControlPanelSectionConfig = Omit<
 > & {
   controlSetRows: ExpandedControlItem[][];
 };
+
+const iconStyles = css`
+  &.anticon {
+    font-size: unset;
+    .anticon {
+      line-height: unset;
+      vertical-align: unset;
+    }
+  }
+`;
 
 const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -182,7 +194,8 @@ const sectionsToExpand = (
   // avoid expanding time section if datasource doesn't include time column
   sections.reduce(
     (acc, section) =>
-      section.expanded && (!isTimeSection(section) || hasTimeColumn(datasource))
+      (section.expanded || !section.label) &&
+      (!isTimeSection(section) || hasTimeColumn(datasource))
         ? [...acc, String(section.label)]
         : acc,
     [] as string[],
@@ -234,7 +247,19 @@ function getState(
   };
 }
 
+function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
+  const value = useRef(initialValue());
+  const prevResetOnChangeValue = useRef(resetOnChangeValue);
+  if (prevResetOnChangeValue.current !== resetOnChangeValue) {
+    value.current = initialValue();
+    prevResetOnChangeValue.current = resetOnChangeValue;
+  }
+
+  return value;
+}
+
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
+  const { colors } = useTheme();
   const pluginContext = useContext(PluginContext);
 
   const prevState = usePrevious(props.exploreState);
@@ -366,6 +391,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   };
 
+  const sectionHasHadNoErrors = useResetOnChangeRef(
+    () => ({}),
+    props.form_data.viz_type,
+  );
+
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
@@ -393,6 +423,15 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         );
       }),
     );
+
+    if (!hasErrors) {
+      sectionHasHadNoErrors.current[sectionId] = true;
+    }
+
+    const errorColor = sectionHasHadNoErrors.current[sectionId]
+      ? colors.error.base
+      : colors.alert.base;
+
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
         <span
@@ -404,15 +443,22 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           {label}
         </span>{' '}
         {description && (
-          // label is only used in tooltip id (should probably call this prop `id`)
-          <InfoTooltipWithTrigger label={sectionId} tooltip={description} />
+          <Tooltip id={sectionId} title={description}>
+            <Icons.InfoCircleOutlined css={iconStyles} />
+          </Tooltip>
         )}
         {hasErrors && (
-          <InfoTooltipWithTrigger
-            label="validation-errors"
-            bsStyle="danger"
-            tooltip="This section contains validation errors"
-          />
+          <Tooltip
+            id={`${kebabCase('validation-errors')}-tooltip`}
+            title="This section contains validation errors"
+          >
+            <Icons.InfoCircleOutlined
+              css={css`
+                ${iconStyles}
+                color: ${errorColor};
+              `}
+            />
+          </Tooltip>
         )}
       </span>
     );
@@ -436,6 +482,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           span.label {
             display: inline-block;
           }
+          ${!section.label &&
+          `
+            .ant-collapse-header {
+              display: none;
+            }
+          `}
         `}
         header={<PanelHeader />}
         key={sectionId}
@@ -507,14 +559,26 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     [handleClearFormClick, handleContinueClick, hasControlsTransferred],
   );
 
-  const dataTabTitle = useMemo(
-    () => (
+  const dataTabHasHadNoErrors = useResetOnChangeRef(
+    () => false,
+    props.form_data.viz_type,
+  );
+
+  const dataTabTitle = useMemo(() => {
+    if (!props.errorMessage) {
+      dataTabHasHadNoErrors.current = true;
+    }
+
+    const errorColor = dataTabHasHadNoErrors.current
+      ? colors.error.base
+      : colors.alert.base;
+
+    return (
       <>
         <span>{t('Data')}</span>
         {props.errorMessage && (
           <span
             css={(theme: SupersetTheme) => css`
-              font-size: ${theme.typography.sizes.xs}px;
               margin-left: ${theme.gridUnit * 2}px;
             `}
           >
@@ -524,14 +588,23 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               placement="right"
               title={props.errorMessage}
             >
-              <i className="fa fa-exclamation-circle text-danger fa-lg" />
+              <Icons.ExclamationCircleOutlined
+                css={css`
+                  ${iconStyles}
+                  color: ${errorColor};
+                `}
+              />
             </Tooltip>
           </span>
         )}
       </>
-    ),
-    [props.errorMessage],
-  );
+    );
+  }, [
+    colors.error.base,
+    colors.alert.base,
+    dataTabHasHadNoErrors,
+    props.errorMessage,
+  ]);
 
   const controlPanelRegistry = getChartControlPanelRegistry();
   if (

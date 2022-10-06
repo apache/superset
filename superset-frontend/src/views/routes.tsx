@@ -81,6 +81,14 @@ const DatasetList = lazy(
       /* webpackChunkName: "DatasetList" */ 'src/views/CRUD/data/dataset/DatasetList'
     ),
 );
+
+const AddDataset = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatasetEditor" */ 'src/views/CRUD/data/dataset/AddDataset/index'
+    ),
+);
+
 const ExecutionLog = lazy(
   () =>
     import(
@@ -188,6 +196,14 @@ export const routes: Routes = [
   {
     path: '/superset/explore/p',
     Component: ExplorePage,
+  },
+  {
+    path: '/dataset/add/',
+    Component: AddDataset,
+  },
+  {
+    path: '/dataset/:datasetId',
+    Component: AddDataset,
   },
 ];
 

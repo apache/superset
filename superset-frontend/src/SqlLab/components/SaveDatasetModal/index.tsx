@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FunctionComponent, useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Radio } from 'src/components/Radio';
 import { RadioChangeEvent, AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
@@ -140,8 +140,7 @@ const updateDataset = async (
 
 const UNTITLED = t('Untitled Dataset');
 
-// eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
+export const SaveDatasetModal = ({
   visible,
   onHide,
   buttonTextOnSave,
@@ -150,7 +149,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   datasource,
   openWindow = true,
   formData = {},
-}) => {
+}: SaveDatasetModalProps) => {
   const defaultVizType = useSelector<SqlLabRootState, string>(
     state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
   );
@@ -186,6 +185,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
     ...(formData || {}),
   };
   const handleOverwriteDataset = async () => {
+    // if user wants to overwrite a dataset we need to prompt them
+    if (!shouldOverwriteDataset) {
+      setShouldOverwriteDataset(true);
+      return;
+    }
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
@@ -217,6 +221,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
 
     setShouldOverwriteDataset(false);
     setDatasetName(getDefaultDatasetName());
+    onHide();
   };
 
   const loadDatasetOverwriteOptions = useCallback(
@@ -257,12 +262,6 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   );
 
   const handleSaveInDataset = () => {
-    // if user wants to overwrite a dataset we need to prompt them
-    if (newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET) {
-      setShouldOverwriteDataset(true);
-      return;
-    }
-
     const selectedColumns = datasource?.columns ?? [];
 
     // The filters param is only used to test jinja templates.
@@ -304,13 +303,12 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
           [URL_PARAMS.formDataKey.name]: key,
         });
         createWindow(url);
+        setDatasetName(getDefaultDatasetName());
+        onHide();
       })
       .catch(() => {
         addDangerToast(t('An error occurred saving dataset'));
       });
-
-    setDatasetName(getDefaultDatasetName());
-    onHide();
   };
 
   const handleOverwriteDatasetOption = (value: SelectValue, option: any) => {
@@ -346,7 +344,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
       onHide={onHide}
       footer={
         <>
-          {!shouldOverwriteDataset && (
+          {newOrOverwrite === DatasetRadioState.SAVE_NEW && (
             <Button
               disabled={disableSaveAndExploreBtn}
               buttonStyle="primary"
@@ -355,9 +353,11 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
               {buttonTextOnSave}
             </Button>
           )}
-          {shouldOverwriteDataset && (
+          {newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET && (
             <>
-              <Button onClick={handleOverwriteCancel}>Back</Button>
+              {shouldOverwriteDataset && (
+                <Button onClick={handleOverwriteCancel}>Back</Button>
+              )}
               <Button
                 className="md"
                 buttonStyle="primary"
@@ -387,7 +387,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 {t('Save as new')}
                 <Input
                   className="sdm-input"
-                  defaultValue={datasetName}
+                  value={datasetName}
                   onChange={handleDatasetNameChange}
                   disabled={newOrOverwrite !== 1}
                 />

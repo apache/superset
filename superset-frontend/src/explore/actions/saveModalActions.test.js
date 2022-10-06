@@ -27,6 +27,7 @@ import {
   FETCH_DASHBOARDS_FAILED,
   FETCH_DASHBOARDS_SUCCEEDED,
   getDashboard,
+  getSliceDashboards,
   SAVE_SLICE_FAILED,
   SAVE_SLICE_SUCCESS,
   updateSlice,
@@ -75,6 +76,7 @@ const formData = {
   datasource: `${datasourceId}__${datasourceType}`,
   dashboards,
 };
+const mockExploreState = { explore: { form_data: formData } };
 
 const sliceResponsePayload = {
   id: 10,
@@ -95,11 +97,12 @@ test('updateSlice handles success', async () => {
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
+  const getState = sinon.spy(() => mockExploreState);
   const slice = await updateSlice(
     { slice_id: sliceId },
     sliceName,
-    formData,
-  )(dispatch);
+    [],
+  )(dispatch, getState);
 
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
   expect(dispatch.callCount).toBe(2);
@@ -117,9 +120,10 @@ test('updateSlice handles failure', async () => {
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
+  const getState = sinon.spy(() => mockExploreState);
   let caughtError;
   try {
-    await updateSlice({ slice_id: sliceId }, sliceName, formData)(dispatch);
+    await updateSlice({ slice_id: sliceId }, sliceName, [])(dispatch, getState);
   } catch (error) {
     caughtError = error;
   }
@@ -139,7 +143,8 @@ test('createSlice handles success', async () => {
   fetchMock.reset();
   fetchMock.post(createSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
-  const slice = await createSlice(sliceName, formData)(dispatch);
+  const getState = sinon.spy(() => mockExploreState);
+  const slice = await createSlice(sliceName, [])(dispatch, getState);
   expect(fetchMock.calls(createSliceEndpoint)).toHaveLength(1);
   expect(dispatch.callCount).toBe(2);
   expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_SUCCESS);
@@ -156,9 +161,10 @@ test('createSlice handles failure', async () => {
   fetchMock.reset();
   fetchMock.post(createSliceEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
+  const getState = sinon.spy(() => mockExploreState);
   let caughtError;
   try {
-    await createSlice(sliceName, formData)(dispatch);
+    await createSlice(sliceName, [])(dispatch, getState);
   } catch (error) {
     caughtError = error;
   }
@@ -243,10 +249,11 @@ test('updateSlice with add to new dashboard handles success', async () => {
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
-  const slice = await updateSlice({ slice_id: sliceId }, sliceName, formData, {
+  const getState = sinon.spy(() => mockExploreState);
+  const slice = await updateSlice({ slice_id: sliceId }, sliceName, [], {
     new: true,
     title: dashboardName,
-  })(dispatch);
+  })(dispatch, getState);
 
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
   expect(dispatch.callCount).toBe(3);
@@ -269,10 +276,11 @@ test('updateSlice with add to existing dashboard handles success', async () => {
   fetchMock.reset();
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload);
   const dispatch = sinon.spy();
-  const slice = await updateSlice({ slice_id: sliceId }, sliceName, formData, {
+  const getState = sinon.spy(() => mockExploreState);
+  const slice = await updateSlice({ slice_id: sliceId }, sliceName, [], {
     new: false,
     title: dashboardName,
-  })(dispatch);
+  })(dispatch, getState);
 
   expect(fetchMock.calls(updateSliceEndpoint)).toHaveLength(1);
   expect(dispatch.callCount).toBe(3);
@@ -289,4 +297,45 @@ test('updateSlice with add to existing dashboard handles success', async () => {
   );
 
   expect(slice).toEqual(sliceResponsePayload);
+});
+
+const slice = { slice_id: 10 };
+const dashboardSlicesResponsePayload = {
+  result: {
+    dashboards: [{ id: 21 }, { id: 22 }, { id: 23 }],
+  },
+};
+
+const getDashboardSlicesReturnValue = [21, 22, 23];
+
+/**
+ * Tests getSliceDashboards action
+ */
+
+const getSliceDashboardsEndpoint = `glob:*/api/v1/chart/${sliceId}?q=(columns:!(dashboards.id))`;
+test('getSliceDashboards with slice handles success', async () => {
+  fetchMock.reset();
+  fetchMock.get(getSliceDashboardsEndpoint, dashboardSlicesResponsePayload);
+  const dispatch = sinon.spy();
+  const sliceDashboards = await getSliceDashboards(slice)(dispatch);
+  expect(fetchMock.calls(getSliceDashboardsEndpoint)).toHaveLength(1);
+  expect(dispatch.callCount).toBe(0);
+  expect(sliceDashboards).toEqual(getDashboardSlicesReturnValue);
+});
+
+test('getSliceDashboards with slice handles failure', async () => {
+  fetchMock.reset();
+  fetchMock.get(getSliceDashboardsEndpoint, { throws: sampleError });
+  const dispatch = sinon.spy();
+  let caughtError;
+  try {
+    await getSliceDashboards(slice)(dispatch);
+  } catch (error) {
+    caughtError = error;
+  }
+
+  expect(caughtError).toEqual(sampleError);
+  expect(fetchMock.calls(getSliceDashboardsEndpoint)).toHaveLength(4);
+  expect(dispatch.callCount).toBe(1);
+  expect(dispatch.getCall(0).args[0].type).toBe(SAVE_SLICE_FAILED);
 });

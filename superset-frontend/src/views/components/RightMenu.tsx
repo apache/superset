@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState, useEffect } from 'react';
+import React, { Fragment, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -29,10 +29,12 @@ import {
   SupersetTheme,
   SupersetClient,
   getExtensionsRegistry,
+  useTheme,
 } from '@superset-ui/core';
 import { MainNav as Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -85,6 +87,10 @@ const StyledAnchor = styled.a`
   padding-left: ${({ theme }) => theme.gridUnit}px;
 `;
 
+const tagStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.light5};
+`;
+
 const { SubMenu } = Menu;
 
 const RightMenu = ({
@@ -92,6 +98,7 @@ const RightMenu = ({
   settings,
   navbarRight,
   isFrontendRoute,
+  environmentTag,
   setQuery,
 }: RightMenuProps & {
   setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
@@ -111,8 +118,8 @@ const RightMenu = ({
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
-  const [showModal, setShowModal] = useState<boolean>(false);
-  const [engine, setEngine] = useState<string>('');
+  const [showModal, setShowModal] = React.useState<boolean>(false);
+  const [engine, setEngine] = React.useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
@@ -128,7 +135,7 @@ const RightMenu = ({
     );
 
   const showActionDropdown = canSql || canChart || canDashboard;
-  const [allowUploads, setAllowUploads] = useState<boolean>(false);
+  const [allowUploads, setAllowUploads] = React.useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
   const dropdownItems: MenuObjectProps[] = [
@@ -200,7 +207,13 @@ const RightMenu = ({
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      setAllowUploads(json.count >= 1);
+      // There might be some existings Gsheets and Clickhouse DBs
+      // with allow_file_upload set as True which is not possible from now on
+      const allowedDatabasesWithFileUpload =
+        json?.result?.filter(
+          (database: any) => database?.engine_information?.supports_file_upload,
+        ) || [];
+      setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
     });
   };
 
@@ -234,7 +247,7 @@ const RightMenu = ({
   const isDisabled = isAdmin && !allowUploads;
 
   const tooltipText = t(
-    "Enable 'Allow data upload' in any database's settings",
+    "Enable 'Allow file uploads to database' in any database's settings",
   );
 
   const buildMenuItem = (item: Record<string, any>) => {
@@ -262,6 +275,8 @@ const RightMenu = ({
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
 
+  const theme = useTheme();
+
   return (
     <StyledDiv align={align}>
       {canDatabase && (
@@ -271,6 +286,20 @@ const RightMenu = ({
           dbEngine={engine}
           onDatabaseAdd={handleDatabaseAdd}
         />
+      )}
+      {environmentTag?.text && (
+        <Label
+          css={{ borderRadius: `${theme.gridUnit * 125}px` }}
+          color={
+            /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
+              ? environmentTag.color
+              : environmentTag.color
+                  .split('.')
+                  .reduce((o, i) => o[i], theme.colors)
+          }
+        >
+          <span css={tagStyles}>{environmentTag.text}</span>
+        </Label>
       )}
       <Menu
         selectable={false}

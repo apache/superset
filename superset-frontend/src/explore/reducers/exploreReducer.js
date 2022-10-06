@@ -50,19 +50,6 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
-    [actions.SAVE_DATASOURCE]() {
-      return {
-        ...state,
-        datasource: action.datasource,
-        controls: {
-          ...state.controls,
-          datasource: {
-            ...state.controls.datasource,
-            datasource: action.datasource,
-          },
-        },
-      };
-    },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
       const { prevDatasource, newDatasource } = action;
@@ -74,6 +61,8 @@ export default function exploreReducer(state = {}, action) {
       ) {
         // reset time range filter to default
         newFormData.time_range = DEFAULT_TIME_RANGE;
+
+        newFormData.datasource = newDatasource.uid;
 
         // reset control values for column/metric related controls
         Object.entries(controls).forEach(([controlName, controlState]) => {
@@ -228,6 +217,12 @@ export default function exploreReducer(state = {}, action) {
         controls: getControlsState(state, action.formData),
       };
     },
+    [actions.SET_FORM_DATA]() {
+      return {
+        ...state,
+        form_data: action.formData,
+      };
+    },
     [actions.UPDATE_CHART_TITLE]() {
       return {
         ...state,
@@ -250,9 +245,17 @@ export default function exploreReducer(state = {}, action) {
         slice: {
           ...state.slice,
           ...action.slice,
-          owners: action.slice.owners ?? null,
+          owners: action.slice.owners
+            ? action.slice.owners.map(owner => owner.value)
+            : null,
         },
         sliceName: action.slice.slice_name ?? state.sliceName,
+        metadata: {
+          ...state.metadata,
+          owners: action.slice.owners
+            ? action.slice.owners.map(owner => owner.label)
+            : null,
+        },
       };
     },
     [actions.SET_FORCE_QUERY]() {

@@ -27,6 +27,8 @@ export interface AdhocColumn {
   optionName?: string;
   sqlExpression: string;
   expressionType: 'SQL';
+  columnType?: 'BASE_AXIS' | 'SERIES';
+  timeGrain?: string;
 }
 
 /**
@@ -61,7 +63,7 @@ export function isAdhocColumn(column?: any): column is AdhocColumn {
     typeof column !== 'string' &&
     column?.sqlExpression !== undefined &&
     column?.label !== undefined &&
-    column?.expressionType === 'SQL'
+    (column?.expressionType === undefined || column?.expressionType === 'SQL')
   );
 }
 

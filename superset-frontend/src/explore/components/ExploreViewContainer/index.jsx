@@ -46,15 +46,17 @@ import {
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
-import { fetchDatasourceMetadata } from 'src/dashboard/util/fetchDatasourceMetadata';
+import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import { mergeExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { postFormData, putFormData } from 'src/explore/exploreUtils/formData';
+import { datasourcesActions } from 'src/explore/actions/datasourcesActions';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { getFormDataFromControls } from 'src/explore/controlUtils';
 import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import { useTabId } from 'src/hooks/useTabId';
+import withToasts from 'src/components/MessageToasts/withToasts';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -73,7 +75,7 @@ const propTypes = {
   controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
-  standalone: PropTypes.number.isRequired,
+  standalone: PropTypes.bool.isRequired,
   force: PropTypes.bool,
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
@@ -204,15 +206,18 @@ const updateHistory = debounce(
         );
         stateModifier = 'pushState';
       }
-      const url = mountExploreUrl(
-        standalone ? URL_PARAMS.standalone.name : null,
-        {
-          [URL_PARAMS.formDataKey.name]: key,
-          ...additionalParam,
-        },
-        force,
-      );
-      window.history[stateModifier](payload, title, url);
+      // avoid race condition in case user changes route before explore updates the url
+      if (window.location.pathname.startsWith('/explore')) {
+        const url = mountExploreUrl(
+          standalone ? URL_PARAMS.standalone.name : null,
+          {
+            [URL_PARAMS.formDataKey.name]: key,
+            ...additionalParam,
+          },
+          force,
+        );
+        window.history[stateModifier](payload, title, url);
+      }
     } catch (e) {
       logging.warn('Failed at altering browser history', e);
     }
@@ -560,6 +565,7 @@ function ExploreViewContainer(props) {
         reports={props.reports}
         onSaveChart={toggleModal}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
+        metadata={props.metadata}
       />
       <ExplorePanelContainer id="explore-container">
         <Global
@@ -588,12 +594,12 @@ function ExploreViewContainer(props) {
         />
         {showingModal && (
           <SaveModal
+            addDangerToast={props.addDangerToast}
             onHide={toggleModal}
             actions={props.actions}
             form_data={props.form_data}
             sliceName={props.sliceName}
             dashboardId={props.dashboardId}
-            sliceDashboards={props.exploreState.sliceDashboards ?? []}
           />
         )}
         <Resizable
@@ -701,7 +707,7 @@ ExploreViewContainer.propTypes = propTypes;
 function mapStateToProps(state) {
   const { explore, charts, common, impressionId, dataMask, reports, user } =
     state;
-  const { controls, slice, datasource } = explore;
+  const { controls, slice, datasource, metadata } = explore;
   const form_data = getFormDataFromControls(controls);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
@@ -747,12 +753,14 @@ function mapStateToProps(state) {
     user,
     exploreState: explore,
     reports,
+    metadata,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   const actions = {
     ...exploreActions,
+    ...datasourcesActions,
     ...saveModalActions,
     ...chartActions,
     ...logActions,
@@ -765,4 +773,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(ExploreViewContainer);
+)(withToasts(ExploreViewContainer));

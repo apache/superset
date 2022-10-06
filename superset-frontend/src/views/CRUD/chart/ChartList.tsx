@@ -61,6 +61,9 @@ import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
+import { bootstrapData } from 'src/preamble';
+import Owner from 'src/types/Owner';
 import ChartCard from './ChartCard';
 
 const FlexRowContainer = styled.div`
@@ -212,7 +215,8 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-
+  const enableBroadUserAccess =
+    bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -220,6 +224,10 @@ function ChartList(props: ChartListProps) {
     });
     setPreparingExport(true);
   };
+  const changedByName = (lastSavedBy: Owner) =>
+    lastSavedBy?.first_name
+      ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
+      : null;
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -310,7 +318,7 @@ function ChartList(props: ChartListProps) {
               datasource_url: dsUrl,
             },
           },
-        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+        }: any) => <GenericLink to={dsUrl}>{dsNameTxt}</GenericLink>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
@@ -324,13 +332,12 @@ function ChartList(props: ChartListProps) {
               changed_by_url: changedByUrl,
             },
           },
-        }: any) => (
-          <a href={changedByUrl}>
-            {lastSavedBy?.first_name
-              ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
-              : null}
-          </a>
-        ),
+        }: any) =>
+          enableBroadUserAccess ? (
+            <a href={changedByUrl}>{changedByName(lastSavedBy)}</a>
+          ) : (
+            <>{changedByName(lastSavedBy)}</>
+          ),
         Header: t('Modified by'),
         accessor: 'last_saved_by.first_name',
         size: 'xl',

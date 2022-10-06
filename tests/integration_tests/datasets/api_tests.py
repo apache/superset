@@ -27,9 +27,7 @@ import pytest
 import yaml
 from sqlalchemy.sql import func
 
-from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
-from superset.constants import CacheRegion
 from superset.dao.exceptions import (
     DAOCreateFailedError,
     DAODeleteFailedError,
@@ -98,6 +96,13 @@ class TestDatasetApi(SupersetTestCase):
         return (
             db.session.query(SqlaTable)
             .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
+            .all()
+        )
+
+    def get_fixture_virtual_datasets(self) -> List[SqlaTable]:
+        return (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name.in_(self.fixture_virtual_table_names))
             .all()
         )
 
@@ -262,6 +267,15 @@ class TestDatasetApi(SupersetTestCase):
         if backend() == "sqlite":
             return
 
+        # Add main database access to gamma role
+        main_db = get_main_database()
+        main_db_pvm = security_manager.find_permission_view_menu(
+            "database_access", main_db.perm
+        )
+        gamma_role = security_manager.find_role("Gamma")
+        gamma_role.permissions.append(main_db_pvm)
+        db.session.commit()
+
         self.login(username="gamma")
         uri = "api/v1/dataset/related/database"
         rv = self.client.get(uri)
@@ -271,6 +285,10 @@ class TestDatasetApi(SupersetTestCase):
         assert response["count"] == 1
         main_db = get_main_database()
         assert filter(lambda x: x.text == main_db, response["result"]) != []
+
+        # revert gamma permission
+        gamma_role.permissions.remove(main_db_pvm)
+        db.session.commit()
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_dataset_item(self):
@@ -445,7 +463,12 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert set(data["permissions"]) == {"can_read", "can_write", "can_export"}
+        assert set(data["permissions"]) == {
+            "can_read",
+            "can_write",
+            "can_export",
+            "can_duplicate",
+        }
 
     def test_create_dataset_item(self):
         """
@@ -651,9 +674,14 @@ class TestDatasetApi(SupersetTestCase):
 
     @patch("superset.models.core.Database.get_columns")
     @patch("superset.models.core.Database.has_table_by_name")
+    @patch("superset.models.core.Database.has_view_by_name")
     @patch("superset.models.core.Database.get_table")
     def test_create_dataset_validate_view_exists(
-        self, mock_get_table, mock_has_table_by_name, mock_get_columns
+        self,
+        mock_get_table,
+        mock_has_table_by_name,
+        mock_has_view_by_name,
+        mock_get_columns,
     ):
         """
         Dataset API: Test create dataset validate view exists
@@ -671,6 +699,7 @@ class TestDatasetApi(SupersetTestCase):
         ]
 
         mock_has_table_by_name.return_value = False
+        mock_has_view_by_name.return_value = True
         mock_get_table.return_value = None
 
         example_db = get_example_database()
@@ -776,6 +805,56 @@ class TestDatasetApi(SupersetTestCase):
             col.advanced_data_type for col in columns
         ]
 
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_update_dataset_item_w_override_columns_same_columns(self):
+        """
+        Dataset API: Test update dataset with override columns
+        """
+        if backend() == "sqlite":
+            return
+
+        # Add default dataset
+        main_db = get_main_database()
+        dataset = self.insert_default_dataset()
+        prev_col_len = len(dataset.columns)
+
+        cols = [
+            {
+                "column_name": c.column_name,
+                "description": c.description,
+                "expression": c.expression,
+                "type": c.type,
+                "advanced_data_type": c.advanced_data_type,
+                "verbose_name": c.verbose_name,
+            }
+            for c in dataset.columns
+        ]
+
+        cols.append(
+            {
+                "column_name": "new_col",
+                "description": "description",
+                "expression": "expression",
+                "type": "INTEGER",
+                "advanced_data_type": "ADVANCED_DATA_TYPE",
+                "verbose_name": "New Col",
+            }
+        )
+
+        self.login(username="admin")
+        dataset_data = {
+            "columns": cols,
+        }
+        uri = f"api/v1/dataset/{dataset.id}?override_columns=true"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+
+        assert rv.status_code == 200
+
+        columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
+        assert len(columns) != prev_col_len
+        assert len(columns) == 3
         db.session.delete(dataset)
         db.session.commit()
 
@@ -1769,6 +1848,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 404
         self.logout()
+
         self.login(username="gamma")
         table = self.get_birth_names_dataset()
         uri = f"api/v1/dataset/{table.id}/related_objects"
@@ -2090,10 +2170,36 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(table_w_certification)
         db.session.commit()
 
-    @pytest.mark.usefixtures("create_datasets")
-    def test_get_dataset_samples(self):
+    @pytest.mark.usefixtures("create_virtual_datasets")
+    def test_duplicate_virtual_dataset(self):
         """
-        Dataset API: Test get dataset samples
+        Dataset API: Test duplicate virtual dataset
+        """
+        if backend() == "sqlite":
+            return
+
+        dataset = self.get_fixture_virtual_datasets()[0]
+
+        self.login(username="admin")
+        uri = f"api/v1/dataset/duplicate"
+        table_data = {"base_model_id": dataset.id, "table_name": "Dupe1"}
+        rv = self.post_assert_metric(uri, table_data, "duplicate")
+        assert rv.status_code == 201
+        rv_data = json.loads(rv.data)
+        new_dataset: SqlaTable = (
+            db.session.query(SqlaTable).filter_by(id=rv_data["id"]).one_or_none()
+        )
+        assert new_dataset is not None
+        assert new_dataset.id != dataset.id
+        assert new_dataset.table_name == "Dupe1"
+        assert len(new_dataset.columns) == 2
+        assert new_dataset.columns[0].column_name == "id"
+        assert new_dataset.columns[1].column_name == "name"
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_duplicate_physical_dataset(self):
+        """
+        Dataset API: Test duplicate physical dataset
         """
         if backend() == "sqlite":
             return
@@ -2101,90 +2207,40 @@ class TestDatasetApi(SupersetTestCase):
         dataset = self.get_fixture_datasets()[0]
 
         self.login(username="admin")
-        uri = f"api/v1/dataset/{dataset.id}/samples"
+        uri = f"api/v1/dataset/duplicate"
+        table_data = {"base_model_id": dataset.id, "table_name": "Dupe2"}
+        rv = self.post_assert_metric(uri, table_data, "duplicate")
+        assert rv.status_code == 422
 
-        # 1. should cache data
-        # feeds data
-        self.client.get(uri)
-        # get from cache
-        rv = self.client.get(uri)
-        rv_data = json.loads(rv.data)
-        assert rv.status_code == 200
-        assert "result" in rv_data
-        assert rv_data["result"]["cached_dttm"] is not None
-        cache_key1 = rv_data["result"]["cache_key"]
-        assert QueryCacheManager.has(cache_key1, region=CacheRegion.DATA)
-
-        # 2. should through cache
-        uri2 = f"api/v1/dataset/{dataset.id}/samples?force=true"
-        # feeds data
-        self.client.get(uri2)
-        # force query
-        rv2 = self.client.get(uri2)
-        rv_data2 = json.loads(rv2.data)
-        assert rv_data2["result"]["cached_dttm"] is None
-        cache_key2 = rv_data2["result"]["cache_key"]
-        assert QueryCacheManager.has(cache_key2, region=CacheRegion.DATA)
-
-        # 3. data precision
-        assert "colnames" in rv_data2["result"]
-        assert "coltypes" in rv_data2["result"]
-        assert "data" in rv_data2["result"]
-
-        eager_samples = dataset.database.get_df(
-            f"select * from {dataset.table_name}"
-            f' limit {self.app.config["SAMPLES_ROW_LIMIT"]}'
-        ).to_dict(orient="records")
-        assert eager_samples == rv_data2["result"]["data"]
-
-    @pytest.mark.usefixtures("create_datasets")
-    def test_get_dataset_samples_with_failed_cc(self):
+    @pytest.mark.usefixtures("create_virtual_datasets")
+    def test_duplicate_existing_dataset(self):
+        """
+        Dataset API: Test duplicate dataset with existing name
+        """
         if backend() == "sqlite":
             return
 
-        dataset = self.get_fixture_datasets()[0]
+        dataset = self.get_fixture_virtual_datasets()[0]
 
         self.login(username="admin")
-        failed_column = TableColumn(
-            column_name="DUMMY CC",
-            type="VARCHAR(255)",
-            table=dataset,
-            expression="INCORRECT SQL",
-        )
-        uri = f"api/v1/dataset/{dataset.id}/samples"
-        dataset.columns.append(failed_column)
-        rv = self.client.get(uri)
-        assert rv.status_code == 400
-        rv_data = json.loads(rv.data)
-        assert "message" in rv_data
-        if dataset.database.db_engine_spec.engine_name == "PostgreSQL":
-            assert "INCORRECT SQL" in rv_data.get("message")
+        uri = f"api/v1/dataset/duplicate"
+        table_data = {
+            "base_model_id": dataset.id,
+            "table_name": "sql_virtual_dataset_2",
+        }
+        rv = self.post_assert_metric(uri, table_data, "duplicate")
+        assert rv.status_code == 422
 
-    def test_get_dataset_samples_on_virtual_dataset(self):
-        if backend() == "sqlite":
-            return
-
-        virtual_dataset = SqlaTable(
-            table_name="virtual_dataset",
-            sql=("SELECT 'foo' as foo, 'bar' as bar"),
-            database=get_example_database(),
-        )
-        TableColumn(column_name="foo", type="VARCHAR(255)", table=virtual_dataset)
-        TableColumn(column_name="bar", type="VARCHAR(255)", table=virtual_dataset)
-        SqlMetric(metric_name="count", expression="count(*)", table=virtual_dataset)
+    def test_duplicate_invalid_dataset(self):
+        """
+        Dataset API: Test duplicate invalid dataset
+        """
 
         self.login(username="admin")
-        uri = f"api/v1/dataset/{virtual_dataset.id}/samples"
-        rv = self.client.get(uri)
-        assert rv.status_code == 200
-        rv_data = json.loads(rv.data)
-        cache_key = rv_data["result"]["cache_key"]
-        assert QueryCacheManager.has(cache_key, region=CacheRegion.DATA)
-
-        # remove original column in dataset
-        virtual_dataset.sql = "SELECT 'foo' as foo"
-        rv = self.client.get(uri)
-        assert rv.status_code == 400
-
-        db.session.delete(virtual_dataset)
-        db.session.commit()
+        uri = f"api/v1/dataset/duplicate"
+        table_data = {
+            "base_model_id": -1,
+            "table_name": "Dupe3",
+        }
+        rv = self.post_assert_metric(uri, table_data, "duplicate")
+        assert rv.status_code == 422

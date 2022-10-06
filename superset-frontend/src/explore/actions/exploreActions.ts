@@ -25,8 +25,6 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { setDatasource } from 'src/datasource/actions';
-import { ExplorePageState } from 'src/explore/types';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
@@ -106,6 +104,11 @@ export function setExploreControls(formData: QueryFormData) {
   return { type: SET_EXPLORE_CONTROLS, formData };
 }
 
+export const SET_FORM_DATA = 'UPDATE_FORM_DATA';
+export function setFormData(formData: QueryFormData) {
+  return { type: SET_FORM_DATA, formData };
+}
+
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
 export function updateChartTitle(sliceName: string) {
   return { type: UPDATE_CHART_TITLE, sliceName };
@@ -142,24 +145,6 @@ export function setForceQuery(force: boolean) {
   };
 }
 
-export const SAVE_DATASOURCE = 'SAVE_DATASOURCE';
-export function saveDatasource(datasource: Dataset) {
-  return function (dispatch: Dispatch) {
-    dispatch(setDatasource(datasource));
-    dispatch({ type: SAVE_DATASOURCE, datasource });
-  };
-}
-
-export function changeDatasource(newDatasource: Dataset) {
-  return function (dispatch: Dispatch, getState: () => ExplorePageState) {
-    const {
-      explore: { datasource: prevDatasource },
-    } = getState();
-    dispatch(setDatasource(newDatasource));
-    dispatch(updateFormDataByDatasource(prevDatasource, newDatasource));
-  };
-}
-
 export const exploreActions = {
   ...toastActions,
   fetchDatasourcesStarted,
@@ -173,7 +158,6 @@ export const exploreActions = {
   createNewSlice,
   sliceUpdated,
   setForceQuery,
-  changeDatasource,
 };
 
 export type ExploreActions = typeof exploreActions;

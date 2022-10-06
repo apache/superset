@@ -28,7 +28,7 @@ from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
@@ -60,6 +60,7 @@ from superset.dashboards.filters import (
     DashboardCertifiedFilter,
     DashboardCreatedByMeFilter,
     DashboardFavoriteFilter,
+    DashboardHasCreatedByFilter,
     DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
 )
@@ -93,7 +94,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +219,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
-        "created_by": [DashboardCreatedByMeFilter],
+        "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
     }
     base_order = ("changed_on", "desc")
 
@@ -238,6 +239,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
         "roles": ("name", "asc"),
+    }
+    filter_rel_fields = {
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
@@ -285,13 +290,14 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
-    )
     @with_dashboard
-    # pylint: disable=arguments-renamed, arguments-differ
-    def get(self, dash: Dashboard) -> Response:
+    @event_logger.log_this_with_extra_payload
+    # pylint: disable=arguments-differ
+    def get(
+        self,
+        dash: Dashboard,
+        add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
+    ) -> Response:
         """Gets a dashboard
         ---
         get:
@@ -323,6 +329,9 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         result = self.dashboard_get_response_schema.dump(dash)
+        add_extra_log_payload(
+            dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
+        )
         return self.response(200, result=result)
 
     @etag_cache(
@@ -383,6 +392,12 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
             return self.response(200, result=result)
+        except (TypeError, ValueError) as err:
+            return self.response_400(
+                message=gettext(
+                    "Dataset schema is invalid, caused by: %(error)s", error=str(err)
+                )
+            )
         except DashboardAccessDeniedError:
             return self.response_403()
         except DashboardNotFoundError:

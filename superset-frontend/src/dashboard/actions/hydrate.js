@@ -55,6 +55,8 @@ import { FeatureFlag, isFeatureEnabled } from '../../featureFlags';
 import extractUrlParams from '../util/extractUrlParams';
 import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
+import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
+import updateComponentParentsList from '../util/updateComponentParentsList';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -256,6 +258,19 @@ export const hydrateDashboard =
         layout[layoutId].meta.sliceName = slice.slice_name;
       }
     });
+
+    // make sure that parents tree is built
+    if (
+      Object.values(layout).some(
+        element => element.id !== DASHBOARD_ROOT_ID && !element.parents,
+      )
+    ) {
+      updateComponentParentsList({
+        currentComponent: layout[DASHBOARD_ROOT_ID],
+        layout,
+      });
+    }
+
     buildActiveFilters({
       dashboardFilters,
       components: layout,
@@ -278,7 +293,7 @@ export const hydrateDashboard =
 
     // find direct link component and path from root
     const directLinkComponentId = getLocationHash();
-    let directPathToChild = [];
+    let directPathToChild = dashboardState.directPathToChild || [];
     if (layout[directLinkComponentId]) {
       directPathToChild = (layout[directLinkComponentId].parents || []).slice();
       directPathToChild.push(directLinkComponentId);
@@ -321,6 +336,25 @@ export const hydrateDashboard =
 
         if (!metadata.chart_configuration) {
           metadata.chart_configuration = {};
+        }
+        if (behaviors.includes(Behavior.INTERACTIVE_CHART)) {
+          if (!metadata.chart_configuration[chartId]) {
+            metadata.chart_configuration[chartId] = {
+              id: chartId,
+              crossFilters: {
+                scope: {
+                  rootPath: [DASHBOARD_ROOT_ID],
+                  excluded: [chartId], // By default it doesn't affects itself
+                },
+              },
+            };
+          }
+          metadata.chart_configuration[chartId].crossFilters.chartsInScope =
+            getChartIdsInFilterScope(
+              metadata.chart_configuration[chartId].crossFilters.scope,
+              chartQueries,
+              dashboardLayout.present,
+            );
         }
         if (
           behaviors.includes(Behavior.INTERACTIVE_CHART) &&

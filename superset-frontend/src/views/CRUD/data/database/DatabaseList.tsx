@@ -35,10 +35,10 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
-import { commonMenuData } from 'src/views/CRUD/data/common';
 import handleResourceExport from 'src/utils/export';
 import { ExtentionConfigs } from 'src/views/components/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import type { MenuObjectProps } from 'src/views/components/Menu';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
@@ -229,22 +229,30 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      setAllowUploads(json.count >= 1);
+      // There might be some existings Gsheets and Clickhouse DBs
+      // with allow_file_upload set as True which is not possible from now on
+      const allowedDatabasesWithFileUpload =
+        json?.result?.filter(
+          (database: any) => database?.engine_information?.supports_file_upload,
+        ) || [];
+      setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
     });
   };
 
   useEffect(() => hasFileUploadEnabled(), [databaseModalOpen]);
 
-  const filteredDropDown = uploadDropdownMenu.map(link => {
+  const filteredDropDown = uploadDropdownMenu.reduce((prev, cur) => {
     // eslint-disable-next-line no-param-reassign
-    link.childs = link.childs.filter(item => item.perm);
-    return link;
-  });
+    cur.childs = cur.childs.filter(item => item.perm);
+    if (!cur.childs.length) return prev;
+    prev.push(cur);
+    return prev;
+  }, [] as MenuObjectProps[]);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
     dropDownLinks: filteredDropDown,
-    ...commonMenuData,
+    name: t('Databases'),
   };
 
   if (canCreate) {

@@ -62,20 +62,20 @@ const createProps = () => ({
   onDatasourceSave: jest.fn(),
 });
 
-test('Should render', () => {
+test('Should render', async () => {
   const props = createProps();
   render(<DatasourceControl {...props} />);
-  expect(screen.getByTestId('datasource-control')).toBeVisible();
+  expect(await screen.findByTestId('datasource-control')).toBeVisible();
 });
 
-test('Should have elements', () => {
+test('Should have elements', async () => {
   const props = createProps();
   render(<DatasourceControl {...props} />);
-  expect(screen.getByText('channels')).toBeVisible();
+  expect(await screen.findByText('channels')).toBeVisible();
   expect(screen.getByTestId('datasource-menu-trigger')).toBeVisible();
 });
 
-test('Should open a menu', () => {
+test('Should open a menu', async () => {
   const props = createProps();
   render(<DatasourceControl {...props} />);
 
@@ -85,7 +85,7 @@ test('Should open a menu', () => {
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
-  expect(screen.getByText('Edit dataset')).toBeInTheDocument();
+  expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
   expect(screen.getByText('Change dataset')).toBeInTheDocument();
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
 });
@@ -154,7 +154,7 @@ test('Edit dataset should be disabled when user is not admin', async () => {
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
-  expect(screen.getByTestId('edit-dataset')).toHaveAttribute(
+  expect(await screen.findByTestId('edit-dataset')).toHaveAttribute(
     'aria-disabled',
     'true',
   );
@@ -179,7 +179,7 @@ test('Click on View in SQL Lab', async () => {
   expect(postFormSpy).toBeCalledTimes(1);
 });
 
-test('Should open a different menu when datasource=query', () => {
+test('Should open a different menu when datasource=query', async () => {
   const props = createProps();
   const queryProps = {
     ...props,
@@ -196,12 +196,12 @@ test('Should open a different menu when datasource=query', () => {
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
-  expect(screen.getByText('Query preview')).toBeInTheDocument();
+  expect(await screen.findByText('Query preview')).toBeInTheDocument();
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
   expect(screen.getByText('Save as dataset')).toBeInTheDocument();
 });
 
-test('Click on Save as dataset', () => {
+test('Click on Save as dataset', async () => {
   const props = createProps();
   const queryProps = {
     ...props,
@@ -216,7 +216,7 @@ test('Click on Save as dataset', () => {
   userEvent.click(screen.getByText('Save as dataset'));
 
   // Renders a save dataset modal
-  const saveRadioBtn = screen.getByRole('radio', {
+  const saveRadioBtn = await screen.findByRole('radio', {
     name: /save as new/i,
   });
   const overwriteRadioBtn = screen.getByRole('radio', {
