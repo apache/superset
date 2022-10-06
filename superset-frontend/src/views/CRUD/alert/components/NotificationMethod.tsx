@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* eslint-disable theme-colors/no-literal-colors */
+
 import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
