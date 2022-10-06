@@ -577,6 +577,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           [x.name]: x.value,
         })),
       );
+    } else {
+      dbToUpdate.catalog = {};
     }
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
@@ -744,7 +746,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       });
     }
 
-    setDB({ type: ActionType.addTableCatalogSheet });
+    if (database_name === 'Google Sheets') {
+      // only create a catalog if the DB is Google Sheets
+      setDB({ type: ActionType.addTableCatalogSheet });
+    }
   };
 
   const renderAvailableSelector = () => (
