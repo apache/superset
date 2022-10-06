@@ -913,7 +913,13 @@ export function queryEditorSetTitle(queryEditor, name, id) {
       : Promise.resolve();
 
     return sync
-      .then(() => dispatch({ type: QUERY_EDITOR_SET_TITLE, queryEditor, name }))
+      .then(() =>
+        dispatch({
+          type: QUERY_EDITOR_SET_TITLE,
+          queryEditor: { ...queryEditor, id },
+          name,
+        }),
+      )
       .catch(() =>
         dispatch(
           addDangerToast(
@@ -926,11 +932,13 @@ export function queryEditorSetTitle(queryEditor, name, id) {
   };
 }
 
-export function saveQuery(query) {
+export function saveQuery(query, clientId) {
+  const { id, ...payload } = convertQueryToServer(query);
+
   return dispatch =>
     SupersetClient.post({
       endpoint: '/api/v1/saved_query/',
-      jsonPayload: convertQueryToServer(query),
+      jsonPayload: convertQueryToServer(payload),
     })
       .then(result => {
         const savedQuery = convertQueryToClient({
@@ -940,9 +948,10 @@ export function saveQuery(query) {
         dispatch({
           type: QUERY_EDITOR_SAVED,
           query,
+          clientId,
           result: savedQuery,
         });
-        dispatch(queryEditorSetTitle(query, query.name));
+        dispatch(queryEditorSetTitle(query, query.name, clientId));
         return savedQuery;
       })
       .catch(() =>
@@ -968,15 +977,17 @@ export const addSavedQueryToTabState =
       });
   };
 
-export function updateSavedQuery(query, remoteId, id) {
+export function updateSavedQuery(query, clientId) {
+  const { id, ...payload } = convertQueryToServer(query);
+
   return dispatch =>
     SupersetClient.put({
-      endpoint: `/api/v1/saved_query/${remoteId}`,
-      jsonPayload: convertQueryToServer(query),
+      endpoint: `/api/v1/saved_query/${query.remoteId}`,
+      jsonPayload: convertQueryToServer(payload),
     })
       .then(() => {
         dispatch(addSuccessToast(t('Your query was updated')));
-        dispatch(queryEditorSetTitle(query, query.name, id));
+        dispatch(queryEditorSetTitle(query, query.name, clientId));
       })
       .catch(e => {
         const message = t('Your query could not be updated');

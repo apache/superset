@@ -493,8 +493,8 @@ const SqlEditor = ({
     );
   };
 
-  const onSaveQuery = async query => {
-    const savedQuery = await dispatch(saveQuery(query));
+  const onSaveQuery = async (query, clientId) => {
+    const savedQuery = await dispatch(saveQuery(query, clientId));
     dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
   };
 

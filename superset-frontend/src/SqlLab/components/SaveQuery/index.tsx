@@ -36,8 +36,8 @@ import { QueryEditor } from 'src/SqlLab/types';
 interface SaveQueryProps {
   queryEditorId: string;
   columns: ISaveableDatasource['columns'];
-  onSave: (arg0: QueryPayload) => void;
-  onUpdate: (arg0: QueryPayload, remoteId: number | null, id: string) => void;
+  onSave: (arg0: QueryPayload, id: string) => void;
+  onUpdate: (arg0: QueryPayload, id: string) => void;
   saveQueryWarning: string | null;
   database: Record<string, any>;
 }
@@ -46,7 +46,7 @@ type QueryPayload = {
   name: string;
   description?: string;
   id?: string;
-  remoteId?: string;
+  remoteId?: number;
 } & Pick<QueryEditor, 'dbId' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
@@ -115,6 +115,7 @@ export default function SaveQuery({
     sql: query.sql,
     schema: query.schema,
     templateParams: query.templateParams,
+    remoteId: query?.remoteId || undefined,
   });
 
   useEffect(() => {
@@ -124,13 +125,14 @@ export default function SaveQuery({
   const close = () => setShowSave(false);
 
   const onSaveWrapper = () => {
-    onSave(queryPayload());
+    console.log('save wrapper ', query, query.id, queryEditorId);
+
+    onSave(queryPayload(), query.id);
     close();
   };
 
   const onUpdateWrapper = () => {
-    console.log('query on update ', query, query.remoteId);
-    onUpdate({ ...queryPayload() }, query.remoteId, query.id);
+    onUpdate(queryPayload(), query.id);
     close();
   };
 

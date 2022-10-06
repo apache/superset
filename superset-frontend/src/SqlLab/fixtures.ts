@@ -682,13 +682,14 @@ export const initialState = {
 };
 
 export const query = {
-  id: 'clientId2353',
   name: 'test query',
   dbId: 1,
   sql: 'SELECT * FROM something',
   description: 'test description',
   schema: 'test schema',
 };
+
+export const queryId = 'clientId2353';
 
 export const testQuery: ISaveableDatasource = {
   name: 'unimportant',
