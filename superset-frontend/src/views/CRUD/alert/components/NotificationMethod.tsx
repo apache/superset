@@ -173,21 +173,23 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="input-container">
             <textarea
               className={
-                invalidEmail && method == 'Email' ? 'prominent-error-input' : ''
+                invalidEmail && method === 'Email'
+                  ? 'prominent-error-input'
+                  : ''
               }
               name="recipients"
               value={recipientValue}
               onChange={onRecipientsChange}
             />
           </div>
-          {invalidEmail && method == 'Email' ? (
+          {invalidEmail && method === 'Email' ? (
             <div className="error-text">
               {t(
                 'Email must contain careem domain e.g abc@careem.com OR abc@ext.careem.com',
               )}
             </div>
           ) : null}
-          {method == 'Email' ? (
+          {method === 'Email' ? (
             <div className="helper">
               {t(
                 'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',

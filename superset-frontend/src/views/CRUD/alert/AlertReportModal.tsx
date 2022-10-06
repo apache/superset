@@ -507,7 +507,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     let invalidEmails = [];
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
-        if (setting.method == 'Email') {
+        if (setting.method === 'Email') {
           const emailStr = setting.recipients;
           const emails = ([] as string[])
             .concat(...emailStr.split(',').map(item => item.split(';')))
