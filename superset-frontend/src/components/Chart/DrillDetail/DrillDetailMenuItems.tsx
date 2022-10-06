@@ -109,10 +109,10 @@ const DrillDetailMenuItems = ({
     setShowModal(false);
   }, []);
 
-  //  Check for Behavior.DRILL_TO_DETAIL to tell if plugin handles the `contextmenu`
-  //  event for dimensions.  If it doesn't, tell the user that drill to detail by
-  //  dimension is not supported.  If it does, and the `contextmenu` handler didn't
-  //  pass any filters, tell the user that they didn't select a dimension.
+  // Check for Behavior.DRILL_TO_DETAIL to tell if plugin handles the `contextmenu`
+  // event for dimensions.  If it doesn't, tell the user that drill to detail by
+  // dimension is not supported.  If it does, and the `contextmenu` handler didn't
+  // pass any filters, tell the user that they didn't select a dimension.
   const handlesDimensionContextMenu = useMemo(
     () =>
       getChartMetadataRegistry()
@@ -121,8 +121,8 @@ const DrillDetailMenuItems = ({
     [formData.viz_type],
   );
 
-  //  Check chart plugin metadata to see if chart's current configuration lacks
-  //  aggregations, in which case Drill to Detail should be disabled
+  // Check chart plugin metadata to see if chart's current configuration lacks
+  // aggregations, in which case Drill to Detail should be disabled
   const noAggregations = useMemo(
     () =>
       getChartMetadataRegistry()

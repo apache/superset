@@ -213,8 +213,8 @@ class ChartRenderer extends React.Component {
     this.setState({ inContextMenu: false });
   }
 
-  //  When viz plugins don't handle `contextmenu` event, fallback handler
-  //  calls `handleOnContextMenu` with `filters: null`.
+  // When viz plugins don't handle `contextmenu` event, fallback handler
+  // calls `handleOnContextMenu` with `filters: null`.
   onContextMenuFallback(event) {
     if (!this.state.inContextMenu) {
       event.preventDefault();
@@ -296,8 +296,8 @@ class ChartRenderer extends React.Component {
       );
     }
 
-    //  Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
-    //  Detail props or if it'll cause side-effects (e.g. excessive re-renders).
+    // Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
+    // Detail props or if it'll cause side-effects (e.g. excessive re-renders).
     const drillToDetailProps = getChartMetadataRegistry()
       .get(formData.viz_type)
       ?.behaviors.find(behavior => behavior === Behavior.DRILL_TO_DETAIL)

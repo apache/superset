@@ -92,9 +92,9 @@ export default class ChartMetadata {
 
   queryObjectCount: number;
 
-  //  Optional function allowing a chart to indicate if its current configuration
-  //  lacks data aggregations (e.g. to determine if Drill to Detail should be
-  //  enabled)
+  // Optional function allowing a chart to indicate if its current configuration
+  // lacks data aggregations (e.g. to determine if Drill to Detail should be
+  // enabled)
   noAggregations?: (formData: QueryFormData) => boolean;
 
   constructor(config: ChartMetadataConfig) {
