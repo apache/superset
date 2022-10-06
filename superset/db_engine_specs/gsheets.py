@@ -220,7 +220,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         # backwards compatible just incase people are send data
         # via parameters for validation
         parameters = properties.get("parameters", {})
-        if parameters:
+        if parameters and parameters.get("catalog"):
             table_catalog = parameters.get("catalog", {})
         else:
             table_catalog = properties.get("catalog", {})

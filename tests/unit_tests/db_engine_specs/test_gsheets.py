@@ -98,10 +98,7 @@ def test_validate_parameters_catalog(
     ]
 
     properties: GSheetsPropertiesType = {
-        "parameters": {
-            "service_account_info": "",
-            "catalog": None,
-        },
+        "parameters": {"service_account_info": "", "catalog": None},
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
