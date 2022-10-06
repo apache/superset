@@ -946,7 +946,7 @@ export function saveQuery(query) {
         return savedQuery;
       })
       .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be saved whyyyy'))),
+        dispatch(addDangerToast(t('Your query could not be saved'))),
       );
 }
 
