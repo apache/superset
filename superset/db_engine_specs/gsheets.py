@@ -60,6 +60,7 @@ class GSheetsParametersType(TypedDict):
 
 class GSheetsPropertiesType(TypedDict):
     parameters: GSheetsParametersType
+    catalog: Dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
