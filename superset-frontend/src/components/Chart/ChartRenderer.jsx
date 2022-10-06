@@ -305,11 +305,7 @@ class ChartRenderer extends React.Component {
       : {};
 
     return (
-      <div
-        onContextMenu={
-          this.state.showContextMenu ? this.onContextMenuFallback : undefined
-        }
-      >
+      <>
         {this.state.showContextMenu && (
           <ChartContextMenu
             ref={this.contextMenuRef}
@@ -319,30 +315,36 @@ class ChartRenderer extends React.Component {
             onClose={this.handleContextMenuClosed}
           />
         )}
-        <SuperChart
-          disableErrorBoundary
-          key={`${chartId}${webpackHash}`}
-          id={`chart-id-${chartId}`}
-          className={chartClassName}
-          chartType={vizType}
-          width={width}
-          height={height}
-          annotationData={annotationData}
-          datasource={datasource}
-          initialValues={initialValues}
-          formData={currentFormData}
-          ownState={ownState}
-          filterState={filterState}
-          hooks={this.hooks}
-          behaviors={behaviors}
-          queriesData={queriesResponse}
-          onRenderSuccess={this.handleRenderSuccess}
-          onRenderFailure={this.handleRenderFailure}
-          noResults={noResultsComponent}
-          postTransformProps={postTransformProps}
-          {...drillToDetailProps}
-        />
-      </div>
+        <div
+          onContextMenu={
+            this.state.showContextMenu ? this.onContextMenuFallback : undefined
+          }
+        >
+          <SuperChart
+            disableErrorBoundary
+            key={`${chartId}${webpackHash}`}
+            id={`chart-id-${chartId}`}
+            className={chartClassName}
+            chartType={vizType}
+            width={width}
+            height={height}
+            annotationData={annotationData}
+            datasource={datasource}
+            initialValues={initialValues}
+            formData={currentFormData}
+            ownState={ownState}
+            filterState={filterState}
+            hooks={this.hooks}
+            behaviors={behaviors}
+            queriesData={queriesResponse}
+            onRenderSuccess={this.handleRenderSuccess}
+            onRenderFailure={this.handleRenderFailure}
+            noResults={noResultsComponent}
+            postTransformProps={postTransformProps}
+            {...drillToDetailProps}
+          />
+        </div>
+      </>
     );
   }
 }
