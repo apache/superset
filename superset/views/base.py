@@ -17,6 +17,7 @@
 import dataclasses
 import functools
 import logging
+import os
 import traceback
 from datetime import datetime
 from typing import Any, Callable, cast, Dict, List, Optional, Union
@@ -38,6 +39,7 @@ from flask_appbuilder import BaseView, Model, ModelView
 from flask_appbuilder.actions import action
 from flask_appbuilder.forms import DynamicForm
 from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
 from flask_babel import get_locale, gettext as __, lazy_gettext as _
 from flask_jwt_extended.exceptions import NoAuthorizationError
@@ -70,6 +72,7 @@ from superset.exceptions import (
     SupersetException,
     SupersetSecurityException,
 )
+from superset.extensions import cache_manager
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -86,6 +89,7 @@ FRONTEND_CONF_KEYS = (
     "SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE",
     "DISABLE_DATASET_SOURCE_EDIT",
     "ENABLE_JAVASCRIPT_CONTROLS",
+    "ENABLE_BROAD_ACTIVITY_ACCESS",
     "DEFAULT_SQLLAB_LIMIT",
     "DEFAULT_VIZ_TYPE",
     "SQL_MAX_ROW",
@@ -282,7 +286,7 @@ class BaseSupersetView(BaseView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
@@ -293,7 +297,7 @@ class BaseSupersetView(BaseView):
         )
 
 
-def menu_data() -> Dict[str, Any]:
+def menu_data(user: User) -> Dict[str, Any]:
     menu = appbuilder.menu.get_data()
 
     languages = {}
@@ -306,15 +310,28 @@ def menu_data() -> Dict[str, Any]:
     if callable(brand_text):
         brand_text = brand_text()
     build_number = appbuilder.app.config["BUILD_NUMBER"]
+    try:
+        environment_tag = (
+            appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["values"][
+                os.environ.get(
+                    appbuilder.app.config["ENVIRONMENT_TAG_CONFIG"]["variable"]
+                )
+            ]
+            or {}
+        )
+    except KeyError:
+        environment_tag = {}
+
     return {
         "menu": menu,
         "brand": {
-            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/",
+            "path": appbuilder.app.config["LOGO_TARGET_PATH"] or "/superset/welcome/",
             "icon": appbuilder.app_icon,
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
         },
+        "environment_tag": environment_tag,
         "navbar_right": {
             # show the watermark if the default app icon has been overriden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
@@ -325,22 +342,27 @@ def menu_data() -> Dict[str, Any]:
             "build_number": build_number,
             "languages": languages,
             "show_language_picker": len(languages.keys()) > 1,
-            "user_is_anonymous": g.user.is_anonymous,
+            "user_is_anonymous": user.is_anonymous,
             "user_info_url": None
             if appbuilder.app.config["MENU_HIDE_USER_INFO"]
             else appbuilder.get_url_for_userinfo,
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
             "user_profile_url": None
-            if g.user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
-            else f"/superset/profile/{g.user.username}",
+            if user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
+            else f"/superset/profile/{user.username}",
             "locale": session.get("locale", "en"),
         },
     }
 
 
-def common_bootstrap_payload() -> Dict[str, Any]:
-    """Common data always sent to the client"""
+@cache_manager.cache.memoize(timeout=60)
+def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+    """Common data always sent to the client
+
+    The function is memoized as the return value only changes based
+    on configuration and feature flag values.
+    """
     messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
@@ -373,7 +395,7 @@ def common_bootstrap_payload() -> Dict[str, Any]:
         "extra_sequential_color_schemes": conf["EXTRA_SEQUENTIAL_COLOR_SCHEMES"],
         "extra_categorical_color_schemes": conf["EXTRA_CATEGORICAL_COLOR_SCHEMES"],
         "theme_overrides": conf["THEME_OVERRIDES"],
-        "menu_data": menu_data(),
+        "menu_data": menu_data(user),
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
@@ -484,7 +506,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 def get_common_bootstrap_data() -> Dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
-            {"common": common_bootstrap_payload()},
+            {"common": common_bootstrap_payload(g.user)},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
 
@@ -502,7 +524,7 @@ class SupersetModelView(ModelView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",

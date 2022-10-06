@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
@@ -25,11 +25,17 @@ import { Menu } from 'src/components/Menu';
 import { Form, FormItem } from 'src/components/Form';
 import Modal from 'src/components/Modal';
 import SaveDatasetActionButton from 'src/SqlLab/components/SaveDatasetActionButton';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  SaveDatasetModal,
+  ISaveableDatasource,
+} from 'src/SqlLab/components/SaveDatasetModal';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import { QueryEditor } from 'src/SqlLab/types';
 
 interface SaveQueryProps {
-  query: any;
-  defaultLabel: string;
+  queryEditorId: string;
+  columns: ISaveableDatasource['columns'];
   onSave: (arg0: QueryPayload) => void;
   onUpdate: (arg0: QueryPayload) => void;
   saveQueryWarning: string | null;
@@ -37,30 +43,22 @@ interface SaveQueryProps {
 }
 
 type QueryPayload = {
-  autorun: boolean;
-  dbId: number;
+  name: string;
   description?: string;
   id?: string;
-  latestQueryId: string;
-  queryLimit: number;
-  remoteId: number;
-  schema: string;
-  schemaOptions: Array<{
-    label: string;
-    title: string;
-    value: string;
-  }>;
-  selectedText: string | null;
-  sql: string;
-  tableOptions: Array<{
-    label: string;
-    schema: string;
-    title: string;
-    type: string;
-    value: string;
-  }>;
-  name: string;
-};
+} & Pick<
+  QueryEditor,
+  | 'autorun'
+  | 'dbId'
+  | 'schema'
+  | 'sql'
+  | 'selectedText'
+  | 'remoteId'
+  | 'latestQueryId'
+  | 'queryLimit'
+  | 'tableOptions'
+  | 'schemaOptions'
+>;
 
 const Styles = styled.span`
   span[role='img'] {
@@ -75,13 +73,35 @@ const Styles = styled.span`
 `;
 
 export default function SaveQuery({
-  query,
-  defaultLabel = t('Undefined'),
+  queryEditorId,
   onSave = () => {},
   onUpdate,
   saveQueryWarning = null,
   database,
+  columns,
 }: SaveQueryProps) {
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'autorun',
+    'name',
+    'description',
+    'remoteId',
+    'dbId',
+    'latestQueryId',
+    'queryLimit',
+    'schema',
+    'schemaOptions',
+    'selectedText',
+    'sql',
+    'tableOptions',
+  ]);
+  const query = useMemo(
+    () => ({
+      ...queryEditor,
+      columns,
+    }),
+    [queryEditor, columns],
+  );
+  const defaultLabel = query.name || query.description || t('Undefined');
   const [description, setDescription] = useState<string>(
     query.description || '',
   );
@@ -103,6 +123,7 @@ export default function SaveQuery({
     ...query,
     name: label,
     description,
+    dbId: query.dbId ?? 0,
   });
 
   useEffect(() => {
@@ -177,7 +198,7 @@ export default function SaveQuery({
         onHide={() => setShowSaveDatasetModal(false)}
         buttonTextOnSave={t('Save & Explore')}
         buttonTextOnOverwrite={t('Overwrite & Explore')}
-        datasource={query}
+        datasource={getDatasourceAsSaveableDataset(query)}
       />
       <Modal
         className="save-query-modal"

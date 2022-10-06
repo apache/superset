@@ -42,7 +42,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleNotFoundError,
-    ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -62,12 +61,14 @@ from superset.reports.models import (
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
+    ReportSourceFormat,
     ReportState,
 )
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
+from superset.utils.core import HeaderDataType
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -305,6 +306,28 @@ class BaseReportState:
                 "Please try loading the chart and saving it again."
             ) from ex
 
+    def _get_log_data(self) -> HeaderDataType:
+        chart_id = None
+        dashboard_id = None
+        report_source = None
+        if self._report_schedule.chart:
+            report_source = ReportSourceFormat.CHART
+            chart_id = self._report_schedule.chart_id
+        else:
+            report_source = ReportSourceFormat.DASHBOARD
+            dashboard_id = self._report_schedule.dashboard_id
+
+        log_data: HeaderDataType = {
+            "notification_type": self._report_schedule.type,
+            "notification_source": report_source,
+            "notification_format": self._report_schedule.report_format,
+            "chart_id": chart_id,
+            "dashboard_id": dashboard_id,
+            "owners": self._report_schedule.owners,
+            "error_text": None,
+        }
+        return log_data
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -315,6 +338,7 @@ class BaseReportState:
         embedded_data = None
         error_text = None
         screenshot_data = []
+        header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -332,8 +356,11 @@ class BaseReportState:
                 if not csv_data:
                     error_text = "Unexpected missing csv file"
             if error_text:
+                header_data["error_text"] = error_text
                 return NotificationContent(
-                    name=self._report_schedule.name, text=error_text
+                    name=self._report_schedule.name,
+                    text=error_text,
+                    header_data=header_data,
                 )
 
         if (
@@ -352,6 +379,7 @@ class BaseReportState:
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.dashboard.dashboard_title}"
             )
+
         return NotificationContent(
             name=name,
             url=url,
@@ -359,6 +387,7 @@ class BaseReportState:
             description=self._report_schedule.description,
             csv=csv_data,
             embedded_data=embedded_data,
+            header_data=header_data,
         )
 
     def _send(
@@ -369,9 +398,9 @@ class BaseReportState:
         """
         Sends a notification to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
-        notification_errors = []
+        notification_errors: List[NotificationError] = []
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
@@ -385,15 +414,17 @@ class BaseReportState:
                     notification.send()
             except NotificationError as ex:
                 # collect notification errors but keep processing them
-                notification_errors.append(str(ex))
+                notification_errors.append(ex)
         if notification_errors:
-            raise ReportScheduleNotificationError(";".join(notification_errors))
+            # raise errors separately so that we can utilize error status codes
+            for error in notification_errors:
+                raise error
 
     def send(self) -> None:
         """
         Creates the notification content and sends them to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
         notification_content = self._get_notification_content()
         self._send(notification_content, self._report_schedule.recipients)
@@ -402,9 +433,14 @@ class BaseReportState:
         """
         Creates and sends a notification for an error, to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
-        notification_content = NotificationContent(name=name, text=message)
+        header_data = self._get_log_data()
+        header_data["error_text"] = message
+        logger.info("header_data info %s", header_data)
+        notification_content = NotificationContent(
+            name=name, text=message, header_data=header_data
+        )
 
         # filter recipients to recipients who are also owners
         owner_recipients = [
@@ -492,7 +528,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except CommandException as first_ex:
+        except Exception as first_ex:
             self.update_report_schedule_and_log(
                 ReportState.ERROR, error_message=str(first_ex)
             )
@@ -508,7 +544,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                         ReportState.ERROR,
                         error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                     )
-                except CommandException as second_ex:
+                except Exception as second_ex:  # pylint: disable=broad-except
                     self.update_report_schedule_and_log(
                         ReportState.ERROR, error_message=str(second_ex)
                     )
@@ -565,7 +601,7 @@ class ReportSuccessState(BaseReportState):
                 if not AlertCommand(self._report_schedule).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
-            except CommandException as ex:
+            except Exception as ex:
                 self.send_error(
                     f"Error occurred for {self._report_schedule.type}:"
                     f" {self._report_schedule.name}",
@@ -580,7 +616,7 @@ class ReportSuccessState(BaseReportState):
         try:
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except CommandException as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             self.update_report_schedule_and_log(
                 ReportState.ERROR, error_message=str(ex)
             )

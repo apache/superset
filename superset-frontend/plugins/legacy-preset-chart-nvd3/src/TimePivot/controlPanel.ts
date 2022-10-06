@@ -20,6 +20,7 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_OPTIONS,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import {
@@ -123,6 +124,10 @@ const config: ControlPanelConfig = {
       clearable: false,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric,
+  }),
 };
 
 export default config;

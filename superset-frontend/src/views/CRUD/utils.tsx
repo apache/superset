@@ -92,8 +92,9 @@ const createFetchResourceMethod =
       : undefined;
 
     const data: { label: string; value: string | number }[] = [];
-    json?.result?.forEach(
-      ({ text, value }: { text: string; value: string | number }) => {
+    json?.result
+      ?.filter(({ text }: { text: string }) => text.trim().length > 0)
+      .forEach(({ text, value }: { text: string; value: string | number }) => {
         if (
           loggedUser &&
           value === loggedUser.value &&
@@ -106,8 +107,7 @@ const createFetchResourceMethod =
             value,
           });
         }
-      },
-    );
+      });
 
     if (loggedUser && (!filterValue || fetchedLoggedUser)) {
       data.unshift(loggedUser);
@@ -227,10 +227,8 @@ export function createErrorHandler(
     const errorsArray = parsedError?.errors;
     const config = await SupersetText;
     if (
-      errorsArray &&
-      errorsArray.length &&
-      config &&
-      config.ERRORS &&
+      errorsArray?.length &&
+      config?.ERRORS &&
       errorsArray[0].error_type in config.ERRORS
     ) {
       parsedError.message = config.ERRORS[errorsArray[0].error_type];

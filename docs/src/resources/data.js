@@ -144,6 +144,11 @@ export const Databases = [
     imgName: 'teradata.png'
   },
   {
+    title: 'TimescaleDB',
+    href: "www.timescale.com",
+    imgName: 'timescale.png'
+  },
+  {
     title: 'YugabyteDB',
     href: "www.yugabyte.com",
     imgName: 'yugabyte.png'

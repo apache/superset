@@ -47,9 +47,10 @@ enum ColorSchemeType {
 
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
 export const hydrateExplore =
-  ({ form_data, slice, dataset }: ExplorePageInitialData) =>
+  ({ form_data, slice, dataset, metadata }: ExplorePageInitialData) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
-    const { user, datasources, charts, sliceEntities, common } = getState();
+    const { user, datasources, charts, sliceEntities, common, explore } =
+      getState();
 
     const sliceId = getUrlParam(URL_PARAMS.sliceId);
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
@@ -119,10 +120,10 @@ export const hydrateExplore =
       controls: initialControls,
       form_data: initialFormData,
       slice: initialSlice,
-      controlsTransferred: [],
+      controlsTransferred: explore.controlsTransferred,
       standalone: getUrlParam(URL_PARAMS.standalone),
       force: getUrlParam(URL_PARAMS.force),
-      sliceDashboards: initialFormData.dashboards,
+      metadata,
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER

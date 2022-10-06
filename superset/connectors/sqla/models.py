@@ -83,6 +83,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     find_cached_objects_in_session,
+    get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
     validate_adhoc_subquery,
@@ -374,9 +375,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
-        time_expr = self.db_engine_spec.get_timestamp_expr(
-            col, pdf, time_grain, self.type
-        )
+        time_expr = self.db_engine_spec.get_timestamp_expr(col, pdf, time_grain)
         return self.table.make_sqla_column_compatible(time_expr, label)
 
     def dttm_sql_literal(self, dttm: DateTime) -> str:
@@ -1124,7 +1123,29 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             schema=self.schema,
             template_processor=template_processor,
         )
-        sqla_column = literal_column(expression)
+        col_in_metadata = self.get_column(expression)
+        if col_in_metadata:
+            sqla_column = col_in_metadata.get_sqla_col()
+            is_dttm = col_in_metadata.is_temporal
+        else:
+            sqla_column = literal_column(expression)
+            # probe adhoc column type
+            tbl, _ = self.get_from_clause(template_processor)
+            qry = sa.select([sqla_column]).limit(1).select_from(tbl)
+            sql = self.database.compile_sqla_query(qry)
+            col_desc = get_columns_description(self.database, sql)
+            is_dttm = col_desc[0]["is_dttm"]
+
+        if (
+            is_dttm
+            and col.get("columnType") == "BASE_AXIS"
+            and (time_grain := col.get("timeGrain"))
+        ):
+            sqla_column = self.db_engine_spec.get_timestamp_expr(
+                col=sqla_column,
+                pdf=None,
+                time_grain=time_grain,
+            )
         return self.make_sqla_column_compatible(sqla_column, label)
 
     def make_sqla_column_compatible(
@@ -1410,7 +1431,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         col=selected, template_processor=template_processor
                     )
                 groupby_all_columns[outer.name] = outer
-                if not series_column_names or outer.name in series_column_names:
+                if (
+                    is_timeseries and not series_column_names
+                ) or outer.name in series_column_names:
                     groupby_series_columns[outer.name] = outer
                 select_exprs.append(outer)
         elif columns:
@@ -1592,7 +1615,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 elif op == utils.FilterOperator.IS_FALSE.value:
                     where_clause_and.append(sqla_col.is_(False))
                 else:
-                    if eq is None:
+                    if (
+                        op
+                        not in {
+                            utils.FilterOperator.EQUALS.value,
+                            utils.FilterOperator.NOT_EQUALS.value,
+                        }
+                        and eq is None
+                    ):
                         raise QueryObjectValidationError(
                             _(
                                 "Must specify a value for filters "
@@ -1932,7 +1962,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         :return: Tuple with lists of added, removed and modified column names.
         """
         new_columns = self.external_metadata()
-        metrics = []
+        metrics = [
+            SqlMetric(**metric)
+            for metric in self.database.get_metrics(self.table_name, self.schema)
+        ]
         any_date_col = None
         db_engine_spec = self.db_engine_spec
 
@@ -1989,14 +2022,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         columns.extend([col for col in old_columns if col.expression])
         self.columns = columns
 
-        metrics.append(
-            SqlMetric(
-                metric_name="count",
-                verbose_name="COUNT(*)",
-                metric_type="count",
-                expression="COUNT(*)",
-            )
-        )
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
         self.add_missing_metrics(metrics)
@@ -2269,11 +2294,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
-        security_manager.set_perm(mapper, connection, sqla_table)
+        security_manager.dataset_after_insert(mapper, connection, sqla_table)
         sqla_table.write_shadow_dataset()
 
     @staticmethod
-    def after_delete(  # pylint: disable=unused-argument
+    def after_delete(
         mapper: Mapper,
         connection: Connection,
         sqla_table: "SqlaTable",
@@ -2290,6 +2315,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         For more context: https://github.com/apache/superset/issues/14909
         """
+        security_manager.dataset_after_delete(mapper, connection, sqla_table)
         session = inspect(sqla_table).session
         dataset = (
             session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
@@ -2316,7 +2342,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         For more context: https://github.com/apache/superset/issues/14909
         """
         # set permissions
-        security_manager.set_perm(mapper, connection, sqla_table)
+        security_manager.dataset_after_update(mapper, connection, sqla_table)
 
         inspector = inspect(sqla_table)
         session = inspector.session

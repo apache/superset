@@ -21,7 +21,7 @@ import unittest
 import copy
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
+from typing import Any, Dict, Optional, List
 from unittest import mock
 from zipfile import ZipFile
 
@@ -38,8 +38,12 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,
 )
 from tests.integration_tests.test_app import app
-
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_with_slice,
+    load_energy_table_data,
+)
 import pytest
+from superset.models.slice import Slice
 
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
@@ -915,3 +919,141 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]
+
+
+@pytest.fixture()
+def physical_query_context(physical_dataset) -> Dict[str, Any]:
+    return {
+        "datasource": {
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        "queries": [
+            {
+                "columns": ["col1"],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+            }
+        ],
+        "result_type": ChartDataResultType.FULL,
+        "force": True,
+    }
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 1234,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": None,
+        },
+    },
+)
+def test_cache_default_timeout(test_client, login_as_admin, physical_query_context):
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1234
+
+
+def test_custom_cache_timeout(test_client, login_as_admin, physical_query_context):
+    physical_query_context["custom_cache_timeout"] = 5678
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 5678
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 3456,
+        },
+    },
+)
+def test_data_cache_default_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+def test_chart_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+    load_energy_table_with_slice: List[Slice],
+):
+    # should override datasource cache timeout
+
+    slice_with_cache_timeout = load_energy_table_with_slice[0]
+    slice_with_cache_timeout.cache_timeout = 20
+    db.session.merge(slice_with_cache_timeout)
+
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 1254
+    db.session.merge(datasource)
+
+    db.session.commit()
+
+    physical_query_context["form_data"] = {"slice_id": slice_with_cache_timeout.id}
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 20
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 1010,
+        },
+    },
+)
+def test_chart_cache_timeout_not_present(
+    test_client, login_as_admin, physical_query_context
+):
+    # should use datasource cache, if it's present
+
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 1980
+    db.session.merge(datasource)
+    db.session.commit()
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1980
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 1010,
+        },
+    },
+)
+def test_chart_cache_timeout_chart_not_found(
+    test_client, login_as_admin, physical_query_context
+):
+    # should use default timeout
+
+    physical_query_context["form_data"] = {"slice_id": 0}
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1010

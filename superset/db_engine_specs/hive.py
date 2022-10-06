@@ -49,7 +49,6 @@ if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -145,12 +144,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.constants = patched_constants
         hive.ttypes = patched_ttypes
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
-
-    @classmethod
-    def get_all_datasource_names(
-        cls, database: "Database", datasource_type: str
-    ) -> List[utils.DatasourceName]:
-        return BaseEngineSpec.get_all_datasource_names(database, datasource_type)
 
     @classmethod
     def fetch_data(
@@ -261,10 +254,6 @@ class HiveEngineSpec(PrestoEngineSpec):
             return f"""CAST('{dttm
                 .isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""
         return None
-
-    @classmethod
-    def epoch_to_dttm(cls) -> str:
-        return "from_unixtime({col})"
 
     @classmethod
     def adjust_database_uri(

@@ -34,22 +34,25 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
+import QueryProvider from 'src/views/QueryProvider';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
   useDnd?: boolean;
   useQueryParams?: boolean;
   useRouter?: boolean;
+  useQuery?: boolean;
   initialState?: {};
   reducers?: {};
   store?: Store;
 };
 
-function createWrapper(options?: Options) {
+export function createWrapper(options?: Options) {
   const {
     useDnd,
     useRedux,
     useQueryParams,
+    useQuery = true,
     useRouter,
     initialState,
     reducers,
@@ -83,6 +86,10 @@ function createWrapper(options?: Options) {
 
     if (useRouter) {
       result = <BrowserRouter>{result}</BrowserRouter>;
+    }
+
+    if (useQuery) {
+      result = <QueryProvider>{result}</QueryProvider>;
     }
 
     return result;

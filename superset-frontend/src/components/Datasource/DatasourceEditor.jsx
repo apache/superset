@@ -540,10 +540,12 @@ function OwnersSelector({ datasource, onChange }) {
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/related/owners?q=${query}`,
     }).then(response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
+      data: response.json.result
+        .filter(item => item.extra.active)
+        .map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
       totalCount: response.json.count,
     }));
   }, []);
@@ -741,7 +743,9 @@ class DatasourceEditor extends React.PureComponent {
       database_name:
         datasource.database.database_name || datasource.database.name,
       schema_name: datasource.schema,
-      table_name: datasource.table_name,
+      table_name: datasource.table_name
+        ? encodeURIComponent(datasource.table_name)
+        : datasource.table_name,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value

@@ -20,9 +20,10 @@ module.exports = {
   apiKey: process.env.APPLITOOLS_API_KEY,
   batchId: process.env.APPLITOOLS_BATCH_ID,
   batchName: process.env.APPLITOOLS_BATCH_NAME,
-  browser: [{ width: 1000, height: 660, name: 'chrome' }],
+  browser: [{ width: 1920, height: 1080, name: 'chrome' }],
   failCypressOnDiff: false,
   isDisabled: false,
   showLogs: false,
   testConcurrency: 10,
+  ignoreCaret: true,
 };

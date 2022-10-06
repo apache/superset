@@ -19,12 +19,14 @@
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { FeatureFlag } from 'src/featureFlags';
 import * as copyUtils from 'src/utils/copy';
 import {
   render,
   screen,
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
+import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { DataTablesPane } from '..';
 import { createDataTablesPaneProps } from './fixture';
 
@@ -39,10 +41,10 @@ describe('DataTablesPane', () => {
     localStorage.clear();
   });
 
-  test('Rendering DataTablesPane correctly', () => {
+  test('Rendering DataTablesPane correctly', async () => {
     const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, { useRedux: true });
-    expect(screen.getByText('Results')).toBeVisible();
+    expect(await screen.findByText('Results')).toBeVisible();
     expect(screen.getByText('Samples')).toBeVisible();
     expect(screen.getByLabelText('Expand data panel')).toBeVisible();
   });
@@ -142,5 +144,20 @@ describe('DataTablesPane', () => {
     expect(screen.getByText('Horror')).toBeVisible();
     expect(screen.queryByText('Action')).not.toBeInTheDocument();
     fetchMock.restore();
+  });
+
+  test('Displaying the data pane is under featureflag', () => {
+    // @ts-ignore
+    global.featureFlags = {
+      [FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT]: true,
+    };
+    const props = createDataTablesPaneProps(0);
+    setItem(LocalStorageKeys.is_datapanel_open, true);
+    render(<DataTablesPane {...props} />, {
+      useRedux: true,
+    });
+    expect(
+      screen.queryByLabelText('Collapse data panel'),
+    ).not.toBeInTheDocument();
   });
 });

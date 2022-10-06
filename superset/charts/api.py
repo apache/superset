@@ -50,8 +50,10 @@ from superset.charts.dao import ChartDAO
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
+    ChartCreatedByMeFilter,
     ChartFavoriteFilter,
     ChartFilter,
+    ChartHasCreatedByFilter,
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -79,7 +81,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 config = app.config
@@ -114,16 +116,22 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "certified_by",
         "certification_details",
+        "changed_on_delta_humanized",
         "dashboards.dashboard_title",
         "dashboards.id",
         "dashboards.json_metadata",
         "description",
+        "id",
         "owners.first_name",
         "owners.id",
         "owners.last_name",
         "owners.username",
+        "dashboards.id",
+        "dashboards.dashboard_title",
         "params",
         "slice_name",
+        "thumbnail_url",
+        "url",
         "viz_type",
         "query_context",
         "is_managed_externally",
@@ -143,6 +151,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
+        "created_on_delta_humanized",
         "datasource_id",
         "datasource_name_text",
         "datasource_type",
@@ -159,6 +168,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "owners.id",
         "owners.last_name",
         "owners.username",
+        "dashboards.id",
+        "dashboards.dashboard_title",
         "params",
         "slice_name",
         "table.default_endpoint",
@@ -193,6 +204,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "description",
         "id",
         "owners",
+        "dashboards",
         "slice_name",
         "viz_type",
     ]
@@ -201,6 +213,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     search_filters = {
         "id": [ChartFavoriteFilter, ChartCertifiedFilter],
         "slice_name": [ChartAllTextFilter],
+        "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
     }
 
     # Will just affect _info endpoint
@@ -228,7 +241,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-
+    filter_rel_fields = {
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),

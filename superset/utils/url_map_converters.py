@@ -18,7 +18,7 @@ from typing import Any, List
 
 from werkzeug.routing import BaseConverter, Map
 
-from superset.models.tags import ObjectTypes
+from superset.tags.models import ObjectTypes
 
 
 class RegexConverter(BaseConverter):

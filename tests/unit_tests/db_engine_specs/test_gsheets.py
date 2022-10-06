@@ -14,6 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=import-outside-toplevel, invalid-name, line-too-long
+
+import json
+
 from pytest_mock import MockFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -25,19 +30,19 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple(
-    mocker: MockFixture,
-) -> None:
+def test_validate_parameters_simple() -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
-        "catalog": {},
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {},
+        }
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)
+    errors = GSheetsEngineSpec.validate_parameters(properties)
     assert errors == [
         SupersetError(
             message="Sheet name is required",
@@ -53,7 +58,7 @@ def test_validate_parameters_catalog(
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
@@ -68,15 +73,17 @@ def test_validate_parameters_catalog(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
-        "catalog": {
-            "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
-            "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
-            "not_a_sheet": "https://www.google.com/",
-        },
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {
+                "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
+                "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
+                "not_a_sheet": "https://www.google.com/",
+            },
+        }
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
+    errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
 
     assert errors == [
         SupersetError(
@@ -143,7 +150,7 @@ def test_validate_parameters_catalog_and_credentials(
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
@@ -158,15 +165,17 @@ def test_validate_parameters_catalog_and_credentials(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
-        "catalog": {
-            "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
-            "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
-            "not_a_sheet": "https://www.google.com/",
-        },
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {
+                "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
+                "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
+                "not_a_sheet": "https://www.google.com/",
+            },
+        }
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
+    errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
     assert errors == [
         SupersetError(
             message=(
@@ -200,3 +209,77 @@ def test_validate_parameters_catalog_and_credentials(
         service_account_info={},
         subject="admin@example.com",
     )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Test that the private key can be reused from the previous ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "service_account_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "SECRET",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_old_is_none() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = None
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "service_account_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "XXXXXXXXXX",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_new_is_none() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+    new = None
+
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) is None

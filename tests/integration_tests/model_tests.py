@@ -188,7 +188,7 @@ class TestDatabaseModel(SupersetTestCase):
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "trino://localhost"
-            assert call_args[1]["connect_args"] == {"user": "gamma"}
+            assert call_args[1]["connect_args"]["user"] == "gamma"
 
             model = Database(
                 database_name="test_database",
@@ -203,7 +203,7 @@ class TestDatabaseModel(SupersetTestCase):
                 str(call_args[0][0])
                 == "trino://original_user:original_user_password@localhost"
             )
-            assert call_args[1]["connect_args"] == {"user": "gamma"}
+            assert call_args[1]["connect_args"]["user"] == "gamma"
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_hive(self, mocked_create_engine):
@@ -592,7 +592,9 @@ class TestSqlaTableModel(SupersetTestCase):
         assert len(data_for_slices["metrics"]) == 1
         assert len(data_for_slices["columns"]) == 2
         assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
-        assert data_for_slices["columns"][0]["column_name"] == "name"
+        column_names = [col["column_name"] for col in data_for_slices["columns"]]
+        assert "name" in column_names
+        assert "state" in column_names
         assert set(data_for_slices["verbose_map"].keys()) == {
             "__timestamp",
             "sum__num",

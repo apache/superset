@@ -17,9 +17,9 @@
  * under the License.
  */
 import {
-  DataRecordValue,
   HandlerFunction,
   QueryFormColumn,
+  QueryObjectFilterClause,
   SetDataMaskHook,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
@@ -111,10 +111,15 @@ export interface EChartTransformedProps<F> {
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   setControlValue?: HandlerFunction;
-  labelMap: Record<string, DataRecordValue[]>;
+  labelMap: Record<string, string[]>;
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
   legendData?: OptionName[];
+  onContextMenu?: (
+    filters: QueryObjectFilterClause[],
+    clientX: number,
+    clientY: number,
+  ) => void;
 }
 
 export interface EchartsTitleFormData {

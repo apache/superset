@@ -66,11 +66,10 @@ export type DatabaseObject = {
   allow_ctas?: boolean;
   allow_cvas?: boolean;
   allow_dml?: boolean;
-  allow_multi_schema_metadata_fetch?: boolean;
   force_ctas_schema?: string;
 
   // Security
-  encrypted_extra?: string;
+  masked_encrypted_extra?: string;
   server_cert?: string;
   allow_file_upload?: boolean;
   impersonate_user?: boolean;
@@ -102,6 +101,11 @@ export type DatabaseObject = {
   catalog?: Array<CatalogObject>;
   query_input?: string;
   extra?: string;
+
+  // DB Engine Spec information
+  engine_information?: {
+    supports_file_upload?: boolean;
+  };
 };
 
 export type DatabaseForm = {
@@ -160,4 +164,9 @@ export type DatabaseForm = {
 export enum CONFIGURATION_METHOD {
   SQLALCHEMY_URI = 'sqlalchemy_form',
   DYNAMIC_FORM = 'dynamic_form',
+}
+
+export enum Engines {
+  GSheet = 'gsheets',
+  Snowflake = 'snowflake',
 }
