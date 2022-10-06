@@ -706,6 +706,48 @@ def test_should_generate_closed_and_open_time_filter_range():
         assert result_object.df.iloc[0]["count"] == 2
 
 
+def test_none_operand_in_filter(login_as_admin, physical_dataset):
+    expected_results = [
+        {
+            "operator": FilterOperator.EQUALS.value,
+            "count": 10,
+            "sql_should_contain": "COL4 IS NULL",
+        },
+        {
+            "operator": FilterOperator.NOT_EQUALS.value,
+            "count": 0,
+            "sql_should_contain": "COL4 IS NOT NULL",
+        },
+    ]
+    for expected in expected_results:
+        result = physical_dataset.query(
+            {
+                "metrics": ["count"],
+                "filter": [{"col": "col4", "val": None, "op": expected["operator"]}],
+                "is_timeseries": False,
+            }
+        )
+        assert result.df["count"][0] == expected["count"]
+        assert expected["sql_should_contain"] in result.query.upper()
+
+    with pytest.raises(QueryObjectValidationError):
+        for flt in [
+            FilterOperator.GREATER_THAN,
+            FilterOperator.LESS_THAN,
+            FilterOperator.GREATER_THAN_OR_EQUALS,
+            FilterOperator.LESS_THAN_OR_EQUALS,
+            FilterOperator.LIKE,
+            FilterOperator.ILIKE,
+        ]:
+            physical_dataset.query(
+                {
+                    "metrics": ["count"],
+                    "filter": [{"col": "col4", "val": None, "op": flt.value}],
+                    "is_timeseries": False,
+                }
+            )
+
+
 @pytest.mark.parametrize(
     "row,dimension,result",
     [
