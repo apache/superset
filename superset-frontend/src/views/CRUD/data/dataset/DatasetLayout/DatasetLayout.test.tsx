@@ -36,7 +36,7 @@ describe('DatasetLayout', () => {
   const mockSetDataset = jest.fn();
 
   const waitForRender = () =>
-    waitFor(() => render(<Header setDataset={mockSetDataset} title="" />));
+    waitFor(() => render(<Header setDataset={mockSetDataset} />));
 
   it('renders a Header when passed in', async () => {
     await waitForRender();

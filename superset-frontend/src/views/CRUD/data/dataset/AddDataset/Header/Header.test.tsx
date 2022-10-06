@@ -18,7 +18,9 @@
  */
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
+import Header, {
+  DEFAULT_TITLE,
+} from 'src/views/CRUD/data/dataset/AddDataset/Header';
 
 describe('Header', () => {
   const mockSetDataset = jest.fn();
@@ -48,7 +50,7 @@ describe('Header', () => {
     await waitForRender();
 
     const datasetName = screen.getByTestId('editable-title');
-    expect(datasetName.innerHTML).toBe('New dataset');
+    expect(datasetName.innerHTML).toBe(DEFAULT_TITLE);
   });
 
   test('displays table name when a table is selected', async () => {
