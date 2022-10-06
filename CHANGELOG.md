@@ -19,6 +19,43 @@ under the License.
 
 ## Change Log
 
+### 2.0.1 (Fri Jul 22 13:56:33 2022 -0400)
+**Database Migrations**
+
+**Features**
+
+**Fixes**
+- [#20830](https://github.com/apache/superset/pull/20830) fix: remove element reference in alerts report fetchs (@hughhhh)
+- [#20063](https://github.com/apache/superset/pull/20063) fix: Add locale for DatePicker component (@aehanno)
+- [#21302](https://github.com/apache/superset/pull/21302) fix: disallow users from viewing other user's profile on config (@dpgaspar)
+- [#21154](https://github.com/apache/superset/pull/21154) fix(explore): Prevent unnecessary series limit subquery (@codyml)
+- [#21498](https://github.com/apache/superset/pull/21498) fix: set correct favicon from config for login and FAB list views (@mayurnewase)
+- [#21380](https://github.com/apache/superset/pull/21380) fix(sqllab): Fix cursor alignment in SQL lab editor by avoiding Lucida Console font on Windows (@MichaelHintz)
+- [#20061](https://github.com/apache/superset/pull/20061) fix: Add french translation missing (@aehanno)
+- [#21044](https://github.com/apache/superset/pull/21044) fix(plugin-chart-echarts): missing value format in mixed timeseries (@justinpark)
+- [#21419](https://github.com/apache/superset/pull/21419) fix: cached common bootstrap Revert (#21018) (@dpgaspar)
+- [#21296](https://github.com/apache/superset/pull/21296) fix(plugin-chart-echarts): show zero value in tooltip (@villebro)
+- [#21294](https://github.com/apache/superset/pull/21294) fix(explore): Time column label not formatted when GENERIC_X_AXES enabled (@kgabryje)
+- [#21272](https://github.com/apache/superset/pull/21272) fix: adds TLS certificate validation option for SMTP (@dpgaspar)
+- [#21076](https://github.com/apache/superset/pull/21076) fix(celery cache warmup): add auth and use warm_up_cache endpoint (@nytai)
+- [#21216](https://github.com/apache/superset/pull/21216) fix(database-list): hide upload file button if no permission (@stephenLYZ)
+- [#21153](https://github.com/apache/superset/pull/21153) fix(sqllab): missing zero values while copy-to-clipboard (@justinpark)
+- [#21084](https://github.com/apache/superset/pull/21084) fix(native filters): groupby filter issue (@stevetracvc)
+- [#21005](https://github.com/apache/superset/pull/21005) fix(plugin-chart-handlebars): Sort-By and Sort-By-Descending control not work (@stephenLYZ)
+- [#20969](https://github.com/apache/superset/pull/20969) fix(dashboard): Fix scroll behaviour in DashboardBuilderSidepane (@EugeneTorap)
+- [#21007](https://github.com/apache/superset/pull/21007) fix(plugin-chart-echarts): gauge chart enhancements and fixes (@stephenLYZ)
+- [#21032](https://github.com/apache/superset/pull/21032) fix(plugin-chart-echarts): invalid total label location for negative values in stacked bar chart (@justinpark)
+- [#20962](https://github.com/apache/superset/pull/20962) fix: Explore scrolled down when navigating from dashboard (@kgabryje)
+- [#20946](https://github.com/apache/superset/pull/20946) fix(viz): Show zero percent changes in Big Number Viz (@Antonio-RiveroMartnez)
+- [#20819](https://github.com/apache/superset/pull/20819) fix: Temporal X Axis values are not properly displayed if the time column has a custom label defined (@diegomedina248)
+- [#20736](https://github.com/apache/superset/pull/20736) fix: getting default value in run-server.sh (@zhaoyongjie)
+- [#20733](https://github.com/apache/superset/pull/20733) fix(docker): Make Gunicorn max_requests and max_requests_jitter adjustable  (@mdeshmu)
+- [#20714](https://github.com/apache/superset/pull/20714) fix: logger message (@betodealmeida)
+
+**Others**
+- [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
+- [#21091](https://github.com/apache/superset/pull/21091) chore(deps): unpin holidays dependency version (@ecederstrand)
+
 ### 2.0 (Tue Jun 28 08:53:02 2022 -0400)
 
 **Database Migrations**
