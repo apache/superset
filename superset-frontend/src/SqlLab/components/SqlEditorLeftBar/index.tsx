@@ -18,7 +18,6 @@
  */
 import React, {
   useEffect,
-  useRef,
   useCallback,
   useMemo,
   useState,
@@ -106,9 +105,6 @@ const SqlEditorLeftBar = ({
   const dispatch = useDispatch();
   const queryEditor = useQueryEditor(queryEditorId, ['schema']);
 
-  // Ref needed to avoid infinite rerenders on handlers
-  // that require and modify the queryEditor
-  const queryEditorRef = useRef(queryEditor);
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
@@ -127,10 +123,6 @@ const SqlEditorLeftBar = ({
       setItem(LocalStorageKeys.db, null);
     } else setUserSelected(database);
   }, [database]);
-
-  useEffect(() => {
-    queryEditorRef.current = queryEditor;
-  }, [queryEditor, database]);
 
   const onEmptyResults = (searchText?: string) => {
     setEmptyResultsWithSearch(!!searchText);
@@ -221,22 +213,35 @@ const SqlEditorLeftBar = ({
       }
     />
   );
+
   const handleSchemaChange = useCallback((schema: string) => {
-    if (queryEditorRef.current) {
-      dispatch(queryEditorSetSchema(queryEditorRef.current, schema));
+    if (queryEditor) {
+      dispatch(queryEditorSetSchema(queryEditor, schema));
     }
   }, []);
 
   const handleTablesLoad = useCallback((options: Array<any>) => {
-    if (queryEditorRef.current) {
-      dispatch(queryEditorSetTableOptions(queryEditorRef.current, options));
+    if (queryEditor) {
+      dispatch(queryEditorSetTableOptions(queryEditor, options));
     }
   }, []);
 
   const handleSchemasLoad = useCallback((options: Array<any>) => {
-    if (queryEditorRef.current) {
-      dispatch(queryEditorSetSchemaOptions(queryEditorRef.current, options));
+    if (queryEditor) {
+      dispatch(queryEditorSetSchemaOptions(queryEditor, options));
     }
+  }, []);
+
+  const handleDbList = useCallback((result: DatabaseObject) => {
+    dispatch(setDatabases(result));
+  }, []);
+
+  const handleError = useCallback((message: string) => {
+    dispatch(addDangerToast(message));
+  }, []);
+
+  const handleResetState = useCallback(() => {
+    dispatch(resetState());
   }, []);
 
   return (
@@ -245,8 +250,8 @@ const SqlEditorLeftBar = ({
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent}
         database={userSelectedDb}
-        getDbList={result => dispatch(setDatabases(result))}
-        handleError={message => dispatch(addDangerToast(message))}
+        getDbList={handleDbList}
+        handleError={handleError}
         onDbChange={onDbChange}
         onSchemaChange={handleSchemaChange}
         onSchemasLoad={handleSchemasLoad}
@@ -283,7 +288,7 @@ const SqlEditorLeftBar = ({
         <Button
           buttonSize="small"
           buttonStyle="danger"
-          onClick={dispatch(resetState)}
+          onClick={handleResetState}
         >
           <i className="fa fa-bomb" /> {t('Reset state')}
         </Button>
