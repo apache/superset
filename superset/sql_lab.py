@@ -508,7 +508,6 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             query.set_extra_json_key("progress", msg)
             session.commit()
             try:
-                print("calling execute_sql_statement")
                 result_set = execute_sql_statement(
                     statement,
                     query,
@@ -521,9 +520,6 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
             except Exception as ex:  # pylint: disable=broad-except
-                print("in exc")
-                print(ex)
-                raise ex
                 msg = str(ex)
                 prefix_message = (
                     f"[Statement {i+1} out of {statement_count}]"
