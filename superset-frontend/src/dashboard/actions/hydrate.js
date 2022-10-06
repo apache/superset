@@ -293,18 +293,17 @@ export const hydrateDashboard =
     };
 
     // Searches for a focused_chart parameter in the URL to automatically focus a chart
-    const { focused_chart: focusedChartId } = regularUrlParams;
+    const focusedChartId = getUrlParam(URL_PARAMS.dashboardFocusedChart);
     let focusedChartLayoutId;
     if (focusedChartId) {
       // Converts focused_chart to dashboard layout id
       const found = Object.values(dashboardLayout.present).find(
-        // eslint-disable-next-line eqeqeq
-        element => element.meta?.chartId == focusedChartId,
+        element => element.meta?.chartId === focusedChartId,
       );
       focusedChartLayoutId = found?.id;
       // Removes the focused_chart parameter from the URL
       const params = new URLSearchParams(window.location.search);
-      params.delete('focused_chart');
+      params.delete(URL_PARAMS.dashboardFocusedChart.name);
       history.replace({
         search: params.toString(),
       });
