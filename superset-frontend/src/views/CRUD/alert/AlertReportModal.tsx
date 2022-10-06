@@ -508,16 +508,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     let invalidEmails = [];
     notificationSettings.forEach(setting => {
       if (setting.method && setting.recipients.length) {
-        const emailStr = setting.recipients;
+        if (setting.method == 'Email') {
+          const emailStr = setting.recipients;
+          const emails = ([] as string[])
+            .concat(...emailStr.split(',').map(item => item.split(';')))
+            .map(item => item.trim())
+            .filter(item => item !== '');
 
-        const emails = ([] as string[])
-          .concat(...emailStr.split(',').map(item => item.split(';')))
-          .map(item => item.trim())
-          .filter(item => item !== '');
-
-        invalidEmails = emails.filter(
-          email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
-        );
+          invalidEmails = emails.filter(
+            email => !/^[a-z0-9._-]+@(careem|ext.careem).com+$/.test(email),
+          );
+        }
 
         recipients.push({
           recipient_config_json: {
