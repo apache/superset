@@ -927,8 +927,8 @@ export function queryEditorSetTitle(queryEditor, name, id) {
 }
 
 export function saveQuery(query) {
-  return dispatch => {
-    return SupersetClient.post({
+  return dispatch =>
+    SupersetClient.post({
       endpoint: '/api/v1/saved_query/',
       jsonPayload: convertQueryToServer(query),
     })
@@ -948,7 +948,6 @@ export function saveQuery(query) {
       .catch(() =>
         dispatch(addDangerToast(t('Your query could not be saved whyyyy'))),
       );
-  };
 }
 
 export const addSavedQueryToTabState =
