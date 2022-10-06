@@ -16,10 +16,13 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
+import pytest
 import sqlparse
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
 from superset.utils.core import override_user
 
 
@@ -216,3 +219,44 @@ def test_sql_lab_insert_rls(
 |  3 |   9 |""".strip()
     )
     assert query.executed_sql == "SELECT c FROM t WHERE (t.c > 5)\nLIMIT 6"
+
+
+def test_execute_sql_statement_sql_user_error(mocker: MockerFixture, app: None) -> None:
+    """
+    Simple test for `execute_sql_statement`.
+    """
+    from superset.sql_lab import execute_sql_statement
+
+    sql_statement = "SELECT 42 AS answer"
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.select_as_cta_used = False
+    database = query.database
+    database.allow_dml = False
+    database.apply_limit_to_sql.return_value = "SELECT 42 AS answer LIMIT 2"
+    db_engine_spec = database.db_engine_spec
+
+    from psycopg2.errors import SyntaxError
+
+    db_engine_spec.is_select_query.return_value = True
+    db_engine_spec.fetch_data.side_effect = SyntaxError("foo")
+
+    session = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        execute_sql_statement(
+            sql_statement,
+            query,
+            session=session,
+            cursor=cursor,
+            log_params={},
+            apply_ctas=False,
+        )
+        assert excinfo.value.error == SupersetError(
+            message="foo",
+            error_type=SupersetErrorType.SYNTAX_ERROR,
+            level=ErrorLevel.ERROR,
+        )

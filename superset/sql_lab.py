@@ -209,7 +209,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     database: Database = query.database
     db_engine_spec = database.db_engine_spec
 
-    print('in 1')
     parsed_query = ParsedQuery(sql_statement)
     if is_feature_enabled("RLS_IN_SQLLAB"):
         # Insert any applicable RLS predicates
@@ -312,7 +311,8 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                 level=ErrorLevel.ERROR,
             )
         ) from ex
-    except SqlUserError as ex:
+    # todo(hughhhh): cleaner way to group all user exceptions here
+    except SyntaxError as ex:
         raise SupersetErrorException(
             SupersetError(
                 message=ex,
@@ -508,7 +508,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             query.set_extra_json_key("progress", msg)
             session.commit()
             try:
-                print('calling execute_sql_statement')
+                print("calling execute_sql_statement")
                 result_set = execute_sql_statement(
                     statement,
                     query,
@@ -521,7 +521,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
             except Exception as ex:  # pylint: disable=broad-except
-                print('in exc')
+                print("in exc")
                 print(ex)
                 raise ex
                 msg = str(ex)
