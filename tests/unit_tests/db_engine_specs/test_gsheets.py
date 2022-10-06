@@ -62,6 +62,7 @@ def test_validate_parameters_simple_with_in_root_catalog() -> None:
 
     properties: GSheetsPropertiesType = {
         "parameters": {
+            "service_account_info": "",
             "catalog": {},
         },
         "catalog": {},

@@ -55,7 +55,7 @@ class GSheetsParametersSchema(Schema):
 
 class GSheetsParametersType(TypedDict):
     service_account_info: str
-    catalog: Dict[str, str]
+    catalog: Optional[Dict[str, str]]
 
 
 class GSheetsPropertiesType(TypedDict):
