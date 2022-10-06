@@ -111,7 +111,6 @@ const ERR_MSG_CANT_LOAD_QUERY = t("The query couldn't be loaded");
 const queryClientMapping = {
   id: 'remoteId',
   db_id: 'dbId',
-  client_id: 'id',
   label: 'name',
   template_parameters: 'templateParams',
 };
@@ -121,8 +120,8 @@ const queryServerMapping = invert(queryClientMapping);
 const fieldConverter = mapping => obj =>
   mapKeys(obj, (value, key) => (key in mapping ? mapping[key] : key));
 
-const convertQueryToServer = fieldConverter(queryServerMapping);
-const convertQueryToClient = fieldConverter(queryClientMapping);
+export const convertQueryToServer = fieldConverter(queryServerMapping);
+export const convertQueryToClient = fieldConverter(queryClientMapping);
 
 export function getUpToDateQuery(rootState, queryEditor, key) {
   const {
@@ -904,11 +903,11 @@ export function queryEditorSetAutorun(queryEditor, autorun) {
   };
 }
 
-export function queryEditorSetTitle(queryEditor, name) {
+export function queryEditorSetTitle(queryEditor, name, id) {
   return function (dispatch) {
     const sync = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
       ? SupersetClient.put({
-          endpoint: encodeURI(`/tabstateview/${queryEditor.id}`),
+          endpoint: encodeURI(`/tabstateview/${id}`),
           postPayload: { label: name },
         })
       : Promise.resolve();
@@ -930,11 +929,14 @@ export function queryEditorSetTitle(queryEditor, name) {
 export function saveQuery(query) {
   return dispatch => {
     return SupersetClient.post({
-      endpoint: 'api/v1/saved_query/',
+      endpoint: '/api/v1/saved_query/',
       jsonPayload: convertQueryToServer(query),
     })
       .then(result => {
-        const savedQuery = convertQueryToClient(result.json.item);
+        const savedQuery = convertQueryToClient({
+          id: result.json.id,
+          ...result.json.result,
+        });
         dispatch({
           type: QUERY_EDITOR_SAVED,
           query,
@@ -944,7 +946,7 @@ export function saveQuery(query) {
         return savedQuery;
       })
       .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be saved'))),
+        dispatch(addDangerToast(t('Your query could not be saved whyyyy'))),
       );
   };
 }
@@ -967,16 +969,15 @@ export const addSavedQueryToTabState =
       });
   };
 
-export function updateSavedQuery(query) {
+export function updateSavedQuery(query, remoteId, id) {
   return dispatch =>
     SupersetClient.put({
-      endpoint: `/savedqueryviewapi/api/update/${query.remoteId}`,
-      postPayload: convertQueryToServer(query),
-      stringify: false,
+      endpoint: `/api/v1/saved_query/${remoteId}`,
+      jsonPayload: convertQueryToServer(query),
     })
       .then(() => {
         dispatch(addSuccessToast(t('Your query was updated')));
-        dispatch(queryEditorSetTitle(query, query.name));
+        dispatch(queryEditorSetTitle(query, query.name, id));
       })
       .catch(e => {
         const message = t('Your query could not be updated');
@@ -1351,11 +1352,12 @@ export function popStoredQuery(urlId) {
 export function popSavedQuery(saveQueryId) {
   return function (dispatch) {
     return SupersetClient.get({
-      endpoint: `/savedqueryviewapi/api/get/${saveQueryId}`,
+      endpoint: `/api/v1/saved_query/${saveQueryId}`,
     })
       .then(({ json }) => {
         const queryEditorProps = {
           ...convertQueryToClient(json.result),
+          dbId: json.result?.database?.id,
           loaded: true,
           autorun: false,
         };

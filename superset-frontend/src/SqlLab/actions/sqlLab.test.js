@@ -59,7 +59,7 @@ describe('async actions', () => {
   fetchMock.post(runQueryEndpoint, `{ "data": ${mockBigNumber} }`);
 
   describe('saveQuery', () => {
-    const saveQueryEndpoint = 'glob:*/savedqueryviewapi/api/create';
+    const saveQueryEndpoint = 'glob:*/api/v1/saved_query/';
     fetchMock.post(saveQueryEndpoint, { results: { json: {} } });
 
     const makeRequest = () => {
@@ -80,9 +80,11 @@ describe('async actions', () => {
       const store = mockStore(initialState);
       return store.dispatch(actions.saveQuery(query)).then(() => {
         const call = fetchMock.calls(saveQueryEndpoint)[0];
-        const formData = call[1].body;
-        Object.keys(query).forEach(key => {
-          expect(formData.get(key)).toBeDefined();
+        const formData = JSON.parse(call[1].body);
+        const mappedQueryToServer = actions.convertQueryToServer(query);
+
+        Object.keys(mappedQueryToServer).forEach(key => {
+          expect(formData[key]).toBeDefined();
         });
       });
     });
@@ -370,12 +372,13 @@ describe('async actions', () => {
           queryEditor: {
             name: 'Copy of Dummy query editor',
             dbId: 1,
-            schema: null,
+            schema: query.schema,
             autorun: true,
             sql: 'SELECT * FROM something',
             queryLimit: undefined,
             maxRow: undefined,
             id: 'abcd',
+            templateParams: undefined,
           },
         },
       ];

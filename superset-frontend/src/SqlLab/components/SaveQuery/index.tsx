@@ -37,7 +37,7 @@ interface SaveQueryProps {
   queryEditorId: string;
   columns: ISaveableDatasource['columns'];
   onSave: (arg0: QueryPayload) => void;
-  onUpdate: (arg0: QueryPayload) => void;
+  onUpdate: (arg0: QueryPayload, remoteId: number | null, id: string) => void;
   saveQueryWarning: string | null;
   database: Record<string, any>;
 }
@@ -46,19 +46,8 @@ type QueryPayload = {
   name: string;
   description?: string;
   id?: string;
-} & Pick<
-  QueryEditor,
-  | 'autorun'
-  | 'dbId'
-  | 'schema'
-  | 'sql'
-  | 'selectedText'
-  | 'remoteId'
-  | 'latestQueryId'
-  | 'queryLimit'
-  | 'tableOptions'
-  | 'schemaOptions'
->;
+  remoteId?: string;
+} & Pick<QueryEditor, 'dbId' | 'schema' | 'sql'>;
 
 const Styles = styled.span`
   span[role='img'] {
@@ -81,11 +70,18 @@ export default function SaveQuery({
   columns,
 }: SaveQueryProps) {
   const queryEditor = useQueryEditor(queryEditorId, [
+    'autorun',
     'name',
     'description',
+    'remoteId',
     'dbId',
+    'latestQueryId',
+    'queryLimit',
     'schema',
+    'schemaOptions',
+    'selectedText',
     'sql',
+    'tableOptions',
     'templateParams',
   ]);
   const query = useMemo(
@@ -113,10 +109,12 @@ export default function SaveQuery({
   );
 
   const queryPayload = () => ({
-    ...query,
     name: label,
     description,
     dbId: query.dbId ?? 0,
+    sql: query.sql,
+    schema: query.schema,
+    templateParams: query.templateParams,
   });
 
   useEffect(() => {
@@ -131,7 +129,8 @@ export default function SaveQuery({
   };
 
   const onUpdateWrapper = () => {
-    onUpdate(queryPayload());
+    console.log('query on update ', query, query.remoteId);
+    onUpdate({ ...queryPayload() }, query.remoteId, query.id);
     close();
   };
 

@@ -574,7 +574,9 @@ const SqlEditor = ({
               queryEditorId={queryEditor.id}
               columns={latestQuery?.results?.columns || []}
               onSave={onSaveQuery}
-              onUpdate={query => dispatch(updateSavedQuery(query))}
+              onUpdate={(query, remoteId, id) =>
+                dispatch(updateSavedQuery(query, remoteId, id))
+              }
               saveQueryWarning={saveQueryWarning}
               database={database}
             />

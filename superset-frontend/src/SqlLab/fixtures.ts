@@ -683,14 +683,11 @@ export const initialState = {
 
 export const query = {
   id: 'clientId2353',
+  name: 'test query',
   dbId: 1,
   sql: 'SELECT * FROM something',
-  sqlEditorId: defaultQueryEditor.id,
-  tab: 'unimportant',
-  tempTable: null,
-  runAsync: false,
-  ctas: false,
-  cached: false,
+  description: 'test description',
+  schema: 'test schema',
 };
 
 export const testQuery: ISaveableDatasource = {
