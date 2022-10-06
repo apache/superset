@@ -24,6 +24,7 @@ import { Menu } from 'src/components/Menu';
 import { Link } from 'react-router-dom';
 
 export interface DashboardsSubMenuProps {
+  chartId?: number;
   dashboards?: { id: number; dashboard_title: string }[];
 }
 
@@ -32,6 +33,7 @@ const HEIGHT = 300;
 const SEARCH_THRESHOLD = 10;
 
 const DashboardsSubMenu = ({
+  chartId,
   dashboards = [],
   ...menuProps
 }: DashboardsSubMenuProps) => {
@@ -48,6 +50,7 @@ const DashboardsSubMenu = ({
   );
   const noResults = dashboards.length === 0;
   const noResultsFound = dashboardSearch && filteredDashboards.length === 0;
+  const urlQueryString = chartId ? `?focused_chart=${chartId}` : '';
   return (
     <>
       {showSearch && (
@@ -80,7 +83,10 @@ const DashboardsSubMenu = ({
             }}
             {...menuProps}
           >
-            <Link target="_blank" to={`/superset/dashboard/${dashboard.id}`}>
+            <Link
+              target="_blank"
+              to={`/superset/dashboard/${dashboard.id}${urlQueryString}`}
+            >
               <div
                 css={css`
                   display: flex;

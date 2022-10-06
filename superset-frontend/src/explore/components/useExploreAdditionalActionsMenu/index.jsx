@@ -259,7 +259,10 @@ export const useExploreAdditionalActionsMenu = (
             title={t('Dashboards added to')}
             key={MENU_KEYS.DASHBOARDS_ADDED_TO}
           >
-            <DashboardsSubMenu dashboards={dashboards} />
+            <DashboardsSubMenu
+              chartId={slice?.slice_id}
+              dashboards={dashboards}
+            />
           </Menu.SubMenu>
           <Menu.Divider />
         </>
