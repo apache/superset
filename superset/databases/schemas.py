@@ -315,12 +315,10 @@ class DatabaseValidateParametersSchema(Schema):
         values=fields.Raw(allow_none=True),
         description="DB-specific parameters for configuration",
     )
-    catalog = fields.List(
-        fields.Dict(
-            keys=fields.String(),
-            values=fields.Raw(allow_none=True),
-            description="Gsheets specific column for managing label to sheet urls",
-        )
+    catalog = fields.Dict(
+        keys=fields.String(),
+        values=fields.Raw(allow_none=True),
+        description="Gsheets specific column for managing label to sheet urls",
     )
     database_name = fields.String(
         description=database_name_description,
