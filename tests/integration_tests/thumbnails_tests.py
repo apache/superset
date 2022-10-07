@@ -30,7 +30,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_host, get_url_path
-from superset.utils.webdriver import WebDriverProxy
+from superset.utils.webdriver import WebDriverProxy, find_unexpected_errors
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.test_app import app
 
@@ -112,7 +112,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
 
         # there is no error in example dashboards, unexpected_errors should return 0
         # and no error should be raised
-        unexpected_errors = webdriver_proxy.find_unexpected_errors(driver=webdriver)
+        unexpected_errors = find_unexpected_errors(driver=webdriver)
         assert len(unexpected_errors) == 0
 
 
