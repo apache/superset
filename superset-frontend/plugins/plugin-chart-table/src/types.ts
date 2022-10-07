@@ -30,7 +30,7 @@ import {
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
 
@@ -115,7 +115,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   onContextMenu?: (
     clientX: number,
     clientY: number,
-    filters?: QueryObjectFilterClause[],
+    filters?: BinaryQueryObjectFilterClause[],
   ) => void;
 }
 

@@ -21,7 +21,7 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import DrillDetailMenuItems, {
   DrillDetailMenuItemsProps,
@@ -32,7 +32,7 @@ import DrillDetailMenuItems, {
 jest.mock(
   './DrillDetailPane',
   () =>
-    ({ initialFilters }: { initialFilters: QueryObjectFilterClause[] }) =>
+    ({ initialFilters }: { initialFilters: BinaryQueryObjectFilterClause[] }) =>
       <pre data-test="modal-filters">{JSON.stringify(initialFilters)}</pre>,
 );
 
@@ -51,14 +51,14 @@ const noDimensionsFormData = {
   query_mode: 'raw',
 };
 
-const filterA: QueryObjectFilterClause = {
+const filterA: BinaryQueryObjectFilterClause = {
   col: 'sample_column',
   op: '==',
   val: 1234567890,
   formattedVal: 'Yesterday',
 };
 
-const filterB: QueryObjectFilterClause = {
+const filterB: BinaryQueryObjectFilterClause = {
   col: 'sample_column_2',
   op: '==',
   val: 987654321,
@@ -90,7 +90,7 @@ const renderMenu = ({
  */
 const expectDrillToDetailModal = async (
   buttonName: string,
-  filters: QueryObjectFilterClause[] = [],
+  filters: BinaryQueryObjectFilterClause[] = [],
 ) => {
   const button = screen.getByRole('menuitem', { name: buttonName });
   userEvent.click(button);
@@ -203,7 +203,7 @@ const expectDrillToDetailByDisabled = async (tooltipContent?: string) => {
  * "Drill to detail by {dimension}" submenu item should exist and open the correct modal
  */
 const expectDrillToDetailByDimension = async (
-  filter: QueryObjectFilterClause,
+  filter: BinaryQueryObjectFilterClause,
 ) => {
   userEvent.hover(screen.getByRole('button', { name: 'Drill to detail by' }));
   const drillToDetailBySubMenu = await screen.findByTestId(
@@ -223,7 +223,9 @@ const expectDrillToDetailByDimension = async (
 /**
  * "Drill to detail by all" submenu item should exist and open the correct modal
  */
-const expectDrillToDetailByAll = async (filters: QueryObjectFilterClause[]) => {
+const expectDrillToDetailByAll = async (
+  filters: BinaryQueryObjectFilterClause[],
+) => {
   userEvent.hover(screen.getByRole('button', { name: 'Drill to detail by' }));
   const drillToDetailBySubMenu = await screen.findByTestId(
     'drill-to-detail-by-submenu',
