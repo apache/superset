@@ -18,7 +18,7 @@
  */
 import React, { useState } from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
-import { AntdInput } from 'src/components';
+import { Input } from 'src/components/Input';
 import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import { Link } from 'react-router-dom';
@@ -54,7 +54,7 @@ const DashboardsSubMenu = ({
   return (
     <>
       {showSearch && (
-        <AntdInput
+        <Input
           allowClear
           placeholder={t('Search')}
           prefix={<Icons.Search iconSize="l" />}
