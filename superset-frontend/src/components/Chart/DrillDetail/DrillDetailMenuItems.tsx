@@ -156,7 +156,9 @@ const DrillDetailMenuItems = ({
         {t('Drill to detail by')}
       </DisabledMenuItem>
     );
-  } else {
+  }
+
+  if (!noAggregations && !handlesDimensionContextMenu) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-chart-not-supported">
         {t('Drill to detail by')}
@@ -167,48 +169,48 @@ const DrillDetailMenuItems = ({
         />
       </DisabledMenuItem>
     );
+  }
 
-    if (handlesDimensionContextMenu) {
-      if (filters?.length) {
-        drillToDetailByMenuItem = (
-          <Menu.SubMenu {...props} title={t('Drill to detail by')}>
-            <div data-test="drill-to-detail-by-submenu">
-              {filters.map((filter, i) => (
-                <Menu.Item
-                  {...props}
-                  key={`drill-detail-filter-${i}`}
-                  onClick={openModal.bind(null, [filter])}
-                >
-                  {`${t('Drill to detail by')} `}
-                  <Filter>{filter.formattedVal}</Filter>
-                </Menu.Item>
-              ))}
-              {filters.length > 1 && (
-                <Menu.Item
-                  {...props}
-                  key="drill-detail-filter-all"
-                  onClick={openModal.bind(null, filters)}
-                >
-                  {`${t('Drill to detail by')} `}
-                  <Filter>{t('all')}</Filter>
-                </Menu.Item>
-              )}
-            </div>
-          </Menu.SubMenu>
-        );
-      } else {
-        drillToDetailByMenuItem = (
-          <DisabledMenuItem {...props} key="drill-detail-by-select-aggregation">
-            {t('Drill to detail by')}
-            <DisabledMenuItemTooltip
-              title={t(
-                'Right-click on a dimension value to drill to detail by that value.',
-              )}
-            />
-          </DisabledMenuItem>
-        );
-      }
-    }
+  if (!noAggregations && handlesDimensionContextMenu && filters?.length) {
+    drillToDetailByMenuItem = (
+      <Menu.SubMenu {...props} title={t('Drill to detail by')}>
+        <div data-test="drill-to-detail-by-submenu">
+          {filters.map((filter, i) => (
+            <Menu.Item
+              {...props}
+              key={`drill-detail-filter-${i}`}
+              onClick={openModal.bind(null, [filter])}
+            >
+              {`${t('Drill to detail by')} `}
+              <Filter>{filter.formattedVal}</Filter>
+            </Menu.Item>
+          ))}
+          {filters.length > 1 && (
+            <Menu.Item
+              {...props}
+              key="drill-detail-filter-all"
+              onClick={openModal.bind(null, filters)}
+            >
+              {`${t('Drill to detail by')} `}
+              <Filter>{t('all')}</Filter>
+            </Menu.Item>
+          )}
+        </div>
+      </Menu.SubMenu>
+    );
+  }
+
+  if (!noAggregations && handlesDimensionContextMenu && !filters?.length) {
+    drillToDetailByMenuItem = (
+      <DisabledMenuItem {...props} key="drill-detail-by-select-aggregation">
+        {t('Drill to detail by')}
+        <DisabledMenuItemTooltip
+          title={t(
+            'Right-click on a dimension value to drill to detail by that value.',
+          )}
+        />
+      </DisabledMenuItem>
+    );
   }
 
   return (
