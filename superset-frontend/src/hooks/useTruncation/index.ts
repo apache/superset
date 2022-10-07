@@ -61,12 +61,14 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
       // "..." is around 6px wide
       const maxWidth = clientWidth - 6;
       const elementsCount = childNodes.length;
+
       let width = 0;
       let i = 0;
       while (width < maxWidth) {
         width += (childNodes[i] as HTMLElement).offsetWidth;
         i += 1;
       }
+      console.log('i', i);
       if (i === elementsCount) {
         setElementsTruncated(1);
         setHasHiddenElements(false);

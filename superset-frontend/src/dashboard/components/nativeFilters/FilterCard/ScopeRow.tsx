@@ -18,6 +18,7 @@
  */
 import React, { useMemo, useRef } from 'react';
 import { t } from '@superset-ui/core';
+import { useTruncation } from 'src/hooks/useTruncation';
 import { useFilterScope } from './useFilterScope';
 import {
   Row,
@@ -27,7 +28,6 @@ import {
   TooltipList,
   TooltipSectionLabel,
 } from './Styles';
-import { useTruncation } from './useTruncation';
 import { FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 

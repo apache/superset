@@ -21,6 +21,7 @@ import { useDispatch } from 'react-redux';
 import { css, t, useTheme } from '@superset-ui/core';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import Icons from 'src/components/Icons';
+import { useTruncation } from 'src/hooks/useTruncation';
 import {
   DependencyItem,
   Row,
@@ -30,7 +31,6 @@ import {
   TooltipList,
 } from './Styles';
 import { useFilterDependencies } from './useFilterDependencies';
-import { useTruncation } from './useTruncation';
 import { DependencyValueProps, FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
