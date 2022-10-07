@@ -130,35 +130,32 @@ const DrillDetailMenuItems = ({
     return isEmpty(metrics);
   }, [formData]);
 
-  const drillToDetailMenuItem = noAggregations ? (
-    <DisabledMenuItem {...props} key="drill-detail-no-aggregations">
-      {t('Drill to detail')}
-      <DisabledMenuItemTooltip
-        title={t(
-          'Drill to detail is disabled because this chart does not group data by dimension value.',
-        )}
-      />
-    </DisabledMenuItem>
-  ) : (
-    <Menu.Item
-      {...props}
-      key="drill-detail-no-filters"
-      onClick={openModal.bind(null, [])}
-    >
-      {t('Drill to detail')}
-    </Menu.Item>
-  );
-
-  let drillToDetailByMenuItem;
-  if (noAggregations) {
-    drillToDetailByMenuItem = (
-      <DisabledMenuItem {...props} key="drill-detail-by-no-aggregations">
-        {t('Drill to detail by')}
+  let drillToDetailMenuItem;
+  if (handlesDimensionContextMenu && noAggregations) {
+    drillToDetailMenuItem = (
+      <DisabledMenuItem {...props} key="drill-detail-no-aggregations">
+        {t('Drill to detail')}
+        <DisabledMenuItemTooltip
+          title={t(
+            'Drill to detail is disabled because this chart does not group data by dimension value.',
+          )}
+        />
       </DisabledMenuItem>
+    );
+  } else {
+    drillToDetailMenuItem = (
+      <Menu.Item
+        {...props}
+        key="drill-detail-no-filters"
+        onClick={openModal.bind(null, [])}
+      >
+        {t('Drill to detail')}
+      </Menu.Item>
     );
   }
 
-  if (!noAggregations && !handlesDimensionContextMenu) {
+  let drillToDetailByMenuItem;
+  if (!handlesDimensionContextMenu) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-chart-not-supported">
         {t('Drill to detail by')}
@@ -171,7 +168,15 @@ const DrillDetailMenuItems = ({
     );
   }
 
-  if (!noAggregations && handlesDimensionContextMenu && filters?.length) {
+  if (handlesDimensionContextMenu && noAggregations) {
+    drillToDetailByMenuItem = (
+      <DisabledMenuItem {...props} key="drill-detail-by-no-aggregations">
+        {t('Drill to detail by')}
+      </DisabledMenuItem>
+    );
+  }
+
+  if (handlesDimensionContextMenu && !noAggregations && filters?.length) {
     drillToDetailByMenuItem = (
       <Menu.SubMenu {...props} title={t('Drill to detail by')}>
         <div data-test="drill-to-detail-by-submenu">
@@ -200,7 +205,7 @@ const DrillDetailMenuItems = ({
     );
   }
 
-  if (!noAggregations && handlesDimensionContextMenu && !filters?.length) {
+  if (handlesDimensionContextMenu && !noAggregations && !filters?.length) {
     drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-select-aggregation">
         {t('Drill to detail by')}
