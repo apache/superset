@@ -77,6 +77,7 @@ RUN cd /app \
     && pip install --no-cache -r requirements/local.txt
 
 COPY --from=superset-node /app/superset/static/assets /app/superset/static/assets
+COPY --from=superset-node /app/superset-frontend /app/superset-frontend
 
 ## Lastly, let's install superset itself
 COPY superset /app/superset
