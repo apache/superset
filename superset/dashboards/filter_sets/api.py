@@ -115,6 +115,7 @@ class FilterSetRestApi(BaseSupersetModelRestApi):
         DASHBOARD_ID_FIELD,
         PARAMS_PROPERTY,
     ]
+    order_columns = [NAME_FIELD]
     search_columns = ["id", NAME_FIELD, OWNER_ID_FIELD, DASHBOARD_ID_FIELD]
     base_filters = [[OWNER_ID_FIELD, FilterSetFilter, ""]]
 
