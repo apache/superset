@@ -1441,8 +1441,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         elif columns:
             for selected in columns:
                 if isinstance(selected, dict):
-                    sql_ = selected.get("sqlExpression", "")
-                    column_label = selected.get("label", "")
+                    sql_ = selected["sqlExpression"]
+                    column_label = selected["label"]
                 else:
                     sql_ = selected
                     column_label = selected
