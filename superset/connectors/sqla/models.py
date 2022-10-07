@@ -1441,14 +1441,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         elif columns:
             for selected in columns:
                 if isinstance(selected, dict):
-                    sql_ = selected["sqlExpression"]
+                    sql = selected["sqlExpression"]
                     column_label = selected["label"]
                 else:
-                    sql_ = selected
+                    sql = selected
                     column_label = selected
 
                 selected = validate_adhoc_subquery(
-                    sql_,
+                    sql,
                     self.database_id,
                     self.schema,
                 )
