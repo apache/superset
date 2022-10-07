@@ -1445,17 +1445,16 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
                 if isinstance(selected, dict):
                     sql_ = selected.get("sqlExpression", "")
+                    column_label = selected.get("label", "")
                 else:
                     sql_ = selected
+                    column_label = selected
+
                 # sql_: str = (
                 #     selected.get("sqlExpression")
                 #     if utils.is_adhoc_column(selected)
                 #     else selected
                 # )
-                if isinstance(selected, dict):
-                    column_label = selected.get("label", "")
-                else:
-                    column_label = selected
 
                 selected = validate_adhoc_subquery(
                     sql_,
