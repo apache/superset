@@ -66,7 +66,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
 
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
-    @patch("superset.utils.webdriver.WebDriverProxy.find_unexpected_errors")
+    @patch("superset.utils.webdriver.find_unexpected_errors")
     def test_not_call_find_unexpected_errors_if_feature_disabled(
         self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
     ):
@@ -81,7 +81,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
 
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
-    @patch("superset.utils.webdriver.WebDriverProxy.find_unexpected_errors")
+    @patch("superset.utils.webdriver.find_unexpected_errors")
     def test_call_find_unexpected_errors_if_feature_enabled(
         self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
     ):
