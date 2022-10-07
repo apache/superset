@@ -660,7 +660,6 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                 state_found = True
                 break
         if not state_found:
-            logger.error("Report state not found, execution id: %s", self._execution_id)
             raise ReportScheduleStateNotFoundError()
 
 
