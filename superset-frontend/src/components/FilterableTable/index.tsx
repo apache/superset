@@ -348,6 +348,10 @@ const FilterableTable = ({
     fitTableToWidthIfNeeded();
   }, []);
 
+  useEffect(() => {
+    totalTableHeight.current = height;
+  }, [height]);
+
   const hasMatch = (text: string, row: Datum) => {
     const values: string[] = [];
     Object.keys(row).forEach(key => {
