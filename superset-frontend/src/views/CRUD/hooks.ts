@@ -668,8 +668,8 @@ export function useAvailableDatabases() {
   return [availableDbs, getAvailable] as const;
 }
 
-const transformDB = (db: Partial<DatabaseObject>) => {
-  if (Array.isArray(db.catalog)) {
+const transformDB = (db: Partial<DatabaseObject> | null) => {
+  if (db && Array.isArray(db?.catalog)) {
     return {
       ...db,
       catalog: Object.assign(
