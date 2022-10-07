@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  ensureIsArray,
   getChartMetadataRegistry,
   styled,
   SupersetClient,
@@ -378,10 +379,12 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <CrossLinks
-            crossLinks={dashboards.map((d: ChartLinkedDashboard) => ({
-              title: d.dashboard_title,
-              id: d.id,
-            }))}
+            crossLinks={ensureIsArray(dashboards).map(
+              (d: ChartLinkedDashboard) => ({
+                title: d.dashboard_title,
+                id: d.id,
+              }),
+            )}
           />
         ),
         Header: t('Dashboards added to'),

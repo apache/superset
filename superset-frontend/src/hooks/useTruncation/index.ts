@@ -68,7 +68,6 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
         width += (childNodes[i] as HTMLElement).offsetWidth;
         i += 1;
       }
-      console.log('i', i);
       if (i === elementsCount) {
         setElementsTruncated(1);
         setHasHiddenElements(false);

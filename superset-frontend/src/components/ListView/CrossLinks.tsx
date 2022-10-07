@@ -16,31 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
-import { styled, t } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
+import React, { useMemo, useRef } from 'react';
+import { styled } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import { useTruncation } from 'src/hooks/useTruncation';
+import CrossLinksTooltip from './CrossLinksTooltip';
 
 export type CrossLinkProps = {
   title: string;
   id: number;
 };
 
-interface CrossLinksProps {
+export type CrossLinksProps = {
   crossLinks: Array<CrossLinkProps>;
   maxLinks?: number;
   linkPrefix?: string;
-}
+};
 
 const StyledCrossLinks = styled.div`
   ${({ theme }) => `
-    color: ${theme.colors.primary.dark1};
     cursor: pointer;
-    max-width: calc(100% - 20px);
+    position: relative;
+    display: flex;
 
     .ant-tooltip-open {
-      width: 100%;
+      display: inline;
     }
 
     .truncated {
@@ -59,14 +59,6 @@ const StyledCrossLinks = styled.div`
   `}
 `;
 
-const StyledLinkedTooltip = styled.div`
-  .link {
-    color: ${({ theme }) => theme.colors.grayscale.light5};
-    display: block;
-    text-decoration: underline;
-  }
-`;
-
 export default function CrossLinks({
   crossLinks,
   maxLinks = 50,
@@ -75,49 +67,43 @@ export default function CrossLinks({
   const crossLinksRef = useRef<HTMLDivElement>(null);
   const [elementsTruncated, hasHiddenElements] = useTruncation(crossLinksRef);
 
+  const links = useMemo(
+    () =>
+      crossLinks.map((link, index) => (
+        <Link
+          key={link.id}
+          to={linkPrefix + link.id}
+          target="_blank"
+          rel="noreferer noopener"
+        >
+          {index === 0 ? link.title : `, ${link.title}`}
+        </Link>
+      )),
+    [crossLinks],
+  );
+
   return (
     <StyledCrossLinks>
-      {crossLinks.length > 1 ? (
-        <Tooltip
-          title={
-            <StyledLinkedTooltip>
-              {crossLinks.slice(0, maxLinks).map(link => (
-                <Link
-                  className="link"
-                  key={link.id}
-                  to={linkPrefix + link.id}
-                  target="_blank"
-                  rel="noreferer noopener"
-                >
-                  {link.title}
-                </Link>
-              ))}
-              {crossLinks.length > maxLinks && (
-                <span>{t('Plus %s more', crossLinks.length - maxLinks)}</span>
-              )}
-            </StyledLinkedTooltip>
-          }
-        >
-          <span className="truncated" ref={crossLinksRef}>
-            {crossLinks.map((element, index) => (
-              <span>{index === 0 ? element.title : `, ${element.title}`}</span>
-            ))}
-          </span>
-          {hasHiddenElements && (
-            <span className="count">+{elementsTruncated}</span>
-          )}
-        </Tooltip>
-      ) : (
-        crossLinks[0] && (
-          <Link
-            to={linkPrefix + crossLinks[0].id}
-            target="_blank"
-            rel="noreferer noopener"
+      <span className="truncated" ref={crossLinksRef} data-test="crosslinks">
+        {elementsTruncated ? (
+          <CrossLinksTooltip
+            moreItems={
+              crossLinks.length > maxLinks
+                ? crossLinks.length - maxLinks
+                : undefined
+            }
+            crossLinks={crossLinks.slice(0, maxLinks).map(l => ({
+              title: l.title,
+              to: linkPrefix + l.id,
+            }))}
           >
-            {crossLinks[0].title}
-          </Link>
-        )
-      )}
+            {links}
+          </CrossLinksTooltip>
+        ) : (
+          links
+        )}
+      </span>
+      {hasHiddenElements && <span className="count">+{elementsTruncated}</span>}
     </StyledCrossLinks>
   );
 }
