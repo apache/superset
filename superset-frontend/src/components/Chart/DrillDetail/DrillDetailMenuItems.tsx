@@ -130,7 +130,7 @@ const DrillDetailMenuItems = ({
     return isEmpty(metrics);
   }, [formData]);
 
-  const drillToDetail = noAggregations ? (
+  const drillToDetailMenuItem = noAggregations ? (
     <DisabledMenuItem {...props} key="drill-detail-no-aggregations">
       {t('Drill to detail')}
       <DisabledMenuItemTooltip
@@ -149,15 +149,15 @@ const DrillDetailMenuItems = ({
     </Menu.Item>
   );
 
-  let drillToDetailBy;
+  let drillToDetailByMenuItem;
   if (noAggregations) {
-    drillToDetailBy = (
+    drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-no-aggregations">
         {t('Drill to detail by')}
       </DisabledMenuItem>
     );
   } else {
-    drillToDetailBy = (
+    drillToDetailByMenuItem = (
       <DisabledMenuItem {...props} key="drill-detail-by-chart-not-supported">
         {t('Drill to detail by')}
         <DisabledMenuItemTooltip
@@ -170,7 +170,7 @@ const DrillDetailMenuItems = ({
 
     if (handlesDimensionContextMenu) {
       if (filters?.length) {
-        drillToDetailBy = (
+        drillToDetailByMenuItem = (
           <Menu.SubMenu {...props} title={t('Drill to detail by')}>
             <div data-test="drill-to-detail-by-submenu">
               {filters.map((filter, i) => (
@@ -197,7 +197,7 @@ const DrillDetailMenuItems = ({
           </Menu.SubMenu>
         );
       } else {
-        drillToDetailBy = (
+        drillToDetailByMenuItem = (
           <DisabledMenuItem {...props} key="drill-detail-by-select-aggregation">
             {t('Drill to detail by')}
             <DisabledMenuItemTooltip
@@ -213,8 +213,8 @@ const DrillDetailMenuItems = ({
 
   return (
     <>
-      {drillToDetail}
-      {isContextMenu && drillToDetailBy}
+      {drillToDetailMenuItem}
+      {isContextMenu && drillToDetailByMenuItem}
       <DrillDetailModal
         chartId={chartId}
         formData={formData}
