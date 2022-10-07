@@ -172,24 +172,32 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="control-label">{t(method)}</div>
           <div className="input-container">
             <textarea
-              className={invalidEmail ? 'prominent-error-input' : ''}
+              className={
+                invalidEmail && method === 'Email'
+                  ? 'prominent-error-input'
+                  : ''
+              }
               name="recipients"
               value={recipientValue}
               onChange={onRecipientsChange}
             />
           </div>
-          {invalidEmail ? (
+          {invalidEmail && method === 'Email' ? (
             <div className="error-text">
               {t(
                 'Email must contain careem domain e.g abc@careem.com OR abc@ext.careem.com',
               )}
             </div>
           ) : null}
-          <div className="helper">
-            {t(
-              'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
-            )}
-          </div>
+          {method === 'Email' ? (
+            <div className="helper">
+              {t(
+                'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
+              )}
+            </div>
+          ) : (
+            <div>{t('Recipients are separated by "," or ";"')}</div>
+          )}
         </StyledInputContainer>
       ) : null}
     </StyledNotificationMethod>
