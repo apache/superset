@@ -32,9 +32,11 @@ import HeaderReportDropDown from 'src/components/ReportModal/HeaderReportDropdow
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
+import DashboardsSubMenu from './DashboardsSubMenu';
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
+  DASHBOARDS_ADDED_TO: 'dashboards_added_to',
   DOWNLOAD_SUBMENU: 'download_submenu',
   EXPORT_TO_CSV: 'export_to_csv',
   EXPORT_TO_CSV_PIVOTED: 'export_to_csv_pivoted',
@@ -97,6 +99,7 @@ export const useExploreAdditionalActionsMenu = (
   onOpenInEditor,
   onOpenPropertiesModal,
   ownState,
+  dashboards,
 ) => {
   const theme = useTheme();
   const { addDangerToast, addSuccessToast } = useToasts();
@@ -246,14 +249,25 @@ export const useExploreAdditionalActionsMenu = (
         openKeys={openSubmenus}
         onOpenChange={setOpenSubmenus}
       >
-        {slice && (
-          <>
+        <>
+          {slice && (
             <Menu.Item key={MENU_KEYS.EDIT_PROPERTIES}>
               {t('Edit chart properties')}
             </Menu.Item>
-            <Menu.Divider />
-          </>
-        )}
+          )}
+          {isFeatureEnabled(FeatureFlag.CROSS_REFERENCES) && (
+            <Menu.SubMenu
+              title={t('Dashboards added to')}
+              key={MENU_KEYS.DASHBOARDS_ADDED_TO}
+            >
+              <DashboardsSubMenu
+                chartId={slice?.slice_id}
+                dashboards={dashboards}
+              />
+            </Menu.SubMenu>
+          )}
+          <Menu.Divider />
+        </>
         <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD_SUBMENU}>
           {VIZ_TYPES_PIVOTABLE.includes(latestQueryFormData.viz_type) ? (
             <>
@@ -369,6 +383,7 @@ export const useExploreAdditionalActionsMenu = (
       addDangerToast,
       canDownloadCSV,
       chart,
+      dashboards,
       handleMenuClick,
       isDropdownVisible,
       latestQueryFormData,

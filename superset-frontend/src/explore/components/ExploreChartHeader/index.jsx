@@ -24,6 +24,8 @@ import { Tooltip } from 'src/components/Tooltip';
 import {
   CategoricalColorNamespace,
   css,
+  FeatureFlag,
+  isFeatureEnabled,
   logging,
   SupersetClient,
   t,
@@ -149,6 +151,7 @@ export const ExploreChartHeader = ({
       actions.redirectSQLLab,
       openPropertiesModal,
       ownState,
+      metadata?.dashboards,
     );
 
   const metadataBar = useMemo(() => {
@@ -162,6 +165,13 @@ export const ExploreChartHeader = ({
         metadata.dashboards.length > 0
           ? t('Added to %s dashboard(s)', metadata.dashboards.length)
           : t('Not added to any dashboard'),
+      description:
+        metadata.dashboards.length > 0 &&
+        isFeatureEnabled(FeatureFlag.CROSS_REFERENCES)
+          ? t(
+              'You can preview the list of dashboards on the chart settings dropdown.',
+            )
+          : undefined,
     });
     items.push({
       type: MetadataType.LAST_MODIFIED,
