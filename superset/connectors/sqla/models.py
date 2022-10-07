@@ -1447,12 +1447,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     sql_ = selected
                     column_label = selected
 
-                # sql_: str = (
-                #     selected.get("sqlExpression")
-                #     if utils.is_adhoc_column(selected)
-                #     else selected
-                # )
-
                 selected = validate_adhoc_subquery(
                     sql_,
                     self.database_id,
