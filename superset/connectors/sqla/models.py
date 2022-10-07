@@ -1440,9 +1440,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
-                sql_: str
-                column_label: str
-
                 if isinstance(selected, dict):
                     sql_ = selected.get("sqlExpression", "")
                     column_label = selected.get("label", "")
