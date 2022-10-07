@@ -49,9 +49,9 @@ export interface ChartContextMenuProps {
 
 export interface Ref {
   open: (
-    filters: BinaryQueryObjectFilterClause[] | null,
     clientX: number,
     clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
   ) => void;
 }
 
@@ -64,10 +64,10 @@ const ChartContextMenu = (
   );
 
   const [{ filters, clientX, clientY }, setState] = useState<{
-    filters: BinaryQueryObjectFilterClause[];
     clientX: number;
     clientY: number;
-  }>({ filters: [], clientX: 0, clientY: 0 });
+    filters?: BinaryQueryObjectFilterClause[];
+  }>({ clientX: 0, clientY: 0 });
 
   const menuItems = [];
   const showDrillToDetail =
@@ -87,9 +87,9 @@ const ChartContextMenu = (
 
   const open = useCallback(
     (
-      filters: BinaryQueryObjectFilterClause[] | null,
       clientX: number,
       clientY: number,
+      filters?: BinaryQueryObjectFilterClause[],
     ) => {
       // Viewport height
       const vh = Math.max(
@@ -107,9 +107,9 @@ const ChartContextMenu = (
       const adjustedY = vh - clientY < menuHeight ? vh - menuHeight : clientY;
 
       setState({
-        filters: filters ?? [],
         clientX,
         clientY: adjustedY,
+        filters,
       });
 
       // Since Ant Design's Dropdown does not offer an imperative API

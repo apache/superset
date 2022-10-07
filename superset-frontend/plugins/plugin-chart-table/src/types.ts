@@ -113,9 +113,9 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   columnColorFormatters?: ColorFormatters;
   allowRearrangeColumns?: boolean;
   onContextMenu?: (
-    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
+    filters?: QueryObjectFilterClause[],
   ) => void;
 }
 

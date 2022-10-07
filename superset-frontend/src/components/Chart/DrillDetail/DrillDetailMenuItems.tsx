@@ -75,7 +75,7 @@ const Filter = styled.span`
 export type DrillDetailMenuItemsProps = {
   chartId: number;
   formData: QueryFormData;
-  filters: BinaryQueryObjectFilterClause[];
+  filters?: BinaryQueryObjectFilterClause[];
   isContextMenu?: boolean;
   onSelection?: () => void;
   onClick?: (event: MouseEvent) => void;
@@ -84,8 +84,8 @@ export type DrillDetailMenuItemsProps = {
 const DrillDetailMenuItems = ({
   chartId,
   formData,
-  filters,
-  isContextMenu,
+  filters = [],
+  isContextMenu = false,
   onSelection = () => null,
   onClick = () => null,
   ...props
@@ -122,7 +122,7 @@ const DrillDetailMenuItems = ({
   );
 
   // Check chart plugin metadata to see if chart's current configuration lacks
-  // aggregations, in which case Drill to Detail should be disabled
+  // aggregations, in which case Drill to Detail should be disabled.
   const noAggregations = useMemo(
     () =>
       getChartMetadataRegistry()

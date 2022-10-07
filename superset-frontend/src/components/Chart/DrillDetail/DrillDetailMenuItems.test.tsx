@@ -77,7 +77,7 @@ const renderMenu = ({
       <DrillDetailMenuItems
         chartId={chartId ?? defaultChartId}
         formData={formData ?? defaultFormData}
-        filters={filters ?? []}
+        filters={filters}
         isContextMenu={isContextMenu}
       />
     </Menu>,

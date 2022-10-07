@@ -200,8 +200,8 @@ class ChartRenderer extends React.Component {
     }
   }
 
-  handleOnContextMenu(filters, offsetX, offsetY) {
-    this.contextMenuRef.current.open(filters, offsetX, offsetY);
+  handleOnContextMenu(offsetX, offsetY, filters) {
+    this.contextMenuRef.current.open(offsetX, offsetY, filters);
     this.setState({ inContextMenu: true });
   }
 
@@ -214,11 +214,11 @@ class ChartRenderer extends React.Component {
   }
 
   // When viz plugins don't handle `contextmenu` event, fallback handler
-  // calls `handleOnContextMenu` with `filters: null`.
+  // calls `handleOnContextMenu` with no `filters` param.
   onContextMenuFallback(event) {
     if (!this.state.inContextMenu) {
       event.preventDefault();
-      this.handleOnContextMenu(null, event.clientX, event.clientY);
+      this.handleOnContextMenu(event.clientX, event.clientY);
     }
   }
 

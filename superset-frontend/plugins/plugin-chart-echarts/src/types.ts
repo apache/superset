@@ -19,7 +19,7 @@
 import {
   HandlerFunction,
   QueryFormColumn,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
   SetDataMaskHook,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
@@ -116,9 +116,9 @@ export interface EChartTransformedProps<F> {
   selectedValues: Record<number, string>;
   legendData?: OptionName[];
   onContextMenu?: (
-    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
   ) => void;
 }
 

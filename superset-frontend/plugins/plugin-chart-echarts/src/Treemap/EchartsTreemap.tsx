@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecordValue, QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  DataRecordValue,
+  BinaryQueryObjectFilterClause,
+} from '@superset-ui/core';
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
 import { NULL_STRING } from '../constants';
@@ -93,7 +96,7 @@ export default function EchartsTreemap({
         const { treePath } = extractTreePathInfo(eventParams.treePathInfo);
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
-          const filters: QueryObjectFilterClause[] = [];
+          const filters: BinaryQueryObjectFilterClause[] = [];
           treePath.forEach((path, i) =>
             filters.push({
               col: groupby[i],
@@ -102,7 +105,7 @@ export default function EchartsTreemap({
               formattedVal: path,
             }),
           );
-          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
         }
       }
     },
