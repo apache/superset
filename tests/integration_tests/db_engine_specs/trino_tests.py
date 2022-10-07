@@ -19,10 +19,12 @@ from typing import Any, Dict
 from unittest.mock import Mock, patch
 
 import pytest
+from sqlalchemy import types
 
 import superset.config
 from superset.constants import USER_AGENT
 from superset.db_engine_specs.trino import TrinoEngineSpec
+from superset.utils.core import GenericDataType
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
@@ -165,4 +167,32 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
         assert str(excinfo.value) == (
             f"For security reason, custom authentication '{auth_method}' "
             f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
+        )
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("TIMESTAMP", dttm),
+            "TIMESTAMP '2019-01-02 03:04:05.678900'",
+        )
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("TIMESTAMP(3)", dttm),
+            "TIMESTAMP '2019-01-02 03:04:05.678900'",
+        )
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("TIMESTAMP WITH TIME ZONE", dttm),
+            "TIMESTAMP '2019-01-02 03:04:05.678900'",
+        )
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("TIMESTAMP(3) WITH TIME ZONE", dttm),
+            "TIMESTAMP '2019-01-02 03:04:05.678900'",
+        )
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("DATE", dttm),
+            "DATE '2019-01-02'",
         )
