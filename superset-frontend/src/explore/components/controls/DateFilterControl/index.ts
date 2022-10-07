@@ -17,3 +17,8 @@
  * under the License.
  */
 export { default } from './DateFilterLabel';
+export {
+  DATE_FILTER_CONTROL_TEST_ID,
+  fetchTimeRange,
+  guessFrame,
+} from './utils';
