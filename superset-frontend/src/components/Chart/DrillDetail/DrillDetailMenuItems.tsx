@@ -55,9 +55,9 @@ const DisabledMenuItemTooltip = ({ title }: { title: ReactNode }) => (
 const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
   <Menu.Item disabled {...props}>
     <div
-      css={(theme: SupersetTheme) => css`
+      css={css`
         white-space: normal;
-        max-width: ${theme.gridUnit * 40}px;
+        max-width: 160px;
       `}
     >
       {children}
