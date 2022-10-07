@@ -418,6 +418,28 @@ describe('async actions', () => {
         expect(store.getActions()).toEqual(expectedActions);
       });
     });
+
+    describe('addNewQueryEditor', () => {
+      it('creates new query editor with new tab name', () => {
+        const store = mockStore(initialState);
+        const expectedActions = [
+          {
+            type: actions.ADD_QUERY_EDITOR,
+            queryEditor: {
+              ...defaultQueryEditor,
+              id: 'abcd',
+              name: `Untitled Query ${
+                store.getState().sqlLab.queryEditors.length + 1
+              }`,
+            },
+          },
+        ];
+        const request = actions.addNewQueryEditor(defaultQueryEditor);
+        return request(store.dispatch, store.getState).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+        });
+      });
+    });
   });
 
   describe('backend sync', () => {
