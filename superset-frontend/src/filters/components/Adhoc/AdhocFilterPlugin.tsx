@@ -93,7 +93,6 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
-    setFilterActive,
     appSection,
   } = props;
   const { enableEmptyFilter, inverseSelection, defaultToFirstItem } = formData;
