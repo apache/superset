@@ -30,7 +30,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_host, get_url_path
-from superset.utils.webdriver import WebDriverProxy, find_unexpected_errors
+from superset.utils.webdriver import find_unexpected_errors, WebDriverProxy
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.test_app import app
 
@@ -63,7 +63,6 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
 
 
 class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
-
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
     @patch("superset.utils.webdriver.find_unexpected_errors")

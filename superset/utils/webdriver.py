@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from enum import Enum
 from time import sleep
-from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING, List
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
 from selenium.common.exceptions import (
@@ -57,8 +57,7 @@ def find_unexpected_errors(driver: WebDriver) -> List[str]:
     try:
         alert_divs = driver.find_elements(By.XPATH, "//div[@role = 'alert']")
         logger.debug(
-            "%i alert elements have been found in the screenshot",
-            len(alert_divs)
+            "%i alert elements have been found in the screenshot", len(alert_divs)
         )
 
         for alert_div in alert_divs:
@@ -66,12 +65,15 @@ def find_unexpected_errors(driver: WebDriver) -> List[str]:
             alert_div.find_element(By.XPATH, ".//*[@role = 'button']").click()
 
             # wait for modal to show up
-            modal = WebDriverWait(driver, current_app.config[
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"]).until(
+            modal = WebDriverWait(
+                driver, current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"]
+            ).until(
                 EC.visibility_of_any_elements_located(
                     (By.CLASS_NAME, "ant-modal-content")
                 )
-            )[0]
+            )[
+                0
+            ]
 
             err_msg_div = modal.find_element(By.CLASS_NAME, "ant-modal-body")
 
@@ -82,25 +84,23 @@ def find_unexpected_errors(driver: WebDriver) -> List[str]:
             modal.find_element(By.CLASS_NAME, "ant-modal-close").click()
 
             # wait until the modal becomes invisible
-            WebDriverWait(driver, current_app.config[
-                "SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"]).until(
-                EC.invisibility_of_element(modal)
-            )
+            WebDriverWait(
+                driver, current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"]
+            ).until(EC.invisibility_of_element(modal))
 
             # Use HTML so that error messages are shown in the same style (color)
-            error_as_html = err_msg_div.get_attribute("innerHTML") \
-                .replace("'", "\\'")
+            error_as_html = err_msg_div.get_attribute("innerHTML").replace("'", "\\'")
 
             try:
                 # Even if some errors can't be updated in the screenshot,
                 # keep all the errors in the server log and do not fail the loop
                 driver.execute_script(
-                    f"arguments[0].innerHTML = '{error_as_html}'",
-                    alert_div
+                    f"arguments[0].innerHTML = '{error_as_html}'", alert_div
                 )
             except WebDriverException:
-                logger.warning("Failed to update error messages using alert_div",
-                               exc_info=True)
+                logger.warning(
+                    "Failed to update error messages using alert_div", exc_info=True
+                )
     except WebDriverException:
         logger.warning("Failed to capture unexpected errors", exc_info=True)
 
@@ -203,7 +203,10 @@ class WebDriverProxy:
                 if unexpected_errors:
                     logger.warning(
                         "%i errors found in the screenshot. URL: %s. Errors are: %s",
-                        len(unexpected_errors), url, unexpected_errors)
+                        len(unexpected_errors),
+                        url,
+                        unexpected_errors,
+                    )
 
             img = element.screenshot_as_png
 
