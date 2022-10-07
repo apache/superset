@@ -351,6 +351,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     label = Column(String(256))
     description = Column(Text)
     sql = Column(Text)
+    template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
         backref=backref("saved_queries", cascade="all, delete-orphan"),
