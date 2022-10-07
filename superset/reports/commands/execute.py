@@ -656,7 +656,7 @@ class ReportScheduleStateMachine:  # pylint: disable=too-few-public-methods
                 state_found = True
                 break
         if not state_found:
-            logger.error('Report state not found, execution id: %s', self._execution_id)
+            logger.error("Report state not found, execution id: %s", self._execution_id)
             raise ReportScheduleStateNotFoundError()
 
 
@@ -691,7 +691,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self, session: Session = None
     ) -> None:
         # Validate/populate model exists
-        logger.info('session is validated: id %s, session: %s', self._model_id, session)
+        logger.info(
+            "session is validated: id %s, executionid: %s",
+            self._model_id,
+            self._execution_id,
+        )
         self._model = ReportScheduleDAO.find_by_id(self._model_id, session=session)
         if not self._model:
             raise ReportScheduleNotFoundError()

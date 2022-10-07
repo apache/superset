@@ -79,7 +79,7 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
         logger.info(
             "Executing alert/report, task id: %s, scheduled_dttm: %s",
             task_id,
-            scheduled_dttm_,
+            scheduled_dttm,
         )
         AsyncExecuteReportScheduleCommand(
             task_id,
