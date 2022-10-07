@@ -47,6 +47,7 @@ const useAdvancedDataTypes = (validHandler: (isValid: boolean) => void) => {
         setAdvancedDataTypesState(INITIAL_ADVANCED_DATA_TYPES_STATE);
         return;
       }
+      validHandler(false);
       debounce(() => {
         const queryParams = rison.encode({
           type: subjectAdvancedDataType,
