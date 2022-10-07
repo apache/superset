@@ -238,7 +238,7 @@ class Chart extends React.PureComponent {
         subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
         copyText={message}
         link={queryResponse ? queryResponse.link : null}
-        source={dashboardId ? ChartSource.dashboard : ChartSource.explore}
+        source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
         stackTrace={chartStackTrace}
       />
     );

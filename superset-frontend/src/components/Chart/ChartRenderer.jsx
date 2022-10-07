@@ -61,7 +61,7 @@ const propTypes = {
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
-  source: PropTypes.oneOf([ChartSource.dashboard, ChartSource.explore]),
+  source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
 };
 
 const BLANK = {};
@@ -85,7 +85,7 @@ class ChartRenderer extends React.Component {
     super(props);
     this.state = {
       showContextMenu:
-        props.source === ChartSource.dashboard &&
+        props.source === ChartSource.Dashboard &&
         isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
       inContextMenu: false,
     };
@@ -276,7 +276,7 @@ class ChartRenderer extends React.Component {
     let noResultsComponent;
     const noResultTitle = t('No results were returned for this query');
     const noResultDescription =
-      this.props.source === ChartSource.explore
+      this.props.source === ChartSource.Explore
         ? t(
             'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
           )

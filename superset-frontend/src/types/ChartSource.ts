@@ -18,6 +18,6 @@
  */
 
 export enum ChartSource {
-  explore = 'explore',
-  dashboard = 'dashboard',
+  Explore = 'explore',
+  Dashboard = 'dashboard',
 }
