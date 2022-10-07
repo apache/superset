@@ -18,10 +18,12 @@
  */
 
 import React, { ReactNode, useCallback, useMemo, useState } from 'react';
+import { isEmpty } from 'lodash';
 import {
   Behavior,
   BinaryQueryObjectFilterClause,
   css,
+  extractQueryFields,
   getChartMetadataRegistry,
   QueryFormData,
   styled,
@@ -121,15 +123,12 @@ const DrillDetailMenuItems = ({
     [formData.viz_type],
   );
 
-  // Check chart plugin metadata to see if chart's current configuration lacks
+  // Check metrics to see if chart's current configuration lacks
   // aggregations, in which case Drill to Detail should be disabled.
-  const noAggregations = useMemo(
-    () =>
-      getChartMetadataRegistry()
-        .get(formData.viz_type)
-        ?.noAggregations?.(formData) ?? false,
-    [formData],
-  );
+  const noAggregations = useMemo(() => {
+    const { metrics } = extractQueryFields(formData);
+    return isEmpty(metrics);
+  }, [formData]);
 
   const drillToDetail = noAggregations ? (
     <DisabledMenuItem {...props} key="drill-detail-no-aggregations">

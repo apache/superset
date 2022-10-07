@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { QueryFormData } from '@superset-ui/core';
 import { Behavior, ChartLabel } from '../types/Base';
 
 interface LookupTable {
@@ -50,7 +49,6 @@ export interface ChartMetadataConfig {
   label?: ChartLabel | null;
   labelExplanation?: string | null;
   queryObjectCount?: number;
-  noAggregations?: (formData: QueryFormData) => boolean;
 }
 
 export default class ChartMetadata {
@@ -92,11 +90,6 @@ export default class ChartMetadata {
 
   queryObjectCount: number;
 
-  // Optional function allowing a chart to indicate if its current configuration
-  // lacks data aggregations (e.g. to determine if Drill to Detail should be
-  // enabled)
-  noAggregations?: (formData: QueryFormData) => boolean;
-
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -117,7 +110,6 @@ export default class ChartMetadata {
       label = null,
       labelExplanation = null,
       queryObjectCount = 1,
-      noAggregations,
     } = config;
 
     this.name = name;
@@ -147,7 +139,6 @@ export default class ChartMetadata {
     this.label = label;
     this.labelExplanation = labelExplanation;
     this.queryObjectCount = queryObjectCount;
-    this.noAggregations = noAggregations;
   }
 
   canBeAnnotationType(type: string): boolean {

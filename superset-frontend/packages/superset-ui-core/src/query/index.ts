@@ -35,6 +35,7 @@ export {
   isXAxisSet,
   hasGenericChartAxes,
 } from './getXAxis';
+export { default as extractQueryFields } from './extractQueryFields';
 
 export * from './types/AnnotationLayer';
 export * from './types/QueryFormData';
