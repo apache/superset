@@ -51,7 +51,7 @@ from sqlalchemy import (
     and_,
     asc,
     Boolean,
-    Column as SqlaColumn,
+    Column,
     DateTime,
     desc,
     Enum,
@@ -119,7 +119,7 @@ from superset.sql_parse import (
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
-    Column,
+    Column as ColumnTyping,
     Metric,
     OrderBy,
     QueryObjectDict,
@@ -233,16 +233,16 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
-    table_id = SqlaColumn(Integer, ForeignKey("tables.id"))
+    table_id = Column(Integer, ForeignKey("tables.id"))
     table: "SqlaTable" = relationship(
         "SqlaTable",
         backref=backref("columns", cascade="all, delete-orphan"),
         foreign_keys=[table_id],
     )
-    is_dttm = SqlaColumn(Boolean, default=False)
-    expression = SqlaColumn(MediumText())
-    python_date_format = SqlaColumn(String(255))
-    extra = SqlaColumn(Text)
+    is_dttm = Column(Boolean, default=False)
+    expression = Column(MediumText())
+    python_date_format = Column(String(255))
+    extra = Column(Text)
 
     export_fields = [
         "table_id",
@@ -313,7 +313,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         )
         return column_spec.generic_type if column_spec else None
 
-    def get_sqla_col(self, label: Optional[str] = None) -> SqlaColumn:
+    def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.column_name
         db_engine_spec = self.db_engine_spec
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
@@ -513,14 +513,14 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
 
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
-    table_id = SqlaColumn(Integer, ForeignKey("tables.id"))
+    table_id = Column(Integer, ForeignKey("tables.id"))
     table = relationship(
         "SqlaTable",
         backref=backref("metrics", cascade="all, delete-orphan"),
         foreign_keys=[table_id],
     )
-    expression = SqlaColumn(MediumText(), nullable=False)
-    extra = SqlaColumn(Text)
+    expression = Column(MediumText(), nullable=False)
+    extra = Column(Text)
 
     export_fields = [
         "metric_name",
@@ -539,7 +539,7 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     def __repr__(self) -> str:
         return str(self.metric_name)
 
-    def get_sqla_col(self, label: Optional[str] = None) -> SqlaColumn:
+    def get_sqla_col(self, label: Optional[str] = None) -> Column:
         label = label or self.metric_name
         tp = self.table.get_template_processor()
         sqla_col: ColumnClause = literal_column(tp.process_template(self.expression))
@@ -645,9 +645,9 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
 sqlatable_user = Table(
     "sqlatable_user",
     metadata,
-    SqlaColumn("id", Integer, primary_key=True),
-    SqlaColumn("user_id", Integer, ForeignKey("ab_user.id")),
-    SqlaColumn("table_id", Integer, ForeignKey("tables.id")),
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("ab_user.id")),
+    Column("table_id", Integer, ForeignKey("tables.id")),
 )
 
 
@@ -695,21 +695,21 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     # given the schema is optional.
     __table_args__ = (UniqueConstraint("database_id", "schema", "table_name"),)
 
-    table_name = SqlaColumn(String(250), nullable=False)
-    main_dttm_col = SqlaColumn(String(250))
-    database_id = SqlaColumn(Integer, ForeignKey("dbs.id"), nullable=False)
-    fetch_values_predicate = SqlaColumn(Text)
+    table_name = Column(String(250), nullable=False)
+    main_dttm_col = Column(String(250))
+    database_id = Column(Integer, ForeignKey("dbs.id"), nullable=False)
+    fetch_values_predicate = Column(Text)
     owners = relationship(owner_class, secondary=sqlatable_user, backref="tables")
     database: Database = relationship(
         "Database",
         backref=backref("tables", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
-    schema = SqlaColumn(String(255))
-    sql = SqlaColumn(MediumText())
-    is_sqllab_view = SqlaColumn(Boolean, default=False)
-    template_params = SqlaColumn(Text)
-    extra = SqlaColumn(Text)
+    schema = Column(String(255))
+    sql = Column(MediumText())
+    is_sqllab_view = Column(Boolean, default=False)
+    template_params = Column(Text)
+    extra = Column(Text)
 
     baselink = "tablemodelview"
 
@@ -1243,7 +1243,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[Column]] = None,
+        columns: Optional[List[ColumnTyping]] = None,
         extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
@@ -1396,7 +1396,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     _("Unknown column used in orderby: %(col)s", col=orig_col)
                 )
 
-        select_exprs: List[Union[SqlaColumn, Label]] = []
+        select_exprs: List[Union[Column, Label]] = []
         groupby_all_columns = {}
         groupby_series_columns = {}
 
@@ -1440,15 +1440,15 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
-                if isinstance(selected, dict):
-                    sql = selected["sqlExpression"]
-                    column_label = selected["label"]
-                else:
+                if is_adhoc_column(selected):
+                    sql = selected.get("sqlExpression")
+                    column_label = selected.get("label")
+                elif isinstance(selected, str):
                     sql = selected
                     column_label = selected
 
                 selected = validate_adhoc_subquery(
-                    sql,
+                    sql or "",
                     self.database_id,
                     self.schema,
                 )
@@ -1525,7 +1525,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             val = flt.get("val")
             op = flt["op"].upper()
             col_obj: Optional[TableColumn] = None
-            sqla_col: Optional[SqlaColumn] = None
+            sqla_col: Optional[Column] = None
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
@@ -1831,7 +1831,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         series_limit_metric: Metric,
         metrics_by_name: Dict[str, SqlMetric],
         columns_by_name: Dict[str, TableColumn],
-    ) -> SqlaColumn:
+    ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
             ob = self.adhoc_metric_to_sqla(series_limit_metric, columns_by_name)
@@ -2579,17 +2579,17 @@ sa.event.listen(TableColumn, "after_delete", TableColumn.after_delete)
 RLSFilterRoles = Table(
     "rls_filter_roles",
     metadata,
-    SqlaColumn("id", Integer, primary_key=True),
-    SqlaColumn("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
-    SqlaColumn("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("id", Integer, primary_key=True),
+    Column("role_id", Integer, ForeignKey("ab_role.id"), nullable=False),
+    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
 RLSFilterTables = Table(
     "rls_filter_tables",
     metadata,
-    SqlaColumn("id", Integer, primary_key=True),
-    SqlaColumn("table_id", Integer, ForeignKey("tables.id")),
-    SqlaColumn("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column("id", Integer, primary_key=True),
+    Column("table_id", Integer, ForeignKey("tables.id")),
+    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
 
@@ -2599,13 +2599,13 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     """
 
     __tablename__ = "row_level_security_filters"
-    id = SqlaColumn(Integer, primary_key=True)
-    name = SqlaColumn(String(255), unique=True, nullable=False)
-    description = SqlaColumn(Text)
-    filter_type = SqlaColumn(
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), unique=True, nullable=False)
+    description = Column(Text)
+    filter_type = Column(
         Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
     )
-    group_key = SqlaColumn(String(255), nullable=True)
+    group_key = Column(String(255), nullable=True)
     roles = relationship(
         security_manager.role_model,
         secondary=RLSFilterRoles,
@@ -2614,4 +2614,4 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     tables = relationship(
         SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
     )
-    clause = SqlaColumn(Text, nullable=False)
+    clause = Column(Text, nullable=False)
