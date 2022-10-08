@@ -1441,20 +1441,20 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         elif columns:
             for selected in columns:
                 if is_adhoc_column(selected):
-                    sql = selected.get("sqlExpression")
-                    column_label = selected.get("label")
+                    sql = selected.get("sqlExpression") or ""
+                    column_label = selected.get("label") or ""
                 elif isinstance(selected, str):
                     sql = selected
                     column_label = selected
 
                 selected = validate_adhoc_subquery(
-                    sql or "",
+                    sql,
                     self.database_id,
                     self.schema,
                 )
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col()
-                    if selected in columns_by_name
+                    if not is_adhoc_column(selected) and selected in columns_by_name
                     else self.make_sqla_column_compatible(
                         literal_column(selected), column_label
                     )
