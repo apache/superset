@@ -66,7 +66,6 @@ interface ChartHolderProps {
   updateComponents: Function;
   handleComponentDrop: (...args: unknown[]) => unknown;
   setFullSizeChartId: (chartId: number | null) => void;
-  postAddSliceFromDashboard?: () => void;
 }
 
 const ChartHolder: React.FC<ChartHolderProps> = ({
@@ -90,7 +89,6 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   updateComponents,
   handleComponentDrop,
   setFullSizeChartId,
-  postAddSliceFromDashboard,
 }) => {
   const { chartId } = component.meta;
   const isFullSize = fullSizeChartId === chartId;
@@ -233,14 +231,6 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
     }));
   }, []);
 
-  const handlePostTransformProps = useCallback(
-    (props: unknown) => {
-      postAddSliceFromDashboard?.();
-      return props;
-    },
-    [postAddSliceFromDashboard],
-  );
-
   return (
     <DragDroppable
       component={component}
@@ -313,7 +303,6 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
               isFullSize={isFullSize}
               setControlValue={handleExtraControl}
               extraControls={extraControls}
-              postTransformProps={handlePostTransformProps}
             />
             {editMode && (
               <HoverMenu position="top">
