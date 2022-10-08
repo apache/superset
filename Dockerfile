@@ -39,6 +39,7 @@ COPY ./superset-frontend .
 
 # This seems to be the most expensive step
 RUN npm run ${BUILD_CMD}
+RUN rm -rf node_modules
 
 ######################################################################
 # Final lean image...
