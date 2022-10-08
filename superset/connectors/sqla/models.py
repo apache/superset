@@ -1315,8 +1315,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         columns_by_name: Dict[str, TableColumn] = {
             col.column_name: col for col in self.columns
         }
-        print("column by names ", columns_by_name)
-
         metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
 
         if not granularity and is_timeseries:
