@@ -74,6 +74,7 @@ const propTypes = {
   expandedSlices: PropTypes.object.isRequired,
   customCss: PropTypes.string.isRequired,
   colorNamespace: PropTypes.string,
+  colorScheme: PropTypes.string,
   setColorScheme: PropTypes.func.isRequired,
   setUnsavedChanges: PropTypes.func.isRequired,
   isStarred: PropTypes.bool.isRequired,
