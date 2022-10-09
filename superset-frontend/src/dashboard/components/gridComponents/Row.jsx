@@ -74,30 +74,50 @@ class Row extends React.PureComponent {
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
 
     this.containerRef = React.createRef();
-    this.observer = null;
+    this.observerEnabler = null;
+    this.observerDisabler = null;
   }
 
+  // if chart not rendered - render it if it's less than 1 view height away from current viewport
+  // if chart rendered - remove it if it's more than 4 view heights away from current viewport
   componentDidMount() {
     if (
       isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) &&
       !isCurrentUserBot()
     ) {
-      this.observer = new IntersectionObserver(
+      this.observerEnabler = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting && !this.state.isInView) {
             this.setState({ isInView: true });
-          } else if (!entry.isIntersecting && this.state.isInView) {
-            this.setState({ isInView: false });
           }
         },
         {
           rootMargin: '100% 0px',
         },
       );
+      this.observerDisabler = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry.isIntersecting && this.state.isInView) {
+            this.setState({ isInView: false });
+          }
+        },
+        {
+          rootMargin: '400% 0px',
+        },
+      );
       const element = this.containerRef.current;
       if (element) {
-        this.observer.observe(element);
+        this.observerEnabler.observe(element);
+        this.observerDisabler.observe(element);
       }
+    }
+  }
+
+  componentWillUnmount() {
+    const element = this.containerRef.current;
+    if (element) {
+      this.observerEnabler.unobserve(element);
+      this.observerDisabler.unobserve(element);
     }
   }
 
