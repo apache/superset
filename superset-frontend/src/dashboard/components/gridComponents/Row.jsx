@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { connect } from 'react-redux';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
@@ -33,10 +33,7 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
-import {
-  DASHBOARD_VIRTUALIZATION_MODE,
-  isDashboardVirtualizationEnabled,
-} from 'src/utils/isDashboardVirtualizationEnabled';
+import { isCurrentUserBot } from 'src/utils/isBot';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -59,12 +56,6 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
-
-  dashboardVirtualizationMode: PropTypes.oneOf([
-    'NONE',
-    'VIEWPORT',
-    'PAGINATED',
-  ]),
 };
 
 class Row extends React.PureComponent {
@@ -88,18 +79,14 @@ class Row extends React.PureComponent {
 
   componentDidMount() {
     if (
-      isDashboardVirtualizationEnabled(this.props.dashboardVirtualizationMode)
+      isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) &&
+      !isCurrentUserBot()
     ) {
       this.observer = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting && !this.state.isInView) {
             this.setState({ isInView: true });
-          } else if (
-            !entry.isIntersecting &&
-            this.state.isInView &&
-            this.props.dashboardVirtualizationMode ===
-              DASHBOARD_VIRTUALIZATION_MODE.VIEWPORT
-          ) {
+          } else if (!entry.isIntersecting && this.state.isInView) {
             this.setState({ isInView: false });
           }
         },
@@ -237,10 +224,4 @@ class Row extends React.PureComponent {
 
 Row.propTypes = propTypes;
 
-function mapStateToProps({ common }) {
-  const dashboardVirtualizationMode = common.conf?.DASHBOARD_VIRTUALIZATION;
-  return {
-    dashboardVirtualizationMode,
-  };
-}
-export default connect(mapStateToProps)(Row);
+export default Row;

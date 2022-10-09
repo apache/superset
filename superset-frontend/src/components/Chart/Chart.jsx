@@ -18,7 +18,6 @@
  */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { connect } from 'react-redux';
 import { styled, logging, t, ensureIsArray } from '@superset-ui/core';
 
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -29,8 +28,8 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { isCurrentUserBot } from 'src/utils/isBot';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { isDashboardVirtualizationEnabled } from 'src/utils/isDashboardVirtualizationEnabled';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
@@ -77,11 +76,6 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
-  dashboardVirtualizationMode: PropTypes.oneOf([
-    'NONE',
-    'VIEWPORT',
-    'PAGINATED',
-  ]),
 };
 
 const BLANK = {};
@@ -317,9 +311,8 @@ class Chart extends React.PureComponent {
         >
           <div className="slice_container" data-test="slice-container">
             {this.props.isInView ||
-            !isDashboardVirtualizationEnabled(
-              this.props.dashboardVirtualizationMode,
-            ) ? (
+            !isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) ||
+            isCurrentUserBot() ? (
               <ChartRenderer
                 {...this.props}
                 source={this.props.dashboardId ? 'dashboard' : 'explore'}
@@ -339,10 +332,4 @@ class Chart extends React.PureComponent {
 Chart.propTypes = propTypes;
 Chart.defaultProps = defaultProps;
 
-function mapStateToProps({ common }) {
-  const dashboardVirtualizationMode = common.conf?.DASHBOARD_VIRTUALIZATION;
-  return {
-    dashboardVirtualizationMode,
-  };
-}
-export default connect(mapStateToProps)(Chart);
+export default Chart;
