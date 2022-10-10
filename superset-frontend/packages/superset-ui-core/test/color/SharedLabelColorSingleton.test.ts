@@ -122,10 +122,16 @@ describe('SharedLabelColor', () => {
     it('should update color map', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('b', 'pink', 1);
       sharedLabelColor.addSlice('b', 'green', 2);
+      sharedLabelColor.addSlice('c', 'blue', 2);
       sharedLabelColor.updateColorMap('', 'testColors2');
       const colorMap = sharedLabelColor.getColorMap();
-      expect(Object.fromEntries(colorMap)).toEqual({ a: 'yellow', b: 'green' });
+      expect(Object.fromEntries(colorMap)).toEqual({
+        a: 'yellow',
+        b: 'yellow',
+        c: 'green',
+      });
     });
 
     it('should use recycle colors', () => {
@@ -149,9 +155,9 @@ describe('SharedLabelColor', () => {
       };
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
-      sharedLabelColor.addSlice('b', 'blue', 2);
-      sharedLabelColor.addSlice('c', 'green', 3);
-      sharedLabelColor.addSlice('d', 'red', 4);
+      sharedLabelColor.addSlice('b', 'blue', 1);
+      sharedLabelColor.addSlice('c', 'green', 1);
+      sharedLabelColor.addSlice('d', 'red', 1);
       sharedLabelColor.updateColorMap('', 'testColors');
       const colorMap = sharedLabelColor.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
