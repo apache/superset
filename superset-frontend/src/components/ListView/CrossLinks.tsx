@@ -61,7 +61,7 @@ const StyledCrossLinks = styled.div`
 
 export default function CrossLinks({
   crossLinks,
-  maxLinks = 50,
+  maxLinks = 20,
   linkPrefix = '/superset/dashboard/',
 }: CrossLinksProps) {
   const crossLinksRef = useRef<HTMLDivElement>(null);
