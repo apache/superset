@@ -1315,6 +1315,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         columns_by_name: Dict[str, TableColumn] = {
             col.column_name: col for col in self.columns
         }
+
         metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
 
         if not granularity and is_timeseries:
@@ -1439,22 +1440,22 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         elif columns:
             for selected in columns:
                 if is_adhoc_column(selected):
-                    sql = selected.get("sqlExpression") or ""
-                    column_label = selected.get("label") or ""
+                    _sql = selected["sqlExpression"]
+                    _column_label = selected["label"]
                 elif isinstance(selected, str):
-                    sql = selected
-                    column_label = selected
+                    _sql = selected
+                    _column_label = selected
 
                 selected = validate_adhoc_subquery(
-                    sql,
+                    _sql,
                     self.database_id,
                     self.schema,
                 )
                 select_exprs.append(
                     columns_by_name[selected].get_sqla_col()
-                    if not is_adhoc_column(selected) and selected in columns_by_name
+                    if isinstance(selected, str) and selected in columns_by_name
                     else self.make_sqla_column_compatible(
-                        literal_column(selected), column_label
+                        literal_column(selected), _column_label
                     )
                 )
             metrics_exprs = []
