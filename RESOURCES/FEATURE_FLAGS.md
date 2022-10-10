@@ -16,70 +16,84 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
+
 # Superset Feature Flags
+
 This is a list of the current Superset optional features. See config.py for default values. These features can be turned on/off by setting your preferred values in superset_config.py to True/False respectively
 
 ## In Development
+
 These features are considered **unfinished** and should only be used on development environments.
 
+[//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
+
 - CLIENT_CACHE
+- CROSS_REFERENCES
 - DASHBOARD_CACHE
 - DASHBOARD_NATIVE_FILTERS_SET
 - DISABLE_DATASET_SOURCE_EDIT
+- DRILL_TO_DETAIL
+- ENABLE_ADVANCED_DATA_TYPES
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
+- ENABLE_TEMPLATE_REMOVE_FILTERS
 - KV_STORE
 - PRESTO_EXPAND_DATA
 - REMOVE_SLICE_LEVEL_LABEL_COLORS
 - SHARE_QUERIES_VIA_KV_STORE
 - TAGGING_SYSTEM
-- ENABLE_TEMPLATE_REMOVE_FILTERS
-- DRILL_TO_DETAIL
-- ENABLE_ADVANCED_DATA_TYPES
 
 ## In Testing
+
 These features are **finished** but currently being tested. They are usable, but may still contain some bugs.
 
+[//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
+
 - ALERT_REPORTS: [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
-- DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
+- ALLOW_FULL_CSV_EXPORT
+- CACHE_IMPERSONATION
+- DASHBOARD_EDIT_CHART_IN_NEW_TAB
+- DASHBOARD_FILTERS_EXPERIMENTAL
 - DASHBOARD_NATIVE_FILTERS
-- GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
-- VERSIONED_EXPORT
+- DYNAMIC_PLUGINS: [(docs)](https://superset.apache.org/docs/installation/running-on-kubernetes)
+- ENABLE_FILTER_BOX_MIGRATION
 - ENABLE_JAVASCRIPT_CONTROLS
 - GENERIC_CHART_AXES
-- ENABLE_FILTER_BOX_MIGRATION
-- UX_BETA
-- USE_ANALAGOUS_COLORS
-- DASHBOARD_EDIT_CHART_IN_NEW_TAB
-- CACHE_IMPERSONATION
+- GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - RLS_IN_SQLLAB
-- DASHBOARD_FILTERS_EXPERIMENTAL
-- ALLOW_FULL_CSV_EXPORT
-
+- USE_ANALAGOUS_COLORS
+- UX_BETA
+- VERSIONED_EXPORT
 
 ## Stable
+
 These features flags are **safe for production** and have been tested.
 
-- DASHBOARD_CROSS_FILTERS
-- DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
-- ESCAPE_MARKDOWN_HTML
-- ENABLE_TEMPLATE_PROCESSING
-- LISTVIEWS_DEFAULT_CARD_VIEW
-- SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
-- SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/installation/sql-templating)
-- SQLLAB_BACKEND_PERSISTENCE
-- THUMBNAILS [(docs)](https://superset.apache.org/docs/installation/cache)
-- ENABLE_EXPLORE_DRAG_AND_DROP
-- ENABLE_DND_WITH_CLICK_UX
-- EMBEDDABLE_CHARTS
-- EMBEDDED_SUPERSET
+[//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
+
 - ALERTS_ATTACH_REPORTS
 - ALLOW_ADHOC_SUBQUERY
-- DRUID_JOINS
+- DASHBOARD_CROSS_FILTERS
+- DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard#manage-access-to-dashboards)
 - DISABLE_LEGACY_DATASOURCE_EDITOR
+- DRUID_JOINS
+- EMBEDDABLE_CHARTS
+- EMBEDDED_SUPERSET
+- ENABLE_DND_WITH_CLICK_UX
+- ENABLE_EXPLORE_DRAG_AND_DROP
+- ENABLE_TEMPLATE_PROCESSING
 - ENFORCE_DB_ENCRYPTION_UI
+- ESCAPE_MARKDOWN_HTML
+- LISTVIEWS_DEFAULT_CARD_VIEW
+- SCHEDULED_QUERIES [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
+- SQLLAB_BACKEND_PERSISTENCE
+- SQL_VALIDATORS_BY_ENGINE [(docs)](https://superset.apache.org/docs/installation/sql-templating)
+- THUMBNAILS [(docs)](https://superset.apache.org/docs/installation/cache)
 
 ## Deprecated Flags
+
 These features flags currently default to True and **will be removed in a future major release**. For this current release you can turn them off by setting your config to False, but it is advised to remove or set these flags in your local configuration to **True** so that you do not experience any unexpected changes in a future release.
+
+[//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
 - ALLOW_DASHBOARD_DOMAIN_SHARDING
 - DISPLAY_MARKDOWN_HTML
