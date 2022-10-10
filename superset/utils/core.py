@@ -1258,6 +1258,15 @@ def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
     )
 
 
+def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
+    axis_cols = [
+        col
+        for col in columns or []
+        if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
+    ]
+    return tuple(get_column_name(col) for col in axis_cols)
+
+
 def get_column_name(
     column: Column, verbose_map: Optional[Dict[str, Any]] = None
 ) -> str:
