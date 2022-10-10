@@ -332,7 +332,6 @@ const FilterableTable = ({
       .map(key => widthsForColumnsByKey[key])
       .reduce((curr, next) => curr + next),
   );
-  const totalTableHeight = useRef(height);
   const container = useRef<HTMLDivElement>(null);
 
   const fitTableToWidthIfNeeded = () => {
@@ -563,15 +562,13 @@ const FilterableTable = ({
   };
 
   const renderGrid = () => {
-    totalTableHeight.current = height;
-    if (
+    // exclude the height of the horizontal scroll bar from the height of the table
+    // and the height of the table container if the content overflows
+    const totalTableHeight =
       container.current &&
       totalTableWidth.current > container.current.clientWidth
-    ) {
-      // exclude the height of the horizontal scroll bar from the height of the table
-      // and the height of the table container if the content overflows
-      totalTableHeight.current -= SCROLL_BAR_HEIGHT;
-    }
+        ? height - SCROLL_BAR_HEIGHT
+        : height;
 
     const getColumnWidth = ({ index }: { index: number }) =>
       widthsForColumnsByKey[orderedColumnKeys[index]];
@@ -600,7 +597,7 @@ const FilterableTable = ({
                       cellRenderer={renderGridCell}
                       columnCount={orderedColumnKeys.length}
                       columnWidth={getColumnWidth}
-                      height={totalTableHeight.current - rowHeight}
+                      height={totalTableHeight - rowHeight}
                       onScroll={onScroll}
                       overscanColumnCount={overscanColumnCount}
                       overscanRowCount={overscanRowCount}
@@ -644,15 +641,13 @@ const FilterableTable = ({
       );
     }
 
-    totalTableHeight.current = height;
-    if (
+    // exclude the height of the horizontal scroll bar from the height of the table
+    // and the height of the table container if the content overflows
+    const totalTableHeight =
       container.current &&
       totalTableWidth.current > container.current.clientWidth
-    ) {
-      // exclude the height of the horizontal scroll bar from the height of the table
-      // and the height of the table container if the content overflows
-      totalTableHeight.current -= SCROLL_BAR_HEIGHT;
-    }
+        ? height - SCROLL_BAR_HEIGHT
+        : height;
 
     const rowGetter = ({ index }: { index: number }) =>
       getDatum(sortedAndFilteredList, index);
@@ -665,7 +660,7 @@ const FilterableTable = ({
         {fitted && (
           <Table
             headerHeight={headerHeight}
-            height={totalTableHeight.current}
+            height={totalTableHeight}
             overscanRowCount={overscanRowCount}
             rowClassName={rowClassName}
             rowHeight={rowHeight}
