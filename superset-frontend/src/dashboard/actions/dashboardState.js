@@ -72,11 +72,6 @@ export function removeSlice(sliceId) {
   return { type: REMOVE_SLICE, sliceId };
 }
 
-export const RESET_SLICE = 'RESET_SLICE';
-export function resetSlice() {
-  return { type: RESET_SLICE };
-}
-
 const FAVESTAR_BASE_URL = '/superset/favstar/Dashboard';
 export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
 export function toggleFaveStar(isStarred) {
@@ -503,30 +498,6 @@ export function addSliceToDashboard(id, component) {
         dispatch(addFilter(id, component, selectedSlice.form_data));
       }
     });
-  };
-}
-
-export function postAddSliceFromDashboard() {
-  return (dispatch, getState) => {
-    const {
-      dashboardInfo: { metadata },
-      dashboardState,
-    } = getState();
-    const sharedLabelColor = getSharedLabelColor();
-
-    if (dashboardState?.updateSlice && dashboardState?.editMode) {
-      sharedLabelColor.updateColorMap(
-        metadata?.color_namespace,
-        metadata?.color_scheme,
-      );
-      metadata.shared_label_colors = sharedLabelColor.getColorMap();
-      dispatch(
-        dashboardInfoChanged({
-          metadata,
-        }),
-      );
-      dispatch(resetSlice());
-    }
   };
 }
 

@@ -25,16 +25,16 @@ export enum SharedLabelColorSource {
   explore,
 }
 export class SharedLabelColor {
-  sliceLabelColorMap: Map<number, Map<string, string>>;
+  sliceLabelMap: Map<number, string[]>;
 
-  allColorMap: Map<string, string>;
+  colorMap: Map<string, string>;
 
   source: SharedLabelColorSource;
 
   constructor() {
-    // { sliceId1: { label1: color1 }, sliceId2: { label2: color2 } }
-    this.sliceLabelColorMap = new Map();
-    this.allColorMap = new Map();
+    // { sliceId1: [label1, label2, ...], sliceId2: [label1, label2, ...] }
+    this.sliceLabelMap = new Map();
+    this.colorMap = new Map();
     this.source = SharedLabelColorSource.dashboard;
   }
 
@@ -42,50 +42,53 @@ export class SharedLabelColor {
     const categoricalNamespace =
       CategoricalColorNamespace.getNamespace(colorNamespace);
     const colorScale = categoricalNamespace.getScale(colorScheme);
-    colorScale.domain([...this.allColorMap.keys()]);
-    const copySliceLabelColorMap = new Map(this.sliceLabelColorMap);
-    this.clear();
-    copySliceLabelColorMap.forEach((colorMap, sliceId) => {
-      const newColorMap = new Map();
-      colorMap.forEach((_, label) => {
-        const newColor = colorScale(label);
-        newColorMap.set(label, newColor);
-        this.allColorMap.set(label, newColor);
-      });
-      this.sliceLabelColorMap.set(sliceId, newColorMap);
+    colorScale.domain([...this.colorMap.keys()]);
+    const copyColorMap = new Map(this.colorMap);
+    this.colorMap.clear();
+    copyColorMap.forEach((_, label) => {
+      const newColor = colorScale(label);
+      this.colorMap.set(label, newColor);
     });
   }
 
   getColorMap() {
-    this.allColorMap.clear();
-    this.sliceLabelColorMap.forEach(colorMap => {
-      colorMap.forEach((color, label) => {
-        this.allColorMap.set(label, color);
-      });
-    });
-    return Object.fromEntries(this.allColorMap);
+    return this.colorMap;
   }
 
   addSlice(label: string, color: string, sliceId?: number) {
-    if (this.source !== SharedLabelColorSource.dashboard) return;
-    if (sliceId === undefined) return;
-    let colorMap = this.sliceLabelColorMap.get(sliceId);
-    if (!colorMap) {
-      colorMap = new Map();
-    }
-    colorMap.set(label, color);
-    this.sliceLabelColorMap.set(sliceId, colorMap);
-    this.allColorMap.set(label, color);
+    if (
+      this.source !== SharedLabelColorSource.dashboard ||
+      sliceId === undefined
+    )
+      return;
+    const labels = this.sliceLabelMap.get(sliceId) || [];
+    labels.push(label);
+    this.sliceLabelMap.set(sliceId, labels);
+    this.colorMap.set(label, color);
   }
 
   removeSlice(sliceId: number) {
     if (this.source !== SharedLabelColorSource.dashboard) return;
-    this.sliceLabelColorMap.delete(sliceId);
+    this.sliceLabelMap.delete(sliceId);
+    const newColorMap = new Map();
+    this.sliceLabelMap.forEach(labels => {
+      labels.forEach(label => {
+        newColorMap.set(label, this.colorMap.get(label));
+      });
+    });
+    this.colorMap = newColorMap;
+  }
+
+  reset() {
+    const copyColorMap = new Map(this.colorMap);
+    copyColorMap.forEach((_, label) => {
+      this.colorMap.set(label, '');
+    });
   }
 
   clear() {
-    this.sliceLabelColorMap.clear();
-    this.allColorMap.clear();
+    this.sliceLabelMap.clear();
+    this.colorMap.clear();
   }
 }
 

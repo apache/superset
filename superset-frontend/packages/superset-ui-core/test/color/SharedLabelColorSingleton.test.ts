@@ -65,36 +65,30 @@ describe('SharedLabelColor', () => {
     it('should add to sliceLabelColorMap when first adding label', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
-      expect(sharedLabelColor.sliceLabelColorMap.has(1)).toEqual(true);
-      const colorMap = sharedLabelColor.sliceLabelColorMap.get(1);
-      expect(colorMap?.has('a')).toEqual(true);
-      expect(colorMap?.get('a')).toEqual('red');
+      expect(sharedLabelColor.sliceLabelMap.has(1)).toEqual(true);
+      const labels = sharedLabelColor.sliceLabelMap.get(1);
+      expect(labels?.includes('a')).toEqual(true);
     });
 
     it('should add to sliceLabelColorMap when label exist', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.addSlice('b', 'blue', 1);
-      const colorMap = sharedLabelColor.sliceLabelColorMap.get(1);
-      expect(colorMap?.has('b')).toEqual(true);
-      expect(colorMap?.get('b')).toEqual('blue');
+      const labels = sharedLabelColor.sliceLabelMap.get(1);
+      expect(labels?.includes('b')).toEqual(true);
     });
 
     it('should do nothing when source is not dashboard', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.source = SharedLabelColorSource.explore;
       sharedLabelColor.addSlice('a', 'red');
-      expect(Object.fromEntries(sharedLabelColor.sliceLabelColorMap)).toEqual(
-        {},
-      );
+      expect(Object.fromEntries(sharedLabelColor.sliceLabelMap)).toEqual({});
     });
 
     it('should do nothing when sliceId is undefined', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red');
-      expect(Object.fromEntries(sharedLabelColor.sliceLabelColorMap)).toEqual(
-        {},
-      );
+      expect(Object.fromEntries(sharedLabelColor.sliceLabelMap)).toEqual({});
     });
   });
 
@@ -103,7 +97,16 @@ describe('SharedLabelColor', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.removeSlice(1);
-      expect(sharedLabelColor.sliceLabelColorMap.has(1)).toEqual(false);
+      expect(sharedLabelColor.sliceLabelMap.has(1)).toEqual(false);
+    });
+
+    it('should update colorMap', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('b', 'blue', 2);
+      sharedLabelColor.removeSlice(1);
+      const colorMap = sharedLabelColor.getColorMap();
+      expect(Object.fromEntries(colorMap)).toEqual({ b: 'blue' });
     });
 
     it('should do nothing when source is not dashboard', () => {
@@ -111,7 +114,7 @@ describe('SharedLabelColor', () => {
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.source = SharedLabelColorSource.explore;
       sharedLabelColor.removeSlice(1);
-      expect(sharedLabelColor.sliceLabelColorMap.has(1)).toEqual(true);
+      expect(sharedLabelColor.sliceLabelMap.has(1)).toEqual(true);
     });
   });
 
@@ -122,7 +125,7 @@ describe('SharedLabelColor', () => {
       sharedLabelColor.addSlice('b', 'green', 2);
       sharedLabelColor.updateColorMap('', 'testColors2');
       const colorMap = sharedLabelColor.getColorMap();
-      expect(colorMap).toEqual({ a: 'yellow', b: 'green' });
+      expect(Object.fromEntries(colorMap)).toEqual({ a: 'yellow', b: 'green' });
     });
 
     it('should use recycle colors', () => {
@@ -136,7 +139,7 @@ describe('SharedLabelColor', () => {
       sharedLabelColor.addSlice('d', 'red', 4);
       sharedLabelColor.updateColorMap('', 'testColors');
       const colorMap = sharedLabelColor.getColorMap();
-      expect(colorMap).not.toEqual({});
+      expect(Object.fromEntries(colorMap)).not.toEqual({});
       expect(getAnalogousColors).not.toBeCalled();
     });
 
@@ -151,7 +154,7 @@ describe('SharedLabelColor', () => {
       sharedLabelColor.addSlice('d', 'red', 4);
       sharedLabelColor.updateColorMap('', 'testColors');
       const colorMap = sharedLabelColor.getColorMap();
-      expect(colorMap).not.toEqual({});
+      expect(Object.fromEntries(colorMap)).not.toEqual({});
       expect(getAnalogousColors).toBeCalled();
     });
   });
@@ -162,7 +165,18 @@ describe('SharedLabelColor', () => {
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.addSlice('b', 'blue', 2);
       const colorMap = sharedLabelColor.getColorMap();
-      expect(colorMap).toEqual({ a: 'red', b: 'blue' });
+      expect(Object.fromEntries(colorMap)).toEqual({ a: 'red', b: 'blue' });
+    });
+  });
+
+  describe('.reset()', () => {
+    it('should reset color map', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('a', 'red', 1);
+      sharedLabelColor.addSlice('b', 'blue', 2);
+      sharedLabelColor.reset();
+      const colorMap = sharedLabelColor.getColorMap();
+      expect(Object.fromEntries(colorMap)).toEqual({ a: '', b: '' });
     });
   });
 });

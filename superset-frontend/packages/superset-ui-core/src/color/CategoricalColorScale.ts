@@ -51,13 +51,14 @@ class CategoricalColorScale extends ExtensibleFunction {
    * @param {*} parentForcedColors optional parameter that comes from parent
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
-  constructor(colors: string[], parentForcedColors?: ColorsLookup) {
+  constructor(colors: string[], parentForcedColors: ColorsLookup = {}) {
     super((value: string, sliceId?: number) => this.getColor(value, sliceId));
 
     this.originColors = colors;
     this.colors = colors;
     this.scale = scaleOrdinal<{ toString(): string }, string>();
     this.scale.range(colors);
+    this.scale.domain(Object.keys(parentForcedColors));
     this.parentForcedColors = parentForcedColors;
     this.forcedColors = {};
     this.multiple = 0;
@@ -71,7 +72,7 @@ class CategoricalColorScale extends ExtensibleFunction {
     let color =
       this.parentForcedColors?.[cleanedValue] ||
       this.forcedColors?.[cleanedValue] ||
-      sharedLabelColor.allColorMap.get(cleanedValue);
+      sharedLabelColor.getColorMap().get(cleanedValue);
 
     if (!color) {
       if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
