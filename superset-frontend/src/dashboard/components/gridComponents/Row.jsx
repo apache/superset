@@ -114,8 +114,8 @@ class Row extends React.PureComponent {
   }
 
   componentWillUnmount() {
-    this.observerEnabler.disconnect();
-    this.observerDisabler.disconnect();
+    this.observerEnabler?.disconnect();
+    this.observerDisabler?.disconnect();
   }
 
   handleChangeFocus(nextFocus) {
