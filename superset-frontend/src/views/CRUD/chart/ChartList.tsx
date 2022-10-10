@@ -265,6 +265,7 @@ function ChartList(props: ChartListProps) {
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const enableBroadUserAccess =
     bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
+  const enableCrossRef = isFeatureEnabled(FeatureFlag.CROSS_REFERENCES);
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -294,6 +295,30 @@ function ChartList(props: ChartListProps) {
       ),
     );
   }
+
+  const dashboardsCol = useMemo(
+    () => ({
+      Cell: ({
+        row: {
+          original: { dashboards },
+        },
+      }: any) => (
+        <CrossLinks
+          crossLinks={ensureIsArray(dashboards).map(
+            (d: ChartLinkedDashboard) => ({
+              title: d.dashboard_title,
+              id: d.id,
+            }),
+          )}
+        />
+      ),
+      Header: t('Dashboards added to'),
+      accessor: 'dashboards',
+      disableSortBy: true,
+      size: 'xxl',
+    }),
+    [],
+  );
 
   const columns = useMemo(
     () => [
@@ -372,26 +397,7 @@ function ChartList(props: ChartListProps) {
         disableSortBy: true,
         size: 'xl',
       },
-      {
-        Cell: ({
-          row: {
-            original: { dashboards },
-          },
-        }: any) => (
-          <CrossLinks
-            crossLinks={ensureIsArray(dashboards).map(
-              (d: ChartLinkedDashboard) => ({
-                title: d.dashboard_title,
-                id: d.id,
-              }),
-            )}
-          />
-        ),
-        Header: t('Dashboards added to'),
-        accessor: 'dashboards',
-        disableSortBy: true,
-        size: 'xxl',
-      },
+      ...(enableCrossRef ? [dashboardsCol] : []),
       {
         Cell: ({
           row: {
@@ -558,6 +564,19 @@ function ChartList(props: ChartListProps) {
     [],
   );
 
+  const dashboardsFilter: Filter = useMemo(
+    () => ({
+      Header: t('Dashboards'),
+      id: 'dashboards',
+      input: 'select',
+      operator: FilterOperator.relationManyMany,
+      unfilteredLabel: t('All'),
+      fetchSelects: createFetchDashboards,
+      paginate: true,
+    }),
+    [],
+  );
+
   const filters: Filters = useMemo(
     () => [
       {
@@ -636,15 +655,7 @@ function ChartList(props: ChartListProps) {
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
-      {
-        Header: t('Dashboards'),
-        id: 'dashboards',
-        input: 'select',
-        operator: FilterOperator.relationManyMany,
-        unfilteredLabel: t('All'),
-        fetchSelects: createFetchDashboards,
-        paginate: true,
-      },
+      ...(enableCrossRef ? [dashboardsFilter] : []),
       ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
@@ -759,6 +770,7 @@ function ChartList(props: ChartListProps) {
       });
     }
   }
+
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />
