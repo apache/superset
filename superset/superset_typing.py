@@ -55,6 +55,8 @@ class AdhocColumn(TypedDict, total=False):
     hasCustomLabel: Optional[bool]
     label: str
     sqlExpression: str
+    columnType: Optional[Literal["BASE_AXIS", "SERIES"]]
+    timeGrain: Optional[str]
 
 
 class ResultSetColumnType(TypedDict):
