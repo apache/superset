@@ -184,6 +184,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Queries",
         "Import dashboards",
         "Upload a CSV",
+        "ReportSchedule",
+        "Alerts & Report",
+        "Annotation Layers",
     }
 
     ADMIN_ONLY_PERMISSIONS = {
