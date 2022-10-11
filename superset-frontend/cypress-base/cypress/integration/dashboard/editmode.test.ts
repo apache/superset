@@ -255,7 +255,7 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
-        .should('have.css', 'fill', 'rgb(0, 209, 193)');
+        .should('have.css', 'fill', 'rgb(0, 122, 135)');
 
       // open main tab and nested tab
       openTab(0, 0);
@@ -266,7 +266,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .first()
-        .should('have.css', 'fill', 'rgb(0, 209, 193)');
+        .should('have.css', 'fill', 'rgb(0, 122, 135)');
     });
 
     it('should apply the color scheme across main tabs', () => {
