@@ -615,6 +615,7 @@ const SqlEditor = ({
           {renderEditorBottomBar(hotkeys)}
         </div>
         <ConnectedSouthPane
+          queryEditorId={queryEditor.id}
           latestQueryId={latestQuery?.id}
           actions={actions}
           height={southPaneHeight}
