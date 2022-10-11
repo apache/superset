@@ -43,7 +43,6 @@ export const FLASH_STATUS: FilterDropdown[] = [
   { label: 'Stale', value: 'Stale' },
   { label: 'Deleted', value: 'Deleted' },
   { label: 'Marked For Deletion', value: 'MarkedForDeletion' },
-
 ];
 
 export const UPDATE_TYPES = {
