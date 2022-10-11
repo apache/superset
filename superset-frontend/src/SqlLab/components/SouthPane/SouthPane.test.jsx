@@ -25,60 +25,25 @@ import SouthPaneContainer from 'src/SqlLab/components/SouthPane/state';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
-import { initialState } from 'src/SqlLab/fixtures';
+import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 const NOOP = () => {};
 
 const mockedProps = {
-  editorQueries: [
-    {
-      cached: false,
-      changedOn: Date.now(),
-      db: 'main',
-      dbId: 1,
-      id: 'LCly_kkIN',
-      startDttm: Date.now(),
-    },
-    {
-      cached: false,
-      changedOn: 1559238500401,
-      db: 'main',
-      dbId: 1,
-      id: 'lXJa7F9_r',
-      startDttm: 1559238500401,
-    },
-    {
-      cached: false,
-      changedOn: 1559238506925,
-      db: 'main',
-      dbId: 1,
-      id: '2g2_iRFMl',
-      startDttm: 1559238506925,
-    },
-    {
-      cached: false,
-      changedOn: 1559238516395,
-      db: 'main',
-      dbId: 1,
-      id: 'erWdqEWPm',
-      startDttm: 1559238516395,
-    },
-  ],
+  queryEditorId: defaultQueryEditor.id,
   latestQueryId: 'LCly_kkIN',
-  dataPreviewQueries: [],
   actions: {},
   activeSouthPaneTab: '',
   height: 1,
   displayLimit: 1,
   databases: {},
-  offline: false,
+  defaultQueryLimit: 100,
 };
 
 const mockedEmptyProps = {
-  editorQueries: [],
+  queryEditorId: 'random_id',
   latestQueryId: '',
-  dataPreviewQueries: [],
   actions: {
     queryEditorSetAndSaveSql: NOOP,
     cloneQueryToNewTab: NOOP,
@@ -90,15 +55,75 @@ const mockedEmptyProps = {
   activeSouthPaneTab: '',
   height: 100,
   databases: '',
-  offline: false,
   displayLimit: 100,
   user: UserWithPermissionsAndRoles,
   defaultQueryLimit: 100,
 };
 
+// const tabHistory = ['dfsadfs', 'newEditorId'];
+
+// const tables = [
+//   { ...table, dataPreviewQueryId: 'B1-VQU1zW', queryEditorId: 'newEditorId' },
+// ];
+
+// const queries = {
+//   'B1-VQU1zW': {
+//     id: 'B1-VQU1zW',
+//     sqlEditorId: 'newEditorId',
+//     tableName: 'ab_user',
+//     state: 'success',
+//   },
+// };
+
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-const store = mockStore(initialState);
+const store = mockStore({
+  ...initialState,
+  sqlLab: {
+    ...initialState,
+    offline: false,
+    tables: [],
+    databases: {},
+    queries: {
+      LCly_kkIN: {
+        cached: false,
+        changedOn: Date.now(),
+        db: 'main',
+        dbId: 1,
+        id: 'LCly_kkIN',
+        startDttm: Date.now(),
+        sqlEditorId: defaultQueryEditor.id,
+      },
+      lXJa7F9_r: {
+        cached: false,
+        changedOn: 1559238500401,
+        db: 'main',
+        dbId: 1,
+        id: 'lXJa7F9_r',
+        startDttm: 1559238500401,
+        sqlEditorId: defaultQueryEditor.id,
+      },
+      '2g2_iRFMl': {
+        cached: false,
+        changedOn: 1559238506925,
+        db: 'main',
+        dbId: 1,
+        id: '2g2_iRFMl',
+        startDttm: 1559238506925,
+        sqlEditorId: defaultQueryEditor.id,
+      },
+      erWdqEWPm: {
+        cached: false,
+        changedOn: 1559238516395,
+        db: 'main',
+        dbId: 1,
+        id: 'erWdqEWPm',
+        startDttm: 1559238516395,
+        sqlEditorId: defaultQueryEditor.id,
+      },
+    },
+  },
+});
 const setup = (overrides = {}) => (
   <SouthPaneContainer store={store} {...mockedProps} {...overrides} />
 );

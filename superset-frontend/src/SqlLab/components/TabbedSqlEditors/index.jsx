@@ -72,8 +72,6 @@ class TabbedSqlEditors extends React.PureComponent {
     const sqlLabUrl = '/superset/sqllab';
     this.state = {
       sqlLabUrl,
-      queriesArray: [],
-      dataPreviewQueries: [],
     };
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
     this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
@@ -186,37 +184,6 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const nextActiveQeId =
-      nextProps.tabHistory[nextProps.tabHistory.length - 1];
-    const queriesArray = Object.values(nextProps.queries).filter(
-      query => query.sqlEditorId === nextActiveQeId,
-    );
-    if (!areArraysShallowEqual(queriesArray, this.state.queriesArray)) {
-      this.setState({ queriesArray });
-    }
-
-    const dataPreviewQueries = [];
-    nextProps.tables.forEach(table => {
-      const queryId = table.dataPreviewQueryId;
-      if (
-        queryId &&
-        nextProps.queries[queryId] &&
-        table.queryEditorId === nextActiveQeId
-      ) {
-        dataPreviewQueries.push({
-          ...nextProps.queries[queryId],
-          tableName: table.name,
-        });
-      }
-    });
-    if (
-      !areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)
-    ) {
-      this.setState({ dataPreviewQueries });
-    }
-  }
-
   popNewTab() {
     // Clean the url in browser history
     window.history.replaceState({}, document.title, this.state.sqlLabUrl);
@@ -298,8 +265,6 @@ class TabbedSqlEditors extends React.PureComponent {
         <SqlEditor
           tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
           queryEditor={qe}
-          editorQueries={this.state.queriesArray}
-          dataPreviewQueries={this.state.dataPreviewQueries}
           actions={this.props.actions}
           defaultQueryLimit={this.props.defaultQueryLimit}
           maxRow={this.props.maxRow}
