@@ -186,7 +186,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Upload a CSV",
         "ReportSchedule",
         "Alerts & Report",
-        "Annotation Layers",
     }
 
     ADMIN_ONLY_PERMISSIONS = {
