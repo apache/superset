@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import Switchboard from './switchboard';
+export enum DASHBOARD_VIRTUALIZATION_MODE {
+  NONE = 'NONE',
+  VIEWPORT = 'VIEWPORT',
+  PAGINATED = 'PAGINATED',
+}
 
-export * from './switchboard';
-export default Switchboard;
+export const isDashboardVirtualizationEnabled = (
+  virtualizationMode: DASHBOARD_VIRTUALIZATION_MODE,
+) =>
+  virtualizationMode === DASHBOARD_VIRTUALIZATION_MODE.VIEWPORT ||
+  virtualizationMode === DASHBOARD_VIRTUALIZATION_MODE.PAGINATED;

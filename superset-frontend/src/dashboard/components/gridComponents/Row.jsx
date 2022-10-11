@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
@@ -32,6 +33,7 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
+import { isCurrentUserBot } from 'src/utils/isBot';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -61,6 +63,7 @@ class Row extends React.PureComponent {
     super(props);
     this.state = {
       isFocused: false,
+      isInView: false,
     };
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);
     this.handleUpdateMeta = this.handleUpdateMeta.bind(this);
@@ -69,6 +72,50 @@ class Row extends React.PureComponent {
       'background',
     );
     this.handleChangeFocus = this.handleChangeFocus.bind(this);
+
+    this.containerRef = React.createRef();
+    this.observerEnabler = null;
+    this.observerDisabler = null;
+  }
+
+  // if chart not rendered - render it if it's less than 1 view height away from current viewport
+  // if chart rendered - remove it if it's more than 4 view heights away from current viewport
+  componentDidMount() {
+    if (
+      isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) &&
+      !isCurrentUserBot()
+    ) {
+      this.observerEnabler = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting && !this.state.isInView) {
+            this.setState({ isInView: true });
+          }
+        },
+        {
+          rootMargin: '100% 0px',
+        },
+      );
+      this.observerDisabler = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry.isIntersecting && this.state.isInView) {
+            this.setState({ isInView: false });
+          }
+        },
+        {
+          rootMargin: '400% 0px',
+        },
+      );
+      const element = this.containerRef.current;
+      if (element) {
+        this.observerEnabler.observe(element);
+        this.observerDisabler.observe(element);
+      }
+    }
+  }
+
+  componentWillUnmount() {
+    this.observerEnabler?.disconnect();
+    this.observerDisabler?.disconnect();
   }
 
   handleChangeFocus(nextFocus) {
@@ -161,6 +208,7 @@ class Row extends React.PureComponent {
                 backgroundStyle.className,
               )}
               data-test={`grid-row-${backgroundStyle.className}`}
+              ref={this.containerRef}
             >
               {rowItems.map((componentId, itemIndex) => (
                 <DashboardComponent
@@ -178,6 +226,7 @@ class Row extends React.PureComponent {
                   onResizeStop={onResizeStop}
                   isComponentVisible={isComponentVisible}
                   onChangeTab={onChangeTab}
+                  isInView={this.state.isInView}
                 />
               ))}
 
