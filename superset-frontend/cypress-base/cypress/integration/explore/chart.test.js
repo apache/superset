@@ -17,6 +17,32 @@
  * under the License.
  */
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
+import { CHART_LIST } from 'cypress/utils/urls';
+import {interceptFiltering} from './utils';
+
+function visitSampleChart(id) {
+  cy.getBySel('table-row').first().contains(`${id} - Sample chart`).click();
+  cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+}
+
+describe('Cross-referenced dashboards', () => {
+  beforeEach(() => {
+    interceptFiltering();
+
+    cy.preserveLogin();
+    cy.visit(CHART_LIST);
+    cy.wait("@filtering");
+  });
+
+  before(() => {
+    cy.createSampleCharts();
+  });
+
+  it('Shows the "Added to {x} dashboard(s)', () => {
+    visitSampleChart(4);
+    cy.getBySel("metadata-bar").contains("Not added to any dashboard");
+  });
+});
 
 describe('No Results', () => {
   beforeEach(() => {
