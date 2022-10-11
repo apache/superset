@@ -144,7 +144,7 @@ const createFetchDashboards = async (
 ) => {
   // add filters if filterValue
   const filters = filterValue
-    ? { filters: [{ col: 'dashboards', opr: 'rel_m_m', value: filterValue }] }
+    ? { filters: [{ col: 'dashboards', opr: FilterOperator.relationManyMany, value: filterValue }] }
     : {};
   const queryParams = rison.encode({
     columns: ['dashboard_title', 'id'],
