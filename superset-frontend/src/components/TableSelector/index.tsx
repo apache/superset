@@ -38,6 +38,10 @@ import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { SchemaOption } from 'src/SqlLab/types';
 import { useTables, Table } from 'src/hooks/apiResources';
+import {
+  getClientErrorMessage,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 
 const REFRESH_WIDTH = 30;
 
@@ -187,7 +191,16 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
         addSuccessToast(t('List updated'));
       }
     },
-    onError: () => handleError(t('There was an error loading the tables')),
+    onError: (err: Response) => {
+      getClientErrorObject(err).then(clientError => {
+        handleError(
+          getClientErrorMessage(
+            t('There was an error loading the tables'),
+            clientError,
+          ),
+        );
+      });
+    },
   });
 
   const tableOptions = useMemo<TableOption[]>(

@@ -42,10 +42,8 @@ import { fallbackExploreInitialData } from './fixtures';
 import { getItem, LocalStorageKeys } from '../utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from './controlUtils/getFormDataWithDashboardContext';
 
-const isResult = (rv: JsonObject): rv is ExploreResponsePayload =>
-  rv?.result?.form_data &&
-  rv?.result?.dataset &&
-  isDefined(rv?.result?.dataset?.id);
+const isValidResult = (rv: JsonObject): boolean =>
+  rv?.result?.form_data && isDefined(rv?.result?.dataset?.id);
 
 const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
   try {
@@ -53,10 +51,15 @@ const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
       method: 'GET',
       endpoint: 'api/v1/explore/',
     })(exploreUrlParams);
-    if (isResult(rv)) {
+    if (isValidResult(rv)) {
       return rv;
     }
-    throw new Error(t('Failed to load chart data.'));
+    let message = t('Failed to load chart data');
+    const responseError = rv?.result?.message;
+    if (responseError) {
+      message = `${message}:\n${responseError}`;
+    }
+    throw new Error(message);
   } catch (err) {
     // todo: encapsulate the error handler
     const clientError = await getClientErrorObject(err);
