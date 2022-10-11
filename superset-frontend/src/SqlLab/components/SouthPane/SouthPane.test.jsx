@@ -60,21 +60,6 @@ const mockedEmptyProps = {
   defaultQueryLimit: 100,
 };
 
-// const tabHistory = ['dfsadfs', 'newEditorId'];
-
-// const tables = [
-//   { ...table, dataPreviewQueryId: 'B1-VQU1zW', queryEditorId: 'newEditorId' },
-// ];
-
-// const queries = {
-//   'B1-VQU1zW': {
-//     id: 'B1-VQU1zW',
-//     sqlEditorId: 'newEditorId',
-//     tableName: 'ab_user',
-//     state: 'success',
-//   },
-// };
-
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const store = mockStore({
@@ -82,7 +67,13 @@ const store = mockStore({
   sqlLab: {
     ...initialState,
     offline: false,
-    tables: [],
+    tables: [
+      {
+        ...table,
+        dataPreviewQueryId: '2g2_iRFMl',
+        queryEditorId: defaultQueryEditor.id,
+      },
+    ],
     databases: {},
     queries: {
       LCly_kkIN: {
@@ -142,8 +133,13 @@ describe('SouthPane - Enzyme', () => {
   it('should pass latest query down to ResultSet component', () => {
     wrapper = getWrapper().dive();
     expect(wrapper.find(ResultSet)).toExist();
-    expect(wrapper.find(ResultSet).props().query.id).toEqual(
+    // for editorQueries
+    expect(wrapper.find(ResultSet).first().props().query.id).toEqual(
       mockedProps.latestQueryId,
+    );
+    // for dataPreviewQueries
+    expect(wrapper.find(ResultSet).last().props().query.id).toEqual(
+      '2g2_iRFMl',
     );
   });
 });
