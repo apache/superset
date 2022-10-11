@@ -22,6 +22,7 @@ from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
+from superset import security_manager
 from superset.models.sql_lab import SavedQuery
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
@@ -65,6 +66,8 @@ class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
 
         :returns: flask-sqlalchemy query
         """
-        return query.filter(
-            SavedQuery.created_by == g.user  # pylint: disable=comparison-with-callable
-        )
+        if not security_manager.can_access_all_queries():
+            query = query.filter(
+                SavedQuery.created_by == g.user  # pylint: disable=comparison-with-callable
+            )
+        return query
