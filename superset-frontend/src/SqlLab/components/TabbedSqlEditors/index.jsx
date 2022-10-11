@@ -24,7 +24,6 @@ import { bindActionCreators } from 'redux';
 import URI from 'urijs';
 import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
