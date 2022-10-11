@@ -48,6 +48,8 @@ const ExtraOptions = ({
 }) => {
   const expandableModalIsOpen = !!db?.expose_in_sqllab;
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
+  const isFileUploadSupportedByEngine =
+    db?.engine_information?.supports_file_upload;
 
   return (
     <Collapse
@@ -364,28 +366,9 @@ const ExtraOptions = ({
             )}
           </div>
         </StyledInputContainer>
-        <StyledInputContainer>
-          <div className="control-label">
-            {t('Schemas allowed for CSV upload')}
-          </div>
-          <div className="input-container">
-            <input
-              type="text"
-              name="schemas_allowed_for_file_upload"
-              value={(
-                db?.extra_json?.schemas_allowed_for_file_upload || []
-              ).join(',')}
-              placeholder="schema1,schema2"
-              onChange={onExtraInputChange}
-            />
-          </div>
-          <div className="helper">
-            {t(
-              'A comma-separated list of schemas that CSVs are allowed to upload to.',
-            )}
-          </div>
-        </StyledInputContainer>
-        <StyledInputContainer css={{ no_margin_bottom }}>
+        <StyledInputContainer
+          css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
+        >
           <div className="input-container">
             <IndeterminateCheckbox
               id="impersonate_user"
@@ -407,22 +390,44 @@ const ExtraOptions = ({
             />
           </div>
         </StyledInputContainer>
-        <StyledInputContainer css={{ ...no_margin_bottom }}>
-          <div className="input-container">
-            <IndeterminateCheckbox
-              id="allow_file_upload"
-              indeterminate={false}
-              checked={!!db?.allow_file_upload}
-              onChange={onInputChange}
-              labelText={t('Allow data upload')}
-            />
-            <InfoTooltip
-              tooltip={t(
-                'If selected, please set the schemas allowed for data upload in Extra.',
+        {isFileUploadSupportedByEngine && (
+          <StyledInputContainer
+            css={!db?.allow_file_upload ? no_margin_bottom : {}}
+          >
+            <div className="input-container">
+              <IndeterminateCheckbox
+                id="allow_file_upload"
+                indeterminate={false}
+                checked={!!db?.allow_file_upload}
+                onChange={onInputChange}
+                labelText={t('Allow file uploads to database')}
+              />
+            </div>
+          </StyledInputContainer>
+        )}
+        {isFileUploadSupportedByEngine && !!db?.allow_file_upload && (
+          <StyledInputContainer css={no_margin_bottom}>
+            <div className="control-label">
+              {t('Schemas allowed for File upload')}
+            </div>
+            <div className="input-container">
+              <input
+                type="text"
+                name="schemas_allowed_for_file_upload"
+                value={(
+                  db?.extra_json?.schemas_allowed_for_file_upload || []
+                ).join(',')}
+                placeholder="schema1,schema2"
+                onChange={onExtraInputChange}
+              />
+            </div>
+            <div className="helper">
+              {t(
+                'A comma-separated list of schemas that files are allowed to upload to.',
               )}
-            />
-          </div>
-        </StyledInputContainer>
+            </div>
+          </StyledInputContainer>
+        )}
       </Collapse.Panel>
       <Collapse.Panel
         header={

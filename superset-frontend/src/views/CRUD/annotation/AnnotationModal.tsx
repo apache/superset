@@ -130,7 +130,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   const onSave = () => {
     if (isEditMode) {
       // Edit
-      if (currentAnnotation && currentAnnotation.id) {
+      if (currentAnnotation?.id) {
         const update_id = currentAnnotation.id;
         delete currentAnnotation.id;
         delete currentAnnotation.created_by;
@@ -217,10 +217,9 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
 
   const validate = () => {
     if (
-      currentAnnotation &&
-      currentAnnotation.short_descr?.length &&
-      currentAnnotation.start_dttm?.length &&
-      currentAnnotation.end_dttm?.length
+      currentAnnotation?.short_descr?.length &&
+      currentAnnotation?.start_dttm?.length &&
+      currentAnnotation?.end_dttm?.length
     ) {
       setDisableSave(false);
     } else {
@@ -237,7 +236,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         (annotation && annotation.id !== currentAnnotation.id) ||
         show)
     ) {
-      if (annotation && annotation.id !== null && !loading) {
+      if (annotation?.id !== null && !loading) {
         const id = annotation.id || 0;
 
         fetchResource(id);
@@ -337,7 +336,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         <StyledJsonEditor
           onChange={onJsonChange}
           value={
-            currentAnnotation && currentAnnotation.json_metadata
+            currentAnnotation?.json_metadata
               ? currentAnnotation.json_metadata
               : ''
           }

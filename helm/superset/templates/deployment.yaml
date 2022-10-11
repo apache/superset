@@ -29,6 +29,10 @@ metadata:
 {{- end }}
 spec:
   replicas: {{ .Values.supersetNode.replicaCount }}
+  {{- if .Values.supersetNode.strategy }}
+  strategy:
+    {{- toYaml .Values.supersetNode.strategy | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ template "superset.name" . }}

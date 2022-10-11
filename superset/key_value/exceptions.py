@@ -46,5 +46,9 @@ class KeyValueUpdateFailedError(UpdateFailedError):
     message = _("An error occurred while updating the value.")
 
 
+class KeyValueUpsertFailedError(UpdateFailedError):
+    message = _("An error occurred while upserting the value.")
+
+
 class KeyValueAccessDeniedError(ForbiddenError):
     message = _("You don't have permission to modify the value.")

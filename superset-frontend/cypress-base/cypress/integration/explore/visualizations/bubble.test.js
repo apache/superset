@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Bubble', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const BUBBLE_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'bubble',
@@ -51,33 +56,6 @@ describe('Visualization > Bubble', () => {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
-
-  // Number of circles are pretty unstable when there are a lot of circles
-  // Since main functionality is already covered in filter test below,
-  // skip this test until we find a solution.
-  it.skip('should work', () => {
-    cy.visitChartByParams(BUBBLE_FORM_DATA).then(() => {
-      cy.wait('@getJson').then(xhr => {
-        let expectedBubblesNumber = 0;
-        xhr.responseBody.data.forEach(element => {
-          expectedBubblesNumber += element.values.length;
-        });
-        cy.get('[data-test="chart-container"]')
-          .should('be.visible', { timeout: 15000 })
-          .within(() => {
-            cy.get('svg')
-              .should('exist')
-              .find('.nv-point-clips circle')
-              .should('have.length', expectedBubblesNumber);
-          });
-      });
-    });
-  });
-
   it('should work with filter', () => {
     verify({
       ...BUBBLE_FORM_DATA,
@@ -109,6 +87,8 @@ describe('Visualization > Bubble', () => {
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
+    cy.visitChartByParams(BUBBLE_FORM_DATA);
+
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()

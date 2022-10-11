@@ -249,8 +249,8 @@ export default function DrillDetailPane({
     const items: ContentType[] = [];
     if (result) {
       const {
-        changed_on,
-        created_on,
+        changed_on_humanized,
+        created_on_humanized,
         description,
         table_name,
         changed_by,
@@ -275,14 +275,14 @@ export default function DrillDetailPane({
       });
       items.push({
         type: MetadataType.LAST_MODIFIED,
-        value: changed_on,
+        value: changed_on_humanized,
         modifiedBy,
       });
       items.push({
         type: MetadataType.OWNER,
         createdBy,
         owners: formattedOwners,
-        createdOn: created_on,
+        createdOn: created_on_humanized,
       });
       if (description) {
         items.push({

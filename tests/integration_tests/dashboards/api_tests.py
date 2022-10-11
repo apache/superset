@@ -161,16 +161,16 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             db.session.commit()
 
     @pytest.fixture()
-    def create_created_by_admin_dashboards(self):
+    def create_created_by_gamma_dashboards(self):
         with self.create_app().app_context():
             dashboards = []
-            admin = self.get_user("admin")
+            gamma = self.get_user("gamma")
             for cx in range(2):
                 dashboard = self.insert_dashboard(
                     f"create_title{cx}",
                     f"create_slug{cx}",
-                    [admin.id],
-                    created_by=admin,
+                    [gamma.id],
+                    created_by=gamma,
                 )
                 sleep(1)
                 dashboards.append(dashboard)
@@ -697,21 +697,23 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 5)
 
-    @pytest.mark.usefixtures("create_created_by_admin_dashboards")
+    @pytest.mark.usefixtures("create_created_by_gamma_dashboards")
     def test_get_dashboards_created_by_me(self):
         """
         Dashboard API: Test get dashboards created by current user
         """
         query = {
             "columns": ["created_on_delta_humanized", "dashboard_title", "url"],
-            "filters": [{"col": "created_by", "opr": "created_by_me", "value": "me"}],
+            "filters": [
+                {"col": "created_by", "opr": "dashboard_created_by_me", "value": "me"}
+            ],
             "order_column": "changed_on",
             "order_direction": "desc",
             "page": 0,
             "page_size": 100,
         }
         uri = f"api/v1/dashboard/?q={prison.dumps(query)}"
-        self.login(username="admin")
+        self.login(username="gamma")
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -1837,11 +1839,17 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         resp = self.get_assert_metric(uri, "get_embedded")
         self.assertEqual(resp.status_code, 404)
 
-    @pytest.mark.usefixtures("create_created_by_admin_dashboards")
+    @pytest.mark.usefixtures("create_created_by_gamma_dashboards")
     def test_gets_created_by_user_dashboards_filter(self):
+        expected_models = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.created_by_fk.isnot(None))
+            .all()
+        )
+
         arguments = {
             "filters": [
-                {"col": "id", "opr": "dashboard_has_created_by", "value": True}
+                {"col": "created_by", "opr": "dashboard_has_created_by", "value": True}
             ],
             "keys": ["none"],
             "columns": ["dashboard_title"],
@@ -1852,23 +1860,27 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 7)
+        self.assertEqual(data["count"], len(expected_models))
 
     def test_gets_not_created_by_user_dashboards_filter(self):
+        dashboard = self.insert_dashboard(f"title", f"slug", [])
+        expected_models = (
+            db.session.query(Dashboard).filter(Dashboard.created_by_fk.is_(None)).all()
+        )
+
         arguments = {
             "filters": [
-                {"col": "id", "opr": "dashboard_has_created_by", "value": False}
+                {"col": "created_by", "opr": "dashboard_has_created_by", "value": False}
             ],
             "keys": ["none"],
             "columns": ["dashboard_title"],
         }
-        dashboard = self.insert_dashboard(f"title", f"slug", [])
         self.login(username="admin")
 
         uri = f"api/v1/dashboard/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 6)
+        self.assertEqual(data["count"], len(expected_models))
         db.session.delete(dashboard)
         db.session.commit()

@@ -22,6 +22,7 @@ from typing import Any
 from uuid import UUID
 
 import pytest
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 
@@ -53,6 +54,7 @@ def test_post_with_uuid(
 
 
 def test_password_mask(
+    mocker: MockFixture,
     app: Any,
     session: Session,
     client: Any,
@@ -91,6 +93,10 @@ def test_password_mask(
     )
     session.add(database)
     session.commit()
+
+    # mock the lookup so that we don't need to include the driver
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
 
     response = client.get("/api/v1/database/1")
     assert (

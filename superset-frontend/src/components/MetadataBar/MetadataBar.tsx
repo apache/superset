@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { uniqWith } from 'lodash';
 import { styled } from '@superset-ui/core';
@@ -67,22 +67,37 @@ const StyledItem = styled.div<{
   onClick?: () => void;
 }>`
   ${({ theme, collapsed, last, onClick }) => `
+    display: flex;
     max-width: ${
       ICON_WIDTH +
       ICON_PADDING +
       TEXT_MAX_WIDTH +
       (last ? 0 : SPACE_BETWEEN_ITEMS)
     }px;
-    min-width: ${ICON_WIDTH + (last ? 0 : SPACE_BETWEEN_ITEMS)}px;
-    overflow: hidden;
-    text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
-    white-space: nowrap;
+    min-width: ${
+      collapsed
+        ? ICON_WIDTH + (last ? 0 : SPACE_BETWEEN_ITEMS)
+        : ICON_WIDTH +
+          ICON_PADDING +
+          TEXT_MIN_WIDTH +
+          (last ? 0 : SPACE_BETWEEN_ITEMS)
+    }px;
     padding-right: ${last ? 0 : SPACE_BETWEEN_ITEMS}px;
-    text-decoration: ${onClick ? 'underline' : 'none'};
     cursor: ${onClick ? 'pointer' : 'default'};
-    & > span {
-      color: ${onClick && collapsed ? theme.colors.primary.base : 'undefined'};
+    & .metadata-icon {
+      color: ${
+        onClick && collapsed
+          ? theme.colors.primary.base
+          : theme.colors.grayscale.base
+      };
       padding-right: ${collapsed ? 0 : ICON_PADDING}px;
+    }
+    & .metadata-text {
+      min-width: ${TEXT_MIN_WIDTH}px;
+      overflow: hidden;
+      text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
+      white-space: nowrap;
+      text-decoration: ${onClick ? 'underline' : 'none'};
     }
   `}
 `;
@@ -124,10 +139,13 @@ const Item = ({
       collapsed={collapsed}
       last={last}
       onClick={onClick ? () => onClick(type) : undefined}
-      ref={ref}
     >
-      <Icon iconSize="l" />
-      {!collapsed && title}
+      <Icon iconSize="l" className="metadata-icon" />
+      {!collapsed && (
+        <span ref={ref} className="metadata-text">
+          {title}
+        </span>
+      )}
     </StyledItem>
   );
   return isTruncated || collapsed || (tooltip && tooltip !== title) ? (
@@ -156,7 +174,8 @@ export interface MetadataBarProps {
  * This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
  */
 const MetadataBar = ({ items }: MetadataBarProps) => {
-  const { width, ref } = useResizeDetector();
+  const [width, setWidth] = useState<number>();
+  const [collapsed, setCollapsed] = useState(false);
   const uniqueItems = uniqWith(items, (a, b) => a.type === b.type);
   const sortedItems = uniqueItems.sort((a, b) => ORDER[a.type] - ORDER[b.type]);
   const count = sortedItems.length;
@@ -166,12 +185,23 @@ const MetadataBar = ({ items }: MetadataBarProps) => {
   if (count > MAX_NUMBER_ITEMS) {
     throw Error('The maximum number of items for the metadata bar is 6.');
   }
-  // Calculates the breakpoint width to collapse the bar.
-  // The last item does not have a space, so we subtract SPACE_BETWEEN_ITEMS from the total.
-  const breakpoint =
-    (ICON_WIDTH + ICON_PADDING + TEXT_MIN_WIDTH + SPACE_BETWEEN_ITEMS) * count -
-    SPACE_BETWEEN_ITEMS;
-  const collapsed = Boolean(width && width < breakpoint);
+
+  const onResize = useCallback(
+    width => {
+      // Calculates the breakpoint width to collapse the bar.
+      // The last item does not have a space, so we subtract SPACE_BETWEEN_ITEMS from the total.
+      const breakpoint =
+        (ICON_WIDTH + ICON_PADDING + TEXT_MIN_WIDTH + SPACE_BETWEEN_ITEMS) *
+          count -
+        SPACE_BETWEEN_ITEMS;
+      setWidth(width);
+      setCollapsed(Boolean(width && width < breakpoint));
+    },
+    [count],
+  );
+
+  const { ref } = useResizeDetector({ onResize });
+
   return (
     <Bar ref={ref} count={count}>
       {sortedItems.map((item, index) => (

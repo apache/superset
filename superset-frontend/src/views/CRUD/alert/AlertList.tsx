@@ -191,7 +191,7 @@ function AlertList({
 
   const toggleActive = useCallback(
     (data: AlertObject, checked: boolean) => {
-      if (data && data.id) {
+      if (data?.id) {
         const update_id = data.id;
         const original = [...alerts];
 

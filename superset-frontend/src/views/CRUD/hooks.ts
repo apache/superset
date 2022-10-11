@@ -668,6 +668,21 @@ export function useAvailableDatabases() {
   return [availableDbs, getAvailable] as const;
 }
 
+const transformDB = (db: Partial<DatabaseObject> | null) => {
+  if (db && Array.isArray(db?.catalog)) {
+    return {
+      ...db,
+      catalog: Object.assign(
+        {},
+        ...db.catalog.map((x: { name: string; value: string }) => ({
+          [x.name]: x.value,
+        })),
+      ),
+    };
+  }
+  return db;
+};
+
 export function useDatabaseValidation() {
   const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
     null,
@@ -676,7 +691,7 @@ export function useDatabaseValidation() {
     (database: Partial<DatabaseObject> | null, onCreate = false) =>
       SupersetClient.post({
         endpoint: '/api/v1/database/validate_parameters/',
-        body: JSON.stringify(database),
+        body: JSON.stringify(transformDB(database)),
         headers: { 'Content-Type': 'application/json' },
       })
         .then(() => {

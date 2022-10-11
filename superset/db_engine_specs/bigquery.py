@@ -34,7 +34,7 @@ from typing_extensions import TypedDict
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
@@ -396,10 +396,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
+        if encrypted_extra is None:
+            return encrypted_extra
+
         try:
             config = json.loads(encrypted_extra)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError):
             return encrypted_extra
 
         try:
@@ -410,14 +413,19 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return json.dumps(config)
 
     @classmethod
-    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
+    def unmask_encrypted_extra(
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
         """
         Reuse ``private_key`` if available and unchanged.
         """
+        if old is None or new is None:
+            return new
+
         try:
             old_config = json.loads(old)
             new_config = json.loads(new)
-        except json.JSONDecodeError:
+        except (TypeError, json.JSONDecodeError):
             return new
 
         if "credentials_info" not in new_config:
@@ -442,7 +450,8 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+        cls,
+        properties: BasicPropertiesType,  # pylint: disable=unused-argument
     ) -> List[SupersetError]:
         return []
 

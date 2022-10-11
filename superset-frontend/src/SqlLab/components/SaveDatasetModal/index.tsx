@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FunctionComponent, useCallback, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Radio } from 'src/components/Radio';
 import { RadioChangeEvent, AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
@@ -140,8 +140,7 @@ const updateDataset = async (
 
 const UNTITLED = t('Untitled Dataset');
 
-// eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
+export const SaveDatasetModal = ({
   visible,
   onHide,
   buttonTextOnSave,
@@ -150,7 +149,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
   datasource,
   openWindow = true,
   formData = {},
-}) => {
+}: SaveDatasetModalProps) => {
   const defaultVizType = useSelector<SqlLabRootState, string>(
     state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
   );
@@ -388,7 +387,7 @@ export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
                 {t('Save as new')}
                 <Input
                   className="sdm-input"
-                  defaultValue={datasetName}
+                  value={datasetName}
                   onChange={handleDatasetNameChange}
                   disabled={newOrOverwrite !== 1}
                 />

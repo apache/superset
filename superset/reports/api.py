@@ -57,7 +57,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -204,10 +204,13 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     ]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
+
     filter_rel_fields = {
         "chart": [["id", ChartFilter, lambda: []]],
         "dashboard": [["id", DashboardAccessFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     text_field_rel_fields = {
         "dashboard": "dashboard_title",

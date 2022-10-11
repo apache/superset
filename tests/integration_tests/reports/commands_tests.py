@@ -39,10 +39,10 @@ from superset.reports.commands.exceptions import (
     ReportScheduleCsvFailedError,
     ReportScheduleCsvTimeout,
     ReportScheduleNotFoundError,
-    ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
+    ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
@@ -113,6 +113,7 @@ def assert_log(state: str, error_message: Optional[str] = None):
 
     if state == ReportState.ERROR:
         # On error we send an email
+        print(logs)
         assert len(logs) == 3
     else:
         assert len(logs) == 2
@@ -1321,7 +1322,7 @@ def test_email_dashboard_report_fails(
     screenshot_mock.return_value = SCREENSHOT_FILE
     email_mock.side_effect = SMTPException("Could not connect to SMTP XPTO")
 
-    with pytest.raises(ReportScheduleNotificationError):
+    with pytest.raises(ReportScheduleUnexpectedError):
         AsyncExecuteReportScheduleCommand(
             TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
         ).run()

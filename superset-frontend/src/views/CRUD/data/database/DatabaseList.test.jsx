@@ -139,6 +139,10 @@ describe('Admin DatabaseList', () => {
     expect(wrapper.find(SubMenu)).toExist();
   });
 
+  it('renders a SubMenu with no tabs', () => {
+    expect(wrapper.find(SubMenu).props().tabs).toBeUndefined();
+  });
+
   it('renders a DatabaseModal', () => {
     expect(wrapper.find(DatabaseModal)).toExist();
   });

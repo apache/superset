@@ -46,7 +46,7 @@ export default function transformProps(chartProps: BigNumberTotalChartProps) {
     data.length === 0 ? null : parseMetricValue(data[0][metricName]);
 
   let metricEntry;
-  if (chartProps.datasource && chartProps.datasource.metrics) {
+  if (chartProps.datasource?.metrics) {
     metricEntry = chartProps.datasource.metrics.find(
       metricItem => metricItem.metric_name === metric,
     );

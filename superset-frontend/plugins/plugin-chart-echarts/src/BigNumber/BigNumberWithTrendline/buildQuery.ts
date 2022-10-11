@@ -18,7 +18,9 @@
  */
 import {
   buildQueryContext,
-  DTTM_ALIAS,
+  ensureIsArray,
+  getXAxis,
+  isXAxisSet,
   QueryFormData,
 } from '@superset-ui/core';
 import {
@@ -29,25 +31,19 @@ import {
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
-  return buildQueryContext(formData, baseQueryObject => {
-    const { x_axis } = formData;
-    const is_timeseries = x_axis === DTTM_ALIAS || !x_axis;
-
-    return [
-      {
-        ...baseQueryObject,
-        is_timeseries: true,
-        post_processing: [
-          pivotOperator(formData, {
-            ...baseQueryObject,
-            index: x_axis,
-            is_timeseries,
-          }),
-          rollingWindowOperator(formData, baseQueryObject),
-          resampleOperator(formData, baseQueryObject),
-          flattenOperator(formData, baseQueryObject),
-        ],
-      },
-    ];
-  });
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      columns: [
+        ...(isXAxisSet(formData) ? ensureIsArray(getXAxis(formData)) : []),
+      ],
+      ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
+      post_processing: [
+        pivotOperator(formData, baseQueryObject),
+        rollingWindowOperator(formData, baseQueryObject),
+        resampleOperator(formData, baseQueryObject),
+        flattenOperator(formData, baseQueryObject),
+      ],
+    },
+  ]);
 }

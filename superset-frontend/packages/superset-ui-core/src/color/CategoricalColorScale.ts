@@ -67,8 +67,7 @@ class CategoricalColorScale extends ExtensibleFunction {
     const cleanedValue = stringifyAndTrim(value);
     const sharedLabelColor = getSharedLabelColor();
 
-    const parentColor =
-      this.parentForcedColors && this.parentForcedColors[cleanedValue];
+    const parentColor = this.parentForcedColors?.[cleanedValue];
     if (parentColor) {
       sharedLabelColor.addSlice(cleanedValue, parentColor, sliceId);
       return parentColor;

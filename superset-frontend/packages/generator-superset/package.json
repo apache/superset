@@ -8,9 +8,9 @@
     "superset",
     "yeoman-generator"
   ],
-  "homepage": "https://github.com/apache/superset.git#readme",
+  "homepage": "https://github.com/apache/superset#readme",
   "bugs": {
-    "url": "https://github.com/apache/superset.git/issues"
+    "url": "https://github.com/apache/superset/issues"
   },
   "repository": {
     "type": "git",

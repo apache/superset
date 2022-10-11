@@ -22,7 +22,7 @@ import {
   SqlaFormData,
 } from '@superset-ui/core';
 
-describe('disabled GENERIC_CHART_AXES', () => {
+describe('GENERIC_CHART_AXES is disabled', () => {
   let windowSpy: any;
 
   beforeAll(() => {
@@ -47,7 +47,6 @@ describe('disabled GENERIC_CHART_AXES', () => {
       time_range: '1 year ago : 2013',
       columns: ['col1'],
       metrics: ['count(*)'],
-      x_axis: 'time_column',
     };
     const query: QueryObject = {
       datasource: '5__table',
@@ -64,9 +63,54 @@ describe('disabled GENERIC_CHART_AXES', () => {
     };
     expect(normalizeTimeColumn(formData, query)).toEqual(query);
   });
+
+  it('should return converted QueryObject even though disabled GENERIC_CHART_AXES (x_axis in formData)', () => {
+    const formData: SqlaFormData = {
+      datasource: '5__table',
+      viz_type: 'table',
+      granularity: 'time_column',
+      time_grain_sqla: 'P1Y',
+      time_range: '1 year ago : 2013',
+      columns: ['col1'],
+      metrics: ['count(*)'],
+      x_axis: 'time_column',
+    };
+    const query: QueryObject = {
+      datasource: '5__table',
+      viz_type: 'table',
+      granularity: 'time_column',
+      extras: {
+        time_grain_sqla: 'P1Y',
+      },
+      time_range: '1 year ago : 2013',
+      orderby: [['count(*)', true]],
+      columns: ['time_column', 'col1'],
+      metrics: ['count(*)'],
+      is_timeseries: true,
+    };
+    expect(normalizeTimeColumn(formData, query)).toEqual({
+      datasource: '5__table',
+      viz_type: 'table',
+      granularity: 'time_column',
+      extras: {},
+      time_range: '1 year ago : 2013',
+      orderby: [['count(*)', true]],
+      columns: [
+        {
+          timeGrain: 'P1Y',
+          columnType: 'BASE_AXIS',
+          sqlExpression: 'time_column',
+          label: 'time_column',
+          expressionType: 'SQL',
+        },
+        'col1',
+      ],
+      metrics: ['count(*)'],
+    });
+  });
 });
 
-describe('enabled GENERIC_CHART_AXES', () => {
+describe('GENERIC_CHART_AXES is enabled', () => {
   let windowSpy: any;
 
   beforeAll(() => {

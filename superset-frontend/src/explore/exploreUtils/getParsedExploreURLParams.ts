@@ -105,7 +105,7 @@ const getParsedExploreURLPathParams = (pathname: string) =>
   Object.keys(EXPLORE_URL_PATH_PARAMS).reduce((acc, currentParam) => {
     const re = new RegExp(`/(${currentParam})/(\\w+)`);
     const pathGroups = pathname.match(re);
-    if (pathGroups && pathGroups[2]) {
+    if (pathGroups?.[2]) {
       return { ...acc, [EXPLORE_URL_PATH_PARAMS[currentParam]]: pathGroups[2] };
     }
     return acc;

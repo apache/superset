@@ -151,13 +151,12 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
           endpoint: `/api/v1/database/${dbId}/table_extra/${name}/${schema}/`,
         })
           .then(({ json }: { json: Record<string, any> }) => {
-            if (json && json.partitions) {
+            if (json?.partitions) {
               const { partitions } = json;
               // for now only show latest_partition option
               // when table datasource has only 1 partition key.
               if (
-                partitions &&
-                partitions.cols &&
+                partitions?.cols &&
                 Object.keys(partitions.cols).length === 1
               ) {
                 setPartitionColumn(partitions.cols[0]);

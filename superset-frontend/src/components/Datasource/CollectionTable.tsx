@@ -214,7 +214,7 @@ export default class CRUDCollection extends React.PureComponent<
 
   getLabel(col: any) {
     const { columnLabels } = this.props;
-    let label = columnLabels && columnLabels[col] ? columnLabels[col] : col;
+    let label = columnLabels?.[col] ? columnLabels[col] : col;
     if (label.startsWith('__')) {
       // special label-free columns (ie: caret for expand, delete cross)
       label = '';
@@ -350,7 +350,7 @@ export default class CRUDCollection extends React.PureComponent<
   }
 
   renderCell(record: any, col: any) {
-    const renderer = this.props.itemRenderers && this.props.itemRenderers[col];
+    const renderer = this.props.itemRenderers?.[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
     return renderer ? renderer(val, onChange, this.getLabel(col), record) : val;

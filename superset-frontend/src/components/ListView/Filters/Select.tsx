@@ -32,7 +32,7 @@ import { FilterContainer, BaseFilter, FilterHandler } from './Base';
 interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
   name?: string;
-  onSelect: (selected: SelectOption | undefined) => void;
+  onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
   paginate?: boolean;
   selects: Filter['selects'];
 }
@@ -58,7 +58,7 @@ function SelectFilter(
   };
 
   const onClear = () => {
-    onSelect(undefined);
+    onSelect(undefined, true);
     setSelectedOption(undefined);
   };
 

@@ -69,13 +69,13 @@ const propTypes = {
 
 const defaultProps = {};
 
-const MARKDOWN_PLACE_HOLDER = `# ✨Markdown
-## ✨Markdown
-### ✨Markdown
+const MARKDOWN_PLACE_HOLDER = `# ✨Header 1
+## ✨Header 2
+### ✨Header 3
 
 <br />
 
-Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
+Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)`;
 
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
 

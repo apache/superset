@@ -21,7 +21,8 @@ export const DASHBOARD_LIST = '/dashboard/list/';
 export const CHART_LIST = '/chart/list/';
 export const WORLD_HEALTH_DASHBOARD = '/superset/dashboard/world_health/';
 export const SAMPLE_DASHBOARD_1 = '/superset/dashboard/1-sample-dashboard/';
-export const ECHARTS_DASHBOARD = '/superset/dashboard/echarts_dash/';
+export const SUPPORTED_CHARTS_DASHBOARD =
+  '/superset/dashboard/supported_charts_dash/';
 export const TABBED_DASHBOARD = '/superset/dashboard/tabbed_dash/';
 export const DATABASE_LIST = '/databaseview/list';
 export const DATASET_LIST_PATH = 'tablemodelview/list';

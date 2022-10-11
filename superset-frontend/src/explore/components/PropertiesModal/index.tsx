@@ -159,6 +159,7 @@ function PropertiesModal({
         ...payload,
         ...res.json.result,
         id: slice.slice_id,
+        owners: selectedOwners,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));

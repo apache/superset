@@ -94,7 +94,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +239,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
         "roles": ("name", "asc"),
+    }
+    filter_rel_fields = {
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),

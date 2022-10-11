@@ -27,6 +27,7 @@ runAsUser: 0
 # serviceAccountName: superset
 serviceAccount:
   create: false
+  annotations: {}
 
 # Install additional packages and do any other bootstrap configuration in this script
 # For production clusters it's recommended to build own image with this step done in CI
@@ -288,6 +289,12 @@ supersetNode:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
+  strategy: {}
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 25%
+    #   maxUnavailable: 25%
+
 ##
 ## Superset worker configuration
 supersetWorker:
@@ -321,6 +328,12 @@ supersetWorker:
     #  memory: 128Mi
   podSecurityContext: {}
   containerSecurityContext: {}
+  strategy: {}
+    # type: RollingUpdate
+    # rollingUpdate:
+    #   maxSurge: 25%
+    #   maxUnavailable: 25%
+
 ##
 ## Superset beat configuration (to trigger scheduled jobs like reports)
 supersetCeleryBeat:
