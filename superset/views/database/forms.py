@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
+from tokenize import Number
 from typing import List
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _
-from flask_wtf.file import FileAllowed, FileField, FileRequired
+from flask_wtf.file import FileAllowed, FileField, FileRequired, FileSize
 from wtforms import (
     BooleanField,
     IntegerField,
@@ -116,9 +117,12 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     )
     csv_file = FileField(
         _("CSV File"),
-        description=_("Select a CSV file to be uploaded to a database."),
+        description=_("Select a CSV file to be uploaded to a database. Max Size of the file should be 1MB and the accepted extensions are .csv, .tsv, .txt"),
         validators=[
             FileRequired(),
+            FileSize(config["CSV_MAX_SIZES"],
+                message="File size must not exceed the limit: " + str(config["CSV_MAX_SIZES"] / 1048576) + "MB"
+                ),
             FileAllowed(
                 config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"]),
                 _(
@@ -208,8 +212,8 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     )
     nrows = IntegerField(
         _("Rows to Read"),
-        description=_("Number of rows of file to read."),
-        validators=[Optional(), NumberRange(min=0)],
+        description=_("Number of rows of file to read. Minimum 1 and Maximum 500 rows are allowed"),
+        validators=[DataRequired(),NumberRange(min=config["CSV_MIN_ROWS"]), NumberRange(max=config["CSV_MAX_ROWS"])],
         widget=BS3TextFieldWidget(),
     )
     skip_blank_lines = BooleanField(
