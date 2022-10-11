@@ -72,17 +72,17 @@ test('should render multiple links', async () => {
   });
 });
 
-test('should not render the "Plus {x} more"', () => {
+test('should not render the "+ {x} more"', () => {
   setup();
   userEvent.hover(screen.getByText('Hover me'));
   expect(screen.queryByTestId('plus-more')).not.toBeInTheDocument();
 });
 
-test('should render the "Plus {x} more"', async () => {
+test('should render the "+ {x} more"', async () => {
   setup({
     moreItems: 3,
   });
   userEvent.hover(screen.getByText('Hover me'));
   expect(await screen.findByTestId('plus-more')).toBeInTheDocument();
-  expect(await screen.findByText('Plus 3 more')).toBeInTheDocument();
+  expect(await screen.findByText('+ 3 more')).toBeInTheDocument();
 });

@@ -58,7 +58,7 @@ export default function CrossLinksTooltip({
             </Link>
           ))}
           {moreItems && (
-            <span data-test="plus-more">{t('Plus %s more', moreItems)}</span>
+            <span data-test="plus-more">{t('+ %s more', moreItems)}</span>
           )}
         </StyledLinkedTooltip>
       }
