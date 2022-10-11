@@ -19,7 +19,7 @@
 import {
   ensureIsArray,
   getChartMetadataRegistry,
-  JsonObject,
+  JsonResponse,
   styled,
   SupersetClient,
   t,
@@ -281,14 +281,14 @@ function ChartList(props: ChartListProps) {
       page_size: pageSize,
       ...filters,
     });
-    const json: void | JsonObject = await SupersetClient.get({
+    const response: void | JsonResponse = await SupersetClient.get({
       endpoint: !filterValue
         ? `/api/v1/dashboard/?q=${queryParams}`
         : `/api/v1/chart/?q=${queryParams}`,
     }).catch(() =>
       addDangerToast(t('An error occurred while fetching dashboards')),
     );
-    const dashboards = json?.result?.map(
+    const dashboards = response?.json?.result?.map(
       ({
         dashboard_title: dashboardTitle,
         id,
@@ -302,7 +302,7 @@ function ChartList(props: ChartListProps) {
     );
     return {
       data: uniqBy<SelectOption>(dashboards, 'value'),
-      totalCount: json?.count,
+      totalCount: response?.json?.count,
     };
   };
 
