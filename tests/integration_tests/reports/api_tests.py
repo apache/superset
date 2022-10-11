@@ -1316,7 +1316,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         }
         uri = f"api/v1/report/{report_schedule.id}"
         rv = self.put_assert_metric(uri, report_schedule_data, "put")
-        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_delete_report_schedule(self):
@@ -1375,7 +1375,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="alpha2", password="password")
         uri = f"api/v1/report/{report_schedule.id}"
         rv = self.delete_assert_metric(uri, "delete")
-        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_bulk_delete_report_schedule(self):
@@ -1432,7 +1432,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="alpha2", password="password")
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
-        self.assertEqual(rv.status_code, 403)
+        self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_list_report_schedule_logs(self):
