@@ -19,6 +19,7 @@
 import {
   ensureIsArray,
   getChartMetadataRegistry,
+  JsonObject,
   styled,
   SupersetClient,
   t,
@@ -137,47 +138,6 @@ const createFetchDatasets = async (
   };
 };
 
-const createFetchDashboards = async (
-  filterValue = '',
-  page: number,
-  pageSize: number,
-) => {
-  // add filters if filterValue
-  const filters = filterValue
-    ? { filters: [{ col: 'dashboards', opr: FilterOperator.relationManyMany, value: filterValue }] }
-    : {};
-  const queryParams = rison.encode({
-    columns: ['dashboard_title', 'id'],
-    keys: ['none'],
-    order_column: 'dashboard_title',
-    order_direction: 'asc',
-    page,
-    page_size: pageSize,
-    ...filters,
-  });
-  const { json = {} } = await SupersetClient.get({
-    endpoint: !filterValue
-      ? `/api/v1/dashboard/?q=${queryParams}`
-      : `/api/v1/chart/?q=${queryParams}`,
-  });
-  const dashboards = json?.result?.map(
-    ({
-      dashboard_title: dashboardTitle,
-      id,
-    }: {
-      dashboard_title: string;
-      id: number;
-    }) => ({
-      label: dashboardTitle,
-      value: id,
-    }),
-  );
-  return {
-    data: uniqBy<SelectOption>(dashboards, 'value'),
-    totalCount: json?.count,
-  };
-};
-
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -265,7 +225,7 @@ function ChartList(props: ChartListProps) {
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const enableBroadUserAccess =
     bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
-  const enableCrossRef = isFeatureEnabled(FeatureFlag.CROSS_REFERENCES);
+  const crossRefEnabled = isFeatureEnabled(FeatureFlag.CROSS_REFERENCES);
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -295,6 +255,56 @@ function ChartList(props: ChartListProps) {
       ),
     );
   }
+  const fetchDashboards = async (
+    filterValue = '',
+    page: number,
+    pageSize: number,
+  ) => {
+    // add filters if filterValue
+    const filters = filterValue
+      ? {
+          filters: [
+            {
+              col: 'dashboards',
+              opr: FilterOperator.relationManyMany,
+              value: filterValue,
+            },
+          ],
+        }
+      : {};
+    const queryParams = rison.encode({
+      columns: ['dashboard_title', 'id'],
+      keys: ['none'],
+      order_column: 'dashboard_title',
+      order_direction: 'asc',
+      page,
+      page_size: pageSize,
+      ...filters,
+    });
+    const json: void | JsonObject = await SupersetClient.get({
+      endpoint: !filterValue
+        ? `/api/v1/dashboard/?q=${queryParams}`
+        : `/api/v1/chart/?q=${queryParams}`,
+    }).catch(() =>
+      addDangerToast(t('An error occurred while fetching dashboards')),
+    );
+    const dashboards = json?.result?.map(
+      ({
+        dashboard_title: dashboardTitle,
+        id,
+      }: {
+        dashboard_title: string;
+        id: number;
+      }) => ({
+        label: dashboardTitle,
+        value: id,
+      }),
+    );
+    return {
+      data: uniqBy<SelectOption>(dashboards, 'value'),
+      totalCount: json?.count,
+    };
+  };
 
   const dashboardsCol = useMemo(
     () => ({
@@ -397,7 +407,7 @@ function ChartList(props: ChartListProps) {
         disableSortBy: true,
         size: 'xl',
       },
-      ...(enableCrossRef ? [dashboardsCol] : []),
+      ...(crossRefEnabled ? [dashboardsCol] : []),
       {
         Cell: ({
           row: {
@@ -571,7 +581,7 @@ function ChartList(props: ChartListProps) {
       input: 'select',
       operator: FilterOperator.relationManyMany,
       unfilteredLabel: t('All'),
-      fetchSelects: createFetchDashboards,
+      fetchSelects: fetchDashboards,
       paginate: true,
     }),
     [],
@@ -655,7 +665,7 @@ function ChartList(props: ChartListProps) {
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
-      ...(enableCrossRef ? [dashboardsFilter] : []),
+      ...(crossRefEnabled ? [dashboardsFilter] : []),
       ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),

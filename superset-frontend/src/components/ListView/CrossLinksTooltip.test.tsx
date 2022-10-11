@@ -45,7 +45,7 @@ const mockedProps = {
 
 function setup(overrideProps: CrossLinksTooltipProps | {} = {}) {
   return render(
-    <CrossLinksTooltip {...{ ...mockedProps, ...overrideProps }}>
+    <CrossLinksTooltip {...mockedProps} {...overrideProps}>
       Hover me
     </CrossLinksTooltip>,
     {

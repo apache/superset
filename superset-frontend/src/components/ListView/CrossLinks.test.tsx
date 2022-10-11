@@ -42,7 +42,7 @@ const mockedProps = {
 };
 
 function setup(overrideProps: CrossLinksProps | {} = {}) {
-  return render(<CrossLinks {...{ ...mockedProps, ...overrideProps }} />, {
+  return render(<CrossLinks {...mockedProps} {...overrideProps} />, {
     useRouter: true,
   });
 }
@@ -83,11 +83,11 @@ test('should render a custom prefix link', () => {
         title: 'Test dashboard',
       },
     ],
-    linkPrefix: '/preset/dashboard/',
+    linkPrefix: '/custom/dashboard/',
   });
   expect(screen.getByRole('link')).toHaveAttribute(
     'href',
-    `/preset/dashboard/1`,
+    `/custom/dashboard/1`,
   );
 });
 
