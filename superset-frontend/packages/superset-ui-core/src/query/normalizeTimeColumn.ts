@@ -26,14 +26,14 @@ import {
   QueryFormData,
   QueryObject,
 } from './types';
-import { FeatureFlag, isFeatureEnabled } from '../utils';
+import { isXAxisSet } from './getXAxis';
 
 export function normalizeTimeColumn(
   formData: QueryFormData,
   queryObject: QueryObject,
 ): QueryObject {
   // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
-  if (!(isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && formData.x_axis)) {
+  if (!isXAxisSet(formData)) {
     return queryObject;
   }
 

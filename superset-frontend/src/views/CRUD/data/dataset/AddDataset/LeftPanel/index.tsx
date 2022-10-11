@@ -31,11 +31,13 @@ import { TableOption } from 'src/components/TableSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { Table } from 'src/hooks/apiResources';
 import Loading from 'src/components/Loading';
-import DatabaseSelector from 'src/components/DatabaseSelector';
+import DatabaseSelector, {
+  DatabaseObject,
+} from 'src/components/DatabaseSelector';
 import { debounce } from 'lodash';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DatasetActionType, DatasetObject } from '../types';
+import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
@@ -60,7 +62,7 @@ const LeftPanelStyle = styled.div`
     }
     .refresh {
       position: absolute;
-      top: ${theme.gridUnit * 43.25}px;
+      top: ${theme.gridUnit * 37.25}px;
       left: ${theme.gridUnit * 16.75}px;
       span[role="button"]{
         font-size: ${theme.gridUnit * 4.25}px;
@@ -80,17 +82,28 @@ const LeftPanelStyle = styled.div`
       overflow: auto;
       position: absolute;
       bottom: 0;
-      top: ${theme.gridUnit * 97.5}px;
+      top: ${theme.gridUnit * 92.25}px;
       left: ${theme.gridUnit * 3.25}px;
       right: 0;
       .options {
+        cursor: pointer;
         padding: ${theme.gridUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
+        :hover {
+          background-color: ${theme.colors.grayscale.light4}
+        }
+      }
+      .options-highlighted {
+        cursor: pointer;
+        padding: ${theme.gridUnit * 1.75}px;
+        border-radius: ${theme.borderRadius}px;
+        background-color: ${theme.colors.primary.dark1};
+        color: ${theme.colors.grayscale.light5};
       }
     }
     form > span[aria-label="refresh"] {
       position: absolute;
-      top: ${theme.gridUnit * 73}px;
+      top: ${theme.gridUnit * 67.5}px;
       left: ${theme.gridUnit * 42.75}px;
       font-size: ${theme.gridUnit * 4.25}px;
     }
@@ -108,10 +121,9 @@ const LeftPanelStyle = styled.div`
         margin-bottom: 10px;
       }
       p {
-        color: ${theme.colors.grayscale.light1}
+        color: ${theme.colors.grayscale.light1};
       }
     }
-  }
 `}
 `;
 
@@ -125,12 +137,22 @@ export default function LeftPanel({
   const [loadTables, setLoadTables] = useState(false);
   const [searchVal, setSearchVal] = useState('');
   const [refresh, setRefresh] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
 
   const { addDangerToast } = useToasts();
 
-  const setDatabase = (db: Partial<DatasetObject>) => {
-    setDataset({ type: DatasetActionType.selectDatabase, payload: db });
+  const setDatabase = (db: Partial<DatabaseObject>) => {
+    setDataset({ type: DatasetActionType.selectDatabase, payload: { db } });
+    setSelectedTable(null);
     setResetTables(true);
+  };
+
+  const setTable = (tableName: string, index: number) => {
+    setSelectedTable(index);
+    setDataset({
+      type: DatasetActionType.selectTable,
+      payload: { name: 'table_name', value: tableName },
+    });
   };
 
   const getTablesList = (url: string) => {
@@ -164,6 +186,7 @@ export default function LeftPanel({
       });
       setLoadTables(true);
     }
+    setSelectedTable(null);
     setResetTables(true);
   };
 
@@ -212,7 +235,6 @@ export default function LeftPanel({
         onSchemaChange={setSchema}
       />
       {loadTables && !refresh && Loader('Table loading')}
-
       {schema && !loadTables && !tableOptions.length && !searchVal && (
         <div className="emptystate">
           <EmptyStateMedium
@@ -245,14 +267,23 @@ export default function LeftPanel({
                 }}
                 className="table-form"
                 placeholder={t('Search tables')}
+                allowClear
               />
             )}
           </Form>
           <div className="options-list" data-test="options-list">
             {!refresh &&
-              tableOptions.map((o, i) => (
-                <div className="options" key={i}>
-                  {o.label}
+              tableOptions.map((option, i) => (
+                <div
+                  className={
+                    selectedTable === i ? 'options-highlighted' : 'options'
+                  }
+                  key={i}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setTable(option.value, i)}
+                >
+                  {option.label}
                 </div>
               ))}
           </div>

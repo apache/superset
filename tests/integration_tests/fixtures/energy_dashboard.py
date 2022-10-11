@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import random
-from typing import Dict, Set
+from typing import Dict, List, Set
 
 import pandas as pd
 import pytest
@@ -59,8 +59,8 @@ def load_energy_table_data():
 @pytest.fixture()
 def load_energy_table_with_slice(load_energy_table_data):
     with app.app_context():
-        _create_energy_table()
-        yield
+        slices = _create_energy_table()
+        yield slices
         _cleanup()
 
 
@@ -69,7 +69,7 @@ def _get_dataframe():
     return pd.DataFrame.from_dict(data)
 
 
-def _create_energy_table():
+def _create_energy_table() -> List[Slice]:
     table = create_table_metadata(
         table_name=ENERGY_USAGE_TBL_NAME,
         database=get_example_database(),
@@ -86,13 +86,17 @@ def _create_energy_table():
     db.session.commit()
     table.fetch_metadata()
 
+    slices = []
     for slice_data in _get_energy_slices():
-        _create_and_commit_energy_slice(
+
+        slice = _create_and_commit_energy_slice(
             table,
             slice_data["slice_title"],
             slice_data["viz_type"],
             slice_data["params"],
         )
+        slices.append(slice)
+    return slices
 
 
 def _create_and_commit_energy_slice(

@@ -64,7 +64,7 @@ export default function <%= packageLabel %>(props: <%= packageLabel %>Props) {
 
   const rootElem = createRef<HTMLDivElement>();
 
-  // Often, you just want to get a hold of the DOM and go nuts.
+  // Often, you just want to access the DOM and do whatever you want.
   // Here, you can do that with createRef, and the useEffect hook.
   useEffect(() => {
     const root = rootElem.current as HTMLElement;

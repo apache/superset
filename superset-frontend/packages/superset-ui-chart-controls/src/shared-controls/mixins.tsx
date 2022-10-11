@@ -23,7 +23,8 @@ import {
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { ControlPanelState, ControlState } from '../types';
+import { BaseControlConfig, ControlPanelState, ControlState } from '../types';
+import { getTemporalColumns } from '../utils';
 
 const getAxisLabel = (
   formData: QueryFormData,
@@ -32,13 +33,13 @@ const getAxisLabel = (
     ? { label: t('Y-axis'), description: t('Dimension to use on y-axis.') }
     : { label: t('X-axis'), description: t('Dimension to use on x-axis.') };
 
-export const xAxisControlConfig = {
+export const xAxisMixin = {
   label: (state: ControlPanelState) => getAxisLabel(state?.form_data).label,
   multi: false,
   description: (state: ControlPanelState) =>
     getAxisLabel(state?.form_data).description,
   validators: [validateNonEmpty],
-  initialValue: (control: ControlState, state: ControlPanelState) => {
+  initialValue: (control: ControlState, state: ControlPanelState | null) => {
     if (
       isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
       state?.form_data?.granularity_sqla &&
@@ -50,4 +51,16 @@ export const xAxisControlConfig = {
     return undefined;
   },
   default: undefined,
+};
+
+export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
+  mapStateToProps: ({ datasource }) => {
+    const payload = getTemporalColumns(datasource);
+
+    return {
+      options: payload.temporalColumns,
+      default: payload.defaultTemporalColumn,
+      isTemporal: true,
+    };
+  },
 };

@@ -16,6 +16,8 @@
 # under the License.
 # isort:skip_file
 import json
+from unittest.mock import patch
+
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -32,6 +34,7 @@ from superset.models.dashboard import Dashboard
 from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 from .base_tests import SupersetTestCase
+from .conftest import with_config
 
 
 class Model1Api(BaseSupersetModelRestApi):
@@ -287,6 +290,55 @@ class ApiOwnersTestCaseMixin:
         ]
         # TODO Check me
         assert expected_results == sorted_results
+
+    @with_config({"EXCLUDE_USERS_FROM_LISTS": ["gamma"]})
+    def test_get_base_filter_related_owners(self):
+        """
+        API: Test get base filter related owners
+        """
+        self.login(username="admin")
+        uri = f"api/v1/{self.resource_name}/related/owners"
+        gamma_user = (
+            db.session.query(security_manager.user_model)
+            .filter(security_manager.user_model.username == "gamma")
+            .one_or_none()
+        )
+        assert gamma_user is not None
+        users = db.session.query(security_manager.user_model).all()
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] == len(users) - 1
+        response_users = [result["text"] for result in response["result"]]
+        assert "gamma user" not in response_users
+
+    @patch(
+        "superset.security.SupersetSecurityManager.get_exclude_users_from_lists",
+        return_value=["gamma"],
+    )
+    def test_get_base_filter_related_owners_on_sm(
+        self, mock_get_exclude_users_from_list
+    ):
+        """
+        API: Test get base filter related owners using security manager
+        """
+        self.login(username="admin")
+        uri = f"api/v1/{self.resource_name}/related/owners"
+        gamma_user = (
+            db.session.query(security_manager.user_model)
+            .filter(security_manager.user_model.username == "gamma")
+            .one_or_none()
+        )
+        assert gamma_user is not None
+        users = db.session.query(security_manager.user_model).all()
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] == len(users) - 1
+        response_users = [result["text"] for result in response["result"]]
+        assert "gamma user" not in response_users
 
     def test_get_ids_related_owners(self):
         """

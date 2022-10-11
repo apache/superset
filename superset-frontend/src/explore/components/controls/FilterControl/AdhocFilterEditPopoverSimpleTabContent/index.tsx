@@ -158,7 +158,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
     } else if (option && 'saved_metric_name' in option) {
       subject = option.saved_metric_name;
       clause = CLAUSES.HAVING;
-    } else if (option && option.label) {
+    } else if (option?.label) {
       subject = option.label;
       clause = CLAUSES.HAVING;
     }

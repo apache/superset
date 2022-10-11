@@ -79,8 +79,8 @@ describe('DatasetLayout', () => {
   });
 
   it('renders a Footer when passed in', () => {
-    render(<DatasetLayout footer={Footer()} />);
+    render(<DatasetLayout footer={<Footer url="" />} />, { useRedux: true });
 
-    expect(screen.getByText(/footer/i)).toBeVisible();
+    expect(screen.getByText(/Cancel/i)).toBeVisible();
   });
 });

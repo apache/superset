@@ -60,6 +60,12 @@ assists people when migrating to a new version.
 - [19017](https://github.com/apache/superset/pull/19017): Removes Python 3.7 support.
 - [18970](https://github.com/apache/superset/pull/18970): The `DISABLE_LEGACY_DATASOURCE_EDITOR` feature flag is now `True` by default which disables the legacy datasource editor from being shown in the client.
 
+## 1.5.2
+
+### Other
+
+- [19570](https://github.com/apache/superset/pull/19570): makes [sqloxide](https://pypi.org/project/sqloxide/) optional so the SIP-68 migration can be run on aarch64. If the migration is taking too long installing sqloxide manually should improve the performance.
+
 ## 1.5.0
 
 ### Breaking Changes

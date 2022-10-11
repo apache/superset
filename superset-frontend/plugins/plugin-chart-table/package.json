@@ -37,8 +37,12 @@
     "regenerator-runtime": "^0.13.7",
     "xss": "^1.0.10"
   },
+  "devDependencies": {
+    "@testing-library/react": "^11.2.0"
+  },
   "peerDependencies": {
     "@types/react": "*",
+    "@types/classnames": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "react": "^16.13.1",

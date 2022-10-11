@@ -71,7 +71,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -179,9 +179,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "extra",
         "kind",
         "created_on",
+        "created_on_humanized",
         "created_by.first_name",
         "created_by.last_name",
         "changed_on",
+        "changed_on_humanized",
         "changed_by.first_name",
         "changed_by.last_name",
     ]
@@ -214,6 +216,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "extra",
     ]
     openapi_spec_tag = "Datasets"
+
+    filter_rel_fields = {
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "database": [["id", DatabaseFilter, lambda: []]],
+    }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
@@ -223,7 +230,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "id": [DatasetCertifiedFilter],
     }
     search_columns = ["id", "database", "owners", "schema", "sql", "table_name"]
-    filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
 
@@ -811,6 +817,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing datasets?
                       type: boolean
+                    sync_columns:
+                      description: sync columns?
+                      type: boolean
+                    sync_metrics:
+                      description: sync metrics?
+                      type: boolean
           responses:
             200:
               description: Dataset import result
@@ -849,9 +861,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        sync_columns = request.form.get("sync_columns") == "true"
+        sync_metrics = request.form.get("sync_metrics") == "true"
 
         command = ImportDatasetsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            sync_columns=sync_columns,
+            sync_metrics=sync_metrics,
         )
         command.run()
         return self.response(200, message="OK")

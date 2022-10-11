@@ -16,28 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
-import React from 'react';
-import { Select } from 'src/components';
-import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-import { styledMount as mount } from 'spec/helpers/theming';
-import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
+import {
+  DTTM_ALIAS,
+  getColumnLabel,
+  isQueryFormColumn,
+  QueryFormData,
+} from '@superset-ui/core';
 
-const defaultProps = {
-  name: 'color_scheme',
-  label: 'Color Scheme',
-  options: getCategoricalSchemeRegistry()
-    .keys()
-    .map(s => [s, s]),
+export const isXAxisSet = (formData: QueryFormData) =>
+  isQueryFormColumn(formData.x_axis);
+
+export const getXAxis = (formData: QueryFormData): string | undefined => {
+  // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
+  if (!(formData.granularity_sqla || formData.x_axis)) {
+    return undefined;
+  }
+
+  if (isXAxisSet(formData)) {
+    return getColumnLabel(formData.x_axis);
+  }
+  return DTTM_ALIAS;
 };
-
-describe('ColorSchemeControl', () => {
-  let wrapper;
-  beforeEach(() => {
-    wrapper = mount(<ColorSchemeControl {...defaultProps} />);
-  });
-
-  it('renders a Select', () => {
-    expect(wrapper.find(Select)).toExist();
-  });
-});

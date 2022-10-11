@@ -565,6 +565,7 @@ function ExploreViewContainer(props) {
         reports={props.reports}
         onSaveChart={toggleModal}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
+        metadata={props.metadata}
       />
       <ExplorePanelContainer id="explore-container">
         <Global
@@ -599,7 +600,6 @@ function ExploreViewContainer(props) {
             form_data={props.form_data}
             sliceName={props.sliceName}
             dashboardId={props.dashboardId}
-            sliceDashboards={props.exploreState.sliceDashboards ?? []}
           />
         )}
         <Resizable
@@ -707,7 +707,7 @@ ExploreViewContainer.propTypes = propTypes;
 function mapStateToProps(state) {
   const { explore, charts, common, impressionId, dataMask, reports, user } =
     state;
-  const { controls, slice, datasource } = explore;
+  const { controls, slice, datasource, metadata } = explore;
   const form_data = getFormDataFromControls(controls);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
   form_data.extra_form_data = mergeExtraFormData(
@@ -753,6 +753,7 @@ function mapStateToProps(state) {
     user,
     exploreState: explore,
     reports,
+    metadata,
   };
 }
 

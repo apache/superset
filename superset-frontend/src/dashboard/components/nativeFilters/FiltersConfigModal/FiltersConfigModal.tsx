@@ -396,7 +396,7 @@ export function FiltersConfigModal({
         let array: string[] = [];
         if (formItem && 'dependencies' in formItem) {
           array = [...formItem.dependencies];
-        } else if (configItem && configItem.cascadeParentIds) {
+        } else if (configItem?.cascadeParentIds) {
           array = [...configItem.cascadeParentIds];
         }
         dependencyMap.set(key, array);

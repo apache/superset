@@ -19,6 +19,10 @@
 import React from 'react';
 import {
   ensureIsArray,
+  FeatureFlag,
+  isAdhocColumn,
+  isFeatureEnabled,
+  isPhysicalColumn,
   QueryFormMetric,
   smartDateFormatter,
   t,
@@ -38,7 +42,7 @@ import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    { ...sections.legacyTimeseriesTime, expanded: false },
+    { ...sections.genericTime, expanded: false },
     {
       label: t('Query'),
       expanded: true,
@@ -62,6 +66,41 @@ const config: ControlPanelConfig = {
               description: t('Columns to group by on the rows'),
             },
           },
+        ],
+        [
+          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+            ? {
+                name: 'time_grain_sqla',
+                config: {
+                  ...sharedControls.time_grain_sqla,
+                  visibility: ({ controls }) => {
+                    const dttmLookup = Object.fromEntries(
+                      ensureIsArray(controls?.groupbyColumns?.options).map(
+                        option => [option.column_name, option.is_dttm],
+                      ),
+                    );
+
+                    return [
+                      ...ensureIsArray(controls?.groupbyColumns.value),
+                      ...ensureIsArray(controls?.groupbyRows.value),
+                    ]
+                      .map(selection => {
+                        if (isAdhocColumn(selection)) {
+                          return true;
+                        }
+                        if (isPhysicalColumn(selection)) {
+                          return !!dttmLookup[selection];
+                        }
+                        return false;
+                      })
+                      .some(Boolean);
+                  },
+                },
+              }
+            : null,
+          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+            ? 'datetime_columns_lookup'
+            : null,
         ],
         [
           {

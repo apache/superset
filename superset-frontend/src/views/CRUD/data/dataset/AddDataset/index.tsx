@@ -53,7 +53,7 @@ export function datasetReducer(
     case DatasetActionType.selectTable:
       return {
         ...trimmedState,
-        ...action.payload,
+        [action.payload.name]: action.payload.value,
       };
     case DatasetActionType.changeDataset:
       return {
@@ -78,8 +78,14 @@ export default function AddDataset() {
     <LeftPanel
       setDataset={setDataset}
       schema={dataset?.schema}
-      dbId={dataset?.id}
+      dbId={dataset?.db?.id}
     />
+  );
+  const prevUrl =
+    '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+
+  const FooterComponent = () => (
+    <Footer url={prevUrl} datasetObject={dataset} />
   );
 
   return (
@@ -87,7 +93,7 @@ export default function AddDataset() {
       header={HeaderComponent()}
       leftPanel={LeftPanelComponent()}
       datasetPanel={DatasetPanel()}
-      footer={Footer()}
+      footer={FooterComponent()}
     />
   );
 }

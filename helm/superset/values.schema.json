@@ -12,6 +12,9 @@
             "properties": {
                 "create": {
                     "type": "boolean"
+                },
+                "annotations": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -340,6 +343,9 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "strategy": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.apps.v1.DeploymentStrategy"
                 }
             },
             "required": [
@@ -383,6 +389,9 @@
                 },
                 "containerSecurityContext": {
                     "type": "object"
+                },
+                "strategy": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.apps.v1.DeploymentStrategy"
                 }
             },
             "required": [

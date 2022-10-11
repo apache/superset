@@ -19,6 +19,7 @@
 import { DataRecordValue, QueryObjectFilterClause } from '@superset-ui/core';
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
+import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
 import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
@@ -97,7 +98,7 @@ export default function EchartsTreemap({
             filters.push({
               col: groupby[i],
               op: '==',
-              val: path,
+              val: path === 'null' ? NULL_STRING : path,
               formattedVal: path,
             }),
           );

@@ -52,7 +52,7 @@ class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-
 
 class DashboardCreatedByMeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Created by me")
-    arg_name = "created_by_me"
+    arg_name = "dashboard_created_by_me"
 
     def apply(self, query: Query, value: Any) -> Query:
         return query.filter(
