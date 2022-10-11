@@ -58,7 +58,6 @@ class CategoricalColorScale extends ExtensibleFunction {
     this.colors = colors;
     this.scale = scaleOrdinal<{ toString(): string }, string>();
     this.scale.range(colors);
-    this.scale.domain(Object.keys(parentForcedColors));
     this.parentForcedColors = parentForcedColors;
     this.forcedColors = {};
     this.multiple = 0;

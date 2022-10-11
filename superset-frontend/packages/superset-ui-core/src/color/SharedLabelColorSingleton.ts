@@ -41,14 +41,16 @@ export class SharedLabelColor {
   updateColorMap(colorNamespace?: string, colorScheme?: string) {
     const categoricalNamespace =
       CategoricalColorNamespace.getNamespace(colorNamespace);
-    const colorScale = categoricalNamespace.getScale(colorScheme);
-    colorScale.domain([...this.colorMap.keys()]);
-    const copyColorMap = new Map(this.colorMap);
+    const newColorMap = new Map();
     this.colorMap.clear();
-    copyColorMap.forEach((_, label) => {
-      const newColor = colorScale(label);
-      this.colorMap.set(label, newColor);
+    this.sliceLabelMap.forEach(labels => {
+      const colorScale = categoricalNamespace.getScale(colorScheme);
+      labels.forEach(label => {
+        const newColor = colorScale(label);
+        newColorMap.set(label, newColor);
+      });
     });
+    this.colorMap = newColorMap;
   }
 
   getColorMap() {
