@@ -17,7 +17,7 @@
 from typing import Any
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy import and_, or_
+from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager

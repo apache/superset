@@ -32,6 +32,8 @@ assists people when migrating to a new version.
 
 ### Breaking Changes
 
+- [21765](https://github.com/apache/superset/pull/21765): Gamma users will no longer have read and write access to Alerts & Reports. To give Gamma users the ability to schedule alerts and reports like before, create an additional role with "can read on ReportSchedule", "can write on ReportSchedule", "menu access on Manage" and "menu access on Alerts & Report".
+
 ### Potential Downtime
 
 ### Other
