@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  useTheme,
+  DEFAULT_TIME_RANGE,
+  NO_TIME_RANGE,
+} from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
@@ -25,7 +32,6 @@ import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
 import { Tooltip } from 'src/components/Tooltip';
-import { DEFAULT_TIME_RANGE, NO_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';

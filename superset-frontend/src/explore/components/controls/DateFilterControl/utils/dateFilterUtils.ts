@@ -17,9 +17,8 @@
  * under the License.
  */
 import rison from 'rison';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, NO_TIME_RANGE } from '@superset-ui/core';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { NO_TIME_RANGE } from 'src/explore/constants';
 import {
   COMMON_RANGE_VALUES_SET,
   CALENDAR_RANGE_VALUES_SET,

@@ -46,6 +46,7 @@ import {
   ensureIsArray,
   isDefined,
   hasGenericChartAxes,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
 
 import {
@@ -226,7 +227,7 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   type: 'DateFilterControl',
   freeForm: true,
   label: TIME_FILTER_LABELS.time_range,
-  default: 'No filter', // this value is an empty filter constant so shouldn't translate it.
+  default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(
     'The time range for the visualization. All relative times, e.g. "Last month", ' +
       '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
