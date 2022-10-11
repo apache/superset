@@ -20,7 +20,7 @@ import React from 'react';
 import { SupersetClient } from '@superset-ui/core';
 // import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
 
 // const tablesEndpoint = 'glob:*/superset/tables*';
@@ -219,44 +219,13 @@ describe('LeftPanel', () => {
     expect(await screen.findByText('test-postgres')).toBeInTheDocument();
     expect(schemaSelect).toBeDisabled();
     userEvent.click(screen.getByText('test-postgres'));
-    // screen.debug(databaseSelect);
-    // userEvent.selectOptions(databaseSelect, 'test-postgres');
 
     // Wait for schema field to be enabled
     await waitFor(() => {
       expect(schemaSelect).toBeEnabled();
     });
-    const lbs = screen.getAllByRole('listbox');
-    const cbs = screen.getAllByRole('combobox');
-    const options = screen.getAllByRole('option');
-
-    // userEvent.selectOptions(schemaSelect, '');
-    screen.debug(within(lbs[0]).getAllByRole('option')[1]);
-    userEvent.click(within(lbs[0]).getAllByRole('option')[1]);
-    // await waitFor(() =>
-    //   expect(screen.getByRole('option', { name: 'public' })).toBeVisible(),
-    // );
-    // // screen.debug(screen.getByRole('option', { name: 'information_schema' }));
-    // expect(
-    //   await screen.findByRole('option', { name: 'information_schema' }),
-    // ).toBeVisible();
-    // expect(await screen.findByRole('option', { name: 'public' })).toBeVisible();
-
-    // SupersetClientGet.mockImplementation(await getTableMockFunction());
-    // screen.logTestingPlaygroundURL();
-
-    // userEvent.click(screen.getByRole('option', { name: '2' }));
-    // screen.logTestingPlaygroundURL();
 
     // // Todo: (Phillip) finish testing for showing list of options once table is implemented
     // // screen.debug(screen.getByText('table_a'));
-    // screen.debug(screen.getAllByRole('option'));
-    // userEvent.selectOptions(
-    //   schemaSelect,
-    //   screen.getByRole('option', { name: 'public' }),
-    // );
-    // screen.logTestingPlaygroundURL();
-    // screen.debug(screen.getByTestId('options-list'));
-    // expect(screen.getByTestId('options-list')).toBeInTheDocument();
   });
 });
