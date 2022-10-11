@@ -425,6 +425,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Feature is under active development and breaking changes are expected
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
+    "DASHBOARD_VIRTUALIZATION": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": True,
     "EMBEDDED_SUPERSET": False,
@@ -760,7 +761,6 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
-
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
