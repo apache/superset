@@ -28,6 +28,7 @@ import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { isCurrentUserBot } from 'src/utils/isBot';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
@@ -74,6 +75,7 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
+  isInView: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -92,6 +94,7 @@ const defaultProps = {
   chartStackTrace: null,
   isDeactivatedViz: false,
   force: false,
+  isInView: true,
 };
 
 const Styles = styled.div`
@@ -307,11 +310,17 @@ class Chart extends React.PureComponent {
           width={width}
         >
           <div className="slice_container" data-test="slice-container">
-            <ChartRenderer
-              {...this.props}
-              source={this.props.dashboardId ? 'dashboard' : 'explore'}
-              data-test={this.props.vizType}
-            />
+            {this.props.isInView ||
+            !isFeatureEnabled(FeatureFlag.DASHBOARD_VIRTUALIZATION) ||
+            isCurrentUserBot() ? (
+              <ChartRenderer
+                {...this.props}
+                source={this.props.dashboardId ? 'dashboard' : 'explore'}
+                data-test={this.props.vizType}
+              />
+            ) : (
+              <Loading />
+            )}
           </div>
           {isLoading && !isDeactivatedViz && <Loading />}
         </Styles>
