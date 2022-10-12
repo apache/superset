@@ -40,12 +40,10 @@ const store = mockStore({
 });
 
 // case when common.locale is not populated
-const mockEmptyStore = configureStore([thunk]);
-const emptyStore = mockEmptyStore({});
+const emptyStore = mockStore({});
 
 // case when common.locale is populated with invalid locale
-const mockInvalidStore = configureStore([thunk]);
-const invalidStore = mockInvalidStore({ common: { locale: 'invalid_locale' } });
+const invalidStore = mockStore({ common: { locale: 'invalid_locale' } });
 
 test('renders with default props', () => {
   render(
