@@ -20,7 +20,7 @@ const packageConfig = require('./package');
 
 module.exports = {
   sourceMaps: true,
-  sourceType: 'unambiguous',
+  sourceType: 'module',
   retainLines: true,
   presets: [
     [
@@ -103,4 +103,10 @@ module.exports = {
       plugins: [],
     },
   },
+  overrides: [
+    {
+      test: './plugins/plugin-chart-handlebars/node_modules/just-handlebars-helpers/*',
+      sourceType: 'unambiguous',
+    },
+  ],
 };
