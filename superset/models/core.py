@@ -21,7 +21,7 @@ import json
 import logging
 import textwrap
 from ast import literal_eval
-from contextlib import closing
+from contextlib import closing, contextmanager
 from copy import deepcopy
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
@@ -361,6 +361,60 @@ class Database(
             if self.impersonate_user
             else None
         )
+
+    @contextmanager
+    def get_sqla_engine_with_context(
+        self,
+        schema: Optional[str] = None,
+        nullpool: bool = True,
+        source: Optional[utils.QuerySource] = None,
+    ) -> Engine:
+        extra = self.get_extra()
+        sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
+        sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
+        effective_username = self.get_effective_user(sqlalchemy_url)
+        # If using MySQL or Presto for example, will set url.username
+        # If using Hive, will not do anything yet since that relies on a
+        # configuration parameter instead.
+        sqlalchemy_url = self.db_engine_spec.get_url_for_impersonation(
+            sqlalchemy_url, self.impersonate_user, effective_username
+        )
+
+        masked_url = self.get_password_masked_url(sqlalchemy_url)
+        logger.debug("Database.get_sqla_engine(). Masked URL: %s", str(masked_url))
+
+        params = extra.get("engine_params", {})
+        if nullpool:
+            params["poolclass"] = NullPool
+
+        connect_args = params.get("connect_args", {})
+        if self.impersonate_user:
+            self.db_engine_spec.update_impersonation_config(
+                connect_args, str(sqlalchemy_url), effective_username
+            )
+
+        if connect_args:
+            params["connect_args"] = connect_args
+
+        self.update_params_from_encrypted_extra(params)
+
+        if DB_CONNECTION_MUTATOR:
+            if not source and request and request.referrer:
+                if "/superset/dashboard/" in request.referrer:
+                    source = utils.QuerySource.DASHBOARD
+                elif "/explore/" in request.referrer:
+                    source = utils.QuerySource.CHART
+                elif "/superset/sqllab/" in request.referrer:
+                    source = utils.QuerySource.SQL_LAB
+
+            sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
+                sqlalchemy_url, params, effective_username, security_manager, source
+            )
+
+        try:
+            yield create_engine(sqlalchemy_url, **params)
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     def get_sqla_engine(
         self,
