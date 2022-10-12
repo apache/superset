@@ -289,6 +289,7 @@ const config = {
       //  AntD version conflict has been resolved
       antd: path.resolve(path.join(APP_DIR, './node_modules/antd')),
       react: path.resolve(path.join(APP_DIR, './node_modules/react')),
+      handlebars: 'handlebars/dist/handlebars.js',
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {

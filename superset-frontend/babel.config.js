@@ -20,7 +20,7 @@ const packageConfig = require('./package');
 
 module.exports = {
   sourceMaps: true,
-  sourceType: 'module',
+  sourceType: 'unambiguous',
   retainLines: true,
   presets: [
     [
