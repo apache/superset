@@ -17,9 +17,8 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { ensureIsArray } from '@superset-ui/core';
+import { ensureIsArray, DEFAULT_TIME_RANGE } from '@superset-ui/core';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
-import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { getControlsState } from 'src/explore/store';
 import {
   getControlConfig,
