@@ -55,7 +55,8 @@ const DependencyValue = ({
 export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
   const dependencies = useFilterDependencies(filter);
   const dependenciesRef = useRef<HTMLDivElement>(null);
-  const [elementsTruncated, hasHiddenElements] = useTruncation(dependenciesRef);
+  const plusRef = useRef<HTMLDivElement>(null);
+  const [elementsTruncated, hasHiddenElements] = useTruncation(dependenciesRef, plusRef);
   const theme = useTheme();
 
   const tooltipText = useMemo(
@@ -108,7 +109,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
           ))}
         </RowValue>
         {hasHiddenElements && (
-          <RowTruncationCount>+{elementsTruncated}</RowTruncationCount>
+          <RowTruncationCount ref={plusRef}>+{elementsTruncated}</RowTruncationCount>
         )}
       </TooltipWithTruncation>
     </Row>

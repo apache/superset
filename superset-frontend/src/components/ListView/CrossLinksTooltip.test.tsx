@@ -41,6 +41,7 @@ const mockedProps = {
     },
   ],
   moreItems: 0,
+  show: true,
 };
 
 function setup(overrideProps: CrossLinksTooltipProps | {} = {}) {

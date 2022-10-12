@@ -25,6 +25,7 @@ export type CrossLinksTooltipProps = {
   children: React.ReactNode;
   crossLinks: { to: string; title: string }[];
   moreItems?: number;
+  show: boolean;
 };
 
 const StyledLinkedTooltip = styled.div`
@@ -39,28 +40,31 @@ export default function CrossLinksTooltip({
   children,
   crossLinks = [],
   moreItems = undefined,
+  show = false,
 }: CrossLinksTooltipProps) {
   return (
     <Tooltip
       placement="top"
       data-test="crosslinks-tooltip"
       title={
-        <StyledLinkedTooltip>
-          {crossLinks.map(link => (
-            <Link
-              className="link"
-              key={link.to}
-              to={link.to}
-              target="_blank"
-              rel="noreferer noopener"
-            >
-              {link.title}
-            </Link>
-          ))}
-          {moreItems && (
-            <span data-test="plus-more">{t('+ %s more', moreItems)}</span>
-          )}
-        </StyledLinkedTooltip>
+        show && (
+          <StyledLinkedTooltip>
+            {crossLinks.map(link => (
+              <Link
+                className="link"
+                key={link.to}
+                to={link.to}
+                target="_blank"
+                rel="noreferer noopener"
+              >
+                {link.title}
+              </Link>
+            ))}
+            {moreItems && (
+              <span data-test="plus-more">{t('+ %s more', moreItems)}</span>
+            )}
+          </StyledLinkedTooltip>
+        )
       }
     >
       {children}
