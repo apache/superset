@@ -132,6 +132,8 @@ class ExecuteSqlCommand(BaseCommand):
                 ) from ex
             raise ex
         except Exception as ex:
+            logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
+            logger.debug("Query %d: %s", query.id, ex)
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
     def _try_get_existing_query(self) -> Optional[Query]:
