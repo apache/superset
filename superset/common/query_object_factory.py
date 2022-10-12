@@ -16,14 +16,12 @@
 # under the License.
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from superset import app
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceType
-from superset.utils.date_parser import get_since_until
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
@@ -63,7 +61,9 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
         row_limit = self._process_row_limit(row_limit, result_type)
-        from_dttm, to_dttm = self._get_dttms(time_range, time_shift, processed_extras)
+        from_dttm, to_dttm = get_since_until_from_time_range(
+            time_range, time_shift, processed_extras
+        )
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm
         return QueryObject(
@@ -98,23 +98,6 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             else self._config["ROW_LIMIT"]
         )
         return apply_max_row_limit(row_limit or default_row_limit)
-
-    @staticmethod
-    def _get_dttms(
-        time_range: Optional[str],
-        time_shift: Optional[str] = None,
-        extras: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[Optional[datetime], Optional[datetime]]:
-        return get_since_until(
-            relative_start=(extras or {}).get(
-                "relative_start", app.config["DEFAULT_RELATIVE_START_TIME"]
-            ),
-            relative_end=(extras or {}).get(
-                "relative_end", app.config["DEFAULT_RELATIVE_END_TIME"]
-            ),
-            time_range=time_range,
-            time_shift=time_shift,
-        )
 
     # light version of the view.utils.core
     # import view.utils require application context

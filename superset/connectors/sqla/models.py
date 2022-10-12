@@ -80,7 +80,7 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.columns.models import Column as NewColumn, UNKOWN_TYPE
 from superset.common.db_query_status import QueryStatus
-from superset.common.query_object_factory import QueryObjectFactory
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     find_cached_objects_in_session,
@@ -1269,6 +1269,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         row_offset: Optional[int] = None,
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
+        time_shift: Optional[str] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -1663,10 +1664,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         and isinstance(eq, str)
                         and col_obj is not None
                     ):
-                        _since, _until = QueryObjectFactory._get_dttms(time_range=eq)
+                        _since, _until = get_since_until_from_time_range(
+                            time_range=eq,
+                            time_shift=time_shift,
+                            extras=extras,
+                        )
                         where_clause_and.append(
                             col_obj.get_time_filter(
-                                # set label as `sqla_col.key` is from `make_sqla_column_compatible`
                                 start_dttm=_since,
                                 end_dttm=_until,
                                 label=sqla_col.key,

@@ -35,6 +35,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
+from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.connectors.base.models import BaseDatasource
 from superset.constants import CacheRegion
 from superset.exceptions import (
@@ -56,6 +57,7 @@ from superset.utils.core import (
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
+    get_xaxis_label,
     normalize_dttm_col,
     TIME_COMPARISON,
 )
@@ -314,8 +316,14 @@ class QueryContextProcessor:
         rv_dfs: List[pd.DataFrame] = [df]
 
         time_offsets = query_object.time_offsets
-        outer_from_dttm = query_object.from_dttm
-        outer_to_dttm = query_object.to_dttm
+        outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
+        if not outer_from_dttm or not outer_to_dttm:
+            raise QueryObjectValidationError(
+                _(
+                    "An enclosed time range (both start and end) must be specified "
+                    "when using a Time Comparison."
+                )
+            )
         for offset in time_offsets:
             try:
                 query_object_clone.from_dttm = get_past_or_future(
@@ -330,14 +338,12 @@ class QueryContextProcessor:
             query_object_clone.inner_to_dttm = outer_to_dttm
             query_object_clone.time_offsets = []
             query_object_clone.post_processing = []
+            query_object_clone.filter = [
+                flt
+                for flt in query_object_clone.filter
+                if flt.get("col") != get_xaxis_label(query_object.columns)
+            ]
 
-            if not query_object.from_dttm or not query_object.to_dttm:
-                raise QueryObjectValidationError(
-                    _(
-                        "An enclosed time range (both start and end) must be specified "
-                        "when using a Time Comparison."
-                    )
-                )
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
             cache = QueryCacheManager.get(
