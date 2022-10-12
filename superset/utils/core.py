@@ -257,6 +257,7 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+    DATETIME_BETWEEN = "DATETIME_BETWEEN"
 
 
 class FilterStringOperators(str, Enum):

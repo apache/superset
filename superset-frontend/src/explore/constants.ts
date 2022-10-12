@@ -45,6 +45,7 @@ export enum Operators {
   LATEST_PARTITION = 'LATEST_PARTITION',
   IS_TRUE = 'IS_TRUE',
   IS_FALSE = 'IS_FALSE',
+  DATETIME_BETWEEN = 'DATETIME_BETWEEN',
 }
 
 export interface OperatorType {
@@ -80,6 +81,10 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
   },
   [Operators.IS_TRUE]: { display: 'Is true', operation: '==' },
   [Operators.IS_FALSE]: { display: 'Is false', operation: '==' },
+  [Operators.DATETIME_BETWEEN]: {
+    display: 'DATETIME_BETWEEN',
+    operation: 'DATETIME_BETWEEN',
+  },
 };
 
 export const OPERATORS_OPTIONS = Object.values(Operators) as Operators[];
@@ -96,7 +101,10 @@ export const HAVING_OPERATORS = [
 export const MULTI_OPERATORS = new Set([Operators.IN, Operators.NOT_IN]);
 // CUSTOM_OPERATORS will show operator in simple mode,
 // but will generate customized sqlExpression
-export const CUSTOM_OPERATORS = new Set([Operators.LATEST_PARTITION]);
+export const CUSTOM_OPERATORS = new Set([
+  Operators.LATEST_PARTITION,
+  Operators.DATETIME_BETWEEN,
+]);
 // DISABLE_INPUT_OPERATORS will disable filter value input
 // in adhocFilter control
 export const DISABLE_INPUT_OPERATORS = [

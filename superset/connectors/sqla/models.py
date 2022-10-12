@@ -80,6 +80,7 @@ from superset import app, db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.columns.models import Column as NewColumn, UNKOWN_TYPE
 from superset.common.db_query_status import QueryStatus
+from superset.common.query_object_factory import QueryObjectFactory
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     find_cached_objects_in_session,
@@ -334,10 +335,11 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
 
     def get_time_filter(
         self,
-        start_dttm: DateTime,
-        end_dttm: DateTime,
+        start_dttm: Optional[DateTime] = None,
+        end_dttm: Optional[DateTime] = None,
+        label: Optional[str] = "__time",
     ) -> ColumnElement:
-        col = self.get_sqla_col(label="__time")
+        col = self.get_sqla_col(label=label)
         l = []
         if start_dttm:
             l.append(col >= self.table.text(self.dttm_sql_literal(start_dttm)))
@@ -1656,6 +1658,20 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         where_clause_and.append(sqla_col.like(eq))
                     elif op == utils.FilterOperator.ILIKE.value:
                         where_clause_and.append(sqla_col.ilike(eq))
+                    elif (
+                        op == utils.FilterOperator.DATETIME_BETWEEN.value
+                        and isinstance(eq, str)
+                        and col_obj is not None
+                    ):
+                        _since, _until = QueryObjectFactory._get_dttms(time_range=eq)
+                        where_clause_and.append(
+                            col_obj.get_time_filter(
+                                # set label as `sqla_col.key` is from `make_sqla_column_compatible`
+                                start_dttm=_since,
+                                end_dttm=_until,
+                                label=sqla_col.key,
+                            )
+                        )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)

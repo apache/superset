@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  ensureIsArray,
   hasGenericChartAxes,
   QueryFormData,
   t,
@@ -61,5 +62,33 @@ export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
       default: payload.defaultTemporalColumn,
       isTemporal: true,
     };
+  },
+};
+
+export const datePickerInAdhocFilterMixin: Pick<
+  BaseControlConfig,
+  'initialValue'
+> = {
+  initialValue: (control: ControlState, state: ControlPanelState | null) => {
+    if (
+      hasGenericChartAxes &&
+      state?.form_data?.granularity_sqla &&
+      state?.form_data?.time_range &&
+      ensureIsArray(control.value).findIndex(
+        (flt: any) => flt?.operator === 'DATETIME_BETWEEN',
+      ) === -1
+    ) {
+      return [
+        ...ensureIsArray(control.value),
+        {
+          clause: 'WHERE',
+          subject: state.form_data.granularity_sqla,
+          operator: 'DATETIME_BETWEEN',
+          comparator: state.form_data.time_range,
+          expressionType: 'SIMPLE',
+        },
+      ];
+    }
+    return undefined;
   },
 };

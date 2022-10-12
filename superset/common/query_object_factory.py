@@ -19,6 +19,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
 
+from superset import app
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceType
@@ -98,18 +99,18 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         )
         return apply_max_row_limit(row_limit or default_row_limit)
 
+    @staticmethod
     def _get_dttms(
-        self,
         time_range: Optional[str],
-        time_shift: Optional[str],
-        extras: Dict[str, Any],
+        time_shift: Optional[str] = None,
+        extras: Optional[Dict[str, Any]] = None,
     ) -> Tuple[Optional[datetime], Optional[datetime]]:
         return get_since_until(
-            relative_start=extras.get(
-                "relative_start", self._config["DEFAULT_RELATIVE_START_TIME"]
+            relative_start=(extras or {}).get(
+                "relative_start", app.config["DEFAULT_RELATIVE_START_TIME"]
             ),
-            relative_end=extras.get(
-                "relative_end", self._config["DEFAULT_RELATIVE_END_TIME"]
+            relative_end=(extras or {}).get(
+                "relative_end", app.config["DEFAULT_RELATIVE_END_TIME"]
             ),
             time_range=time_range,
             time_shift=time_shift,

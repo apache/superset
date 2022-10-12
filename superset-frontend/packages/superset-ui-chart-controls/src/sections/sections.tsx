@@ -38,14 +38,16 @@ export const legacyTimeseriesTime: ControlPanelSectionConfig = {
   ],
 };
 
-export const genericTime: ControlPanelSectionConfig = {
-  ...baseTimeSection,
-  controlSetRows: [
-    ['granularity_sqla'],
-    [hasGenericChartAxes ? null : 'time_grain_sqla'],
-    ['time_range'],
-  ],
-};
+export const genericTime: ControlPanelSectionConfig = hasGenericChartAxes
+  ? { controlSetRows: [] }
+  : {
+      ...baseTimeSection,
+      controlSetRows: [
+        ['granularity_sqla'],
+        ['time_grain_sqla'],
+        ['time_range'],
+      ],
+    };
 
 export const legacyRegularTime: ControlPanelSectionConfig = {
   ...baseTimeSection,
