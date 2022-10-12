@@ -832,6 +832,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('sql', value || '');
   };
 
+  const onMsgChange = (value: string) => {
+    updateAlertState('message_content', value || '');
+  };
+
   const onOwnersChange = (value: Array<SelectValue>) => {
     updateAlertState('owners', value || []);
   };
@@ -1343,6 +1347,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <Radio.Group onChange={onContentTypeChange} value={contentType}>
               <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
               <StyledRadio value="chart">{t('Chart')}</StyledRadio>
+              <StyledRadio value="text">{t('Text')}</StyledRadio>
             </Radio.Group>
             <AsyncSelect
               ariaLabel={t('Chart')}
@@ -1378,6 +1383,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               options={loadDashboardOptions}
               onChange={onDashboardChange}
             />
+            {contentType === 'text' &&
+            <StyledInputContainer>
+                <div className="control-label">
+                  {t('Text Box')}
+                  <span className="required">*</span>
+                </div>
+                <TextAreaControl
+                  name="message_context"
+                  offerEditInModal={false}
+                  minLines={1}
+                  maxLines={5}
+                  onChange={onMsgChange}
+                  readOnly={false}
+                  // initialValue={resource?.sql}
+                  key={currentAlert?.id}
+                />
+            </StyledInputContainer>
+            }
             {formatOptionEnabled && (
               <>
                 <div className="inline-container">
