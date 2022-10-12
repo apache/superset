@@ -64,20 +64,22 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
       const elementsCount = childNodes.length;
 
       let width = 0;
-      let truncatedElements = 1;
+      let hiddenElements = 0;
       for (let i = 0; i < elementsCount; i += 1) {
         const itemWidth = (childNodes[i] as HTMLElement).offsetWidth;
         width += itemWidth;
-        // assures it shows +{number} also when the item is barely visible
-        if (width > maxWidth + itemWidth / 2) {
-          truncatedElements += 1;
+        // assures it shows +{number} the item is not visible
+        if (width > maxWidth + itemWidth / 1.5) {
+          hiddenElements += 1;
         }
       }
 
-      if (truncatedElements > 1) {
+      if (hiddenElements) {
         setHasHiddenElements(true);
+        setElementsTruncated(hiddenElements);
+      } else {
+        setElementsTruncated(1);
       }
-      setElementsTruncated(truncatedElements);
     } else {
       setElementsTruncated(0);
     }
