@@ -569,6 +569,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     // Clone DB object
     const dbToUpdate = JSON.parse(JSON.stringify(db || {}));
 
+    if (dbToUpdate.catalog) {
+      // convert catalog to fit /validate_parameters endpoint
+      dbToUpdate.catalog = Object.assign(
+        {},
+        ...dbToUpdate.catalog.map((x: { name: string; value: string }) => ({
+          [x.name]: x.value,
+        })),
+      );
+    } else {
+      dbToUpdate.catalog = {};
+    }
+
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
       const errors = await getValidation(dbToUpdate, true);
@@ -732,9 +744,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           engine_information,
         },
       });
-    }
 
-    setDB({ type: ActionType.addTableCatalogSheet });
+      if (engine === Engines.GSheet) {
+        // only create a catalog if the DB is Google Sheets
+        setDB({ type: ActionType.addTableCatalogSheet });
+      }
+    }
   };
 
   const renderAvailableSelector = () => (

@@ -107,6 +107,10 @@ export const URL_PARAMS = {
     name: 'dashboard_page_id',
     type: 'string',
   },
+  dashboardFocusedChart: {
+    name: 'focused_chart',
+    type: 'number',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [

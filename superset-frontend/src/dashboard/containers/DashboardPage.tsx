@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   CategoricalColorNamespace,
   FeatureFlag,
@@ -155,6 +156,7 @@ const useSyncDashboardStateWithLocalStorage = () => {
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const theme = useTheme();
+  const history = useHistory();
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -301,6 +303,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
         dispatch(
           hydrateDashboard({
+            history,
             dashboard,
             charts,
             activeTabs,

@@ -30,6 +30,7 @@ import {
   SharedControlConfig,
   Dataset,
   Metric,
+  isDataset,
 } from '../types';
 import { DATASET_TIME_COLUMN_OPTION, TIME_FILTER_LABELS } from '../constants';
 import {
@@ -138,8 +139,8 @@ export const dndAdhocFilterControl: SharedControlConfig<
   default: [],
   description: '',
   mapStateToProps: ({ datasource, form_data }) => ({
-    columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-      ? (datasource as Dataset)?.columns.filter(c => c.filterable)
+    columns: isDataset(datasource)
+      ? datasource.columns.filter(c => c.filterable)
       : datasource?.columns || [],
     savedMetrics: defineSavedMetrics(datasource),
     // current active adhoc metrics
