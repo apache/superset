@@ -74,7 +74,7 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
         }
       }
 
-      if (hiddenElements) {
+      if (elementsCount > 1 && hiddenElements) {
         setHasHiddenElements(true);
         setElementsTruncated(hiddenElements);
       } else {

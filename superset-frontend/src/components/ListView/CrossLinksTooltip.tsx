@@ -42,7 +42,7 @@ export default function CrossLinksTooltip({
 }: CrossLinksTooltipProps) {
   return (
     <Tooltip
-      placement="topLeft"
+      placement="top"
       data-test="crosslinks-tooltip"
       title={
         <StyledLinkedTooltip>
