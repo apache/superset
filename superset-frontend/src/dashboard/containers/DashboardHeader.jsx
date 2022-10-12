@@ -42,6 +42,7 @@ import {
   setRefreshFrequency,
   onRefresh,
 } from 'src/dashboard/actions/dashboardState';
+import { updateDashboardFiltersScope } from 'src/dashboard/actions/dashboardFilters';
 
 import {
   undoLayoutAction,
@@ -132,6 +133,7 @@ function mapDispatchToProps(dispatch) {
       dashboardTitleChanged,
       updateDataMask,
       fetchUISpecificReport,
+      updateDashboardFiltersScope,
     },
     dispatch,
   );

@@ -72,6 +72,10 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
+const WrappedBox = styled.small`
+  word-break: break-all;
+`;
+
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const dispatch = useDispatch();
 
@@ -116,9 +120,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
 
       partitions = (
         <div>
-          <small>
+          <WrappedBox>
             {t('latest partition:')} {latest}
-          </small>{' '}
+          </WrappedBox>{' '}
           {partitionClipBoard}
         </div>
       );
@@ -127,9 +131,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     if (table.metadata) {
       metadata = Object.entries(table.metadata).map(([key, value]) => (
         <div>
-          <small>
+          <WrappedBox>
             <strong>{key}:</strong> {value}
-          </small>
+          </WrappedBox>
         </div>
       ));
     }

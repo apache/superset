@@ -45,6 +45,8 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
+import { getDashboardFilterKey } from 'src/dashboard/util/getDashboardFilterKey';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -108,6 +110,7 @@ const propTypes = {
   setRefreshFrequency: PropTypes.func.isRequired,
   dashboardInfoChanged: PropTypes.func.isRequired,
   dashboardTitleChanged: PropTypes.func.isRequired,
+  updateDashboardFiltersScope: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -464,6 +467,7 @@ class Header extends React.PureComponent {
       setRefreshFrequency,
       lastModifiedTime,
       filterboxMigrationState,
+      updateDashboardFiltersScope,
     } = this.props;
 
     const userCanEdit =
@@ -487,9 +491,10 @@ class Header extends React.PureComponent {
       const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
 
       setColorScheme(updates.colorScheme);
+      const metadata = JSON.parse(updates.jsonMetadata || '{}');
       dashboardInfoChanged({
         slug: updates.slug,
-        metadata: JSON.parse(updates.jsonMetadata || '{}'),
+        metadata,
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
         owners: updates.owners,
@@ -497,6 +502,21 @@ class Header extends React.PureComponent {
       });
       setUnsavedChanges(true);
       dashboardTitleChanged(updates.title);
+
+      if (metadata.filter_scopes) {
+        const filterScopes = Object.fromEntries(
+          Object.entries(metadata.filter_scopes)
+            .map(([chartId, columns]) =>
+              Object.entries(columns).map(([column, scopes]) => [
+                getDashboardFilterKey({ chartId, column }),
+                scopes,
+              ]),
+            )
+            .flat(1),
+        );
+
+        updateDashboardFiltersScope(filterScopes);
+      }
     };
 
     const NavExtension = uiOverrideRegistry.get('dashboard.nav.right');
