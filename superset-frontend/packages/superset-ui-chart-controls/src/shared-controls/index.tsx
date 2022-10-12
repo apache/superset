@@ -35,11 +35,9 @@
  */
 import { isEmpty } from 'lodash';
 import {
-  FeatureFlag,
   t,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
-  isFeatureEnabled,
   SequentialScheme,
   legacyValidateInteger,
   ComparisionType,
@@ -47,6 +45,8 @@ import {
   isPhysicalColumn,
   ensureIsArray,
   isDefined,
+  hasGenericChartAxes,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
 
 import {
@@ -205,7 +205,7 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     choices: (datasource as Dataset)?.time_grain_sqla || [],
   }),
   visibility: ({ controls }) => {
-    if (!isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)) {
+    if (!hasGenericChartAxes) {
       return true;
     }
 
@@ -227,7 +227,7 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   type: 'DateFilterControl',
   freeForm: true,
   label: TIME_FILTER_LABELS.time_range,
-  default: t('No filter'), // this value is translated, but the backend wouldn't understand a translated value?
+  default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(
     'The time range for the visualization. All relative times, e.g. "Last month", ' +
       '"Last 7 days", "now", etc. are evaluated on the server using the server\'s ' +
@@ -236,9 +236,6 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
       "using the engine's local timezone. Note one can explicitly set the timezone " +
       'per the ISO 8601 format if specifying either the start and/or end time.',
   ),
-  mapStateToProps: ({ datasource }) => ({
-    datasource,
-  }),
 };
 
 const row_limit: SharedControlConfig<'SelectControl'> = {

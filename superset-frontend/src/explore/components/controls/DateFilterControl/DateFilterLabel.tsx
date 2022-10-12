@@ -17,17 +17,14 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import rison from 'rison';
-import { css, SupersetClient, styled, t, useTheme } from '@superset-ui/core';
 import {
-  buildTimeRangeString,
-  formatTimeRange,
-  COMMON_RANGE_VALUES_SET,
-  CALENDAR_RANGE_VALUES_SET,
-  FRAME_OPTIONS,
-  customTimeRangeDecode,
-} from 'src/explore/components/controls/DateFilterControl/utils';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+  css,
+  styled,
+  t,
+  useTheme,
+  DEFAULT_TIME_RANGE,
+  NO_TIME_RANGE,
+} from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
@@ -35,56 +32,24 @@ import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
 import { Tooltip } from 'src/components/Tooltip';
-import { DEFAULT_TIME_RANGE } from 'src/explore/constants';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
-import { testWithId } from 'src/utils/testUtils';
 import { noOp } from 'src/utils/common';
-import { FrameType } from './types';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
+import { DateFilterControlProps, FrameType } from './types';
+import {
+  fetchTimeRange,
+  FRAME_OPTIONS,
+  getDateFilterControlTestId,
+  guessFrame,
+} from './utils';
 import {
   CommonFrame,
   CalendarFrame,
   CustomFrame,
   AdvancedFrame,
 } from './components';
-
-const guessFrame = (timeRange: string): FrameType => {
-  if (COMMON_RANGE_VALUES_SET.has(timeRange)) {
-    return 'Common';
-  }
-  if (CALENDAR_RANGE_VALUES_SET.has(timeRange)) {
-    return 'Calendar';
-  }
-  if (timeRange === 'No filter') {
-    return 'No filter';
-  }
-  if (customTimeRangeDecode(timeRange).matchedFlag) {
-    return 'Custom';
-  }
-  return 'Advanced';
-};
-
-const fetchTimeRange = async (timeRange: string) => {
-  const query = rison.encode_uri(timeRange);
-  const endpoint = `/api/v1/time_range/?q=${query}`;
-  try {
-    const response = await SupersetClient.get({ endpoint });
-    const timeRangeString = buildTimeRangeString(
-      response?.json?.result?.since || '',
-      response?.json?.result?.until || '',
-    );
-    return {
-      value: formatTimeRange(timeRangeString),
-    };
-  } catch (response) {
-    const clientError = await getClientErrorObject(response);
-    return {
-      error: clientError.message || clientError.error,
-    };
-  }
-};
 
 const StyledPopover = styled(ControlPopover)``;
 const StyledRangeType = styled(Select)`
@@ -161,20 +126,6 @@ const IconWrapper = styled.span`
   }
 `;
 
-interface DateFilterControlProps {
-  name: string;
-  onChange: (timeRange: string) => void;
-  value?: string;
-  type?: Type;
-  onOpenPopover?: () => void;
-  onClosePopover?: () => void;
-}
-
-export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
-export const getDateFilterControlTestId = testWithId(
-  DATE_FILTER_CONTROL_TEST_ID,
-);
-
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
     value = DEFAULT_TIME_RANGE,
@@ -195,6 +146,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
 
   useEffect(() => {
+    if (value === NO_TIME_RANGE) {
+      setActualTimeRange(NO_TIME_RANGE);
+      setTooltipTitle(NO_TIME_RANGE);
+      setValidTimeRange(true);
+      return;
+    }
     fetchTimeRange(value).then(({ value: actualRange, error }) => {
       if (error) {
         setEvalResponse(error || '');
@@ -235,6 +192,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   useDebouncedEffect(
     () => {
+      if (timeRangeValue === NO_TIME_RANGE) {
+        setEvalResponse(NO_TIME_RANGE);
+        setLastFetchedTimeRange(NO_TIME_RANGE);
+        setValidTimeRange(true);
+        return;
+      }
       if (lastFetchedTimeRange !== timeRangeValue) {
         fetchTimeRange(timeRangeValue).then(({ value: actualRange, error }) => {
           if (error) {
@@ -279,11 +242,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     }
   };
 
-  function onChangeFrame(value: string) {
-    if (value === 'No filter') {
-      setTimeRangeValue('No filter');
+  function onChangeFrame(value: FrameType) {
+    if (value === NO_TIME_RANGE) {
+      setTimeRangeValue(NO_TIME_RANGE);
     }
-    setFrame(value as FrameType);
+    setFrame(value);
   }
 
   const theme = useTheme();
@@ -354,10 +317,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </IconWrapper>
   );
 
-  const overlayStyle = {
-    width: '600px',
-  };
-
   return (
     <>
       <ControlHeader {...props} />
@@ -369,7 +328,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         defaultVisible={show}
         visible={show}
         onVisibleChange={togglePopover}
-        overlayStyle={overlayStyle}
+        overlayStyle={{ width: '600px' }}
       >
         <Tooltip placement="top" title={tooltipTitle}>
           <Label className="pointer" data-test="time-range-trigger">

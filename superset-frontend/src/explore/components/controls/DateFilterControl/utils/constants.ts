@@ -26,6 +26,7 @@ import {
   CommonRangeType,
   CalendarRangeType,
 } from 'src/explore/components/controls/DateFilterControl/types';
+import { testWithId } from 'src/utils/testUtils';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
@@ -131,3 +132,8 @@ export const LOCALE_MAPPING = {
   sl: 'sl_SI',
   nl: 'nl_NL',
 };
+
+export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
+export const getDateFilterControlTestId = testWithId(
+  DATE_FILTER_CONTROL_TEST_ID,
+);
