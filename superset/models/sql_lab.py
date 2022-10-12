@@ -51,7 +51,6 @@ from superset.models.helpers import (
 )
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.superset_typing import ResultSetColumnType
 from superset.utils.core import GenericDataType, QueryStatus, user_label
 
 if TYPE_CHECKING:
@@ -183,7 +182,7 @@ class Query(
         return list(ParsedQuery(self.sql).tables)
 
     @property
-    def columns(self) -> List[ResultSetColumnType]:
+    def columns(self) -> List[Dict[str, Any]]:
         bool_types = ("BOOL",)
         num_types = (
             "DOUBLE",
@@ -217,7 +216,7 @@ class Query(
             computed_column["column_name"] = col.get("name")
             computed_column["groupby"] = True
             columns.append(computed_column)
-        return columns  # type: ignore
+        return columns
 
     @property
     def data(self) -> Dict[str, Any]:
@@ -288,7 +287,7 @@ class Query(
     def main_dttm_col(self) -> Optional[str]:
         for col in self.columns:
             if col.get("is_dttm"):
-                return col.get("column_name")  # type: ignore
+                return col.get("column_name")
         return None
 
     @property
@@ -332,6 +331,14 @@ class Query(
     def tracking_url(self, value: str) -> None:
         self.tracking_url_raw = value
 
+    def get_column(self, column_name: Optional[str]) -> Optional[Dict[str, Any]]:
+        if not column_name:
+            return None
+        for col in self.columns:
+            if col.get("column_name") == column_name:
+                return col
+        return None
+
 
 class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     """ORM model for SQL query"""
@@ -344,6 +351,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     label = Column(String(256))
     description = Column(Text)
     sql = Column(Text)
+    template_parameters = Column(Text)
     user = relationship(
         security_manager.user_model,
         backref=backref("saved_queries", cascade="all, delete-orphan"),

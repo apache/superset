@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  smartDateFormatter,
-  t,
-} from '@superset-ui/core';
+import { hasGenericChartAxes, smartDateFormatter, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
@@ -41,12 +36,8 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        [isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? 'x_axis' : null],
-        [
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-            ? 'time_grain_sqla'
-            : null,
-        ],
+        [hasGenericChartAxes ? 'x_axis' : null],
+        [hasGenericChartAxes ? 'time_grain_sqla' : null],
         ['metric'],
         ['adhoc_filters'],
       ],

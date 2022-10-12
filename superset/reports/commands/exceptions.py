@@ -119,6 +119,7 @@ class DashboardNotSavedValidationError(ValidationError):
 
 
 class ReportScheduleInvalidError(CommandInvalidError):
+    status = 422
     message = _("Report Schedule parameters are invalid.")
 
 
@@ -135,6 +136,7 @@ class ReportScheduleUpdateFailedError(CreateFailedError):
 
 
 class ReportScheduleNotFoundError(CommandException):
+    status = 404
     message = _("Report Schedule not found.")
 
 
@@ -163,10 +165,12 @@ class ReportScheduleExecuteUnexpectedError(CommandException):
 
 
 class ReportSchedulePreviousWorkingError(CommandException):
+    status = 429
     message = _("Report Schedule is still working, refusing to re-compute.")
 
 
 class ReportScheduleWorkingTimeoutError(CommandException):
+    status = 408
     message = _("Report Schedule reached a working timeout.")
 
 
@@ -188,20 +192,22 @@ class ReportScheduleCreationMethodUniquenessValidationError(CommandException):
 
 
 class AlertQueryMultipleRowsError(CommandException):
-
+    status = 422
     message = _("Alert query returned more than one row.")
 
 
 class AlertValidatorConfigError(CommandException):
-
+    status = 422
     message = _("Alert validator config error.")
 
 
 class AlertQueryMultipleColumnsError(CommandException):
+    status = 422
     message = _("Alert query returned more than one column.")
 
 
 class AlertQueryInvalidTypeError(CommandException):
+    status = 422
     message = _("Alert query returned a non-number value.")
 
 
@@ -210,30 +216,37 @@ class AlertQueryError(CommandException):
 
 
 class AlertQueryTimeout(CommandException):
+    status = 408
     message = _("A timeout occurred while executing the query.")
 
 
 class ReportScheduleScreenshotTimeout(CommandException):
+    status = 408
     message = _("A timeout occurred while taking a screenshot.")
 
 
 class ReportScheduleCsvTimeout(CommandException):
+    status = 408
     message = _("A timeout occurred while generating a csv.")
 
 
 class ReportScheduleDataFrameTimeout(CommandException):
+    status = 408
     message = _("A timeout occurred while generating a dataframe.")
 
 
 class ReportScheduleAlertGracePeriodError(CommandException):
+    status = 429
     message = _("Alert fired during grace period.")
 
 
 class ReportScheduleAlertEndGracePeriodError(CommandException):
+    status = 429
     message = _("Alert ended grace period.")
 
 
 class ReportScheduleNotificationError(CommandException):
+    status = 429
     message = _("Alert on grace period")
 
 
@@ -250,6 +263,7 @@ class ReportScheduleUnexpectedError(CommandException):
 
 
 class ReportScheduleForbiddenError(ForbiddenError):
+    status = 403
     message = _("Changing this report is forbidden")
 
 

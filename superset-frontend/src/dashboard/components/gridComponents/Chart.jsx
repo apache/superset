@@ -92,6 +92,7 @@ const propTypes = {
   filterState: PropTypes.object,
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
+  isInView: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -391,6 +392,7 @@ class Chart extends React.Component {
       filterboxMigrationState,
       postTransformProps,
       datasetsStatus,
+      isInView,
     } = this.props;
 
     const { width } = this.state;
@@ -520,6 +522,7 @@ class Chart extends React.Component {
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
+            isInView={isInView}
           />
         </div>
       </SliceContainer>

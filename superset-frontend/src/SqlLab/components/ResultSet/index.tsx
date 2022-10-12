@@ -164,11 +164,7 @@ const ResultSet = ({
       setCachedData(query.results.data);
       dispatch(clearQueryResults(query));
     }
-    if (
-      query.resultsKey &&
-      prevQuery?.resultsKey &&
-      query.resultsKey !== prevQuery.resultsKey
-    ) {
+    if (query.resultsKey && query.resultsKey !== prevQuery?.resultsKey) {
       fetchResults(query);
     }
   }, [query, cache]);

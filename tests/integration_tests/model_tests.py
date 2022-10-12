@@ -592,7 +592,9 @@ class TestSqlaTableModel(SupersetTestCase):
         assert len(data_for_slices["metrics"]) == 1
         assert len(data_for_slices["columns"]) == 2
         assert data_for_slices["metrics"][0]["metric_name"] == "sum__num"
-        assert data_for_slices["columns"][0]["column_name"] == "name"
+        column_names = [col["column_name"] for col in data_for_slices["columns"]]
+        assert "name" in column_names
+        assert "state" in column_names
         assert set(data_for_slices["verbose_map"].keys()) == {
             "__timestamp",
             "sum__num",

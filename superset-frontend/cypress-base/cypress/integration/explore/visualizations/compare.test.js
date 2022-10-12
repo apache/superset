@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Compare', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const COMPARE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'compare',
@@ -51,11 +56,6 @@ describe('Visualization > Compare', () => {
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
 
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
-
   it('should work without groupby', () => {
     verify(COMPARE_FORM_DATA);
     cy.get('.chart-container .nvd3 path.nv-line').should('have.length', 1);
@@ -88,6 +88,8 @@ describe('Visualization > Compare', () => {
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
+    verify(COMPARE_FORM_DATA);
+
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
