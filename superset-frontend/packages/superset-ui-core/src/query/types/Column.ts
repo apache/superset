@@ -52,6 +52,12 @@ export interface Column {
   expression?: string | null;
   database_expression?: string | null;
   python_date_format?: string | null;
+
+  // used for advanced_data_type
+  optionName?: string;
+  filterBy?: string;
+  value?: string;
+  advanced_data_type?: string;
 }
 
 export function isPhysicalColumn(column?: any): column is PhysicalColumn {

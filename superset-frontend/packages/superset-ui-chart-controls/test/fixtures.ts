@@ -23,7 +23,7 @@ export const TestDataset: Dataset = {
   column_format: {},
   columns: [
     {
-      advanced_data_type: null,
+      advanced_data_type: undefined,
       certification_details: null,
       certified_by: null,
       column_name: 'num',
@@ -41,7 +41,7 @@ export const TestDataset: Dataset = {
       warning_markdown: null,
     },
     {
-      advanced_data_type: null,
+      advanced_data_type: undefined,
       certification_details: null,
       certified_by: null,
       column_name: 'gender',
@@ -59,7 +59,7 @@ export const TestDataset: Dataset = {
       warning_markdown: null,
     },
     {
-      advanced_data_type: null,
+      advanced_data_type: undefined,
       certification_details: null,
       certified_by: null,
       column_name: 'state',
@@ -77,7 +77,7 @@ export const TestDataset: Dataset = {
       warning_markdown: null,
     },
     {
-      advanced_data_type: null,
+      advanced_data_type: undefined,
       certification_details: null,
       certified_by: null,
       column_name: 'ds',
@@ -95,7 +95,7 @@ export const TestDataset: Dataset = {
       warning_markdown: null,
     },
     {
-      advanced_data_type: null,
+      advanced_data_type: undefined,
       certification_details: null,
       certified_by: null,
       column_name: 'name',
