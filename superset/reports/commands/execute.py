@@ -331,6 +331,18 @@ class BaseReportState:
         }
         return log_data
 
+    def _get_xlsx_data(self):
+        csv_data = self._get_csv_data()
+
+        df = pd.read_csv(BytesIO(csv_data))
+        bio = BytesIO()
+
+        # pylint: disable=abstract-class-instantiated
+        with pd.ExcelWriter(bio, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False)
+
+        return bio.getvalue()
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -362,16 +374,9 @@ class BaseReportState:
                 self._report_schedule.chart
                 and self._report_schedule.report_format == ReportDataFormat.XLSX
             ):
-                csv_data = self._get_csv_data()
-                if not csv_data:
+                data = self._get_xlsx_data()
+                if not data:
                     error_text = "Unexpected missing csv data for xlsx"
-                else:
-                    df = pd.read_csv(BytesIO(csv_data))
-                    bio = BytesIO()
-                    # pylint: disable=abstract-class-instantiated
-                    with pd.ExcelWriter(bio, engine="openpyxl") as writer:
-                        df.to_excel(writer, index=False)
-                    data = bio.getvalue()
             if error_text:
                 return NotificationContent(
                     name=self._report_schedule.name,

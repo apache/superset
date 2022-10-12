@@ -81,7 +81,6 @@ const TEXT_BASED_VISUALIZATION_TYPES = [
 ];
 
 const INITIAL_STATE = {
-  XLSX: 'XLSX',
   crontab: '0 12 * * 1',
 };
 
