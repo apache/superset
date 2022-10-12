@@ -744,11 +744,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           engine_information,
         },
       });
-    }
 
-    if (database_name === 'Google Sheets') {
-      // only create a catalog if the DB is Google Sheets
-      setDB({ type: ActionType.addTableCatalogSheet });
+      if (engine === Engines.GSheet) {
+        // only create a catalog if the DB is Google Sheets
+        setDB({ type: ActionType.addTableCatalogSheet });
+      }
     }
   };
 

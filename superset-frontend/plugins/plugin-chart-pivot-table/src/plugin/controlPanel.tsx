@@ -19,9 +19,8 @@
 import React from 'react';
 import {
   ensureIsArray,
-  FeatureFlag,
+  hasGenericChartAxes,
   isAdhocColumn,
-  isFeatureEnabled,
   isPhysicalColumn,
   QueryFormMetric,
   smartDateFormatter,
@@ -68,7 +67,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          hasGenericChartAxes
             ? {
                 name: 'time_grain_sqla',
                 config: {
@@ -98,9 +97,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-            ? 'datetime_columns_lookup'
-            : null,
+          hasGenericChartAxes ? 'datetime_columns_lookup' : null,
         ],
         [
           {

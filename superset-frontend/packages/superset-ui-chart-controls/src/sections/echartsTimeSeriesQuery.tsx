@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ContributionType,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
+import { ContributionType, hasGenericChartAxes, t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import { emitFilterControl } from '../shared-controls/emitFilterControl';
 
@@ -29,12 +24,8 @@ export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
   controlSetRows: [
-    [isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? 'x_axis' : null],
-    [
-      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-        ? 'time_grain_sqla'
-        : null,
-    ],
+    [hasGenericChartAxes ? 'x_axis' : null],
+    [hasGenericChartAxes ? 'time_grain_sqla' : null],
     ['metrics'],
     ['groupby'],
     [
