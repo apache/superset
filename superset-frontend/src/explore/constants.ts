@@ -142,10 +142,6 @@ export const TIME_FILTER_MAP = {
   granularity: '__granularity',
 };
 
-// TODO: make this configurable per Superset installation
-export const DEFAULT_TIME_RANGE = 'No filter';
-export const NO_TIME_RANGE = 'No filter';
-
 export enum FILTER_BOX_MIGRATION_STATES {
   CONVERTED = 'CONVERTED',
   NOOP = 'NOOP',

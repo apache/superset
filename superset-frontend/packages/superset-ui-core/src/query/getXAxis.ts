@@ -18,6 +18,8 @@
  */
 import {
   DTTM_ALIAS,
+  FeatureFlag,
+  isFeatureEnabled,
   getColumnLabel,
   isQueryFormColumn,
   QueryFormData,
@@ -25,6 +27,10 @@ import {
 
 export const isXAxisSet = (formData: QueryFormData) =>
   isQueryFormColumn(formData.x_axis);
+
+export const hasGenericChartAxes = isFeatureEnabled(
+  FeatureFlag.GENERIC_CHART_AXES,
+);
 
 export const getXAxis = (formData: QueryFormData): string | undefined => {
   // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.

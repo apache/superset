@@ -35,7 +35,6 @@ import {
 import { Datasource, OptionSortType } from 'src/explore/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
-import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import AdhocFilter, {
   CLAUSES,
@@ -50,6 +49,7 @@ import {
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
 import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
+import DndAdhocFilterOption from './DndAdhocFilterOption';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
@@ -296,32 +296,18 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const valuesRenderer = useCallback(
     () =>
-      values.map((adhocFilter: AdhocFilter, index: number) => {
-        const label = adhocFilter.getDefaultLabel();
-        const tooltipTitle = adhocFilter.getTooltipTitle();
-        return (
-          <AdhocFilterPopoverTrigger
-            key={index}
-            adhocFilter={adhocFilter}
-            options={options}
-            datasource={datasource}
-            onFilterEdit={onFilterEdit}
-            partitionColumn={partitionColumn}
-          >
-            <OptionWrapper
-              key={index}
-              index={index}
-              label={label}
-              tooltipTitle={tooltipTitle}
-              clickClose={onClickClose}
-              onShiftOptions={onShiftOptions}
-              type={DndItemType.FilterOption}
-              withCaret
-              isExtra={adhocFilter.isExtra}
-            />
-          </AdhocFilterPopoverTrigger>
-        );
-      }),
+      values.map((adhocFilter: AdhocFilter, index: number) => (
+        <DndAdhocFilterOption
+          index={index}
+          adhocFilter={adhocFilter}
+          options={options}
+          datasource={datasource}
+          onFilterEdit={onFilterEdit}
+          partitionColumn={partitionColumn}
+          onClickClose={onClickClose}
+          onShiftOptions={onShiftOptions}
+        />
+      )),
     [
       onClickClose,
       onFilterEdit,
@@ -401,9 +387,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         visible={newFilterPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-      >
-        <div />
-      </AdhocFilterPopoverTrigger>
+      />
     </>
   );
 };
