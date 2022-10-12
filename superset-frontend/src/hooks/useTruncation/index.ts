@@ -59,22 +59,25 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
 
     if (scrollWidth > clientWidth) {
       // "..." is around 6px wide
-      const maxWidth = clientWidth - 6;
+      const truncationWidthLimit = 6;
+      const maxWidth = clientWidth - truncationWidthLimit;
       const elementsCount = childNodes.length;
 
       let width = 0;
-      let i = 0;
-      while (width < maxWidth) {
-        width += (childNodes[i] as HTMLElement).offsetWidth;
-        i += 1;
+      let truncatedElements = 1;
+      for (let i = 0; i < elementsCount; i += 1) {
+        const itemWidth = (childNodes[i] as HTMLElement).offsetWidth;
+        width += itemWidth;
+        // assures it shows +{number} also when the item is barely visible
+        if (width > maxWidth + itemWidth / 2) {
+          truncatedElements += 1;
+        }
       }
-      if (i === elementsCount) {
-        setElementsTruncated(1);
-        setHasHiddenElements(false);
-      } else {
-        setElementsTruncated(elementsCount - i);
+
+      if (truncatedElements > 1) {
         setHasHiddenElements(true);
       }
+      setElementsTruncated(truncatedElements);
     } else {
       setElementsTruncated(0);
     }

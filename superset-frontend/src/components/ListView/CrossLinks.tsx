@@ -35,26 +35,27 @@ export type CrossLinksProps = {
 
 const StyledCrossLinks = styled.div`
   ${({ theme }) => `
-    cursor: pointer;
-    position: relative;
-    display: flex;
-
-    .ant-tooltip-open {
-      display: inline;
-    }
-
-    .truncated {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      display: inline-block;
+    & > span {
       width: 100%;
-      vertical-align: bottom;
-    }
+      display: flex;
 
-    .count {
-      color: ${theme.colors.grayscale.base};
-      font-weight: ${theme.typography.weights.bold};
+      .ant-tooltip-open {
+        display: inline;
+      }
+
+      .truncated {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: inline-block;
+        width: 100%;
+        vertical-align: bottom;
+      }
+
+      .count {
+        color: ${theme.colors.grayscale.base};
+        font-weight: ${theme.typography.weights.bold};
+      }
     }
   `}
 `;
@@ -66,44 +67,49 @@ export default function CrossLinks({
 }: CrossLinksProps) {
   const crossLinksRef = useRef<HTMLDivElement>(null);
   const [elementsTruncated, hasHiddenElements] = useTruncation(crossLinksRef);
-
-  const links = useMemo(
+  const hasMoreItems = useMemo(
     () =>
-      crossLinks.map((link, index) => (
-        <Link
-          key={link.id}
-          to={linkPrefix + link.id}
-          target="_blank"
-          rel="noreferer noopener"
-        >
-          {index === 0 ? link.title : `, ${link.title}`}
-        </Link>
-      )),
+      crossLinks.length > maxLinks ? crossLinks.length - maxLinks : undefined,
+    [crossLinks, maxLinks],
+  );
+  const links = useMemo(
+    () => (
+      <span className="truncated" ref={crossLinksRef} data-test="crosslinks">
+        {crossLinks.map((link, index) => (
+          <Link
+            key={link.id}
+            to={linkPrefix + link.id}
+            target="_blank"
+            rel="noreferer noopener"
+          >
+            {index === 0 ? link.title : `, ${link.title}`}
+          </Link>
+        ))}
+      </span>
+    ),
     [crossLinks],
+  );
+  const tooltipLinks = useMemo(
+    () =>
+      crossLinks.slice(0, maxLinks).map(l => ({
+        title: l.title,
+        to: linkPrefix + l.id,
+      })),
+    [crossLinks, maxLinks],
   );
 
   return (
     <StyledCrossLinks>
-      <span className="truncated" ref={crossLinksRef} data-test="crosslinks">
-        {elementsTruncated ? (
-          <CrossLinksTooltip
-            moreItems={
-              crossLinks.length > maxLinks
-                ? crossLinks.length - maxLinks
-                : undefined
-            }
-            crossLinks={crossLinks.slice(0, maxLinks).map(l => ({
-              title: l.title,
-              to: linkPrefix + l.id,
-            }))}
-          >
-            {links}
-          </CrossLinksTooltip>
-        ) : (
-          links
-        )}
-      </span>
-      {hasHiddenElements && <span className="count">+{elementsTruncated}</span>}
+      {elementsTruncated ? (
+        <CrossLinksTooltip moreItems={hasMoreItems} crossLinks={tooltipLinks}>
+          {links}
+          {hasHiddenElements && (
+            <span className="count">+{elementsTruncated}</span>
+          )}
+        </CrossLinksTooltip>
+      ) : (
+        links
+      )}
     </StyledCrossLinks>
   );
 }
