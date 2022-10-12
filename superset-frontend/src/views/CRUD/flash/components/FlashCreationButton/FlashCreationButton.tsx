@@ -376,19 +376,24 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
 
   const validateQuery = async (sql: string): Promise<any> => {
     let payload = {
-      sqlQuery: sql,
+      sql: sql,
     };
     return await validateSqlQuery(payload)
       .then(({ data }) => {
-        console.log('query validation ===', data);
-        if (data && data?.valid === true) {
+        // if (data && data?.valid === true) {
+        //   saveModal?.current?.open({ preventDefault: () => {} });
+        // } else {
+        //   addDangerToast(t('Please Add a valid Sql Query', data?.message));
+        // }
+        if (data && data === true) {
           saveModal?.current?.open({ preventDefault: () => {} });
-        } else {
-          addDangerToast(t('Please Add a valid Sql Query', data?.message));
         }
       })
       .catch(error => {
-        addDangerToast(t('Please Add a valid Sql Query', error?.data?.message));
+        const apiError = error?.data?.message
+          ? error?.data?.message
+          : t('Please Add a valid Sql Query');
+        addDangerToast(apiError);
       });
   };
 
