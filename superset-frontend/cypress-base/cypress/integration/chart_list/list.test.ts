@@ -125,7 +125,7 @@ describe('Charts list', () => {
 
   describe('common actions', () => {
     beforeEach(() => {
-      cy.createSampleCharts();
+      cy.createSampleCharts([0, 1, 2, 3]);
       cy.visit(CHART_LIST);
     });
 

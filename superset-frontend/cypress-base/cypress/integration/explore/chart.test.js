@@ -25,6 +25,34 @@ function visitSampleChart(id) {
   cy.intercept('POST', '/superset/explore_json/**').as('getJson');
 }
 
+function selectDashboard(dashboardName) {
+  cy.get(
+    '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
+  )
+    .first()
+    .click();
+  cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
+}
+
+function saveToDashboard(dashboardName) {
+  cy.getBySel("query-save-button").click();
+  selectDashboard(dashboardName);
+  cy.getBySel("btn-modal-save").click();
+}
+
+function openDashboardsAddedTo() {
+  cy.getBySel("actions-trigger").click();
+  cy.get(".ant-dropdown-menu-submenu-title").first().trigger("mouseover");
+}
+
+function verifySubmenuItem(itemName) {
+  cy.get(".ant-dropdown-menu-submenu-popup").contains(itemName).trigger("mouseout");
+}
+
+function verifyMetabar(text) {
+  cy.getBySel("metadata-bar").contains(text);
+}
+
 describe('Cross-referenced dashboards', () => {
   beforeEach(() => {
     interceptFiltering();
@@ -35,12 +63,37 @@ describe('Cross-referenced dashboards', () => {
   });
 
   before(() => {
+    cy.createSampleDashboards();
     cy.createSampleCharts();
   });
 
-  it('Shows the "Added to {x} dashboard(s)', () => {
+  it('Shows the cross referenced dashboards', () => {
     visitSampleChart(4);
+
     cy.getBySel("metadata-bar").contains("Not added to any dashboard");
+    openDashboardsAddedTo();
+    verifySubmenuItem("None");
+
+    saveToDashboard("1 - Sample dashboard");
+    verifyMetabar("Added to 1 dashboard(s)");
+    openDashboardsAddedTo();
+    verifySubmenuItem("1 - Sample dashboard");
+
+    saveToDashboard("2 - Sample dashboard");
+    verifyMetabar("Added to 2 dashboard(s)");
+    openDashboardsAddedTo();
+    verifySubmenuItem("2 - Sample dashboard");
+
+    saveToDashboard("3 - Sample dashboard");
+    verifyMetabar("Added to 3 dashboard(s)");
+    openDashboardsAddedTo();
+    verifySubmenuItem("3 - Sample dashboard");
+
+    saveToDashboard("4 - Sample dashboard");
+    verifyMetabar("Added to 4 dashboard(s)");
+    openDashboardsAddedTo();
+    verifySubmenuItem("4 - Sample dashboard");
+
   });
 });
 

@@ -129,7 +129,7 @@ describe('Dashboard edit', () => {
 
   describe('Edit properties', () => {
     before(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0]);
       visitEdit();
     });
 
@@ -181,7 +181,7 @@ describe('Dashboard edit', () => {
 
   describe('Edit mode', () => {
     before(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0]);
       visitEdit();
     });
 
@@ -218,7 +218,7 @@ describe('Dashboard edit', () => {
 
   describe('Components', () => {
     before(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0]);
     });
 
     beforeEach(() => {
@@ -268,7 +268,7 @@ describe('Dashboard edit', () => {
 
   describe('Color schemes', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0]);
       visitEdit();
     });
 
