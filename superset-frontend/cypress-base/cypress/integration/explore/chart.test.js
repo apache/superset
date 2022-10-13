@@ -19,38 +19,60 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 import { CHART_LIST } from 'cypress/utils/urls';
 import {interceptFiltering} from './utils';
+import { saveChartToDashboard } from './utils';
+import { interceptGet as interceptDashboardGet } from 'cypress/integration/dashboard/utils';
+
+// SEARCH_THRESHOLD is 10. We need to add at least 11 dashboards to show search
+const SAMPLE_DASHBOARDS_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 function visitSampleChart(id) {
   cy.getBySel('table-row').first().contains(`${id} - Sample chart`).click();
   cy.intercept('POST', '/superset/explore_json/**').as('getJson');
 }
 
-function selectDashboard(dashboardName) {
-  cy.get(
-    '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
-  )
-    .first()
-    .click();
-  cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
-}
-
-function saveToDashboard(dashboardName) {
-  cy.getBySel("query-save-button").click();
-  selectDashboard(dashboardName);
-  cy.getBySel("btn-modal-save").click();
-}
-
 function openDashboardsAddedTo() {
   cy.getBySel("actions-trigger").click();
-  cy.get(".ant-dropdown-menu-submenu-title").first().trigger("mouseover");
+  cy.get(".ant-dropdown-menu-submenu-title").contains("Dashboards added to").trigger("mouseover");
 }
 
-function verifySubmenuItem(itemName) {
-  cy.get(".ant-dropdown-menu-submenu-popup").contains(itemName).trigger("mouseout");
+function closeDashboardsAddedTo() {
+  cy.get(".ant-dropdown-menu-submenu-title").contains("Dashboards added to").trigger("mouseout");
+  cy.getBySel("actions-trigger").click();
+}
+
+function verifyDashboardsSubmenuItem(dashboardName) {
+  cy.get(".ant-dropdown-menu-submenu-popup").contains(dashboardName);
+  closeDashboardsAddedTo();
+}
+
+function verifyDashboardSearch() {
+  openDashboardsAddedTo();
+  cy.get(".ant-dropdown-menu-submenu-popup").trigger("mouseover");
+  cy.get(".ant-dropdown-menu-submenu-popup").find('input[placeholder="Search"]').type("1");
+  cy.get(".ant-dropdown-menu-submenu-popup").contains("1 - Sample dashboard");
+  cy.get(".ant-dropdown-menu-submenu-popup").find('input[placeholder="Search"]').type("Blahblah");
+  cy.get(".ant-dropdown-menu-submenu-popup").contains("No results found");
+  cy.get(".ant-dropdown-menu-submenu-popup").find('[aria-label="close-circle"]').click();
+  closeDashboardsAddedTo();
+}
+
+function verifyDashboardLink() {
+  interceptDashboardGet();
+  openDashboardsAddedTo();
+  cy.get(".ant-dropdown-menu-submenu-popup").trigger("mouseover");
+  cy.get('.ant-dropdown-menu-submenu-popup a').first().invoke('removeAttr', 'target').click();
+  cy.wait("@get");
 }
 
 function verifyMetabar(text) {
   cy.getBySel("metadata-bar").contains(text);
+}
+
+function saveAndVerifyDashboard(number) {
+  saveChartToDashboard(`${number} - Sample dashboard`);
+  verifyMetabar(`Added to ${number} dashboard(s)`);
+  openDashboardsAddedTo();
+  verifyDashboardsSubmenuItem(`${number} - Sample dashboard`);
 }
 
 describe('Cross-referenced dashboards', () => {
@@ -63,8 +85,8 @@ describe('Cross-referenced dashboards', () => {
   });
 
   before(() => {
-    cy.createSampleDashboards();
-    cy.createSampleCharts();
+    cy.createSampleDashboards(SAMPLE_DASHBOARDS_INDEXES);
+    cy.createSampleCharts([3]);
   });
 
   it('Shows the cross referenced dashboards', () => {
@@ -72,28 +94,22 @@ describe('Cross-referenced dashboards', () => {
 
     cy.getBySel("metadata-bar").contains("Not added to any dashboard");
     openDashboardsAddedTo();
-    verifySubmenuItem("None");
+    verifyDashboardsSubmenuItem("None");
 
-    saveToDashboard("1 - Sample dashboard");
-    verifyMetabar("Added to 1 dashboard(s)");
-    openDashboardsAddedTo();
-    verifySubmenuItem("1 - Sample dashboard");
+    saveAndVerifyDashboard("1");
+    saveAndVerifyDashboard("2");
+    saveAndVerifyDashboard("3");
+    saveAndVerifyDashboard("4");
+    saveAndVerifyDashboard("5");
+    saveAndVerifyDashboard("6");
+    saveAndVerifyDashboard("7");
+    saveAndVerifyDashboard("8");
+    saveAndVerifyDashboard("9");
+    saveAndVerifyDashboard("10");
+    saveAndVerifyDashboard("11");
 
-    saveToDashboard("2 - Sample dashboard");
-    verifyMetabar("Added to 2 dashboard(s)");
-    openDashboardsAddedTo();
-    verifySubmenuItem("2 - Sample dashboard");
-
-    saveToDashboard("3 - Sample dashboard");
-    verifyMetabar("Added to 3 dashboard(s)");
-    openDashboardsAddedTo();
-    verifySubmenuItem("3 - Sample dashboard");
-
-    saveToDashboard("4 - Sample dashboard");
-    verifyMetabar("Added to 4 dashboard(s)");
-    openDashboardsAddedTo();
-    verifySubmenuItem("4 - Sample dashboard");
-
+    verifyDashboardSearch();
+    verifyDashboardLink();
   });
 });
 
