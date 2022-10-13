@@ -22,7 +22,7 @@ from freezegun.api import FakeDatetime  # type: ignore
 
 from superset.extensions import db
 from superset.reports.models import ReportScheduleType
-from superset.tasks.scheduler import scheduler
+from superset.tasks.scheduler import execute, scheduler
 from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app
 
@@ -136,3 +136,8 @@ def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
             execute_mock.assert_not_called()
         db.session.delete(report_schedule)
         db.session.commit()
+
+
+def test_execute_task():
+    with app.app_context():
+        execute(7, FakeDatetime(2020, 1, 1, 9, 0))
