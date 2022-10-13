@@ -28,7 +28,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 import Editor from '@monaco-editor/react';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { UPDATE_TYPES } from '../../constants';
-import { updateFlash } from '../../services/flash.service';
+import { updateFlash, validateSqlQuery } from '../../services/flash.service';
 
 interface FlashQueryButtonProps {
   flash: FlashServiceObject;
@@ -82,7 +82,7 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
 
   const onFlashUpdation = (formData: FlashUpdateQuery) => {
     const payload = { ...formData };
-    flashSqlQueryService(Number(flash?.id), UPDATE_TYPES.SQL, payload);
+    validateQueryService(payload.sqlQuery);
   };
 
   const flashSqlQueryService = useCallback(
@@ -105,6 +105,23 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
     },
     [addSuccessToast, addDangerToast],
   );
+
+  const validateQueryService = (sql: string): Promise<any> => {
+    let payload = {
+      sql: sql,
+    };
+    return validateSqlQuery(payload)
+      .then(({ data }) => {
+        if (Boolean(data.valid) === true) {
+          flashSqlQueryService(Number(flash?.id), UPDATE_TYPES.SQL, payload);
+        } else {
+          addDangerToast(t('Please Add a valid Sql Query', data.message));
+        }
+      })
+      .catch(error => {
+        addDangerToast(t(error?.data?.message));
+      });
+  };
   const renderModalBody = () => (
     <div>
       <Editor
