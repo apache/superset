@@ -24,7 +24,7 @@ test('get temporal columns from a Dataset', () => {
   expect(getTemporalColumns(TestDataset)).toEqual({
     temporalColumns: [
       {
-        advanced_data_type: null,
+        advanced_data_type: undefined,
         certification_details: null,
         certified_by: null,
         column_name: 'ds',

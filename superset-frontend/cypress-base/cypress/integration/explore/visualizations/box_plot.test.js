@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Box Plot', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
+  });
+
   const BOX_PLOT_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'box_plot',
@@ -37,17 +42,14 @@ describe('Visualization > Box Plot', () => {
     cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
 
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
-  });
-
   it('should work', () => {
     verify(BOX_PLOT_FORM_DATA);
     cy.get('.chart-container .box_plot canvas').should('have.length', 1);
   });
 
   it('should allow type to search color schemes', () => {
+    verify(BOX_PLOT_FORM_DATA);
+
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')

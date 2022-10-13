@@ -55,11 +55,12 @@ class GSheetsParametersSchema(Schema):
 
 class GSheetsParametersType(TypedDict):
     service_account_info: str
-    catalog: Dict[str, str]
+    catalog: Optional[Dict[str, str]]
 
 
 class GSheetsPropertiesType(TypedDict):
     parameters: GSheetsParametersType
+    catalog: Dict[str, str]
 
 
 class GSheetsEngineSpec(SqliteEngineSpec):
@@ -215,15 +216,21 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         properties: GSheetsPropertiesType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
+
+        # backwards compatible just incase people are send data
+        # via parameters for validation
         parameters = properties.get("parameters", {})
+        if parameters and parameters.get("catalog"):
+            table_catalog = parameters.get("catalog", {})
+        else:
+            table_catalog = properties.get("catalog", {})
+
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
         # On create the encrypted credentials are a string,
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
             encrypted_credentials = json.loads(encrypted_credentials)
-
-        table_catalog = parameters.get("catalog", {})
 
         if not table_catalog:
             # Allowing users to submit empty catalogs
@@ -250,6 +257,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         )
         conn = engine.connect()
         idx = 0
+
         for name, url in table_catalog.items():
 
             if not name:

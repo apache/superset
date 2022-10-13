@@ -29,6 +29,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from 'src/featureFlags';
+import setupExtensions from 'src/setup/setupExtensions';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
@@ -45,6 +46,7 @@ import '../assets/stylesheets/reactable-pagination.less';
 import { theme } from '../preamble';
 
 setupApp();
+setupExtensions();
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));

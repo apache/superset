@@ -108,7 +108,7 @@ const getDashboardContextFormData = () => {
     Object.assign(dashboardContextWithFilters, { dashboardId });
     return dashboardContextWithFilters;
   }
-  return {};
+  return null;
 };
 
 export default function ExplorePage() {
@@ -124,10 +124,12 @@ export default function ExplorePage() {
     if (!isExploreInitialized.current || isSaveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
-          const formData = getFormDataWithDashboardContext(
-            result.form_data,
-            dashboardContextFormData,
-          );
+          const formData = dashboardContextFormData
+            ? getFormDataWithDashboardContext(
+                result.form_data,
+                dashboardContextFormData,
+              )
+            : result.form_data;
           dispatch(
             hydrateExplore({
               ...result,

@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
+import { useHistory } from 'react-router-dom';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Modal from 'src/components/Modal';
@@ -54,6 +55,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   onHide,
   show,
 }) => {
+  const history = useHistory();
   const [currentDatabase, setCurrentDatabase] = useState<
     DatabaseObject | undefined
   >();
@@ -100,9 +102,13 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     setDisableSave(true);
   };
 
-  const hide = () => {
-    setItem(LocalStorageKeys.db, null);
+  const cleanup = () => {
     clearModal();
+    setItem(LocalStorageKeys.db, null);
+  };
+
+  const hide = () => {
+    cleanup();
     onHide();
   };
 
@@ -122,8 +128,8 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       if (onDatasetAdd) {
         onDatasetAdd({ id: response.id, ...response });
       }
-      window.location.href = `/chart/add?dataset=${currentTableName}`;
-      hide();
+      history.push(`/chart/add?dataset=${currentTableName}`);
+      cleanup();
     });
   };
 

@@ -17,12 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import {
-  ensureIsArray,
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-} from '@superset-ui/core';
+import { ensureIsArray, hasGenericChartAxes, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
   ControlPanelConfig,
@@ -292,7 +287,7 @@ function createAdvancedAnalyticsSection(
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.genericTime,
-    isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+    hasGenericChartAxes
       ? {
           label: t('Shared query fields'),
           expanded: true,
