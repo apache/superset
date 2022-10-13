@@ -4,6 +4,12 @@
 
 Apache Superset is a modern, enterprise-ready business intelligence web application
 
+**Homepage:** <https://superset.apache.org/>
+
+## Source Code
+
+* <https://github.com/apache/superset>
+
 ## TL;DR;
 
 ```console
@@ -160,7 +166,7 @@ helm install my-superset superset/superset
 | supersetWebsockets.deploymentAnnotations | object | `{}` |  |
 | supersetWebsockets.enabled | bool | `false` | This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode see https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries |
 | supersetWebsockets.image.pullPolicy | string | `"IfNotPresent"` |  |
-| supersetWebsockets.image.repository | string | `"immobisolusiprima/superset-websocket"` | There is no official image (yet), this one is community-supported |
+| supersetWebsockets.image.repository | string | `"oneacrefund/superset-websocket"` | There is no official image (yet), this one is community-supported |
 | supersetWebsockets.image.tag | string | `"latest"` |  |
 | supersetWebsockets.ingress.path | string | `"/ws"` |  |
 | supersetWebsockets.ingress.pathType | string | `"Prefix"` |  |
