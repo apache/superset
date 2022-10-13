@@ -578,6 +578,7 @@ function ChartList(props: ChartListProps) {
   const dashboardsFilter: Filter = useMemo(
     () => ({
       Header: t('Dashboards'),
+      key: 'dashboards',
       id: 'dashboards',
       input: 'select',
       operator: FilterOperator.relationManyMany,
