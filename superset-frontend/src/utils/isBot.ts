@@ -16,9 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './DateFilterLabel';
-export {
-  DATE_FILTER_CONTROL_TEST_ID,
-  fetchTimeRange,
-  guessFrame,
-} from './utils';
+
+// navigator.webdriver is true when browser is controlled by a bot
+export const isCurrentUserBot = () => window?.navigator?.webdriver;

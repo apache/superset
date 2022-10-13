@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './DateFilterLabel';
-export {
-  DATE_FILTER_CONTROL_TEST_ID,
-  fetchTimeRange,
-  guessFrame,
-} from './utils';
+
+export enum DASHBOARD_VIRTUALIZATION_MODE {
+  NONE = 'NONE',
+  VIEWPORT = 'VIEWPORT',
+  PAGINATED = 'PAGINATED',
+}
+
+export const isDashboardVirtualizationEnabled = (
+  virtualizationMode: DASHBOARD_VIRTUALIZATION_MODE,
+) =>
+  virtualizationMode === DASHBOARD_VIRTUALIZATION_MODE.VIEWPORT ||
+  virtualizationMode === DASHBOARD_VIRTUALIZATION_MODE.PAGINATED;
