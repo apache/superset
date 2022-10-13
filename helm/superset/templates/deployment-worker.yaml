@@ -113,27 +113,39 @@ spec:
           {{- with .Values.extraVolumeMounts }}
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
+          {{- if .Values.supersetWorker.startupProbe }}
+          startupProbe:
+            {{- .Values.supersetWorker.startupProbe | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.supersetWorker.readinessProbe }}
+          readinessProbe:
+            {{- .Values.supersetWorker.readinessProbe | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.supersetWorker.livenessProbe }}
+          livenessProbe:
+            {{- .Values.supersetWorker.livenessProbe | toYaml | nindent 12 }}
+          {{- end }}
           resources:
           {{- if .Values.supersetWorker.resources }}
-{{ toYaml .Values.supersetWorker.resources | indent 12 }}
+              {{- toYaml .Values.supersetWorker.resources | nindent 12 }}
           {{- else }}
-{{ toYaml .Values.resources | indent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
-    {{- with .Values.nodeSelector }}
+      {{- with .Values.nodeSelector }}
       nodeSelector:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- with .Values.affinity }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
       affinity:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
       tolerations:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-{{- if .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.imagePullSecrets | indent 8 }}
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
       volumes:
         - name: superset-config

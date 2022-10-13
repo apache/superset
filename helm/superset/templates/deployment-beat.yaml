@@ -53,7 +53,7 @@ spec:
         {{ toYaml .Values.supersetCeleryBeat.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
-        app: {{ template "superset.name" . }}-celerybeat
+        app: "{{ template "superset.name" . }}-celerybeat"
         release: {{ .Release.Name }}
       {{- if .Values.supersetCeleryBeat.podLabels }}
         {{ toYaml .Values.supersetCeleryBeat.podLabels | nindent 8 }}
@@ -75,7 +75,7 @@ spec:
       hostAliases: {{ toYaml . | nindent 6 }}
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
+        - name: "{{ .Chart.Name }}-celerybeat"
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetCeleryBeat.containerSecurityContext }}
@@ -108,25 +108,78 @@ spec:
           {{- end }}
           resources:
           {{- if .Values.supersetCeleryBeat.resources }}
-{{ toYaml .Values.supersetCeleryBeat.resources | indent 12 }}
+            {{- toYaml .Values.supersetCeleryBeat.resources | nindent 12 }}
           {{- else }}
-{{ toYaml .Values.resources | indent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
-    {{- with .Values.nodeSelector }}
+        {{- if .Values.supersetCeleryBeat.flower.enabled }}
+        - name: "{{ .Chart.Name }}-flower"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.supersetCeleryBeat.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.supersetCeleryBeat.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          command: {{  tpl (toJson .Values.supersetCeleryBeat.flower.command) . }}
+          env:
+            {{- range $key, $value := .Values.extraEnv }}
+            - name: {{ $key | quote}}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.extraEnvRaw }}
+            {{- toYaml .Values.extraEnvRaw | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ tpl .Values.envFromSecret . | quote }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+            {{- end }}
+          ports:
+            - name: flower
+              containerPort: 5555
+              protocol: TCP
+          volumeMounts:
+            - name: superset-config
+              mountPath: {{ .Values.configMountPath | quote }}
+              readOnly: true
+          {{- with .Values.extraVolumeMounts }}
+          {{- tpl (toYaml .) $ | nindent 12 -}}
+          {{- end }}
+          {{- if .Values.supersetCeleryBeat.flower.startupProbe }}
+          startupProbe:
+            {{- .Values.supersetCeleryBeat.flower.startupProbe | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.supersetCeleryBeat.flower.readinessProbe }}
+          readinessProbe:
+            {{- .Values.supersetCeleryBeat.flower.readinessProbe | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.supersetCeleryBeat.flower.livenessProbe }}
+          livenessProbe:
+            {{- .Values.supersetCeleryBeat.flower.livenessProbe | toYaml | nindent 12 }}
+          {{- end }}
+          resources:
+          {{- if .Values.supersetCeleryBeat.resources }}
+            {{- toYaml .Values.supersetCeleryBeat.resources | nindent 12 }}
+          {{- else }}
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- end }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
       nodeSelector:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- with .Values.affinity }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
       affinity:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
       tolerations:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-{{- if .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.imagePullSecrets | indent 8 }}
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
       volumes:
         - name: superset-config
