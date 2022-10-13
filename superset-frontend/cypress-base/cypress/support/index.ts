@@ -269,7 +269,7 @@ Cypress.Commands.add('createSampleCharts', (indexes?: number[]) =>
           method: 'POST',
           url: `/api/v1/chart/`,
           body: CHART_FIXTURES[i],
-          failOnStatusCode: true,
+          failOnStatusCode: false,
           headers: {
             Cookie: `csrf_access_token=${window.localStorage.getItem(
               'access_token',
