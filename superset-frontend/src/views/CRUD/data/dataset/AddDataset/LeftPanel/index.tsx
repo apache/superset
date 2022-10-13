@@ -41,7 +41,7 @@ import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
-  schema?: string | undefined | null;
+  schema?: string | null | undefined;
   dbId?: number;
 }
 

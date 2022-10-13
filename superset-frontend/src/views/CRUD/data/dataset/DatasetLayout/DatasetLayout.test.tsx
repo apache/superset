@@ -36,18 +36,12 @@ describe('DatasetLayout', () => {
   const mockSetDataset = jest.fn();
 
   const waitForRender = () =>
-    waitFor(() =>
-      render(<Header setDataset={mockSetDataset} datasetName="" />),
-    );
+    waitFor(() => render(<Header setDataset={mockSetDataset} />));
 
   it('renders a Header when passed in', async () => {
     await waitForRender();
 
-    expect(
-      screen.getByRole('textbox', {
-        name: /dataset name/i,
-      }),
-    ).toBeVisible();
+    expect(screen.getByTestId('editable-title')).toBeVisible();
   });
 
   it('renders a LeftPanel when passed in', async () => {
