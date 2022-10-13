@@ -26,7 +26,7 @@ import prison
 from parameterized import parameterized
 from sqlalchemy.sql import func
 
-from superset import db
+from superset import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.dashboard import Dashboard
@@ -49,9 +49,42 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.reports.utils import insert_report_schedule
 
 REPORTS_COUNT = 10
+REPORTS_ROLE_NAME = "reports_role"
+REPORTS_GAMMA_USER = "reports_gamma"
 
 
 class TestReportSchedulesApi(SupersetTestCase):
+    @pytest.fixture()
+    def gamma_user_with_alerts_role(self):
+        with self.create_app().app_context():
+            user = self.create_user(
+                REPORTS_GAMMA_USER,
+                "general",
+                "Gamma",
+                email=f"{REPORTS_GAMMA_USER}@superset.org",
+            )
+
+            security_manager.add_role(REPORTS_ROLE_NAME)
+            read_perm = security_manager.find_permission_view_menu(
+                "can_read",
+                "ReportSchedule",
+            )
+            write_perm = security_manager.find_permission_view_menu(
+                "can_write",
+                "ReportSchedule",
+            )
+            reports_role = security_manager.find_role(REPORTS_ROLE_NAME)
+            security_manager.add_permission_role(reports_role, read_perm)
+            security_manager.add_permission_role(reports_role, write_perm)
+            user.roles.append(reports_role)
+
+            yield user
+
+            # rollback changes (assuming cascade delete)
+            db.session.delete(reports_role)
+            db.session.delete(user)
+            db.session.commit()
+
     @pytest.fixture()
     def create_working_admin_report_schedule(self):
         with self.create_app().app_context():
@@ -77,23 +110,23 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
+    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
     @pytest.fixture()
-    def create_working_alpha_report_schedule(self):
+    def create_working_gamma_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
 
-            alpha_user = self.get_user("alpha")
             chart = db.session.query(Slice).first()
             example_db = get_example_database()
 
             report_schedule = insert_report_schedule(
                 type=ReportScheduleType.ALERT,
-                name="name_alpha_working",
+                name="name_gamma_working",
                 crontab="* * * * *",
                 sql="SELECT value from table",
                 description="Report working",
                 chart=chart,
                 database=example_db,
-                owners=[alpha_user],
+                owners=[gamma_user_with_alerts_role],
                 last_state=ReportState.WORKING,
             )
 
@@ -102,8 +135,9 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
+    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
     @pytest.fixture()
-    def create_working_shared_report_schedule(self):
+    def create_working_shared_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
 
             admin_user = self.get_user("admin")
@@ -119,7 +153,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 description="Report working",
                 chart=chart,
                 database=example_db,
-                owners=[admin_user, alpha_user],
+                owners=[admin_user, alpha_user, gamma_user_with_alerts_role],
                 last_state=ReportState.WORKING,
             )
 
@@ -362,14 +396,22 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "admin",
                 {
                     "name_admin_working",
-                    "name_alpha_working",
+                    "name_gamma_working",
                     "name_shared_working",
                 },
             ),
             (
                 "alpha",
                 {
-                    "name_alpha_working",
+                    "name_admin_working",
+                    "name_gamma_working",
+                    "name_shared_working",
+                },
+            ),
+            (
+                REPORTS_GAMMA_USER,
+                {
+                    "name_gamma_working",
                     "name_shared_working",
                 },
             ),
@@ -377,8 +419,9 @@ class TestReportSchedulesApi(SupersetTestCase):
     )
     @pytest.mark.usefixtures(
         "create_working_admin_report_schedule",
-        "create_working_alpha_report_schedule",
+        "create_working_gamma_report_schedule",
         "create_working_shared_report_schedule",
+        "gamma_user_with_alerts_role",
     )
     def test_get_list_report_schedule_perms(self, username, report_names):
         """
@@ -394,7 +437,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
     def test_get_list_report_schedule_gamma(self):
         """
-        ReportSchedule Api: Test get list report schedules for gamma user
+        ReportSchedule Api: Test get list report schedules for regular gamma user
         """
         self.login(username="gamma")
         uri = f"api/v1/report/"
@@ -1413,7 +1456,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         }
         uri = f"api/v1/report/{report_schedule.id}"
         rv = self.put_assert_metric(uri, report_schedule_data, "put")
-        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_delete_report_schedule(self):
@@ -1472,7 +1515,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="alpha2", password="password")
         uri = f"api/v1/report/{report_schedule.id}"
         rv = self.delete_assert_metric(uri, "delete")
-        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_bulk_delete_report_schedule(self):
@@ -1529,7 +1572,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="alpha2", password="password")
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
-        self.assertEqual(rv.status_code, 404)
+        self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_list_report_schedule_logs(self):

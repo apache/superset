@@ -27,7 +27,7 @@ from superset.views.base import BaseFilter
 
 class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.is_admin():
+        if security_manager.can_access_all_datasources():
             return query
         owner_ids_query = (
             db.session.query(ReportSchedule.id)
