@@ -20,7 +20,10 @@ import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { drag, resize, waitForChartLoad } from 'cypress/utils';
 import * as ace from 'brace';
 import { interceptGet, interceptUpdate, openTab } from './utils';
-import { interceptFiltering as interceptCharts } from '../explore/utils';
+import {
+  interceptExploreJson,
+  interceptFiltering as interceptCharts,
+} from '../explore/utils';
 
 function editDashboard() {
   cy.getBySel('edit-dashboard-button').click();
@@ -152,6 +155,21 @@ function writeMetadata(metadata: string) {
   });
 }
 
+function openExplore(chartName: string) {
+  interceptExploreJson();
+
+  cy.get(
+    `[data-test-chart-name='${chartName}'] [aria-label='More Options']`,
+  ).click();
+  cy.get('.ant-dropdown')
+    .not('.ant-dropdown-hidden')
+    .find("[role='menu'] [role='menuitem']")
+    .eq(2)
+    .should('contain', 'Edit chart')
+    .click();
+  cy.wait('@getJson');
+}
+
 describe('Dashboard edit', () => {
   beforeEach(() => {
     cy.preserveLogin();
@@ -214,6 +232,48 @@ describe('Dashboard edit', () => {
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .eq(2)
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+    });
+
+    it('should show the same colors in Explore', () => {
+      openProperties();
+      openAdvancedProperties();
+      clearMetadata();
+      writeMetadata(
+        '{"color_scheme":"lyftColors","label_colors":{"Anthony":"red"}}',
+      );
+      applyChanges();
+      saveChanges();
+
+      // open nested tab
+      openTab(1, 1);
+      waitForChartLoad({
+        name: 'Top 10 California Names Timeseries',
+        viz: 'line',
+      });
+
+      // label Anthony
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
+        .first()
+        .should('have.css', 'fill', 'rgb(255, 0, 0)');
+      // label Christopher
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
+        .eq(1)
+        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+
+      openExplore('Top 10 California Names Timeseries');
+
+      // label Anthony
+      cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
+        .first()
+        .should('have.css', 'fill', 'rgb(255, 0, 0)');
+      // label Christopher
+      cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
+        .eq(1)
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
     });
 
