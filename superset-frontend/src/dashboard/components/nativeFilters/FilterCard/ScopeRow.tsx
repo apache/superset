@@ -48,7 +48,10 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
   const scopeRef = useRef<HTMLDivElement>(null);
   const plusRef = useRef<HTMLDivElement>(null);
 
-  const [elementsTruncated, hasHiddenElements] = useTruncation(scopeRef, plusRef);
+  const [elementsTruncated, hasHiddenElements] = useTruncation(
+    scopeRef,
+    plusRef,
+  );
   const tooltipText = useMemo(() => {
     if (elementsTruncated === 0 || !scope) {
       return null;
@@ -78,7 +81,9 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
             : t('None')}
         </RowValue>
         {hasHiddenElements > 0 && (
-          <RowTruncationCount ref={plusRef}>+{elementsTruncated}</RowTruncationCount>
+          <RowTruncationCount ref={plusRef}>
+            +{elementsTruncated}
+          </RowTruncationCount>
         )}
       </TooltipWithTruncation>
     </Row>
