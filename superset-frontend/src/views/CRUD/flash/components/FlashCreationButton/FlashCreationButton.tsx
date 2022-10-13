@@ -374,11 +374,11 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     }
   };
 
-  const validateQuery = async (sql: string): Promise<any> => {
+  const validateQuery = (sql: string): Promise<any> => {
     const payload = {
       sql,
     };
-    return await validateSqlQuery(payload)
+    return validateSqlQuery(payload)
       .then(({ data }) => {
         // if (data && data?.valid === true) {
         //   saveModal?.current?.open({ preventDefault: () => {} });
