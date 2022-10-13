@@ -353,6 +353,16 @@ describe('Dashboard edit', () => {
       )
         .first()
         .should('have.css', 'fill', 'rgb(234, 11, 140)');
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
+        .eq(1)
+        .should('have.css', 'fill', 'rgb(108, 131, 142)');
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
+        .eq(1)
+        .should('have.css', 'fill', 'rgb(41, 171, 226)');
     });
 
     it('should re-apply original color after removing custom label color with no color scheme set', () => {
@@ -367,6 +377,16 @@ describe('Dashboard edit', () => {
       )
         .first()
         .should('have.css', 'fill', 'rgb(31, 168, 201)');
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
+        .eq(1)
+        .should('have.css', 'fill', 'rgb(69, 78, 124)');
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
+        .eq(2)
+        .should('have.css', 'fill', 'rgb(90, 193, 137)');
 
       openProperties();
       cy.get('[aria-label="Select color scheme"]').should('have.value', '');
@@ -396,6 +416,16 @@ describe('Dashboard edit', () => {
       )
         .first()
         .should('have.css', 'fill', 'rgb(31, 168, 201)');
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
+        .eq(1)
+        .should('have.css', 'fill', 'rgb(69, 78, 124)');
+      cy.get(
+        '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
+      )
+        .eq(2)
+        .should('have.css', 'fill', 'rgb(90, 193, 137)');
     });
 
     it('should show the same colors in Explore', () => {
