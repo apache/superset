@@ -21,6 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { List } from 'react-virtualized';
 import { createFilter } from 'react-search-input';
+import { ParentSize } from '@vx/responsive';
 import {
   t,
   styled,
@@ -57,7 +58,6 @@ const propTypes = {
   userId: PropTypes.string.isRequired,
   selectedSliceIds: PropTypes.arrayOf(PropTypes.number),
   editMode: PropTypes.bool,
-  height: PropTypes.number,
   filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
   dashboardId: PropTypes.number,
 };
@@ -66,7 +66,6 @@ const defaultProps = {
   selectedSliceIds: [],
   editMode: false,
   errorMessage: '',
-  height: window.innerHeight,
   filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
 };
 
@@ -80,9 +79,6 @@ const KEYS_TO_SORT = {
 
 const DEFAULT_SORT_KEY = 'changed_on';
 
-const MARGIN_BOTTOM = 16;
-const SIDEPANE_HEADER_HEIGHT = 30;
-const SLICE_ADDER_CONTROL_HEIGHT = 64;
 const DEFAULT_CELL_HEIGHT = 128;
 
 const Controls = styled.div`
@@ -282,13 +278,15 @@ class SliceAdder extends React.Component {
   }
 
   render() {
-    const slicesListHeight =
-      this.props.height -
-      SIDEPANE_HEADER_HEIGHT -
-      SLICE_ADDER_CONTROL_HEIGHT -
-      MARGIN_BOTTOM;
     return (
-      <div className="slice-adder-container">
+      <div
+        className="slice-adder-container"
+        css={css`
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        `}
+      >
         <NewChartButtonContainer>
           <NewChartButton
             buttonStyle="link"
@@ -326,16 +324,26 @@ class SliceAdder extends React.Component {
         </Controls>
         {this.props.isLoading && <Loading />}
         {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
-          <List
-            width={376}
-            height={slicesListHeight}
-            rowCount={this.state.filteredSlices.length}
-            rowHeight={DEFAULT_CELL_HEIGHT}
-            rowRenderer={this.rowRenderer}
-            searchTerm={this.state.searchTerm}
-            sortBy={this.state.sortBy}
-            selectedSliceIds={this.props.selectedSliceIds}
-          />
+          <div
+            css={css`
+              flex-grow: 1;
+            `}
+          >
+            <ParentSize>
+              {({ height }) => (
+                <List
+                  width={376}
+                  height={height}
+                  rowCount={this.state.filteredSlices.length}
+                  rowHeight={DEFAULT_CELL_HEIGHT}
+                  rowRenderer={this.rowRenderer}
+                  searchTerm={this.state.searchTerm}
+                  sortBy={this.state.sortBy}
+                  selectedSliceIds={this.props.selectedSliceIds}
+                />
+              )}
+            </ParentSize>
+          </div>
         )}
         {this.props.errorMessage && (
           <div className="error-message">{this.props.errorMessage}</div>
