@@ -107,15 +107,15 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
   );
 
   const validateQueryService = (sql: string): Promise<any> => {
-    let payload = {
-      sql: sql,
+    const payload = {
+      sql,
     };
     return validateSqlQuery(payload)
       .then(({ data }) => {
         if (Boolean(data.valid) === true) {
           flashSqlQueryService(Number(flash?.id), UPDATE_TYPES.SQL, payload);
         } else {
-          addDangerToast(t('Please Add a valid Sql Query', data.message));
+          addDangerToast(t(data?.message));
         }
       })
       .catch(error => {
