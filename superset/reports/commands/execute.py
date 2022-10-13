@@ -437,7 +437,11 @@ class BaseReportState:
         """
         header_data = self._get_log_data()
         header_data["error_text"] = message
-        logger.info("header_data info %s", header_data)
+        logger.info(
+            "header_data in notifications for alerts and reports %s, taskid, %s",
+            header_data,
+            self._execution_id,
+        )
         notification_content = NotificationContent(
             name=name, text=message, header_data=header_data
         )
@@ -690,6 +694,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self, session: Session = None
     ) -> None:
         # Validate/populate model exists
+        logger.info(
+            "session is validated: id %s, executionid: %s",
+            self._model_id,
+            self._execution_id,
+        )
         self._model = ReportScheduleDAO.find_by_id(self._model_id, session=session)
         if not self._model:
             raise ReportScheduleNotFoundError()
