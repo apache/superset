@@ -1708,6 +1708,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/created_slices/<int:user_id>/", methods=["GET"])
     def created_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices created by this user"""
+        logger.warning(
+            "%s.created_slices "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         if not user_id:
             user_id = cast(int, get_user_id())
         error_obj = self.get_user_activity_access_error(user_id)

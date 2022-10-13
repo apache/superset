@@ -66,6 +66,7 @@ interface ChartHolderProps {
   updateComponents: Function;
   handleComponentDrop: (...args: unknown[]) => unknown;
   setFullSizeChartId: (chartId: number | null) => void;
+  isInView: boolean;
 }
 
 const ChartHolder: React.FC<ChartHolderProps> = ({
@@ -89,6 +90,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   updateComponents,
   handleComponentDrop,
   setFullSizeChartId,
+  isInView,
 }) => {
   const { chartId } = component.meta;
   const isFullSize = fullSizeChartId === chartId;
@@ -303,6 +305,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
               isFullSize={isFullSize}
               setControlValue={handleExtraControl}
               extraControls={extraControls}
+              isInView={isInView}
             />
             {editMode && (
               <HoverMenu position="top">

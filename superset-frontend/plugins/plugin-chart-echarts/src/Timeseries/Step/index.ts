@@ -21,8 +21,7 @@ import {
   Behavior,
   ChartMetadata,
   ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
 import {
@@ -49,7 +48,7 @@ export default class EchartsTimeseriesStepChartPlugin extends ChartPlugin<
         behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        description: hasGenericChartAxes
           ? t(
               'Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.',
             )
@@ -63,7 +62,7 @@ export default class EchartsTimeseriesStepChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        name: hasGenericChartAxes
           ? t('Stepped Line')
           : t('Time-series Stepped Line'),
         tags: [

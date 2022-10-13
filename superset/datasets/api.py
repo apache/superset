@@ -817,6 +817,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing datasets?
                       type: boolean
+                    sync_columns:
+                      description: sync columns?
+                      type: boolean
+                    sync_metrics:
+                      description: sync metrics?
+                      type: boolean
           responses:
             200:
               description: Dataset import result
@@ -855,9 +861,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        sync_columns = request.form.get("sync_columns") == "true"
+        sync_metrics = request.form.get("sync_metrics") == "true"
 
         command = ImportDatasetsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            sync_columns=sync_columns,
+            sync_metrics=sync_metrics,
         )
         command.run()
         return self.response(200, message="OK")

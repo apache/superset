@@ -26,7 +26,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.key_value.commands.create import CreateKeyValueCommand
-from superset.key_value.exceptions import KeyValueUpdateFailedError
+from superset.key_value.exceptions import (
+    KeyValueCreateFailedError,
+    KeyValueUpsertFailedError,
+)
 from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import Key, KeyValueResource
 from superset.key_value.utils import get_filter
@@ -66,10 +69,9 @@ class UpsertKeyValueCommand(BaseCommand):
     def run(self) -> Key:
         try:
             return self.upsert()
-        except SQLAlchemyError as ex:
+        except (KeyValueCreateFailedError, SQLAlchemyError) as ex:
             db.session.rollback()
-            logger.exception("Error running update command")
-            raise KeyValueUpdateFailedError() from ex
+            raise KeyValueUpsertFailedError() from ex
 
     def validate(self) -> None:
         pass
@@ -90,6 +92,7 @@ class UpsertKeyValueCommand(BaseCommand):
             db.session.merge(entry)
             db.session.commit()
             return Key(entry.id, entry.uuid)
+
         return CreateKeyValueCommand(
             resource=self.resource,
             value=self.value,

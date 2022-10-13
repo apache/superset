@@ -97,7 +97,9 @@ class GetExploreCommand(BaseCommand, ABC):
                     )
 
         form_data, slc = get_form_data(
-            use_slice_data=True, initial_form_data=initial_form_data
+            slice_id=self._slice_id,
+            use_slice_data=True,
+            initial_form_data=initial_form_data,
         )
         try:
             self._dataset_id, self._dataset_type = get_datasource_info(

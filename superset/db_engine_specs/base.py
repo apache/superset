@@ -1685,6 +1685,10 @@ class BasicParametersType(TypedDict, total=False):
     encryption: bool
 
 
+class BasicPropertiesType(TypedDict):
+    parameters: BasicParametersType
+
+
 class BasicParametersMixin:
     """
     Mixin for configuring DB engine specs via a dictionary.
@@ -1762,7 +1766,7 @@ class BasicParametersMixin:
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BasicParametersType
+        cls, properties: BasicPropertiesType
     ) -> List[SupersetError]:
         """
         Validates any number of parameters, for progressive validation.
@@ -1773,6 +1777,7 @@ class BasicParametersMixin:
         errors: List[SupersetError] = []
 
         required = {"host", "port", "username", "database"}
+        parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
         missing = sorted(required - present)
 

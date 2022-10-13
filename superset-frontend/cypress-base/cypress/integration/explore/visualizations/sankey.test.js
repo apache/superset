@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Sankey', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const SANKEY_FORM_DATA = {
     datasource: '1__table',
     viz_type: 'sankey',
@@ -36,11 +41,6 @@ describe('Visualization > Sankey', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work', () => {
     verify(SANKEY_FORM_DATA);
@@ -75,6 +75,8 @@ describe('Visualization > Sankey', () => {
   });
 
   it('should allow type to search color schemes', () => {
+    verify(SANKEY_FORM_DATA);
+
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
