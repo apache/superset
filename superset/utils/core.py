@@ -1003,8 +1003,9 @@ def send_mime_email(
     smpt_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
 
     if dryrun:
-        logger.info("Dryrun enabled, email notification content is below:")
-        logger.info(mime_msg.as_string())
+        logger.info(
+            "Dryrun enabled, email notification content is %s", mime_msg.as_string()
+        )
         return
 
     # Default ssl context is SERVER_AUTH using the default system
@@ -1020,6 +1021,7 @@ def send_mime_email(
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
     logger.debug("Sent an email to %s", str(e_to))
+    logger.info("Sent email notification content is %s", mime_msg.as_string())
     smtp.sendmail(e_from, e_to, mime_msg.as_string())
     smtp.quit()
 
