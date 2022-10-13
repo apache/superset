@@ -375,8 +375,8 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
   };
 
   const validateQuery = async (sql: string): Promise<any> => {
-    let payload = {
-      sql: sql,
+    const payload = {
+      sql,
     };
     return await validateSqlQuery(payload)
       .then(({ data }) => {
@@ -447,8 +447,9 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
             buttonStyle="primary"
             onClick={e => {
               e.stopPropagation();
-              if (sql) {
-                validateQuery(sql);
+              const sqlToValidate = sql || sqlQuery.query;
+              if (sqlToValidate) {
+                validateQuery(sqlToValidate);
               }
             }}
           >
