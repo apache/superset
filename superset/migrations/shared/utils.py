@@ -100,22 +100,31 @@ def paginated_update(
     """
     Update models in small batches so we don't have to load everything in memory.
     """
-    start = 0
-    count = query.count()
+
+    total = query.count()
+    processed = 0
     session: Session = inspect(query).session
+    result = session.execute(query)
+
     if print_page_progress is None or print_page_progress is True:
-        print_page_progress = lambda current, total: print(
-            f"    {current}/{total}", end="\r"
+        print_page_progress = lambda processed, total: print(
+            f"    {processed}/{total}", end="\r"
         )
-    while start < count:
-        end = min(start + batch_size, count)
-        for obj in query[start:end]:
-            yield obj
-            session.merge(obj)
+
+    while True:
+        rows = result.fetchmany(batch_size)
+
+        if not rows:
+            break
+
+        for row in rows:
+            yield row[0]
+
         session.commit()
+        processed += len(rows)
+
         if print_page_progress:
-            print_page_progress(end, count)
-        start += batch_size
+            print_page_progress(processed, total)
 
 
 def try_load_json(data: Optional[str]) -> Dict[str, Any]:
