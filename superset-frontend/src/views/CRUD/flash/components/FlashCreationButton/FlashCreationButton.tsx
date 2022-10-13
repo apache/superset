@@ -380,13 +380,10 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     };
     return validateSqlQuery(payload)
       .then(({ data }) => {
-        // if (data && data?.valid === true) {
-        //   saveModal?.current?.open({ preventDefault: () => {} });
-        // } else {
-        //   addDangerToast(t('Please Add a valid Sql Query', data?.message));
-        // }
-        if (data && data === true) {
+        if (data && data?.valid === true) {
           saveModal?.current?.open({ preventDefault: () => {} });
+        } else {
+          addDangerToast(t('Please Add a valid Sql Query', data?.message));
         }
       })
       .catch(error => {
