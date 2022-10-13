@@ -26,7 +26,7 @@ metadata:
     heritage: {{ .Release.Service }}
 {{- if .Values.supersetWebsockets.deploymentAnnotations }}
   annotations:
-    {{ toYaml .Values.supersetWebsockets.deploymentAnnotations | nindent 4 }}
+    {{- toYaml .Values.supersetWebsockets.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
   replicas: {{ .Values.supersetWebsockets.replicaCount }}
@@ -43,13 +43,13 @@ spec:
       annotations:
         checksum/wsconfig: {{ tpl (toJson .Values.supersetWebsockets.config) . | sha256sum }}
       {{- if .Values.supersetWebsockets.podAnnotations }}
-        {{ toYaml .Values.supersetWebsockets.podAnnotations | nindent 8 }}
+        {{- toYaml .Values.supersetWebsockets.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
         app: "{{ template "superset.name" . }}-ws"
         release: {{ .Release.Name }}
       {{- if .Values.supersetWebsockets.podLabels }}
-        {{ toYaml .Values.supersetWebsockets.podLabels | nindent 8 }}
+        {{- toYaml .Values.supersetWebsockets.podLabels | nindent 8 }}
       {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
@@ -58,17 +58,17 @@ spec:
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetWebsockets.podSecurityContext }}
-        {{ toYaml .Values.supersetWebsockets.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.supersetWebsockets.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- with .Values.hostAliases }}
-      hostAliases: {{ toYaml . | nindent 6 }}
+      hostAliases: {{- toYaml . | nindent 6 }}
       {{- end }}
       containers:
         - name: "{{ .Chart.Name }}-ws"
           image: "{{ .Values.supersetWebsockets.image.repository }}:{{ .Values.supersetWebsockets.image.tag }}"
           imagePullPolicy: {{ .Values.supersetWebsockets.image.pullPolicy }}
           {{- if .Values.supersetWebsockets.containerSecurityContext }}
-          securityContext: {{ toYaml .Values.supersetWebsockets.containerSecurityContext | nindent 12 }}
+          securityContext: {{- toYaml .Values.supersetWebsockets.containerSecurityContext | nindent 12 }}
           {{- end }}
           command: {{  tpl (toJson .Values.supersetWebsockets.command) . }}
           # Passing all the envs is a bit blunt... we only need a few (see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts)...

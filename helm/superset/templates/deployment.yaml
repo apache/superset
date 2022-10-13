@@ -25,7 +25,7 @@ metadata:
     heritage: {{ .Release.Service }}
 {{- if .Values.supersetNode.deploymentAnnotations }}
   annotations:
-    {{ toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
+    {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
   replicas: {{ .Values.supersetNode.replicaCount }}
@@ -55,13 +55,13 @@ spec:
         force-reload: {{ randAlphaNum 5 | quote }}
         {{- end }}
       {{- if .Values.supersetNode.podAnnotations }}
-        {{ toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
+        {{- toYaml .Values.supersetNode.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
       {{- if .Values.supersetNode.podLabels }}
-        {{ toYaml .Values.supersetNode.podLabels | nindent 8 }}
+        {{- toYaml .Values.supersetNode.podLabels | nindent 8 }}
       {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
@@ -70,21 +70,21 @@ spec:
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetNode.podSecurityContext }}
-        {{ toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if .Values.supersetNode.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
       {{- end }}
       {{- with .Values.hostAliases }}
-      hostAliases: {{ toYaml . | nindent 6 }}
+      hostAliases: {{- toYaml . | nindent 6 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetNode.containerSecurityContext }}
-          securityContext: {{ toYaml .Values.supersetNode.containerSecurityContext | nindent 12 }}
+          securityContext: {{- toYaml .Values.supersetNode.containerSecurityContext | nindent 12 }}
           {{- end }}
           command: {{  tpl (toJson .Values.supersetNode.command) . }}
           env:
