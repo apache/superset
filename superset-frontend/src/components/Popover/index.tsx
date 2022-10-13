@@ -18,6 +18,9 @@
  */
 import { Popover } from 'antd';
 
+export { PopoverProps } from 'antd/lib/popover';
+export { TooltipPlacement } from 'antd/lib/tooltip';
+
 // Eventually Popover can be wrapped and customized in this file
 // for now we're just redirecting
 export default Popover;

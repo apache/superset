@@ -16,42 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  t,
-  validateNonEmpty,
-} from '@superset-ui/core';
+import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   columnChoices,
   ControlPanelConfig,
   ControlPanelState,
   formatSelectOptions,
   sections,
-  dndColumnsControl,
+  getStandardizedControls,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 
-const allColumns = {
-  type: 'SelectControl',
+const columnsConfig = {
+  ...sharedControls.columns,
   label: t('Columns'),
-  default: null,
   description: t('Select the numeric columns to draw the histogram'),
   mapStateToProps: (state: ControlPanelState) => ({
+    ...(sharedControls.columns.mapStateToProps?.(state) || {}),
     choices: columnChoices(state.datasource),
   }),
-  multi: true,
   validators: [validateNonEmpty],
 };
-
-const dndAllColumns = {
-  ...dndColumnsControl,
-  description: t('Select the numeric columns to draw the histogram'),
-  validators: [validateNonEmpty],
-};
-
-const columnsConfig = isFeatureEnabled(FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP)
-  ? dndAllColumns
-  : allColumns;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -128,7 +113,7 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Legend'),
               renderTrigger: true,
-              default: false,
+              default: true,
               description: t('Whether to display the legend (toggles)'),
             },
           },
@@ -160,5 +145,9 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 export default config;

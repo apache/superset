@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import datetime
 import re
 import time
 from typing import Any, Dict
 
+import numpy as np
+import pandas as pd
 import pytest
 from pandas import DateOffset
 
@@ -26,12 +27,21 @@ from superset import db
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
+from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlMetric
+from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
-from superset.utils.core import AdhocMetricExpressionType, backend, TimeRangeEndpoint
+from superset.superset_typing import AdhocColumn
+from superset.utils.core import (
+    AdhocMetricExpressionType,
+    backend,
+    DatasourceType,
+    QueryStatus,
+)
+from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import only_postgresql, only_sqlite
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -91,8 +101,10 @@ class TestQueryContext(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_cache(self):
         table_name = "birth_names"
-        table = self.get_table(name=table_name)
-        payload = get_query_context(table_name, table.id)
+        payload = get_query_context(
+            query_name=table_name,
+            add_postprocessing_operations=True,
+        )
         payload["force"] = True
 
         query_context = ChartDataQueryContextSchema().load(payload)
@@ -100,6 +112,10 @@ class TestQueryContext(SupersetTestCase):
         query_cache_key = query_context.query_cache_key(query_object)
 
         response = query_context.get_payload(cache_query_context=True)
+        # MUST BE a successful query
+        query_dump = response["queries"][0]
+        assert query_dump["status"] == QueryStatus.SUCCESS
+
         cache_key = response["cache_key"]
         assert cache_key is not None
 
@@ -127,10 +143,10 @@ class TestQueryContext(SupersetTestCase):
         cache_key_original = query_context.query_cache_key(query_object)
 
         # make temporary change and revert it to refresh the changed_on property
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type=payload["datasource"]["type"],
-            datasource_id=payload["datasource"]["id"],
+        datasource = DatasourceDAO.get_datasource(
             session=db.session,
+            datasource_type=DatasourceType(payload["datasource"]["type"]),
+            datasource_id=payload["datasource"]["id"],
         )
         description_original = datasource.description
         datasource.description = "temporary description"
@@ -151,10 +167,10 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
 
         # make temporary change and revert it to refresh the changed_on property
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type=payload["datasource"]["type"],
-            datasource_id=payload["datasource"]["id"],
+        datasource = DatasourceDAO.get_datasource(
             session=db.session,
+            datasource_type=DatasourceType(payload["datasource"]["type"]),
+            datasource_id=payload["datasource"]["id"],
         )
 
         datasource.metrics.append(SqlMetric(metric_name="foo", expression="select 1;"))
@@ -235,23 +251,6 @@ class TestQueryContext(SupersetTestCase):
         cache_key = query_context.query_cache_key(query_object)
         self.assertNotEqual(cache_key_original, cache_key)
 
-    def test_query_context_time_range_endpoints(self):
-        """
-        Ensure that time_range_endpoints are populated automatically when missing
-        from the payload.
-        """
-        self.login(username="admin")
-        payload = get_query_context("birth_names")
-        del payload["queries"][0]["extras"]["time_range_endpoints"]
-        query_context = ChartDataQueryContextSchema().load(payload)
-        query_object = query_context.queries[0]
-        extras = query_object.to_dict()["extras"]
-        assert "time_range_endpoints" in extras
-        self.assertEqual(
-            extras["time_range_endpoints"],
-            (TimeRangeEndpoint.INCLUSIVE, TimeRangeEndpoint.EXCLUSIVE),
-        )
-
     def test_handle_metrics_field(self):
         """
         Should support both predefined and adhoc metrics.
@@ -290,7 +289,6 @@ class TestQueryContext(SupersetTestCase):
         self.assertEqual(query_object.columns, columns)
         self.assertEqual(query_object.series_limit, 99)
         self.assertEqual(query_object.series_limit_metric, "sum__num")
-        self.assertIn("having_druid", query_object.extras)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_csv_response_format(self):
@@ -301,7 +299,7 @@ class TestQueryContext(SupersetTestCase):
         payload = get_query_context("birth_names")
         payload["result_format"] = ChartDataResultFormat.CSV.value
         payload["queries"][0]["row_limit"] = 10
-        query_context = ChartDataQueryContextSchema().load(payload)
+        query_context: QueryContext = ChartDataQueryContextSchema().load(payload)
         responses = query_context.get_payload()
         self.assertEqual(len(responses), 1)
         data = responses["queries"][0]["data"]
@@ -456,12 +454,16 @@ class TestQueryContext(SupersetTestCase):
             else:
                 # Should reference the adhoc metric by alias when possible
                 assert re.search(
-                    r'ORDER BY [`"\[]?num_girls[`"\]]? DESC', sql_text, re.IGNORECASE,
+                    r'ORDER BY [`"\[]?num_girls[`"\]]? DESC',
+                    sql_text,
+                    re.IGNORECASE,
                 )
 
             # ORDER BY only columns should always be expressions
             assert re.search(
-                r'AVG\([`"\[]?num_boys[`"\]]?\) DESC', sql_text, re.IGNORECASE,
+                r'AVG\([`"\[]?num_boys[`"\]]?\) DESC',
+                sql_text,
+                re.IGNORECASE,
             )
             assert re.search(
                 r"MAX\(CASE.*END\) ASC", sql_text, re.IGNORECASE | re.DOTALL
@@ -586,7 +588,10 @@ class TestQueryContext(SupersetTestCase):
         payload["queries"][0]["time_offsets"] = []
         query_context = ChartDataQueryContextSchema().load(payload)
         query_object = query_context.queries[0]
-        rv = query_context.processing_time_offsets(df, query_object,)
+        rv = query_context.processing_time_offsets(
+            df,
+            query_object,
+        )
         self.assertIs(rv["df"], df)
         self.assertEqual(rv["queries"], [])
         self.assertEqual(rv["cache_keys"], [])
@@ -684,3 +689,332 @@ class TestQueryContext(SupersetTestCase):
                     row["sum__num__3 years later"]
                     == df_3_years_later.loc[index]["sum__num"]
                 )
+
+
+def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": virtual_dataset_comma_in_column_value.type,
+            "id": virtual_dataset_comma_in_column_value.id,
+        },
+        queries=[
+            {
+                "columns": ["col1", "col2"],
+                "metrics": ["count"],
+                "post_processing": [
+                    {
+                        "operation": "pivot",
+                        "options": {
+                            "aggregates": {"count": {"operator": "mean"}},
+                            "columns": ["col2"],
+                            "index": ["col1"],
+                        },
+                    },
+                    {"operation": "flatten"},
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    label_map = qc.get_df_payload(query_object)["label_map"]
+    assert list(df.columns.values) == [
+        "col1",
+        "count" + FLAT_COLUMN_SEPARATOR + "col2, row1",
+        "count" + FLAT_COLUMN_SEPARATOR + "col2, row2",
+        "count" + FLAT_COLUMN_SEPARATOR + "col2, row3",
+    ]
+    assert label_map == {
+        "col1": ["col1"],
+        "count, col2, row1": ["count", "col2, row1"],
+        "count, col2, row2": ["count", "col2, row2"],
+        "count, col2, row3": ["count", "col2, row3"],
+    }
+
+
+def test_time_column_with_time_grain(app_context, physical_dataset):
+    column_on_axis: AdhocColumn = {
+        "label": "I_AM_AN_ORIGINAL_COLUMN",
+        "sqlExpression": "col5",
+        "timeGrain": "P1Y",
+    }
+    adhoc_column: AdhocColumn = {
+        "label": "I_AM_A_TRUNC_COLUMN",
+        "sqlExpression": "col6",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1Y",
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": ["col1", column_on_axis, adhoc_column],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    if query_object.datasource.database.backend == "sqlite":
+        # sqlite returns string as timestamp column
+        assert df["I_AM_AN_ORIGINAL_COLUMN"][0] == "2000-01-01 00:00:00"
+        assert df["I_AM_AN_ORIGINAL_COLUMN"][1] == "2000-01-02 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][1] == "2002-01-01 00:00:00"
+    else:
+        assert df["I_AM_AN_ORIGINAL_COLUMN"][0].strftime("%Y-%m-%d") == "2000-01-01"
+        assert df["I_AM_AN_ORIGINAL_COLUMN"][1].strftime("%Y-%m-%d") == "2000-01-02"
+        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
+        assert df["I_AM_A_TRUNC_COLUMN"][1].strftime("%Y-%m-%d") == "2002-01-01"
+
+
+def test_non_time_column_with_time_grain(app_context, physical_dataset):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    "col1",
+                    {
+                        "label": "COL2 ALIAS",
+                        "sqlExpression": "col2",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1Y",
+                    },
+                ],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+                "row_limit": 1,
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    assert df["COL2 ALIAS"][0] == "a"
+
+
+def test_special_chars_in_column_name(app_context, physical_dataset):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    "col1",
+                    "time column with spaces",
+                    {
+                        "label": "I_AM_A_TRUNC_COLUMN",
+                        "sqlExpression": "time column with spaces",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P1Y",
+                    },
+                ],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+                "row_limit": 1,
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    if query_object.datasource.database.backend == "sqlite":
+        # sqlite returns string as timestamp column
+        assert df["time column with spaces"][0] == "2002-01-03 00:00:00"
+        assert df["I_AM_A_TRUNC_COLUMN"][0] == "2002-01-01 00:00:00"
+    else:
+        assert df["time column with spaces"][0].strftime("%Y-%m-%d") == "2002-01-03"
+        assert df["I_AM_A_TRUNC_COLUMN"][0].strftime("%Y-%m-%d") == "2002-01-01"
+
+
+@only_postgresql
+def test_date_adhoc_column(app_context, physical_dataset):
+    # sql expression returns date type
+    column_on_axis: AdhocColumn = {
+        "label": "ADHOC COLUMN",
+        "sqlExpression": "col6 + interval '20 year'",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1Y",
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [column_on_axis],
+                "metrics": ["count"],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    #   ADHOC COLUMN  count
+    # 0   2022-01-01     10
+    assert df["ADHOC COLUMN"][0].strftime("%Y-%m-%d") == "2022-01-01"
+    assert df["count"][0] == 10
+
+
+@only_postgresql
+def test_non_date_adhoc_column(app_context, physical_dataset):
+    # sql expression returns non-date type
+    column_on_axis: AdhocColumn = {
+        "label": "ADHOC COLUMN",
+        "sqlExpression": "col1 * 10",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1Y",
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [column_on_axis],
+                "metrics": ["count"],
+                "orderby": [
+                    [
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": '"ADHOC COLUMN"',
+                        },
+                        True,
+                    ]
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    assert df["ADHOC COLUMN"][0] == 0
+    assert df["ADHOC COLUMN"][1] == 10
+
+
+@only_sqlite
+def test_time_grain_and_time_offset_with_base_axis(app_context, physical_dataset):
+    column_on_axis: AdhocColumn = {
+        "label": "col6",
+        "sqlExpression": "col6",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P3M",
+    }
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [column_on_axis],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["3 month ago"],
+                "granularity": "col6",
+                "time_range": "2002-01 : 2003-01",
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    # todo: MySQL returns integer and float column as object type
+    """
+        col6  SUM(col1)  SUM(col1)__3 month ago
+0 2002-01-01          3                     NaN
+1 2002-04-01         12                     3.0
+2 2002-07-01         21                    12.0
+3 2002-10-01          9                    21.0
+    """
+    assert df.equals(
+        pd.DataFrame(
+            data={
+                "col6": pd.to_datetime(
+                    ["2002-01-01", "2002-04-01", "2002-07-01", "2002-10-01"]
+                ),
+                "SUM(col1)": [3, 12, 21, 9],
+                "SUM(col1)__3 month ago": [np.nan, 3, 12, 21],
+            }
+        )
+    )
+
+
+@only_sqlite
+def test_time_grain_and_time_offset_on_legacy_query(app_context, physical_dataset):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [],
+                "extras": {
+                    "time_grain_sqla": "P3M",
+                },
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["3 month ago"],
+                "granularity": "col6",
+                "time_range": "2002-01 : 2003-01",
+                "is_timeseries": True,
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_object = qc.queries[0]
+    df = qc.get_df_payload(query_object)["df"]
+    # todo: MySQL returns integer and float column as object type
+    """
+  __timestamp  SUM(col1)  SUM(col1)__3 month ago
+0  2002-01-01          3                     NaN
+1  2002-04-01         12                     3.0
+2  2002-07-01         21                    12.0
+3  2002-10-01          9                    21.0
+    """
+    assert df.equals(
+        pd.DataFrame(
+            data={
+                "__timestamp": pd.to_datetime(
+                    ["2002-01-01", "2002-04-01", "2002-07-01", "2002-10-01"]
+                ),
+                "SUM(col1)": [3, 12, 21, 9],
+                "SUM(col1)__3 month ago": [np.nan, 3, 12, 21],
+            }
+        )
+    )

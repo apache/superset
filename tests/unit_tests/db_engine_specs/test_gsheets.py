@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask.ctx import AppContext
+
+# pylint: disable=import-outside-toplevel, invalid-name, line-too-long
+
+import json
+
 from pytest_mock import MockFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -26,28 +30,60 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple(
-    mocker: MockFixture, app_context: AppContext,
-) -> None:
+def test_validate_parameters_simple() -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {},
+        },
         "catalog": {},
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)
-    assert errors == []
+    errors = GSheetsEngineSpec.validate_parameters(properties)
+    assert errors == [
+        SupersetError(
+            message="Sheet name is required",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={"catalog": {"idx": 0, "name": True}},
+        ),
+    ]
+
+
+def test_validate_parameters_simple_with_in_root_catalog() -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {},
+        },
+        "catalog": {},
+    }
+    errors = GSheetsEngineSpec.validate_parameters(properties)
+    assert errors == [
+        SupersetError(
+            message="Sheet name is required",
+            error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={"catalog": {"idx": 0, "name": True}},
+        ),
+    ]
 
 
 def test_validate_parameters_catalog(
-    mocker: MockFixture, app_context: AppContext,
+    mocker: MockFixture,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
@@ -62,23 +98,30 @@ def test_validate_parameters_catalog(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
+    properties: GSheetsPropertiesType = {
+        "parameters": {"service_account_info": "", "catalog": None},
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
             "not_a_sheet": "https://www.google.com/",
         },
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
+    errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
 
     assert errors == [
         SupersetError(
-            message="URL could not be identified",
+            message=(
+                "The URL could not be identified. Please check for typos "
+                "and make sure that ‘Type of Google Sheets allowed’ "
+                "selection matches the input."
+            ),
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "catalog": {"idx": 0, "url": True,},
+                "catalog": {
+                    "idx": 0,
+                    "url": True,
+                },
                 "issue_codes": [
                     {
                         "code": 1003,
@@ -92,11 +135,18 @@ def test_validate_parameters_catalog(
             },
         ),
         SupersetError(
-            message="URL could not be identified",
+            message=(
+                "The URL could not be identified. Please check for typos "
+                "and make sure that ‘Type of Google Sheets allowed’ "
+                "selection matches the input."
+            ),
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "catalog": {"idx": 2, "url": True,},
+                "catalog": {
+                    "idx": 2,
+                    "url": True,
+                },
                 "issue_codes": [
                     {
                         "code": 1003,
@@ -112,16 +162,18 @@ def test_validate_parameters_catalog(
     ]
 
     create_engine.assert_called_with(
-        "gsheets://", service_account_info={}, subject="admin@example.com",
+        "gsheets://",
+        service_account_info={},
+        subject="admin@example.com",
     )
 
 
 def test_validate_parameters_catalog_and_credentials(
-    mocker: MockFixture, app_context: AppContext,
+    mocker: MockFixture,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
-        GSheetsParametersType,
+        GSheetsPropertiesType,
     )
 
     g = mocker.patch("superset.db_engine_specs.gsheets.g")
@@ -136,22 +188,32 @@ def test_validate_parameters_catalog_and_credentials(
         ProgrammingError("Unsupported table: https://www.google.com/"),
     ]
 
-    parameters: GSheetsParametersType = {
-        "service_account_info": "",
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": None,
+        },
         "catalog": {
             "private_sheet": "https://docs.google.com/spreadsheets/d/1/edit",
             "public_sheet": "https://docs.google.com/spreadsheets/d/1/edit#gid=1",
             "not_a_sheet": "https://www.google.com/",
         },
     }
-    errors = GSheetsEngineSpec.validate_parameters(parameters)  # ignore: type
+    errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
     assert errors == [
         SupersetError(
-            message="URL could not be identified",
+            message=(
+                "The URL could not be identified. Please check for typos "
+                "and make sure that ‘Type of Google Sheets allowed’ "
+                "selection matches the input."
+            ),
             error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "catalog": {"idx": 2, "url": True,},
+                "catalog": {
+                    "idx": 2,
+                    "url": True,
+                },
                 "issue_codes": [
                     {
                         "code": 1003,
@@ -167,5 +229,81 @@ def test_validate_parameters_catalog_and_credentials(
     ]
 
     create_engine.assert_called_with(
-        "gsheets://", service_account_info={}, subject="admin@example.com",
+        "gsheets://",
+        service_account_info={},
+        subject="admin@example.com",
     )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Test that the private key can be reused from the previous ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "service_account_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "SECRET",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_old_is_none() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = None
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
+        "service_account_info": {
+            "project_id": "yellow-unicorn-314419",
+            "private_key": "XXXXXXXXXX",
+        },
+    }
+
+
+def test_unmask_encrypted_extra_when_new_is_none() -> None:
+    """
+    Test that a None value works for ``encrypted_extra``.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+    new = None
+
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) is None

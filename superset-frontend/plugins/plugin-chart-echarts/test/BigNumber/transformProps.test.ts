@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType, TimeGranularity } from '@superset-ui/core';
+import {
+  DatasourceType,
+  supersetTheme,
+  TimeGranularity,
+} from '@superset-ui/core';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
   BigNumberDatum,
@@ -32,7 +36,8 @@ const formData = {
     a: 1,
   },
   compareLag: 1,
-  timeGrainSqla: 'P3M' as TimeGranularity,
+  timeGrainSqla: TimeGranularity.QUARTER,
+  granularitySqla: 'ds',
   compareSuffix: 'over last quarter',
   viz_type: 'big_number',
   yAxisFormat: '.3s',
@@ -40,6 +45,7 @@ const formData = {
 };
 
 const rawFormData = {
+  datasource: '1__table',
   metric: 'value',
   color_picker: {
     r: 0,
@@ -48,7 +54,8 @@ const rawFormData = {
     a: 1,
   },
   compare_lag: 1,
-  time_grain_sqla: 'P3M' as TimeGranularity,
+  time_grain_sqla: TimeGranularity.QUARTER,
+  granularity_sqla: 'ds',
   compare_suffix: 'over last quarter',
   viz_type: 'big_number',
   y_axis_format: '.3s',
@@ -57,7 +64,7 @@ const rawFormData = {
 function generateProps(
   data: BigNumberDatum[],
   extraFormData = {},
-  extraQueryData = {},
+  extraQueryData: any = {},
 ): BigNumberWithTrendlineChartProps {
   return {
     width: 200,
@@ -89,6 +96,7 @@ function generateProps(
     ownState: {},
     filterState: {},
     behaviors: [],
+    theme: supersetTheme,
   };
 }
 

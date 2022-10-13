@@ -17,7 +17,12 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { ControlPanelConfig, sections } from '@superset-ui/chart-controls';
+import {
+  ControlPanelConfig,
+  ControlPanelsContainerProps,
+  getStandardizedControls,
+  sections,
+} from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -71,17 +76,33 @@ const config: ControlPanelConfig = {
       description: t(
         'When only a primary metric is provided, a categorical color scale is used.',
       ),
+      visibility: ({ controls }: ControlPanelsContainerProps) =>
+        Boolean(
+          !controls?.secondary_metric?.value ||
+            controls?.secondary_metric?.value === controls?.metric.value,
+        ),
     },
     linear_color_scheme: {
       description: t(
         'When a secondary metric is provided, a linear color scale is used.',
       ),
+      visibility: ({ controls }: ControlPanelsContainerProps) =>
+        Boolean(
+          controls?.secondary_metric?.value &&
+            controls?.secondary_metric?.value !== controls?.metric.value,
+        ),
     },
     groupby: {
       label: t('Hierarchy'),
       description: t('This defines the level of the hierarchy'),
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+    metric: getStandardizedControls().shiftMetric(),
+    secondary_metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

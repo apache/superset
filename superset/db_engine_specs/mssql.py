@@ -47,6 +47,8 @@ class MssqlEngineSpec(BaseEngineSpec):
     engine_name = "Microsoft SQL Server"
     limit_method = LimitMethod.WRAP_SQL
     max_column_name_length = 128
+    allows_cte_in_subquery = False
+    allow_limit_clause = False
 
     _time_grain_expressions = {
         None: "{col}",

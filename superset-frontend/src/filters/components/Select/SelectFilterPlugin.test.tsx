@@ -20,8 +20,11 @@ import userEvent from '@testing-library/user-event';
 import { AppSection } from '@superset-ui/core';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
+import { NULL_STRING } from 'src/utils/common';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
+
+jest.useFakeTimers();
 
 const selectMultipleProps = {
   formData: {
@@ -55,7 +58,7 @@ const selectMultipleProps = {
       rowcount: 2,
       colnames: ['gender'],
       coltypes: [1],
-      data: [{ gender: 'boy' }, { gender: 'girl' }],
+      data: [{ gender: 'boy' }, { gender: 'girl' }, { gender: null }],
       applied_filters: [{ column: 'gender' }],
       rejected_filters: [],
     },
@@ -85,7 +88,7 @@ describe('SelectFilterPlugin', () => {
     jest.clearAllMocks();
   });
 
-  it('Add multiple values with first render', () => {
+  test('Add multiple values with first render', async () => {
     getWrapper();
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {},
@@ -113,6 +116,7 @@ describe('SelectFilterPlugin', () => {
     });
     userEvent.click(screen.getByRole('combobox'));
     userEvent.click(screen.getByTitle('girl'));
+    expect(await screen.findByTitle(/girl/i)).toBeInTheDocument();
     expect(setDataMask).toHaveBeenCalledWith({
       __cache: {
         value: ['boy'],
@@ -133,9 +137,14 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  it('Remove multiple values when required', () => {
+  test('Remove multiple values when required', () => {
     getWrapper();
-    userEvent.click(document.querySelector('[data-icon="close"]')!);
+    userEvent.click(
+      screen.getByRole('img', {
+        name: /close-circle/i,
+        hidden: true,
+      }),
+    );
     expect(setDataMask).toHaveBeenCalledWith({
       __cache: {
         value: ['boy'],
@@ -156,9 +165,14 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  it('Remove multiple values when not required', () => {
+  test('Remove multiple values when not required', () => {
     getWrapper({ enableEmptyFilter: false });
-    userEvent.click(document.querySelector('[data-icon="close"]')!);
+    userEvent.click(
+      screen.getByRole('img', {
+        name: /close-circle/i,
+        hidden: true,
+      }),
+    );
     expect(setDataMask).toHaveBeenCalledWith({
       __cache: {
         value: ['boy'],
@@ -171,9 +185,10 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  it('Select single values with inverse', () => {
+  test('Select single values with inverse', async () => {
     getWrapper({ multiSelect: false, inverseSelection: true });
     userEvent.click(screen.getByRole('combobox'));
+    expect(await screen.findByTitle('girl')).toBeInTheDocument();
     userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenCalledWith({
       __cache: {
@@ -195,9 +210,35 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  it('Add ownState with column types when search all options', () => {
+  test('Select single null (empty) value', async () => {
+    getWrapper();
+    userEvent.click(screen.getByRole('combobox'));
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    userEvent.click(screen.getByTitle(NULL_STRING));
+    expect(setDataMask).toHaveBeenLastCalledWith({
+      __cache: {
+        value: ['boy'],
+      },
+      extraFormData: {
+        filters: [
+          {
+            col: 'gender',
+            op: 'IN',
+            val: ['boy', null],
+          },
+        ],
+      },
+      filterState: {
+        label: `boy, ${NULL_STRING}`,
+        value: ['boy', null],
+      },
+    });
+  });
+
+  test('Add ownState with column types when search all options', async () => {
     getWrapper({ searchAllOptions: true, multiSelect: false });
     userEvent.click(screen.getByRole('combobox'));
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
     userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenCalledWith({
       __cache: {

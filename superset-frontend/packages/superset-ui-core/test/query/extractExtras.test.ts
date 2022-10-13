@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { TimeGranularity } from '@superset-ui/core';
 import extractExtras from '../../src/query/extractExtras';
 
 describe('extractExtras', () => {
   const baseQueryFormData = {
     datasource: '1__table',
     granularity_sqla: 'ds',
-    time_grain_sqla: 'PT1M',
+    time_grain_sqla: TimeGranularity.MINUTE,
     viz_type: 'my_viz',
   };
 
@@ -30,7 +31,6 @@ describe('extractExtras', () => {
     expect(
       extractExtras({
         ...baseQueryFormData,
-        time_range_endpoints: ['inclusive', 'exclusive'],
         extra_filters: [
           {
             col: '__time_col',
@@ -57,7 +57,6 @@ describe('extractExtras', () => {
       },
       extras: {
         time_grain_sqla: 'PT5M',
-        time_range_endpoints: ['inclusive', 'exclusive'],
       },
       filters: [],
       granularity: 'ds2',
@@ -107,7 +106,6 @@ describe('extractExtras', () => {
     expect(
       extractExtras({
         ...baseQueryFormData,
-        time_range_endpoints: ['inclusive', 'exclusive'],
         extra_filters: [
           {
             col: 'gender',
@@ -139,7 +137,6 @@ describe('extractExtras', () => {
       },
       extras: {
         time_grain_sqla: 'PT5M',
-        time_range_endpoints: ['inclusive', 'exclusive'],
       },
       filters: [
         {

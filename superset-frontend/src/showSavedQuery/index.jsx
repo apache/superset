@@ -20,7 +20,7 @@ import React from 'react';
 import ReactDom from 'react-dom';
 import Form from 'react-jsonschema-form';
 import { interpolate } from 'src/showSavedQuery/utils';
-import './index.less';
+import { styled } from '@superset-ui/core';
 
 const scheduleInfoContainer = document.getElementById('schedule-info');
 const bootstrapData = JSON.parse(
@@ -31,12 +31,27 @@ const { query } = bootstrapData.common;
 const scheduleInfo = query.extra_json.schedule_info;
 const linkback = config.linkback ? interpolate(config.linkback, query) : null;
 
+const StyledSavedQueryContainer = styled.div`
+  .btn-add {
+    display: none;
+  }
+`;
+
+const StyledLinkBack = styled.div`
+  ${({ theme }) => `
+    padding-top: 0;
+    padding-right: ${theme.gridUnit * 2 + 2}px;
+    padding-bottom: ${theme.gridUnit * 5}px;
+    padding-left: ${theme.gridUnit / 2}px;
+`}
+`;
+
 if (scheduleInfo && config) {
   // hide instructions when showing schedule info
   config.JSONSCHEMA.description = '';
 
   ReactDom.render(
-    <div>
+    <StyledSavedQueryContainer>
       <Form
         schema={config.JSONSCHEMA}
         uiSchema={config.UISCHEMA}
@@ -46,14 +61,14 @@ if (scheduleInfo && config) {
         <br />
       </Form>
       {linkback && (
-        <div className="linkback">
+        <StyledLinkBack className="linkback">
           <a href={linkback}>
             <i className="fa fa-link" />
             &nbsp; Pipeline status
           </a>
-        </div>
+        </StyledLinkBack>
       )}
-    </div>,
+    </StyledSavedQueryContainer>,
     scheduleInfoContainer,
   );
 }

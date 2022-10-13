@@ -28,7 +28,6 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
     date_filter,
     filter_configs = [],
     show_druid_time_granularity,
-    show_druid_time_origin,
     show_sqla_time_column,
     show_sqla_time_granularity,
   } = form_data;
@@ -98,13 +97,6 @@ export default function getFilterConfigsFromFormdata(form_data = {}) {
       updatedColumns = {
         ...updatedColumns,
         [TIME_FILTER_MAP.granularity]: form_data.granularity,
-      };
-    }
-
-    if (show_druid_time_origin) {
-      updatedColumns = {
-        ...updatedColumns,
-        [TIME_FILTER_MAP.druid_time_origin]: form_data.druid_time_origin,
       };
     }
 

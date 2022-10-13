@@ -654,10 +654,10 @@
         " %(num)d 件のレポートスケジュールを削除しました"
       ],
       "Value must be greater than 0": ["値は 0 より大きくする必要があります"],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "アラートクエリが複数の行を返しました。 %s 行が返されました"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "アラートクエリが複数の列を返しました。%s 列が返されました"
       ],
       "Dashboard does not exist": ["ダッシュボードが存在しません"],
@@ -701,11 +701,11 @@
       "Report Schedule reached a working timeout.": [
         "レポートスケジュールが作業タイムアウトに達しました。"
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "アラートクエリが複数の行を返しました。"
       ],
       "Alert validator config error.": ["アラートバリデーター設定エラー。"],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "アラートクエリが複数の列を返しました。"
       ],
       "Alert query returned a non-number value.": [
@@ -1300,6 +1300,7 @@
       "Run selection": [""],
       "Run": ["実行"],
       "Stop running (Ctrl + x)": ["実行を停止 (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["実行を停止 (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["クエリを実行 (Ctrl + Return)"],
       "Save & Explore": [""],
       "Overwrite & Explore": [""],

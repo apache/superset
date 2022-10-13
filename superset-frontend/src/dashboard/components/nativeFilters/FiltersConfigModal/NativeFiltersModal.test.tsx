@@ -25,7 +25,8 @@ import { Provider } from 'react-redux';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { styledMount as mount } from 'spec/helpers/theming';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { Dropdown, Menu } from 'src/common/components';
+import { AntdDropdown } from 'src/components';
+import { Menu } from 'src/components/Menu';
 import Alert from 'src/components/Alert';
 import { FiltersConfigModal } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 
@@ -115,7 +116,7 @@ describe('FiltersConfigModal', () => {
 
     async function addFilter() {
       act(() => {
-        wrapper.find(Dropdown).at(0).simulate('mouseEnter');
+        wrapper.find(AntdDropdown).at(0).simulate('mouseEnter');
       });
       await waitForComponentToPaint(wrapper, 300);
       act(() => {

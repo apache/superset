@@ -34,19 +34,9 @@ describe('SqlLab query panel', () => {
     // are fetched below (because React _Virtualized_ does not render all rows)
     let clockTime = 0;
 
-    const sampleResponse = {
-      status: 'success',
-      data: [{ '?column?': 1 }],
-      columns: [{ name: '?column?', type: 'INT', is_date: false }],
-      selected_columns: [{ name: '?column?', type: 'INT', is_date: false }],
-      expanded_columns: [],
-    };
-
     cy.intercept({
       method: 'POST',
       url: '/superset/sql_json/',
-      delay: 1000,
-      response: () => sampleResponse,
     }).as('mockSQLResponse');
 
     cy.get('.TableSelector .Select:eq(0)').click();
@@ -114,7 +104,7 @@ describe('SqlLab query panel', () => {
 
     cy.wait('@sqlLabQuery');
 
-    // Save results to check agains below
+    // Save results to check against below
     selectResultsTab().then(resultsA => {
       initialResultsTable = resultsA[0];
     });
@@ -156,5 +146,53 @@ describe('SqlLab query panel', () => {
 
       assertSQLLabResultsAreEqual(initialResultsTable, savedQueryResultsTable);
     });
+  });
+
+  it('Create a chart from a query', () => {
+    cy.intercept('/superset/sql_json/').as('queryFinished');
+    cy.intercept('**/api/v1/explore/**').as('explore');
+    cy.intercept('**/api/v1/chart/**').as('chart');
+
+    // cypress doesn't handle opening a new tab, override window.open to open in the same tab
+    cy.window().then(win => {
+      cy.stub(win, 'open', url => {
+        // eslint-disable-next-line no-param-reassign
+        win.location.href = url;
+      });
+    });
+
+    const query = 'SELECT gender, name FROM birth_names';
+
+    cy.get('.ace_text-input')
+      .focus()
+      .clear({ force: true })
+      .type(`{selectall}{backspace}${query}`, { force: true });
+    cy.get('.sql-toolbar button').contains('Run').click();
+    cy.wait('@queryFinished');
+
+    cy.get(
+      '.SouthPane .ant-tabs-content > .ant-tabs-tabpane-active > div button:first',
+      { timeout: 10000 },
+    ).click();
+
+    cy.wait('@explore');
+    cy.get('[data-test="datasource-control"] .title-select').contains(query);
+    cy.get('.column-option-label').first().contains('gender');
+    cy.get('.column-option-label').last().contains('name');
+
+    cy.get(
+      '[data-test="all_columns"] [data-test="dnd-labels-container"] > div:first-child',
+    ).contains('gender');
+    cy.get(
+      '[data-test="all_columns"] [data-test="dnd-labels-container"] > div:nth-child(2)',
+    ).contains('name');
+
+    cy.wait('@chart');
+    cy.get('[data-test="slice-container"] table > thead th')
+      .first()
+      .contains('gender');
+    cy.get('[data-test="slice-container"] table > thead th')
+      .last()
+      .contains('name');
   });
 });

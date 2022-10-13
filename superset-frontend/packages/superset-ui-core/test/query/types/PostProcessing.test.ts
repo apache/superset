@@ -92,7 +92,6 @@ const CUM_RULE: PostProcessingCum = {
   options: {
     columns: ['foo'],
     operator: 'min',
-    is_pivot_df: true,
   },
 };
 
@@ -111,8 +110,6 @@ const PIVOT_RULE: PostProcessingPivot = {
     index: ['foo'],
     columns: ['bar'],
     aggregates: AGGREGATES_OPTION,
-    flatten_columns: true,
-    reset_index: true,
   },
 };
 
@@ -134,7 +131,6 @@ const RESAMPLE_RULE: PostProcessingResample = {
     method: 'method',
     rule: 'rule',
     fill_value: null,
-    time_column: 'foo',
   },
 };
 
@@ -145,7 +141,6 @@ const ROLLING_RULE: PostProcessingRolling = {
     window: 12,
     min_periods: 12,
     columns: ['foo', 'bar'],
-    is_pivot_df: true,
   },
 };
 

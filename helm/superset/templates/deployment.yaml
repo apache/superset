@@ -28,7 +28,11 @@ metadata:
     {{ toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.supersetNode.replicaCount }}
+  {{- if .Values.supersetNode.strategy }}
+  strategy:
+    {{- toYaml .Values.supersetNode.strategy | nindent 4 }}
+  {{- end }}
   selector:
     matchLabels:
       app: {{ template "superset.name" . }}
@@ -56,12 +60,18 @@ spec:
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
+      {{- if .Values.supersetNode.podLabels }}
+        {{ toYaml .Values.supersetNode.podLabels | nindent 8 }}
+      {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
       serviceAccountName: {{ template "superset.serviceAccountName" . }}
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.supersetNode.podSecurityContext }}
+        {{ toYaml .Values.supersetNode.podSecurityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.supersetNode.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetNode.initContainers) . | nindent 6 }}
@@ -73,6 +83,9 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.supersetNode.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.supersetNode.containerSecurityContext | nindent 12 }}
+          {{- end }}
           command: {{  tpl (toJson .Values.supersetNode.command) . }}
           env:
             - name: "SUPERSET_PORT"
@@ -111,8 +124,30 @@ spec:
             - name: http
               containerPort: {{ .Values.service.port }}
               protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.supersetNode.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.supersetNode.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.supersetNode.livenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.supersetNode.livenessProbe.periodSeconds }}
+            successThreshold: {{ .Values.supersetNode.livenessProbe.successThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.supersetNode.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.supersetNode.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.supersetNode.readinessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.supersetNode.readinessProbe.periodSeconds }}
+            successThreshold: {{ .Values.supersetNode.readinessProbe.successThreshold }}
           resources:
+          {{- if .Values.supersetNode.resources }}
+{{ toYaml .Values.supersetNode.resources | indent 12 }}
+          {{- else }}
 {{ toYaml .Values.resources | indent 12 }}
+          {{- end }}
     {{- with .Values.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}

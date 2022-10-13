@@ -3,9 +3,6 @@
     "type": "object",
     "additionalProperties": true,
     "properties": {
-        "replicaCount": {
-            "type": "integer"
-        },
         "runAsUser": {
             "type": "integer"
         },
@@ -15,6 +12,9 @@
             "properties": {
                 "create": {
                     "type": "boolean"
+                },
+                "annotations": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -111,6 +111,26 @@
         "imagePullSecrets": {
             "type": "array"
         },
+        "initImage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "repository": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                },
+                "pullPolicy": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/imagePullPolicy"
+                }
+            },
+            "required": [
+                "repository",
+                "tag",
+                "pullPolicy"
+            ]
+        },
         "service": {
             "type": "object",
             "additionalProperties": false,
@@ -148,6 +168,9 @@
                 },
                 "pathType": {
                     "type": "string"
+                },
+                "ingressClassName": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.networking.v1.IngressSpec/properties/ingressClassName"
                 },
                 "hosts": {
                     "type": "array",
@@ -193,6 +216,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "replicaCount": {
+                    "type": "integer"
+                },
                 "command": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
                 },
@@ -201,6 +227,9 @@
                     "additionalProperties": false,
                     "properties": {
                         "redis_host": {
+                            "type": "string"
+                        },
+                        "redis_password": {
                             "type": "string"
                         },
                         "redis_port": {
@@ -246,9 +275,81 @@
                 },
                 "podAnnotations": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "livenessProbe": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "initialDelaySeconds",
+                        "timeoutSeconds",
+                        "failureThreshold",
+                        "periodSeconds",
+                        "successThreshold"
+                    ]
+                },
+                "readinessProbe": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "timeoutSeconds": {
+                            "type": "integer"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
+                        },
+                        "successThreshold": {
+                            "type": "integer"
+                        }
+                    },
+                    "required": [
+                        "initialDelaySeconds",
+                        "timeoutSeconds",
+                        "failureThreshold",
+                        "periodSeconds",
+                        "successThreshold"
+                    ]
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
+                },
+                "strategy": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.apps.v1.DeploymentStrategy"
                 }
             },
             "required": [
+                "replicaCount",
                 "command",
                 "connections",
                 "env",
@@ -259,6 +360,9 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
+                "replicaCount": {
+                    "type": "integer"
+                },
                 "command": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.core.v1.Container/properties/command"
                 },
@@ -273,9 +377,25 @@
                 },
                 "podAnnotations": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
+                },
+                "strategy": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.api.apps.v1.DeploymentStrategy"
                 }
             },
             "required": [
+                "replicaCount",
                 "command",
                 "forceReload"
             ]
@@ -301,6 +421,18 @@
                 },
                 "podAnnotations": {
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/annotations"
+                },
+                "podLabels": {
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta/properties/labels"
+                },
+                "resources": {
+                    "type": "object"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -369,10 +501,16 @@
                     "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.PodSpec/properties/nodeSelector"
                 },
                 "tolerations": {
-                  "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.PodSpec/properties/tolerations"
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.PodSpec/properties/tolerations"
                 },
                 "affinity": {
-                  "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.PodSpec/properties/affinity"
+                    "$ref": "https://raw.githubusercontent.com/yannh/kubernetes-json-schema/master/v1.23.0/_definitions.json##/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.PodSpec/properties/affinity"
+                },
+                "podSecurityContext": {
+                    "type": "object"
+                },
+                "containerSecurityContext": {
+                    "type": "object"
                 }
             },
             "required": [
@@ -387,73 +525,63 @@
         },
         "postgresql": {
             "type": "object",
-            "additionalProperties": true,
             "properties": {
+                "auth": {
+                    "type": "object",
+                    "properties": {
+                        "database": {
+                            "type": "string"
+                        },
+                        "existingSecret": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                        },
+                        "password": {
+                            "type": "string"
+                        },
+                        "username": {
+                            "type": "string"
+                        }
+                    }
+                },
                 "enabled": {
                     "type": "boolean"
                 },
-                "existingSecret": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "existingSecretKey": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "service": {
+                "primary": {
                     "type": "object",
-                    "additionalProperties": true,
                     "properties": {
-                        "port": {
-                            "type": "integer"
-                        }
-                    },
-                    "required": [
-                        "port"
-                    ]
-                },
-                "postgresqlUsername": {
-                    "type": "string"
-                },
-                "postgresqlPassword": {
-                    "type": "string"
-                },
-                "postgresqlDatabase": {
-                    "type": "string"
-                },
-                "persistence": {
-                    "type": "object",
-                    "additionalProperties": true,
-                    "properties": {
-                        "enabled": {
-                            "type": "boolean"
-                        },
-                        "accessModes": {
-                            "type": "array",
-                            "items": [
-                                {
-                                    "type": "string"
+                        "persistence": {
+                            "type": "object",
+                            "properties": {
+                                "accessModes": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                },
+                                "enabled": {
+                                    "type": "boolean"
                                 }
-                            ]
+                            }
+                        },
+                        "service": {
+                            "type": "object",
+                            "properties": {
+                                "ports": {
+                                    "type": "object",
+                                    "properties": {
+                                        "postgresql": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
                         }
-                    },
-                    "required": [
-                        "enabled",
-                        "accessModes"
-                    ]
+                    }
                 }
-            },
-            "required": [
-                "enabled",
-                "service",
-                "postgresqlUsername",
-                "postgresqlDatabase",
-                "persistence"
-            ]
+            }
         },
         "redis": {
             "type": "object",
@@ -462,23 +590,28 @@
                 "enabled": {
                     "type": "boolean"
                 },
-                "usePassword": {
-                    "type": "boolean"
-                },
-                "existingSecret": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "existingSecretKey": {
-                    "type": [
-                        "string",
-                        "null"
-                    ]
-                },
-                "password": {
+                "architecture": {
                     "type": "string"
+                },
+                "auth": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "existingSecret": {
+                            "type": "string"
+                        },
+                        "existingSecretKey": {
+                            "type": "string"
+                        },
+                        "password": {
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "enabled"
+                    ]
                 },
                 "master": {
                     "type": "object",
@@ -525,9 +658,8 @@
             },
             "required": [
                 "enabled",
-                "usePassword",
-                "master",
-                "cluster"
+                "architecture",
+                "master"
             ]
         },
         "nodeSelector": {
@@ -541,7 +673,6 @@
         }
     },
     "required": [
-        "replicaCount",
         "runAsUser",
         "serviceAccount",
         "bootstrapScript",

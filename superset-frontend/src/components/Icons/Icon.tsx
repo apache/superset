@@ -42,7 +42,7 @@ export const StyledIcon = styled(AntdIconComponent)<IconType>`
       : '24px'};
 `;
 
-interface IconProps extends IconType {
+export interface IconProps extends IconType {
   fileName: string;
 }
 

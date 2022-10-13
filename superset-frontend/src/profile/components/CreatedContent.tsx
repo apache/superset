@@ -16,13 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import React from 'react';
-import moment from 'moment';
 import { t } from '@superset-ui/core';
 
-import TableLoader from '../../components/TableLoader';
-import { Slice } from '../types';
-import { User, Dashboard } from '../../types/bootstrapTypes';
+import TableLoader from 'src/components/TableLoader';
+import {
+  User,
+  DashboardResponse,
+  ChartResponse,
+} from 'src/types/bootstrapTypes';
 
 interface CreatedContentProps {
   user: User;
@@ -30,17 +33,30 @@ interface CreatedContentProps {
 
 class CreatedContent extends React.PureComponent<CreatedContentProps> {
   renderSliceTable() {
-    const mutator = (data: Slice[]) =>
-      data.map(slice => ({
-        slice: <a href={slice.url}>{slice.title}</a>,
-        created: moment.utc(slice.dttm).fromNow(),
-        _created: slice.dttm,
+    const search = [
+      { col: 'created_by', opr: 'chart_created_by_me', value: 'me' },
+    ];
+    const query = rison.encode({
+      keys: ['none'],
+      columns: ['created_on_delta_humanized', 'slice_name', 'url'],
+      filters: search,
+      order_column: 'changed_on_delta_humanized',
+      order_direction: 'desc',
+      page: 0,
+      page_size: 100,
+    });
+
+    const mutator = (data: ChartResponse) =>
+      data.result.map(chart => ({
+        chart: <a href={chart.url}>{chart.slice_name}</a>,
+        created: chart.created_on_delta_humanized,
+        _created: chart.created_on_delta_humanized,
       }));
     return (
       <TableLoader
-        dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
+        dataEndpoint={`/api/v1/chart/?q=${query}`}
         className="table-condensed"
-        columns={['slice', 'created']}
+        columns={['chart', 'created']}
         mutator={mutator}
         noDataText={t('No charts')}
         sortable
@@ -49,17 +65,29 @@ class CreatedContent extends React.PureComponent<CreatedContentProps> {
   }
 
   renderDashboardTable() {
-    const mutator = (data: Dashboard[]) =>
-      data.map(dash => ({
-        dashboard: <a href={dash.url}>{dash.title}</a>,
-        created: moment.utc(dash.dttm).fromNow(),
-        _created: dash.dttm,
+    const search = [
+      { col: 'created_by', opr: 'dashboard_created_by_me', value: 'me' },
+    ];
+    const query = rison.encode({
+      keys: ['none'],
+      columns: ['created_on_delta_humanized', 'dashboard_title', 'url'],
+      filters: search,
+      order_column: 'changed_on',
+      order_direction: 'desc',
+      page: 0,
+      page_size: 100,
+    });
+    const mutator = (data: DashboardResponse) =>
+      data.result.map(dash => ({
+        dashboard: <a href={dash.url}>{dash.dashboard_title}</a>,
+        created: dash.created_on_delta_humanized,
+        _created: dash.created_on_delta_humanized,
       }));
     return (
       <TableLoader
         className="table-condensed"
         mutator={mutator}
-        dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
+        dataEndpoint={`/api/v1/dashboard/?q=${query}`}
         noDataText={t('No dashboards')}
         columns={['dashboard', 'created']}
         sortable

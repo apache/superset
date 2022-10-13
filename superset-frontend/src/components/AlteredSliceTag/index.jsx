@@ -19,7 +19,8 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { isEqual, isEmpty } from 'lodash';
-import { t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
+import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import { safeStringify } from 'src/utils/safeStringify';
 import { Tooltip } from 'src/components/Tooltip';
@@ -30,6 +31,18 @@ const propTypes = {
   origFormData: PropTypes.object.isRequired,
   currentFormData: PropTypes.object.isRequired,
 };
+
+const StyledLabel = styled.span`
+  ${({ theme }) => `
+    font-size: ${theme.typography.sizes.s}px;
+    color: ${theme.colors.grayscale.dark1};
+    background-color: ${theme.colors.alert.base};
+
+    &: hover {
+      background-color: ${theme.colors.alert.dark1};
+    }
+  `}
+`;
 
 function alterForComparison(value) {
   // Considering `[]`, `{}`, `null` and `undefined` as identical
@@ -82,8 +95,8 @@ export default class AlteredSliceTag extends React.Component {
   getDiffs(props) {
     // Returns all properties that differ in the
     // current form data and the saved form data
-    const ofd = props.origFormData;
-    const cfd = props.currentFormData;
+    const ofd = sanitizeFormData(props.origFormData);
+    const cfd = sanitizeFormData(props.currentFormData);
 
     const fdKeys = Object.keys(cfd);
     const diffs = {};
@@ -134,11 +147,19 @@ export default class AlteredSliceTag extends React.Component {
     if (controlsMap[key]?.type === 'CollectionControl') {
       return value.map(v => safeStringify(v)).join(', ');
     }
+    if (
+      controlsMap[key]?.type === 'MetricsControl' &&
+      value.constructor === Array
+    ) {
+      const formattedValue = value.map(v => v?.label ?? v);
+      return formattedValue.length ? formattedValue.join(', ') : '[]';
+    }
     if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
     }
     if (value.constructor === Array) {
-      return value.length ? value.join(', ') : '[]';
+      const formattedValue = value.map(v => v?.label ?? v);
+      return formattedValue.length ? formattedValue.join(', ') : '[]';
     }
     if (typeof value === 'string' || typeof value === 'number') {
       return value;
@@ -161,6 +182,8 @@ export default class AlteredSliceTag extends React.Component {
         Header: 'After',
       },
     ];
+    // set the wrap text in the specific columns.
+    const columnsForWrapText = ['Control', 'Before', 'After'];
 
     return (
       <TableView
@@ -168,6 +191,7 @@ export default class AlteredSliceTag extends React.Component {
         data={this.state.rows}
         pageSize={50}
         className="table-condensed"
+        columnsForWrapText={columnsForWrapText}
       />
     );
   }
@@ -175,12 +199,7 @@ export default class AlteredSliceTag extends React.Component {
   renderTriggerNode() {
     return (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
-        <span
-          className="label label-warning m-l-5"
-          style={{ fontSize: '12px' }}
-        >
-          {t('Altered')}
-        </span>
+        <StyledLabel className="label">{t('Altered')}</StyledLabel>
       </Tooltip>
     );
   }

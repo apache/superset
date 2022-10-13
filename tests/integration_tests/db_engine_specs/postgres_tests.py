@@ -20,7 +20,7 @@ from unittest import mock
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
-from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
@@ -137,7 +137,11 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
-        self.assertIn("postgres", get_engine_specs())
+        backends = set()
+        for engine in load_engine_specs():
+            backends.add(engine.engine)
+            backends.update(engine.engine_aliases)
+        assert "postgres" in backends
 
     def test_extras_without_ssl(self):
         db = mock.Mock()
@@ -179,7 +183,11 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         sql = "SELECT * FROM birth_names"
         results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
         self.assertEqual(
-            results, {"Start-up cost": 0.00, "Total cost": 1537.91,},
+            results,
+            {
+                "Start-up cost": 0.00,
+                "Total cost": 1537.91,
+            },
         )
 
     def test_estimate_statement_invalid_syntax(self):
@@ -205,15 +213,27 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         DB Eng Specs (postgres): Test test_query_cost_formatter example costs
         """
         raw_cost = [
-            {"Start-up cost": 0.00, "Total cost": 1537.91,},
-            {"Start-up cost": 10.00, "Total cost": 1537.00,},
+            {
+                "Start-up cost": 0.00,
+                "Total cost": 1537.91,
+            },
+            {
+                "Start-up cost": 10.00,
+                "Total cost": 1537.00,
+            },
         ]
         result = PostgresEngineSpec.query_cost_formatter(raw_cost)
         self.assertEqual(
             result,
             [
-                {"Start-up cost": "0.0", "Total cost": "1537.91",},
-                {"Start-up cost": "10.0", "Total cost": "1537.0",},
+                {
+                    "Start-up cost": "0.0",
+                    "Total cost": "1537.91",
+                },
+                {
+                    "Start-up cost": "10.0",
+                    "Total cost": "1537.0",
+                },
             ],
         )
 
@@ -484,7 +504,15 @@ def test_base_parameters_mixin():
     )
 
     parameters_from_uri = PostgresEngineSpec.get_parameters_from_uri(sqlalchemy_uri)
-    assert parameters_from_uri == parameters
+    assert parameters_from_uri == {
+        "username": "username",
+        "password": "password",
+        "host": "localhost",
+        "port": 5432,
+        "database": "dbname",
+        "query": {"foo": "bar"},
+        "encryption": True,
+    }
 
     json_schema = PostgresEngineSpec.parameters_json_schema()
     assert json_schema == {

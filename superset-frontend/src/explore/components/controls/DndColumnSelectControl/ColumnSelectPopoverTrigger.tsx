@@ -17,16 +17,14 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AdhocColumn, t } from '@superset-ui/core';
-import {
-  ColumnMeta,
-  isAdhocColumn,
-  isColumnMeta,
-} from '@superset-ui/chart-controls';
-import Popover from 'src/components/Popover';
+import { useSelector } from 'react-redux';
+import { AdhocColumn, t, isAdhocColumn } from '@superset-ui/core';
+import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
+import ControlPopover from '../ControlPopover/ControlPopover';
 
 interface ColumnSelectPopoverTriggerProps {
   columns: ColumnMeta[];
@@ -37,6 +35,7 @@ interface ColumnSelectPopoverTriggerProps {
   togglePopover?: (visible: boolean) => void;
   closePopover?: () => void;
   children: React.ReactNode;
+  isTemporal?: boolean;
 }
 
 const defaultPopoverLabel = t('My column');
@@ -48,12 +47,16 @@ const ColumnSelectPopoverTrigger = ({
   onColumnEdit,
   isControlledComponent,
   children,
+  isTemporal,
   ...props
 }: ColumnSelectPopoverTriggerProps) => {
+  // @ts-ignore
+  const datasource = useSelector(state => state.explore.datasource);
   const [popoverLabel, setPopoverLabel] = useState(defaultPopoverLabel);
   const [popoverVisible, setPopoverVisible] = useState(false);
   const [isTitleEditDisabled, setIsTitleEditDisabled] = useState(true);
   const [hasCustomLabel, setHasCustomLabel] = useState(false);
+  const [showDatasetModal, setDatasetModal] = useState(false);
 
   let initialPopoverLabel = defaultPopoverLabel;
   if (editedColumn && isColumnMeta(editedColumn)) {
@@ -97,11 +100,13 @@ const ColumnSelectPopoverTrigger = ({
         <ColumnSelectPopover
           editedColumn={editedColumn}
           columns={columns}
+          setDatasetModal={setDatasetModal}
           onClose={handleClosePopover}
           onChange={onColumnEdit}
           label={popoverLabel}
           setLabel={setPopoverLabel}
           getCurrentTab={getCurrentTab}
+          isTemporal={isTemporal}
         />
       </ExplorePopoverContent>
     ),
@@ -110,6 +115,7 @@ const ColumnSelectPopoverTrigger = ({
       editedColumn,
       getCurrentTab,
       handleClosePopover,
+      isTemporal,
       onColumnEdit,
       popoverLabel,
     ],
@@ -133,18 +139,31 @@ const ColumnSelectPopoverTrigger = ({
   );
 
   return (
-    <Popover
-      placement="right"
-      trigger="click"
-      content={overlayContent}
-      defaultVisible={visible}
-      visible={visible}
-      onVisibleChange={handleTogglePopover}
-      title={popoverTitle}
-      destroyTooltipOnHide
-    >
-      {children}
-    </Popover>
+    <>
+      {showDatasetModal && (
+        <SaveDatasetModal
+          visible={showDatasetModal}
+          onHide={() => setDatasetModal(false)}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          modalDescription={t(
+            'Save this query as a virtual dataset to continue exploring',
+          )}
+          datasource={datasource}
+        />
+      )}
+      <ControlPopover
+        trigger="click"
+        content={overlayContent}
+        defaultVisible={visible}
+        visible={visible}
+        onVisibleChange={handleTogglePopover}
+        title={popoverTitle}
+        destroyTooltipOnHide
+      >
+        {children}
+      </ControlPopover>
+    </>
   );
 };
 

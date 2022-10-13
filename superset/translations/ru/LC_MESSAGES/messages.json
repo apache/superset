@@ -648,10 +648,10 @@
       ],
       "Saved query not found.": ["Сохранённый запрос не найден."],
       "Deleted %(num)d report schedule": ["Удалено %(num)d рассылок"],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "Запрос от оповещения вернул больше одной строки. %s строк возвращено"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "Запрос от оповещения вернул больше одного столбца. %s столбцов возвращено"
       ],
       "Dashboard does not exist": ["Дашборд не существует"],
@@ -690,13 +690,13 @@
       "Report Schedule reached a working timeout.": [
         "Рассылка достигла тайм-аута в работе."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "Запрос для оповещения вернул больше одной строки."
       ],
       "Alert validator config error.": [
         "Неверная конфигурация широты и долготы."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "Запрос для оповещения вернул больше одного столбца."
       ],
       "Alert query returned a non-number value.": [
@@ -1347,6 +1347,7 @@
       "Run selection": ["Выполнить выбранный запрос"],
       "Run": ["Выполнить"],
       "Stop running (Ctrl + x)": ["Остановить (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Остановить (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Выполнить запрос (Ctrl + Return)"],
       "Save & Explore": ["Сохранить и исследовать"],
       "Overwrite & Explore": ["Перезаписать и исследовать"],

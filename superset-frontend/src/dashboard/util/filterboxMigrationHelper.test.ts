@@ -57,12 +57,11 @@ const regionFilter = {
     show_bubbles: true,
     slice_id: 32,
     time_range: '2014-01-01 : 2014-01-02',
-    time_range_endpoints: ['inclusive', 'exclusive'],
     viz_type: 'filter_box',
   },
   modified: '<bound method AuditMixinNullable.modified of Region Filter>',
   slice_name: 'Region Filter',
-  slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%2032%7D',
+  slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%2032%7D',
   slice_id: 32,
 };
 const chart1 = {
@@ -85,12 +84,11 @@ const chart1 = {
     show_bubbles: true,
     slice_id: 33,
     time_range: '2000 : 2014-01-02',
-    time_range_endpoints: ['inclusive', 'exclusive'],
     viz_type: 'big_number',
   },
   modified: "<bound method AuditMixinNullable.modified of World's Population>",
   slice_name: "World's Population",
-  slice_url: '/superset/explore/?form_data=%7B%22slice_id%22%3A%2033%7D',
+  slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%2033%7D',
   slice_id: 33,
 };
 const chartData = [regionFilter, chart1];

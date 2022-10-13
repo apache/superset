@@ -68,7 +68,8 @@ describe('RefreshIntervalModal - Enzyme', () => {
 const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
-  customCss: '#save-dash-split-button{margin-left: 100px;}',
+  customCss:
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,
@@ -100,6 +101,7 @@ const createProps = () => ({
   userCanSave: false,
   userCanShare: false,
   lastModifiedTime: 0,
+  isDropdownVisible: true,
 });
 
 const editModeOnProps = {
@@ -116,9 +118,6 @@ const setup = (overrides?: any) => (
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 const openRefreshIntervalModal = async () => {
-  const headerActionsButton = screen.getByRole('img', { name: 'more-horiz' });
-  userEvent.click(headerActionsButton);
-
   const autoRefreshOption = screen.getByText('Set auto-refresh interval');
   userEvent.click(autoRefreshOption);
 };

@@ -35,7 +35,7 @@ function getInstance(): SupersetClientClass {
 const SupersetClient: SupersetClientInterface = {
   configure: config => {
     singletonClient = new SupersetClientClass(config);
-    return singletonClient;
+    return SupersetClient;
   },
   reset: () => {
     singletonClient = undefined;
@@ -44,7 +44,9 @@ const SupersetClient: SupersetClientInterface = {
   get: request => getInstance().get(request),
   init: force => getInstance().init(force),
   isAuthenticated: () => getInstance().isAuthenticated(),
+  getGuestToken: () => getInstance().getGuestToken(),
   post: request => getInstance().post(request),
+  postForm: (...args) => getInstance().postForm(...args),
   put: request => getInstance().put(request),
   reAuthenticate: () => getInstance().reAuthenticate(),
   request: request => getInstance().request(request),

@@ -54,9 +54,6 @@ params:
   slice_id: 1361
   subheader_font_size: 0.15
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   url_params: {}
   viz_type: big_number_total
   y_axis_format: SMART_NUMBER

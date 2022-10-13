@@ -21,9 +21,13 @@ import {
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import React from 'react';
-import { Checkbox } from 'src/common/components';
-import { FormInstance } from 'antd/lib/form';
-import { getChartControlPanelRegistry, styled, t } from '@superset-ui/core';
+import { AntdCheckbox, FormInstance } from 'src/components';
+import {
+  Filter,
+  getChartControlPanelRegistry,
+  styled,
+  t,
+} from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormItem } from 'src/components/Form';
 import {
@@ -37,7 +41,6 @@ import {
   StyledLabel,
   StyledRowFormItem,
 } from './FiltersConfigForm';
-import { Filter } from '../../types';
 import { ColumnSelect } from './ColumnSelect';
 
 export interface ControlItemsProps {
@@ -177,7 +180,7 @@ export default function getControlItemsMap({
               valuePropName="checked"
               colon={false}
             >
-              <Checkbox
+              <AntdCheckbox
                 disabled={controlItem.config.affectsDataMask && disabled}
                 onChange={({ target: { checked } }) => {
                   if (controlItem.config.requiredFirst) {
@@ -204,7 +207,7 @@ export default function getControlItemsMap({
                     tooltip={controlItem.config.description}
                   />
                 )}
-              </Checkbox>
+              </AntdCheckbox>
             </StyledRowFormItem>
           </Tooltip>
         </>

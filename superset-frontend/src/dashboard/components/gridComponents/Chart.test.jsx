@@ -22,7 +22,7 @@ import sinon from 'sinon';
 
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import SliceHeader from 'src/dashboard/components/SliceHeader';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
@@ -40,7 +40,7 @@ describe('Chart', () => {
     // from redux
     maxRows: 666,
     chart: chartQueries[queryId],
-    formData: chartQueries[queryId].formData,
+    formData: chartQueries[queryId].form_data,
     datasource: mockDatasource[sliceEntities.slices[queryId].datasource],
     slice: {
       ...sliceEntities.slices[queryId],
@@ -72,7 +72,9 @@ describe('Chart', () => {
   };
 
   function setup(overrideProps) {
-    const wrapper = shallow(<Chart {...props} {...overrideProps} />);
+    const wrapper = shallow(
+      <Chart.WrappedComponent {...props} {...overrideProps} />,
+    );
     return wrapper;
   }
 
@@ -91,6 +93,17 @@ describe('Chart', () => {
     expect(wrapper.find('.slice_description')).not.toExist();
     wrapper.setProps({ ...props, isExpanded: true });
     expect(wrapper.find('.slice_description')).toExist();
+  });
+
+  it('should calculate the description height if it has one and isExpanded=true', () => {
+    const spy = jest.spyOn(
+      Chart.WrappedComponent.prototype,
+      'getDescriptionHeight',
+    );
+    const wrapper = setup({ isExpanded: true });
+
+    expect(wrapper.find('.slice_description')).toExist();
+    expect(spy).toHaveBeenCalled();
   });
 
   it('should call refreshChart when SliceHeader calls forceRefresh', () => {

@@ -23,7 +23,7 @@ import {
   SupersetTheme,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { Avatar } from 'src/common/components';
+import { Avatar } from 'src/components';
 import { getRandomColor } from './utils';
 
 interface FacePileProps {
@@ -67,8 +67,8 @@ export default function FacePile({ users, maxCount = 4 }: FacePileProps) {
                 borderColor: color,
               }}
             >
-              {first_name && first_name[0]?.toLocaleUpperCase()}
-              {last_name && last_name[0]?.toLocaleUpperCase()}
+              {first_name?.[0]?.toLocaleUpperCase()}
+              {last_name?.[0]?.toLocaleUpperCase()}
             </StyledAvatar>
           </Tooltip>
         );

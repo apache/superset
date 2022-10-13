@@ -140,7 +140,8 @@ const defaultTheme = {
     weights: {
       light: 200,
       normal: 400,
-      bold: 700,
+      medium: 500,
+      bold: 600,
     },
     sizes: {
       xxs: 9,

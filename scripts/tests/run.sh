@@ -138,5 +138,5 @@ fi
 
 if [ $RUN_TESTS -eq 1 ]
 then
-  pytest -x -s "${TEST_MODULE}"
+  pytest --durations=0 --maxfail=1 "${TEST_MODULE}"
 fi

@@ -41,7 +41,8 @@ def birth_names_data_generator() -> BirthNamesGenerator:
 
 @fixture(scope="session")
 def birth_names_table_factory(
-    birth_names_data_generator: BirthNamesGenerator, support_datetime_type: bool,
+    birth_names_data_generator: BirthNamesGenerator,
+    support_datetime_type: bool,
 ) -> Callable[[], Table]:
     def _birth_names_table_factory() -> Table:
         return BirthNamesMetaDataFactory(support_datetime_type).make_table(

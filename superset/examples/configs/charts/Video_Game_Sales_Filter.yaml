@@ -45,9 +45,6 @@ params:
   granularity_sqla: Year
   queryFields: {}
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   url_params:
     preselect_filters: '{"1389": {"platform": ["PS", "PS2", "PS3", "PS4"], "genre":
       null, "__time_range": "No filter"}}'

@@ -74,24 +74,56 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     encryption_parameters = {"ssl": "1"}
 
     column_type_mappings = (
-        (re.compile(r"^int.*", re.IGNORECASE), INTEGER(), GenericDataType.NUMERIC,),
-        (re.compile(r"^tinyint", re.IGNORECASE), TINYINT(), GenericDataType.NUMERIC,),
+        (
+            re.compile(r"^int.*", re.IGNORECASE),
+            INTEGER(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tinyint", re.IGNORECASE),
+            TINYINT(),
+            GenericDataType.NUMERIC,
+        ),
         (
             re.compile(r"^mediumint", re.IGNORECASE),
             MEDIUMINT(),
             GenericDataType.NUMERIC,
         ),
-        (re.compile(r"^decimal", re.IGNORECASE), DECIMAL(), GenericDataType.NUMERIC,),
-        (re.compile(r"^float", re.IGNORECASE), FLOAT(), GenericDataType.NUMERIC,),
-        (re.compile(r"^double", re.IGNORECASE), DOUBLE(), GenericDataType.NUMERIC,),
-        (re.compile(r"^bit", re.IGNORECASE), BIT(), GenericDataType.NUMERIC,),
-        (re.compile(r"^tinytext", re.IGNORECASE), TINYTEXT(), GenericDataType.STRING,),
+        (
+            re.compile(r"^decimal", re.IGNORECASE),
+            DECIMAL(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^float", re.IGNORECASE),
+            FLOAT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^double", re.IGNORECASE),
+            DOUBLE(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^bit", re.IGNORECASE),
+            BIT(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tinytext", re.IGNORECASE),
+            TINYTEXT(),
+            GenericDataType.STRING,
+        ),
         (
             re.compile(r"^mediumtext", re.IGNORECASE),
             MEDIUMTEXT(),
             GenericDataType.STRING,
         ),
-        (re.compile(r"^longtext", re.IGNORECASE), LONGTEXT(), GenericDataType.STRING,),
+        (
+            re.compile(r"^longtext", re.IGNORECASE),
+            LONGTEXT(),
+            GenericDataType.STRING,
+        ),
     )
 
     _time_grain_expressions = {
@@ -161,9 +193,11 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     @classmethod
     def adjust_database_uri(
         cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> None:
+    ) -> URL:
         if selected_schema:
-            uri.database = parse.quote(selected_schema, safe="")
+            uri = uri.set(database=parse.quote(selected_schema, safe=""))
+
+        return uri
 
     @classmethod
     def get_datatype(cls, type_code: Any) -> Optional[str]:

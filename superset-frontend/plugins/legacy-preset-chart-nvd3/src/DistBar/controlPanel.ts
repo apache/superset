@@ -22,6 +22,7 @@ import {
   ControlPanelConfig,
   sections,
   sharedControls,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import {
   showLegend,
@@ -51,19 +52,7 @@ const config: ControlPanelConfig = {
         ['columns'],
         ['row_limit'],
         ['timeseries_limit_metric'],
-        [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
-        ],
+        ['order_desc'],
         [
           {
             name: 'contribution',
@@ -118,7 +107,6 @@ const config: ControlPanelConfig = {
   ],
   controlOverrides: {
     groupby: {
-      label: t('Series'),
       validators: [validateNonEmpty],
       mapStateToProps: (state, controlState) => {
         const groupbyProps =
@@ -145,6 +133,21 @@ const config: ControlPanelConfig = {
       },
       rerender: ['groupby'],
     },
+  },
+  formDataOverrides: formData => {
+    const columns = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.groupby).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !columns.includes(col),
+      );
+
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      columns,
+    };
   },
 };
 

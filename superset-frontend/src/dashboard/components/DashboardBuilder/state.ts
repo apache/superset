@@ -27,24 +27,26 @@ import {
   useFilters,
   useNativeFiltersDataMask,
 } from '../nativeFilters/FilterBar/state';
-import { Filter } from '../nativeFilters/types';
 
 // eslint-disable-next-line import/prefer-default-export
 export const useNativeFilters = () => {
   const filterboxMigrationState = useContext(MigrationContext);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
-    getUrlParam(URL_PARAMS.showFilters) ?? true,
-  );
   const showNativeFilters = useSelector<RootState, boolean>(
-    state => state.dashboardInfo.metadata?.show_native_filters,
+    state =>
+      (getUrlParam(URL_PARAMS.showFilters) ?? true) &&
+      state.dashboardInfo.metadata?.show_native_filters,
   );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
 
   const filters = useFilters();
-  const filterValues = Object.values<Filter>(filters);
+  const filterValues = Object.values(filters);
+  const expandFilters = getUrlParam(URL_PARAMS.expandFilters);
+  const [dashboardFiltersOpen, setDashboardFiltersOpen] = useState(
+    expandFilters ?? !!filterValues.length,
+  );
 
   const nativeFiltersEnabled =
     showNativeFilters &&
@@ -75,9 +77,10 @@ export const useNativeFilters = () => {
 
   useEffect(() => {
     if (
-      filterValues.length === 0 &&
-      nativeFiltersEnabled &&
-      ['CONVERTED', 'REVIEWING', 'NOOP'].includes(filterboxMigrationState)
+      expandFilters === false ||
+      (filterValues.length === 0 &&
+        nativeFiltersEnabled &&
+        ['CONVERTED', 'REVIEWING', 'NOOP'].includes(filterboxMigrationState))
     ) {
       toggleDashboardFiltersOpen(false);
     } else {

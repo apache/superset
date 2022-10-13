@@ -18,8 +18,8 @@
  */
 import React, { useState, useEffect } from 'react';
 import Button from 'src/components/Button';
-import Select from 'src/components/Select';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import Select from 'src/components/DeprecatedSelect';
+import { styled, t, SupersetClient, QueryResponse } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import Loading from 'src/components/Loading';
 import {
@@ -27,9 +27,8 @@ import {
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
-} from 'src/modules/dates';
+} from 'src/utils/dates';
 import AsyncSelect from 'src/components/AsyncSelect';
-import { Query } from 'src/SqlLab/types';
 import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
 import QueryTable from '../QueryTable';
 
@@ -37,6 +36,11 @@ interface QuerySearchProps {
   actions: {
     addDangerToast: (msg: string) => void;
     setDatabases: (data: Record<string, any>) => Record<string, any>;
+    queryEditorSetAndSaveSql: Function;
+    cloneQueryToNewTab: Function;
+    fetchQueryResults: Function;
+    clearQueryResults: Function;
+    removeQuery: Function;
   };
   displayLimit: number;
 }
@@ -80,7 +84,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
   const [from, setFrom] = useState<string>('28 days ago');
   const [to, setTo] = useState<string>('now');
   const [status, setStatus] = useState<string>('success');
-  const [queriesArray, setQueriesArray] = useState<Query[]>([]);
+  const [queriesArray, setQueriesArray] = useState<QueryResponse[]>([]);
   const [queriesLoading, setQueriesLoading] = useState<boolean>(true);
 
   const getTimeFromSelection = (selection: string) => {
@@ -221,7 +225,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
               value: xt,
               label: xt,
             }))}
-            value={from as unknown as undefined}
+            value={{ value: from, label: from }}
             autosize={false}
             onChange={(selected: any) => setFrom(selected?.value)}
           />
@@ -230,7 +234,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
             name="select-to"
             placeholder={t('[To]-')}
             options={TIME_OPTIONS.map(xt => ({ value: xt, label: xt }))}
-            value={to as unknown as undefined}
+            value={{ value: to, label: to }}
             autosize={false}
             onChange={(selected: any) => setTo(selected?.value)}
           />
@@ -242,7 +246,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
               value: s,
               label: s,
             }))}
-            value={status as unknown as undefined}
+            value={{ value: status, label: status }}
             isLoading={false}
             autosize={false}
             onChange={(selected: any) => setStatus(selected?.value)}

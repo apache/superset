@@ -18,7 +18,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand, CreateMixin
@@ -35,8 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 class CreateDashboardCommand(CreateMixin, BaseCommand):
-    def __init__(self, user: User, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, data: Dict[str, Any]):
         self._properties = data.copy()
 
     def run(self) -> Model:
@@ -60,7 +58,7 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
             exceptions.append(DashboardSlugExistsValidationError())
 
         try:
-            owners = self.populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

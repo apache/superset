@@ -20,7 +20,7 @@ from sqlalchemy import DateTime, inspect
 import superset.utils.database as database_utils
 from superset import db
 
-from .helpers import get_example_data, get_table_connector_registry
+from .helpers import get_example_url, get_table_connector_registry
 
 
 def load_flights(only_metadata: bool = False, force: bool = False) -> None:
@@ -32,12 +32,12 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("flight_data.csv.gz", make_bytes=True)
-        pdf = pd.read_csv(data, encoding="latin-1")
+        flight_data_url = get_example_url("flight_data.csv.gz")
+        pdf = pd.read_csv(flight_data_url, encoding="latin-1", compression="gzip")
 
         # Loading airports info to join and get lat/long
-        airports_bytes = get_example_data("airports.csv.gz", make_bytes=True)
-        airports = pd.read_csv(airports_bytes, encoding="latin-1")
+        airports_url = get_example_url("airports.csv.gz")
+        airports = pd.read_csv(airports_url, encoding="latin-1", compression="gzip")
         airports = airports.set_index("IATA_CODE")
 
         pdf[  # pylint: disable=unsupported-assignment-operation,useless-suppression

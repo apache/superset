@@ -19,11 +19,18 @@
 import cx from 'classnames';
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, logging } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  logging,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { isEqual } from 'lodash';
+import { withRouter } from 'react-router-dom';
 
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
@@ -51,11 +58,13 @@ const propTypes = {
   updateSliceName: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool,
   handleToggleFullSize: PropTypes.func.isRequired,
+  setControlValue: PropTypes.func,
 
   // from redux
   chart: chartPropShape.isRequired,
   formData: PropTypes.object.isRequired,
   labelColors: PropTypes.object,
+  sharedLabelColors: PropTypes.object,
   datasource: PropTypes.object,
   slice: slicePropShape.isRequired,
   sliceName: PropTypes.string.isRequired,
@@ -81,6 +90,9 @@ const propTypes = {
   addDangerToast: PropTypes.func.isRequired,
   ownState: PropTypes.object,
   filterState: PropTypes.object,
+  postTransformProps: PropTypes.func,
+  datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
+  isInView: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -110,7 +122,13 @@ const ChartOverlay = styled.div`
   }
 `;
 
-export default class Chart extends React.Component {
+const SliceContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+`;
+
+class Chart extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -128,6 +146,8 @@ export default class Chart extends React.Component {
     this.resize = this.resize.bind(this);
     this.setDescriptionRef = this.setDescriptionRef.bind(this);
     this.setHeaderRef = this.setHeaderRef.bind(this);
+    this.getChartHeight = this.getChartHeight.bind(this);
+    this.getDescriptionHeight = this.getDescriptionHeight.bind(this);
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -139,6 +159,14 @@ export default class Chart extends React.Component {
       nextState.height !== this.state.height ||
       nextState.descriptionHeight !== this.state.descriptionHeight ||
       !isEqual(nextProps.datasource, this.props.datasource)
+    ) {
+      return true;
+    }
+
+    // allow chart to update if the status changed and the previous status was loading.
+    if (
+      this.props?.chart?.chartStatus !== nextProps?.chart?.chartStatus &&
+      this.props?.chart?.chartStatus === 'loading'
     ) {
       return true;
     }
@@ -178,30 +206,48 @@ export default class Chart extends React.Component {
     return this.props.cacheBusterProp !== nextProps.cacheBusterProp;
   }
 
+  componentDidMount() {
+    if (this.props.isExpanded) {
+      const descriptionHeight = this.getDescriptionHeight();
+      this.setState({ descriptionHeight });
+    }
+  }
+
   componentWillUnmount() {
     clearTimeout(this.resizeTimeout);
   }
 
   componentDidUpdate(prevProps) {
     if (this.props.isExpanded !== prevProps.isExpanded) {
-      const descriptionHeight =
-        this.props.isExpanded && this.descriptionRef
-          ? this.descriptionRef.offsetHeight
-          : 0;
+      const descriptionHeight = this.getDescriptionHeight();
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({ descriptionHeight });
     }
   }
 
+  getDescriptionHeight() {
+    return this.props.isExpanded && this.descriptionRef
+      ? this.descriptionRef.offsetHeight
+      : 0;
+  }
+
   getChartHeight() {
     const headerHeight = this.getHeaderHeight();
-    return this.state.height - headerHeight - this.state.descriptionHeight;
+    return Math.max(
+      this.state.height - headerHeight - this.state.descriptionHeight,
+      20,
+    );
   }
 
   getHeaderHeight() {
-    return (
-      (this.headerRef && this.headerRef.offsetHeight) || DEFAULT_HEADER_HEIGHT
-    );
+    if (this.headerRef) {
+      const computedStyle = getComputedStyle(this.headerRef).getPropertyValue(
+        'margin-bottom',
+      );
+      const marginBottom = parseInt(computedStyle, 10) || 0;
+      return this.headerRef.offsetHeight + marginBottom;
+    }
+    return DEFAULT_HEADER_HEIGHT;
   }
 
   setDescriptionRef(ref) {
@@ -240,15 +286,33 @@ export default class Chart extends React.Component {
     });
   };
 
-  onExploreChart = async () => {
+  onExploreChart = async clickEvent => {
+    const isOpenInNewTab =
+      clickEvent.shiftKey || clickEvent.ctrlKey || clickEvent.metaKey;
     try {
+      const lastTabId = window.localStorage.getItem('last_tab_id');
+      const nextTabId = lastTabId
+        ? String(Number.parseInt(lastTabId, 10) + 1)
+        : undefined;
       const key = await postFormData(
         this.props.datasource.id,
+        this.props.datasource.type,
         this.props.formData,
-        this.props.slice.id,
+        this.props.slice.slice_id,
+        nextTabId,
       );
-      const url = mountExploreUrl(null, { [URL_PARAMS.formDataKey.name]: key });
-      window.open(url, '_blank', 'noreferrer');
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+        [URL_PARAMS.sliceId.name]: this.props.slice.slice_id,
+      });
+      if (
+        isFeatureEnabled(FeatureFlag.DASHBOARD_EDIT_CHART_IN_NEW_TAB) ||
+        isOpenInNewTab
+      ) {
+        window.open(url, '_blank', 'noreferrer');
+      } else {
+        this.props.history.push(url);
+      }
     } catch (error) {
       logging.error(error);
       this.props.addDangerToast(t('An error occurred while opening Explore'));
@@ -266,6 +330,8 @@ export default class Chart extends React.Component {
         : this.props.formData,
       resultType: 'full',
       resultFormat: 'csv',
+      force: true,
+      ownState: this.props.ownState,
     });
   }
 
@@ -298,6 +364,7 @@ export default class Chart extends React.Component {
       filters,
       formData,
       labelColors,
+      sharedLabelColors,
       updateSliceName,
       sliceName,
       toggleExpandSlice,
@@ -312,7 +379,11 @@ export default class Chart extends React.Component {
       filterState,
       handleToggleFullSize,
       isFullSize,
+      setControlValue,
       filterboxMigrationState,
+      postTransformProps,
+      datasetsStatus,
+      isInView,
     } = this.props;
 
     const { width } = this.state;
@@ -343,7 +414,7 @@ export default class Chart extends React.Component {
         })
       : {};
     return (
-      <div
+      <SliceContainer
         className="chart-slice"
         data-test="chart-grid-component"
         data-test-chart-id={id}
@@ -353,7 +424,7 @@ export default class Chart extends React.Component {
         <SliceHeader
           innerRef={this.setHeaderRef}
           slice={slice}
-          isExpanded={!!isExpanded}
+          isExpanded={isExpanded}
           isCached={isCached}
           cachedDttm={cachedDttm}
           updatedDttm={chartUpdateEndTime}
@@ -380,6 +451,8 @@ export default class Chart extends React.Component {
           isFullSize={isFullSize}
           chartStatus={chart.chartStatus}
           formData={formData}
+          width={width}
+          height={this.getHeaderHeight()}
         />
 
         {/*
@@ -428,20 +501,27 @@ export default class Chart extends React.Component {
             initialValues={initialValues}
             formData={formData}
             labelColors={labelColors}
+            sharedLabelColors={sharedLabelColors}
             ownState={ownState}
             filterState={filterState}
             queriesResponse={chart.queriesResponse}
             timeout={timeout}
             triggerQuery={chart.triggerQuery}
             vizType={slice.viz_type}
+            setControlValue={setControlValue}
             isDeactivatedViz={isDeactivatedViz}
             filterboxMigrationState={filterboxMigrationState}
+            postTransformProps={postTransformProps}
+            datasetsStatus={datasetsStatus}
+            isInView={isInView}
           />
         </div>
-      </div>
+      </SliceContainer>
     );
   }
 }
 
 Chart.propTypes = propTypes;
 Chart.defaultProps = defaultProps;
+
+export default withRouter(Chart);

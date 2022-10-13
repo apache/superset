@@ -24,6 +24,7 @@ import {
 } from 'antd';
 import styled from '@emotion/styled';
 import { supersetTheme } from '@superset-ui/style';
+import '../styles/main.less';
 import {
   DeploymentUnitOutlined,
   FireOutlined,
@@ -31,7 +32,6 @@ import {
   DatabaseOutlined,
 } from '@ant-design/icons';
 import GitHubButton from 'react-github-btn';
-import 'antd/dist/antd.css';
 import { mq } from '../utils';
 import { Databases } from '../resources/data';
 
@@ -125,7 +125,7 @@ const StyledFeatures = styled('div')`
   background: #fff;
   padding: 5vw 0;
   margin-top: 0px;
-  margin-bottom: 30px;
+  margin-bottom: 10px;
   .featureList {
     padding: 40px;
     width: 100%;
@@ -135,7 +135,7 @@ const StyledFeatures = styled('div')`
     .feature {
       padding: 20px;
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 20px;
       .imagePlaceHolder {
         svg {
           width: 70px;
@@ -240,13 +240,27 @@ const CarouselSection = styled('div')`
     .imageContainer {
       img {
         margin: 0 auto;
-        width: 80%;
+        max-width: 800px;
         box-shadow: 0 0 3px #aaa;
         margin-top: 5px;
         margin-bottom: 5px;
       }
     }
   }
+`;
+
+const StyledCredits = styled.div`
+  width: 100%;
+  height: 60px;
+  padding: 18px;
+  background-color: #282E4A;
+  text-align: center;
+  color: #FFFFFF;
+`;
+
+const StyledDatabaseImg = styled.img`
+  width: ${(props) => props.width};
+  height: ${(props) => props.height};
 `;
 interface featureProps {
   icon: React.ReactNode,
@@ -441,14 +455,14 @@ export default function Home(): JSX.Element {
                     title, imgName: imageName, width, height,
                   }) => (
                     <li>
-                      <img src={`img/databases/${imageName}`} width={width} height={height || 50} title={title} />
+                      <StyledDatabaseImg src={`img/databases/${imageName}`} title={title} width={width || 'auto'} height={height || '50px'}/>
                     </li>
                   ),
                 )}
               </ul>
               <span className="databaseSub">
                 ... and many other
-                <a href="docs/connecting-to-databases/installing-database-drivers">
+                <a href="docs/databases/installing-database-drivers">
                   {' '}
                   compatible databases
                   {' '}
@@ -456,8 +470,13 @@ export default function Home(): JSX.Element {
               </span>
             </StyledIntegrations>
         </CarouselSection>
-
       </StyledMain>
+      <StyledCredits>
+        We use{' '}
+        <a href="https://applitools.com/" target="_blank" rel="nofollow">
+          <img src="img/applitools.png" title="Applitools" />
+        </a>
+      </StyledCredits>
     </Layout>
   );
 }

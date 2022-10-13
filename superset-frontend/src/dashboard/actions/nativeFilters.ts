@@ -17,21 +17,21 @@
  * under the License.
  */
 
-import { makeApi } from '@superset-ui/core';
+import {
+  FilterConfiguration,
+  Filters,
+  FilterSet,
+  FilterSets,
+  makeApi,
+} from '@superset-ui/core';
 import { Dispatch } from 'redux';
-import { FilterConfiguration } from 'src/dashboard/components/nativeFilters/types';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
   setDataMaskForFilterConfigComplete,
 } from 'src/dataMask/actions';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
-import {
-  Filters,
-  FilterSet,
-  FilterSetFullData,
-  FilterSets,
-} from '../reducers/types';
+import { FilterSetFullData } from '../reducers/types';
 import { DashboardInfo, RootState } from '../types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';

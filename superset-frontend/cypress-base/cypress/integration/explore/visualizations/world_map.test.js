@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > World Map', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const WORLD_MAP_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'world_map',
@@ -35,14 +40,9 @@ describe('Visualization > World Map', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work with ad-hoc metric', () => {
     verify(WORLD_MAP_FORM_DATA);
@@ -79,5 +79,17 @@ describe('Visualization > World Map', () => {
           .length,
       ).to.equal(0);
     });
+  });
+
+  it('should allow type to search color schemes', () => {
+    verify(WORLD_MAP_FORM_DATA);
+
+    cy.get('.Control[data-test="linear_color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="linear_color_scheme"] input[type="search"]')
+      .focus()
+      .type('greens{enter}');
+    cy.get(
+      '.Control[data-test="linear_color_scheme"] .ant-select-selection-item [data-test="greens"]',
+    ).should('exist');
   });
 });

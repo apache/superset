@@ -58,6 +58,16 @@ test('renders tooltip on hover', async () => {
   expect(tooltip).toHaveTextContent(tooltipText);
 });
 
+test('not renders tooltip on hover with hideTooltip props', async () => {
+  const tooltipText = 'Tooltip';
+  render(<CopyToClipboard tooltipText={tooltipText} hideTooltip />, {
+    useRedux: true,
+  });
+  userEvent.hover(screen.getByText('Copy'));
+  const tooltip = screen.queryByRole('tooltip');
+  expect(tooltip).toBe(null);
+});
+
 test('triggers onCopyEnd', async () => {
   const onCopyEnd = jest.fn();
   render(<CopyToClipboard onCopyEnd={onCopyEnd} />, {

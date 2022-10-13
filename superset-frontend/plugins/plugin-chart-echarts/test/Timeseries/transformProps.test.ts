@@ -24,12 +24,15 @@ import {
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
+  SqlaFormData,
+  supersetTheme,
   TimeseriesAnnotationLayer,
 } from '@superset-ui/core';
+import { EchartsTimeseriesChartProps } from '../../src/types';
 import transformProps from '../../src/Timeseries/transformProps';
 
 describe('EchartsTimeseries transformProps', () => {
-  const formData = {
+  const formData: SqlaFormData = {
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
@@ -50,11 +53,12 @@ describe('EchartsTimeseries transformProps', () => {
     width: 800,
     height: 600,
     queriesData,
+    theme: supersetTheme,
   };
 
-  it('should tranform chart props for viz', () => {
+  it('should transform chart props for viz', () => {
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -99,7 +103,7 @@ describe('EchartsTimeseries transformProps', () => {
         annotationLayers: [formula],
       },
     });
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -170,64 +174,66 @@ describe('EchartsTimeseries transformProps', () => {
       titleColumn: '',
       value: 3,
     };
+    const annotationData = {
+      'My Event': {
+        columns: [
+          'start_dttm',
+          'end_dttm',
+          'short_descr',
+          'long_descr',
+          'json_metadata',
+        ],
+        records: [
+          {
+            start_dttm: 0,
+            end_dttm: 1000,
+            short_descr: '',
+            long_descr: '',
+            json_metadata: null,
+          },
+        ],
+      },
+      'My Interval': {
+        columns: ['start', 'end', 'title'],
+        records: [
+          {
+            start: 2000,
+            end: 3000,
+            title: 'My Title',
+          },
+        ],
+      },
+      'My Timeseries': [
+        {
+          key: 'My Line',
+          values: [
+            {
+              x: 10000,
+              y: 11000,
+            },
+            {
+              x: 20000,
+              y: 21000,
+            },
+          ],
+        },
+      ],
+    };
     const chartProps = new ChartProps({
       ...chartPropsConfig,
       formData: {
         ...formData,
         annotationLayers: [event, interval, timeseries],
       },
+      annotationData,
       queriesData: [
         {
           ...queriesData[0],
-          annotation_data: {
-            'My Event': {
-              columns: [
-                'start_dttm',
-                'end_dttm',
-                'short_descr',
-                'long_descr',
-                'json_metadata',
-              ],
-              records: [
-                {
-                  start_dttm: 0,
-                  end_dttm: 1000,
-                  short_descr: '',
-                  long_descr: '',
-                  json_metadata: null,
-                },
-              ],
-            },
-            'My Interval': {
-              columns: ['start', 'end', 'title'],
-              records: [
-                {
-                  start: 2000,
-                  end: 3000,
-                  title: 'My Title',
-                },
-              ],
-            },
-            'My Timeseries': [
-              {
-                key: 'My Line',
-                values: [
-                  {
-                    x: 10000,
-                    y: 11000,
-                  },
-                  {
-                    x: 20000,
-                    y: 21000,
-                  },
-                ],
-              },
-            ],
-          },
+          annotation_data: annotationData,
         },
       ],
     });
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsTimeseriesChartProps)).toEqual(
       expect.objectContaining({
         echartOptions: expect.objectContaining({
           legend: expect.objectContaining({
@@ -266,7 +272,8 @@ describe('Does transformProps transform series correctly', () => {
     name: string;
   };
 
-  const formData = {
+  const formData: SqlaFormData = {
+    viz_type: 'my_viz',
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
@@ -312,6 +319,7 @@ describe('Does transformProps transform series correctly', () => {
     width: 800,
     height: 600,
     queriesData,
+    theme: supersetTheme,
   };
 
   const totalStackedValues = queriesData[0].data.reduce(
@@ -329,8 +337,9 @@ describe('Does transformProps transform series correctly', () => {
   it('should show labels when showValue is true', () => {
     const chartProps = new ChartProps(chartPropsConfig);
 
-    const transformedSeries = transformProps(chartProps).echartOptions
-      .series as seriesType[];
+    const transformedSeries = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    ).echartOptions.series as seriesType[];
 
     transformedSeries.forEach(series => {
       expect(series.label.show).toBe(true);
@@ -345,8 +354,9 @@ describe('Does transformProps transform series correctly', () => {
 
     const chartProps = new ChartProps(updatedChartPropsConfig);
 
-    const transformedSeries = transformProps(chartProps).echartOptions
-      .series as seriesType[];
+    const transformedSeries = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    ).echartOptions.series as seriesType[];
 
     transformedSeries.forEach(series => {
       expect(series.label.show).toBe(false);
@@ -361,8 +371,9 @@ describe('Does transformProps transform series correctly', () => {
 
     const chartProps = new ChartProps(updatedChartPropsConfig);
 
-    const transformedSeries = transformProps(chartProps).echartOptions
-      .series as seriesType[];
+    const transformedSeries = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    ).echartOptions.series as seriesType[];
 
     const showValueIndexes: number[] = [];
 
@@ -400,8 +411,9 @@ describe('Does transformProps transform series correctly', () => {
   it('should show labels on values >= percentageThreshold if onlyTotal is false', () => {
     const chartProps = new ChartProps(chartPropsConfig);
 
-    const transformedSeries = transformProps(chartProps).echartOptions
-      .series as seriesType[];
+    const transformedSeries = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    ).echartOptions.series as seriesType[];
 
     const expectedThresholds = totalStackedValues.map(
       total => ((formData.percentageThreshold || 0) / 100) * total,
@@ -430,8 +442,9 @@ describe('Does transformProps transform series correctly', () => {
 
     const chartProps = new ChartProps(updatedChartPropsConfig);
 
-    const transformedSeries = transformProps(chartProps).echartOptions
-      .series as seriesType[];
+    const transformedSeries = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    ).echartOptions.series as seriesType[];
 
     transformedSeries.forEach((series, seriesIndex) => {
       expect(series.label.show).toBe(true);

@@ -19,6 +19,7 @@
 import React, { FormEvent } from 'react';
 import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
+import { Form } from 'src/components/Form';
 import {
   hostField,
   portField,
@@ -56,6 +57,7 @@ export interface FieldPropTypes {
   required: boolean;
   hasTooltip?: boolean;
   tooltipText?: (value: any) => string;
+  placeholder?: string;
   onParametersChange: (value: any) => string;
   onParametersUploadFileChange: (value: any) => string;
   changeMethods: { onParametersChange: (value: any) => string } & {
@@ -107,6 +109,7 @@ const DatabaseConnectionForm = ({
   isEditMode = false,
   sslForced,
   editNewDb,
+  getPlaceholder,
 }: {
   isEditMode?: boolean;
   sslForced: boolean;
@@ -129,8 +132,9 @@ const DatabaseConnectionForm = ({
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
   getValidation: () => void;
+  getPlaceholder?: (field: string) => string | undefined;
 }) => (
-  <>
+  <Form>
     <div
       // @ts-ignore
       css={(theme: SupersetTheme) => [
@@ -162,10 +166,11 @@ const DatabaseConnectionForm = ({
             isEditMode,
             sslForced,
             editNewDb,
+            placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
           }),
         )}
     </div>
-  </>
+  </Form>
 );
 export const FormFieldMap = FORM_FIELD_MAP;
 

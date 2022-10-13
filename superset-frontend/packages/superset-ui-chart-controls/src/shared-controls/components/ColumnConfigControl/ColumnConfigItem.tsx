@@ -19,7 +19,7 @@
 import React from 'react';
 import { useTheme } from '@superset-ui/core';
 import { Popover } from 'antd';
-import ColumnTypeLabel from '../../../components/ColumnTypeLabel';
+import ColumnTypeLabel from '../../../components/ColumnTypeLabel/ColumnTypeLabel';
 import ColumnConfigPopover, {
   ColumnConfigPopoverProps,
 } from './ColumnConfigPopover';
@@ -48,8 +48,10 @@ export default React.memo(function ColumnConfigItem({
     >
       <div
         css={{
+          display: 'flex',
+          alignItems: 'center',
           cursor: 'pointer',
-          padding: `${1.5 * gridUnit}px ${2 * gridUnit}px`,
+          padding: `${gridUnit}px ${2 * gridUnit}px`,
           borderBottom: `1px solid ${colors.grayscale.light2}`,
           position: 'relative',
           paddingRight: caretWidth,

@@ -29,7 +29,6 @@ import {
   getNumberFormatter,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import './Treemap.css';
 
 // Declare PropTypes for recursive data structures
 // https://github.com/facebook/react/issues/5676
@@ -87,6 +86,7 @@ function Treemap(element, props) {
     numberFormat,
     colorScheme,
     treemapRatio,
+    sliceId,
   } = props;
   const div = d3Select(element);
   div.classed('superset-legacy-chart-treemap', true);
@@ -138,7 +138,7 @@ function Treemap(element, props) {
       .attr('id', d => `rect-${d.data.name}`)
       .attr('width', d => d.x1 - d.x0)
       .attr('height', d => d.y1 - d.y0)
-      .style('fill', d => colorFn(d.depth));
+      .style('fill', d => colorFn(d.depth, sliceId));
 
     cell
       .append('clipPath')

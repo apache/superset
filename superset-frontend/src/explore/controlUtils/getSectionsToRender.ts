@@ -24,6 +24,7 @@ import {
 import {
   ControlPanelConfig,
   expandControlConfig,
+  isControlPanelSectionConfig,
 } from '@superset-ui/chart-controls';
 
 import * as SECTIONS from 'src/explore/controlPanels/sections';
@@ -53,15 +54,14 @@ const getMemoizedSectionsToRender = memoizeOne(
 
     const { datasourceAndVizType } = sections;
 
-    // list of datasource-specific controls that should be removed
-    const invalidControls =
-      datasourceType === 'table'
-        ? ['granularity', 'druid_time_origin']
-        : ['granularity_sqla', 'time_grain_sqla'];
+    // list of datasource-specific controls that should be removed if the datasource is a specific type
+    const filterControlsForTypes = [DatasourceType.Query, DatasourceType.Table];
+    const invalidControls = filterControlsForTypes.includes(datasourceType)
+      ? ['granularity']
+      : ['granularity_sqla', 'time_grain_sqla'];
 
     return [datasourceAndVizType]
-      .concat(controlPanelSections)
-      .filter(section => !!section)
+      .concat(controlPanelSections.filter(isControlPanelSectionConfig))
       .map(section => {
         const { controlSetRows } = section;
         return {

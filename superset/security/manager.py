@@ -26,14 +26,13 @@ from typing import (
     cast,
     Dict,
     List,
+    NamedTuple,
     Optional,
     Set,
-    Tuple,
     TYPE_CHECKING,
     Union,
 )
 
-import jwt
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -41,9 +40,11 @@ from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_role,
+    Permission,
     PermissionView,
     Role,
     User,
+    ViewMenu,
 )
 from flask_appbuilder.security.views import (
     PermissionModelView,
@@ -54,17 +55,20 @@ from flask_appbuilder.security.views import (
 )
 from flask_appbuilder.widgets import ListWidget
 from flask_login import AnonymousUserMixin, LoginManager
-from sqlalchemy import and_, or_
+from jwt.api_jwt import _jwt_global_obj
+from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 
 from superset import sql_parse
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    DatasetInvalidPermissionEvaluationException,
+    SupersetSecurityException,
+)
 from superset.security.guest_token import (
     GuestToken,
     GuestTokenResources,
@@ -73,12 +77,18 @@ from superset.security.guest_token import (
     GuestTokenUser,
     GuestUser,
 )
-from superset.utils.core import DatasourceName, RowLevelSecurityFilterType
+from superset.utils.core import (
+    DatasourceName,
+    DatasourceType,
+    get_user_id,
+    RowLevelSecurityFilterType,
+)
+from superset.utils.urls import get_url_host
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.connectors.base.models import BaseDatasource
-    from superset.connectors.druid.models import DruidCluster
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.sql_lab import Query
@@ -86,6 +96,11 @@ if TYPE_CHECKING:
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
+
+
+class DatabaseAndSchema(NamedTuple):
+    database: str
+    schema: str
 
 
 class SupersetSecurityListWidget(ListWidget):  # pylint: disable=too-few-public-methods
@@ -147,9 +162,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     GAMMA_READ_ONLY_MODEL_VIEWS = {
         "Dataset",
-        "DruidColumnInlineView",
-        "DruidDatasourceModelView",
-        "DruidMetricInlineView",
         "Datasource",
     } | READ_ONLY_MODEL_VIEWS
 
@@ -183,6 +195,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
+        "can_set_embedded",
     }
 
     READ_ONLY_PERMISSION = {
@@ -204,7 +217,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "database_access",
         "schema_access",
         "datasource_access",
-        "metric_access",
     }
 
     ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
@@ -233,15 +245,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     )
 
     guest_user_cls = GuestUser
+    pyjwt_for_guest_token = _jwt_global_obj
 
     def create_login_manager(self, app: Flask) -> LoginManager:
+        lm = super().create_login_manager(app)
+        lm.request_loader(self.request_loader)
+        return lm
+
+    def request_loader(self, request: Request) -> Optional[User]:
         # pylint: disable=import-outside-toplevel
         from superset.extensions import feature_flag_manager
 
-        lm = super().create_login_manager(app)
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
-            lm.request_loader(self.get_guest_user_from_request)
-        return lm
+            return self.get_guest_user_from_request(request)
+        return None
 
     def get_schema_perm(  # pylint: disable=no-self-use
         self, database: Union["Database", str], schema: Optional[str] = None
@@ -259,13 +276,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return None
 
-    def unpack_schema_perm(  # pylint: disable=no-self-use
+    @staticmethod
+    def get_database_perm(database_id: int, database_name: str) -> str:
+        return f"[{database_name}].(id:{database_id})"
+
+    @staticmethod
+    def get_dataset_perm(dataset_id: int, dataset_name: str, database_name: str) -> str:
+        return f"[{database_name}].[{dataset_name}](id:{dataset_id})"
+
+    def unpack_database_and_schema(  # pylint: disable=no-self-use
         self, schema_permission: str
-    ) -> Tuple[str, str]:
-        # [database_name].[schema_name]
+    ) -> DatabaseAndSchema:
+        # [database_name].[schema|table]
+
         schema_name = schema_permission.split(".")[1][1:-1]
         database_name = schema_permission.split(".")[0][1:-1]
-        return database_name, schema_name
+        return DatabaseAndSchema(database_name, schema_name)
 
     def can_access(self, permission_name: str, view_name: str) -> bool:
         """
@@ -313,7 +339,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return self.can_access("all_database_access", "all_database_access")
 
-    def can_access_database(self, database: Union["Database", "DruidCluster"]) -> bool:
+    def can_access_database(self, database: "Database") -> bool:
         """
         Return True if the user can fully access the Superset database, False otherwise.
 
@@ -460,23 +486,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
         user_datasources = set()
-        for datasource_class in ConnectorRegistry.sources.values():
-            user_datasources.update(
-                self.get_session.query(datasource_class)
-                .filter(
-                    or_(
-                        datasource_class.perm.in_(user_perms),
-                        datasource_class.schema_perm.in_(schema_perms),
-                    )
+
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
+
+        user_datasources.update(
+            self.get_session.query(SqlaTable)
+            .filter(
+                or_(
+                    SqlaTable.perm.in_(user_perms),
+                    SqlaTable.schema_perm.in_(schema_perms),
                 )
-                .all()
             )
+            .all()
+        )
 
         # group all datasources by database
-        all_datasources = ConnectorRegistry.get_all_datasources(self.get_session)
-        datasources_by_database: Dict["Database", Set["BaseDatasource"]] = defaultdict(
-            set
-        )
+        session = self.get_session
+        all_datasources = SqlaTable.get_all_datasources(session)
+        datasources_by_database: Dict["Database", Set["SqlaTable"]] = defaultdict(set)
         for datasource in all_datasources:
             datasources_by_database[datasource.database].add(datasource)
 
@@ -517,7 +545,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             view_menu_names = (
                 base_query.join(assoc_user_role)
                 .join(self.user_model)
-                .filter(self.user_model.id == g.user.get_id())
+                .filter(self.user_model.id == get_user_id())
                 .filter(self.permission_model.name == permission_name)
             ).all()
             return {s.name for s in view_menu_names}
@@ -554,7 +582,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # schema_access
         accessible_schemas = {
-            self.unpack_schema_perm(s)[1]
+            self.unpack_database_and_schema(s).schema
             for s in self.user_view_menu_names("schema_access")
             if s.startswith(f"[{database}].")
         }
@@ -588,6 +616,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: The fallback SQL schema if not present in the table name
         :returns: The list of accessible SQL tables w/ schema
         """
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
 
         if self.can_access_database(database):
             return datasource_names
@@ -599,12 +629,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         user_perms = self.user_view_menu_names("datasource_access")
         schema_perms = self.user_view_menu_names("schema_access")
-        user_datasources = ConnectorRegistry.query_datasources_by_permissions(
+        user_datasources = SqlaTable.query_datasources_by_permissions(
             self.get_session, database, user_perms, schema_perms
         )
         if schema:
             names = {d.table_name for d in user_datasources if d.schema == schema}
-            return [d for d in datasource_names if d in names]
+            return [d for d in datasource_names if d.table in names]
 
         full_names = {d.full_name for d in user_datasources}
         return [d for d in datasource_names if f"[{database}].[{d}]" in full_names]
@@ -649,6 +679,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
         from superset.models import core as models
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
@@ -657,13 +688,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if pv.permission and pv.view_menu:
                 all_pvs.add((pv.permission.name, pv.view_menu.name))
 
-        def merge_pv(view_menu: str, perm: str) -> None:
+        def merge_pv(view_menu: str, perm: Optional[str]) -> None:
             """Create permission view menu only if it doesn't exist"""
             if view_menu and perm and (view_menu, perm) not in all_pvs:
                 self.add_permission_view_menu(view_menu, perm)
 
         logger.info("Creating missing datasource permissions.")
-        datasources = ConnectorRegistry.get_all_datasources(self.get_session)
+        datasources = SqlaTable.get_all_datasources(self.get_session)
         for datasource in datasources:
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
@@ -716,12 +747,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.auth_role_public,
                 merge=True,
             )
-        if current_app.config.get("PUBLIC_ROLE_LIKE_GAMMA", False):
-            logger.warning(
-                "The config `PUBLIC_ROLE_LIKE_GAMMA` is deprecated and will be removed "
-                "in Superset 1.0. Please use `PUBLIC_ROLE_LIKE` instead."
-            )
-            self.copy_role("Gamma", self.auth_role_public, merge=True)
 
         self.create_missing_perms()
 
@@ -922,78 +947,776 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return pvm.permission.name in {"can_override_role_permissions", "can_approve"}
 
-    def set_perm(  # pylint: disable=unused-argument
-        self, mapper: Mapper, connection: Connection, target: "BaseDatasource"
+    def database_after_insert(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
     ) -> None:
         """
-        Set the datasource permissions.
+        Handles permissions when a database is created.
+        Triggered by a SQLAlchemy after_insert event.
+
+        We need to create:
+         - The database PVM
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed database object
+        :return:
+        """
+        self._insert_pvm_on_sqla_event(
+            mapper, connection, "database_access", target.get_perm()
+        )
+
+    def database_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        """
+        Handles permissions update when a database is deleted.
+        Triggered by a SQLAlchemy after_delete event.
+
+        We need to delete:
+         - The database PVM
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed database object
+        :return:
+        """
+        self._delete_vm_database_access(
+            mapper, connection, target.id, target.database_name
+        )
+
+    def database_after_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        """
+        Handles all permissions update when a database is changed.
+        Triggered by a SQLAlchemy after_update event.
+
+        We need to update:
+         - The database PVM
+         - All datasets PVMs that reference the db, and it's local perm name
+         - All datasets local schema perm that reference the db.
+         - All charts local perm related with said datasets
+         - All charts local schema perm related with said datasets
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed database object
+        :return:
+        """
+        # Check if database name has changed
+        state = inspect(target)
+        history = state.get_history("database_name", True)
+        if not history.has_changes() or not history.deleted:
+            return
+
+        old_database_name = history.deleted[0]
+        # update database access permission
+        self._update_vm_database_access(mapper, connection, old_database_name, target)
+        # update datasource access
+        self._update_vm_datasources_access(
+            mapper, connection, old_database_name, target
+        )
+        # Note schema permissions are updated at the API level
+        # (database.commands.update). Since we need to fetch all existing schemas from
+        # the db
+
+    def _delete_vm_database_access(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        database_id: int,
+        database_name: str,
+    ) -> None:
+        view_menu_name = self.get_database_perm(database_id, database_name)
+        # Clean database access permission
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "database_access", view_menu_name
+        )
+        # Clean database schema permissions
+        schema_pvms = (
+            self.get_session.query(self.permissionview_model)
+            .join(self.permission_model)
+            .join(self.viewmenu_model)
+            .filter(self.permission_model.name == "schema_access")
+            .filter(self.viewmenu_model.name.like(f"[{database_name}].[%]"))
+            .all()
+        )
+        for schema_pvm in schema_pvms:
+            self._delete_pvm_on_sqla_event(mapper, connection, pvm=schema_pvm)
+
+    def _update_vm_database_access(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        old_database_name: str,
+        target: "Database",
+    ) -> Optional[ViewMenu]:
+        """
+        Helper method that Updates all database access permission
+        when a database name changes.
+
+        :param connection: Current connection (called on SQLAlchemy event listener scope)
+        :param old_database_name: the old database name
+        :param target: The database object
+        :return: A list of changed view menus (permission resource names)
+        """
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        new_database_name = target.database_name
+        old_view_menu_name = self.get_database_perm(target.id, old_database_name)
+        new_view_menu_name = self.get_database_perm(target.id, new_database_name)
+        db_pvm = self.find_permission_view_menu("database_access", old_view_menu_name)
+        if not db_pvm:
+            logger.warning(
+                "Could not find previous database permission %s",
+                old_view_menu_name,
+            )
+            self._insert_pvm_on_sqla_event(
+                mapper, connection, "database_access", new_view_menu_name
+            )
+            return None
+        new_updated_pvm = self.find_permission_view_menu(
+            "database_access", new_view_menu_name
+        )
+        if new_updated_pvm:
+            logger.info(
+                "New permission [%s] already exists, deleting the previous",
+                new_view_menu_name,
+            )
+            self._delete_vm_database_access(
+                mapper, connection, target.id, old_database_name
+            )
+            return None
+        connection.execute(
+            view_menu_table.update()
+            .where(view_menu_table.c.id == db_pvm.view_menu_id)
+            .values(name=new_view_menu_name)
+        )
+        new_db_view_menu = self._find_view_menu_on_sqla_event(
+            connection, new_view_menu_name
+        )
+
+        self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
+        return new_db_view_menu
+
+    def _update_vm_datasources_access(  # pylint: disable=too-many-locals
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        old_database_name: str,
+        target: "Database",
+    ) -> List[ViewMenu]:
+        """
+        Helper method that Updates all datasource access permission
+        when a database name changes.
+
+        :param connection: Current connection (called on SQLAlchemy event listener scope)
+        :param old_database_name: the old database name
+        :param target: The database object
+        :return: A list of changed view menus (permission resource names)
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        new_database_name = target.database_name
+        datasets = (
+            self.get_session.query(SqlaTable)
+            .filter(SqlaTable.database_id == target.id)
+            .all()
+        )
+        updated_view_menus: List[ViewMenu] = []
+        for dataset in datasets:
+            old_dataset_vm_name = self.get_dataset_perm(
+                dataset.id, dataset.table_name, old_database_name
+            )
+            new_dataset_vm_name = self.get_dataset_perm(
+                dataset.id, dataset.table_name, new_database_name
+            )
+            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+            if new_dataset_view_menu:
+                continue
+            connection.execute(
+                view_menu_table.update()
+                .where(view_menu_table.c.name == old_dataset_vm_name)
+                .values(name=new_dataset_vm_name)
+            )
+            # After update refresh
+            new_dataset_view_menu = self._find_view_menu_on_sqla_event(
+                connection, new_dataset_vm_name
+            )
+
+            # Update dataset (SqlaTable perm field)
+            connection.execute(
+                sqlatable_table.update()
+                .where(
+                    sqlatable_table.c.id == dataset.id,
+                    sqlatable_table.c.perm == old_dataset_vm_name,
+                )
+                .values(perm=new_dataset_vm_name)
+            )
+            # Update charts (Slice perm field)
+            connection.execute(
+                chart_table.update()
+                .where(chart_table.c.perm == old_dataset_vm_name)
+                .values(perm=new_dataset_vm_name)
+            )
+            self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
+            updated_view_menus.append(new_dataset_view_menu)
+        return updated_view_menus
+
+    def dataset_after_insert(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Handles permission creation when a dataset is inserted.
+        Triggered by a SQLAlchemy after_insert event.
+
+        We need to create:
+         - The dataset PVM and set local and schema perm
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed dataset object
+        :return:
+        """
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+            Database,
+        )
+
+        try:
+            dataset_perm = target.get_perm()
+            database = target.database
+        except DatasetInvalidPermissionEvaluationException:
+            logger.warning(
+                "Dataset has no database will retry with database_id to set permission"
+            )
+            database = self.get_session.query(Database).get(target.database_id)
+            dataset_perm = self.get_dataset_perm(
+                target.id, target.table_name, database.database_name
+            )
+        dataset_table = target.__table__
+
+        self._insert_pvm_on_sqla_event(
+            mapper, connection, "datasource_access", dataset_perm
+        )
+        if target.perm != dataset_perm:
+            target.perm = dataset_perm
+            connection.execute(
+                dataset_table.update()
+                .where(dataset_table.c.id == target.id)
+                .values(perm=dataset_perm)
+            )
+
+        if target.schema:
+            dataset_schema_perm = self.get_schema_perm(
+                database.database_name, target.schema
+            )
+            self._insert_pvm_on_sqla_event(
+                mapper, connection, "schema_access", dataset_schema_perm
+            )
+            target.schema_perm = dataset_schema_perm
+            connection.execute(
+                dataset_table.update()
+                .where(dataset_table.c.id == target.id)
+                .values(schema_perm=dataset_schema_perm)
+            )
+
+    def dataset_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Handles permissions update when a dataset is deleted.
+        Triggered by a SQLAlchemy after_delete event.
+
+        We need to delete:
+         - The dataset PVM
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed dataset object
+        :return:
+        """
+        dataset_vm_name = self.get_dataset_perm(
+            target.id, target.table_name, target.database.database_name
+        )
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "datasource_access", dataset_vm_name
+        )
+
+    def dataset_after_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Handles all permissions update when a dataset is changed.
+        Triggered by a SQLAlchemy after_update event.
+
+        We need to update:
+         - The dataset PVM and local perm
+         - All charts local perm related with said datasets
+         - All charts local schema perm related with said datasets
+
+        :param mapper: The SQLA mapper
+        :param connection: The SQLA connection
+        :param target: The changed dataset object
+        :return:
+        """
+        # Check if watched fields have changed
+        state = inspect(target)
+        history_database = state.get_history("database_id", True)
+        history_table_name = state.get_history("table_name", True)
+        history_schema = state.get_history("schema", True)
+
+        # When database name changes
+        if history_database.has_changes() and history_database.deleted:
+            new_dataset_vm_name = self.get_dataset_perm(
+                target.id, target.table_name, target.database.database_name
+            )
+            self._update_dataset_perm(
+                mapper, connection, target.perm, new_dataset_vm_name, target
+            )
+
+            # Updates schema permissions
+            new_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._update_dataset_schema_perm(
+                mapper,
+                connection,
+                new_dataset_schema_name,
+                target,
+            )
+
+        # When table name changes
+        if history_table_name.has_changes() and history_table_name.deleted:
+            old_dataset_name = history_table_name.deleted[0]
+            new_dataset_vm_name = self.get_dataset_perm(
+                target.id, target.table_name, target.database.database_name
+            )
+            old_dataset_vm_name = self.get_dataset_perm(
+                target.id, old_dataset_name, target.database.database_name
+            )
+            self._update_dataset_perm(
+                mapper, connection, old_dataset_vm_name, new_dataset_vm_name, target
+            )
+
+        # When schema changes
+        if history_schema.has_changes() and history_schema.deleted:
+            new_dataset_schema_name = self.get_schema_perm(
+                target.database.database_name, target.schema
+            )
+            self._update_dataset_schema_perm(
+                mapper,
+                connection,
+                new_dataset_schema_name,
+                target,
+            )
+
+    def _update_dataset_schema_perm(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        new_schema_permission_name: Optional[str],
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events on datasets to update
+        a new schema permission name, propagates the name change to datasets and charts.
+
+        If the schema permission name does not exist already has a PVM,
+        creates a new one.
+
+        :param mapper: The SQLA event mapper
+        :param connection: The SQLA connection
+        :param new_schema_permission_name: The new schema permission name that changed
+        :param target: Dataset that was updated
+        :return:
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
+
+        # insert new schema PVM if it does not exist
+        self._insert_pvm_on_sqla_event(
+            mapper, connection, "schema_access", new_schema_permission_name
+        )
+
+        # Update dataset (SqlaTable schema_perm field)
+        connection.execute(
+            sqlatable_table.update()
+            .where(
+                sqlatable_table.c.id == target.id,
+            )
+            .values(schema_perm=new_schema_permission_name)
+        )
+
+        # Update charts (Slice schema_perm field)
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_id == target.id,
+                chart_table.c.datasource_type == DatasourceType.TABLE,
+            )
+            .values(schema_perm=new_schema_permission_name)
+        )
+
+    def _update_dataset_perm(  # pylint: disable=too-many-arguments
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        old_permission_name: Optional[str],
+        new_permission_name: Optional[str],
+        target: "SqlaTable",
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events on datasets to update
+        a permission name change, propagates the name change to VM, datasets and charts.
+
+        :param mapper:
+        :param connection:
+        :param old_permission_name
+        :param new_permission_name:
+        :param target:
+        :return:
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+            Slice,
+        )
+
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        chart_table = Slice.__table__  # pylint: disable=no-member
+
+        new_dataset_view_menu = self.find_view_menu(new_permission_name)
+        if new_dataset_view_menu:
+            return
+        # Update VM
+        connection.execute(
+            view_menu_table.update()
+            .where(view_menu_table.c.name == old_permission_name)
+            .values(name=new_permission_name)
+        )
+        # VM changed, so call hook
+        new_dataset_view_menu = self.find_view_menu(new_permission_name)
+        self.on_view_menu_after_update(mapper, connection, new_dataset_view_menu)
+        # Update dataset (SqlaTable perm field)
+        connection.execute(
+            sqlatable_table.update()
+            .where(
+                sqlatable_table.c.id == target.id,
+            )
+            .values(perm=new_permission_name)
+        )
+        # Update charts (Slice perm field)
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_type == DatasourceType.TABLE,
+                chart_table.c.datasource_id == target.id,
+            )
+            .values(perm=new_permission_name)
+        )
+
+    def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        permission_name: Optional[str] = None,
+        view_menu_name: Optional[str] = None,
+        pvm: Optional[PermissionView] = None,
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events.
+        Deletes a PVM.
+
+        :param mapper: The SQLA event mapper
+        :param connection: The SQLA connection
+        :param permission_name: e.g.: datasource_access, schema_access
+        :param view_menu_name: e.g. [db1].[public]
+        :param pvm: Can be called with the actual PVM already
+        :return:
+        """
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_menu_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
+
+        if not pvm:
+            pvm = self.find_permission_view_menu(permission_name, view_menu_name)
+        if not pvm:
+            return
+        # Delete Any Role to PVM association
+        connection.execute(
+            assoc_permissionview_role.delete().where(
+                assoc_permissionview_role.c.permission_view_id == pvm.id
+            )
+        )
+        # Delete the database access PVM
+        connection.execute(
+            permission_view_menu_table.delete().where(
+                permission_view_menu_table.c.id == pvm.id
+            )
+        )
+        self.on_permission_view_after_delete(mapper, connection, pvm)
+        connection.execute(
+            view_menu_table.delete().where(view_menu_table.c.id == pvm.view_menu_id)
+        )
+
+    def _find_permission_on_sqla_event(
+        self, connection: Connection, name: str
+    ) -> Permission:
+        """
+        Find a FAB Permission using a SQLA connection.
+
+        A session.query may not return the latest results on newly created/updated
+        objects/rows using connection. On this case we should use a connection also
+
+        :param connection: SQLAlchemy connection
+        :param name: The permission name (it's unique)
+        :return: Permission
+        """
+        permission_table = self.permission_model.__table__  # pylint: disable=no-member
+
+        permission_ = connection.execute(
+            permission_table.select().where(permission_table.c.name == name)
+        ).fetchone()
+        permission = Permission()
+        # ensures this object is never persisted
+        permission.metadata = None
+        permission.id = permission_.id
+        permission.name = permission_.name
+        return permission
+
+    def _find_view_menu_on_sqla_event(
+        self, connection: Connection, name: str
+    ) -> ViewMenu:
+        """
+        Find a FAB ViewMenu using a SQLA connection.
+
+        A session.query may not return the latest results on newly created/updated
+        objects/rows using connection. On this case we should use a connection also
+
+        :param connection: SQLAlchemy connection
+        :param name: The ViewMenu name (it's unique)
+        :return: ViewMenu
+        """
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+
+        view_menu_ = connection.execute(
+            view_menu_table.select().where(view_menu_table.c.name == name)
+        ).fetchone()
+        view_menu = ViewMenu()
+        # ensures this object is never persisted
+        view_menu.metadata = None
+        view_menu.id = view_menu_.id
+        view_menu.name = view_menu_.name
+        return view_menu
+
+    def _insert_pvm_on_sqla_event(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        permission_name: str,
+        view_menu_name: Optional[str],
+    ) -> None:
+        """
+        Helper method that is called by SQLAlchemy events.
+        Inserts a new PVM (if it does not exist already)
+
+        :param mapper: The SQLA event mapper
+        :param connection: The SQLA connection
+        :param permission_name: e.g.: datasource_access, schema_access
+        :param view_menu_name: e.g. [db1].[public]
+        :return:
+        """
+        permission_table = self.permission_model.__table__  # pylint: disable=no-member
+        view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
+        permission_view_table = (
+            self.permissionview_model.__table__  # pylint: disable=no-member
+        )
+        if not view_menu_name:
+            return
+        pvm = self.find_permission_view_menu(permission_name, view_menu_name)
+        if pvm:
+            return
+        permission = self.find_permission(permission_name)
+        view_menu = self.find_view_menu(view_menu_name)
+        if not permission:
+            _ = connection.execute(
+                permission_table.insert().values(name=permission_name)
+            )
+            permission = self._find_permission_on_sqla_event(
+                connection, permission_name
+            )
+            self.on_permission_after_insert(mapper, connection, permission)
+        if not view_menu:
+            _ = connection.execute(view_menu_table.insert().values(name=view_menu_name))
+            view_menu = self._find_view_menu_on_sqla_event(connection, view_menu_name)
+            self.on_view_menu_after_insert(mapper, connection, view_menu)
+        connection.execute(
+            permission_view_table.insert().values(
+                permission_id=permission.id, view_menu_id=view_menu.id
+            )
+        )
+        permission_view = connection.execute(
+            permission_view_table.select().where(
+                permission_view_table.c.permission_id == permission.id,
+                permission_view_table.c.view_menu_id == view_menu.id,
+            )
+        ).fetchone()
+        permission_view_model = PermissionView()
+        permission_view_model.metadata = None
+        permission_view_model.id = permission_view.id
+        permission_view_model.permission_id = permission.id
+        permission_view_model.view_menu_id = view_menu.id
+        permission_view_model.permission = permission
+        permission_view_model.view_menu = view_menu
+        self.on_permission_view_after_insert(mapper, connection, permission_view_model)
+
+    def on_role_after_update(
+        self, mapper: Mapper, connection: Connection, target: Role
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a Role update
+        is created by SQLAlchemy events.
+
+        On SQLAlchemy after_insert events, we cannot
+        create new view_menu's using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being changed
+        """
+
+    def on_view_menu_after_insert(
+        self, mapper: Mapper, connection: Connection, target: ViewMenu
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new ViewMenu
+        is created by set_perm.
+
+        On SQLAlchemy after_insert events, we cannot
+        create new view_menu's using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_insert.
 
         :param mapper: The table mapper
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
-        link_table = target.__table__
-        if target.perm != target.get_perm():
-            connection.execute(
-                link_table.update()
-                .where(link_table.c.id == target.id)
-                .values(perm=target.get_perm())
-            )
 
-        if (
-            hasattr(target, "schema_perm")
-            and target.schema_perm != target.get_schema_perm()
-        ):
-            connection.execute(
-                link_table.update()
-                .where(link_table.c.id == target.id)
-                .values(schema_perm=target.get_schema_perm())
-            )
+    def on_view_menu_after_update(
+        self, mapper: Mapper, connection: Connection, target: ViewMenu
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new ViewMenu
+        is updated
 
-        pvm_names = []
-        if target.__tablename__ in {"dbs", "clusters"}:
-            pvm_names.append(("database_access", target.get_perm()))
-        else:
-            pvm_names.append(("datasource_access", target.get_perm()))
-            if target.schema:
-                pvm_names.append(("schema_access", target.get_schema_perm()))
+        Since the update may be performed on after_update event. We cannot
+        update ViewMenus using a session, so any SQLAlchemy events hooked to
+        `ViewMenu` will not trigger an after_update.
 
-        # TODO(bogdan): modify slice permissions as well.
-        for permission_name, view_menu_name in pvm_names:
-            permission = self.find_permission(permission_name)
-            view_menu = self.find_view_menu(view_menu_name)
-            pv = None
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
 
-            if not permission:
-                permission_table = (
-                    self.permission_model.__table__  # pylint: disable=no-member
-                )
-                connection.execute(
-                    permission_table.insert().values(name=permission_name)
-                )
-                permission = self.find_permission(permission_name)
-            if not view_menu:
-                view_menu_table = (
-                    self.viewmenu_model.__table__  # pylint: disable=no-member
-                )
-                connection.execute(view_menu_table.insert().values(name=view_menu_name))
-                view_menu = self.find_view_menu(view_menu_name)
+    def on_permission_after_insert(
+        self, mapper: Mapper, connection: Connection, target: Permission
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new permission
+        is created by set_perm.
 
-            if permission and view_menu:
-                pv = (
-                    self.get_session.query(self.permissionview_model)
-                    .filter_by(permission=permission, view_menu=view_menu)
-                    .first()
-                )
-            if not pv and permission and view_menu:
-                permission_view_table = (
-                    self.permissionview_model.__table__  # pylint: disable=no-member
-                )
-                connection.execute(
-                    permission_view_table.insert().values(
-                        permission_id=permission.id, view_menu_id=view_menu.id
-                    )
-                )
+        Since set_perm is executed by SQLAlchemy after_insert events, we cannot
+        create new permissions using a session, so any SQLAlchemy events hooked to
+        `Permission` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
+
+    def on_permission_view_after_insert(
+        self, mapper: Mapper, connection: Connection, target: PermissionView
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new PermissionView
+        is created by SQLAlchemy events.
+
+        On SQLAlchemy after_insert events, we cannot
+        create new pvms using a session, so any SQLAlchemy events hooked to
+        `PermissionView` will not trigger an after_insert.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
+
+    def on_permission_view_after_delete(
+        self, mapper: Mapper, connection: Connection, target: PermissionView
+    ) -> None:
+        """
+        Hook that allows for further custom operations when a new PermissionView
+        is delete by SQLAlchemy events.
+
+        On SQLAlchemy after_delete events, we cannot
+        delete pvms using a session, so any SQLAlchemy events hooked to
+        `PermissionView` will not trigger an after_delete.
+
+        :param mapper: The table mapper
+        :param connection: The DB-API connection
+        :param target: The mapped instance being persisted
+        """
+
+    @staticmethod
+    def get_exclude_users_from_lists() -> List[str]:
+        """
+        Override to dynamically identify a list of usernames to exclude from
+        all UI dropdown lists, owners, created_by filters etc...
+
+        It will exclude all users from the all endpoints of the form
+        ``/api/v1/<modelview>/related/<column>``
+
+        Optionally you can also exclude them using the `EXCLUDE_USERS_FROM_LISTS`
+        config setting.
+
+        :return: A list of usernames
+        """
+        return []
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals
@@ -1051,7 +1774,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
                     # Access to any datasource is suffice.
                     for datasource_ in datasources:
-                        if self.can_access("datasource_access", datasource_.perm):
+                        if self.can_access(
+                            "datasource_access", datasource_.perm
+                        ) or self.is_owner(datasource_):
                             break
                     else:
                         denied.add(table_)
@@ -1077,6 +1802,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                or self.is_owner(datasource)
                 or (
                     should_check_dashboard_access
                     and self.can_access_based_on_dashboard(datasource)
@@ -1139,64 +1865,65 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param table: The table to check against
         :returns: A list of filters
         """
-        if hasattr(g, "user"):
-            # pylint: disable=import-outside-toplevel
-            from superset.connectors.sqla.models import (
-                RLSFilterRoles,
-                RLSFilterTables,
-                RowLevelSecurityFilter,
-            )
 
-            user_roles = [role.id for role in self.get_user_roles()]
-            regular_filter_roles = (
-                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
-                .join(RowLevelSecurityFilter)
-                .filter(
-                    RowLevelSecurityFilter.filter_type
-                    == RowLevelSecurityFilterType.REGULAR
-                )
-                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-                .subquery()
+        if not (hasattr(g, "user") and g.user is not None):
+            return []
+
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (
+            RLSFilterRoles,
+            RLSFilterTables,
+            RowLevelSecurityFilter,
+        )
+
+        user_roles = [role.id for role in self.get_user_roles(g.user)]
+        regular_filter_roles = (
+            self.get_session()
+            .query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            base_filter_roles = (
-                self.get_session.query(RLSFilterRoles.c.rls_filter_id)
-                .join(RowLevelSecurityFilter)
-                .filter(
-                    RowLevelSecurityFilter.filter_type
-                    == RowLevelSecurityFilterType.BASE
-                )
-                .filter(RLSFilterRoles.c.role_id.in_(user_roles))
-                .subquery()
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+        )
+        base_filter_roles = (
+            self.get_session()
+            .query(RLSFilterRoles.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            filter_tables = (
-                self.get_session.query(RLSFilterTables.c.rls_filter_id)
-                .filter(RLSFilterTables.c.table_id == table.id)
-                .subquery()
+            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+        )
+        filter_tables = (
+            self.get_session()
+            .query(RLSFilterTables.c.rls_filter_id)
+            .filter(RLSFilterTables.c.table_id == table.id)
+        )
+        query = (
+            self.get_session()
+            .query(
+                RowLevelSecurityFilter.id,
+                RowLevelSecurityFilter.group_key,
+                RowLevelSecurityFilter.clause,
             )
-            query = (
-                self.get_session.query(
-                    RowLevelSecurityFilter.id,
-                    RowLevelSecurityFilter.group_key,
-                    RowLevelSecurityFilter.clause,
-                )
-                .filter(RowLevelSecurityFilter.id.in_(filter_tables))
-                .filter(
-                    or_(
-                        and_(
-                            RowLevelSecurityFilter.filter_type
-                            == RowLevelSecurityFilterType.REGULAR,
-                            RowLevelSecurityFilter.id.in_(regular_filter_roles),
-                        ),
-                        and_(
-                            RowLevelSecurityFilter.filter_type
-                            == RowLevelSecurityFilterType.BASE,
-                            RowLevelSecurityFilter.id.notin_(base_filter_roles),
-                        ),
-                    )
+            .filter(RowLevelSecurityFilter.id.in_(filter_tables))
+            .filter(
+                or_(
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.REGULAR,
+                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                    ),
+                    and_(
+                        RowLevelSecurityFilter.filter_type
+                        == RowLevelSecurityFilterType.BASE,
+                        RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                    ),
                 )
             )
-            return query.all()
-        return []
+        )
+        return query.all()
 
     def get_rls_ids(self, table: "BaseDatasource") -> List[int]:
         """
@@ -1210,12 +1937,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ids.sort()  # Combinations rather than permutations
         return ids
 
+    def get_guest_rls_filters_str(self, table: "BaseDatasource") -> List[str]:
+        return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
+
+    def get_rls_cache_key(self, datasource: "BaseDatasource") -> List[str]:
+        rls_ids = []
+        if datasource.is_rls_supported:
+            rls_ids = self.get_rls_ids(datasource)
+        rls_str = [str(rls_id) for rls_id in rls_ids]
+        guest_rls = self.get_guest_rls_filters_str(datasource)
+        return guest_rls + rls_str
+
     @staticmethod
     def raise_for_user_activity_access(user_id: int) -> None:
-        user = g.user if g.user and g.user.get_id() else None
-        if not user or (
+        if not get_user_id() or (
             not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-            and user_id != user.id
+            and user_id != get_user_id()
         ):
             raise SupersetSecurityException(
                 SupersetError(
@@ -1237,8 +1974,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import is_user_admin
-        from superset.views.utils import is_owner
 
         def has_rbac_access() -> bool:
             return (not is_feature_enabled("DASHBOARD_RBAC")) or any(
@@ -1247,14 +1982,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for dashboard_role in dashboard.roles
             )
 
-        if self.is_guest_user():
-            can_access = self.has_guest_access(
-                GuestTokenResourceType.DASHBOARD, dashboard.id
-            )
+        if self.is_guest_user() and dashboard.embedded:
+            can_access = self.has_guest_access(dashboard)
         else:
             can_access = (
-                is_user_admin()
-                or is_owner(dashboard, g.user)
+                self.is_admin()
+                or self.is_owner(dashboard)
                 or (dashboard.published and has_rbac_access())
                 or (not dashboard.published and not dashboard.roles)
             )
@@ -1286,8 +2019,33 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     @staticmethod
     def _get_current_epoch_time() -> float:
-        """ This is used so the tests can mock time """
+        """This is used so the tests can mock time"""
         return time.time()
+
+    @staticmethod
+    def _get_guest_token_jwt_audience() -> str:
+        audience = current_app.config["GUEST_TOKEN_JWT_AUDIENCE"] or get_url_host()
+        if callable(audience):
+            audience = audience()
+        return audience
+
+    @staticmethod
+    def validate_guest_token_resources(resources: GuestTokenResources) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.embedded.dao import EmbeddedDAO
+        from superset.embedded_dashboard.commands.exceptions import (
+            EmbeddedDashboardNotFoundError,
+        )
+        from superset.models.dashboard import Dashboard
+
+        for resource in resources:
+            if resource["type"] == GuestTokenResourceType.DASHBOARD.value:
+                # TODO (embedded): remove this check once uuids are rolled out
+                dashboard = Dashboard.get(str(resource["id"]))
+                if not dashboard:
+                    embedded = EmbeddedDAO.find_by_id(str(resource["id"]))
+                    if not embedded:
+                        raise EmbeddedDashboardNotFoundError()
 
     def create_guest_access_token(
         self,
@@ -1298,10 +2056,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = current_app.config["GUEST_TOKEN_JWT_EXP_SECONDS"]
-
+        audience = self._get_guest_token_jwt_audience()
         # calculate expiration time
         now = self._get_current_epoch_time()
-        exp = now + (exp_seconds * 1000)
+        exp = now + exp_seconds
         claims = {
             "user": user,
             "resources": resources,
@@ -1309,8 +2067,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
+            "aud": audience,
+            "type": "guest",
         }
-        token = jwt.encode(claims, secret, algorithm=algo)
+        token = self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
         return token
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
@@ -1322,7 +2082,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :return: A guest user object
         """
-        raw_token = req.headers.get(current_app.config["GUEST_TOKEN_HEADER_NAME"])
+        raw_token = req.headers.get(
+            current_app.config["GUEST_TOKEN_HEADER_NAME"]
+        ) or req.form.get("guest_token")
         if raw_token is None:
             return None
 
@@ -1334,6 +2096,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain a resources claim")
             if token.get("rls_rules") is None:
                 raise ValueError("Guest token does not contain an rls_rules claim")
+            if token.get("type") != "guest":
+                raise ValueError("This is not a guest token.")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
@@ -1344,11 +2108,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
-            token=token, roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
+            token=token,
+            roles=[self.find_role(current_app.config["GUEST_ROLE_NAME"])],
         )
 
-    @staticmethod
-    def parse_jwt_guest_token(raw_token: str) -> Dict[str, Any]:
+    def parse_jwt_guest_token(self, raw_token: str) -> Dict[str, Any]:
         """
         Parses a guest token. Raises an error if the jwt fails standard claims checks.
         :param raw_token: the token gotten from the request
@@ -1356,7 +2120,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         secret = current_app.config["GUEST_TOKEN_JWT_SECRET"]
         algo = current_app.config["GUEST_TOKEN_JWT_ALGO"]
-        return jwt.decode(raw_token, secret, algorithms=[algo])
+        audience = self._get_guest_token_jwt_audience()
+        return self.pyjwt_for_guest_token.decode(
+            raw_token, secret, algorithms=[algo], audience=audience
+        )
 
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:
@@ -1375,15 +2142,80 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return g.user
         return None
 
-    def has_guest_access(
-        self, resource_type: GuestTokenResourceType, resource_id: Union[str, int]
-    ) -> bool:
+    def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
         if not user:
             return False
 
-        strid = str(resource_id)
-        for resource in user.resources:
-            if resource["type"] == resource_type.value and str(resource["id"]) == strid:
+        dashboards = [
+            r
+            for r in user.resources
+            if r["type"] == GuestTokenResourceType.DASHBOARD.value
+        ]
+
+        # TODO (embedded): remove this check once uuids are rolled out
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.id):
+                return True
+
+        if not dashboard.embedded:
+            return False
+
+        for resource in dashboards:
+            if str(resource["id"]) == str(dashboard.embedded[0].uuid):
                 return True
         return False
+
+    def raise_for_ownership(self, resource: Model) -> None:
+        """
+        Raise an exception if the user does not own the resource.
+
+        Note admins are deemed owners of all resources.
+
+        :param resource: The dashboard, dataste, chart, etc. resource
+        :raises SupersetSecurityException: If the current user is not an owner
+        """
+
+        # pylint: disable=import-outside-toplevel
+        from superset import db
+
+        if self.is_admin():
+            return
+
+        orig_resource = db.session.query(resource.__class__).get(resource.id)
+        owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
+
+        if g.user.is_anonymous or g.user not in owners:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                    message=f"You don't have the rights to alter [{resource}]",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    def is_owner(self, resource: Model) -> bool:
+        """
+        Returns True if the current user is an owner of the resource, False otherwise.
+
+        :param resource: The dashboard, dataste, chart, etc. resource
+        :returns: Whethe the current user is an owner of the resource
+        """
+
+        try:
+            self.raise_for_ownership(resource)
+        except SupersetSecurityException:
+            return False
+
+        return True
+
+    def is_admin(self) -> bool:
+        """
+        Returns True if the current user is an admin user, False otherwise.
+
+        :returns: Whehther the current user is an admin user
+        """
+
+        return current_app.config["AUTH_ROLE_ADMIN"] in [
+            role.name for role in self.get_user_roles()
+        ]

@@ -27,10 +27,10 @@ export const emitFilterControl = enableCrossFilter
         name: 'emit_filter',
         config: {
           type: 'CheckboxControl',
-          label: t('Emit dashboard cross filters'),
+          label: t('Enable dashboard cross filters'),
           default: false,
           renderTrigger: true,
-          description: t('Emit dashboard cross filters.'),
+          description: t('Enable dashboard cross filters'),
         },
       },
     ]

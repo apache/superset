@@ -90,14 +90,22 @@ WTF_CSRF_EXEMPT_LIST = []
 # A CSRF token that expires in 1 year
 WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
 class CeleryConfig(object):
-  BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   CELERY_IMPORTS = ('superset.sql_lab', )
-  CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+{{- if .Values.supersetNode.connections.redis_password }}
+  BROKER_URL = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  CELERY_RESULT_BACKEND = f"redis://:{env('REDIS_PASSWORD')}@{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+{{- else }}
+  BROKER_URL = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+  CELERY_RESULT_BACKEND = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
+{{- end }}
 
 CELERY_CONFIG = CeleryConfig
 RESULTS_BACKEND = RedisCache(
       host=env('REDIS_HOST'),
+{{- if .Values.supersetNode.connections.redis_password }}
+      password=env('REDIS_PASSWORD'),
+{{- end }}
       port=env('REDIS_PORT'),
       key_prefix='superset_results'
 )

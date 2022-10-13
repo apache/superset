@@ -21,6 +21,7 @@ import {
   ChartProps,
   DatasourceType,
   GenericDataType,
+  supersetTheme,
 } from '@superset-ui/core';
 import { TableChartProps, TableChartFormData } from '../src/types';
 
@@ -63,6 +64,7 @@ const basicChartProps = {
     },
   ],
   formData: basicFormData,
+  theme: supersetTheme,
 };
 
 const basicQueryResult: ChartDataResponseResult = {
@@ -79,6 +81,8 @@ const basicQueryResult: ChartDataResponseResult = {
   rowcount: 100,
   stacktrace: null,
   status: 'success',
+  from_dttm: null,
+  to_dttm: null,
 };
 
 /**

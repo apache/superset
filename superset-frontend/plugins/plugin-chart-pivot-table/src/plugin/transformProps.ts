@@ -77,7 +77,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     queriesData,
     formData,
     rawFormData,
-    hooks: { setDataMask = () => {} },
+    hooks: { setDataMask = () => {}, onContextMenu },
     filterState,
     datasource: { verboseMap = {}, columnFormats = {} },
   } = chartProps;
@@ -164,5 +164,6 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     metricsLayout,
     metricColorFormatters,
     dateFormatters,
+    onContextMenu,
   };
 }

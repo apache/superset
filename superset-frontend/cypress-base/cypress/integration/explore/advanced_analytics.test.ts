@@ -22,7 +22,7 @@ describe('Advanced analytics', () => {
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('PUT', '/api/v1/explore/**').as('putExplore');
-    cy.intercept('GET', '/superset/explore/**').as('getExplore');
+    cy.intercept('GET', '/explore/**').as('getExplore');
   });
 
   it('Create custom time compare', () => {

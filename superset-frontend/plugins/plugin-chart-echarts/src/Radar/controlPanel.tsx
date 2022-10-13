@@ -33,6 +33,7 @@ import {
   sharedControls,
   emitFilterControl,
   ControlFormItemSpec,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { LABEL_POSITION } from '../constants';
@@ -85,7 +86,7 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         ['color_scheme'],
         ...legendSection,
-        [<h1 className="section-header">{t('Labels')}</h1>],
+        [<div className="section-header">{t('Labels')}</div>],
         [
           {
             name: 'show_labels',
@@ -158,7 +159,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Radar')}</h1>],
+        [<div className="section-header">{t('Radar')}</div>],
         [
           {
             name: 'column_config',
@@ -170,7 +171,10 @@ const config: ControlPanelConfig = {
               configFormLayout: {
                 [GenericDataType.NUMERIC]: [[radarMetricMaxValue]],
               },
-              mapStateToProps(explore, control, chart) {
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
                 const values =
                   (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
                   [];
@@ -207,6 +211,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;

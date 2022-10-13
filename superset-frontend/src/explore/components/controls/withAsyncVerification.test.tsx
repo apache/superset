@@ -133,7 +133,7 @@ describe('VerifiedMetricsControl', () => {
       multi: defaultProps.multi,
       name: defaultProps.name,
       // in real life, `onChange` should have been called with the updated
-      // props (both savedMetrics and value should have beend updated), but
+      // props (both savedMetrics and value should have been updated), but
       // because of the limitation of enzyme (it cannot get props updated from
       // useEffect hooks), we are not able to check that here.
       savedMetrics: defaultProps.savedMetrics,

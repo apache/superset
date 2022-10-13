@@ -16,24 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { smartDateFormatter, t } from '@superset-ui/core';
+import { hasGenericChartAxes, smartDateFormatter, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
+  temporalColumnMixin,
 } from '@superset-ui/chart-controls';
 import React from 'react';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
-      controlSetRows: [['metric'], ['adhoc_filters']],
+      controlSetRows: [
+        [hasGenericChartAxes ? 'x_axis' : null],
+        [hasGenericChartAxes ? 'time_grain_sqla' : null],
+        ['metric'],
+        ['adhoc_filters'],
+      ],
     },
     {
       label: t('Options'),
@@ -164,7 +171,7 @@ const config: ControlPanelConfig = {
       expanded: false,
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Rolling Window')}</h1>],
+        [<div className="section-header">{t('Rolling Window')}</div>],
         [
           {
             name: 'rolling_type',
@@ -217,6 +224,51 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [<div className="section-header">{t('Resample')}</div>],
+        [
+          {
+            name: 'resample_rule',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Rule'),
+              default: null,
+              choices: [
+                ['1T', '1 minutely frequency'],
+                ['1H', '1 hourly frequency'],
+                ['1D', '1 calendar day frequency'],
+                ['7D', '7 calendar day frequency'],
+                ['1MS', '1 month start frequency'],
+                ['1M', '1 month end frequency'],
+                ['1AS', '1 year start frequency'],
+                ['1A', '1 year end frequency'],
+              ],
+              description: t('Pandas resample rule'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'resample_method',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Fill method'),
+              default: null,
+              choices: [
+                ['asfreq', 'Null imputation'],
+                ['zerofill', 'Zero imputation'],
+                ['linear', 'Linear interpolation'],
+                ['ffill', 'Forward values'],
+                ['bfill', 'Backward values'],
+                ['median', 'Median values'],
+                ['mean', 'Mean values'],
+                ['sum', 'Sum values'],
+              ],
+              description: t('Pandas resample method'),
+            },
+          },
+        ],
       ],
     },
   ],
@@ -224,7 +276,15 @@ const config: ControlPanelConfig = {
     y_axis_format: {
       label: t('Number format'),
     },
+    x_axis: {
+      label: t('TEMPORAL X-AXIS'),
+      ...temporalColumnMixin,
+    },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

@@ -30,14 +30,14 @@ import { QueryObject } from 'src/views/CRUD/types';
 
 const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
   text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.typography.sizes.m - 1}px;
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
   padding: 4px 0 24px 0;
 `;
 
@@ -115,32 +115,34 @@ function QueryPreviewModal({
         onHide={onHide}
         show={show}
         title={t('Query preview')}
-        footer={[
-          <Button
-            data-test="previous-query"
-            key="previous-query"
-            disabled={disablePrevious}
-            onClick={() => handleDataChange(true)}
-          >
-            {t('Previous')}
-          </Button>,
-          <Button
-            data-test="next-query"
-            key="next-query"
-            disabled={disableNext}
-            onClick={() => handleDataChange(false)}
-          >
-            {t('Next')}
-          </Button>,
-          <Button
-            data-test="open-in-sql-lab"
-            key="open-in-sql-lab"
-            buttonStyle="primary"
-            onClick={() => openInSqlLab(id)}
-          >
-            {t('Open in SQL Lab')}
-          </Button>,
-        ]}
+        footer={
+          <>
+            <Button
+              data-test="previous-query"
+              key="previous-query"
+              disabled={disablePrevious}
+              onClick={() => handleDataChange(true)}
+            >
+              {t('Previous')}
+            </Button>
+            <Button
+              data-test="next-query"
+              key="next-query"
+              disabled={disableNext}
+              onClick={() => handleDataChange(false)}
+            >
+              {t('Next')}
+            </Button>
+            <Button
+              data-test="open-in-sql-lab"
+              key="open-in-sql-lab"
+              buttonStyle="primary"
+              onClick={() => openInSqlLab(id)}
+            >
+              {t('Open in SQL Lab')}
+            </Button>
+          </>
+        }
       >
         <QueryTitle>{t('Tab name')}</QueryTitle>
         <QueryLabel>{query.tab_name}</QueryLabel>

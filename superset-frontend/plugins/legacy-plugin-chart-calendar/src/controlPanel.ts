@@ -22,6 +22,7 @@ import {
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 
@@ -191,6 +192,10 @@ const config: ControlPanelConfig = {
       label: t('Number Format'),
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metrics: getStandardizedControls().popAllMetrics(),
+  }),
 };
 
 export default config;

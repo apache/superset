@@ -26,34 +26,34 @@ import {
   CommonRangeType,
   CalendarRangeType,
 } from 'src/explore/components/controls/DateFilterControl/types';
+import { testWithId } from 'src/utils/testUtils';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
-  { value: 'Common', label: t('Last'), order: 0 },
-  { value: 'Calendar', label: t('Previous'), order: 1 },
-  { value: 'Custom', label: t('Custom'), order: 2 },
-  { value: 'Advanced', label: t('Advanced'), order: 3 },
-  { value: 'No filter', label: t('No filter'), order: 4 },
+  { value: 'Common', label: t('Last') },
+  { value: 'Calendar', label: t('Previous') },
+  { value: 'Custom', label: t('Custom') },
+  { value: 'Advanced', label: t('Advanced') },
+  { value: 'No filter', label: t('No filter') },
 ];
 
 export const COMMON_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: 'Last day', label: t('last day'), order: 0 },
-  { value: 'Last week', label: t('last week'), order: 1 },
-  { value: 'Last month', label: t('last month'), order: 2 },
-  { value: 'Last quarter', label: t('last quarter'), order: 3 },
-  { value: 'Last year', label: t('last year'), order: 4 },
+  { value: 'Last day', label: t('last day') },
+  { value: 'Last week', label: t('last week') },
+  { value: 'Last month', label: t('last month') },
+  { value: 'Last quarter', label: t('last quarter') },
+  { value: 'Last year', label: t('last year') },
 ];
 export const COMMON_RANGE_VALUES_SET = new Set(
   COMMON_RANGE_OPTIONS.map(({ value }) => value),
 );
 
 export const CALENDAR_RANGE_OPTIONS: SelectOptionType[] = [
-  { value: PreviousCalendarWeek, label: t('previous calendar week'), order: 0 },
+  { value: PreviousCalendarWeek, label: t('previous calendar week') },
   {
     value: PreviousCalendarMonth,
     label: t('previous calendar month'),
-    order: 1,
   },
-  { value: PreviousCalendarYear, label: t('previous calendar year'), order: 2 },
+  { value: PreviousCalendarYear, label: t('previous calendar year') },
 ];
 export const CALENDAR_RANGE_VALUES_SET = new Set(
   CALENDAR_RANGE_OPTIONS.map(({ value }) => value),
@@ -71,26 +71,24 @@ const GRAIN_OPTIONS = [
 ];
 
 export const SINCE_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(
-  (item, index) => ({
+  item => ({
     value: item.value,
     label: item.label(t('Before')),
-    order: index,
   }),
 );
 
 export const UNTIL_GRAIN_OPTIONS: SelectOptionType[] = GRAIN_OPTIONS.map(
-  (item, index) => ({
+  item => ({
     value: item.value,
     label: item.label(t('After')),
-    order: index,
   }),
 );
 
 export const SINCE_MODE_OPTIONS: SelectOptionType[] = [
-  { value: 'specific', label: t('Specific Date/Time'), order: 0 },
-  { value: 'relative', label: t('Relative Date/Time'), order: 1 },
-  { value: 'now', label: t('Now'), order: 2 },
-  { value: 'today', label: t('Midnight'), order: 3 },
+  { value: 'specific', label: t('Specific Date/Time') },
+  { value: 'relative', label: t('Relative Date/Time') },
+  { value: 'now', label: t('Now') },
+  { value: 'today', label: t('Midnight') },
 ];
 
 export const UNTIL_MODE_OPTIONS: SelectOptionType[] =
@@ -117,3 +115,25 @@ export const SEVEN_DAYS_AGO = moment()
   .subtract(7, 'days')
   .format(MOMENT_FORMAT);
 export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
+
+export const LOCALE_MAPPING = {
+  en: 'en_US',
+  fr: 'fr_FR',
+  es: 'es_ES',
+  it: 'it_IT',
+  zh: 'zh_CN',
+  ja: 'ja_JP',
+  de: 'de_DE',
+  pt: 'pt_PT',
+  pt_BR: 'pt_BR',
+  ru: 'ru_RU',
+  ko: 'ko_KR',
+  sk: 'sk_SK',
+  sl: 'sl_SI',
+  nl: 'nl_NL',
+};
+
+export const DATE_FILTER_CONTROL_TEST_ID = 'date-filter-control';
+export const getDateFilterControlTestId = testWithId(
+  DATE_FILTER_CONTROL_TEST_ID,
+);

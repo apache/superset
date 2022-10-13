@@ -18,9 +18,9 @@ import logging
 from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DAODeleteFailedError
@@ -31,15 +31,13 @@ from superset.datasets.commands.exceptions import (
 )
 from superset.datasets.dao import DatasetDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions import db, security_manager
-from superset.views.base import check_ownership
+from superset.extensions import db
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteDatasetCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int):
-        self._actor = user
+    def __init__(self, model_id: int):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
 
@@ -47,30 +45,6 @@ class DeleteDatasetCommand(BaseCommand):
         self.validate()
         try:
             dataset = DatasetDAO.delete(self._model, commit=False)
-
-            view_menu = (
-                security_manager.find_view_menu(self._model.get_perm())
-                if self._model
-                else None
-            )
-
-            if view_menu:
-                permission_views = (
-                    db.session.query(security_manager.permissionview_model)
-                    .filter_by(view_menu=view_menu)
-                    .all()
-                )
-
-                for permission_view in permission_views:
-                    db.session.delete(permission_view)
-                if view_menu:
-                    db.session.delete(view_menu)
-            else:
-                if not view_menu:
-                    logger.error(
-                        "Could not find the data access permission for the dataset",
-                        exc_info=True,
-                    )
             db.session.commit()
         except (SQLAlchemyError, DAODeleteFailedError) as ex:
             logger.exception(ex)
@@ -85,6 +59,6 @@ class DeleteDatasetCommand(BaseCommand):
             raise DatasetNotFoundError()
         # Check ownership
         try:
-            check_ownership(self._model)
+            security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex

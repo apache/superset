@@ -705,10 +705,10 @@
         "%(num)d agendamento de relatório deletado",
         "%(num)d agendamentos de relatório deletados"
       ],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "A consulta de alerta retornou mais de uma linha. %s linhas retornadas"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "A consulta de alerta retornou mais de uma coluna. %s colunas retornadas"
       ],
       "Dashboard does not exist": ["Painel não existe"],
@@ -753,13 +753,13 @@
       "Report Schedule reached a working timeout.": [
         "O agendamento de relatório atingiu o timeout de trabalho."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "A consulta de alerta retornou mais de uma linha."
       ],
       "Alert validator config error.": [
         "Erro de configuração do validador de alerta."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "A consulta de alerta retornou mais de uma coluna."
       ],
       "Alert query returned a non-number value.": [
@@ -1445,6 +1445,7 @@
       "Run selection": ["Executar seleção"],
       "Run": ["Executar"],
       "Stop running (Ctrl + x)": ["Parar execução (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["Parar execução (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["Executar query (Ctrl + Return)"],
       "Save & Explore": ["Salvar e explorar"],
       "Overwrite & Explore": ["Sobrescrever & explorar"],

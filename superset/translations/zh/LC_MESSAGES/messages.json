@@ -559,10 +559,10 @@
       "Saved queries could not be deleted.": ["保存的查询无法被删除"],
       "Saved query not found.": ["保存的查询未找到"],
       "Deleted %(num)d report schedule": ["已经删除了 %(num)d 个报告时间表"],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "警报查询返回了多行。%s 行被返回"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "警报查询返回多个列。%s 列被返回"
       ],
       "Dashboard does not exist": ["看板不存在"],
@@ -589,9 +589,9 @@
         "报表计划仍在运行，拒绝重新计算。"
       ],
       "Report Schedule reached a working timeout.": ["报表计划已超时。"],
-      "Alert query returned more then one row.": ["警报查询返回了多行。"],
+      "Alert query returned more than one row.": ["警报查询返回了多行。"],
       "Alert validator config error.": ["错误的经纬度配置。"],
-      "Alert query returned more then one column.": ["警报查询返回多个列。"],
+      "Alert query returned more than one column.": ["警报查询返回多个列。"],
       "Alert query returned a non-number value.": ["警报查询返回非数字值。"],
       "Alert found an error while executing a query.": [
         "警报在执行查询时发现错误。"
@@ -1204,6 +1204,7 @@
       "Run selection": ["运行选定的查询"],
       "Run": ["执行"],
       "Stop running (Ctrl + x)": ["停止运行 (Ctrl + x)"],
+      "Stop running (Ctrl + e)": ["停止运行 (Ctrl + e)"],
       "Run query (Ctrl + Return)": ["执行运行 (Ctrl + Return)"],
       "Save & Explore": ["保存和浏览"],
       "Overwrite & Explore": ["覆写和浏览"],
@@ -2617,7 +2618,7 @@
       "Whether to apply filter to dashboards when table cells are clicked": [
         "单击表单元格时是否对看板应用过滤条件"
       ],
-      "Adaptative formating": ["自动匹配格式化"],
+      "Adaptive formatting": ["自动匹配格式化"],
       "Aggregate": ["聚合"],
       "Raw Records": ["原始记录"],
       "Query Mode": ["查询模式"],
@@ -2824,8 +2825,8 @@
       "Annotation Source": ["注释来源"],
       "No options": ["没有选项"],
       "Superset annotation": ["Superset注释"],
-      "Use a pre defined Superset Chart as a source for annotations and overlays. your chart must be one of these visualization types:": [
-        "使用预定义的图表作为注释和覆盖的源。图表必须是以下可视化类型之一："
+      "Use another existing chart as a source for annotations and overlays. Your chart must be one of these visualization types: [%s]": [
+        "使用预定义的图表作为注释和覆盖的源。图表必须是以下可视化类型之一： [%s]"
       ],
       "Expects a formula with depending time parameter 'x'\n        in milliseconds since epoch. mathjs is used to evaluate the formulas.\n        Example: '2x+5'": [
         "需要一个从Epoch（1970年1月1日00:00:00 UTC）时间点开始的时间参数“x”，并以此来计算的公式（以毫秒为单位）。我们使用“mathjs”来进行公式的计算。例如：'2x+5'"

@@ -39,10 +39,9 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.mapper import Mapper
 
-from superset import ConnectorRegistry, db, is_feature_enabled, security_manager
+from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
-from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -119,13 +118,17 @@ class Slice(  # pylint: disable=too-many-public-methods
         "cache_timeout",
     ]
     export_parent = "table"
+    extra_import_fields = ["is_managed_externally", "external_url"]
 
     def __repr__(self) -> str:
         return self.slice_name or str(self.id)
 
     @property
     def cls_model(self) -> Type["BaseDatasource"]:
-        return ConnectorRegistry.sources[self.datasource_type]
+        # pylint: disable=import-outside-toplevel
+        from superset.datasource.dao import DatasourceDAO
+
+        return DatasourceDAO.sources[self.datasource_type]
 
     @property
     def datasource(self) -> Optional["BaseDatasource"]:
@@ -226,6 +229,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             "slice_url": self.slice_url,
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
+            "is_managed_externally": self.is_managed_externally,
         }
 
     @property
@@ -281,14 +285,14 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     def get_explore_url(
         self,
-        base_url: str = "/superset/explore",
+        base_url: str = "/explore",
         overrides: Optional[Dict[str, Any]] = None,
     ) -> str:
         overrides = overrides or {}
         form_data = {"slice_id": self.id}
         form_data.update(overrides)
         params = parse.quote(json.dumps(form_data))
-        return f"{base_url}/?form_data={params}"
+        return f"{base_url}/?slice_id={self.id}&form_data={params}"
 
     @property
     def slice_url(self) -> str:
@@ -330,7 +334,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def url(self) -> str:
-        return f"/superset/explore/?form_data=%7B%22slice_id%22%3A%20{self.id}%7D"
+        return f"/explore/?slice_id={self.id}"
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:
@@ -361,13 +365,6 @@ def event_after_chart_changed(
 sqla.event.listen(Slice, "before_insert", set_related_perm)
 sqla.event.listen(Slice, "before_update", set_related_perm)
 
-# events for updating tags
-if is_feature_enabled("TAGGING_SYSTEM"):
-    sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
-    sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
-    sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
-
-# events for updating tags
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
     sqla.event.listen(Slice, "after_update", event_after_chart_changed)

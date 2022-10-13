@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, TimeRangeEndpoint } from '@superset-ui/core';
+import { styled, NO_TIME_RANGE } from '@superset-ui/core';
 import React, { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { NO_TIME_RANGE } from 'src/explore/constants';
 import { PluginFilterTimeProps } from './types';
 import { FilterPluginStyle } from '../common';
 
@@ -55,20 +54,16 @@ const ControlContainer = styled.div<{
   }
 `;
 
-const endpoints = ['inclusive', 'exclusive'] as [
-  TimeRangeEndpoint,
-  TimeRangeEndpoint,
-];
-
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     width,
     height,
     filterState,
-    formData: { inputRef },
+    inputRef,
   } = props;
 
   const handleTimeRangeChange = useCallback(
@@ -105,11 +100,12 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         onMouseLeave={unsetFocusedFilter}
       >
         <DateFilterControl
-          endpoints={endpoints}
           value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}
           type={filterState.validateStatus}
+          onOpenPopover={() => setFilterActive(true)}
+          onClosePopover={() => setFilterActive(false)}
         />
       </ControlContainer>
     </TimeFilterStyles>

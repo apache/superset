@@ -17,13 +17,17 @@
  * under the License.
  */
 import React from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@superset-ui/core';
 import { Moment } from 'moment';
 import { isInteger } from 'lodash';
-import { Col, InputNumber, Row } from 'src/common/components';
+// @ts-ignore
+import { locales } from 'antd/dist/antd-with-locales';
+import { Col, Row } from 'src/components';
+import { InputNumber } from 'src/components/Input';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
-import Select, { propertyComparator } from 'src/components/Select/Select';
+import Select from 'src/components/Select/Select';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
   SINCE_GRAIN_OPTIONS,
@@ -35,13 +39,13 @@ import {
   customTimeRangeDecode,
   customTimeRangeEncode,
   dttmToMoment,
+  LOCALE_MAPPING,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
   CustomRangeKey,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
-
-const sortComparator = propertyComparator('order');
+import { ExplorePageState } from 'src/explore/types';
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
@@ -106,6 +110,16 @@ export function CustomFrame(props: FrameComponentProps) {
     }
   }
 
+  // check if there is a locale defined for explore
+  const localFromFlaskBabel = useSelector(
+    (state: ExplorePageState) => state?.common?.locale,
+  );
+  // An undefined datePickerLocale is acceptable if no match is found in the LOCALE_MAPPING[localFromFlaskBabel] lookup
+  // and will fall back to antd's default locale when the antd DataPicker's prop locale === undefined
+  // This also protects us from the case where state is populated with a locale that antd locales does not recognize
+  const datePickerLocale =
+    locales[LOCALE_MAPPING[localFromFlaskBabel]]?.DatePicker;
+
   return (
     <div data-test="custom-frame">
       <div className="section-title">{t('Configure custom time range')}</div>
@@ -123,7 +137,6 @@ export function CustomFrame(props: FrameComponentProps) {
             options={SINCE_MODE_OPTIONS}
             value={sinceMode}
             onChange={(value: string) => onChange('sinceMode', value)}
-            sortComparator={sortComparator}
           />
           {sinceMode === 'specific' && (
             <Row>
@@ -134,6 +147,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
+                locale={datePickerLocale}
               />
             </Row>
           )}
@@ -158,7 +172,6 @@ export function CustomFrame(props: FrameComponentProps) {
                   options={SINCE_GRAIN_OPTIONS}
                   value={sinceGrain}
                   onChange={(value: string) => onChange('sinceGrain', value)}
-                  sortComparator={sortComparator}
                 />
               </Col>
             </Row>
@@ -177,7 +190,6 @@ export function CustomFrame(props: FrameComponentProps) {
             options={UNTIL_MODE_OPTIONS}
             value={untilMode}
             onChange={(value: string) => onChange('untilMode', value)}
-            sortComparator={sortComparator}
           />
           {untilMode === 'specific' && (
             <Row>
@@ -188,6 +200,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
                 }
                 allowClear={false}
+                locale={datePickerLocale}
               />
             </Row>
           )}
@@ -211,7 +224,6 @@ export function CustomFrame(props: FrameComponentProps) {
                   options={UNTIL_GRAIN_OPTIONS}
                   value={untilGrain}
                   onChange={(value: string) => onChange('untilGrain', value)}
-                  sortComparator={sortComparator}
                 />
               </Col>
             </Row>
@@ -246,6 +258,7 @@ export function CustomFrame(props: FrameComponentProps) {
                   }
                   allowClear={false}
                   className="control-anchor-to-datetime"
+                  locale={datePickerLocale}
                 />
               </Col>
             )}

@@ -24,7 +24,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import { LineEditableTabs } from 'src/components/Tabs';
-import { Modal } from 'src/common/components';
+import { AntdModal } from 'src/components';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -53,6 +53,7 @@ describe('Tabs', () => {
     editMode: false,
     availableColumnCount: 12,
     columnWidth: 50,
+    dashboardId: 1,
     onResizeStart() {},
     onResize() {},
     onResizeStop() {},
@@ -196,10 +197,21 @@ describe('Tabs', () => {
 
   it('should render Modal when clicked remove tab button', () => {
     const deleteComponent = sinon.spy();
-    const modalMock = jest.spyOn(Modal, 'confirm');
+    const modalMock = jest.spyOn(AntdModal, 'confirm');
     const wrapper = setup({ editMode: true, deleteComponent });
     wrapper.find('.ant-tabs-tab-remove').at(0).simulate('click');
     expect(modalMock.mock.calls).toHaveLength(1);
     expect(deleteComponent.callCount).toBe(0);
+  });
+
+  it('should set new tab key if dashboardId was changed', () => {
+    const wrapper = shallow(<Tabs {...props} />);
+    expect(wrapper.state('activeKey')).toBe('TAB_ID');
+    wrapper.setProps({
+      ...props,
+      dashboardId: 2,
+      component: dashboardLayoutWithTabs.present.TAB_ID,
+    });
+    expect(wrapper.state('activeKey')).toBe('ROW_ID');
   });
 });

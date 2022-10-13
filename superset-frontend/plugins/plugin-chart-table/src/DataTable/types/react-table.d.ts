@@ -36,6 +36,8 @@ import {
   UseSortByState,
   UseTableHooks,
   UseSortByHooks,
+  UseColumnOrderState,
+  UseColumnOrderInstanceProps,
   Renderer,
   HeaderProps,
   TableFooterProps,
@@ -64,6 +66,7 @@ declare module 'react-table' {
       UseRowSelectInstanceProps<D>,
       UseRowStateInstanceProps<D>,
       UseSortByInstanceProps<D>,
+      UseColumnOrderInstanceProps<D>,
       UseStickyInstanceProps {}
 
   export interface TableState<D extends object>
@@ -73,6 +76,7 @@ declare module 'react-table' {
       UsePaginationState<D>,
       UseRowSelectState<D>,
       UseSortByState<D>,
+      UseColumnOrderState<D>,
       UseStickyState {}
 
   // Typing from @types/react-table is incomplete
@@ -82,12 +86,19 @@ declare module 'react-table' {
     onClick?: React.MouseEventHandler;
   }
 
+  interface TableRearrangeColumnsProps {
+    onDragStart: (e: React.DragEvent) => void;
+    onDrop: (e: React.DragEvent) => void;
+  }
+
   export interface ColumnInterface<D extends object>
     extends UseGlobalFiltersColumnOptions<D>,
       UseSortByColumnOptions<D> {
     // must define as a new property because it's not possible to override
     // the existing `Header` renderer option
-    Header?: Renderer<TableSortByToggleProps & HeaderProps<D>>;
+    Header?: Renderer<
+      TableSortByToggleProps & HeaderProps<D> & TableRearrangeColumnsProps
+    >;
     Footer?: Renderer<TableFooterProps<D>>;
   }
 

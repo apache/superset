@@ -32,7 +32,7 @@ class CreateAsyncChartDataJobCommand:
         jwt_data = async_query_manager.parse_jwt_from_request(request)
         self._async_channel_id = jwt_data["channel"]
 
-    def run(self, form_data: Dict[str, Any], user_id: Optional[str]) -> Dict[str, Any]:
+    def run(self, form_data: Dict[str, Any], user_id: Optional[int]) -> Dict[str, Any]:
         job_metadata = async_query_manager.init_job(self._async_channel_id, user_id)
         load_chart_data_into_cache.delay(job_metadata, form_data)
         return job_metadata

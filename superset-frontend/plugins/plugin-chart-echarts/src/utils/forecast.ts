@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isNumber } from 'lodash';
 import { DataRecord, DTTM_ALIAS, NumberFormatter } from '@superset-ui/core';
-import { CallbackDataParams, OptionName } from 'echarts/types/src/util/types';
+import { OptionName } from 'echarts/types/src/util/types';
 import { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,
@@ -52,14 +53,15 @@ export const extractForecastSeriesContexts = (
   }, {} as { [key: string]: ForecastSeriesEnum[] });
 
 export const extractForecastValuesFromTooltipParams = (
-  params: (CallbackDataParams & { seriesId: string })[],
+  params: any[],
+  isHorizontal = false,
 ): Record<string, ForecastValue> => {
   const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
     const { marker, seriesId, value } = param;
     const context = extractForecastSeriesContext(seriesId);
-    const numericValue = (value as [Date, number])[1];
-    if (numericValue) {
+    const numericValue = isHorizontal ? value[0] : value[1];
+    if (isNumber(numericValue)) {
       if (!(context.name in values))
         values[context.name] = {
           marker: marker || '',
@@ -93,7 +95,7 @@ export const formatForecastTooltipSeries = ({
 }): string => {
   let row = `${marker}${sanitizeHtml(seriesName)}: `;
   let isObservation = false;
-  if (observation) {
+  if (isNumber(observation)) {
     isObservation = true;
     row += `${formatter(observation)}`;
   }

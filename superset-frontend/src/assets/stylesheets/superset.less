@@ -518,12 +518,6 @@ tr.reactable-column-header th.reactable-header-sortable {
   padding-right: 17px;
 }
 
-.metric-edit-popover-label-input {
-  border-radius: @border-radius-large;
-  height: 30px;
-  padding-left: 10px;
-}
-
 .align-right {
   text-align: right;
 }
@@ -539,12 +533,12 @@ td.filtered {
   width: 100% !important;
 }
 
-// Remove this when the jinja menu/navbar is replaced with react.
-// This style already exists in that view
+/*
+Hides the logo while loading the page.
+Emotion styles will take care of the correct styling
+*/
 .navbar-brand {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: none;
 }
 
 // Making native radio buttons use brand color

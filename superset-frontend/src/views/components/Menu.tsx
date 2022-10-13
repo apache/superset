@@ -17,30 +17,25 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import { styled, css } from '@superset-ui/core';
+import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
-import {
-  MainNav as DropdownMenu,
-  MenuMode,
-  Row,
-  Col,
-  Grid,
-} from 'src/common/components';
+import { Row, Col, Grid } from 'src/components';
+import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import Icons from 'src/components/Icons';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { URL_PARAMS } from 'src/constants';
-import RightMenu from './MenuRight';
+import RightMenu from './RightMenu';
 import { Languages } from './LanguagePicker';
 
 interface BrandProps {
   path: string;
   icon: string;
   alt: string;
-  width: string | number;
   tooltip: string;
   text: string;
 }
@@ -68,17 +63,24 @@ export interface MenuProps {
     brand: BrandProps;
     navbar_right: NavBarProps;
     settings: MenuObjectProps[];
+    environment_tag: {
+      text: string;
+      color: string;
+    };
   };
   isFrontendRoute?: (path?: string) => boolean;
 }
 
-interface MenuObjectChildProps {
+export interface MenuObjectChildProps {
   label: string;
   name?: string;
-  icon: string;
-  index: number;
+  icon?: string;
+  index?: number;
   url?: string;
   isFrontendRoute?: boolean;
+  perm?: string | boolean;
+  view?: string;
+  disable?: boolean;
 }
 
 export interface MenuObjectProps extends MenuObjectChildProps {
@@ -87,103 +89,134 @@ export interface MenuObjectProps extends MenuObjectChildProps {
 }
 
 const StyledHeader = styled.header`
-  background-color: white;
-  margin-bottom: 2px;
-  &:nth-last-of-type(2) nav {
-    margin-bottom: 2px;
-  }
-
-  .caret {
-    display: none;
-  }
-  .navbar-brand {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  .navbar-brand-text {
-    border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    height: 100%;
-    color: ${({ theme }) => theme.colors.grayscale.dark1};
-    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-right: ${({ theme }) => theme.gridUnit * 6}px;
-    font-size: ${({ theme }) => theme.gridUnit * 4}px;
-    float: left;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-
-    span {
-      max-width: ${({ theme }) => theme.gridUnit * 58}px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    @media (max-width: 1127px) {
-      display: none;
-    }
-  }
-  .main-nav .ant-menu-submenu-title > svg {
-    top: ${({ theme }) => theme.gridUnit * 5.25}px;
-  }
-  @media (max-width: 767px) {
-    .navbar-brand {
-      float: none;
-    }
-  }
-  .ant-menu-horizontal .ant-menu-item {
-    height: 100%;
-    line-height: inherit;
-  }
-  .ant-menu > .ant-menu-item > a {
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
-  }
-  @media (max-width: 767px) {
-    .ant-menu-item {
-      padding: 0 ${({ theme }) => theme.gridUnit * 6}px 0
-        ${({ theme }) => theme.gridUnit * 3}px !important;
-    }
-    .ant-menu > .ant-menu-item > a {
-      padding: 0px;
-    }
-    .main-nav .ant-menu-submenu-title > svg:nth-child(1) {
-      display: none;
-    }
-    .ant-menu-item-active > a {
-      &:hover {
-        color: ${({ theme }) => theme.colors.primary.base} !important;
-        background-color: transparent !important;
+  ${({ theme }) => `
+      background-color: ${theme.colors.grayscale.light5};
+      margin-bottom: 2px;
+      &:nth-last-of-type(2) nav {
+        margin-bottom: 2px;
       }
-    }
-  }
-
-  .ant-menu-item a {
-    &:hover {
-      color: ${({ theme }) => theme.colors.grayscale.dark1};
-      background-color: ${({ theme }) => theme.colors.primary.light5};
-      border-bottom: none;
-      margin: 0;
-      &:after {
-        opacity: 1;
-        width: 100%;
+      .caret {
+        display: none;
       }
+      .navbar-brand {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        /* must be exactly the height of the Antd navbar */
+        min-height: 50px;
+        padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px ${
+    theme.gridUnit
+  }px ${theme.gridUnit * 4}px;
+        max-width: ${theme.gridUnit * 37}px;
+        img {
+          height: 100%;
+          object-fit: contain;
+        }
+      }
+      .navbar-brand-text {
+        border-left: 1px solid ${theme.colors.grayscale.light2};
+        border-right: 1px solid ${theme.colors.grayscale.light2};
+        height: 100%;
+        color: ${theme.colors.grayscale.dark1};
+        padding-left: ${theme.gridUnit * 4}px;
+        padding-right: ${theme.gridUnit * 4}px;
+        margin-right: ${theme.gridUnit * 6}px;
+        font-size: ${theme.gridUnit * 4}px;
+        float: left;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        span {
+          max-width: ${theme.gridUnit * 58}px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        @media (max-width: 1127px) {
+          display: none;
+        }
+      }
+      .main-nav .ant-menu-submenu-title > svg {
+        top: ${theme.gridUnit * 5.25}px;
+      }
+      @media (max-width: 767px) {
+        .navbar-brand {
+          float: none;
+        }
+      }
+      .ant-menu-horizontal .ant-menu-item {
+        height: 100%;
+        line-height: inherit;
+      }
+      .ant-menu > .ant-menu-item > a {
+        padding: ${theme.gridUnit * 4}px;
+      }
+      @media (max-width: 767px) {
+        .ant-menu-item {
+          padding: 0 ${theme.gridUnit * 6}px 0
+            ${theme.gridUnit * 3}px !important;
+        }
+        .ant-menu > .ant-menu-item > a {
+          padding: 0px;
+        }
+        .main-nav .ant-menu-submenu-title > svg:nth-of-type(1) {
+          display: none;
+        }
+        .ant-menu-item-active > a {
+          &:hover {
+            color: ${theme.colors.primary.base} !important;
+            background-color: transparent !important;
+          }
+        }
+      }
+      .ant-menu-item a {
+        &:hover {
+          color: ${theme.colors.grayscale.dark1};
+          background-color: ${theme.colors.primary.light5};
+          border-bottom: none;
+          margin: 0;
+          &:after {
+            opacity: 1;
+            width: 100%;
+          }
+        }
+      }
+  `}
+`;
+const globalStyles = (theme: SupersetTheme) => css`
+  .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
+    border-radius: 0px;
+  }
+  .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
+    border-radius: 0px;
+  }
+  .ant-menu-vertical > .ant-menu-submenu.data-menu > .ant-menu-submenu-title {
+    height: 28px;
+    i {
+      padding-right: ${theme.gridUnit * 2}px;
+      margin-left: ${theme.gridUnit * 1.75}px;
     }
   }
 `;
-
 const { SubMenu } = DropdownMenu;
 
 const { useBreakpoint } = Grid;
 
 export function Menu({
-  data: { menu, brand, navbar_right: navbarRight, settings },
+  data: {
+    menu,
+    brand,
+    navbar_right: navbarRight,
+    settings,
+    environment_tag: environmentTag,
+  },
   isFrontendRoute = () => false,
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
-  const uiConig = useUiConfig();
+  const uiConfig = useUiConfig();
+  const theme = useTheme();
 
   useEffect(() => {
     function handleResize() {
@@ -198,7 +231,7 @@ export function Menu({
   }, []);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
-  if (standalone || uiConig.hideNav) return <></>;
+  if (standalone || uiConfig.hideNav) return <></>;
 
   const renderSubMenu = ({
     label,
@@ -230,7 +263,7 @@ export function Menu({
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
-          if (typeof child === 'string' && child === '-') {
+          if (typeof child === 'string' && child === '-' && label !== 'Data') {
             return <DropdownMenu.Divider key={`$${index1}`} />;
           }
           if (typeof child !== 'string') {
@@ -251,16 +284,7 @@ export function Menu({
   };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
-      <Global
-        styles={css`
-          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
-            border-radius: 0px;
-          }
-          .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
-            border-radius: 0px;
-          }
-        `}
-      />
+      <Global styles={globalStyles(theme)} />
       <Row>
         <Col md={16} xs={24}>
           <Tooltip
@@ -269,9 +293,15 @@ export function Menu({
             title={brand.tooltip}
             arrowPointAtCenter
           >
-            <a className="navbar-brand" href={brand.path}>
-              <img width={brand.width} src={brand.icon} alt={brand.alt} />
-            </a>
+            {isFrontendRoute(window.location.pathname) ? (
+              <GenericLink className="navbar-brand" to={brand.path}>
+                <img src={brand.icon} alt={brand.alt} />
+              </GenericLink>
+            ) : (
+              <a className="navbar-brand" href={brand.path}>
+                <img src={brand.icon} alt={brand.alt} />
+              </a>
+            )}
           </Tooltip>
           {brand.text && (
             <div className="navbar-brand-text">
@@ -283,8 +313,9 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
           >
-            {menu.map(item => {
+            {menu.map((item, index) => {
               const props = {
+                index,
                 ...item,
                 isFrontendRoute: isFrontendRoute(item.url),
                 childs: item.childs?.map(c => {
@@ -309,6 +340,7 @@ export function Menu({
             settings={settings}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
+            environmentTag={environmentTag}
           />
         </Col>
       </Row>
@@ -323,6 +355,7 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
   };
   // Menu items that should go into settings dropdown
   const settingsMenus = {
+    Data: true,
     Security: true,
     Manage: true,
   };

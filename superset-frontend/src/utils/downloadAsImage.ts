@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import domToImage, { Options } from 'dom-to-image';
+import domToImage from 'dom-to-image-more';
 import kebabCase from 'lodash/kebabCase';
 import { t } from '@superset-ui/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
@@ -43,14 +43,12 @@ const generateFileStem = (description: string, date = new Date()) =>
  * @param selector css selector of the parent element which should be turned into image
  * @param description name or a short description of what is being printed.
  *   Value will be normalized, and a date as well as a file extension will be added.
- * @param domToImageOptions dom-to-image Options object.
  * @param isExactSelector if false, searches for the closest ancestor that matches selector.
  * @returns event handler
  */
 export default function downloadAsImage(
   selector: string,
   description: string,
-  domToImageOptions: Options = {},
   isExactSelector = false,
 ) {
   return (event: SyntheticEvent) => {

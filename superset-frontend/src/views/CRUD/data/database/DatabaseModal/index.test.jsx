@@ -26,11 +26,7 @@ import {
   cleanup,
   act,
 } from 'spec/helpers/testing-library';
-/* -- These imports are used for the mock functions that currently don't work
-import {
-  testDatabaseConnection,
-  useSingleViewResource,
-} from 'src/views/CRUD/hooks'; */
+import * as hooks from 'src/views/CRUD/hooks';
 import DatabaseModal from './index';
 
 const dbProps = {
@@ -40,7 +36,6 @@ const dbProps = {
 };
 
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
-// const DATABASE_POST_ENDPOINT = 'glob:*/api/v1/database/';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
 const VALIDATE_PARAMS_ENDPOINT = 'glob:*/api/v1/database/validate_parameters*';
 
@@ -105,12 +100,18 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       sqlalchemy_uri_placeholder:
         'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
+      engine_information: {
+        supports_file_upload: true,
+      },
     },
     {
       available_drivers: ['rest'],
       engine: 'presto',
       name: 'Presto',
       preferred: true,
+      engine_information: {
+        supports_file_upload: true,
+      },
     },
     {
       available_drivers: ['mysqldb'],
@@ -160,18 +161,27 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       sqlalchemy_uri_placeholder:
         'mysql://user:password@host:port/dbname[?key=value&key=value...]',
+      engine_information: {
+        supports_file_upload: true,
+      },
     },
     {
       available_drivers: ['pysqlite'],
       engine: 'sqlite',
       name: 'SQLite',
       preferred: true,
+      engine_information: {
+        supports_file_upload: true,
+      },
     },
     {
       available_drivers: ['rest'],
       engine: 'druid',
       name: 'Apache Druid',
       preferred: false,
+      engine_information: {
+        supports_file_upload: true,
+      },
     },
     {
       available_drivers: ['bigquery'],
@@ -193,6 +203,19 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       },
       preferred: false,
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
+      engine_information: {
+        supports_file_upload: true,
+      },
+    },
+    {
+      available_drivers: ['rest'],
+      default_driver: 'apsw',
+      engine: 'gsheets',
+      name: 'Google Sheets',
+      preferred: false,
+      engine_information: {
+        supports_file_upload: false,
+      },
     },
   ],
 });
@@ -218,7 +241,7 @@ describe('DatabaseModal', () => {
   afterEach(cleanup);
 
   describe('Visual: New database connection', () => {
-    it('renders the initial load of Step 1 correctly', async () => {
+    test('renders the initial load of Step 1 correctly', () => {
       // ---------- Components ----------
       // <TabHeader> - AntD header
       const closeButton = screen.getByLabelText('Close');
@@ -271,6 +294,7 @@ describe('DatabaseModal', () => {
         hidden: true,
       });
 
+      const footer = document.getElementsByClassName('ant-modal-footer');
       // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert
@@ -312,17 +336,20 @@ describe('DatabaseModal', () => {
       visibleComponents.forEach(component => {
         expect(component).toBeVisible();
       });
+      // there should be a footer but it should not have any buttons in it
+      expect(footer[0]).toBeEmptyDOMElement();
       // This is how many preferred databases are rendered
       expect(preferredDbIcon).toHaveLength(4);
     });
 
-    it('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
+    test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
       // On step 1, click dbButton to access SQL Alchemy form
       userEvent.click(
         screen.getByRole('button', {
           name: /sqlite/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
@@ -401,13 +428,14 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('renders the unexpanded "Advanced" tab correctly', async () => {
+    test('renders the unexpanded "Advanced" tab correctly', async () => {
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
           name: /sqlite/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       // Click the "Advanced" tab
       userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
 
@@ -499,7 +527,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('renders the "Advanced" - SQL LAB tab correctly (unexpanded)', async () => {
+    test('renders the "Advanced" - SQL LAB tab correctly (unexpanded)', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -515,6 +543,7 @@ describe('DatabaseModal', () => {
           name: /right sql lab adjust how this database will interact with sql lab\./i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
       // <TabHeader> - AntD header
@@ -573,12 +602,6 @@ describe('DatabaseModal', () => {
         name: /allow dml/i,
       });
       const allowDMLText = screen.getByText(/allow dml/i);
-      const allowMultiSchemaMDFetchCheckbox = screen.getByRole('checkbox', {
-        name: /allow multi schema metadata fetch/i,
-      });
-      const allowMultiSchemaMDFetchText = screen.getByText(
-        /allow multi schema metadata fetch/i,
-      );
       const enableQueryCostEstimationCheckbox = screen.getByRole('checkbox', {
         name: /enable query cost estimation/i,
       });
@@ -590,6 +613,15 @@ describe('DatabaseModal', () => {
       });
       const allowDbExplorationText = screen.getByText(
         /allow this database to be explored/i,
+      );
+      const disableSQLLabDataPreviewQueriesCheckbox = screen.getByRole(
+        'checkbox',
+        {
+          name: /Disable SQL Lab data preview queries/i,
+        },
+      );
+      const disableSQLLabDataPreviewQueriesText = screen.getByText(
+        /Disable SQL Lab data preview queries/i,
       );
 
       // ---------- Assertions ----------
@@ -624,9 +656,9 @@ describe('DatabaseModal', () => {
         CTASCVASInput,
         CTASCVASHelperText,
         allowDMLText,
-        allowMultiSchemaMDFetchText,
         enableQueryCostEstimationText,
         allowDbExplorationText,
+        disableSQLLabDataPreviewQueriesText,
       ];
       // These components exist in the DOM but are not visible
       const invisibleComponents = [
@@ -634,9 +666,9 @@ describe('DatabaseModal', () => {
         allowCTASCheckbox,
         allowCVASCheckbox,
         allowDMLCheckbox,
-        allowMultiSchemaMDFetchCheckbox,
         enableQueryCostEstimationCheckbox,
         allowDbExplorationCheckbox,
+        disableSQLLabDataPreviewQueriesCheckbox,
       ];
 
       visibleComponents.forEach(component => {
@@ -649,7 +681,7 @@ describe('DatabaseModal', () => {
       expect(tooltipIcons).toHaveLength(7);
     });
 
-    it('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
+    test('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -665,6 +697,7 @@ describe('DatabaseModal', () => {
           name: /right performance adjust performance settings of this database\./i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - PERFORMANCE)
       // <TabHeader> - AntD header
@@ -711,7 +744,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('renders the "Advanced" - SECURITY tab correctly', async () => {
+    test('renders the "Advanced" - SECURITY tab correctly', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -727,6 +760,7 @@ describe('DatabaseModal', () => {
           name: /right security add extra connection information\./i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
       // <TabHeader> - AntD header
@@ -756,8 +790,17 @@ describe('DatabaseModal', () => {
       const securityTab = screen.getByRole('tab', {
         name: /right security add extra connection information\./i,
       });
+      const allowFileUploadCheckbox = screen.getByRole('checkbox', {
+        name: /Allow file uploads to database/i,
+      });
+      const allowFileUploadText = screen.getByText(
+        /Allow file uploads to database/i,
+      );
 
-      // ---------- Assertions ----------
+      const schemasForFileUploadText = screen.queryByText(
+        /Schemas allowed for File upload/i,
+      );
+
       const visibleComponents = [
         closeButton,
         advancedHeader,
@@ -770,14 +813,108 @@ describe('DatabaseModal', () => {
         sqlLabTab,
         performanceTab,
         securityTab,
+        allowFileUploadText,
       ];
+      // These components exist in the DOM but are not visible
+      const invisibleComponents = [allowFileUploadCheckbox];
 
+      // ---------- Assertions ----------
       visibleComponents.forEach(component => {
         expect(component).toBeVisible();
       });
+      invisibleComponents.forEach(component => {
+        expect(component).not.toBeVisible();
+      });
+      expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    it('renders the "Advanced" - OTHER tab correctly', async () => {
+    it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+      // ---------- Components ----------
+      // On step 1, click dbButton to access step 2
+      userEvent.click(
+        screen.getByRole('button', {
+          name: /sqlite/i,
+        }),
+      );
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      // Click the "Security" tab
+      userEvent.click(
+        screen.getByRole('tab', {
+          name: /right security add extra connection information\./i,
+        }),
+      );
+      // Click the "Allow file uploads" tab
+
+      const allowFileUploadCheckbox = screen.getByRole('checkbox', {
+        name: /Allow file uploads to database/i,
+      });
+      userEvent.click(allowFileUploadCheckbox);
+
+      // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
+      // <TabHeader> - AntD header
+      const closeButton = screen.getByRole('button', { name: /close/i });
+      const advancedHeader = screen.getByRole('heading', {
+        name: /connect a database/i,
+      });
+      // <ModalHeader> - Connection header
+      const basicHelper = screen.getByText(/step 2 of 2/i);
+      const basicHeaderTitle = screen.getByText(/enter primary credentials/i);
+      const basicHeaderSubtitle = screen.getByText(
+        /need help\? learn how to connect your database \./i,
+      );
+      const basicHeaderLink = within(basicHeaderSubtitle).getByRole('link', {
+        name: /here/i,
+      });
+      // <Tabs> - Basic/Advanced tabs
+      const basicTab = screen.getByRole('tab', { name: /basic/i });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      // <ExtraOptions> - Advanced tabs
+      const sqlLabTab = screen.getByRole('tab', {
+        name: /right sql lab adjust how this database will interact with sql lab\./i,
+      });
+      const performanceTab = screen.getByRole('tab', {
+        name: /right performance adjust performance settings of this database\./i,
+      });
+      const securityTab = screen.getByRole('tab', {
+        name: /right security add extra connection information\./i,
+      });
+      const allowFileUploadText = screen.getByText(
+        /Allow file uploads to database/i,
+      );
+
+      const schemasForFileUploadText = screen.queryByText(
+        /Schemas allowed for File upload/i,
+      );
+
+      const visibleComponents = [
+        closeButton,
+        advancedHeader,
+        basicHelper,
+        basicHeaderTitle,
+        basicHeaderSubtitle,
+        basicHeaderLink,
+        basicTab,
+        advancedTab,
+        sqlLabTab,
+        performanceTab,
+        securityTab,
+        allowFileUploadText,
+      ];
+      // These components exist in the DOM but are not visible
+      const invisibleComponents = [allowFileUploadCheckbox];
+
+      // ---------- Assertions ----------
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+      invisibleComponents.forEach(component => {
+        expect(component).not.toBeVisible();
+      });
+      expect(schemasForFileUploadText).toBeInTheDocument();
+    });
+
+    test('renders the "Advanced" - OTHER tab correctly', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -793,6 +930,7 @@ describe('DatabaseModal', () => {
           name: /right other additional settings\./i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - OTHER)
       // <TabHeader> - AntD header
@@ -847,7 +985,7 @@ describe('DatabaseModal', () => {
       });
     });
 
-    it('Dynamic form', async () => {
+    test('Dynamic form', async () => {
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -855,13 +993,14 @@ describe('DatabaseModal', () => {
           name: /postgresql/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
       expect.anything();
     });
   });
 
   describe('Functional: Create new database', () => {
-    it('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', () => {
+    test('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', async () => {
       // ---------- Dynamic example (3-step form)
       // Click the PostgreSQL button to enter the dynamic form
       const postgreSQLButton = screen.getByRole('button', {
@@ -886,26 +1025,24 @@ describe('DatabaseModal', () => {
       userEvent.click(sqliteButton);
 
       // SQL Alchemy form has 2 steps, seeing this text means the SQL Alchemy form is present
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       const sqlAlchemyFormStepText = screen.getByText(/step 2 of 2/i);
 
       expect(sqlAlchemyFormStepText).toBeVisible();
     });
 
     describe('SQL Alchemy form flow', () => {
-      beforeEach(() => {
+      test('enters step 2 of 2 when proper database is selected', async () => {
         userEvent.click(
           screen.getByRole('button', {
             name: /sqlite/i,
           }),
         );
+
+        expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       });
 
-      it('enters step 2 of 2 when proper database is selected', () => {
-        const step2text = screen.getByText(/step 2 of 2/i);
-        expect(step2text).toBeVisible();
-      });
-
-      it('runs fetchResource when "Connect" is clicked', () => {
+      test('runs fetchResource when "Connect" is clicked', () => {
         /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
         // Mock useSingleViewResource
@@ -923,7 +1060,14 @@ describe('DatabaseModal', () => {
       });
 
       describe('step 2 component interaction', () => {
-        it('properly interacts with textboxes', () => {
+        test('properly interacts with textboxes', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
           const dbNametextBox = screen.getByTestId('database-name-input');
           expect(dbNametextBox).toHaveValue('SQLite');
 
@@ -939,7 +1083,7 @@ describe('DatabaseModal', () => {
           expect(sqlAlchemyURItextBox).toHaveValue('Different text');
         });
 
-        it('runs testDatabaseConnection when "TEST CONNECTION" is clicked', () => {
+        test('runs testDatabaseConnection when "TEST CONNECTION" is clicked', () => {
           /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
 
           // Mock testDatabaseConnection
@@ -961,20 +1105,26 @@ describe('DatabaseModal', () => {
     });
 
     describe('Dynamic form flow', () => {
-      beforeEach(() => {
+      test('enters step 2 of 3 when proper database is selected', async () => {
+        expect(await screen.findByText(/step 1 of 3/i)).toBeInTheDocument();
         userEvent.click(
           screen.getByRole('button', {
             name: /postgresql/i,
           }),
         );
-      });
+        expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
-      it('enters step 2 of 3 when proper database is selected', () => {
         const step2of3text = screen.getByText(/step 2 of 3/i);
         expect(step2of3text).toBeVisible();
       });
 
-      it('enters form credentials and runs fetchResource when "Connect" is clicked', () => {
+      test('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
+        userEvent.click(
+          screen.getByRole('button', {
+            name: /postgresql/i,
+          }),
+        );
+
         const textboxes = screen.getAllByRole('textbox');
         const hostField = textboxes[0];
         const portField = screen.getByRole('spinbutton');
@@ -994,6 +1144,7 @@ describe('DatabaseModal', () => {
         userEvent.type(usernameField, 'testdb');
         userEvent.type(passwordField, 'demoPassword');
 
+        expect(await screen.findByDisplayValue(/5432/i)).toBeInTheDocument();
         expect(hostField).toHaveValue('localhost');
         expect(portField).toHaveValue(5432);
         expect(databaseNameField).toHaveValue('postgres');
@@ -1014,6 +1165,199 @@ describe('DatabaseModal', () => {
 
         */
       });
+    });
+
+    describe('Import database flow', () => {
+      test('imports a file', async () => {
+        const importDbButton = screen.getByTestId('import-database-btn');
+        expect(importDbButton).toBeVisible();
+
+        const testFile = new File([new ArrayBuffer(1)], 'model_export.zip');
+
+        userEvent.click(importDbButton);
+        userEvent.upload(importDbButton, testFile);
+
+        expect(importDbButton.files[0]).toStrictEqual(testFile);
+        expect(importDbButton.files.item(0)).toStrictEqual(testFile);
+        expect(importDbButton.files).toHaveLength(1);
+      });
+    });
+  });
+
+  describe('DatabaseModal w/ Deeplinking Engine', () => {
+    const renderAndWait = async () => {
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    test('enters step 2 of 3 when proper database is selected', () => {
+      const step2of3text = screen.getByText(/step 2 of 3/i);
+      expect(step2of3text).toBeVisible();
+    });
+  });
+
+  describe('DatabaseModal w/ GSheet Engine', () => {
+    const renderAndWait = async () => {
+      const dbProps = {
+        show: true,
+        database_name: 'my database',
+        sqlalchemy_uri: 'gsheets://',
+      };
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="Google Sheets" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    it('enters step 2 of 2 when proper database is selected', () => {
+      const step2of2text = screen.getByText(/step 2 of 2/i);
+      expect(step2of2text).toBeVisible();
+    });
+
+    it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+      // Click the "Advanced" tab
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
+      // Click the "Security" tab
+      userEvent.click(
+        screen.getByRole('tab', {
+          name: /right security add extra connection information\./i,
+        }),
+      );
+
+      // ----- BEGIN STEP 2 (ADVANCED - SECURITY)
+      // <ExtraOptions> - Advanced tabs
+      const impersonateLoggerUserCheckbox = screen.getByRole('checkbox', {
+        name: /impersonate logged in/i,
+      });
+      const impersonateLoggerUserText = screen.getByText(
+        /impersonate logged in/i,
+      );
+      const allowFileUploadText = screen.queryByText(
+        /Allow file uploads to database/i,
+      );
+      const schemasForFileUploadText = screen.queryByText(
+        /Schemas allowed for File upload/i,
+      );
+
+      const visibleComponents = [impersonateLoggerUserText];
+      // These components exist in the DOM but are not visible
+      const invisibleComponents = [impersonateLoggerUserCheckbox];
+
+      // ---------- Assertions ----------
+      visibleComponents.forEach(component => {
+        expect(component).toBeVisible();
+      });
+      invisibleComponents.forEach(component => {
+        expect(component).not.toBeVisible();
+      });
+      expect(allowFileUploadText).not.toBeInTheDocument();
+      expect(schemasForFileUploadText).not.toBeInTheDocument();
+    });
+  });
+
+  describe('DatabaseModal w errors as objects', () => {
+    jest.mock('src/views/CRUD/hooks', () => ({
+      ...jest.requireActual('src/views/CRUD/hooks'),
+      useSingleViewResource: jest.fn(),
+    }));
+    const useSingleViewResourceMock = jest.spyOn(
+      hooks,
+      'useSingleViewResource',
+    );
+
+    useSingleViewResourceMock.mockReturnValue({
+      state: {
+        loading: false,
+        resource: null,
+        error: { _schema: 'Test Error With Object' },
+      },
+      fetchResource: jest.fn(),
+      createResource: jest.fn(),
+      updateResource: jest.fn(),
+      clearError: jest.fn(),
+    });
+
+    const renderAndWait = async () => {
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    test('Error displays when it is an object', async () => {
+      const step2of3text = screen.getByText(/step 2 of 3/i);
+      const errorSection = screen.getByText(/Database Creation Error/i);
+      expect(step2of3text).toBeVisible();
+      expect(errorSection).toBeVisible();
+    });
+  });
+
+  describe('DatabaseModal w errors as strings', () => {
+    jest.mock('src/views/CRUD/hooks', () => ({
+      ...jest.requireActual('src/views/CRUD/hooks'),
+      useSingleViewResource: jest.fn(),
+    }));
+    const useSingleViewResourceMock = jest.spyOn(
+      hooks,
+      'useSingleViewResource',
+    );
+
+    useSingleViewResourceMock.mockReturnValue({
+      state: {
+        loading: false,
+        resource: null,
+        error: 'Test Error With String',
+      },
+      fetchResource: jest.fn(),
+      createResource: jest.fn(),
+      updateResource: jest.fn(),
+      clearError: jest.fn(),
+    });
+
+    const renderAndWait = async () => {
+      const mounted = act(async () => {
+        render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
+          useRedux: true,
+        });
+      });
+
+      return mounted;
+    };
+
+    beforeEach(async () => {
+      await renderAndWait();
+    });
+
+    test('Error displays when it is a string', async () => {
+      const step2of3text = screen.getByText(/step 2 of 3/i);
+      const errorTitleMessage = screen.getByText(/Database Creation Error/i);
+      const errorMessage = screen.getByText(/Test Error With String/i);
+      expect(step2of3text).toBeVisible();
+      expect(errorTitleMessage).toBeVisible();
+      expect(errorMessage).toBeVisible();
     });
   });
 });

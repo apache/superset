@@ -40,6 +40,7 @@ Join our growing community!
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
@@ -48,6 +49,7 @@ Join our growing community!
 
 ### E-Commerce
 - [AiHello](https://www.aihello.com) [@ganeshkrishnan1]
+- [Bazaar Technologies](https://www.bazaartech.com) [@umair-abro]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
 - [Fanatics](https://www.fanatics.com) [@coderfender]
 - [Fordeal](http://www.fordeal.com) [@Renkai]
@@ -103,6 +105,7 @@ Join our growing community!
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](http://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
+- [Unvired](https://unvired.com)[@srinisubramanian]
 - [Whale](http://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
@@ -119,18 +122,22 @@ Join our growing community!
 
 ### Education
 - [Brilliant.org](https://brilliant.org/)
+- [Platzi.com](https://platzi.com/)
+- [Sunbird](https://www.sunbird.org/) [@eksteporg]
+- [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
-- [Sunbird](https://www.sunbird.org/) [@eksteporg]
+- [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
-- [DouroECI](http://douroeci.com/en/) [@nunohelibeires]
+- [DouroECI](https://www.douroeci.com/) [@nunohelibeires]
 - [Safaricom](https://www.safaricom.co.ke/) [@mmutiso]
 - [Scoot](https://scoot.co/) [@haaspt]
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
+- [Beans](https://www.beans.fi) [@kakoni]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
@@ -141,11 +148,14 @@ Join our growing community!
 ### HR / Staffing
 - [Symmetrics](https://www.symmetrics.fyi)
 
+### News
+- [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
+
 ### Others
- - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
- - [Grassroot](https://www.grassrootinstitute.org/)
- - [komoot](https://www.komoot.com/) [@christophlingg]
- - [Let's Roam](https://www.letsroam.com/)
- - [Twitter](https://twitter.com/)
- - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
- - [Yahoo!](https://yahoo.com/)
+- [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
+- [Grassroot](https://www.grassrootinstitute.org/)
+- [komoot](https://www.komoot.com/) [@christophlingg]
+- [Let's Roam](https://www.letsroam.com/)
+- [Twitter](https://twitter.com/)
+- [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
+- [Yahoo!](https://yahoo.com/)

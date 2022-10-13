@@ -1,0 +1,38 @@
+[
+  {
+    "slice_name": "1 - Sample chart",
+    "description": "chart description",
+    "owners": [1],
+    "viz_type": "line",
+    "cache_timeout": 1000,
+    "datasource_id": 1,
+    "datasource_type": "table"
+  },
+  {
+    "slice_name": "2 - Sample chart",
+    "description": "chart description",
+    "owners": [1],
+    "viz_type": "line",
+    "cache_timeout": 1000,
+    "datasource_id": 1,
+    "datasource_type": "table"
+  },
+  {
+    "slice_name": "3 - Sample chart",
+    "description": "chart description",
+    "owners": [1],
+    "viz_type": "line",
+    "cache_timeout": 1000,
+    "datasource_id": 1,
+    "datasource_type": "table"
+  },
+  {
+    "slice_name": "4 - Sample chart",
+    "description": "chart description",
+    "owners": [1],
+    "viz_type": "line",
+    "cache_timeout": 1000,
+    "datasource_id": 1,
+    "datasource_type": "table"
+  }
+]

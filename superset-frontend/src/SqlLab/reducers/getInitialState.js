@@ -37,11 +37,11 @@ export default function getInitialState({
    * To allow for a transparent migration, the initial state is a combination
    * of the backend state (if any) with the browser state (if any).
    */
-  const queryEditors = [];
+  let queryEditors = {};
   const defaultQueryEditor = {
     id: null,
     loaded: true,
-    title: t('Untitled query'),
+    name: t('Untitled query'),
     sql: 'SELECT *\nFROM\nWHERE',
     selectedText: null,
     latestQueryId: null,
@@ -55,13 +55,9 @@ export default function getInitialState({
       errors: [],
       completed: false,
     },
-    queryCostEstimate: {
-      cost: null,
-      completed: false,
-      error: null,
-    },
     hideLeftBar: false,
   };
+  let unsavedQueryEditor = {};
 
   /**
    * Load state from the backend. This will be empty if the feature flag
@@ -73,7 +69,7 @@ export default function getInitialState({
       queryEditor = {
         id: id.toString(),
         loaded: true,
-        title: activeTab.label,
+        name: activeTab.label,
         sql: activeTab.sql || undefined,
         selectedText: undefined,
         latestQueryId: activeTab.latest_query
@@ -99,10 +95,13 @@ export default function getInitialState({
         ...defaultQueryEditor,
         id: id.toString(),
         loaded: false,
-        title: label,
+        name: label,
       };
     }
-    queryEditors.push(queryEditor);
+    queryEditors = {
+      ...queryEditors,
+      [queryEditor.id]: queryEditor,
+    };
   });
 
   const tabHistory = activeTab ? [activeTab.id.toString()] : [];
@@ -160,15 +159,22 @@ export default function getInitialState({
       // migration was successful
       localStorage.removeItem('redux');
     } else {
+      unsavedQueryEditor = sqlLab.unsavedQueryEditor || {};
       // add query editors and tables to state with a special flag so they can
       // be migrated if the `SQLLAB_BACKEND_PERSISTENCE` feature flag is on
-      sqlLab.queryEditors.forEach(qe =>
-        queryEditors.push({
-          ...qe,
-          inLocalStorage: true,
-          loaded: true,
-        }),
-      );
+      sqlLab.queryEditors.forEach(qe => {
+        queryEditors = {
+          ...queryEditors,
+          [qe.id]: {
+            ...queryEditors[qe.id],
+            ...qe,
+            name: qe.title || qe.name,
+            ...(unsavedQueryEditor.id === qe.id && unsavedQueryEditor),
+            inLocalStorage: true,
+            loaded: true,
+          },
+        };
+      });
       sqlLab.tables.forEach(table =>
         tables.push({ ...table, inLocalStorage: true }),
       );
@@ -186,11 +192,13 @@ export default function getInitialState({
       databases,
       offline: false,
       queries,
-      queryEditors,
+      queryEditors: Object.values(queryEditors),
       tabHistory,
       tables,
       queriesLastUpdate: Date.now(),
       user,
+      unsavedQueryEditor,
+      queryCostEstimates: {},
     },
     requestedQuery,
     messageToasts: getToastsFromPyFlashMessages(

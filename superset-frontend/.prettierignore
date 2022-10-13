@@ -24,5 +24,4 @@ lerna.json
 CHANGELOG.md
 *.geojson
 *-topo.json
-temporary_superset_ui/
 storybook-static/

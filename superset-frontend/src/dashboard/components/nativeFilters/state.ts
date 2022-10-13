@@ -21,12 +21,11 @@ import { useMemo } from 'react';
 import {
   Filter,
   FilterConfiguration,
-  NativeFilterType,
   Divider,
-} from './types';
+  isFilterDivider,
+} from '@superset-ui/core';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { TAB_TYPE } from '../../util/componentTypes';
-import { CascadeFilter } from './FilterBar/CascadeFilters/types';
 
 const defaultFilterConfiguration: Filter[] = [];
 
@@ -98,37 +97,31 @@ function useIsFilterInScope() {
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
   // Chart is in an active tab tree if all of it's ancestors of type TAB are active
   // Dividers are always in scope
-  return (filter: CascadeFilter | Divider) => {
-    const isDivider = filter.type === NativeFilterType.DIVIDER;
-    return (
-      isDivider ||
-      ('chartsInScope' in filter &&
-        filter.chartsInScope?.some((chartId: number) => {
-          const tabParents = selectChartTabParents(chartId);
-          return (
-            tabParents?.length === 0 ||
-            tabParents?.every(tab => activeTabs.includes(tab))
-          );
-        }))
-    );
-  };
+  return (filter: Filter | Divider) =>
+    isFilterDivider(filter) ||
+    ('chartsInScope' in filter &&
+      filter.chartsInScope?.some((chartId: number) => {
+        const tabParents = selectChartTabParents(chartId);
+        return (
+          tabParents?.length === 0 ||
+          tabParents?.every(tab => activeTabs.includes(tab))
+        );
+      }));
 }
 
-export function useSelectFiltersInScope(
-  cascadeFilters: (CascadeFilter | Divider)[],
-) {
+export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
   const dashboardHasTabs = useDashboardHasTabs();
   const isFilterInScope = useIsFilterInScope();
 
   return useMemo(() => {
-    let filtersInScope: (CascadeFilter | Divider)[] = [];
-    const filtersOutOfScope: (CascadeFilter | Divider)[] = [];
+    let filtersInScope: (Filter | Divider)[] = [];
+    const filtersOutOfScope: (Filter | Divider)[] = [];
 
     // we check native filters scopes only on dashboards with tabs
     if (!dashboardHasTabs) {
-      filtersInScope = cascadeFilters;
+      filtersInScope = filters;
     } else {
-      cascadeFilters.forEach(filter => {
+      filters.forEach(filter => {
         const filterInScope = isFilterInScope(filter);
 
         if (filterInScope) {
@@ -139,5 +132,5 @@ export function useSelectFiltersInScope(
       });
     }
     return [filtersInScope, filtersOutOfScope];
-  }, [cascadeFilters, dashboardHasTabs, isFilterInScope]);
+  }, [filters, dashboardHasTabs, isFilterInScope]);
 }

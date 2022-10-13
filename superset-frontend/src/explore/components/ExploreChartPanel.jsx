@@ -19,18 +19,33 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { styled, SupersetClient, useTheme } from '@superset-ui/core';
+import {
+  css,
+  ensureIsArray,
+  styled,
+  SupersetClient,
+  t,
+  useTheme,
+  getChartMetadataRegistry,
+  DatasourceType,
+} from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import ChartContainer from 'src/chart/ChartContainer';
+import ChartContainer from 'src/components/Chart/ChartContainer';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import ConnectedExploreChartHeader from './ExploreChartHeader';
+import Alert from 'src/components/Alert';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
+import { ChartPills } from './ChartPills';
+import { ExploreAlert } from './ExploreAlert';
+import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -41,8 +56,6 @@ const propTypes = {
   dashboardId: PropTypes.number,
   column_formats: PropTypes.object,
   containerId: PropTypes.string.isRequired,
-  height: PropTypes.string.isRequired,
-  width: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   sliceName: PropTypes.string,
@@ -50,10 +63,10 @@ const propTypes = {
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
   ownState: PropTypes.object,
-  standalone: PropTypes.number,
+  standalone: PropTypes.bool,
   force: PropTypes.bool,
   timeout: PropTypes.number,
-  refreshOverlayVisible: PropTypes.bool,
+  chartIsStale: PropTypes.bool,
   chart: chartPropShape,
   errorMessage: PropTypes.node,
   triggerRender: PropTypes.bool,
@@ -61,12 +74,8 @@ const propTypes = {
 
 const GUTTER_SIZE_FACTOR = 1.25;
 
-const CHART_PANEL_PADDING_HORIZ = 30;
-const CHART_PANEL_PADDING_VERTICAL = 15;
-const HEADER_PADDING = 15;
-
-const INITIAL_SIZES = [90, 10];
-const MIN_SIZES = [300, 50];
+const INITIAL_SIZES = [100, 0];
+const MIN_SIZES = [300, 65];
 const DEFAULT_SOUTH_PANE_HEIGHT_PERCENT = 40;
 
 const Styles = styled.div`
@@ -78,8 +87,8 @@ const Styles = styled.div`
   box-shadow: none;
   height: 100%;
 
-  & > div:last-of-type {
-    flex-basis: 100%;
+  & > div {
+    height: 100%;
   }
 
   .gutter {
@@ -90,6 +99,7 @@ const Styles = styled.div`
   }
 
   .gutter.gutter-vertical {
+    display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
   }
 
@@ -110,28 +120,65 @@ const Styles = styled.div`
   }
 `;
 
-const ExploreChartPanel = props => {
+const ExploreChartPanel = ({
+  chart,
+  slice,
+  vizType,
+  ownState,
+  triggerRender,
+  force,
+  datasource,
+  errorMessage,
+  form_data: formData,
+  onQuery,
+  actions,
+  timeout,
+  standalone,
+  chartIsStale,
+  chartAlert,
+}) => {
   const theme = useTheme();
   const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
-  const { height: hHeight, ref: headerRef } = useResizeDetector({
-    refreshMode: 'debounce',
-    refreshRate: 300,
-  });
-  const { width: chartPanelWidth, ref: chartPanelRef } = useResizeDetector({
+  const {
+    width: chartPanelWidth,
+    height: chartPanelHeight,
+    ref: chartPanelRef,
+  } = useResizeDetector({
     refreshMode: 'debounce',
     refreshRate: 300,
   });
   const [splitSizes, setSplitSizes] = useState(
-    getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? INITIAL_SIZES
+      : getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
   );
-  const { slice } = props;
+  const [showSplite, setShowSplit] = useState(
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? false
+      : getItem(LocalStorageKeys.is_datapanel_open, false),
+  );
+
+  const [showDatasetModal, setShowDatasetModal] = useState(false);
+
+  const metaDataRegistry = getChartMetadataRegistry();
+  const { useLegacyApi } = metaDataRegistry.get(vizType) ?? {};
+  const vizTypeNeedsDataset =
+    useLegacyApi && datasource.type !== DatasourceType.Table;
+  // added boolean column to below show boolean so that the errors aren't overlapping
+  const showAlertBanner =
+    !chartAlert &&
+    chartIsStale &&
+    !vizTypeNeedsDataset &&
+    chart.chartStatus !== 'failed' &&
+    ensureIsArray(chart.queriesResponse).length > 0;
+
   const updateQueryContext = useCallback(
     async function fetchChartData() {
       if (slice && slice.query_context === null) {
         const queryContext = buildV1ChartDataPayload({
           formData: slice.form_data,
-          force: props.force,
+          force,
           resultFormat: 'json',
           resultType: 'full',
           setDataMask: null,
@@ -155,50 +202,30 @@ const ExploreChartPanel = props => {
     updateQueryContext();
   }, [updateQueryContext]);
 
-  const calcSectionHeight = useCallback(
-    percent => {
-      let headerHeight;
-      if (props.standalone) {
-        headerHeight = 0;
-      } else if (hHeight) {
-        headerHeight = hHeight + HEADER_PADDING;
-      } else {
-        headerHeight = 50;
-      }
-      const containerHeight = parseInt(props.height, 10) - headerHeight;
-      return (
-        (containerHeight * percent) / 100 - (gutterHeight / 2 + gutterMargin)
-      );
-    },
-    [gutterHeight, gutterMargin, props.height, props.standalone, hHeight],
-  );
-
-  const [tableSectionHeight, setTableSectionHeight] = useState(
-    calcSectionHeight(INITIAL_SIZES[1]),
-  );
-
-  const recalcPanelSizes = useCallback(
-    ([, southPercent]) => {
-      setTableSectionHeight(calcSectionHeight(southPercent));
-    },
-    [calcSectionHeight],
-  );
-
-  useEffect(() => {
-    recalcPanelSizes(splitSizes);
-  }, [recalcPanelSizes, splitSizes]);
-
   useEffect(() => {
     setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
   }, [splitSizes]);
 
-  const onDragEnd = sizes => {
+  const onDragEnd = useCallback(sizes => {
     setSplitSizes(sizes);
-  };
+  }, []);
 
-  const onCollapseChange = openPanelName => {
+  const refreshCachedQuery = useCallback(() => {
+    actions.setForceQuery(true);
+    actions.postChartFormData(
+      formData,
+      true,
+      timeout,
+      chart.id,
+      undefined,
+      ownState,
+    );
+    actions.updateQueryFormData(formData, chart.id);
+  }, [actions, chart.id, formData, ownState, timeout]);
+
+  const onCollapseChange = useCallback(isOpen => {
     let splitSizes;
-    if (!openPanelName) {
+    if (!isOpen) {
       splitSizes = INITIAL_SIZES;
     } else {
       splitSizes = [
@@ -207,59 +234,162 @@ const ExploreChartPanel = props => {
       ];
     }
     setSplitSizes(splitSizes);
-  };
-  const renderChart = useCallback(() => {
-    const { chart, vizType } = props;
-    const newHeight =
-      vizType === 'filter_box'
-        ? calcSectionHeight(100) - CHART_PANEL_PADDING_VERTICAL
-        : calcSectionHeight(splitSizes[0]) - CHART_PANEL_PADDING_VERTICAL;
-    const chartWidth = chartPanelWidth - CHART_PANEL_PADDING_HORIZ;
-    return (
-      chartWidth > 0 && (
-        <ChartContainer
-          width={Math.floor(chartWidth)}
-          height={newHeight}
-          ownState={props.ownState}
-          annotationData={chart.annotationData}
-          chartAlert={chart.chartAlert}
-          chartStackTrace={chart.chartStackTrace}
-          chartId={chart.id}
-          chartStatus={chart.chartStatus}
-          triggerRender={props.triggerRender}
-          force={props.force}
-          datasource={props.datasource}
-          errorMessage={props.errorMessage}
-          formData={props.form_data}
-          onQuery={props.onQuery}
-          queriesResponse={chart.queriesResponse}
-          refreshOverlayVisible={props.refreshOverlayVisible}
-          setControlValue={props.actions.setControlValue}
-          timeout={props.timeout}
-          triggerQuery={chart.triggerQuery}
-          vizType={props.vizType}
-        />
-      )
-    );
-  }, [calcSectionHeight, chartPanelWidth, props, splitSizes]);
+    setShowSplit(isOpen);
+  }, []);
+
+  const renderChart = useCallback(
+    () => (
+      <div
+        css={css`
+          min-height: 0;
+          flex: 1;
+          overflow: auto;
+        `}
+        ref={chartPanelRef}
+      >
+        {chartPanelWidth && chartPanelHeight && (
+          <ChartContainer
+            width={Math.floor(chartPanelWidth)}
+            height={chartPanelHeight}
+            ownState={ownState}
+            annotationData={chart.annotationData}
+            chartAlert={chart.chartAlert}
+            chartStackTrace={chart.chartStackTrace}
+            chartId={chart.id}
+            chartStatus={chart.chartStatus}
+            triggerRender={triggerRender}
+            force={force}
+            datasource={datasource}
+            errorMessage={errorMessage}
+            formData={formData}
+            latestQueryFormData={chart.latestQueryFormData}
+            onQuery={onQuery}
+            queriesResponse={chart.queriesResponse}
+            chartIsStale={chartIsStale}
+            setControlValue={actions.setControlValue}
+            timeout={timeout}
+            triggerQuery={chart.triggerQuery}
+            vizType={vizType}
+          />
+        )}
+      </div>
+    ),
+    [
+      actions.setControlValue,
+      chart.annotationData,
+      chart.chartAlert,
+      chart.chartStackTrace,
+      chart.chartStatus,
+      chart.id,
+      chart.latestQueryFormData,
+      chart.queriesResponse,
+      chart.triggerQuery,
+      chartIsStale,
+      chartPanelHeight,
+      chartPanelRef,
+      chartPanelWidth,
+      datasource,
+      errorMessage,
+      force,
+      formData,
+      onQuery,
+      ownState,
+      timeout,
+      triggerRender,
+      vizType,
+    ],
+  );
 
   const panelBody = useMemo(
     () => (
-      <div className="panel-body" ref={chartPanelRef}>
+      <div
+        className="panel-body"
+        css={css`
+          display: flex;
+          flex-direction: column;
+        `}
+      >
+        {vizTypeNeedsDataset && (
+          <Alert
+            message={t('Chart type requires a dataset')}
+            type="error"
+            css={theme => css`
+              margin: 0 0 ${theme.gridUnit * 4}px 0;
+            `}
+            description={
+              <>
+                {t(
+                  'This chart type is not supported when using an unsaved query as a chart source. ',
+                )}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowDatasetModal(true)}
+                  css={{ textDecoration: 'underline' }}
+                >
+                  {t('Create a dataset')}
+                </span>
+                {t(' to visualize your data.')}
+              </>
+            }
+          />
+        )}
+        {showAlertBanner && (
+          <ExploreAlert
+            title={
+              errorMessage
+                ? t('Required control values have been removed')
+                : t('Your chart is not up to date')
+            }
+            bodyText={
+              errorMessage ? (
+                getChartRequiredFieldsMissingMessage(false)
+              ) : (
+                <span>
+                  {t(
+                    'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
+                  )}{' '}
+                  <span role="button" tabIndex={0} onClick={onQuery}>
+                    {t('click here')}
+                  </span>
+                  .
+                </span>
+              )
+            }
+            type="warning"
+            css={theme => css`
+              margin: 0 0 ${theme.gridUnit * 4}px 0;
+            `}
+          />
+        )}
+        <ChartPills
+          queriesResponse={chart.queriesResponse}
+          chartStatus={chart.chartStatus}
+          chartUpdateStartTime={chart.chartUpdateStartTime}
+          chartUpdateEndTime={chart.chartUpdateEndTime}
+          refreshCachedQuery={refreshCachedQuery}
+          rowLimit={formData?.row_limit}
+        />
         {renderChart()}
       </div>
     ),
-    [chartPanelRef, renderChart],
+    [
+      showAlertBanner,
+      errorMessage,
+      onQuery,
+      chart.queriesResponse,
+      chart.chartStatus,
+      chart.chartUpdateStartTime,
+      chart.chartUpdateEndTime,
+      refreshCachedQuery,
+      formData?.row_limit,
+      renderChart,
+    ],
   );
 
-  const standaloneChartBody = useMemo(
-    () => <div ref={chartPanelRef}>{renderChart()}</div>,
-    [chartPanelRef, renderChart],
-  );
+  const standaloneChartBody = useMemo(() => renderChart(), [renderChart]);
 
-  const [queryFormData, setQueryFormData] = useState(
-    props.chart.latestQueryFormData,
-  );
+  const [queryFormData, setQueryFormData] = useState(chart.latestQueryFormData);
 
   useEffect(() => {
     // only update when `latestQueryFormData` changes AND `triggerRender`
@@ -267,13 +397,20 @@ const ExploreChartPanel = props => {
     // as this can trigger a query downstream based on incomplete form data.
     // (`latestQueryFormData` is only updated when a a valid request has been
     // triggered).
-    if (!props.triggerRender) {
-      setQueryFormData(props.chart.latestQueryFormData);
+    if (!triggerRender) {
+      setQueryFormData(chart.latestQueryFormData);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.chart.latestQueryFormData]);
+  }, [chart.latestQueryFormData]);
 
-  if (props.standalone) {
+  const elementStyle = useCallback(
+    (dimension, elementSize, gutterSize) => ({
+      [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
+    }),
+    [gutterMargin],
+  );
+
+  if (standalone) {
     // dom manipulation hack to get rid of the boostrap theme's body background
     const standaloneClass = 'background-transparent';
     const bodyClasses = document.body.className.split(' ');
@@ -283,35 +420,12 @@ const ExploreChartPanel = props => {
     return standaloneChartBody;
   }
 
-  const header = (
-    <ConnectedExploreChartHeader
-      ownState={props.ownState}
-      actions={props.actions}
-      can_overwrite={props.can_overwrite}
-      can_download={props.can_download}
-      dashboardId={props.dashboardId}
-      isStarred={props.isStarred}
-      slice={props.slice}
-      sliceName={props.sliceName}
-      table_name={props.table_name}
-      form_data={props.form_data}
-      timeout={props.timeout}
-      chart={props.chart}
-      user={props.user}
-      reports={props.reports}
-    />
-  );
-
-  const elementStyle = (dimension, elementSize, gutterSize) => ({
-    [dimension]: `calc(${elementSize}% - ${gutterSize + gutterMargin}px)`,
-  });
-
   return (
-    <Styles className="panel panel-default chart-container" ref={chartPanelRef}>
-      <div className="panel-heading" ref={headerRef}>
-        {header}
-      </div>
-      {props.vizType === 'filter_box' ? (
+    <Styles
+      className="panel panel-default chart-container"
+      showSplite={showSplite}
+    >
+      {vizType === 'filter_box' ? (
         panelBody
       ) : (
         <Split
@@ -321,18 +435,31 @@ const ExploreChartPanel = props => {
           gutterSize={gutterHeight}
           onDragEnd={onDragEnd}
           elementStyle={elementStyle}
+          expandToMin
         >
           {panelBody}
           <DataTablesPane
-            ownState={props.ownState}
+            ownState={ownState}
             queryFormData={queryFormData}
-            tableSectionHeight={tableSectionHeight}
+            datasource={datasource}
+            queryForce={force}
             onCollapseChange={onCollapseChange}
-            chartStatus={props.chart.chartStatus}
-            errorMessage={props.errorMessage}
-            queriesResponse={props.chart.queriesResponse}
+            chartStatus={chart.chartStatus}
+            errorMessage={errorMessage}
+            actions={actions}
           />
         </Split>
+      )}
+      {showDatasetModal && (
+        <SaveDatasetModal
+          visible={showDatasetModal}
+          onHide={() => setShowDatasetModal(false)}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          datasource={getDatasourceAsSaveableDataset(datasource)}
+          openWindow={false}
+          formData={formData}
+        />
       )}
     </Styles>
   );

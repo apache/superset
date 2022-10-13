@@ -38,9 +38,14 @@ from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.types import String
 from typing_extensions import TypedDict
 
+from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
-from superset.utils.core import convert_legacy_filters_into_adhoc, merge_extra_filters
+from superset.utils.core import (
+    convert_legacy_filters_into_adhoc,
+    get_user_id,
+    merge_extra_filters,
+)
 from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
@@ -114,9 +119,10 @@ class ExtraCache:
         """
 
         if hasattr(g, "user") and g.user:
+            id_ = get_user_id()
             if add_to_cache_keys:
-                self.cache_key_wrapper(g.user.get_id())
-            return g.user.get_id()
+                self.cache_key_wrapper(id_)
+            return id_
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
@@ -355,7 +361,10 @@ def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
             return_value = json.loads(json.dumps(return_value))
         except TypeError as ex:
             raise SupersetTemplateException(
-                _("Unsupported return value for method %(name)s", name=func.__name__,)
+                _(
+                    "Unsupported return value for method %(name)s",
+                    name=func.__name__,
+                )
             ) from ex
 
     return return_value
@@ -398,6 +407,25 @@ def validate_template_context(
     return validate_context_types(context)
 
 
+def where_in(values: List[Any], mark: str = "'") -> str:
+    """
+    Given a list of values, build a parenthesis list suitable for an IN expression.
+
+        >>> where_in([1, "b", 3])
+        (1, 'b', 3)
+
+    """
+
+    def quote(value: Any) -> str:
+        if isinstance(value, str):
+            value = value.replace(mark, mark * 2)
+            return f"{mark}{value}{mark}"
+        return str(value)
+
+    joined_values = ", ".join(quote(value) for value in values)
+    return f"({joined_values})"
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
@@ -429,6 +457,9 @@ class BaseTemplateProcessor:
         self._context: Dict[str, Any] = {}
         self._env = SandboxedEnvironment(undefined=DebugUndefined)
         self.set_context(**kwargs)
+
+        # custom filters
+        self._env.filters["where_in"] = where_in
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)
@@ -465,6 +496,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
+                "dataset": partial(safe_proxy, dataset_macro),
             }
         )
 
@@ -550,7 +582,24 @@ class HiveTemplateProcessor(PrestoTemplateProcessor):
     engine = "hive"
 
 
-DEFAULT_PROCESSORS = {"presto": PrestoTemplateProcessor, "hive": HiveTemplateProcessor}
+class TrinoTemplateProcessor(PrestoTemplateProcessor):
+    engine = "trino"
+
+    def process_template(self, sql: str, **kwargs: Any) -> str:
+        template = self._env.from_string(sql)
+        kwargs.update(self._context)
+
+        # Backwards compatibility if migrating from Presto.
+        context = validate_template_context(self.engine, kwargs)
+        context["presto"] = context["trino"]
+        return template.render(context)
+
+
+DEFAULT_PROCESSORS = {
+    "presto": PrestoTemplateProcessor,
+    "hive": HiveTemplateProcessor,
+    "trino": TrinoTemplateProcessor,
+}
 
 
 @memoized
@@ -577,3 +626,34 @@ def get_template_processor(
     else:
         template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
+
+
+def dataset_macro(
+    dataset_id: int,
+    include_metrics: bool = False,
+    columns: Optional[List[str]] = None,
+) -> str:
+    """
+    Given a dataset ID, return the SQL that represents it.
+
+    The generated SQL includes all columns (including computed) by default. Optionally
+    the user can also request metrics to be included, and columns to group by.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.datasets.dao import DatasetDAO
+
+    dataset = DatasetDAO.find_by_id(dataset_id)
+    if not dataset:
+        raise DatasetNotFoundError(f"Dataset {dataset_id} not found!")
+
+    columns = columns or [column.column_name for column in dataset.columns]
+    metrics = [metric.metric_name for metric in dataset.metrics]
+    query_obj = {
+        "is_timeseries": False,
+        "filter": [],
+        "metrics": metrics if include_metrics else None,
+        "columns": columns,
+    }
+    sqla_query = dataset.get_query_str_extended(query_obj)
+    sql = sqla_query.sql
+    return f"({sql}) AS dataset_{dataset_id}"

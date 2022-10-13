@@ -112,7 +112,7 @@ class TestEventLogger(unittest.TestCase):
             )
             self.assertGreaterEqual(payload["duration_ms"], 100)
 
-    @patch("superset.utils.log.g", spec={})
+    @patch("superset.utils.core.g", spec={})
     @freeze_time("Jan 14th, 2020", auto_tick_seconds=15)
     def test_context_manager_log(self, mock_g):
         class DummyEventLogger(AbstractEventLogger):
@@ -144,12 +144,12 @@ class TestEventLogger(unittest.TestCase):
         assert logger.records == [
             {
                 "records": [{"path": "/", "engine": "bar"}],
-                "user_id": "2",
+                "user_id": 2,
                 "duration": 15000.0,
             }
         ]
 
-    @patch("superset.utils.log.g", spec={})
+    @patch("superset.utils.core.g", spec={})
     def test_context_manager_log_with_context(self, mock_g):
         class DummyEventLogger(AbstractEventLogger):
             def __init__(self):
@@ -191,12 +191,12 @@ class TestEventLogger(unittest.TestCase):
                         "payload_override": {"engine": "sqllite"},
                     }
                 ],
-                "user_id": "2",
+                "user_id": 2,
                 "duration": 5558756000,
             }
         ]
 
-    @patch("superset.utils.log.g", spec={})
+    @patch("superset.utils.core.g", spec={})
     def test_log_with_context_user_null(self, mock_g):
         class DummyEventLogger(AbstractEventLogger):
             def __init__(self):

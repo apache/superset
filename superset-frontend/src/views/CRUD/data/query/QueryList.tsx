@@ -80,7 +80,7 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
+function QueryList({ addDangerToast }: QueryListProps) {
   const {
     state: { loading, resourceCount: queryCount, resourceCollection: queries },
     fetchData,

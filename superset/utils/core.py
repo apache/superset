@@ -16,6 +16,8 @@
 # under the License.
 """Utility functions used across Superset"""
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import _thread
 import collections
 import decimal
@@ -27,11 +29,14 @@ import platform
 import re
 import signal
 import smtplib
+import ssl
 import tempfile
 import threading
 import traceback
 import uuid
 import zlib
+from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from distutils.util import strtobool
 from email.mime.application import MIMEApplication
@@ -40,6 +45,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
 from enum import Enum, IntEnum
+from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
 from typing import (
@@ -61,6 +67,7 @@ from typing import (
     Union,
 )
 from urllib.parse import unquote_plus
+from zipfile import ZipFile
 
 import bleach
 import markdown as md
@@ -96,7 +103,8 @@ from superset.exceptions import (
     SupersetException,
     SupersetTimeoutException,
 )
-from superset.typing import (
+from superset.sql_parse import sanitize_clause
+from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
     AdhocMetricColumn,
@@ -125,11 +133,13 @@ DTTM_ALIAS = "__timestamp"
 
 NO_TIME_RANGE = "No filter"
 
-TIME_COMPARISION = "__"
+TIME_COMPARISON = "__"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
+
+ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
 
 
 class LenientEnum(Enum):
@@ -171,8 +181,27 @@ class GenericDataType(IntEnum):
     # ROW = 7
 
 
+class DatasourceType(str, Enum):
+    SLTABLE = "sl_table"
+    TABLE = "table"
+    DATASET = "dataset"
+    QUERY = "query"
+    SAVEDQUERY = "saved_query"
+    VIEW = "view"
+
+
+class HeaderDataType(TypedDict):
+    notification_format: str
+    owners: List[int]
+    notification_type: str
+    notification_source: Optional[str]
+    chart_id: Optional[int]
+    dashboard_id: Optional[int]
+    error_text: Optional[str]
+
+
 class DatasourceDict(TypedDict):
-    type: str
+    type: str  # todo(hugh): update this to be DatasourceType
     id: int
 
 
@@ -206,7 +235,6 @@ class ExtraFiltersTimeColumnType(str, Enum):
 class ExtraFiltersReasonType(str, Enum):
     NO_TEMPORAL_COLUMN = "no_temporal_column"
     COL_NOT_IN_DATASOURCE = "not_in_datasource"
-    NOT_DRUID_DATASOURCE = "not_druid_datasource"
 
 
 class FilterOperator(str, Enum):
@@ -229,6 +257,25 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+
+
+class FilterStringOperators(str, Enum):
+    EQUALS = ("EQUALS",)
+    NOT_EQUALS = ("NOT_EQUALS",)
+    LESS_THAN = ("LESS_THAN",)
+    GREATER_THAN = ("GREATER_THAN",)
+    LESS_THAN_OR_EQUAL = ("LESS_THAN_OR_EQUAL",)
+    GREATER_THAN_OR_EQUAL = ("GREATER_THAN_OR_EQUAL",)
+    IN = ("IN",)
+    NOT_IN = ("NOT_IN",)
+    ILIKE = ("ILIKE",)
+    LIKE = ("LIKE",)
+    REGEX = ("REGEX",)
+    IS_NOT_NULL = ("IS_NOT_NULL",)
+    IS_NULL = ("IS_NULL",)
+    LATEST_PARTITION = ("LATEST_PARTITION",)
+    IS_TRUE = ("IS_TRUE",)
+    IS_FALSE = ("IS_FALSE",)
 
 
 class PostProcessingBoxplotWhiskerType(str, Enum):
@@ -312,22 +359,6 @@ class RowLevelSecurityFilterType(str, Enum):
     BASE = "Base"
 
 
-class TimeRangeEndpoint(str, Enum):
-    """
-    The time range endpoint types which represent inclusive, exclusive, or unknown.
-
-    Unknown represents endpoints which are ill-defined as though the interval may be
-    [start, end] the filter may behave like (start, end] due to mixed data types and
-    lexicographical ordering.
-
-    :see: https://github.com/apache/superset/issues/6360
-    """
-
-    EXCLUSIVE = "exclusive"
-    INCLUSIVE = "inclusive"
-    UNKNOWN = "unknown"
-
-
 class TemporalType(str, Enum):
     """
     Supported temporal types
@@ -338,7 +369,9 @@ class TemporalType(str, Enum):
     SMALLDATETIME = "SMALLDATETIME"
     TEXT = "TEXT"
     TIME = "TIME"
+    TIME_WITH_TIME_ZONE = "TIME WITH TIME ZONE"
     TIMESTAMP = "TIMESTAMP"
+    TIMESTAMP_WITH_TIME_ZONE = "TIMESTAMP WITH TIME ZONE"
 
 
 class ColumnTypeSource(Enum):
@@ -367,7 +400,6 @@ try:
                     "value": args["value"],
                 }
             }
-
 
 except NameError:
     pass
@@ -524,7 +556,9 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(obj: Any,) -> Any:  # pylint: disable=inconsistent-return-statements
+def base_json_conv(  # pylint: disable=inconsistent-return-statements
+    obj: Any,
+) -> Any:
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
@@ -590,8 +624,9 @@ def json_int_dttm_ser(obj: Any) -> float:
     return obj
 
 
-def json_dumps_w_dates(payload: Dict[Any, Any]) -> str:
-    return json.dumps(payload, default=json_int_dttm_ser)
+def json_dumps_w_dates(payload: Dict[Any, Any], sort_keys: bool = False) -> str:
+    """Dumps payload to JSON with Datetime objects properly converted"""
+    return json.dumps(payload, default=json_int_dttm_ser, sort_keys=sort_keys)
 
 
 def error_msg_from_exception(ex: Exception) -> str:
@@ -885,6 +920,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     cc: Optional[str] = None,
     bcc: Optional[str] = None,
     mime_subtype: str = "mixed",
+    header_data: Optional[HeaderDataType] = None,
 ) -> None:
     """
     Send an email with html content, eg:
@@ -898,6 +934,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
+
     msg.preamble = "This is a multi-part message in MIME format."
 
     recipients = smtp_mail_to
@@ -938,12 +975,16 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     # Attach any inline images, which may be required for display in
     # HTML content (inline)
     for msgid, imgdata in (images or {}).items():
-        image = MIMEImage(imgdata)
+        formatted_time = formatdate(localtime=True)
+        file_name = f"{subject} {formatted_time}"
+        image = MIMEImage(imgdata, name=file_name)
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
-
-    send_mime_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
+    msg_mutator = config["EMAIL_HEADER_MUTATOR"]
+    # the base notification returns the message without any editing.
+    new_msg = msg_mutator(msg, **(header_data or {}))
+    send_mime_email(smtp_mail_from, recipients, new_msg, config, dryrun=dryrun)
 
 
 def send_mime_email(
@@ -959,23 +1000,28 @@ def send_mime_email(
     smtp_password = config["SMTP_PASSWORD"]
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
+    smpt_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
 
-    if not dryrun:
-        smtp = (
-            smtplib.SMTP_SSL(smtp_host, smtp_port)
-            if smtp_ssl
-            else smtplib.SMTP(smtp_host, smtp_port)
-        )
-        if smtp_starttls:
-            smtp.starttls()
-        if smtp_user and smtp_password:
-            smtp.login(smtp_user, smtp_password)
-        logger.debug("Sent an email to %s", str(e_to))
-        smtp.sendmail(e_from, e_to, mime_msg.as_string())
-        smtp.quit()
-    else:
+    if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
         logger.info(mime_msg.as_string())
+        return
+
+    # Default ssl context is SERVER_AUTH using the default system
+    # root CA certificates
+    ssl_context = ssl.create_default_context() if smpt_ssl_server_auth else None
+    smtp = (
+        smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
+        if smtp_ssl
+        else smtplib.SMTP(smtp_host, smtp_port)
+    )
+    if smtp_starttls:
+        smtp.starttls(context=ssl_context)
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
+    logger.debug("Sent an email to %s", str(e_to))
+    smtp.sendmail(e_from, e_to, mime_msg.as_string())
+    smtp.quit()
 
 
 def get_email_address_list(address_string: str) -> List[str]:
@@ -1025,7 +1071,8 @@ def zlib_decompress(blob: bytes, decode: Optional[bool] = True) -> Union[bytes, 
 
 
 def simple_filter_to_adhoc(
-    filter_clause: QueryObjectFilterClause, clause: str = "where",
+    filter_clause: QueryObjectFilterClause,
+    clause: str = "where",
 ) -> AdhocFilterClause:
     result: AdhocFilterClause = {
         "clause": clause.upper(),
@@ -1095,11 +1142,13 @@ def merge_extra_form_data(form_data: Dict[str, Any]) -> None:
         {"isExtra": True, **fltr} for fltr in append_adhoc_filters  # type: ignore
     )
     if append_filters:
-        adhoc_filters.extend(
-            simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
-            for fltr in append_filters
-            if fltr
-        )
+        for key, value in form_data.items():
+            if re.match("adhoc_filter.*", key):
+                value.extend(
+                    simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
+                    for fltr in append_filters
+                    if fltr
+                )
 
 
 def merge_extra_filters(form_data: Dict[str, Any]) -> None:
@@ -1121,7 +1170,6 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
             "__time_range": "time_range",
             "__time_col": "granularity_sqla",
             "__time_grain": "time_grain_sqla",
-            "__time_origin": "druid_time_origin",
             "__granularity": "granularity",
         }
         # Grab list of existing filters 'keyed' on the column and operator
@@ -1223,14 +1271,29 @@ def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
 
 
 def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
-    return isinstance(column, dict)
+    return isinstance(column, dict) and ({"label", "sqlExpression"}).issubset(
+        column.keys()
+    )
 
 
-def get_column_name(column: Column) -> str:
+def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
+    axis_cols = [
+        col
+        for col in columns or []
+        if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
+    ]
+    return tuple(get_column_name(col) for col in axis_cols)
+
+
+def get_column_name(
+    column: Column, verbose_map: Optional[Dict[str, Any]] = None
+) -> str:
     """
     Extract label from column
 
     :param column: object to extract label from
+    :param verbose_map: verbose_map from dataset for optional mapping from
+                        raw name to verbose name
     :return: String representation of column
     :raises ValueError: if metric object is invalid
     """
@@ -1241,15 +1304,23 @@ def get_column_name(column: Column) -> str:
         expr = column.get("sqlExpression")
         if expr:
             return expr
-        raise Exception("Missing label")
-    return column
+
+    if isinstance(column, str):
+        verbose_map = verbose_map or {}
+        return verbose_map.get(column, column)
+
+    raise ValueError("Missing label")
 
 
-def get_metric_name(metric: Metric) -> str:
+def get_metric_name(
+    metric: Metric, verbose_map: Optional[Dict[str, Any]] = None
+) -> str:
     """
     Extract label from metric
 
     :param metric: object to extract label from
+    :param verbose_map: verbose_map from dataset for optional mapping from
+                        raw name to verbose name
     :return: String representation of metric
     :raises ValueError: if metric object is invalid
     """
@@ -1262,7 +1333,7 @@ def get_metric_name(metric: Metric) -> str:
             sql_expression = metric.get("sqlExpression")
             if sql_expression:
                 return sql_expression
-        elif expression_type == "SIMPLE":
+        if expression_type == "SIMPLE":
             column: AdhocMetricColumn = metric.get("column") or {}
             column_name = column.get("column_name")
             aggregate = metric.get("aggregate")
@@ -1270,20 +1341,41 @@ def get_metric_name(metric: Metric) -> str:
                 return f"{aggregate}({column_name})"
             if column_name:
                 return column_name
-        raise ValueError(__("Invalid metric object"))
-    return metric  # type: ignore
+
+    if isinstance(metric, str):
+        verbose_map = verbose_map or {}
+        return verbose_map.get(metric, metric)
+
+    raise ValueError(__("Invalid metric object: %(metric)s", metric=str(metric)))
 
 
-def get_column_names(columns: Optional[Sequence[Column]]) -> List[str]:
-    return [column for column in map(get_column_name, columns or []) if column]
+def get_column_names(
+    columns: Optional[Sequence[Column]],
+    verbose_map: Optional[Dict[str, Any]] = None,
+) -> List[str]:
+    return [
+        column
+        for column in [get_column_name(column, verbose_map) for column in columns or []]
+        if column
+    ]
 
 
-def get_metric_names(metrics: Optional[Sequence[Metric]]) -> List[str]:
-    return [metric for metric in map(get_metric_name, metrics or []) if metric]
+def get_metric_names(
+    metrics: Optional[Sequence[Metric]],
+    verbose_map: Optional[Dict[str, Any]] = None,
+) -> List[str]:
+    return [
+        metric
+        for metric in [get_metric_name(metric, verbose_map) for metric in metrics or []]
+        if metric
+    ]
 
 
-def get_first_metric_name(metrics: Optional[Sequence[Metric]]) -> Optional[str]:
-    metric_labels = get_metric_names(metrics)
+def get_first_metric_name(
+    metrics: Optional[Sequence[Metric]],
+    verbose_map: Optional[Dict[str, Any]] = None,
+) -> Optional[str]:
+    metric_labels = get_metric_names(metrics, verbose_map)
     return metric_labels[0] if metric_labels else None
 
 
@@ -1353,10 +1445,12 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                         }
                     )
             elif expression_type == "SQL":
+                sql_expression = adhoc_filter.get("sqlExpression")
+                sql_expression = sanitize_clause(sql_expression)
                 if clause == "WHERE":
-                    sql_where_filters.append(adhoc_filter.get("sqlExpression"))
+                    sql_where_filters.append(sql_expression)
                 elif clause == "HAVING":
-                    sql_having_filters.append(adhoc_filter.get("sqlExpression"))
+                    sql_having_filters.append(sql_expression)
         form_data["where"] = " AND ".join(
             ["({})".format(sql) for sql in sql_where_filters]
         )
@@ -1368,11 +1462,62 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
 
 
 def get_username() -> Optional[str]:
-    """Get username if within the flask context, otherwise return noffin'"""
+    """
+    Get username (if defined) associated with the current user.
+
+    :returns: The username
+    """
+
     try:
         return g.user.username
     except Exception:  # pylint: disable=broad-except
         return None
+
+
+def get_user_id() -> Optional[int]:
+    """
+    Get the user identifier (if defined) associated with the current user.
+
+    Though the Flask-AppBuilder `User` and Flask-Login  `AnonymousUserMixin` and
+    `UserMixin` models provide a convenience `get_id` method, for generality, the
+    identifier is encoded as a `str` whereas in Superset all identifiers are encoded as
+    an `int`.
+
+    returns: The user identifier
+    """
+
+    try:
+        return g.user.id
+    except Exception:  # pylint: disable=broad-except
+        return None
+
+
+@contextmanager
+def override_user(user: Optional[User], force: bool = True) -> Iterator[Any]:
+    """
+    Temporarily override the current user per `flask.g` with the specified user.
+
+    Sometimes, often in the context of async Celery tasks, it is useful to switch the
+    current user (which may be undefined) to different one, execute some SQLAlchemy
+    tasks et al. and then revert back to the original one.
+
+    :param user: The override user
+    :param force: Whether to override the current user if set
+    """
+
+    # pylint: disable=assigning-non-slot
+    if hasattr(g, "user"):
+        if force or g.user is None:
+            current = g.user
+            g.user = user
+            yield
+            g.user = current
+        else:
+            yield
+    else:
+        g.user = user
+        yield
+        delattr(g, "user")
 
 
 def parse_ssl_cert(certificate: str) -> _Certificate:
@@ -1553,7 +1698,8 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
 
 
 def extract_dataframe_dtypes(
-    df: pd.DataFrame, datasource: Optional["BaseDatasource"] = None,
+    df: pd.DataFrame,
+    datasource: Optional["BaseDatasource"] = None,
 ) -> List[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1569,21 +1715,31 @@ def extract_dataframe_dtypes(
         "date": GenericDataType.TEMPORAL,
     }
 
-    columns_by_name = (
-        {column.column_name: column for column in datasource.columns}
-        if datasource
-        else {}
-    )
+    columns_by_name: Dict[str, Any] = {}
+    if datasource:
+        for column in datasource.columns:
+            if isinstance(column, dict):
+                columns_by_name[column.get("column_name")] = column
+            else:
+                columns_by_name[column.column_name] = column
+
     generic_types: List[GenericDataType] = []
     for column in df.columns:
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        generic_type = (
-            GenericDataType.TEMPORAL
-            if column_object and column_object.is_dttm
-            else inferred_type_map.get(inferred_type, GenericDataType.STRING)
-        )
+        if isinstance(column_object, dict):
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.get("is_dttm")
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
+        else:
+            generic_type = (
+                GenericDataType.TEMPORAL
+                if column_object and column_object.is_dttm
+                else inferred_type_map.get(inferred_type, GenericDataType.STRING)
+            )
         generic_types.append(generic_type)
 
     return generic_types
@@ -1614,9 +1770,19 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: "BaseDatasource", applied_time_extras: Dict[str, str],
+    datasource: "BaseDatasource",
+    applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-    temporal_columns = {col.column_name for col in datasource.columns if col.is_dttm}
+
+    temporal_columns: Set[Any]
+    if datasource.type == "query":
+        temporal_columns = {
+            col.get("column_name") for col in datasource.columns if col.get("is_dttm")
+        }
+    else:
+        temporal_columns = {
+            col.column_name for col in datasource.columns if col.is_dttm
+        }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)
@@ -1656,28 +1822,6 @@ def get_time_filter_status(
                 }
             )
 
-    if ExtraFiltersTimeColumnType.TIME_ORIGIN in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.TIME_ORIGIN})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.TIME_ORIGIN,
-                }
-            )
-
-    if ExtraFiltersTimeColumnType.GRANULARITY in applied_time_extras:
-        if datasource.type == "druid":
-            applied.append({"column": ExtraFiltersTimeColumnType.GRANULARITY})
-        else:
-            rejected.append(
-                {
-                    "reason": ExtraFiltersReasonType.NOT_DRUID_DATASOURCE,
-                    "column": ExtraFiltersTimeColumnType.GRANULARITY,
-                }
-            )
-
     return applied, rejected
 
 
@@ -1707,33 +1851,64 @@ def remove_duplicates(
     return result
 
 
+@dataclass
+class DateColumn:
+    col_label: str
+    timestamp_format: Optional[str] = None
+    offset: Optional[int] = None
+    time_shift: Optional[timedelta] = None
+
+    def __hash__(self) -> int:
+        return hash(self.col_label)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, DateColumn) and hash(self) == hash(other)
+
+    @classmethod
+    def get_legacy_time_column(
+        cls,
+        timestamp_format: Optional[str],
+        offset: Optional[int],
+        time_shift: Optional[timedelta],
+    ) -> DateColumn:
+        return cls(
+            timestamp_format=timestamp_format,
+            offset=offset,
+            time_shift=time_shift,
+            col_label=DTTM_ALIAS,
+        )
+
+
 def normalize_dttm_col(
     df: pd.DataFrame,
-    timestamp_format: Optional[str],
-    offset: int,
-    time_shift: Optional[timedelta],
+    dttm_cols: Tuple[DateColumn, ...] = tuple(),
 ) -> None:
-    if DTTM_ALIAS not in df.columns:
-        return
-    if timestamp_format in ("epoch_s", "epoch_ms"):
-        dttm_col = df[DTTM_ALIAS]
-        if is_numeric_dtype(dttm_col):
-            # Column is formatted as a numeric value
-            unit = timestamp_format.replace("epoch_", "")
-            df[DTTM_ALIAS] = pd.to_datetime(
-                dttm_col, utc=False, unit=unit, origin="unix"
-            )
+    for _col in dttm_cols:
+        if _col.col_label not in df.columns:
+            continue
+
+        if _col.timestamp_format in ("epoch_s", "epoch_ms"):
+            dttm_series = df[_col.col_label]
+            if is_numeric_dtype(dttm_series):
+                # Column is formatted as a numeric value
+                unit = _col.timestamp_format.replace("epoch_", "")
+                df[_col.col_label] = pd.to_datetime(
+                    dttm_series, utc=False, unit=unit, origin="unix", errors="coerce"
+                )
+            else:
+                # Column has already been formatted as a timestamp.
+                df[_col.col_label] = dttm_series.apply(pd.Timestamp)
         else:
-            # Column has already been formatted as a timestamp.
-            df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
-    else:
-        df[DTTM_ALIAS] = pd.to_datetime(
-            df[DTTM_ALIAS], utc=False, format=timestamp_format
-        )
-    if offset:
-        df[DTTM_ALIAS] += timedelta(hours=offset)
-    if time_shift is not None:
-        df[DTTM_ALIAS] += time_shift
+            df[_col.col_label] = pd.to_datetime(
+                df[_col.col_label],
+                utc=False,
+                format=_col.timestamp_format,
+                errors="coerce",
+            )
+        if _col.offset:
+            df[_col.col_label] += timedelta(hours=_col.offset)
+        if _col.time_shift is not None:
+            df[_col.col_label] += _col.time_shift
 
 
 def parse_boolean_string(bool_str: Optional[str]) -> bool:
@@ -1768,7 +1943,10 @@ def parse_boolean_string(bool_str: Optional[str]) -> bool:
         return False
 
 
-def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
+def apply_max_row_limit(
+    limit: int,
+    max_limit: Optional[int] = None,
+) -> int:
     """
     Override row limit if max global limit is defined
 
@@ -1788,3 +1966,26 @@ def apply_max_row_limit(limit: int, max_limit: Optional[int] = None,) -> int:
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
+
+
+def create_zip(files: Dict[str, Any]) -> BytesIO:
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        for filename, contents in files.items():
+            with bundle.open(filename, "w") as fp:
+                fp.write(contents)
+    buf.seek(0)
+    return buf
+
+
+def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
+    """
+    Remove filters from slice data that originate from a filter box or native filter
+    """
+    adhoc_filters = {
+        key: value for key, value in form_data.items() if ADHOC_FILTERS_REGEX.match(key)
+    }
+    for key, value in adhoc_filters.items():
+        form_data[key] = [
+            filter_ for filter_ in value or [] if not filter_.get("isExtra")
+        ]

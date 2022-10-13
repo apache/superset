@@ -25,19 +25,19 @@ from flask import flash, g, redirect
 from flask_appbuilder import expose, SimpleFormView
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from werkzeug.wrappers import Response
 from wtforms.fields import StringField
 from wtforms.validators import ValidationError
 
 import superset.models.core as models
-from superset import app, db, is_feature_enabled
+from superset import app, db
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.exceptions import CertificateException
 from superset.extensions import event_logger
 from superset.sql_parse import Table
-from superset.typing import FlaskResponse
+from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import DeleteMixin, SupersetModelView, YamlExportMixin
 
@@ -106,9 +106,6 @@ class DatabaseView(
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
-        if not is_feature_enabled("ENABLE_REACT_CRUD_VIEWS"):
-            return super().list()
-
         return super().render_app_template()
 
 
@@ -133,22 +130,11 @@ class CsvToDatabaseView(SimpleFormView):
         csv_table = Table(table=form.name.data, schema=form.schema.data)
 
         if not schema_allows_file_upload(database, csv_table.schema):
-            message = _(
+            message = __(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for csv uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
                 schema_name=csv_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/csvtodatabaseview/form")
-
-        if "." in csv_table.table and csv_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(csv_table.table)s" and in the schema field: '
-                '"%(csv_table.schema)s". Please remove one',
-                table=csv_table.table,
-                schema=csv_table.schema,
             )
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
@@ -230,7 +216,7 @@ class CsvToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            message = _(
+            message = __(
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
@@ -245,7 +231,7 @@ class CsvToDatabaseView(SimpleFormView):
             return redirect("/csvtodatabaseview/form")
 
         # Go back to welcome page / splash screen
-        message = _(
+        message = __(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
             csv_filename=form.csv_file.data.filename,
@@ -280,7 +266,7 @@ class ExcelToDatabaseView(SimpleFormView):
         excel_table = Table(table=form.name.data, schema=form.schema.data)
 
         if not schema_allows_file_upload(database, excel_table.schema):
-            message = _(
+            message = __(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for excel uploads. Please contact your Superset Admin.",
                 database_name=database.database_name,
@@ -289,22 +275,13 @@ class ExcelToDatabaseView(SimpleFormView):
             flash(message, "danger")
             return redirect("/exceltodatabaseview/form")
 
-        if "." in excel_table.table and excel_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(excel_table.table)s" and in the schema field: '
-                '"%(excel_table.schema)s". Please remove one',
-                table=excel_table.table,
-                schema=excel_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/exceltodatabaseview/form")
-
-        uploaded_tmp_file_path = tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
-            dir=app.config["UPLOAD_FOLDER"],
-            suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
-            delete=False,
-        ).name
+        uploaded_tmp_file_path = (
+            tempfile.NamedTemporaryFile(  # pylint: disable=consider-using-with
+                dir=app.config["UPLOAD_FOLDER"],
+                suffix=os.path.splitext(form.excel_file.data.filename)[1].lower(),
+                delete=False,
+            ).name
+        )
 
         try:
             utils.ensure_path_exists(config["UPLOAD_FOLDER"])
@@ -376,7 +353,7 @@ class ExcelToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            message = _(
+            message = __(
                 'Unable to upload Excel file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
@@ -391,7 +368,7 @@ class ExcelToDatabaseView(SimpleFormView):
             return redirect("/exceltodatabaseview/form")
 
         # Go back to welcome page / splash screen
-        message = _(
+        message = __(
             'Excel file "%(excel_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
             excel_filename=form.excel_file.data.filename,
@@ -436,7 +413,7 @@ class ColumnarToDatabaseView(SimpleFormView):
             ]
 
         if len(file_type) > 1:
-            message = _(
+            message = __(
                 "Multiple file extensions are not allowed for columnar uploads."
                 " Please make sure all files are of the same extension.",
             )
@@ -449,23 +426,12 @@ class ColumnarToDatabaseView(SimpleFormView):
         }
 
         if not schema_allows_file_upload(database, columnar_table.schema):
-            message = _(
+            message = __(
                 'Database "%(database_name)s" schema "%(schema_name)s" '
                 "is not allowed for columnar uploads. "
                 "Please contact your Superset Admin.",
                 database_name=database.database_name,
                 schema_name=columnar_table.schema,
-            )
-            flash(message, "danger")
-            return redirect("/columnartodatabaseview/form")
-
-        if "." in columnar_table.table and columnar_table.schema:
-            message = _(
-                "You cannot specify a namespace both in the name of the table: "
-                '"%(columnar_table.table)s" and in the schema field: '
-                '"%(columnar_table.schema)s". Please remove one',
-                table=columnar_table.table,
-                schema=columnar_table.schema,
             )
             flash(message, "danger")
             return redirect("/columnartodatabaseview/form")
@@ -528,7 +494,7 @@ class ColumnarToDatabaseView(SimpleFormView):
             db.session.commit()
         except Exception as ex:  # pylint: disable=broad-except
             db.session.rollback()
-            message = _(
+            message = __(
                 'Unable to upload Columnar file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
@@ -543,7 +509,7 @@ class ColumnarToDatabaseView(SimpleFormView):
             return redirect("/columnartodatabaseview/form")
 
         # Go back to welcome page / splash screen
-        message = _(
+        message = __(
             'Columnar file "%(columnar_filename)s" uploaded to table "%(table_name)s" '
             'in database "%(db_name)s"',
             columnar_filename=[file.filename for file in form.columnar_file.data],

@@ -22,7 +22,7 @@ from sqlalchemy import BigInteger, Float, inspect, Text
 import superset.utils.database as database_utils
 from superset import db
 
-from .helpers import get_example_data, get_table_connector_registry
+from .helpers import get_example_url, get_table_connector_registry
 
 
 def load_sf_population_polygons(
@@ -35,8 +35,8 @@ def load_sf_population_polygons(
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("sf_population.json.gz")
-        df = pd.read_json(data)
+        url = get_example_url("sf_population.json.gz")
+        df = pd.read_json(url, compression="gzip")
         df["contour"] = df.contour.map(json.dumps)
 
         df.to_sql(

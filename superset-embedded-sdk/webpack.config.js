@@ -35,7 +35,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.[tj]s$/,
         // babel-loader is faster than ts-loader because it ignores types.
         // We do type checking in a separate process, so that's fine.
         use: 'babel-loader',
@@ -44,6 +44,6 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: ['.ts'],
+    extensions: ['.ts', '.js'],
   },
 };

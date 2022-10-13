@@ -20,8 +20,11 @@ import json
 import unittest
 import copy
 from datetime import datetime
-from typing import Optional
+from io import BytesIO
+from typing import Any, Dict, Optional, List
 from unittest import mock
+from zipfile import ZipFile
+
 from flask import Response
 from tests.integration_tests.conftest import with_feature_flags
 from superset.models.sql_lab import Query
@@ -35,8 +38,12 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,
 )
 from tests.integration_tests.test_app import app
-
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_with_slice,
+    load_energy_table_data,
+)
 import pytest
+from superset.models.slice import Slice
 
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
@@ -44,7 +51,7 @@ from superset.errors import SupersetErrorType
 from superset.extensions import async_query_manager, db
 from superset.models.annotations import AnnotationLayer
 from superset.models.slice import Slice
-from superset.typing import AdhocColumn
+from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     AnnotationType,
     get_example_default_schema,
@@ -126,7 +133,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.common.query_context_factory.config", {**app.config, "ROW_LIMIT": 7},
+        "superset.common.query_context_factory.config",
+        {**app.config, "ROW_LIMIT": 7},
     )
     def test_without_row_limit__row_count_as_default_row_limit(self):
         # arrange
@@ -158,7 +166,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 10},
+        "superset.utils.core.current_app.config",
+        {**app.config, "SQL_MAX_ROW": 10},
     )
     def test_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(self):
         # arrange
@@ -173,9 +182,10 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch(
-        "superset.utils.core.current_app.config", {**app.config, "SQL_MAX_ROW": 5},
+        "superset.utils.core.current_app.config",
+        {**app.config, "SQL_MAX_ROW": 5},
     )
-    def test_as_samples_with_row_limit_bigger_then_sql_max_row__rowcount_as_sql_max_row(
+    def test_as_samples_with_row_limit_bigger_then_sql_max_row_rowcount_as_sql_max_row(
         self,
     ):
         expected_row_count = app.config["SQL_MAX_ROW"]
@@ -236,6 +246,16 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 200
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_empty_request_with_csv_result_format(self):
+        """
+        Chart data API: Test empty chart data with CSV result format
+        """
+        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["queries"] = []
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_csv_result_format(self):
         """
         Chart data API: Test chart data with CSV result format
@@ -243,6 +263,22 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["result_format"] = "csv"
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
+        assert rv.mimetype == "text/csv"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_multi_query_csv_result_format(self):
+        """
+        Chart data API: Test chart data with multi-query CSV result format
+        """
+        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["queries"].append(
+            self.query_context_payload["queries"][0]
+        )
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+        assert rv.status_code == 200
+        assert rv.mimetype == "application/zip"
+        zipfile = ZipFile(BytesIO(rv.data), "r")
+        assert zipfile.namelist() == ["query_1.csv", "query_2.csv"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_csv_result_format_when_actor_not_permitted_for_csv__403(self):
@@ -303,10 +339,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
                 {"column": "__time_range"},
             ],
         )
-        self.assertEqual(
-            data["result"][0]["rejected_filters"],
-            [{"column": "__time_origin", "reason": "not_druid_datasource"},],
-        )
         expected_row_count = self.get_expected_row_count("client_id_2")
         self.assertEqual(data["result"][0]["rowcount"], expected_row_count)
 
@@ -355,7 +387,8 @@ class TestPostChartDataApi(BaseTestChartDataApi):
                 dttm_col = col
         if dttm_col:
             dttm_expression = table.database.db_engine_spec.convert_dttm(
-                dttm_col.type, dttm,
+                dttm_col.type,
+                dttm,
             )
             self.assertIn(dttm_expression, result["query"])
         else:
@@ -437,6 +470,31 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 400
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_where_parameter_including_comment___200(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["extras"]["where"] = "1 = 1 -- abc"
+
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 200
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_orderby_parameter_with_second_query__400(self):
+        self.query_context_payload["queries"][0]["filters"] = []
+        self.query_context_payload["queries"][0]["orderby"] = [
+            [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "sum__num; select 1, 1",
+                },
+                True,
+            ],
+        ]
+        rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
+
+        assert rv.status_code == 400
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_invalid_having_parameter_closing_and_comment__400(self):
         self.query_context_payload["queries"][0]["filters"] = []
         self.query_context_payload["queries"][0]["extras"][
@@ -451,16 +509,6 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         self.query_context_payload["datasource"] = "abc"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
-
-        assert rv.status_code == 400
-
-    def test_with_invalid_time_range_endpoints_enum_value__400(self):
-        self.query_context_payload["queries"][0]["extras"]["time_range_endpoints"] = [
-            "abc",
-            "EXCLUSIVE",
-        ]
-
-        rv = self.client.post(CHART_DATA_URI, json=self.query_context_payload)
 
         assert rv.status_code == 400
 
@@ -695,7 +743,11 @@ class TestPostChartDataApi(BaseTestChartDataApi):
             }
         ]
         request_payload["queries"][0]["filters"] = [
-            {"col": "foo", "op": "!=", "val": ":qwerty:",}
+            {
+                "col": "foo",
+                "op": "!=",
+                "val": ":qwerty:",
+            }
         ]
 
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -711,6 +763,47 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "':asdf'" in result["query"]
         assert "':xyz:qwerty'" in result["query"]
         assert "':qwerty:'" in result["query"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_table_columns_without_metrics(self):
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = ["name", "gender"]
+        request_payload["queries"][0]["metrics"] = None
+        request_payload["queries"][0]["orderby"] = []
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        result = rv.json["result"][0]
+
+        assert rv.status_code == 200
+        assert "name" in result["colnames"]
+        assert "gender" in result["colnames"]
+        assert "name" in result["query"]
+        assert "gender" in result["query"]
+        assert list(result["data"][0].keys()) == ["name", "gender"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_adhoc_column_without_metrics(self):
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = [
+            "name",
+            {
+                "label": "num divide by 10",
+                "sqlExpression": "num/10",
+                "expressionType": "SQL",
+            },
+        ]
+        request_payload["queries"][0]["metrics"] = None
+        request_payload["queries"][0]["orderby"] = []
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        result = rv.json["result"][0]
+
+        assert rv.status_code == 200
+        assert "num divide by 10" in result["colnames"]
+        assert "name" in result["colnames"]
+        assert "num divide by 10" in result["query"]
+        assert "name" in result["query"]
+        assert list(result["data"][0].keys()) == ["name", "num divide by 10"]
 
 
 @pytest.mark.chart_data_flow
@@ -743,9 +836,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
                         "granularity": "ds",
                         "filters": [],
                         "extras": {
-                            "time_range_endpoints": ["inclusive", "exclusive"],
                             "having": "",
-                            "having_druid": [],
                             "where": "",
                         },
                         "applied_time_extras": {},
@@ -766,6 +857,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             }
         )
         rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        assert rv.mimetype == "application/json"
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"][0]["status"] == "success"
         assert data["result"][0]["rowcount"] == 2
@@ -831,7 +923,9 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             return orig_run(self, force_cached=False)
 
         with mock.patch.object(ChartDataCommand, "run", new=mock_run):
-            rv = self.client.get(f"{CHART_DATA_URI}/test-cache-key",)
+            rv = self.client.get(
+                f"{CHART_DATA_URI}/test-cache-key",
+            )
 
         self.assertEqual(rv.status_code, 401)
 
@@ -866,3 +960,141 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]
+
+
+@pytest.fixture()
+def physical_query_context(physical_dataset) -> Dict[str, Any]:
+    return {
+        "datasource": {
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        "queries": [
+            {
+                "columns": ["col1"],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+            }
+        ],
+        "result_type": ChartDataResultType.FULL,
+        "force": True,
+    }
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 1234,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": None,
+        },
+    },
+)
+def test_cache_default_timeout(test_client, login_as_admin, physical_query_context):
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1234
+
+
+def test_custom_cache_timeout(test_client, login_as_admin, physical_query_context):
+    physical_query_context["custom_cache_timeout"] = 5678
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 5678
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 3456,
+        },
+    },
+)
+def test_data_cache_default_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+def test_chart_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+    load_energy_table_with_slice: List[Slice],
+):
+    # should override datasource cache timeout
+
+    slice_with_cache_timeout = load_energy_table_with_slice[0]
+    slice_with_cache_timeout.cache_timeout = 20
+    db.session.merge(slice_with_cache_timeout)
+
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 1254
+    db.session.merge(datasource)
+
+    db.session.commit()
+
+    physical_query_context["form_data"] = {"slice_id": slice_with_cache_timeout.id}
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 20
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 1010,
+        },
+    },
+)
+def test_chart_cache_timeout_not_present(
+    test_client, login_as_admin, physical_query_context
+):
+    # should use datasource cache, if it's present
+
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 1980
+    db.session.merge(datasource)
+    db.session.commit()
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1980
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 1010,
+        },
+    },
+)
+def test_chart_cache_timeout_chart_not_found(
+    test_client, login_as_admin, physical_query_context
+):
+    # should use default timeout
+
+    physical_query_context["form_data"] = {"slice_id": 0}
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1010

@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NativeFilterType } from 'src/dashboard/components/nativeFilters/types';
-import { NativeFiltersState } from 'src/dashboard/reducers/types';
-import { DataMaskStateWithId } from 'src/dataMask/types';
+import {
+  DataMaskStateWithId,
+  NativeFiltersState,
+  NativeFilterType,
+} from '@superset-ui/core';
 
 export const mockDataMaskInfo: DataMaskStateWithId = {
   DefaultsID: {

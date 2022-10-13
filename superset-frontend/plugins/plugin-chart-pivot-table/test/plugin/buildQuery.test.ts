@@ -18,9 +18,10 @@
  */
 
 import buildQuery from '../../src/plugin/buildQuery';
+import { PivotTableQueryFormData } from '../../src/types';
 
 describe('PivotTableChart buildQuery', () => {
-  const formData = {
+  const formData: PivotTableQueryFormData = {
     groupbyRows: ['row1', 'row2'],
     groupbyColumns: ['col1', 'col2'],
     metrics: ['metric1', 'metric2'],
@@ -46,6 +47,7 @@ describe('PivotTableChart buildQuery', () => {
     setDataMask: () => {},
     legacy_order_by: 'count',
     order_desc: true,
+    margin: 0,
   };
 
   it('should build groupby with series in form data', () => {

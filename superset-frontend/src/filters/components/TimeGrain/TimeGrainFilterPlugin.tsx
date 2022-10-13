@@ -40,9 +40,11 @@ export default function PluginFilterTimegrain(
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setFilterActive,
     filterState,
+    inputRef,
   } = props;
-  const { defaultValue, inputRef } = formData;
+  const { defaultValue } = formData;
 
   const [value, setValue] = useState<string[]>(defaultValue ?? []);
   const durationMap = useMemo(
@@ -126,6 +128,7 @@ export default function PluginFilterTimegrain(
           onMouseLeave={unsetFocusedFilter}
           ref={inputRef}
           options={options}
+          onDropdownVisibleChange={setFilterActive}
         />
       </StyledFormItem>
     </FilterPluginStyle>

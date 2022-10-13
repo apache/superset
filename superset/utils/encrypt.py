@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from flask import Flask
 from sqlalchemy import text, TypeDecorator
-from sqlalchemy.engine import Connection, Dialect, RowProxy
+from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType
 
 logger = logging.getLogger(__name__)
@@ -114,13 +114,13 @@ class SecretsMigrator:
     @staticmethod
     def _select_columns_from_table(
         conn: Connection, column_names: List[str], table_name: str
-    ) -> RowProxy:
+    ) -> Row:
         return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")
 
     def _re_encrypt_row(
         self,
         conn: Connection,
-        row: RowProxy,
+        row: Row,
         table_name: str,
         columns: Dict[str, EncryptedType],
     ) -> None:
@@ -156,7 +156,8 @@ class SecretsMigrator:
                     raise Exception from exc
 
             re_encrypted_columns[column_name] = encrypted_type.process_bind_param(
-                unencrypted_value, self._dialect,
+                unencrypted_value,
+                self._dialect,
             )
 
         set_cols = ",".join(

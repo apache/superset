@@ -18,7 +18,7 @@
  */
 
 import React from 'react';
-import { Menu } from 'src/common/components';
+import { Menu } from 'src/components/Menu';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import * as copyTextToClipboard from 'src/utils/copy';
@@ -31,7 +31,7 @@ const DASHBOARD_ID = '26';
 const createProps = () => ({
   addDangerToast: jest.fn(),
   addSuccessToast: jest.fn(),
-  url: `/superset/dashboard/${DASHBOARD_ID}/?preselect_filters=%7B%7D`,
+  url: `/superset/dashboard/${DASHBOARD_ID}`,
   copyMenuItemTitle: 'Copy dashboard URL',
   emailMenuItemTitle: 'Share dashboard by email',
   emailSubject: 'Superset dashboard COVID Vaccine Dashboard',
@@ -45,10 +45,10 @@ beforeAll((): void => {
   // @ts-ignore
   delete window.location;
   fetchMock.post(
-    'http://localhost/r/shortner/',
-    { body: 'http://localhost:8088/r/3' },
+    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
+    { key: '123', url: 'http://localhost/superset/dashboard/p/123/' },
     {
-      sendAsJson: false,
+      sendAsJson: true,
     },
   );
 });
@@ -70,6 +70,7 @@ test('Should render menu items', () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
   expect(
     screen.getByRole('menuitem', { name: 'Copy dashboard URL' }),
@@ -92,6 +93,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
 
   await waitFor(() => {
@@ -102,9 +104,10 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
 
   userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
 
-  await waitFor(() => {
+  await waitFor(async () => {
     expect(spy).toBeCalledTimes(1);
-    expect(spy).toBeCalledWith('http://localhost:8088/r/3');
+    const value = await spy.mock.calls[0][0]();
+    expect(value).toBe('http://localhost/superset/dashboard/p/123/');
     expect(props.addSuccessToast).toBeCalledTimes(1);
     expect(props.addSuccessToast).toBeCalledWith('Copied to clipboard!');
     expect(props.addDangerToast).toBeCalledTimes(0);
@@ -118,6 +121,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
 
   await waitFor(() => {
@@ -128,9 +132,10 @@ test('Click on "Copy dashboard URL" and fail', async () => {
 
   userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
 
-  await waitFor(() => {
+  await waitFor(async () => {
     expect(spy).toBeCalledTimes(1);
-    expect(spy).toBeCalledWith('http://localhost:8088/r/3');
+    const value = await spy.mock.calls[0][0]();
+    expect(value).toBe('http://localhost/superset/dashboard/p/123/');
     expect(props.addSuccessToast).toBeCalledTimes(0);
     expect(props.addDangerToast).toBeCalledTimes(1);
     expect(props.addDangerToast).toBeCalledWith(
@@ -145,6 +150,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
 
   await waitFor(() => {
@@ -159,14 +165,14 @@ test('Click on "Share dashboard by email" and succeed', async () => {
   await waitFor(() => {
     expect(props.addDangerToast).toBeCalledTimes(0);
     expect(window.location.href).toBe(
-      'mailto:?Subject=Superset dashboard COVID Vaccine Dashboard%20&Body=Check out this dashboard: http://localhost:8088/r/3',
+      'mailto:?Subject=Superset%20dashboard%20COVID%20Vaccine%20Dashboard%20&Body=Check%20out%20this%20dashboard%3A%20http%3A%2F%2Flocalhost%2Fsuperset%2Fdashboard%2Fp%2F123%2F',
     );
   });
 });
 
 test('Click on "Share dashboard by email" and fail', async () => {
   fetchMock.post(
-    'http://localhost/r/shortner/',
+    `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`,
     { status: 404 },
     { overwriteRoutes: true },
   );
@@ -175,6 +181,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
     <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
       <ShareMenuItems {...props} />
     </Menu>,
+    { useRedux: true },
   );
 
   await waitFor(() => {

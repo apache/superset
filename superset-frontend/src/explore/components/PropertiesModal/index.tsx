@@ -18,9 +18,9 @@
  */
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
-import { Form, Row, Col, Input, TextArea } from 'src/common/components';
+import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { Select } from 'src/components';
+import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient, styled } from '@superset-ui/core';
@@ -38,9 +38,9 @@ export type PropertiesModalProps = {
   addSuccessToast: (msg: string) => void;
 };
 
-const FormItem = Form.Item;
+const FormItem = AntdForm.Item;
 
-const StyledFormItem = styled(Form.Item)`
+const StyledFormItem = styled(AntdForm.Item)`
   margin-bottom: 0;
 `;
 
@@ -56,7 +56,7 @@ function PropertiesModal({
   addSuccessToast,
 }: PropertiesModalProps) {
   const [submitting, setSubmitting] = useState(false);
-  const [form] = Form.useForm();
+  const [form] = AntdForm.useForm();
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
   const [selectedOwners, setSelectedOwners] = useState<SelectValue | null>(
@@ -83,7 +83,7 @@ function PropertiesModal({
         });
         const chart = response.json.result;
         setSelectedOwners(
-          chart.owners.map((owner: any) => ({
+          chart?.owners?.map((owner: any) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
           })),
@@ -107,12 +107,12 @@ function PropertiesModal({
         return SupersetClient.get({
           endpoint: `/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
-          data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
+          data: response.json.result
+            .filter((item: { extra: { active: boolean } }) => item.extra.active)
+            .map((item: { value: number; text: string }) => ({
               value: item.value,
               label: item.text,
-            }),
-          ),
+            })),
           totalCount: response.json.count,
         }));
       },
@@ -156,8 +156,10 @@ function PropertiesModal({
       });
       // update the redux state
       const updatedChart = {
+        ...payload,
         ...res.json.result,
         id: slice.slice_id,
+        owners: selectedOwners,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));
@@ -203,7 +205,14 @@ function PropertiesModal({
             buttonSize="small"
             buttonStyle="primary"
             onClick={form.submit}
-            disabled={submitting || !name}
+            disabled={submitting || !name || slice.is_managed_externally}
+            tooltip={
+              slice.is_managed_externally
+                ? t(
+                    "This chart is managed externally, and can't be edited in Superset",
+                  )
+                : ''
+            }
             cta
           >
             {t('Save')}
@@ -213,7 +222,7 @@ function PropertiesModal({
       responsive
       wrapProps={{ 'data-test': 'properties-edit-modal' }}
     >
-      <Form
+      <AntdForm
         form={form}
         onFinish={onSubmit}
         layout="vertical"
@@ -256,7 +265,7 @@ function PropertiesModal({
             <h3>{t('Certification')}</h3>
             <FormItem>
               <StyledFormItem label={t('Certified by')} name="certified_by">
-                <Input />
+                <Input aria-label={t('Certified by')} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t('Person or group that has certified this chart.')}
@@ -267,7 +276,7 @@ function PropertiesModal({
                 label={t('Certification details')}
                 name="certification_details"
               >
-                <Input />
+                <Input aria-label={t('Certification details')} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
@@ -279,8 +288,8 @@ function PropertiesModal({
           <Col xs={24} md={12}>
             <h3>{t('Configuration')}</h3>
             <FormItem>
-              <StyledFormItem label={t('Cache timeout')} name="cacheTimeout">
-                <Input />
+              <StyledFormItem label={t('Cache timeout')} name="cache_timeout">
+                <Input aria-label="Cache timeout" />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(
@@ -290,7 +299,7 @@ function PropertiesModal({
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
             <FormItem label={ownersLabel}>
-              <Select
+              <AsyncSelect
                 ariaLabel={ownersLabel}
                 mode="multiple"
                 name="owners"
@@ -308,7 +317,7 @@ function PropertiesModal({
             </FormItem>
           </Col>
         </Row>
-      </Form>
+      </AntdForm>
     </Modal>
   );
 }

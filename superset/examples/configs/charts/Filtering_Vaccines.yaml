@@ -45,9 +45,6 @@ params:
   queryFields: {}
   slice_id: 3965
   time_range: No filter
-  time_range_endpoints:
-  - inclusive
-  - exclusive
   url_params: {}
   viz_type: filter_box
 cache_timeout: null

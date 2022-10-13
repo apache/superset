@@ -59,6 +59,10 @@ export interface RegistryConfig {
 /**
  * Registry class
  *
+ * !!!!!!!!
+ * IF YOU ARE ADDING A NEW REGISTRY TO SUPERSET, CONSIDER USING TypedRegistry
+ * !!!!!!!!
+ *
  * Can use generic to specify type of item in the registry
  * @type V Type of value
  * @type W Type of value returned from loader function when using registerLoader().
@@ -165,7 +169,7 @@ export default class Registry<
     const item = this.items[key];
     if (item !== undefined) {
       if ('loader' in item) {
-        return item.loader && item.loader();
+        return item.loader?.();
       }
 
       return item.value;

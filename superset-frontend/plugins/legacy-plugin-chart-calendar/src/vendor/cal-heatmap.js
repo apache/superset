@@ -10,7 +10,6 @@
 
 import d3tip from 'd3-tip';
 import { getContrastingColor } from '@superset-ui/core';
-import './d3tip.css';
 
 var d3 = typeof require === 'function' ? require('d3') : window.d3;
 

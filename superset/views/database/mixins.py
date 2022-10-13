@@ -19,10 +19,10 @@ import inspect
 from flask import Markup
 from flask_babel import lazy_gettext as _
 from sqlalchemy import MetaData
-from sqlalchemy.engine.url import make_url
 
 from superset import app, security_manager
 from superset.databases.filters import DatabaseFilter
+from superset.databases.utils import make_url_safe
 from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -63,7 +63,6 @@ class DatabaseMixin:
         "allow_dml",
         "force_ctas_schema",
         "impersonate_user",
-        "allow_multi_schema_metadata_fetch",
         "extra",
         "encrypted_extra",
         "server_cert",
@@ -145,7 +144,10 @@ class DatabaseMixin:
             "4. the ``version`` field is a string specifying the this db's version. "
             "This should be used with Presto DBs so that the syntax is correct<br/>"
             "5. The ``allows_virtual_table_explore`` field is a boolean specifying "
-            "whether or not the Explore button in SQL Lab results is shown.",
+            "whether or not the Explore button in SQL Lab results is shown<br/>"
+            "6. The ``disable_data_preview`` field is a boolean specifying whether or"
+            "not data preview queries will be run when fetching table metadata in"
+            "SQL Lab.",
             True,
         ),
         "encrypted_extra": utils.markdown(
@@ -166,11 +168,6 @@ class DatabaseMixin:
             "If Hive and hive.server2.enable.doAs is enabled, will run the queries as "
             "service account, but impersonate the currently logged on user "
             "via hive.server2.proxy.user property."
-        ),
-        "allow_multi_schema_metadata_fetch": _(
-            "Allow SQL Lab to fetch a list of all tables and all views across "
-            "all database schemas. For large data warehouse with thousands of "
-            "tables, this can be expensive and put strain on the system."
         ),
         "cache_timeout": _(
             "Duration (in seconds) of the caching timeout for charts of this database. "
@@ -200,13 +197,12 @@ class DatabaseMixin:
         "impersonate_user": _("Impersonate the logged on user"),
         "allow_file_upload": _("Allow Csv Upload"),
         "modified": _("Modified"),
-        "allow_multi_schema_metadata_fetch": _("Allow Multi Schema Metadata Fetch"),
         "backend": _("Backend"),
     }
 
     def _pre_add_update(self, database: Database) -> None:
         if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]:
-            check_sqlalchemy_uri(make_url(database.sqlalchemy_uri))
+            check_sqlalchemy_uri(make_url_safe(database.sqlalchemy_uri))
         self.check_extra(database)
         self.check_encrypted_extra(database)
         if database.server_cert:

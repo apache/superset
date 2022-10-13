@@ -22,13 +22,15 @@ from typing import Sequence, Union
 
 import backoff
 from flask_babel import gettext as __
-from slack import WebClient
-from slack.errors import SlackApiError, SlackClientError
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError, SlackClientError
 
 from superset import app
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
+from superset.utils.decorators import statsd_gauge
+from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +49,11 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         return json.loads(self._recipient.recipient_config_json)["target"]
 
     def _message_template(self, table: str = "") -> str:
+        url = (
+            modify_url_query(self._content.url, standalone="0")
+            if self._content.url is not None
+            else ""
+        )
         return __(
             """*%(name)s*
 
@@ -58,7 +65,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 """,
             name=self._content.name,
             description=self._content.description or "",
-            url=self._content.url,
+            url=url,
             table=table,
         )
 
@@ -141,6 +148,7 @@ Error: %(text)s
         return []
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
+    @statsd_gauge("reports.slack.send")
     def send(self) -> None:
         files = self._get_inline_files()
         title = self._content.name

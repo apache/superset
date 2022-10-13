@@ -20,8 +20,10 @@ import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
+import { ColorBy } from './utils';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -106,7 +108,25 @@ const config: ControlPanelConfig = {
           },
         ],
         ['color_picker'],
+        [
+          {
+            name: 'color_by',
+            config: {
+              type: 'RadioButtonControl',
+              label: t('Color by'),
+              default: ColorBy.metric,
+              options: [
+                [ColorBy.metric, t('Metric')],
+                [ColorBy.country, t('Country')],
+              ],
+              description: t(
+                'Choose whether a country should be shaded by the metric, or assigned a color based on a categorical color palette',
+              ),
+            },
+          },
+        ],
         ['linear_color_scheme'],
+        ['color_scheme'],
       ],
     },
   ],
@@ -114,10 +134,6 @@ const config: ControlPanelConfig = {
     entity: {
       label: t('Country Column'),
       description: t('3 letter code of the country'),
-    },
-    metric: {
-      label: t('Metric for Color'),
-      description: t('Metric that defines the color of the country'),
     },
     secondary_metric: {
       label: t('Bubble Size'),
@@ -128,8 +144,20 @@ const config: ControlPanelConfig = {
     },
     linear_color_scheme: {
       label: t('Country Color Scheme'),
+      visibility: ({ controls }) =>
+        Boolean(controls?.color_by.value === ColorBy.metric),
+    },
+    color_scheme: {
+      label: t('Country Color Scheme'),
+      visibility: ({ controls }) =>
+        Boolean(controls?.color_by.value === ColorBy.country),
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    entity: getStandardizedControls().shiftColumn(),
+    metric: getStandardizedControls().shiftMetric(),
+  }),
 };
 
 export default config;

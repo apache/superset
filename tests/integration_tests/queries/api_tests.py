@@ -210,7 +210,7 @@ class TestQueryApi(SupersetTestCase):
             get_example_database().id, gamma2.id, gamma2_client_id
         )
 
-        # Gamma1 user, only sees his own queries
+        # Gamma1 user, only sees their own queries
         self.login(username="gamma_1", password="password")
         uri = f"api/v1/query/{query_gamma2.id}"
         rv = self.client.get(uri)
@@ -219,7 +219,7 @@ class TestQueryApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
-        # Gamma2 user, only sees his own queries
+        # Gamma2 user, only sees their own queries
         self.logout()
         self.login(username="gamma_2", password="password")
         uri = f"api/v1/query/{query_gamma1.id}"

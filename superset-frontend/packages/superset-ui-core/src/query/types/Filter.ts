@@ -72,6 +72,12 @@ export function isSimpleAdhocFilter(
   return filter.expressionType === 'SIMPLE';
 }
 
+export function isFreeFormAdhocFilter(
+  filter: AdhocFilter,
+): filter is FreeFormAdhocFilter {
+  return filter.expressionType === 'SQL';
+}
+
 export function isUnaryAdhocFilter(
   filter: SimpleAdhocFilter,
 ): filter is UnaryAdhocFilter {

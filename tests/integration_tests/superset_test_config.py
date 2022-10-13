@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # type: ignore
+import logging
+import math
 from copy import copy
 from datetime import timedelta
 
@@ -22,6 +24,12 @@ from superset.config import *
 from tests.integration_tests.superset_test_custom_template_processors import (
     CustomPrestoTemplateProcessor,
 )
+
+logging.getLogger("flask_appbuilder.baseviews").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.base").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.api").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.security.sqla.manager").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(
@@ -60,10 +68,13 @@ FEATURE_FLAGS = {
     "KV_STORE": True,
     "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
-    "ENABLE_REACT_CRUD_VIEWS": os.environ.get("ENABLE_REACT_CRUD_VIEWS", False),
     "ALERT_REPORTS": True,
     "DASHBOARD_NATIVE_FILTERS": True,
+    "DRILL_TO_DETAIL": True,
+    "CROSS_REFERENCES": True,
 }
+
+WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
 
 
 def GET_FEATURE_FLAGS_FUNC(ff):
@@ -85,10 +96,9 @@ REDIS_CELERY_DB = os.environ.get("REDIS_CELERY_DB", 2)
 REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 REDIS_CACHE_DB = os.environ.get("REDIS_CACHE_DB", 4)
 
-CACHE_DEFAULT_TIMEOUT = int(timedelta(minutes=10).total_seconds())
 
 CACHE_CONFIG = {
-    "CACHE_TYPE": "redis",
+    "CACHE_TYPE": "RedisCache",
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=1).total_seconds()),
     "CACHE_KEY_PREFIX": "superset_cache",
     "CACHE_REDIS_URL": f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CACHE_DB}",
@@ -100,9 +110,23 @@ DATA_CACHE_CONFIG = {
     "CACHE_KEY_PREFIX": "superset_data_cache",
 }
 
+FILTER_STATE_CACHE_CONFIG = {
+    "CACHE_TYPE": "SimpleCache",
+    "CACHE_THRESHOLD": math.inf,
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
+}
+
+EXPLORE_FORM_DATA_CACHE_CONFIG = {
+    "CACHE_TYPE": "SimpleCache",
+    "CACHE_THRESHOLD": math.inf,
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
+}
+
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"
 
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
 
 
 class CeleryConfig(object):

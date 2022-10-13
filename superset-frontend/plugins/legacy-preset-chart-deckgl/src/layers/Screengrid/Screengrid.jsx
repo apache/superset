@@ -43,7 +43,7 @@ function setTooltipContent(o) {
         label={`${t('Longitude and Latitude')}: `}
         value={`${o.coordinate[0]}, ${o.coordinate[1]}`}
       />
-      <TooltipRow label={`${t('Weight')}: `} value={`${o.object.weight}`} />
+      <TooltipRow label={`${t('Weight')}: `} value={`${o.object.cellWeight}`} />
     </div>
   );
 }

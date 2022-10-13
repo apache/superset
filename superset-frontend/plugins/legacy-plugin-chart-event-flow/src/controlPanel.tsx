@@ -19,13 +19,14 @@
 import React from 'react';
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
-  formatSelectOptionsForRange,
-  ColumnOption,
   columnChoices,
+  ColumnOption,
+  ColumnMeta,
   ControlPanelConfig,
+  ControlState,
+  formatSelectOptionsForRange,
   sections,
   SelectControlConfig,
-  ColumnMeta,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
@@ -46,10 +47,8 @@ const config: ControlPanelConfig = {
                 choices: columnChoices(state?.datasource),
               }),
               // choices is from `mapStateToProps`
-              default: (control: { choices?: string[] }) =>
-                control.choices && control.choices.length > 0
-                  ? control.choices[0][0]
-                  : null,
+              default: (control: ControlState) =>
+                control.choices?.[0]?.[0] || null,
               validators: [validateNonEmpty],
             },
           },
@@ -110,7 +109,7 @@ const config: ControlPanelConfig = {
               valueKey: 'column_name',
               allowAll: true,
               mapStateToProps: state => ({
-                options: state.datasource ? state.datasource.columns : [],
+                options: state.datasource?.columns || [],
               }),
               commaChoosesOption: false,
               freeForm: true,

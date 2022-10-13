@@ -25,6 +25,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
@@ -39,19 +40,10 @@ const config: ControlPanelConfig = {
         ['metrics'],
         ['adhoc_filters'],
         ['groupby'],
-        ['limit', 'timeseries_limit_metric'],
+        ['limit'],
+        ['timeseries_limit_metric'],
+        ['order_desc'],
         [
-          {
-            name: 'order_desc',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Sort Descending'),
-              default: true,
-              description: t('Whether to sort descending or ascending'),
-              visibility: ({ controls }) =>
-                Boolean(controls?.timeseries_limit_metric.value),
-            },
-          },
           {
             name: 'contribution',
             config: {
@@ -62,7 +54,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit', null],
+        ['row_limit'],
       ],
     },
     {
@@ -250,7 +242,7 @@ const config: ControlPanelConfig = {
       ),
       controlSetRows: [
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Rolling Window')}</h1>],
+        [<div className="section-header">{t('Rolling Window')}</div>],
         [
           {
             name: 'rolling_type',
@@ -302,7 +294,7 @@ const config: ControlPanelConfig = {
           },
         ],
         // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Time Comparison')}</h1>],
+        [<div className="section-header">{t('Time Comparison')}</div>],
         [
           {
             name: 'time_compare',
@@ -351,10 +343,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        // eslint-disable-next-line react/jsx-key
-        [<h1 className="section-header">{t('Python Functions')}</h1>],
-        // eslint-disable-next-line react/jsx-key
-        [<h2 className="section-header">pandas.resample</h2>],
+        [<div className="section-header">{t('Resample')}</div>],
         [
           {
             name: 'resample_rule',
@@ -396,6 +385,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+    metrics: getStandardizedControls().popAllMetrics(),
+  }),
 };
 
 export default config;

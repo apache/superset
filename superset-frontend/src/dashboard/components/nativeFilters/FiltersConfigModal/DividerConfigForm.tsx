@@ -18,9 +18,8 @@
  */
 import React from 'react';
 import { FormItem } from 'src/components/Form';
-import { Input, TextArea } from 'src/common/components';
-import { styled, t } from '@superset-ui/core';
-import { NativeFilterType } from '../types';
+import { Input, TextArea } from 'src/components/Input';
+import { NativeFilterType, styled, t } from '@superset-ui/core';
 
 interface Props {
   componentId: string;

@@ -64,13 +64,17 @@ class AnnotationPostSchema(Schema):
     )
     long_descr = fields.String(description=annotation_long_descr, allow_none=True)
     start_dttm = fields.DateTime(
-        description=annotation_start_dttm, required=True, allow_none=False,
+        description=annotation_start_dttm,
+        required=True,
+        allow_none=False,
     )
     end_dttm = fields.DateTime(
         description=annotation_end_dttm, required=True, allow_none=False
     )
     json_metadata = fields.String(
-        description=annotation_json_metadata, validate=validate_json, allow_none=True,
+        description=annotation_json_metadata,
+        validate=validate_json,
+        allow_none=True,
     )
 
 

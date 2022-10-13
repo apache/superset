@@ -36,6 +36,9 @@ import DashboardList from 'src/views/CRUD/dashboard/DashboardList';
 import ListView from 'src/components/ListView';
 import ListViewCard from 'src/components/ListViewCard';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
+import FaveStar from 'src/components/FaveStar';
+import TableCollection from 'src/components/TableCollection';
+import CardCollection from 'src/components/ListView/CardCollection';
 
 // store needed for withToasts(DashboardTable)
 const mockStore = configureStore([thunk]);
@@ -104,15 +107,18 @@ describe('DashboardList', () => {
   });
 
   const mockedProps = {};
-  const wrapper = mount(
-    <MemoryRouter>
-      <Provider store={store}>
-        <DashboardList {...mockedProps} user={mockUser} />
-      </Provider>
-    </MemoryRouter>,
-  );
+  let wrapper;
 
   beforeAll(async () => {
+    fetchMock.resetHistory();
+    wrapper = mount(
+      <MemoryRouter>
+        <Provider store={store}>
+          <DashboardList {...mockedProps} user={mockUser} />
+        </Provider>
+      </MemoryRouter>,
+    );
+
     await waitForComponentToPaint(wrapper);
   });
 
@@ -178,6 +184,18 @@ describe('DashboardList', () => {
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(ConfirmStatusChange)).toExist();
   });
+
+  it('renders the Favorite Star column in list view for logged in user', async () => {
+    wrapper.find('[aria-label="list-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(TableCollection).find(FaveStar)).toExist();
+  });
+
+  it('renders the Favorite Star in card view for logged in user', async () => {
+    wrapper.find('[aria-label="card-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(CardCollection).find(FaveStar)).toExist();
+  });
 });
 
 describe('RTL', () => {
@@ -220,5 +238,41 @@ describe('RTL', () => {
     });
 
     expect(importTooltip).toBeInTheDocument();
+  });
+});
+
+describe('DashboardList - anonymous view', () => {
+  const mockedProps = {};
+  const mockUserLoggedOut = {};
+  let wrapper;
+
+  beforeAll(async () => {
+    fetchMock.resetHistory();
+    wrapper = mount(
+      <MemoryRouter>
+        <Provider store={store}>
+          <DashboardList {...mockedProps} user={mockUserLoggedOut} />
+        </Provider>
+      </MemoryRouter>,
+    );
+
+    await waitForComponentToPaint(wrapper);
+  });
+
+  afterAll(() => {
+    cleanup();
+    fetch.resetMocks();
+  });
+
+  it('does not render the Favorite Star column in list view for anonymous user', async () => {
+    wrapper.find('[aria-label="list-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(TableCollection).find(FaveStar)).not.toExist();
+  });
+
+  it('does not render the Favorite Star in card view for anonymous user', async () => {
+    wrapper.find('[aria-label="card-view"]').first().simulate('click');
+    await waitForComponentToPaint(wrapper);
+    expect(wrapper.find(CardCollection).find(FaveStar)).not.toExist();
   });
 });

@@ -16,13 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-
+import React, { ReactElement } from 'react';
+import { render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import {
   getColumnLabelText,
   getColumnTooltipNode,
   getMetricTooltipNode,
 } from '../../src/components/labelUtils';
+
+const renderWithTheme = (ui: ReactElement) =>
+  render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
 
 test("should get column name when column doesn't have verbose_name", () => {
   expect(
@@ -52,66 +57,80 @@ test('should get null as tooltip', () => {
         id: 123,
         column_name: 'column name',
         verbose_name: '',
+        description: '',
       },
       ref,
     ),
   ).toBe(null);
 });
 
-test('should get column name and verbose name when it has a verbose name', () => {
-  const rvNode = (
+test('should get column name, verbose name and description when it has a verbose name', () => {
+  const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
+  renderWithTheme(
     <>
-      <div>column name: column name</div>
-      <div>verbose name: verbose name</div>
-    </>
+      {getColumnTooltipNode(
+        {
+          id: 123,
+          column_name: 'column name',
+          verbose_name: 'verbose name',
+          description: 'A very important column',
+        },
+        ref,
+      )}
+    </>,
   );
 
-  const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
-  expect(
-    getColumnTooltipNode(
-      {
-        id: 123,
-        column_name: 'column name',
-        verbose_name: 'verbose name',
-      },
-      ref,
-    ),
-  ).toStrictEqual(rvNode);
+  expect(screen.getByText('Column name')).toBeVisible();
+  expect(screen.getByText('column name')).toBeVisible();
+  expect(screen.getByText('Label')).toBeVisible();
+  expect(screen.getByText('verbose name')).toBeVisible();
+  expect(screen.getByText('Description')).toBeVisible();
+  expect(screen.getByText('A very important column')).toBeVisible();
 });
 
 test('should get column name as tooltip if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
-  expect(
-    getColumnTooltipNode(
-      {
-        id: 123,
-        column_name: 'long long long long column name',
-        verbose_name: '',
-      },
-      ref,
-    ),
-  ).toBe('column name: long long long long column name');
+  renderWithTheme(
+    <>
+      {getColumnTooltipNode(
+        {
+          id: 123,
+          column_name: 'long long long long column name',
+          verbose_name: '',
+          description: '',
+        },
+        ref,
+      )}
+    </>,
+  );
+  expect(screen.getByText('Column name')).toBeVisible();
+  expect(screen.getByText('long long long long column name')).toBeVisible();
+  expect(screen.queryByText('Label')).not.toBeInTheDocument();
+  expect(screen.queryByText('Description')).not.toBeInTheDocument();
 });
 
-test('should get column name and verbose name as tooltip if it overflowed', () => {
-  const rvNode = (
+test('should get column name, verbose name and description as tooltip if it overflowed', () => {
+  const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
+  renderWithTheme(
     <>
-      <div>column name: long long long long column name</div>
-      <div>verbose name: long long long long verbose name</div>
-    </>
+      {getColumnTooltipNode(
+        {
+          id: 123,
+          column_name: 'long long long long column name',
+          verbose_name: 'long long long long verbose name',
+          description: 'A very important column',
+        },
+        ref,
+      )}
+    </>,
   );
 
-  const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
-  expect(
-    getColumnTooltipNode(
-      {
-        id: 123,
-        column_name: 'long long long long column name',
-        verbose_name: 'long long long long verbose name',
-      },
-      ref,
-    ),
-  ).toStrictEqual(rvNode);
+  expect(screen.getByText('Column name')).toBeVisible();
+  expect(screen.getByText('long long long long column name')).toBeVisible();
+  expect(screen.getByText('Label')).toBeVisible();
+  expect(screen.getByText('long long long long verbose name')).toBeVisible();
+  expect(screen.getByText('Description')).toBeVisible();
+  expect(screen.getByText('A very important column')).toBeVisible();
 });
 
 test('should get null as tooltip in metric', () => {
@@ -122,64 +141,76 @@ test('should get null as tooltip in metric', () => {
         metric_name: 'count',
         label: '',
         verbose_name: '',
+        description: '',
       },
       ref,
     ),
   ).toBe(null);
 });
 
-test('should get metric name and verbose name as tooltip in metric', () => {
-  const rvNode = (
-    <>
-      <div>metric name: count</div>
-      <div>verbose name: count(*)</div>
-    </>
-  );
-
+test('should get metric name, verbose name and description as tooltip in metric', () => {
   const ref = { current: { scrollWidth: 100, clientWidth: 100 } };
-  expect(
-    getMetricTooltipNode(
-      {
-        metric_name: 'count',
-        label: 'count(*)',
-        verbose_name: 'count(*)',
-      },
-      ref,
-    ),
-  ).toStrictEqual(rvNode);
-});
-
-test('should get metric name and verbose name in tooltip if it overflowed', () => {
-  const rvNode = (
+  renderWithTheme(
     <>
-      <div>metric name: count</div>
-      <div>verbose name: longlonglonglonglong verbose metric</div>
-    </>
+      {getMetricTooltipNode(
+        {
+          metric_name: 'count',
+          label: 'count(*)',
+          verbose_name: 'count(*)',
+          description: 'Count metric',
+        },
+        ref,
+      )}
+    </>,
   );
-
-  const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
-  expect(
-    getMetricTooltipNode(
-      {
-        metric_name: 'count',
-        label: '',
-        verbose_name: 'longlonglonglonglong verbose metric',
-      },
-      ref,
-    ),
-  ).toStrictEqual(rvNode);
+  expect(screen.getByText('Metric name')).toBeVisible();
+  expect(screen.getByText('count')).toBeVisible();
+  expect(screen.getByText('Label')).toBeVisible();
+  expect(screen.getByText('count(*)')).toBeVisible();
+  expect(screen.getByText('Description')).toBeVisible();
+  expect(screen.getByText('Count metric')).toBeVisible();
 });
 
-test('should get label name as tooltip in metric if it overflowed', () => {
+test('should get metric name as tooltip if it overflowed', () => {
   const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
-  expect(
-    getMetricTooltipNode(
-      {
-        metric_name: 'count',
-        label: 'longlonglonglonglong metric label',
-        verbose_name: '',
-      },
-      ref,
-    ),
-  ).toBe('label name: longlonglonglonglong metric label');
+  renderWithTheme(
+    <>
+      {getMetricTooltipNode(
+        {
+          metric_name: 'long long long long metric name',
+          label: '',
+          verbose_name: '',
+          description: '',
+        },
+        ref,
+      )}
+    </>,
+  );
+  expect(screen.getByText('Metric name')).toBeVisible();
+  expect(screen.getByText('long long long long metric name')).toBeVisible();
+  expect(screen.queryByText('Label')).not.toBeInTheDocument();
+  expect(screen.queryByText('Description')).not.toBeInTheDocument();
+});
+
+test('should get metric name, verbose name and description in tooltip if it overflowed', () => {
+  const ref = { current: { scrollWidth: 200, clientWidth: 100 } };
+  renderWithTheme(
+    <>
+      {getMetricTooltipNode(
+        {
+          metric_name: 'count',
+          label: '',
+          verbose_name: 'longlonglonglonglong verbose metric',
+          description: 'Count metric',
+        },
+        ref,
+      )}
+    </>,
+  );
+  expect(screen.getByText('Metric name')).toBeVisible();
+  expect(screen.getByText('count')).toBeVisible();
+  expect(screen.getByText('Label')).toBeVisible();
+  expect(screen.getByText('longlonglonglonglong verbose metric')).toBeVisible();
+  expect(screen.getByText('Description')).toBeVisible();
+  expect(screen.getByText('Count metric')).toBeVisible();
 });

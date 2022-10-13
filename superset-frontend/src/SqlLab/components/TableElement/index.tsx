@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
@@ -57,7 +57,7 @@ export interface TableElementProps {
   table: Table;
   actions: {
     removeDataPreview: (table: Table) => void;
-    removeTable: (table: Table) => void;
+    removeTables: (tables: Table[]) => void;
   };
 }
 
@@ -77,7 +77,7 @@ const Fade = styled.div`
 const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const tableNameRef = React.useRef<HTMLInputElement>(null);
+  const tableNameRef = useRef<HTMLInputElement>(null);
 
   const setHover = (hovered: boolean) => {
     debounce(() => setHovered(hovered), 100)();
@@ -85,7 +85,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
 
   const removeTable = () => {
     actions.removeDataPreview(table);
-    actions.removeTable(table);
+    actions.removeTables([table]);
   };
 
   const toggleSortColumns = () => {
@@ -152,11 +152,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
     if (table?.indexes?.length) {
       keyLink = (
         <ModalTrigger
-          modalTitle={
-            <div>
-              {t('Keys for table')} <strong>{table.name}</strong>
-            </div>
-          }
+          modalTitle={`${t('Keys for table')} ${table.name}`}
           modalBody={table.indexes.map((ix, i) => (
             <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
           ))}
@@ -274,6 +270,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
 
     const metadata = (
       <div
+        data-test="table-element"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         css={{ paddingTop: 6 }}

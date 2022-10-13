@@ -27,7 +27,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, withDndFallback } from '@superset-ui/chart-controls';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -35,7 +35,6 @@ import {
 import { Datasource, OptionSortType } from 'src/explore/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
-import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import AdhocFilter, {
   CLAUSES,
@@ -49,6 +48,8 @@ import {
 } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
+import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
+import DndAdhocFilterOption from './DndAdhocFilterOption';
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
@@ -69,7 +70,7 @@ export interface DndFilterSelectProps
   datasource: Datasource;
 }
 
-export const DndFilterSelect = (props: DndFilterSelectProps) => {
+const DndFilterSelect = (props: DndFilterSelectProps) => {
   const { datasource, onChange = () => {}, name: controlName } = props;
 
   const propsValues = Array.from(props.value ?? []);
@@ -147,16 +148,15 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
 
       if (!isSqllabView && dbId && name && schema) {
         SupersetClient.get({
-          endpoint: `/superset/extra_table_metadata/${dbId}/${name}/${schema}/`,
+          endpoint: `/api/v1/database/${dbId}/table_extra/${name}/${schema}/`,
         })
           .then(({ json }: { json: Record<string, any> }) => {
-            if (json && json.partitions) {
+            if (json?.partitions) {
               const { partitions } = json;
               // for now only show latest_partition option
               // when table datasource has only 1 partition key.
               if (
-                partitions &&
-                partitions.cols &&
+                partitions?.cols &&
                 Object.keys(partitions.cols).length === 1
               ) {
                 setPartitionColumn(partitions.cols[0]);
@@ -222,14 +222,8 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
       // via datasource saved metric
       if (filterOptions.saved_metric_name) {
         return new AdhocFilter({
-          expressionType:
-            datasource.type === 'druid'
-              ? EXPRESSION_TYPES.SIMPLE
-              : EXPRESSION_TYPES.SQL,
-          subject:
-            datasource.type === 'druid'
-              ? filterOptions.saved_metric_name
-              : getMetricExpression(filterOptions.saved_metric_name),
+          expressionType: EXPRESSION_TYPES.SQL,
+          subject: getMetricExpression(filterOptions.saved_metric_name),
           operator:
             OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
           operatorId: Operators.GREATER_THAN,
@@ -240,14 +234,8 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
       // has a custom label, meaning it's custom column
       if (filterOptions.label) {
         return new AdhocFilter({
-          expressionType:
-            datasource.type === 'druid'
-              ? EXPRESSION_TYPES.SIMPLE
-              : EXPRESSION_TYPES.SQL,
-          subject:
-            datasource.type === 'druid'
-              ? filterOptions.label
-              : new AdhocMetric(option).translateToSql(),
+          expressionType: EXPRESSION_TYPES.SQL,
+          subject: new AdhocMetric(option).translateToSql(),
           operator:
             OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GREATER_THAN].operation,
           operatorId: Operators.GREATER_THAN,
@@ -308,32 +296,18 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const valuesRenderer = useCallback(
     () =>
-      values.map((adhocFilter: AdhocFilter, index: number) => {
-        const label = adhocFilter.getDefaultLabel();
-        const tooltipTitle = adhocFilter.getTooltipTitle();
-        return (
-          <AdhocFilterPopoverTrigger
-            key={index}
-            adhocFilter={adhocFilter}
-            options={options}
-            datasource={datasource}
-            onFilterEdit={onFilterEdit}
-            partitionColumn={partitionColumn}
-          >
-            <OptionWrapper
-              key={index}
-              index={index}
-              label={label}
-              tooltipTitle={tooltipTitle}
-              clickClose={onClickClose}
-              onShiftOptions={onShiftOptions}
-              type={DndItemType.FilterOption}
-              withCaret
-              isExtra={adhocFilter.isExtra}
-            />
-          </AdhocFilterPopoverTrigger>
-        );
-      }),
+      values.map((adhocFilter: AdhocFilter, index: number) => (
+        <DndAdhocFilterOption
+          index={index}
+          adhocFilter={adhocFilter}
+          options={options}
+          datasource={datasource}
+          onFilterEdit={onFilterEdit}
+          partitionColumn={partitionColumn}
+          onClickClose={onClickClose}
+          onShiftOptions={onShiftOptions}
+        />
+      )),
     [
       onClickClose,
       onFilterEdit,
@@ -413,9 +387,14 @@ export const DndFilterSelect = (props: DndFilterSelectProps) => {
         visible={newFilterPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-      >
-        <div />
-      </AdhocFilterPopoverTrigger>
+      />
     </>
   );
 };
+
+const DndFilterSelectWithFallback = withDndFallback(
+  DndFilterSelect,
+  AdhocFilterControl,
+);
+
+export { DndFilterSelectWithFallback as DndFilterSelect };

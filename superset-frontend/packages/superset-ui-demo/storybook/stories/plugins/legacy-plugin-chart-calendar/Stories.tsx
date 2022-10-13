@@ -40,6 +40,8 @@ export const basic = () => (
       cellSize: 10,
       cellPadding: 2,
       cellRadius: 0,
+      domainGranularity: 'month',
+      subdomainGranularity: 'day',
       linearColorScheme: 'schemeRdYlBu',
       steps: 10,
       yAxisFormat: '.3s',

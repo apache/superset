@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
+from typing import Any, Dict
 
 from superset.dao.base import BaseDAO
 from superset.extensions import db
@@ -48,3 +49,10 @@ class QueryDAO(BaseDAO):
                 saved_query.rows = query.rows
                 saved_query.last_run = datetime.now()
             db.session.commit()
+
+    @staticmethod
+    def save_metadata(query: Query, payload: Dict[str, Any]) -> None:
+        # pull relevant data from payload and store in extra_json
+        columns = payload.get("columns", {})
+        db.session.add(query)
+        query.set_extra_json_key("columns", columns)

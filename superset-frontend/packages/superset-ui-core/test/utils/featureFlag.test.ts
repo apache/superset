@@ -19,17 +19,45 @@
 
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
-describe('isFeatureFlagEnabled', () => {
+const originalFeatureFlags = window.featureFlags;
+// eslint-disable-next-line no-console
+const originalConsoleError = console.error;
+const reset = () => {
+  window.featureFlags = originalFeatureFlags;
+  // eslint-disable-next-line no-console
+  console.error = originalConsoleError;
+};
+
+it('returns false and raises console error if feature flags have not been initialized', () => {
+  // eslint-disable-next-line no-console
+  console.error = jest.fn();
+  delete (window as any).featureFlags;
+  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
+    false,
+  );
+
+  // eslint-disable-next-line no-console
+  expect(console.error).toHaveBeenNthCalledWith(
+    1,
+    'Failed to query feature flag ALLOW_DASHBOARD_DOMAIN_SHARDING (see error below)',
+  );
+
+  reset();
+});
+
+it('returns false for unset feature flag', () => {
+  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
+    false,
+  );
+
+  reset();
+});
+
+it('returns true for set feature flag', () => {
   window.featureFlags = {
     [FeatureFlag.CLIENT_CACHE]: true,
   };
-  it('returns false for unset feature flag', () => {
-    expect(
-      isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING),
-    ).toEqual(false);
-  });
 
-  it('returns true for set feature flag', () => {
-    expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toEqual(true);
-  });
+  expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toEqual(true);
+  reset();
 });

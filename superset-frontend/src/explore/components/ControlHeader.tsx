@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, ReactNode } from 'react';
-import { t, css, useTheme } from '@superset-ui/core';
+import React, { FC, ReactNode, useMemo, useRef } from 'react';
+import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Tooltip } from 'src/components/Tooltip';
 import { FormLabel } from 'src/components/Form';
@@ -40,6 +40,16 @@ export type ControlHeaderProps = {
   danger?: string;
 };
 
+const iconStyles = css`
+  &.anticon {
+    font-size: unset;
+    .anticon {
+      line-height: unset;
+      vertical-align: unset;
+    }
+  }
+`;
+
 const ControlHeader: FC<ControlHeaderProps> = ({
   name,
   label,
@@ -55,6 +65,22 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   danger,
 }) => {
   const { gridUnit, colors } = useTheme();
+  const hasHadNoErrors = useRef(false);
+  const labelColor = useMemo(() => {
+    if (!validationErrors.length) {
+      hasHadNoErrors.current = true;
+    }
+
+    if (hasHadNoErrors.current) {
+      if (validationErrors.length) {
+        return colors.error.base;
+      }
+
+      return 'unset';
+    }
+
+    return colors.alert.base;
+  }, [colors.error.base, colors.alert.base, validationErrors.length]);
 
   if (!label) {
     return null;
@@ -78,12 +104,16 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       >
         {description && (
           <span>
-            <InfoTooltipWithTrigger
-              label={t('description')}
-              tooltip={description}
+            <Tooltip
+              id={`${t('description')}-tooltip`}
+              title={description}
               placement="top"
-              onClick={tooltipOnClick}
-            />{' '}
+            >
+              <Icons.InfoCircleOutlined
+                css={iconStyles}
+                onClick={tooltipOnClick}
+              />
+            </Tooltip>{' '}
           </span>
         )}
         {renderTrigger && (
@@ -100,23 +130,22 @@ const ControlHeader: FC<ControlHeaderProps> = ({
     );
   };
 
-  const labelClass = validationErrors?.length > 0 ? 'text-danger' : '';
-
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
       <div className="pull-left">
         <FormLabel
-          css={{
-            marginBottom: 0,
-            position: 'relative',
-          }}
+          css={(theme: SupersetTheme) =>
+            css`
+              margin-bottom: ${theme.gridUnit * 0.5}px;
+              position: relative;
+            `
+          }
         >
           {leftNode && <span>{leftNode}</span>}
           <span
             role="button"
             tabIndex={0}
             onClick={onClick}
-            className={labelClass}
             style={{ cursor: onClick ? 'pointer' : '' }}
           >
             {label}
@@ -136,13 +165,18 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             </span>
           )}
           {validationErrors?.length > 0 && (
-            <span>
+            <span data-test="error-tooltip">
               <Tooltip
                 id="error-tooltip"
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.ErrorSolid iconColor={colors.error.base} iconSize="s" />
+                <Icons.ExclamationCircleOutlined
+                  css={css`
+                    ${iconStyles}
+                    color: ${labelColor};
+                  `}
+                />
               </Tooltip>{' '}
             </span>
           )}

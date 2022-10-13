@@ -47,17 +47,19 @@ function setUnsavedChangesAfterAction(action) {
         dispatch(result);
       }
 
+      const { dashboardLayout, dashboardState } = getState();
+
       const isComponentLevelEvent =
         result.type === UPDATE_COMPONENTS &&
         result.payload &&
         result.payload.nextComponents;
       // trigger dashboardFilters state update if dashboard layout is changed.
       if (!isComponentLevelEvent) {
-        const components = getState().dashboardLayout.present;
+        const components = dashboardLayout.present;
         dispatch(updateLayoutComponents(components));
       }
 
-      if (!getState().dashboardState.hasUnsavedChanges) {
+      if (!dashboardState.hasUnsavedChanges) {
         dispatch(setUnsavedChanges(true));
       }
     };
@@ -208,7 +210,7 @@ export function handleComponentDrop(dropResult) {
       destination.id !== rootChildId
     ) {
       return dispatch(
-        addWarningToast(t(`Can not move top level tab into nested tabs`)),
+        addWarningToast(t('Can not move top level tab into nested tabs')),
       );
     } else if (
       destination &&

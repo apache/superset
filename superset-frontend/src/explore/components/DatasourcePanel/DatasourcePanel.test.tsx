@@ -17,11 +17,10 @@
  * under the License.
  */
 import React from 'react';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { DndProvider } from 'react-dnd';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatasourcePanel, {
+  IDatasource,
   Props as DatasourcePanelProps,
 } from 'src/explore/components/DatasourcePanel';
 import {
@@ -31,23 +30,30 @@ import {
 import { DatasourceType } from '@superset-ui/core';
 import DatasourceControl from 'src/explore/components/controls/DatasourceControl';
 
-const datasource = {
+const datasource: IDatasource = {
   id: 1,
   type: DatasourceType.Table,
-  name: 'birth_names',
   columns,
   metrics,
-  uid: '1__table',
   database: {
-    backend: 'mysql',
-    name: 'main',
+    id: 1,
   },
-  column_format: { ratio: '.2%' },
-  verbose_map: { __timestamp: 'Time' },
-  main_dttm_col: 'None',
   datasource_name: 'table1',
-  description: 'desc',
 };
+
+const mockUser = {
+  createdOn: '2021-04-27T18:12:38.952304',
+  email: 'admin',
+  firstName: 'admin',
+  isActive: true,
+  lastName: 'admin',
+  permissions: {},
+  roles: { Admin: Array(173) },
+  userId: 1,
+  username: 'admin',
+  isAnonymous: false,
+};
+
 const props: DatasourcePanelProps = {
   datasource,
   controls: {
@@ -57,6 +63,7 @@ const props: DatasourcePanelProps = {
       type: DatasourceControl,
       label: 'hello',
       datasource,
+      user: mockUser,
     },
   },
   actions: {
@@ -64,53 +71,50 @@ const props: DatasourcePanelProps = {
   },
 };
 
-const setup = (props: DatasourcePanelProps) => (
-  <DndProvider backend={HTML5Backend}>
-    <DatasourcePanel {...props} />
-  </DndProvider>
-);
-
-function search(value: string, input: HTMLElement) {
+const search = (value: string, input: HTMLElement) => {
   userEvent.clear(input);
   userEvent.type(input, value);
-}
+};
 
-test('should render', () => {
-  const { container } = render(setup(props));
+test('should render', async () => {
+  const { container } = render(<DatasourcePanel {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  expect(await screen.findByText(/metrics/i)).toBeInTheDocument();
   expect(container).toBeVisible();
 });
 
-test('should display items in controls', () => {
-  render(setup(props));
-  expect(screen.getByText('birth_names')).toBeInTheDocument();
-  expect(screen.getByText('Metrics')).toBeInTheDocument();
+test('should display items in controls', async () => {
+  render(<DatasourcePanel {...props} />, { useRedux: true, useDnd: true });
+  expect(await screen.findByText('Metrics')).toBeInTheDocument();
   expect(screen.getByText('Columns')).toBeInTheDocument();
 });
 
-test('should render the metrics', () => {
-  render(setup(props));
+test('should render the metrics', async () => {
+  render(<DatasourcePanel {...props} />, { useRedux: true, useDnd: true });
   const metricsNum = metrics.length;
   metrics.forEach(metric =>
     expect(screen.getByText(metric.metric_name)).toBeInTheDocument(),
   );
   expect(
-    screen.getByText(`Showing ${metricsNum} of ${metricsNum}`),
+    await screen.findByText(`Showing ${metricsNum} of ${metricsNum}`),
   ).toBeInTheDocument();
 });
 
-test('should render the columns', () => {
-  render(setup(props));
+test('should render the columns', async () => {
+  render(<DatasourcePanel {...props} />, { useRedux: true, useDnd: true });
   const columnsNum = columns.length;
   columns.forEach(col =>
     expect(screen.getByText(col.column_name)).toBeInTheDocument(),
   );
   expect(
-    screen.getByText(`Showing ${columnsNum} of ${columnsNum}`),
+    await screen.findByText(`Showing ${columnsNum} of ${columnsNum}`),
   ).toBeInTheDocument();
 });
 
 test('should render 0 search results', async () => {
-  render(setup(props));
+  render(<DatasourcePanel {...props} />, { useRedux: true, useDnd: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search('nothing', searchInput);
@@ -118,7 +122,7 @@ test('should render 0 search results', async () => {
 });
 
 test('should search and render matching columns', async () => {
-  render(setup(props));
+  render(<DatasourcePanel {...props} />, { useRedux: true, useDnd: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search(columns[0].column_name, searchInput);
@@ -130,7 +134,7 @@ test('should search and render matching columns', async () => {
 });
 
 test('should search and render matching metrics', async () => {
-  render(setup(props));
+  render(<DatasourcePanel {...props} />, { useRedux: true, useDnd: true });
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
   search(metrics[0].metric_name, searchInput);
@@ -146,19 +150,73 @@ test('should render a warning', async () => {
     ...datasource,
     extra: JSON.stringify({ warning_markdown: 'This is a warning.' }),
   };
-  render(
-    setup({
-      ...props,
-      datasource: deprecatedDatasource,
-      controls: {
-        datasource: {
-          ...props.controls.datasource,
-          datasource: deprecatedDatasource,
-        },
+  const newProps = {
+    ...props,
+    datasource: deprecatedDatasource,
+    controls: {
+      datasource: {
+        ...props.controls.datasource,
+        datasource: deprecatedDatasource,
+        user: mockUser,
       },
-    }),
-  );
+    },
+  };
+  render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
   expect(
     await screen.findByRole('img', { name: 'alert-solid' }),
   ).toBeInTheDocument();
+});
+
+test('should render a create dataset infobox', async () => {
+  const newProps = {
+    ...props,
+    datasource: {
+      ...datasource,
+      type: DatasourceType.Query,
+    },
+  };
+  render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
+
+  const createButton = await screen.findByRole('button', {
+    name: /create a dataset/i,
+  });
+  const infoboxText = screen.getByText(/to edit or add columns and metrics./i);
+
+  expect(createButton).toBeVisible();
+  expect(infoboxText).toBeVisible();
+});
+
+test('should render a save dataset modal when "Create a dataset" is clicked', async () => {
+  const newProps = {
+    ...props,
+    datasource: {
+      ...datasource,
+      type: DatasourceType.Query,
+    },
+  };
+  render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
+
+  const createButton = await screen.findByRole('button', {
+    name: /create a dataset/i,
+  });
+
+  userEvent.click(createButton);
+
+  const saveDatasetModalTitle = screen.getByText(/save or overwrite dataset/i);
+
+  expect(saveDatasetModalTitle).toBeVisible();
+});
+
+test('should not render a save dataset modal when datasource is not query or dataset', async () => {
+  const newProps = {
+    ...props,
+    datasource: {
+      ...datasource,
+      type: DatasourceType.Table,
+    },
+  };
+  render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
+  expect(await screen.findByText(/metrics/i)).toBeInTheDocument();
+
+  expect(screen.queryByText(/create a dataset/i)).toBe(null);
 });

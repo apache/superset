@@ -30,11 +30,11 @@ RUN apt-get install -y apt-transport-https apt-utils
 # Install superset dependencies
 # https://superset.apache.org/docs/installation/installing-superset-from-scratch
 RUN apt-get install -y build-essential libssl-dev \
-    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev
+    libffi-dev python3-dev libsasl2-dev libldap2-dev libxi-dev chromium
 
 # Install nodejs for custom build
 # https://nodejs.org/en/download/package-manager/
-RUN curl -sL https://deb.nodesource.com/setup_12.x | bash - \
+RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - \
     && apt-get install -y nodejs
 
 RUN mkdir -p /home/superset

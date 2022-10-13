@@ -26,10 +26,11 @@ import bleach
 from flask_babel import gettext as __
 
 from superset import app
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
-from superset.utils.core import send_email_smtp
+from superset.utils.core import HeaderDataType, send_email_smtp
+from superset.utils.decorators import statsd_gauge
 from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
@@ -37,10 +38,36 @@ logger = logging.getLogger(__name__)
 TABLE_TAGS = ["table", "th", "tr", "td", "thead", "tbody", "tfoot"]
 TABLE_ATTRIBUTES = ["colspan", "rowspan", "halign", "border", "class"]
 
+ALLOWED_TAGS = [
+    "a",
+    "abbr",
+    "acronym",
+    "b",
+    "blockquote",
+    "br",
+    "code",
+    "div",
+    "em",
+    "i",
+    "li",
+    "ol",
+    "p",
+    "strong",
+    "ul",
+] + TABLE_TAGS
+
+ALLOWED_ATTRIBUTES = {
+    "a": ["href", "title"],
+    "abbr": ["title"],
+    "acronym": ["title"],
+    **{tag: TABLE_ATTRIBUTES for tag in TABLE_TAGS},
+}
+
 
 @dataclass
 class EmailContent:
     body: str
+    header_data: Optional[HeaderDataType] = None
     data: Optional[Dict[str, Any]] = None
     images: Optional[Dict[str, bytes]] = None
 
@@ -81,13 +108,19 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             }
 
         # Strip any malicious HTML from the description
-        description = bleach.clean(self._content.description or "")
+        description = bleach.clean(
+            self._content.description or "",
+            tags=ALLOWED_TAGS,
+            attributes=ALLOWED_ATTRIBUTES,
+        )
 
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
             df = self._content.embedded_data
             html_table = bleach.clean(
-                df.to_html(na_rep="", index=True),
+                df.to_html(na_rep="", index=True, escape=True),
+                # pandas will escape the HTML in cells already, so passing
+                # more allowed tags here will not work
                 tags=TABLE_TAGS,
                 attributes=TABLE_ATTRIBUTES,
             )
@@ -126,7 +159,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 </style>
               </head>
               <body>
-                <p>{description}</p>
+                <div>{description}</div>
+                <br>
                 <b><a href="{url}">{call_to_action}</a></b><p></p>
                 {html_table}
                 {img_tag}
@@ -137,7 +171,12 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
         if self._content.csv:
             csv_data = {__("%(name)s.csv", name=self._content.name): self._content.csv}
-        return EmailContent(body=body, images=images, data=csv_data)
+        return EmailContent(
+            body=body,
+            images=images,
+            data=csv_data,
+            header_data=self._content.header_data,
+        )
 
     def _get_subject(self) -> str:
         return __(
@@ -149,6 +188,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
 
+    @statsd_gauge("reports.email.send")
     def send(self) -> None:
         subject = self._get_subject()
         content = self._get_content()
@@ -165,6 +205,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 bcc="",
                 mime_subtype="related",
                 dryrun=False,
+                header_data=content.header_data,
             )
             logger.info("Report sent to email")
         except Exception as ex:

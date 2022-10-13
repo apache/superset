@@ -53,6 +53,7 @@ g.window.performance = { now: () => new Date().getTime() };
 g.window.Worker = Worker;
 g.window.IntersectionObserver = IntersectionObserver;
 g.window.ResizeObserver = ResizeObserver;
+g.window.featureFlags = {};
 g.URL.createObjectURL = () => '';
 g.caches = new CacheStorage();
 
@@ -74,3 +75,12 @@ g.$ = jQuery(g.window);
 
 configureTranslation();
 setupSupersetClient();
+
+// The useTabId hook depends on BroadcastChannel. Jest has a memory leak problem when
+// dealing with native modules. See https://chanind.github.io/javascript/2019/10/12/jest-tests-memory-leak.html
+// and https://github.com/facebook/jest/issues/6814 for more information.
+jest.mock('src/hooks/useTabId', () => ({
+  useTabId: () => 1,
+}));
+
+process.env.WEBPACK_MODE = 'test';

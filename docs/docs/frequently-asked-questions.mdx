@@ -38,11 +38,11 @@ execute queries that scan through terabytes in an interactive fashion.
 ### How do I create my own visualization?
 
 We recommend reading the instructions in
-[Building Custom Viz Plugins](/docs/installation/building-custom-viz-plugins).
+[Creating Visualization Plugins](/docs/contributing/creating-viz-plugins).
 
 ### Can I upload and visualize CSV data?
 
-Absolutely! Read the instructions [here](/docs/Creating Charts and Dashboards/exploring-data) to learn
+Absolutely! Read the instructions [here](/docs/creating-charts-dashboards/exploring-data) to learn
 how to enable and use CSV upload.
 
 ### Why are my queries timing out?
@@ -55,14 +55,6 @@ timeout in configuration. For example:
 
 ```
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
-```
-
-Superset is running on gunicorn web server, which may time out web requests. If you want to increase
-the default (50), you can specify the timeout when starting the web server with the -t flag, which
-is expressed in seconds.
-
-```
-superset runserver -t 300
 ```
 
 If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are
@@ -231,7 +223,7 @@ Metadata attribute using the `label_colors` key.
 
 ### Does Superset work with [insert database engine here]?
 
-The [Connecting to Databases section](/docs/connecting-to-databases/installing-database-drivers) provides the best
+The [Connecting to Databases section](/docs/databases/installing-database-drivers) provides the best
 overview for supported databases. Database engines not listed on that page may work too. We rely on
 the community to contribute to this knowledge base.
 

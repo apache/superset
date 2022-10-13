@@ -19,27 +19,34 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC, SIMPLE_FILTER } from './shared.helper';
 
 describe('Visualization > Line', () => {
-  const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
-
   beforeEach(() => {
-    cy.login();
+    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
+  const LINE_CHART_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'line' };
+
   it('should show validator error when no metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.get('.ant-alert-warning').contains(`Metrics: cannot be empty`);
+    cy.visitChartByParams(formData);
+    cy.get('.panel-body').contains(
+      `Add required control values to preview chart`,
+    );
   });
 
   it('should not show validator error when metric added', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [] };
-    cy.visitChartByParams(JSON.stringify(formData));
-    cy.get('.ant-alert-warning').contains(`Metrics: cannot be empty`);
-    cy.get('.text-danger').contains('Metrics');
+    cy.visitChartByParams(formData);
+    cy.get('.panel-body').contains(
+      `Add required control values to preview chart`,
+    );
+    cy.get('[data-test="metrics-header"]').contains('Metrics');
+    cy.get('[data-test="metrics-header"] [data-test="error-tooltip"]').should(
+      'exist',
+    );
 
     cy.get('[data-test=metrics]')
-      .find('[data-test="add-metric-button"]')
+      .contains('Drop columns/metrics here or click')
       .click();
 
     // Title edit for saved metrics is disabled - switch to Simple
@@ -51,33 +58,40 @@ describe('Visualization > Line', () => {
       .type('sum{enter}');
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
-    cy.get('.text-danger').should('not.exist');
+    cy.get('[data-test="metrics-header"]').contains('Metrics');
+    cy.get('[data-test="metrics-header"] [data-test="error-tooltip"]').should(
+      'not.exist',
+    );
+
     cy.get('.ant-alert-warning').should('not.exist');
   });
 
   it('should allow negative values in Y bounds', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.get('#controlSections-tab-display').click();
     cy.get('span').contains('Y Axis Bounds').scrollIntoView();
     cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 });
     cy.get('.ant-alert-warning').should('not.exist');
   });
 
-  it('should allow type to search color schemes', () => {
+  it('should allow type to search color schemes and apply the scheme', () => {
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()
       .type('bnbColors{enter}');
     cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item ul[data-test="bnbColors"]',
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
     ).should('exist');
+    cy.get('.line .nv-legend .nv-legend-symbol')
+      .first()
+      .should('have.css', 'fill', 'rgb(255, 90, 95)');
   });
 
   it('should work with adhoc metric', () => {
     const formData = { ...LINE_CHART_DEFAULTS, metrics: [NUM_METRIC] };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -85,7 +99,7 @@ describe('Visualization > Line', () => {
     const metrics = ['count'];
     const groupby = ['gender'];
     const formData = { ...LINE_CHART_DEFAULTS, metrics, groupby };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -97,7 +111,7 @@ describe('Visualization > Line', () => {
       metrics,
       adhoc_filters: filters,
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -109,7 +123,7 @@ describe('Visualization > Line', () => {
       groupby: ['name'],
       timeseries_limit_metric: NUM_METRIC,
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -122,7 +136,7 @@ describe('Visualization > Line', () => {
       timeseries_limit_metric: NUM_METRIC,
       order_desc: true,
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -134,7 +148,7 @@ describe('Visualization > Line', () => {
       rolling_type: 'mean',
       rolling_periods: 10,
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -143,12 +157,12 @@ describe('Visualization > Line', () => {
     const formData = {
       ...LINE_CHART_DEFAULTS,
       metrics,
-      time_compare: ['1+year'],
+      time_compare: ['1 year'],
       comparison_type: 'values',
       groupby: ['gender'],
     };
 
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
 
     // Offset color should match original line color
@@ -186,10 +200,10 @@ describe('Visualization > Line', () => {
     const formData = {
       ...LINE_CHART_DEFAULTS,
       metrics,
-      time_compare: ['1+year'],
+      time_compare: ['1 year'],
       comparison_type: 'ratio',
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -198,10 +212,10 @@ describe('Visualization > Line', () => {
     const formData = {
       ...LINE_CHART_DEFAULTS,
       metrics,
-      time_compare: ['1+year'],
+      time_compare: ['1 year'],
       comparison_type: 'percentage',
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   });
 
@@ -210,7 +224,7 @@ describe('Visualization > Line', () => {
       ...LINE_CHART_DEFAULTS,
       metrics: ['count'],
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
     cy.get('text.nv-legend-text').contains('COUNT(*)');
   });
@@ -221,7 +235,7 @@ describe('Visualization > Line', () => {
       metrics: ['count'],
       annotation_layers: [
         {
-          name: 'Goal+line',
+          name: 'Goal line',
           annotationType: 'FORMULA',
           sourceType: '',
           value: 'y=140000',
@@ -241,7 +255,7 @@ describe('Visualization > Line', () => {
         },
       ],
     };
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
     cy.get('.slice_container').within(() => {
       // Goal line annotation doesn't show up in legend
@@ -277,7 +291,7 @@ describe('Visualization > Line', () => {
             },
           ],
         };
-        cy.visitChartByParams(JSON.stringify(formData));
+        cy.visitChartByParams(formData);
       },
     );
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });

@@ -17,13 +17,18 @@
  * under the License.
  */
 describe('Visualization > Bubble', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const BUBBLE_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'bubble',
     slice_id: 46,
     granularity_sqla: 'year',
     time_grain_sqla: 'P1D',
-    time_range: '2011-01-01+:+2011-01-02',
+    time_range: '2011-01-01 : 2011-01-02',
     series: 'region',
     entity: 'country_name',
     x: 'sum__SP_RUR_TOTL_ZS',
@@ -47,36 +52,9 @@ describe('Visualization > Bubble', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
-
-  // Number of circles are pretty unstable when there are a lot of circles
-  // Since main functionality is already covered in fitler test below,
-  // skip this test untill we find a solution.
-  it.skip('should work', () => {
-    cy.visitChartByParams(JSON.stringify(BUBBLE_FORM_DATA)).then(() => {
-      cy.wait('@getJson').then(xhr => {
-        let expectedBubblesNumber = 0;
-        xhr.responseBody.data.forEach(element => {
-          expectedBubblesNumber += element.values.length;
-        });
-        cy.get('[data-test="chart-container"]')
-          .should('be.visible', { timeout: 15000 })
-          .within(() => {
-            cy.get('svg')
-              .should('exist')
-              .find('.nv-point-clips circle')
-              .should('have.length', expectedBubblesNumber);
-          });
-      });
-    });
-  });
 
   it('should work with filter', () => {
     verify({
@@ -86,7 +64,7 @@ describe('Visualization > Bubble', () => {
           expressionType: 'SIMPLE',
           subject: 'region',
           operator: '==',
-          comparator: 'South+Asia',
+          comparator: 'South Asia',
           clause: 'WHERE',
           sqlExpression: null,
           filterOptionName: 'filter_b2tfg1rs8y_8kmrcyxvsqd',
@@ -106,5 +84,23 @@ describe('Visualization > Bubble', () => {
           true,
         );
       });
+  });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    cy.visitChartByParams(BUBBLE_FORM_DATA);
+
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('[data-test=run-query-button]').click();
+    cy.get('.bubble .nv-legend .nv-legend-symbol').should(
+      'have.css',
+      'fill',
+      'rgb(31, 168, 201)',
+    );
   });
 });

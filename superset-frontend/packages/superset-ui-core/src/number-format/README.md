@@ -68,7 +68,7 @@ There is also a formatter based on [pretty-ms](https://www.npmjs.com/package/pre
 used to format time durations:
 
 ```js
-import { createDurationFormatter, formatNumber, getNumberFormatterRegistry } from from '@superset-ui-number-format';
+import { createDurationFormatter, formatNumber, getNumberFormatterRegistry } from '@superset-ui-number-format';
 
 getNumberFormatterRegistry().registerValue('my_duration_format', createDurationFormatter({ colonNotation: true });
 console.log(formatNumber('my_duration_format', 95500))

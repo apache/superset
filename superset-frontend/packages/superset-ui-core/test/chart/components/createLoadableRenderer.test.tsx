@@ -106,7 +106,7 @@ describe('createLoadableRenderer', () => {
           expect(render).not.toHaveBeenCalled();
           expect(onRenderSuccess).not.toHaveBeenCalled();
           expect(onRenderFailure).toHaveBeenCalledTimes(1);
-          done();
+          done(undefined);
         }, 10);
       }));
 
@@ -126,7 +126,7 @@ describe('createLoadableRenderer', () => {
         expect(loadChartFailure).toHaveBeenCalledTimes(1);
         setTimeout(() => {
           expect(render).not.toHaveBeenCalled();
-          done();
+          done(undefined);
         }, 10);
       }));
 
@@ -138,7 +138,7 @@ describe('createLoadableRenderer', () => {
         setTimeout(() => {
           // but rendered after the component is loaded.
           expect(wrapper.find(TestComponent)).toHaveLength(1);
-          done();
+          done(undefined);
         }, 10);
       }));
 

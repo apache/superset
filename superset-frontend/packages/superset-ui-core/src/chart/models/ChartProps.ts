@@ -20,6 +20,7 @@
 /** Type checking is disabled for this file due to reselect only supporting
  * TS declarations for selectors with up to 12 arguments. */
 // @ts-nocheck
+import { RefObject } from 'react';
 import { createSelector } from 'reselect';
 import {
   AppSection,
@@ -31,6 +32,7 @@ import {
 } from '../..';
 import { HandlerFunction, PlainObject, SetDataMaskHook } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
+import { SupersetTheme } from '../../style';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;
@@ -48,6 +50,8 @@ type Hooks = {
    * also handles "change" and "remove".
    */
   onAddFilter?: (newFilters: DataRecordFilters, merge?: boolean) => void;
+  /** handle right click */
+  onContextMenu?: HandlerFunction;
   /** handle errors */
   onError?: HandlerFunction;
   /** use the vis as control to update state */
@@ -90,6 +94,10 @@ export interface ChartPropsConfig {
   appSection?: AppSection;
   /** is the chart refreshing its contents */
   isRefreshing?: boolean;
+  /** chart ref */
+  inputRef?: RefObject<any>;
+  /** Theme object */
+  theme: SupersetTheme;
 }
 
 const DEFAULT_WIDTH = 800;
@@ -128,6 +136,12 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   isRefreshing?: boolean;
 
+  inputRef?: RefObject<any>;
+
+  inContextMenu?: boolean;
+
+  theme: SupersetTheme;
+
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {
       annotationData = {},
@@ -143,6 +157,9 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       height = DEFAULT_HEIGHT,
       appSection,
       isRefreshing,
+      inputRef,
+      inContextMenu = false,
+      theme,
     } = config;
     this.width = width;
     this.height = height;
@@ -159,6 +176,9 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.behaviors = behaviors;
     this.appSection = appSection;
     this.isRefreshing = isRefreshing;
+    this.inputRef = inputRef;
+    this.inContextMenu = inContextMenu;
+    this.theme = theme;
   }
 }
 
@@ -178,6 +198,9 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.behaviors,
     input => input.appSection,
     input => input.isRefreshing,
+    input => input.inputRef,
+    input => input.inContextMenu,
+    input => input.theme,
     (
       annotationData,
       datasource,
@@ -192,6 +215,9 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       behaviors,
       appSection,
       isRefreshing,
+      inputRef,
+      inContextMenu,
+      theme,
     ) =>
       new ChartProps({
         annotationData,
@@ -207,6 +233,9 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         behaviors,
         appSection,
         isRefreshing,
+        inputRef,
+        inContextMenu,
+        theme,
       }),
   );
 };

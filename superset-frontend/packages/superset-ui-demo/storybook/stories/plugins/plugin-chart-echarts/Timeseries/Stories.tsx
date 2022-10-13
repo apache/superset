@@ -25,6 +25,7 @@ import {
   TimeseriesTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
+import negativeNumData from './negativeNumData';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsTimeseriesChartPlugin()
@@ -61,7 +62,9 @@ export const Timeseries = ({ width, height }) => {
       chartType="echarts-timeseries"
       width={width}
       height={height}
-      queriesData={[{ data: queryData }]}
+      queriesData={[
+        { data: queryData, colnames: ['__timestamp'], coltypes: [2] },
+      ]}
       formData={{
         contributionMode: undefined,
         forecastEnabled,
@@ -87,3 +90,33 @@ export const Timeseries = ({ width, height }) => {
     />
   );
 };
+
+export const WithNegativeNumbers = ({ width, height }) => (
+  <SuperChart
+    chartType="echarts-timeseries"
+    width={width}
+    height={height}
+    queriesData={[
+      { data: negativeNumData, colnames: ['__timestamp'], coltypes: [2] },
+    ]}
+    formData={{
+      contributionMode: undefined,
+      colorScheme: 'supersetColors',
+      seriesType: select(
+        'Line type',
+        ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
+        'line',
+      ),
+      yAxisFormat: '$,.2f',
+      stack: boolean('Stack', true),
+      showValue: true,
+      showLegend: true,
+      onlyTotal: boolean('Only Total', true),
+      orientation: select(
+        'Orientation',
+        ['vertical', 'horizontal'],
+        'vertical',
+      ),
+    }}
+  />
+);

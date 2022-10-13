@@ -22,6 +22,7 @@ import thunk from 'redux-thunk';
 import URI from 'urijs';
 import { Provider } from 'react-redux';
 import { shallow, mount } from 'enzyme';
+import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import sinon from 'sinon';
 import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
@@ -30,6 +31,8 @@ import { EditableTabs } from 'src/components/Tabs';
 import TabbedSqlEditors from 'src/SqlLab/components/TabbedSqlEditors';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import { table, initialState } from 'src/SqlLab/fixtures';
+import { newQueryTabName } from 'src/SqlLab/utils/newQueryTabName';
+import QueryProvider from 'src/views/QueryProvider';
 
 fetchMock.get('glob:*/api/v1/database/*', {});
 fetchMock.get('glob:*/savedqueryviewapi/api/get/*', {});
@@ -55,7 +58,7 @@ describe('TabbedSqlEditors', () => {
       schema: null,
       selectedText: null,
       sql: 'SELECT ds...',
-      title: 'Untitled Query',
+      name: 'Untitled Query',
     },
   ];
   const queries = {
@@ -79,6 +82,7 @@ describe('TabbedSqlEditors', () => {
     defaultQueryLimit: 1000,
     maxRow: 100000,
   };
+
   const getWrapper = () =>
     shallow(<TabbedSqlEditors store={store} {...mockedProps} />)
       .dive()
@@ -87,14 +91,21 @@ describe('TabbedSqlEditors', () => {
   const mountWithAct = async () =>
     act(async () => {
       mount(
-        <Provider store={store}>
-          <TabbedSqlEditors {...mockedProps} />
-        </Provider>,
+        <QueryProvider>
+          <Provider store={store}>
+            <TabbedSqlEditors {...mockedProps} />
+          </Provider>
+        </QueryProvider>,
         {
           wrappingComponent: ThemeProvider,
           wrappingComponentProps: { theme: supersetTheme },
         },
       );
+    });
+  const setup = (props = {}, overridesStore) =>
+    render(<TabbedSqlEditors {...props} />, {
+      useRedux: true,
+      store: overridesStore || store,
     });
 
   let wrapper;
@@ -149,18 +160,6 @@ describe('TabbedSqlEditors', () => {
       );
     });
   });
-  it('should rename Tab', () => {
-    global.prompt = () => 'new title';
-    wrapper = getWrapper();
-    sinon.stub(wrapper.instance().props.actions, 'queryEditorSetTitle');
-
-    wrapper.instance().renameTab(queryEditors[0]);
-    expect(
-      wrapper.instance().props.actions.queryEditorSetTitle.getCall(0).args[1],
-    ).toBe('new title');
-
-    delete global.prompt;
-  });
   it('should removeQueryEditor', () => {
     wrapper = getWrapper();
     sinon.stub(wrapper.instance().props.actions, 'removeQueryEditor');
@@ -170,14 +169,32 @@ describe('TabbedSqlEditors', () => {
       wrapper.instance().props.actions.removeQueryEditor.getCall(0).args[0],
     ).toBe(queryEditors[0]);
   });
-  it('should add new query editor', () => {
-    wrapper = getWrapper();
-    sinon.stub(wrapper.instance().props.actions, 'addQueryEditor');
-
-    wrapper.instance().newQueryEditor();
-    expect(
-      wrapper.instance().props.actions.addQueryEditor.getCall(0).args[0].title,
-    ).toContain('Untitled Query');
+  it('should add new query editor', async () => {
+    const { getAllByLabelText } = setup(mockedProps);
+    fireEvent.click(getAllByLabelText('Add tab')[0]);
+    const actions = store.getActions();
+    await waitFor(() =>
+      expect(actions).toContainEqual({
+        type: 'ADD_QUERY_EDITOR',
+        queryEditor: expect.objectContaining({
+          name: expect.stringMatching(/Untitled Query (\d+)+/),
+        }),
+      }),
+    );
+  });
+  it('should properly increment query tab name', async () => {
+    const { getAllByLabelText } = setup(mockedProps);
+    const newTitle = newQueryTabName(store.getState().sqlLab.queryEditors);
+    fireEvent.click(getAllByLabelText('Add tab')[0]);
+    const actions = store.getActions();
+    await waitFor(() =>
+      expect(actions).toContainEqual({
+        type: 'ADD_QUERY_EDITOR',
+        queryEditor: expect.objectContaining({
+          name: newTitle,
+        }),
+      }),
+    );
   });
   it('should duplicate query editor', () => {
     wrapper = getWrapper();
@@ -226,5 +243,11 @@ describe('TabbedSqlEditors', () => {
     expect(wrapper.find(EditableTabs).props().hideAdd).toBe(false);
     wrapper.setProps({ offline: true });
     expect(wrapper.find(EditableTabs).props().hideAdd).toBe(true);
+  });
+  it('should have an empty state when query editors is empty', () => {
+    wrapper = getWrapper();
+    wrapper.setProps({ queryEditors: [] });
+    const firstTab = wrapper.find(EditableTabs.TabPane).first();
+    expect(firstTab.props()['data-key']).toBe(0);
   });
 });

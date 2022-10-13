@@ -24,7 +24,7 @@ export const FORM_DATA_DEFAULTS = {
   datasource: '3__table',
   granularity_sqla: 'ds',
   time_grain_sqla: null,
-  time_range: '100+years+ago+:+now',
+  time_range: '100 years ago : now',
   adhoc_filters: [],
   groupby: [],
   limit: null,
@@ -37,7 +37,7 @@ export const HEALTH_POP_FORM_DATA_DEFAULTS = {
   datasource: '2__table',
   granularity_sqla: 'ds',
   time_grain_sqla: 'P1D',
-  time_range: '1960-01-01+:+2014-01-02',
+  time_range: '1960-01-01 : 2014-01-02',
 };
 
 export const NUM_METRIC = {

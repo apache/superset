@@ -28,6 +28,8 @@ export { default as getColumnLabel } from './getColumnLabel';
 export { default as getMetricLabel } from './getMetricLabel';
 export { default as DatasourceKey } from './DatasourceKey';
 export { default as normalizeOrderBy } from './normalizeOrderBy';
+export { normalizeTimeColumn } from './normalizeTimeColumn';
+export { getXAxis, isXAxisSet, hasGenericChartAxes } from './getXAxis';
 
 export * from './types/AnnotationLayer';
 export * from './types/QueryFormData';

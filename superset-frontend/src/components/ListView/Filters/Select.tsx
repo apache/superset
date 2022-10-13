@@ -16,29 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useMemo } from 'react';
+import React, {
+  useState,
+  useMemo,
+  forwardRef,
+  useImperativeHandle,
+} from 'react';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import { Filter, SelectOption } from 'src/components/ListView/types';
 import { FormLabel } from 'src/components/Form';
-import { FilterContainer, BaseFilter } from './Base';
+import AsyncSelect from 'src/components/Select/AsyncSelect';
+import { FilterContainer, BaseFilter, FilterHandler } from './Base';
 
 interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
   name?: string;
-  onSelect: (selected: SelectOption | undefined) => void;
+  onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
   paginate?: boolean;
   selects: Filter['selects'];
 }
 
-function SelectFilter({
-  Header,
-  name,
-  fetchSelects,
-  initialValue,
-  onSelect,
-  selects = [],
-}: SelectFilterProps) {
+function SelectFilter(
+  {
+    Header,
+    name,
+    fetchSelects,
+    initialValue,
+    onSelect,
+    selects = [],
+  }: SelectFilterProps,
+  ref: React.RefObject<FilterHandler>,
+) {
   const [selectedOption, setSelectedOption] = useState(initialValue);
 
   const onChange = (selected: SelectOption) => {
@@ -49,9 +58,15 @@ function SelectFilter({
   };
 
   const onClear = () => {
-    onSelect(undefined);
+    onSelect(undefined, true);
     setSelectedOption(undefined);
   };
+
+  useImperativeHandle(ref, () => ({
+    clearFilter: () => {
+      onClear();
+    },
+  }));
 
   const fetchAndFormatSelects = useMemo(
     () => async (inputValue: string, page: number, pageSize: number) => {
@@ -72,20 +87,35 @@ function SelectFilter({
 
   return (
     <FilterContainer>
-      <Select
-        allowClear
-        ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
-        labelInValue
-        data-test="filters-select"
-        header={<FormLabel>{Header}</FormLabel>}
-        onChange={onChange}
-        onClear={onClear}
-        options={fetchSelects ? fetchAndFormatSelects : selects}
-        placeholder={t('Select or type a value')}
-        showSearch
-        value={selectedOption}
-      />
+      {fetchSelects ? (
+        <AsyncSelect
+          allowClear
+          ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
+          data-test="filters-select"
+          header={<FormLabel>{Header}</FormLabel>}
+          onChange={onChange}
+          onClear={onClear}
+          options={fetchAndFormatSelects}
+          placeholder={t('Select or type a value')}
+          showSearch
+          value={selectedOption}
+        />
+      ) : (
+        <Select
+          allowClear
+          ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
+          data-test="filters-select"
+          header={<FormLabel>{Header}</FormLabel>}
+          labelInValue
+          onChange={onChange}
+          onClear={onClear}
+          options={selects}
+          placeholder={t('Select or type a value')}
+          showSearch
+          value={selectedOption}
+        />
+      )}
     </FilterContainer>
   );
 }
-export default SelectFilter;
+export default forwardRef(SelectFilter);

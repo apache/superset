@@ -16,23 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption } from 'echarts';
 import {
   ChartDataResponseResult,
   ChartProps,
-  DataRecordValue,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
-  SetDataMaskHook,
 } from '@superset-ui/core';
 import {
-  DEFAULT_LEGEND_FORM_DATA,
   EchartsLegendFormData,
+  EChartTransformedProps,
   LabelPositionEnum,
   LegendOrientation,
   LegendType,
 } from '../types';
+import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 type RadarColumnConfig = Record<string, { radarMetricMaxValue?: number }>;
 
@@ -79,13 +77,5 @@ export const DEFAULT_FORM_DATA: EchartsRadarFormData = {
   isCircle: false,
 };
 
-export interface RadarChartTransformedProps {
-  formData: EchartsRadarFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  setDataMask: SetDataMaskHook;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-}
+export type RadarChartTransformedProps =
+  EChartTransformedProps<EchartsRadarFormData>;
