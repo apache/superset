@@ -90,6 +90,7 @@ function resetTabbedDashboard(go = false) {
       ...metadata,
       color_scheme: '',
       label_colors: {},
+      shared_label_colors: {},
     });
     cy.updateDashboard(r.id, {
       certification_details: r.certification_details,
@@ -361,7 +362,7 @@ describe('Dashboard edit', () => {
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
-        .eq(1)
+        .eq(2)
         .should('have.css', 'fill', 'rgb(41, 171, 226)');
     });
 
