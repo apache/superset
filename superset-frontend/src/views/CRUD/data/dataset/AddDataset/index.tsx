@@ -71,7 +71,7 @@ export default function AddDataset() {
   >(datasetReducer, null);
 
   const HeaderComponent = () => (
-    <Header setDataset={setDataset} datasetName={dataset?.dataset_name ?? ''} />
+    <Header setDataset={setDataset} title={dataset?.table_name} />
   );
 
   const LeftPanelComponent = () => (
