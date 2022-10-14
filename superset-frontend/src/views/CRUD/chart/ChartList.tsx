@@ -17,7 +17,9 @@
  * under the License.
  */
 import {
+  ensureIsArray,
   getChartMetadataRegistry,
+  JsonResponse,
   styled,
   SupersetClient,
   t,
@@ -49,6 +51,7 @@ import ListView, {
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
+import CrossLinks from 'src/components/ListView/CrossLinks';
 import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -145,6 +148,11 @@ interface ChartListProps {
   };
 }
 
+type ChartLinkedDashboard = {
+  id: number;
+  dashboard_title: string;
+};
+
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
@@ -217,6 +225,7 @@ function ChartList(props: ChartListProps) {
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const enableBroadUserAccess =
     bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
+  const crossRefEnabled = isFeatureEnabled(FeatureFlag.CROSS_REFERENCES);
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -246,6 +255,80 @@ function ChartList(props: ChartListProps) {
       ),
     );
   }
+  const fetchDashboards = async (
+    filterValue = '',
+    page: number,
+    pageSize: number,
+  ) => {
+    // add filters if filterValue
+    const filters = filterValue
+      ? {
+          filters: [
+            {
+              col: 'dashboards',
+              opr: FilterOperator.relationManyMany,
+              value: filterValue,
+            },
+          ],
+        }
+      : {};
+    const queryParams = rison.encode({
+      columns: ['dashboard_title', 'id'],
+      keys: ['none'],
+      order_column: 'dashboard_title',
+      order_direction: 'asc',
+      page,
+      page_size: pageSize,
+      ...filters,
+    });
+    const response: void | JsonResponse = await SupersetClient.get({
+      endpoint: !filterValue
+        ? `/api/v1/dashboard/?q=${queryParams}`
+        : `/api/v1/chart/?q=${queryParams}`,
+    }).catch(() =>
+      addDangerToast(t('An error occurred while fetching dashboards')),
+    );
+    const dashboards = response?.json?.result?.map(
+      ({
+        dashboard_title: dashboardTitle,
+        id,
+      }: {
+        dashboard_title: string;
+        id: number;
+      }) => ({
+        label: dashboardTitle,
+        value: id,
+      }),
+    );
+    return {
+      data: uniqBy<SelectOption>(dashboards, 'value'),
+      totalCount: response?.json?.count,
+    };
+  };
+
+  const dashboardsCol = useMemo(
+    () => ({
+      Cell: ({
+        row: {
+          original: { dashboards },
+        },
+      }: any) => (
+        <CrossLinks
+          crossLinks={ensureIsArray(dashboards).map(
+            (d: ChartLinkedDashboard) => ({
+              title: d.dashboard_title,
+              id: d.id,
+            }),
+          )}
+        />
+      ),
+      Header: t('Dashboards added to'),
+      accessor: 'dashboards',
+      disableSortBy: true,
+      size: 'xxl',
+    }),
+    [],
+  );
 
   const columns = useMemo(
     () => [
@@ -324,6 +407,7 @@ function ChartList(props: ChartListProps) {
         disableSortBy: true,
         size: 'xl',
       },
+      ...(crossRefEnabled ? [dashboardsCol] : []),
       {
         Cell: ({
           row: {
@@ -490,6 +574,19 @@ function ChartList(props: ChartListProps) {
     [],
   );
 
+  const dashboardsFilter: Filter = useMemo(
+    () => ({
+      Header: t('Dashboards'),
+      id: 'dashboards',
+      input: 'select',
+      operator: FilterOperator.relationManyMany,
+      unfilteredLabel: t('All'),
+      fetchSelects: fetchDashboards,
+      paginate: true,
+    }),
+    [],
+  );
+
   const filters: Filters = useMemo(
     () => [
       {
@@ -568,6 +665,7 @@ function ChartList(props: ChartListProps) {
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
+      ...(crossRefEnabled ? [dashboardsFilter] : []),
       ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
@@ -682,6 +780,7 @@ function ChartList(props: ChartListProps) {
       });
     }
   }
+
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />

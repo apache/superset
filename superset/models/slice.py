@@ -334,8 +334,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def url(self) -> str:
-        form_data = f"%7B%22slice_id%22%3A%20{self.id}%7D"
-        return f"/explore/?slice_id={self.id}&form_data={form_data}"
+        return f"/explore/?slice_id={self.id}"
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:

@@ -119,6 +119,7 @@ from superset.sql_parse import (
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
+    Column as ColumnTyping,
     Metric,
     OrderBy,
     QueryObjectDict,
@@ -1242,7 +1243,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
         self,
         apply_fetch_values_predicate: bool = False,
-        columns: Optional[List[Column]] = None,
+        columns: Optional[List[ColumnTyping]] = None,
         extras: Optional[Dict[str, Any]] = None,
         filter: Optional[  # pylint: disable=redefined-builtin
             List[QueryObjectFilterClause]
@@ -1622,7 +1623,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 elif op == utils.FilterOperator.IS_FALSE.value:
                     where_clause_and.append(sqla_col.is_(False))
                 else:
-                    if eq is None:
+                    if (
+                        op
+                        not in {
+                            utils.FilterOperator.EQUALS.value,
+                            utils.FilterOperator.NOT_EQUALS.value,
+                        }
+                        and eq is None
+                    ):
                         raise QueryObjectValidationError(
                             _(
                                 "Must specify a value for filters "

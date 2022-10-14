@@ -21,8 +21,7 @@ import {
   Behavior,
   ChartMetadata,
   ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
 import buildQuery from './buildQuery';
@@ -48,7 +47,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
         behaviors: [Behavior.INTERACTIVE_CHART],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        description: hasGenericChartAxes
           ? t(
               'Swiss army knife for visualizing data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
             )
@@ -62,9 +61,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t('Generic Chart')
-          : t('Time-series Chart'),
+        name: hasGenericChartAxes ? t('Generic Chart') : t('Time-series Chart'),
         tags: [
           t('Advanced-Analytics'),
           t('Aesthetic'),
