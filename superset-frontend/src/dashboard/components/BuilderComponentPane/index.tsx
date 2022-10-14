@@ -41,19 +41,21 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
       right: 0;
       top: ${topOffset}px;
       height: calc(100vh - ${topOffset}px);
+      width: ${BUILDER_PANE_WIDTH}px;
     `}
   >
     <div
       css={(theme: SupersetTheme) => css`
         position: absolute;
-        width: ${BUILDER_PANE_WIDTH}px;
         height: 100%;
+        width: 100%
         box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
         background-color: ${theme.colors.grayscale.light5};
       `}
     >
       <Tabs
         data-test="dashboard-builder-component-pane-tabs-navigation"
+        id="tabs"
         css={(theme: SupersetTheme) => css`
           line-height: inherit;
           margin-top: ${theme.gridUnit * 2}px;

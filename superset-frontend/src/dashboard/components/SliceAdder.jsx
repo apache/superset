@@ -326,13 +326,14 @@ class SliceAdder extends React.Component {
           <div
             css={css`
               flex-grow: 1;
+              min-height: 0;
             `}
           >
             <ParentSize>
               {({ height }) => (
                 <List
                   width={376}
-                  height={height}
+                  height={height || window.innerHeight}
                   rowCount={this.state.filteredSlices.length}
                   rowHeight={DEFAULT_CELL_HEIGHT}
                   rowRenderer={this.rowRenderer}
