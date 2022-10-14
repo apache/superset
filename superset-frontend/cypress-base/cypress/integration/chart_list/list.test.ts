@@ -68,7 +68,7 @@ describe('Charts list', () => {
       cy.createSampleCharts([0]);
     });
 
-    it('should the cross-referenced dashboards in the table cell', () => {
+    it('should show the cross-referenced dashboards in the table cell', () => {
       interceptDashboardGet();
       cy.getBySel('table-row')
         .first()
@@ -76,21 +76,21 @@ describe('Charts list', () => {
         .find('[data-test="crosslinks"]')
         .should('be.empty');
       cy.getBySel('table-row')
-        .eq(2)
-        .find('[data-test="table-row-cell"]')
-        .find('[data-test="crosslinks"]')
-        .contains("World Bank's Data, Tabbed Dashboard");
-      cy.getBySel('table-row')
         .eq(1)
         .find('[data-test="table-row-cell"]')
         .find('[data-test="crosslinks"]')
-        .contains('Tabbed Dashboard')
+        .contains("Unicode Test");
+      cy.getBySel('table-row')
+        .eq(2)
+        .find('[data-test="table-row-cell"]')
+        .find('[data-test="crosslinks"]')
+        .contains('Supported Charts Dashboard')
         .invoke('removeAttr', 'target')
         .click();
       cy.wait('@get');
     });
 
-    it('should the newly added dashboards in a tooltip', () => {
+    it('should show the newly added dashboards in a tooltip', () => {
       interceptDashboardGet();
       visitSampleChartFromList('1 - Sample chart');
       saveChartToDashboard('1 - Sample dashboard');

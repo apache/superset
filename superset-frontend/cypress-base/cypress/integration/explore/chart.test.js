@@ -100,7 +100,7 @@ describe('Cross-referenced dashboards', () => {
     cy.createSampleCharts([0]);
   });
 
-  it('Shows the cross referenced dashboards', () => {
+  it('should show the cross-referenced dashboards', () => {
     visitSampleChartFromList('1 - Sample chart');
 
     cy.getBySel('metadata-bar').contains('Not added to any dashboard');
