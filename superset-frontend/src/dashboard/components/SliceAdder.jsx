@@ -115,6 +115,11 @@ const NewChartButton = styled(Button)`
   `}
 `;
 
+export const ChartList = styled.div`
+  flex-grow: 1;
+  min-height: 0;
+`;
+
 class SliceAdder extends React.Component {
   static sortByComparator(attr) {
     const desc = attr === 'changed_on' ? -1 : 1;
@@ -323,12 +328,7 @@ class SliceAdder extends React.Component {
         </Controls>
         {this.props.isLoading && <Loading />}
         {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
-          <div
-            css={css`
-              flex-grow: 1;
-              min-height: 0;
-            `}
-          >
+          <ChartList>
             <ParentSize>
               {({ height }) => (
                 <List
@@ -343,7 +343,7 @@ class SliceAdder extends React.Component {
                 />
               )}
             </ParentSize>
-          </div>
+          </ChartList>
         )}
         {this.props.errorMessage && (
           <div
