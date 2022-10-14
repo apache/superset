@@ -24,6 +24,7 @@ import { List } from 'react-virtualized';
 
 import SliceAdder from 'src/dashboard/components/SliceAdder';
 import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
+import { styledMount } from 'spec/helpers/theming';
 
 describe('SliceAdder', () => {
   const mockEvent = {
@@ -39,7 +40,6 @@ describe('SliceAdder', () => {
     fetchSortedSlices: () => {},
     selectedSliceIds: [127, 128],
     userId: '1',
-    height: 100,
   };
   const errorProps = {
     ...props,
@@ -73,7 +73,7 @@ describe('SliceAdder', () => {
   });
 
   it('render List', () => {
-    const wrapper = shallow(<SliceAdder {...props} />);
+    const wrapper = styledMount(<SliceAdder {...props} />);
     wrapper.setState({ filteredSlices: Object.values(props.slices) });
     expect(wrapper.find(List)).toExist();
   });

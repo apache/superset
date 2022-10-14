@@ -18,8 +18,9 @@
  */
 /* eslint-env browser */
 import React from 'react';
+import { rgba } from 'emotion-rgba';
 import Tabs from 'src/components/Tabs';
-import { t, styled, css } from '@superset-ui/core';
+import { t, css, SupersetTheme } from '@superset-ui/core';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
 import NewColumn from '../gridComponents/new/NewColumn';
@@ -30,49 +31,45 @@ import NewTabs from '../gridComponents/new/NewTabs';
 import NewMarkdown from '../gridComponents/new/NewMarkdown';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
-export interface BCPProps {
-  isStandalone: boolean;
-  topOffset: number;
-}
+const BUILDER_PANE_WIDTH = 374;
 
-const BuilderComponentPaneTabs = styled(Tabs)`
-  line-height: inherit;
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
-  height: 100%;
-`;
-
-const DashboardBuilderSidepane = styled.div<{
-  topOffset: number;
-}>`
-  position: sticky;
-  right: 0;
-  top: ${({ topOffset }) => topOffset}px;
-  height: calc(100vh - ${({ topOffset }) => topOffset}px);
-
-  & .ant-tabs-content-holder {
-    height: 100%;
-    & .ant-tabs-content {
-      height: 100%;
-    }
-  }
-`;
-
-const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
-  <DashboardBuilderSidepane
-    topOffset={topOffset}
-    className="dashboard-builder-sidepane"
+const BuilderComponentPane = ({ topOffset = 0 }) => (
+  <div
     data-test="dashboard-builder-sidepane"
+    css={css`
+      position: sticky;
+      right: 0;
+      top: ${topOffset}px;
+      height: calc(100vh - ${topOffset}px);
+    `}
   >
-    <div className="viewport">
-      <BuilderComponentPaneTabs
-        id="tabs"
-        className="tabs-components"
+    <div
+      css={(theme: SupersetTheme) => css`
+        position: absolute;
+        width: ${BUILDER_PANE_WIDTH}px;
+        height: 100%;
+        box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
+        background-color: ${theme.colors.grayscale.light5};
+      `}
+    >
+      <Tabs
         data-test="dashboard-builder-component-pane-tabs-navigation"
+        css={(theme: SupersetTheme) => css`
+          line-height: inherit;
+          margin-top: ${theme.gridUnit * 2}px;
+          height: 100%;
+
+          & .ant-tabs-content-holder {
+            height: 100%;
+            & .ant-tabs-content {
+              height: 100%;
+            }
+          }
+        `}
       >
         <Tabs.TabPane
           key={1}
           tab={t('Charts')}
-          className="tab-charts"
           css={css`
             height: 100%;
           `}
@@ -95,9 +92,9 @@ const BuilderComponentPane: React.FC<BCPProps> = ({ topOffset = 0 }) => (
               />
             ))}
         </Tabs.TabPane>
-      </BuilderComponentPaneTabs>
+      </Tabs>
     </div>
-  </DashboardBuilderSidepane>
+  </div>
 );
 
 export default BuilderComponentPane;

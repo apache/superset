@@ -280,7 +280,6 @@ class SliceAdder extends React.Component {
   render() {
     return (
       <div
-        className="slice-adder-container"
         css={css`
           height: 100%;
           display: flex;
@@ -346,7 +345,13 @@ class SliceAdder extends React.Component {
           </div>
         )}
         {this.props.errorMessage && (
-          <div className="error-message">{this.props.errorMessage}</div>
+          <div
+            css={css`
+              padding: 16px;
+            `}
+          >
+            {this.props.errorMessage}
+          </div>
         )}
         {/* Drag preview is just a single fixed-position element */}
         <AddSliceDragPreview slices={this.state.filteredSlices} />
