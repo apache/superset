@@ -68,14 +68,29 @@ describe('SharedLabelColor', () => {
       expect(sharedLabelColor.sliceLabelMap.has(1)).toEqual(true);
       const labels = sharedLabelColor.sliceLabelMap.get(1);
       expect(labels?.includes('a')).toEqual(true);
+      const colorMap = sharedLabelColor.getColorMap();
+      expect(Object.fromEntries(colorMap)).toEqual({ a: 'red' });
     });
 
-    it('should add to sliceLabelColorMap when label exist', () => {
+    it('should add to sliceLabelColorMap when slice exist', () => {
       const sharedLabelColor = getSharedLabelColor();
       sharedLabelColor.addSlice('a', 'red', 1);
       sharedLabelColor.addSlice('b', 'blue', 1);
       const labels = sharedLabelColor.sliceLabelMap.get(1);
       expect(labels?.includes('b')).toEqual(true);
+      const colorMap = sharedLabelColor.getColorMap();
+      expect(Object.fromEntries(colorMap)).toEqual({ a: 'red', b: 'blue' });
+    });
+
+    it('should use last color if adding label repeatedly', () => {
+      const sharedLabelColor = getSharedLabelColor();
+      sharedLabelColor.addSlice('b', 'blue', 1);
+      sharedLabelColor.addSlice('b', 'green', 1);
+      const labels = sharedLabelColor.sliceLabelMap.get(1);
+      expect(labels?.includes('b')).toEqual(true);
+      expect(labels?.length).toEqual(1);
+      const colorMap = sharedLabelColor.getColorMap();
+      expect(Object.fromEntries(colorMap)).toEqual({ b: 'green' });
     });
 
     it('should do nothing when source is not dashboard', () => {

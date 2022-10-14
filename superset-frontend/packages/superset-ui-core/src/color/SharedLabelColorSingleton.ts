@@ -64,8 +64,10 @@ export class SharedLabelColor {
     )
       return;
     const labels = this.sliceLabelMap.get(sliceId) || [];
-    labels.push(label);
-    this.sliceLabelMap.set(sliceId, labels);
+    if (!labels.includes(label)) {
+      labels.push(label);
+      this.sliceLabelMap.set(sliceId, labels);
+    }
     this.colorMap.set(label, color);
   }
 

@@ -73,18 +73,19 @@ class CategoricalColorScale extends ExtensibleFunction {
       this.forcedColors?.[cleanedValue] ||
       sharedLabelColor.getColorMap().get(cleanedValue);
 
-    if (!color) {
-      if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
-        const multiple = Math.floor(
-          this.domain().length / this.originColors.length,
-        );
-        if (multiple > this.multiple) {
-          this.multiple = multiple;
-          const newRange = getAnalogousColors(this.originColors, multiple);
-          this.range(this.originColors.concat(newRange));
-        }
+    if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
+      const multiple = Math.floor(
+        this.domain().length / this.originColors.length,
+      );
+      if (multiple > this.multiple) {
+        this.multiple = multiple;
+        const newRange = getAnalogousColors(this.originColors, multiple);
+        this.range(this.originColors.concat(newRange));
       }
-      color = this.scale(cleanedValue);
+    }
+    const newColor = this.scale(cleanedValue);
+    if (!color) {
+      color = newColor;
     }
     sharedLabelColor.addSlice(cleanedValue, color, sliceId);
 
