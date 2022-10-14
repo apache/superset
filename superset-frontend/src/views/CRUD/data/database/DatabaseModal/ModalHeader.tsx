@@ -27,6 +27,7 @@ import {
   StyledStickyHeader,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
+import { t } from '@superset-ui/core';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
 
@@ -110,8 +111,8 @@ const ModalHeader = ({
         <p className="helper-top"> STEP 3 OF 3 </p>
         <h4 className="step-3-text">Database connected</h4>
         <p className="subheader-text">
-          Create a dataset to begin visualizing your data as a chart or go to
-          SQL Lab to query your data.
+          {t(`Create a dataset to begin visualizing your data as a chart or go to
+          SQL Lab to query your data.`)}
         </p>
       </StyledFormHeader>
     </StyledStickyHeader>
@@ -140,7 +141,7 @@ const ModalHeader = ({
     <StyledFormHeader>
       <div className="select-db">
         <p className="helper-top"> STEP 1 OF 3 </p>
-        <h4>Select a database to connect</h4>
+        <h4>{t('Select a database to connect')}</h4>
       </div>
     </StyledFormHeader>
   );

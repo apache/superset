@@ -60,10 +60,10 @@ const legendTypeControl: ControlSetItem = {
   config: {
     type: 'SelectControl',
     freeForm: false,
-    label: 'Type',
+    label: t('Type'),
     choices: [
-      ['scroll', 'Scroll'],
-      ['plain', 'Plain'],
+      ['scroll', t('Scroll')],
+      ['plain', t('Plain')],
     ],
     default: legendType,
     renderTrigger: true,
@@ -78,12 +78,12 @@ const legendOrientationControl: ControlSetItem = {
   config: {
     type: 'SelectControl',
     freeForm: false,
-    label: 'Orientation',
+    label: t('Orientation'),
     choices: [
-      ['top', 'Top'],
-      ['bottom', 'Bottom'],
-      ['left', 'Left'],
-      ['right', 'Right'],
+      ['top', t('Top')],
+      ['bottom', t('Bottom')],
+      ['left', t('Left')],
+      ['right', t('Right')],
     ],
     default: legendOrientation,
     renderTrigger: true,

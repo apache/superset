@@ -69,7 +69,7 @@ function PropertiesModal({
       errorText = t('You do not have permission to edit this chart');
     }
     Modal.error({
-      title: 'Error',
+      title: t('Error'),
       content: errorText,
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
@@ -186,7 +186,7 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
-      title="Edit Chart Properties"
+      title={t("Edit Chart Properties")}
       footer={
         <>
           <Button
