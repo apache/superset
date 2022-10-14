@@ -40,6 +40,7 @@ import {
   ControlPanelState,
   ControlState,
   formatSelectOptions,
+  ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
@@ -397,6 +398,49 @@ const config: ControlPanelConfig = {
                   default: false,
                   renderTrigger: true,
                   description: t('Emit dashboard cross filters.'),
+                },
+              }
+            : null,
+        ],
+        [
+          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+            ? {
+                name: 'defaultEmitFilterColumn',
+                config: {
+                  type: 'SelectControl',
+                  label: t('Default Emit Filter Column'),
+                  description: t(
+                    'Select a column that the emit filter button will use by default',
+                  ),
+                  multi: true,
+                  freeForm: true,
+                  allowAll: true,
+                  default: [],
+                  canSelectAll: true,
+                  optionRenderer: (c: ColumnMeta) => (
+                    // eslint-disable-next-line react/react-in-jsx-scope
+                    <StyledColumnOption showType column={c} />
+                  ),
+                  // eslint-disable-next-line react/react-in-jsx-scope
+                  valueRenderer: (c: ColumnMeta) => (
+                    // eslint-disable-next-line react/react-in-jsx-scope
+                    <StyledColumnOption column={c} />
+                  ),
+                  valueKey: 'column_name',
+                  mapStateToProps: (
+                    state: ControlPanelState,
+                    controlState: ControlState,
+                  ) => {
+                    const originalMapStateToProps =
+                      sharedControls?.columns?.mapStateToProps;
+                    const newState =
+                      originalMapStateToProps?.(state, controlState) ?? {};
+                    return newState;
+                  },
+                  visibility: ({ controls }) =>
+                    // TODO properly emsure is Bool
+                    Boolean(controls?.emitFilter?.value),
+                  canCopy: true,
                 },
               }
             : null,
