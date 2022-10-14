@@ -79,7 +79,7 @@ describe('Charts list', () => {
         .eq(1)
         .find('[data-test="table-row-cell"]')
         .find('[data-test="crosslinks"]')
-        .contains("Unicode Test");
+        .contains('Unicode Test');
       cy.getBySel('table-row')
         .eq(2)
         .find('[data-test="table-row-cell"]')
