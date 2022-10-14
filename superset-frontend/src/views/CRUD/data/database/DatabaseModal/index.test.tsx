@@ -1703,22 +1703,6 @@ describe('dbReducer', () => {
       },
     });
   });
-  test('it will set state to payload from parametersChange when catalog is undefined', () => {
-    const action: DBReducerActionType = {
-      type: ActionType.parametersChange,
-      payload: { name: 'foo', type: 'catalog-foo', value: 'bar' },
-    };
-    const currentState = dbReducer(databaseFixture, action);
-
-    expect(currentState).toEqual({
-      ...databaseFixture,
-      parameters: {
-        catalog: {
-          '': 'bar',
-        },
-      },
-    });
-  });
 
   test('it will add a new catalog array when empty', () => {
     const action: DBReducerActionType = {

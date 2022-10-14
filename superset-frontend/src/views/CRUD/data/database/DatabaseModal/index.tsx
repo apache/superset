@@ -276,41 +276,33 @@ export function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
-      if (action.payload.type?.startsWith('catalog')) {
-        if (trimmedState.catalog !== undefined) {
-          // Formatting wrapping google sheets table catalog
-          const catalogCopy: CatalogObject[] = [...trimmedState.catalog];
-          const idx = action.payload.type?.split('-')[1];
-          const catalogToUpdate: CatalogObject = catalogCopy[idx] || {};
-          catalogToUpdate[action.payload.name] = action.payload.value;
+      // catalog params will always have a catalog state for
+      // dbs that use a catalog, i.e., gsheets, even if the
+      // fields are empty strings
+      if (
+        action.payload.type?.startsWith('catalog') &&
+        trimmedState.catalog !== undefined
+      ) {
+        // Formatting wrapping google sheets table catalog
+        const catalogCopy: CatalogObject[] = [...trimmedState.catalog];
+        const idx = action.payload.type?.split('-')[1];
+        const catalogToUpdate: CatalogObject = catalogCopy[idx] || {};
+        catalogToUpdate[action.payload.name] = action.payload.value;
 
-          // insert updated catalog to existing state
-          catalogCopy.splice(parseInt(idx, 10), 1, catalogToUpdate);
+        // insert updated catalog to existing state
+        catalogCopy.splice(parseInt(idx, 10), 1, catalogToUpdate);
 
-          // format catalog for state
-          // eslint-disable-next-line array-callback-return
-          parametersCatalog = catalogCopy.reduce((obj, item: any) => {
-            const catalog = { ...obj };
-            catalog[item.name] = item.value;
-            return catalog;
-          }, {});
+        // format catalog for state
+        // eslint-disable-next-line array-callback-return
+        parametersCatalog = catalogCopy.reduce((obj, item: any) => {
+          const catalog = { ...obj };
+          catalog[item.name] = item.value;
+          return catalog;
+        }, {});
 
-          return {
-            ...trimmedState,
-            catalog: catalogCopy,
-            parameters: {
-              ...trimmedState.parameters,
-              catalog: parametersCatalog,
-            },
-          };
-        }
-        if (action.payload.name === 'name') {
-          parametersCatalog = { [action.payload.value as string]: undefined };
-        } else {
-          parametersCatalog = { '': action.payload.value };
-        }
         return {
           ...trimmedState,
+          catalog: catalogCopy,
           parameters: {
             ...trimmedState.parameters,
             catalog: parametersCatalog,
