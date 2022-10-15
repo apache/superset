@@ -192,7 +192,6 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
               <StyledBottom ref={bottomRef} inView={hasReviewed}>
                 {/* Add submit button at the bottom in case of intersection-observer fallback */}
                 <Button
-                  data-test="overwrite-confirm-save-button"
                   htmlType="button"
                   buttonSize="small"
                   cta
