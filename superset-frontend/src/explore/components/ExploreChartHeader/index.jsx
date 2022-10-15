@@ -239,6 +239,7 @@ export const ExploreChartHeader = ({
               <div>
                 <FlashCreationButton
                   latestQueryFormData={latestQueryFormData}
+                  buttonType="schedule"
                 />
               </div>
             )}
