@@ -118,6 +118,23 @@ test('Clicking on "Close" should call onClose', () => {
   expect(props.onClose).toBeCalledTimes(1);
 });
 
+test('Clicking on "Save" should call onChange and onClose', () => {
+  const props = {
+    ...createProps(),
+    savedMetric: {},
+  };
+  render(<AdhocMetricEditPopover {...props} />);
+  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onClose).toBeCalledTimes(0);
+  const element = screen.getByRole('combobox', {
+    name: 'Select saved metrics',
+  });
+  expect(element).toBeVisible();
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toBeCalledTimes(1);
+  expect(props.onClose).toBeCalledTimes(1);
+});
+
 test('Clicking on "Save" should not call onChange and onClose', () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
