@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, Set, TYPE_CHECKING
 
 from flask_babel import gettext as __
 
@@ -52,6 +52,13 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 CommandResult = Dict[str, Any]
+
+# Define set of users client errors these definitions won't
+# be logged as exception vs. warning
+USER_CLIENT_ERRORS: Set[SupersetErrorType] = {
+    SupersetErrorType.SYNTAX_ERROR,
+    SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+}
 
 
 class ExecuteSqlCommand(BaseCommand):
@@ -116,11 +123,11 @@ class ExecuteSqlCommand(BaseCommand):
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
         except SupersetErrorsException as ex:
-            if all(ex.error_type == SupersetErrorType.SYNTAX_ERROR for ex in ex.errors):
+            if all(ex.error_type in USER_CLIENT_ERRORS for ex in ex.errors):
                 raise SupersetSyntaxErrorException(ex.errors) from ex
             raise ex
         except SupersetException as ex:
-            if ex.error_type == SupersetErrorType.SYNTAX_ERROR:
+            if ex.error_type in USER_CLIENT_ERRORS:
                 raise SupersetSyntaxErrorException(
                     [
                         SupersetError(
