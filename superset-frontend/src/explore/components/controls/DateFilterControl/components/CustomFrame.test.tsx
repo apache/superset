@@ -39,6 +39,12 @@ const store = mockStore({
   common: { locale: 'en' },
 });
 
+// case when common.locale is not populated
+const emptyStore = mockStore({});
+
+// case when common.locale is populated with invalid locale
+const invalidStore = mockStore({ common: { locale: 'invalid_locale' } });
+
 test('renders with default props', () => {
   render(
     <Provider store={store}>
@@ -51,6 +57,54 @@ test('renders with default props', () => {
   expect(screen.getByText('Days Before')).toBeInTheDocument();
   expect(screen.getByText('Specific Date/Time')).toBeInTheDocument();
   expect(screen.getByRole('img', { name: 'calendar' })).toBeInTheDocument();
+});
+
+test('renders with empty store', () => {
+  render(
+    <Provider store={emptyStore}>
+      <CustomFrame onChange={jest.fn()} value={emptyValue} />
+    </Provider>,
+  );
+  expect(screen.getByText('Configure custom time range')).toBeInTheDocument();
+  expect(screen.getByText('Relative Date/Time')).toBeInTheDocument();
+  expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+  expect(screen.getByText('Days Before')).toBeInTheDocument();
+  expect(screen.getByText('Specific Date/Time')).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'calendar' })).toBeInTheDocument();
+});
+
+test('renders since and until with specific date/time with default locale', () => {
+  render(
+    <Provider store={emptyStore}>
+      <CustomFrame onChange={jest.fn()} value={specificValue} />
+    </Provider>,
+  );
+  expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
+  expect(screen.getAllByRole('img', { name: 'calendar' }).length).toBe(2);
+});
+
+test('renders with invalid locale', () => {
+  render(
+    <Provider store={invalidStore}>
+      <CustomFrame onChange={jest.fn()} value={emptyValue} />
+    </Provider>,
+  );
+  expect(screen.getByText('Configure custom time range')).toBeInTheDocument();
+  expect(screen.getByText('Relative Date/Time')).toBeInTheDocument();
+  expect(screen.getByRole('spinbutton')).toBeInTheDocument();
+  expect(screen.getByText('Days Before')).toBeInTheDocument();
+  expect(screen.getByText('Specific Date/Time')).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'calendar' })).toBeInTheDocument();
+});
+
+test('renders since and until with specific date/time with invalid locale', () => {
+  render(
+    <Provider store={invalidStore}>
+      <CustomFrame onChange={jest.fn()} value={specificValue} />
+    </Provider>,
+  );
+  expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
+  expect(screen.getAllByRole('img', { name: 'calendar' }).length).toBe(2);
 });
 
 test('renders since and until with specific date/time', () => {
