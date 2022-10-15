@@ -42,6 +42,7 @@ spec:
     metadata:
       annotations:
         checksum/wsconfig: {{ tpl (toJson .Values.supersetWebsockets.config) . | sha256sum }}
+        checksum/secrets: {{ tpl (toJson .Values.extraSecretEnv) . | sha256sum }}
       {{- if .Values.supersetWebsockets.podAnnotations }}
         {{- toYaml .Values.supersetWebsockets.podAnnotations | nindent 8 }}
       {{- end }}

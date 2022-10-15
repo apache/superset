@@ -41,7 +41,7 @@ spec:
   loadBalancerIP: {{ .Values.service.loadBalancerIP }}
   {{- end }}
 ---
-{{- if .Values.supersetCeleryBeat.flower.enabled }}
+{{- if .Values.supersetCeleryFlower.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -51,22 +51,22 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
-{{- with .Values.supersetCeleryBeat.flower.service.annotations }}
+  {{- with .Values.supersetCeleryFlower.service.annotations }}
   annotations:
-{{- toYaml . | nindent 4 }}
-{{- end }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  type: {{ .Values.supersetCeleryBeat.flower.service.type }}
+  type: {{ .Values.supersetCeleryFlower.service.type }}
   ports:
-    - port: {{ .Values.supersetCeleryBeat.flower.service.port }}
+    - port: {{ .Values.supersetCeleryFlower.service.port }}
       targetPort: flower
       protocol: TCP
       name: flower
   selector:
-    app: {{ template "superset.name" . }}-celerybeat
+    app: {{ template "superset.name" . }}-flower
     release: {{ .Release.Name }}
-  {{- if .Values.supersetCeleryBeat.flower.service.loadBalancerIP }}
-  loadBalancerIP: {{ .Values.supersetCeleryBeat.flower.service.loadBalancerIP }}
+  {{- if .Values.supersetCeleryFlower.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.supersetCeleryFlower.service.loadBalancerIP }}
   {{- end }}
 {{- end }}
 ---

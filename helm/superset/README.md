@@ -84,42 +84,50 @@ helm install my-superset superset/superset
 | service.type | string | `"ClusterIP"` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `false` | Create custom service account for Superset. If create: true and name is not provided, `superset.fullname` will be used. |
-| supersetCeleryBeat.command | list | a port wait command | Command |
+| supersetCeleryBeat.command | list | a `celery beat` command | Command |
 | supersetCeleryBeat.containerSecurityContext | object | `{}` |  |
 | supersetCeleryBeat.deploymentAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat deployment |
 | supersetCeleryBeat.enabled | bool | `false` | This is only required if you intend to use alerts and reports |
-| supersetCeleryBeat.flower.command | list | a `celery flower` command | Command |
-| supersetCeleryBeat.flower.enabled | bool | `false` | If true, will expose a web-based UI to monitor jobs WARNING: requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images) flower>=1.0.0 requires Celery 5+ which Superset does not support |
-| supersetCeleryBeat.flower.livenessProbe.failureThreshold | int | `3` |  |
-| supersetCeleryBeat.flower.livenessProbe.httpGet.path | string | `"/api/workers"` |  |
-| supersetCeleryBeat.flower.livenessProbe.httpGet.port | string | `"flower"` |  |
-| supersetCeleryBeat.flower.livenessProbe.initialDelaySeconds | int | `5` |  |
-| supersetCeleryBeat.flower.livenessProbe.periodSeconds | int | `5` |  |
-| supersetCeleryBeat.flower.livenessProbe.successThreshold | int | `1` |  |
-| supersetCeleryBeat.flower.livenessProbe.timeoutSeconds | int | `1` |  |
-| supersetCeleryBeat.flower.readinessProbe.failureThreshold | int | `3` |  |
-| supersetCeleryBeat.flower.readinessProbe.httpGet.path | string | `"/api/workers"` |  |
-| supersetCeleryBeat.flower.readinessProbe.httpGet.port | string | `"flower"` |  |
-| supersetCeleryBeat.flower.readinessProbe.initialDelaySeconds | int | `5` |  |
-| supersetCeleryBeat.flower.readinessProbe.periodSeconds | int | `5` |  |
-| supersetCeleryBeat.flower.readinessProbe.successThreshold | int | `1` |  |
-| supersetCeleryBeat.flower.readinessProbe.timeoutSeconds | int | `1` |  |
-| supersetCeleryBeat.flower.service.annotations | object | `{}` |  |
-| supersetCeleryBeat.flower.service.port | int | `5555` |  |
-| supersetCeleryBeat.flower.service.type | string | `"ClusterIP"` |  |
-| supersetCeleryBeat.flower.startupProbe.failureThreshold | int | `60` |  |
-| supersetCeleryBeat.flower.startupProbe.httpGet.path | string | `"/api/workers"` |  |
-| supersetCeleryBeat.flower.startupProbe.httpGet.port | string | `"flower"` |  |
-| supersetCeleryBeat.flower.startupProbe.initialDelaySeconds | int | `5` |  |
-| supersetCeleryBeat.flower.startupProbe.periodSeconds | int | `5` |  |
-| supersetCeleryBeat.flower.startupProbe.successThreshold | int | `1` |  |
-| supersetCeleryBeat.flower.startupProbe.timeoutSeconds | int | `1` |  |
 | supersetCeleryBeat.forceReload | bool | `false` | If true, forces deployment to reload on each upgrade |
 | supersetCeleryBeat.initContainers | list | a container waiting for postgres | List of init containers |
 | supersetCeleryBeat.podAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat pods |
 | supersetCeleryBeat.podLabels | object | `{}` | Labels to be added to supersetCeleryBeat pods |
 | supersetCeleryBeat.podSecurityContext | object | `{}` |  |
 | supersetCeleryBeat.resources | object | `{}` | Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above. |
+| supersetCeleryFlower.command | list | a `celery flower` command | Command |
+| supersetCeleryFlower.containerSecurityContext | object | `{}` |  |
+| supersetCeleryFlower.deploymentAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat deployment |
+| supersetCeleryFlower.enabled | bool | `false` | Enables a Celery flower deployment (management UI to monitor celery jobs) WARNING: requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images) flower>=1.0.0 requires Celery 5+ which Superset does not support |
+| supersetCeleryFlower.initContainers | list | a container waiting for postgres and redis | List of init containers |
+| supersetCeleryFlower.livenessProbe.failureThreshold | int | `3` |  |
+| supersetCeleryFlower.livenessProbe.httpGet.path | string | `"/api/workers"` |  |
+| supersetCeleryFlower.livenessProbe.httpGet.port | string | `"flower"` |  |
+| supersetCeleryFlower.livenessProbe.initialDelaySeconds | int | `5` |  |
+| supersetCeleryFlower.livenessProbe.periodSeconds | int | `5` |  |
+| supersetCeleryFlower.livenessProbe.successThreshold | int | `1` |  |
+| supersetCeleryFlower.livenessProbe.timeoutSeconds | int | `1` |  |
+| supersetCeleryFlower.podAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat pods |
+| supersetCeleryFlower.podLabels | object | `{}` | Labels to be added to supersetCeleryBeat pods |
+| supersetCeleryFlower.podSecurityContext | object | `{}` |  |
+| supersetCeleryFlower.readinessProbe.failureThreshold | int | `3` |  |
+| supersetCeleryFlower.readinessProbe.httpGet.path | string | `"/api/workers"` |  |
+| supersetCeleryFlower.readinessProbe.httpGet.port | string | `"flower"` |  |
+| supersetCeleryFlower.readinessProbe.initialDelaySeconds | int | `5` |  |
+| supersetCeleryFlower.readinessProbe.periodSeconds | int | `5` |  |
+| supersetCeleryFlower.readinessProbe.successThreshold | int | `1` |  |
+| supersetCeleryFlower.readinessProbe.timeoutSeconds | int | `1` |  |
+| supersetCeleryFlower.replicaCount | int | `1` |  |
+| supersetCeleryFlower.resources | object | `{}` | Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above. |
+| supersetCeleryFlower.service.annotations | object | `{}` |  |
+| supersetCeleryFlower.service.port | int | `5555` |  |
+| supersetCeleryFlower.service.type | string | `"ClusterIP"` |  |
+| supersetCeleryFlower.startupProbe.failureThreshold | int | `60` |  |
+| supersetCeleryFlower.startupProbe.httpGet.path | string | `"/api/workers"` |  |
+| supersetCeleryFlower.startupProbe.httpGet.port | string | `"flower"` |  |
+| supersetCeleryFlower.startupProbe.initialDelaySeconds | int | `5` |  |
+| supersetCeleryFlower.startupProbe.periodSeconds | int | `5` |  |
+| supersetCeleryFlower.startupProbe.successThreshold | int | `1` |  |
+| supersetCeleryFlower.startupProbe.timeoutSeconds | int | `1` |  |
 | supersetNode.command | list | See `values.yaml` | Startup command |
 | supersetNode.connections.db_host | string | `"{{ template \"superset.fullname\" . }}-postgresql"` |  |
 | supersetNode.connections.db_name | string | `"superset"` |  |
@@ -132,7 +140,7 @@ helm install my-superset superset/superset
 | supersetNode.deploymentAnnotations | object | `{}` | Annotations to be added to supersetNode deployment |
 | supersetNode.env | object | `{}` |  |
 | supersetNode.forceReload | bool | `false` | If true, forces deployment to reload on each upgrade |
-| supersetNode.initContainers | list | a container waiting for postgres to be up | Init containers |
+| supersetNode.initContainers | list | a container waiting for postgres | Init containers |
 | supersetNode.livenessProbe.failureThreshold | int | `3` |  |
 | supersetNode.livenessProbe.httpGet.path | string | `"/health"` |  |
 | supersetNode.livenessProbe.httpGet.port | string | `"http"` |  |
@@ -204,7 +212,7 @@ helm install my-superset superset/superset
 | supersetWorker.containerSecurityContext | object | `{}` |  |
 | supersetWorker.deploymentAnnotations | object | `{}` | Annotations to be added to supersetWorker deployment |
 | supersetWorker.forceReload | bool | `false` | If true, forces deployment to reload on each upgrade |
-| supersetWorker.initContainers | list | a container waiting for postgres | Init container |
+| supersetWorker.initContainers | list | a container waiting for postgres and redis | Init container |
 | supersetWorker.livenessProbe.exec.command | list | a `celery inspect ping` command | Liveness probe command |
 | supersetWorker.livenessProbe.failureThreshold | int | `3` |  |
 | supersetWorker.livenessProbe.initialDelaySeconds | int | `120` |  |
