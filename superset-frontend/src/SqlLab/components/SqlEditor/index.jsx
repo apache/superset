@@ -76,6 +76,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { isEmpty } from 'lodash';
 import FlashCreationButton from 'src/views/CRUD/flash/components/FlashCreationButton/FlashCreationButton';
+import BUTTON_TYPES from 'src/views/CRUD/flash/constants';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import ConnectedSouthPane from '../SouthPane/state';
 import SaveQuery from '../SaveQuery';
@@ -586,13 +587,16 @@ const SqlEditor = ({
             <span>
               <FlashCreationButton
                 sqlEditor={queryEditor}
-                buttonType="schedule"
+                buttonType={BUTTON_TYPES.SCHEDULE}
               />
             </span>
           )}
           {flashCreationConf && (
             <span>
-              <FlashCreationButton sqlEditor={queryEditor} buttonType="flash" />
+              <FlashCreationButton
+                sqlEditor={queryEditor}
+                buttonType={BUTTON_TYPES.FLASH}
+              />
             </span>
           )}
           <span>

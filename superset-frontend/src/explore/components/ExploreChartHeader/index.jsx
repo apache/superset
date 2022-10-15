@@ -37,6 +37,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import FlashCreationButton from 'src/views/CRUD/flash/components/FlashCreationButton/FlashCreationButton';
+import BUTTON_TYPES from 'src/views/CRUD/flash/constants';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 
@@ -239,7 +240,7 @@ export const ExploreChartHeader = ({
               <div>
                 <FlashCreationButton
                   latestQueryFormData={latestQueryFormData}
-                  buttonType="schedule"
+                  buttonType={BUTTON_TYPES.SCHEDULE}
                 />
               </div>
             )}

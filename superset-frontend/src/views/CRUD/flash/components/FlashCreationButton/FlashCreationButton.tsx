@@ -40,6 +40,7 @@ import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { createFlash, fetchDatabases } from '../../services/flash.service';
+import { BUTTON_TYPES } from '../../constants';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -143,11 +144,11 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
                       : ['Please Select'],
                   default:
                     dbDropdown && dbDropdown.enum
-                      ? buttonType === 'schedule'
+                      ? buttonType === BUTTON_TYPES.SCHEDULE
                         ? 3
                         : dbDropdown.enum[0]
                       : '',
-                  readOnly: buttonType === 'schedule',
+                  readOnly: buttonType === BUTTON_TYPES.SCHEDULE,
                 };
               }
             }
@@ -397,7 +398,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
                 htmlType="submit"
                 css={{ float: 'right' }}
               >
-                {buttonType === 'schedule' ? 'Schedule' : 'Create'}
+                {buttonType === BUTTON_TYPES.SCHEDULE ? 'Schedule' : 'Create'}
               </Button>
             </SchemaForm>
           </StyledJsonSchema>
@@ -411,7 +412,9 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
       <ModalTrigger
         ref={saveModal}
         modalTitle={
-          buttonType === 'schedule' ? t('Schedule') : t('Create Flash Object')
+          buttonType === BUTTON_TYPES.SCHEDULE
+            ? t('Schedule')
+            : t('Create Flash Object')
         }
         modalBody={renderModalBody()}
         disabled={!canCreateFlashObject}
@@ -427,7 +430,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
             buttonSize="small"
             buttonStyle="primary"
           >
-            {buttonType === 'schedule' ? (
+            {buttonType === BUTTON_TYPES.SCHEDULE ? (
               t('Schedule')
             ) : (
               <>

@@ -52,3 +52,8 @@ export const UPDATE_TYPES = {
   OWNER: 'owner',
   CTAGS: 'ctags',
 };
+
+export const BUTTON_TYPES = {
+  SCHEDULE: 'schedule',
+  FLASH: 'flash',
+};
