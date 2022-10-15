@@ -153,18 +153,26 @@ export function FiltersConfigModal({
 
   const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
   // brings back a filter that was previously removed ("Undo")
-  const restoreFilter = (id: string) => {
-    const removal = removedFilters[id];
-    // gotta clear the removal timeout to prevent the filter from getting deleted
-    if (removal?.isPending) clearTimeout(removal.timerId);
-    setRemovedFilters(current => ({ ...current, [id]: null }));
-  };
+  const restoreFilter = useCallback(
+    (id: string) => {
+      const removal = removedFilters[id];
+      // gotta clear the removal timeout to prevent the filter from getting deleted
+      if (removal?.isPending) clearTimeout(removal.timerId);
+      setRemovedFilters(current => ({ ...current, [id]: null }));
+    },
+    [removedFilters],
+  );
   const getInitialFilterOrder = () => Object.keys(filterConfigMap);
 
   // State for tracking the re-ordering of filters
   const [orderedFilters, setOrderedFilters] = useState<string[]>(
     getInitialFilterOrder(),
   );
+
+  // State for rendered filter to improve performance
+  const [renderedFilters, setRenderedFilters] = useState<string[]>([
+    initialCurrentFilterId,
+  ]);
 
   const getActiveFilterPanelKey = (filterId: string) => [
     `${filterId}-${FilterPanels.configuration.key}`,
@@ -175,7 +183,7 @@ export function FiltersConfigModal({
     string | string[]
   >(getActiveFilterPanelKey(initialCurrentFilterId));
 
-  const onTabChange = (filterId: string) => {
+  const handleTabChange = (filterId: string) => {
     setCurrentFilterId(filterId);
     setActiveFilterPanelKey(getActiveFilterPanelKey(filterId));
   };
@@ -229,6 +237,7 @@ export function FiltersConfigModal({
     if (!isSaving) {
       setOrderedFilters(getInitialFilterOrder());
     }
+    setRenderedFilters([initialCurrentFilterId]);
     form.resetFields(['filters']);
     form.setFieldsValue({ changed: false });
   };
@@ -379,7 +388,7 @@ export function FiltersConfigModal({
       handleConfirmCancel();
     }
   };
-  const onRearrange = (dragIndex: number, targetIndex: number) => {
+  const handleRearrange = (dragIndex: number, targetIndex: number) => {
     const newOrderedFilter = [...orderedFilters];
     const removed = newOrderedFilter.splice(dragIndex, 1)[0];
     newOrderedFilter.splice(targetIndex, 0, removed);
@@ -405,7 +414,7 @@ export function FiltersConfigModal({
     return dependencyMap;
   }, [filterConfigMap, form]);
 
-  const validateDependencies = () => {
+  const validateDependencies = useCallback(() => {
     const dependencyMap = buildDependencyMap();
     filterIds
       .filter(id => !removedFilters[id])
@@ -418,26 +427,35 @@ export function FiltersConfigModal({
         form.setFields([field]);
       });
     handleErroredFilters();
-  };
+  }, [
+    buildDependencyMap,
+    filterIds,
+    form,
+    handleErroredFilters,
+    removedFilters,
+  ]);
 
-  const getDependencySuggestion = (filterId: string) => {
-    const dependencyMap = buildDependencyMap();
-    const possibleDependencies = orderedFilters.filter(
-      key => key !== filterId && canBeUsedAsDependency(key),
-    );
-    const found = possibleDependencies.find(filter => {
-      const dependencies = dependencyMap.get(filterId) || [];
-      dependencies.push(filter);
-      if (hasCircularDependency(dependencyMap, filterId)) {
-        dependencies.pop();
-        return false;
-      }
-      return true;
-    });
-    return found || possibleDependencies[0];
-  };
+  const getDependencySuggestion = useCallback(
+    (filterId: string) => {
+      const dependencyMap = buildDependencyMap();
+      const possibleDependencies = orderedFilters.filter(
+        key => key !== filterId && canBeUsedAsDependency(key),
+      );
+      const found = possibleDependencies.find(filter => {
+        const dependencies = dependencyMap.get(filterId) || [];
+        dependencies.push(filter);
+        if (hasCircularDependency(dependencyMap, filterId)) {
+          dependencies.pop();
+          return false;
+        }
+        return true;
+      });
+      return found || possibleDependencies[0];
+    },
+    [buildDependencyMap, canBeUsedAsDependency, orderedFilters],
+  );
 
-  const onValuesChange = useMemo(
+  const handleValuesChange = useMemo(
     () =>
       debounce((changes: any, values: NativeFiltersForm) => {
         const didChangeFilterName =
@@ -466,32 +484,73 @@ export function FiltersConfigModal({
     );
   }, [removedFilters]);
 
-  const getForm = (id: string) => {
-    const isDivider = id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
-    return isDivider ? (
-      <DividerConfigForm
-        componentId={id}
-        divider={filterConfigMap[id] as Divider}
-      />
-    ) : (
-      <FiltersConfigForm
-        ref={configFormRef}
-        form={form}
-        filterId={id}
-        filterToEdit={filterConfigMap[id] as Filter}
-        removedFilters={removedFilters}
-        restoreFilter={restoreFilter}
-        getAvailableFilters={getAvailableFilters}
-        key={id}
-        activeFilterPanelKeys={activeFilterPanelKey}
-        handleActiveFilterPanelChange={key => setActiveFilterPanelKey(key)}
-        isActive={currentFilterId === id}
-        setErroredFilters={setErroredFilters}
-        validateDependencies={validateDependencies}
-        getDependencySuggestion={getDependencySuggestion}
-      />
-    );
-  };
+  useEffect(() => {
+    if (!renderedFilters.includes(currentFilterId)) {
+      setRenderedFilters([...renderedFilters, currentFilterId]);
+    }
+  }, [currentFilterId]);
+
+  const handleActiveFilterPanelChange = useCallback(
+    key => setActiveFilterPanelKey(key),
+    [setActiveFilterPanelKey],
+  );
+
+  const formList = useMemo(
+    () =>
+      orderedFilters.map(id => {
+        if (!renderedFilters.includes(id)) return null;
+        const isDivider = id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
+        const isActive = currentFilterId === id;
+        return (
+          <div
+            key={id}
+            style={{
+              height: '100%',
+              overflowY: 'auto',
+              display: isActive ? '' : 'none',
+            }}
+          >
+            {isDivider ? (
+              <DividerConfigForm
+                componentId={id}
+                divider={filterConfigMap[id] as Divider}
+              />
+            ) : (
+              <FiltersConfigForm
+                ref={configFormRef}
+                form={form}
+                filterId={id}
+                filterToEdit={filterConfigMap[id] as Filter}
+                removedFilters={removedFilters}
+                restoreFilter={restoreFilter}
+                getAvailableFilters={getAvailableFilters}
+                key={id}
+                activeFilterPanelKeys={activeFilterPanelKey}
+                handleActiveFilterPanelChange={handleActiveFilterPanelChange}
+                isActive={isActive}
+                setErroredFilters={setErroredFilters}
+                validateDependencies={validateDependencies}
+                getDependencySuggestion={getDependencySuggestion}
+              />
+            )}
+          </div>
+        );
+      }),
+    [
+      renderedFilters,
+      orderedFilters,
+      currentFilterId,
+      filterConfigMap,
+      form,
+      removedFilters,
+      restoreFilter,
+      getAvailableFilters,
+      activeFilterPanelKey,
+      validateDependencies,
+      getDependencySuggestion,
+      handleActiveFilterPanelChange,
+    ],
+  );
 
   return (
     <StyledModalWrapper
@@ -519,22 +578,22 @@ export function FiltersConfigModal({
         <StyledModalBody>
           <StyledForm
             form={form}
-            onValuesChange={onValuesChange}
+            onValuesChange={handleValuesChange}
             layout="vertical"
           >
             <FilterConfigurePane
               erroredFilters={erroredFilters}
               onRemove={handleRemoveItem}
               onAdd={addFilter}
-              onChange={onTabChange}
+              onChange={handleTabChange}
               getFilterTitle={getFilterTitle}
               currentFilterId={currentFilterId}
               removedFilters={removedFilters}
               restoreFilter={restoreFilter}
-              onRearrange={onRearrange}
+              onRearrange={handleRearrange}
               filters={orderedFilters}
             >
-              {(id: string) => getForm(id)}
+              {formList}
             </FilterConfigurePane>
           </StyledForm>
         </StyledModalBody>
