@@ -38,7 +38,7 @@ export const FILTER_SUPPORTED_TYPES = {
   filter_range: [GenericDataType.NUMERIC],
 };
 
-export const useForceUpdate = (isActive: boolean) => {
+export const useForceUpdate = (isActive = true) => {
   const [, updateState] = React.useState({});
   return React.useCallback(() => {
     if (isActive) {
