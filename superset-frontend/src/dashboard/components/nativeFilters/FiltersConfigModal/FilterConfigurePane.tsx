@@ -22,7 +22,7 @@ import FilterTitlePane from './FilterTitlePane';
 import { FilterRemoval } from './types';
 
 interface Props {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   getFilterTitle: (filterId: string) => string;
   onChange: (activeKey: string) => void;
   onAdd: (type: NativeFilterType) => void;
