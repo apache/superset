@@ -186,7 +186,7 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
-      title={t("Edit Chart Properties")}
+      title={t('Edit Chart Properties')}
       footer={
         <>
           <Button

@@ -20,6 +20,7 @@
 import React from 'react';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import { UploadFile } from 'antd/lib/upload/interface';
+import { t } from '@superset-ui/core';
 import {
   EditHeaderTitle,
   EditHeaderSubtitle,
@@ -27,7 +28,6 @@ import {
   StyledStickyHeader,
 } from './styles';
 import { DatabaseForm, DatabaseObject } from '../types';
-import { t } from '@superset-ui/core';
 
 const supersetTextDocs = getDatabaseDocumentationLinks();
 
