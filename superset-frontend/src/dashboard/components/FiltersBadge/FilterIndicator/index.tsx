@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { SearchOutlined } from '@ant-design/icons';
 import React, { FC } from 'react';
+import Icons from 'src/components/Icons';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils';
 import {
   FilterIndicatorText,
@@ -46,7 +46,7 @@ const FilterIndicator: FC<IndicatorProps> = ({
       <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
         <Title bold>
           <ItemIcon>
-            <SearchOutlined />
+            <Icons.SearchOutlined />
           </ItemIcon>
           {name}
           {resultValue ? ': ' : ''}

@@ -20,7 +20,7 @@ import React from 'react';
 import { t } from '@superset-ui/core';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import FormLabel from 'src/components/Form/FormLabel';
-import { CloseOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { FieldPropTypes } from '.';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
 import { CatalogObject } from '../../types';
@@ -64,7 +64,7 @@ export const TableCatalog = ({
                 value={sheet.name}
               />
               {tableCatalog?.length > 1 && (
-                <CloseOutlined
+                <Icons.CloseOutlined
                   className="catalog-delete"
                   onClick={() => changeMethods.onRemoveTableCatalog(idx)}
                 />

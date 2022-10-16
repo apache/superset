@@ -18,9 +18,9 @@
  */
 import React from 'react';
 import { Input, Tooltip } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
+import Icons from 'src/components/Icons';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
 import FormLabel from './FormLabel';
@@ -126,11 +126,11 @@ const LabeledErrorBoundInput = ({
           iconRender={visible =>
             visible ? (
               <Tooltip title="Hide password.">
-                <EyeInvisibleOutlined />
+                <Icons.EyeInvisibleOutlined />
               </Tooltip>
             ) : (
               <Tooltip title="Show password.">
-                <EyeOutlined />
+                <Icons.EyeOutlined />
               </Tooltip>
             )
           }

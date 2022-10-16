@@ -20,11 +20,6 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Global, css } from '@emotion/react';
 import { t, useTheme } from '@superset-ui/core';
-import {
-  MinusCircleFilled,
-  CheckCircleFilled,
-  ExclamationCircleFilled,
-} from '@ant-design/icons';
 import Popover from 'src/components/Popover';
 import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
@@ -206,7 +201,7 @@ const DetailsPanelPopover = ({
               key="applied"
               header={
                 <Title bold color={theme.colors.success.base}>
-                  <CheckCircleFilled />{' '}
+                  <Icons.CheckCircleFilled />{' '}
                   {t('Applied Filters (%d)', appliedIndicators.length)}
                 </Title>
               }
@@ -227,7 +222,7 @@ const DetailsPanelPopover = ({
               key="incompatible"
               header={
                 <Title bold color={theme.colors.alert.base}>
-                  <ExclamationCircleFilled />{' '}
+                  <Icons.ExclamationCircleFilled />{' '}
                   {t(
                     'Incompatible Filters (%d)',
                     incompatibleIndicators.length,
@@ -251,7 +246,7 @@ const DetailsPanelPopover = ({
               key="unset"
               header={
                 <Title bold color={theme.colors.grayscale.light1}>
-                  <MinusCircleFilled />{' '}
+                  <Icons.MinusCircleFilled />{' '}
                   {t('Unset Filters (%d)', unsetIndicators.length)}
                 </Title>
               }

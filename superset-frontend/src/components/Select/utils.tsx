@@ -19,7 +19,7 @@
 import { ensureIsArray, t } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import React, { ReactElement, RefObject } from 'react';
-import { DownOutlined, SearchOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
@@ -126,9 +126,9 @@ export const getSuffixIcon = (
     return <StyledSpin size="small" />;
   }
   if (showSearch && isDropdownVisible) {
-    return <SearchOutlined />;
+    return <Icons.SearchOutlined />;
   }
-  return <DownOutlined />;
+  return <Icons.DownOutlined />;
 };
 
 export const dropDownRenderHelper = (
