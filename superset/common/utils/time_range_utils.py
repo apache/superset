@@ -46,6 +46,14 @@ def get_since_until_from_time_range(
 def get_since_until_from_query_object(
     query_object: QueryObject,
 ) -> Tuple[Optional[datetime], Optional[datetime]]:
+    """
+    this function will return since and until by tuple if
+    1) the time_range is in the query object.
+    2) the xaxis column is in the columns field
+       and its corresponding `datetime between` filter is in the adhoc filters.
+    :param query_object: a valid query object
+    :return: since and until by tuple
+    """
     if query_object.time_range:
         return get_since_until_from_time_range(
             time_range=query_object.time_range,
