@@ -22,6 +22,7 @@ import sqlparse
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, inspect, or_
 from sqlalchemy.engine import Engine
+from sqlalchemy.engine.url import URL as SqlaURL
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.type_api import TypeEngine
@@ -37,6 +38,7 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import has_table_query, insert_rls, ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.tables.models import Table as NewTable
+from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -252,3 +254,8 @@ def load_or_create_tables(  # pylint: disable=too-many-arguments
             existing.add((table.schema, table.table))
 
     return new_tables
+
+
+@memoized
+def get_identifier_quoter(drivername: str) -> Dict[str, Callable[[str], str]]:
+    return SqlaURL(drivername=drivername).get_dialect()().identifier_preparer.quote
