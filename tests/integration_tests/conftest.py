@@ -208,7 +208,7 @@ def setup_presto_if_needed():
 
     if backend in {"presto", "hive"}:
         database = get_example_database()
-        with database.get_sqla_engine() as engine:
+        with database.get_sqla_engine_with_context() as engine:
             drop_from_schema(engine, CTAS_SCHEMA_NAME)
             engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
             engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
