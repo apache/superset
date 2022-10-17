@@ -57,7 +57,9 @@ from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
     statsd_metrics,
+    RelatedFieldFilter,
 )
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -151,9 +153,13 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     related_field_filters = {
         "database": "database_name",
+        "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
-    filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
-    allowed_rel_fields = {"database"}
+    filter_rel_fields = {
+        "database": [["id", DatabaseFilter, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
+    allowed_rel_fields = {"database", "created_by"}
     allowed_distinct_fields = {"schema"}
 
     def pre_add(self, item: SavedQuery) -> None:

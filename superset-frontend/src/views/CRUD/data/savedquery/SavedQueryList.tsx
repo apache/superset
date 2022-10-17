@@ -363,6 +363,22 @@ function SavedQueryList({
         size: 'xl',
       },
       {
+        accessor: 'created_by.first_name',
+        Header: t('Created by'),
+        disableSortBy: true,
+        size: 'xl',
+        Cell: ({
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: any) =>
+          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+      },
+      {
+        accessor: 'created_by',
+        hidden: true,
+      },
+      {
         Cell: ({ row: { original } }: any) => {
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
@@ -454,6 +470,26 @@ function SavedQueryList({
           createErrorHandler(errMsg =>
             addDangerToast(
               t('An error occurred while fetching schema values: %s', errMsg),
+            ),
+          ),
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Created by'),
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperator.relationOneMany,
+        unfilteredLabel: 'All',
+        fetchSelects: createFetchRelated(
+          'saved_query',
+          'created_by',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t(
+                'An error occurred while fetching created_by values: %s',
+                errMsg,
+              ),
             ),
           ),
         ),
