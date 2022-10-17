@@ -53,13 +53,6 @@ logger = logging.getLogger(__name__)
 
 CommandResult = Dict[str, Any]
 
-# Define set of users client errors these definitions won't
-# be logged as exception vs. warning
-USER_CLIENT_ERRORS: Set[SupersetErrorType] = {
-    SupersetErrorType.SYNTAX_ERROR,
-    SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
-}
-
 
 class ExecuteSqlCommand(BaseCommand):
     _execution_context: SqlJsonExecutionContext
