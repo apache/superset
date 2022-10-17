@@ -28,9 +28,11 @@ from superset.databases.commands.exceptions import (
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseRequiredFieldValidationError,
+    DatabaseTestConnectionFailedError,
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
+from superset.errors import SupersetError
 from superset.extensions import db, event_logger, security_manager
 
 logger = logging.getLogger(__name__)
@@ -46,6 +48,17 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
+        except DatabaseTestConnectionFailedError as ex:
+            event_logger.log_with_context(
+                action=f"db_creation_failed.{ex.__class__.__name__}",
+                engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+            )
+            # if the exception is DatabaseTestConnectionFailedError it has errors in it
+            # so we try to return the message from the errors instead of using the
+            # default message
+            error_list: List[SupersetError] = ex.errors
+            for error in error_list:
+                raise DatabaseConnectionFailedError(message=str(error.message)) from ex
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",

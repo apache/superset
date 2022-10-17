@@ -117,8 +117,11 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                     extra={"sqlalchemy_uri": database.sqlalchemy_uri},
                 ) from ex
-            except Exception:  # pylint: disable=broad-except
+            except Exception as ex:
                 alive = False
+                # So we stop losing the original message if any
+                raise DBAPIError(str(ex), None, None) from ex
+
             if not alive:
                 raise DBAPIError(None, None, None)
 
