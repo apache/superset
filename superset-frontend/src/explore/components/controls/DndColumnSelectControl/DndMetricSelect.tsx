@@ -78,10 +78,18 @@ const coerceMetrics = (
   );
 
   return metricsCompatibleWithDataset.map(metric => {
-    if (isDictionaryForAdhocMetric(metric)) {
-      return new AdhocMetric(metric);
+    if (!isDictionaryForAdhocMetric(metric)) {
+      return metric;
     }
-    return metric;
+    if (isAdhocMetricSimple(metric)) {
+      const column = columns.find(
+        col => col.column_name === metric.column.column_name,
+      );
+      if (column) {
+        return new AdhocMetric({ ...metric, column });
+      }
+    }
+    return new AdhocMetric(metric);
   });
 };
 
