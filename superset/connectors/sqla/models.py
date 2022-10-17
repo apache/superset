@@ -92,6 +92,7 @@ from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
@@ -647,19 +648,19 @@ def _process_sql_expression(
     expression: Optional[str],
     database_id: int,
     schema: str,
-    template_processor: Optional[BaseTemplateProcessor],
+    template_processor: Optional[BaseTemplateProcessor] = None,
 ) -> Optional[str]:
     if template_processor and expression:
         expression = template_processor.process_template(expression)
     if expression:
-        expression = validate_adhoc_subquery(
-            expression,
-            database_id,
-            schema,
-        )
         try:
+            expression = validate_adhoc_subquery(
+                expression,
+                database_id,
+                schema,
+            )
             expression = sanitize_clause(expression)
-        except QueryClauseValidationException as ex:
+        except (QueryClauseValidationException, SupersetSecurityException) as ex:
             raise QueryObjectValidationError(ex.message) from ex
     return expression
 
@@ -1639,6 +1640,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
+                where = _process_sql_expression(
+                    expression=where,
+                    database_id=self.database_id,
+                    schema=self.schema,
+                )
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
@@ -1651,7 +1657,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                             msg=ex.message,
                         )
                     ) from ex
+                having = _process_sql_expression(
+                    expression=having,
+                    database_id=self.database_id,
+                    schema=self.schema,
+                )
                 having_clause_and += [self.text(having)]
+
         if apply_fetch_values_predicate and self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
         if granularity:
