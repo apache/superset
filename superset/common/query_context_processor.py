@@ -326,11 +326,25 @@ class QueryContextProcessor:
             )
         for offset in time_offsets:
             try:
+                # Since the xaxis is also a column name for the time filter, xaxis_label will be set as granularity
+                # these query object are equivalent:
+                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
+                # 2) { columns: [
+                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }
+                #      ],
+                #      time_offsets: ['1 year ago'],
+                #      filters: [{col: 'dttm_col', op: 'DATETIME_BETWEEN', val: '2020 : 2021'}],
+                #    }
                 query_object_clone.from_dttm = get_past_or_future(
                     offset,
                     outer_from_dttm,
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
+
+                xaxis_label = get_xaxis_label(query_object.columns)
+                query_object_clone.granularity = (
+                    query_object_clone.granularity or xaxis_label
+                )
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex)) from ex
             # make sure subquery use main query where clause
@@ -341,7 +355,7 @@ class QueryContextProcessor:
             query_object_clone.filter = [
                 flt
                 for flt in query_object_clone.filter
-                if flt.get("col") != get_xaxis_label(query_object.columns)
+                if flt.get("col") != xaxis_label
             ]
 
             # `offset` is added to the hash function
