@@ -18,19 +18,18 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Set, TYPE_CHECKING, Union
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     SupersetErrorsException,
     SupersetException,
     SupersetGenericErrorException,
-    SupersetSyntaxErrorException,
 )
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -116,7 +115,7 @@ class ExecuteSqlCommand(BaseCommand):
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
         except (SupersetErrorsException, SupersetException) as ex:
-            if ex.status == 422:
+            if ex.status != 422:
                 query_id = query.id if query else None
                 logger.exception("Query %d: %s", query_id, type(ex))
             raise ex
