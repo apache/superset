@@ -71,14 +71,14 @@ def setup_csv_upload(login_as_admin):
     yield
 
     upload_db = get_upload_db()
-    engine = upload_db.get_sqla_engine()
-    engine.execute(f"DROP TABLE IF EXISTS {EXCEL_UPLOAD_TABLE}")
-    engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
-    engine.execute(f"DROP TABLE IF EXISTS {PARQUET_UPLOAD_TABLE}")
-    engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}")
-    engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_EXPLORE}")
-    db.session.delete(upload_db)
-    db.session.commit()
+    with upload_db.get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE IF EXISTS {EXCEL_UPLOAD_TABLE}")
+        engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
+        engine.execute(f"DROP TABLE IF EXISTS {PARQUET_UPLOAD_TABLE}")
+        engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_SCHEMA}")
+        engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE_W_EXPLORE}")
+        db.session.delete(upload_db)
+        db.session.commit()
 
 
 @pytest.fixture(scope="module")

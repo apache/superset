@@ -57,20 +57,24 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("hive/default", db)
+        with model.get_sqla_engine_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/default", db)
 
-        db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEqual("hive/core_db", db)
+        with model.get_sqla_engine_context(schema="core_db") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/core_db", db)
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("hive", db)
+        with model.get_sqla_engine_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive", db)
 
-        db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEqual("hive/core_db", db)
+        with model.get_sqla_engine_context(schema="core_db") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/core_db", db)
 
     def test_database_schema_postgres(self):
         sqlalchemy_uri = "postgresql+psycopg2://postgres.airbnb.io:5439/prod"
