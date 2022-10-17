@@ -442,6 +442,22 @@ function SavedQueryList({
         id: 'changed_on_delta_humanized',
       },
       {
+        accessor: 'created_by.first_name',
+        Header: t('Created by'),
+        disableSortBy: true,
+        size: 'xl',
+        Cell: ({
+          row: {
+            original: { created_by: createdBy },
+          },
+        }: any) =>
+          createdBy ? `${createdBy.first_name} ${createdBy.last_name}` : '',
+      },
+      {
+        accessor: 'created_by',
+        hidden: true,
+      },
+      {
         Cell: ({ row: { original } }: any) => {
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
@@ -582,6 +598,26 @@ function SavedQueryList({
           createErrorHandler(errMsg =>
             t(
               'An error occurred while fetching dataset datasource values: %s',
+              errMsg,
+            ),
+          ),
+          user,
+        ),
+        paginate: true,
+      },
+      {
+        Header: t('Created by'),
+        key: 'created_by',
+        id: 'created_by',
+        input: 'select',
+        operator: FilterOperator.RelationOneMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: createFetchRelated(
+          'saved_query',
+          'created_by',
+          createErrorHandler(errMsg =>
+            t(
+              'An error occurred while fetching created_by values: %s',
               errMsg,
             ),
           ),
