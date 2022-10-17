@@ -73,6 +73,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self._properties["database"] = database
 
         # Validate table exists on dataset if sql is not provided
+        # This should be validated when the dataset is physical
         if (
             database
             and not sql
