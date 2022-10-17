@@ -22,7 +22,9 @@ import {
   ensureIsArray,
   FeatureFlag,
   GenericDataType,
+  isAdhocMetricSimple,
   isFeatureEnabled,
+  isSavedMetric,
   Metric,
   QueryFormMetric,
   t,
@@ -45,24 +47,41 @@ import MetricsControl from '../MetricControl/MetricsControl';
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
 
-const isDictionaryForAdhocMetric = (value: any) =>
-  value && !(value instanceof AdhocMetric) && value.expressionType;
+const isDictionaryForAdhocMetric = (value: QueryFormMetric) =>
+  value &&
+  !(value instanceof AdhocMetric) &&
+  typeof value !== 'string' &&
+  value.expressionType;
 
-const coerceAdhocMetrics = (value: any) => {
-  if (!value) {
+const coerceMetrics = (
+  addedMetrics: QueryFormMetric | QueryFormMetric[] | undefined | null,
+  savedMetrics: Metric[],
+  columns: ColumnMeta[],
+) => {
+  if (!addedMetrics) {
     return [];
   }
-  if (!Array.isArray(value)) {
-    if (isDictionaryForAdhocMetric(value)) {
-      return [new AdhocMetric(value)];
+  const metricsCompatibleWithDataset = ensureIsArray(addedMetrics).filter(
+    metric => {
+      if (isSavedMetric(metric)) {
+        return savedMetrics.some(
+          savedMetric => savedMetric.metric_name === metric,
+        );
+      }
+      if (isAdhocMetricSimple(metric)) {
+        return columns.some(
+          column => column.column_name === metric.column.column_name,
+        );
+      }
+      return true;
+    },
+  );
+
+  return metricsCompatibleWithDataset.map(metric => {
+    if (isDictionaryForAdhocMetric(metric)) {
+      return new AdhocMetric(metric);
     }
-    return [value];
-  }
-  return value.map(val => {
-    if (isDictionaryForAdhocMetric(val)) {
-      return new AdhocMetric(val);
-    }
-    return val;
+    return metric;
   });
 };
 
@@ -107,7 +126,7 @@ const DndMetricSelect = (props: any) => {
   );
 
   const [value, setValue] = useState<ValueType[]>(
-    coerceAdhocMetrics(props.value),
+    coerceMetrics(props.value, props.savedMetrics, props.columns),
   );
   const [droppedItem, setDroppedItem] = useState<
     DatasourcePanelDndItem | typeof EMPTY_OBJECT
@@ -115,8 +134,12 @@ const DndMetricSelect = (props: any) => {
   const [newMetricPopoverVisible, setNewMetricPopoverVisible] = useState(false);
 
   useEffect(() => {
-    setValue(coerceAdhocMetrics(props.value));
-  }, [JSON.stringify(props.value)]);
+    setValue(coerceMetrics(props.value, props.savedMetrics, props.columns));
+  }, [
+    JSON.stringify(props.value),
+    JSON.stringify(props.savedMetrics),
+    JSON.stringify(props.columns),
+  ]);
 
   const canDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
