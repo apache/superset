@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Set, TYPE_CHECKING
+from typing import Any, Dict, Optional, Set, TYPE_CHECKING, Union
 
 from flask_babel import gettext as __
 
@@ -122,13 +122,8 @@ class ExecuteSqlCommand(BaseCommand):
                 "status": status,
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
-        except SupersetErrorsException as ex:
-            if not all(ex.error_type in USER_CLIENT_ERRORS for ex in ex.errors):
-                query_id = query.id if query else None
-                logger.exception("Query %d: %s", query_id, type(ex))
-            raise ex
-        except SupersetException as ex:
-            if not ex.error_type in USER_CLIENT_ERRORS:
+        except (SupersetErrorsException, SupersetException) as ex:
+            if ex.status == 422:
                 query_id = query.id if query else None
                 logger.exception("Query %d: %s", query_id, type(ex))
             raise ex
