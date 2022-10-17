@@ -326,6 +326,7 @@ class QueryContextProcessor:
             )
         for offset in time_offsets:
             try:
+                # pylint: disable=line-too-long
                 # Since the xaxis is also a column name for the time filter, xaxis_label will be set as granularity
                 # these query object are equivalent:
                 # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
