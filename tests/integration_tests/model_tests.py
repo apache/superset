@@ -57,22 +57,22 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_context() as engine:
+        with model.get_sqla_engine_with_context() as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/default", db)
 
-        with model.get_sqla_engine_context(schema="core_db") as engine:
+        with model.get_sqla_engine_with_context(schema="core_db") as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/core_db", db)
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        with model.get_sqla_engine_context() as engine:
+        with model.get_sqla_engine_with_context() as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive", db)
 
-        with model.get_sqla_engine_context(schema="core_db") as engine:
+        with model.get_sqla_engine_with_context(schema="core_db") as engine:
             db = make_url(engine.url).database
             self.assertEqual("hive/core_db", db)
 
