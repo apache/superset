@@ -70,6 +70,7 @@ export interface SimpleColumnType {
   filterBy?: string;
   value?: string;
   advanced_data_type?: string;
+  verbose_name?: string;
 }
 
 export interface SimpleExpressionType {
@@ -424,6 +425,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
             ('optionName' in column && column.optionName) ||
             '',
           label:
+            ('verbose_name' in column && column.verbose_name) ||
             ('saved_metric_name' in column && column.saved_metric_name) ||
             ('column_name' in column && column.column_name) ||
             ('label' in column && column.label),
