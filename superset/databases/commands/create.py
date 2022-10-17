@@ -32,7 +32,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
-from superset.errors import SupersetError
+from superset.errors import SupersetError, SupersetErrorType
 from superset.extensions import db, event_logger, security_manager
 
 logger = logging.getLogger(__name__)
@@ -58,7 +58,24 @@ class CreateDatabaseCommand(BaseCommand):
             # default message
             error_list: List[SupersetError] = ex.errors
             for error in error_list:
-                raise DatabaseConnectionFailedError(message=str(error.message)) from ex
+                # We could have just set the message coming from the original exception
+                # But that would have impacted all other places that relies on the
+                # current message. Like api_tests for postgres etc. In the future,
+                # after we discuss whether we want to show the original message
+                # all the time we can simply remove the check and set the message
+                # for all cases.
+                # Why Adding the message for this error type?
+                # Because it's the type returned for Service Accounts without roles
+                # or permissions when connecting to BigQuery DBs, which is
+                # the change we are introducing at this moment.
+                if (
+                    error.error_type
+                    == SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR
+                ):
+                    raise DatabaseConnectionFailedError(
+                        message=str(error.message)
+                    ) from ex
+                raise DatabaseConnectionFailedError() from ex
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
