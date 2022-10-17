@@ -34,7 +34,7 @@ export const useGetTimeRangeByAdhocFilter = (
 
   useEffect(() => {
     if (
-      adhocFilter.operator === Operators.DATETIME_BETWEEN &&
+      adhocFilter.operator === Operators.TEMPORAL_BETWEEN &&
       adhocFilter.comparator === NO_TIME_RANGE
     ) {
       setActualTimeRange({
@@ -44,7 +44,7 @@ export const useGetTimeRangeByAdhocFilter = (
     }
 
     if (
-      adhocFilter.operator === Operators.DATETIME_BETWEEN &&
+      adhocFilter.operator === Operators.TEMPORAL_BETWEEN &&
       adhocFilter.comparator !== NO_TIME_RANGE
     ) {
       fetchTimeRange(adhocFilter.comparator, adhocFilter.subject).then(

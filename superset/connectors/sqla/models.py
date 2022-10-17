@@ -1660,7 +1660,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     elif op == utils.FilterOperator.ILIKE.value:
                         where_clause_and.append(sqla_col.ilike(eq))
                     elif (
-                        op == utils.FilterOperator.DATETIME_BETWEEN.value
+                        op == utils.FilterOperator.TEMPORAL_BETWEEN.value
                         and isinstance(eq, str)
                         and col_obj is not None
                     ):

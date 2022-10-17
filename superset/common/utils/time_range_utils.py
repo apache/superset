@@ -64,7 +64,7 @@ def get_since_until_from_query_object(
     time_range = None
     for flt in query_object.filter:
         if (
-            flt.get("op") == FilterOperator.DATETIME_BETWEEN.value
+            flt.get("op") == FilterOperator.TEMPORAL_BETWEEN.value
             and flt.get("col") == get_xaxis_label(query_object.columns)
             and isinstance(flt.get("val"), str)
         ):

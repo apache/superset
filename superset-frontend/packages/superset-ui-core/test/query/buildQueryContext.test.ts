@@ -179,7 +179,7 @@ describe('buildQueryContext', () => {
           filters: [
             {
               col: 'col1',
-              op: 'DATETIME_BETWEEN',
+              op: 'TEMPORAL_BETWEEN',
               val: '2001 : 2002',
             },
             {
@@ -193,7 +193,7 @@ describe('buildQueryContext', () => {
       ],
     );
     expect(queryContext.queries[0].filters).toEqual([
-      { col: 'col1', op: 'DATETIME_BETWEEN', val: '1990 : 1991' },
+      { col: 'col1', op: 'TEMPORAL_BETWEEN', val: '1990 : 1991' },
       {
         col: 'col2',
         op: 'IN',

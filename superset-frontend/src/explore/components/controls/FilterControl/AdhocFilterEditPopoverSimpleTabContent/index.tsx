@@ -127,8 +127,8 @@ export const useSimpleTabFilterProps = (props: Props) => {
       const { partitionColumn } = props;
       return partitionColumn && subject && subject === partitionColumn;
     }
-    if (operator && operator === Operators.DATETIME_BETWEEN) {
-      // hide the DATETIME_BETWEEN operator
+    if (operator && operator === Operators.TEMPORAL_BETWEEN) {
+      // hide the TEMPORAL_BETWEEN operator
       return false;
     }
     if (operator === Operators.IS_TRUE || operator === Operators.IS_FALSE) {
@@ -236,7 +236,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
     props.onChange(
       props.adhocFilter.duplicateWith({
         subject: columnName,
-        operator: Operators.DATETIME_BETWEEN,
+        operator: Operators.TEMPORAL_BETWEEN,
         comparator: timeRange,
         expressionType: EXPRESSION_TYPES.SIMPLE,
       }),
@@ -369,7 +369,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
   const datePicker = useDatePickerInAdhocFilter({
     columnName: props.adhocFilter.subject,
     timeRange:
-      props.adhocFilter.operator === Operators.DATETIME_BETWEEN
+      props.adhocFilter.operator === Operators.TEMPORAL_BETWEEN
         ? props.adhocFilter.comparator
         : NO_TIME_RANGE,
     columns: props.datasource.columns,

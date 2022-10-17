@@ -75,7 +75,7 @@ export const datePickerInAdhocFilterMixin: Pick<
       state?.form_data?.granularity_sqla &&
       state?.form_data?.time_range &&
       ensureIsArray(control.value).findIndex(
-        (flt: any) => flt?.operator === 'DATETIME_BETWEEN',
+        (flt: any) => flt?.operator === 'TEMPORAL_BETWEEN',
       ) === -1
     ) {
       return [
@@ -83,7 +83,7 @@ export const datePickerInAdhocFilterMixin: Pick<
         {
           clause: 'WHERE',
           subject: state.form_data.granularity_sqla,
-          operator: 'DATETIME_BETWEEN',
+          operator: 'TEMPORAL_BETWEEN',
           comparator: state.form_data.time_range,
           expressionType: 'SIMPLE',
         },
