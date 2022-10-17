@@ -123,20 +123,14 @@ class ExecuteSqlCommand(BaseCommand):
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
         except SupersetErrorsException as ex:
-            if all(ex.error_type in USER_CLIENT_ERRORS for ex in ex.errors):
-                raise SupersetSyntaxErrorException(ex.errors) from ex
+            if not all(ex.error_type in USER_CLIENT_ERRORS for ex in ex.errors):
+                query_id = query.id if query else None
+                logger.exception("Query %d: %s", query_id, type(ex))
             raise ex
         except SupersetException as ex:
-            if ex.error_type in USER_CLIENT_ERRORS:
-                raise SupersetSyntaxErrorException(
-                    [
-                        SupersetError(
-                            message=ex.message,
-                            error_type=ex.error_type,
-                            level=ErrorLevel.ERROR,
-                        )
-                    ]
-                ) from ex
+            if not ex.error_type in USER_CLIENT_ERRORS:
+                query_id = query.id if query else None
+                logger.exception("Query %d: %s", query_id, type(ex))
             raise ex
         except Exception as ex:
             query_id = query.id if query else None
