@@ -125,7 +125,8 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
 
   return (
     <Modal
-      width="auto"
+      responsive
+      maxWidth="1024px"
       height="50vh"
       show={Boolean(overwriteConfirmMetadata)}
       title={t('Confirm overwrite')}
