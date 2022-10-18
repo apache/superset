@@ -48,7 +48,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
       css={(theme: SupersetTheme) => css`
         position: absolute;
         height: 100%;
-        width: 100%
+        width: ${BUILDER_PANE_WIDTH}px;
         box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
         background-color: ${theme.colors.grayscale.light5};
       `}
