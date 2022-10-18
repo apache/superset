@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError, DAODeleteFailedError
 from superset.extensions import db
+from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
     ReportExecutionLog,
     ReportRecipients,
@@ -43,6 +44,7 @@ REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
 
 class ReportScheduleDAO(BaseDAO):
     model_cls = ReportSchedule
+    base_filter = ReportScheduleFilter
 
     @staticmethod
     def find_by_chart_id(chart_id: int) -> List[ReportSchedule]:

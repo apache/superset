@@ -23,6 +23,7 @@ import {
   FeatureFlag,
   getSharedLabelColor,
   isFeatureEnabled,
+  SharedLabelColorSource,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -336,17 +337,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     return () => {};
   }, [css]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const sharedLabelColor = getSharedLabelColor();
+    sharedLabelColor.source = SharedLabelColorSource.dashboard;
+    return () => {
       // clean up label color
       const categoricalNamespace = CategoricalColorNamespace.getNamespace(
         metadata?.color_namespace,
       );
       categoricalNamespace.resetColors();
-      getSharedLabelColor().clear();
-    },
-    [metadata?.color_namespace],
-  );
+      sharedLabelColor.clear();
+    };
+  }, [metadata?.color_namespace]);
 
   useEffect(() => {
     if (datasetsApiError) {
