@@ -73,4 +73,11 @@ export const chartLabelWeight: Record<ChartLabel, { weight: number }> = {
   },
 };
 
+export enum AxisType {
+  category = 'category',
+  value = 'value',
+  time = 'time',
+  log = 'log',
+}
+
 export default {};
