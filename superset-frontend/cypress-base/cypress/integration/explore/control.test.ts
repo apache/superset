@@ -204,7 +204,7 @@ describe('Time range filter', () => {
       });
   });
 
-  it('Custom time_range params', () => {
+  xit('Custom time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
       viz_type: 'line',
