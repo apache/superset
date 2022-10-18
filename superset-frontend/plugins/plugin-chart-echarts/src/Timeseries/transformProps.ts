@@ -451,5 +451,9 @@ export default function transformProps(
     legendData,
     onContextMenu,
     xValueFormatter: tooltipFormatter,
+    xAxis: {
+      label: xAxisCol,
+      type: xAxisType,
+    },
   };
 }

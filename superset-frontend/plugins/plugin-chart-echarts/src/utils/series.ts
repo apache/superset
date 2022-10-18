@@ -323,9 +323,9 @@ export const currentSeries = {
 
 export function getAxisType(dataType?: GenericDataType): AxisType {
   if (dataType === GenericDataType.TEMPORAL) {
-    return 'time';
+    return AxisType.time;
   }
-  return 'category';
+  return AxisType.category;
 }
 
 export function getOverMaxHiddenFormatter(

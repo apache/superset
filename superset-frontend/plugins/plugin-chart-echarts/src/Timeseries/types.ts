@@ -96,6 +96,10 @@ export interface EchartsTimeseriesChartProps
 export type TimeseriesChartTransformedProps =
   EChartTransformedProps<EchartsTimeseriesFormData> & {
     xValueFormatter: TimeFormatter | StringConstructor;
+    xAxis: {
+      label: string;
+      type: AxisType;
+    };
   };
 
 export enum AxisType {
