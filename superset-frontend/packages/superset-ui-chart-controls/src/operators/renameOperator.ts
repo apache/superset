@@ -22,7 +22,7 @@ import {
   ensureIsArray,
   getMetricLabel,
   ComparisionType,
-  getXAxis,
+  getXAxisLabel,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 import { getMetricOffsetsMap, isTimeComparison } from './utils';
@@ -34,7 +34,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   const metrics = ensureIsArray(queryObject.metrics);
   const columns = ensureIsArray(queryObject.columns);
   const { truncate_metric } = formData;
-  const xAxis = getXAxis(formData);
+  const xAxis = getXAxisLabel(formData);
   // remove or rename top level of column name(metric name) in the MultiIndex when
   // 1) only 1 metric
   // 2) exist dimentsion
