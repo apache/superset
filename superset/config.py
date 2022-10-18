@@ -1223,11 +1223,14 @@ PREFERRED_DATABASES: List[str] = [
 # one here.
 TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
+# Enable/disable CSP warning
+CONTENT_SECURITY_POLICY_WARNING = True
+
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = False
+TALISMAN_ENABLED = True
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
-    "content_security_policy": None,
+    "content_security_policy": "default-src 'self'",
     "force_https": True,
     "force_https_permanent": False,
 }
