@@ -140,7 +140,7 @@ describe('CategoricalColorScale', () => {
       expect(scale2.getColorMap()).toEqual({
         cow: 'black',
         pig: 'pink',
-        horse: 'blue',
+        horse: 'green',
       });
     });
   });

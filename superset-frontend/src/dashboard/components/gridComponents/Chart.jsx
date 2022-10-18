@@ -200,6 +200,15 @@ class Chart extends React.Component {
           return true;
         }
       }
+    } else if (
+      // chart should re-render if color scheme or label color was changed
+      nextProps.formData?.color_scheme !== this.props.formData?.color_scheme ||
+      !areObjectsEqual(
+        nextProps.formData?.label_colors,
+        this.props.formData?.label_colors,
+      )
+    ) {
+      return true;
     }
 
     // `cacheBusterProp` is jected by react-hot-loader

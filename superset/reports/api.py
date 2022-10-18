@@ -43,7 +43,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.reports.commands.update import UpdateReportScheduleCommand
-from superset.reports.filters import ReportScheduleAllTextFilter
+from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (
     get_delete_ids_schema,
@@ -79,6 +79,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     resource_name = "report"
     allow_browser_login = True
+
+    base_filters = [
+        ["id", ReportScheduleFilter, lambda: []],
+    ]
 
     show_columns = [
         "id",
