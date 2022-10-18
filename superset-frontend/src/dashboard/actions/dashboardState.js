@@ -386,9 +386,7 @@ export function saveDashboardRequest(data, id, saveType) {
           .catch(response => onError(response));
       return new Promise((resolve, reject) => {
         if (
-          !isFeatureEnabled(
-            FeatureFlag.ENABLE_CONFIRM_OVERWRITE_DASHBOARD_METADATA,
-          ) ||
+          !isFeatureEnabled(FeatureFlag.CONFIRM_DASHBOARD_DIFF) ||
           saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
         ) {
           // skip overwrite precheck

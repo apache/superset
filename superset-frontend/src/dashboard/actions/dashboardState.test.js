@@ -138,15 +138,12 @@ describe('dashboardState actions', () => {
       );
     });
 
-    describe('FeatureFlag.ENABLE_CONFIRM_OVERWRITE_DASHBOARD_METADATA', () => {
+    describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
       let isFeatureEnabledMock;
       beforeEach(() => {
         isFeatureEnabledMock = jest
           .spyOn(featureFlags, 'isFeatureEnabled')
-          .mockImplementation(
-            feature =>
-              feature === 'ENABLE_CONFIRM_OVERWRITE_DASHBOARD_METADATA',
-          );
+          .mockImplementation(feature => feature === 'CONFIRM_DASHBOARD_DIFF');
       });
 
       afterEach(() => {
