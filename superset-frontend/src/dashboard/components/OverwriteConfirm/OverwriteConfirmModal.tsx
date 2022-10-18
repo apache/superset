@@ -132,7 +132,7 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
       title={t('Confirm overwrite')}
       footer={
         <>
-          {t('* Scroll down to the bottom to complete the review. ')}
+          {t('Scroll down to the bottom to enable overwriting changes. ')}
           <Button
             htmlType="button"
             buttonSize="small"
@@ -157,55 +157,51 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
       }
       onHide={onHide}
     >
-      <>
-        {overwriteConfirmMetadata && (
-          <>
-            <StyledTitle>
-              {t('Are you sure you intend to overwrite the following values?')}
-            </StyledTitle>
-            <StyledEditor>
-              {overwriteConfirmMetadata.overwriteConfirmItems.map(
-                ({ keyPath, oldValue, newValue }, index) => (
-                  <React.Fragment key={keyPath}>
-                    <div ref={anchors[index]} />
-                    <StackableHeader
-                      top={index * STICKY_HEADER_HEIGHT - STICKY_HEADER_TOP}
-                      buttonStyle="tertiary"
-                      onClick={() => onAnchorClicked(index)}
-                    >
-                      {keyPath}
-                    </StackableHeader>
-                    <ReactDiffViewer
-                      oldValue={oldValue}
-                      newValue={newValue}
-                      leftTitle={t(
-                        'Last Updated %s by %s',
-                        moment
-                          .utc(overwriteConfirmMetadata.updatedAt)
-                          .calendar(),
-                        overwriteConfirmMetadata.updatedBy,
-                      )}
-                      rightTitle="new value"
-                    />
-                  </React.Fragment>
-                ),
-              )}
-              <StyledBottom ref={bottomRef} inView={hasReviewed}>
-                {/* Add submit button at the bottom in case of intersection-observer fallback */}
-                <Button
-                  htmlType="button"
-                  buttonSize="small"
-                  cta
-                  buttonStyle="primary"
-                  onClick={onConfirmOverwrite}
-                >
-                  {t('Yes, overwrite changes')}
-                </Button>
-              </StyledBottom>
-            </StyledEditor>
-          </>
-        )}
-      </>
+      {overwriteConfirmMetadata && (
+        <>
+          <StyledTitle>
+            {t('Are you sure you intend to overwrite the following values?')}
+          </StyledTitle>
+          <StyledEditor>
+            {overwriteConfirmMetadata.overwriteConfirmItems.map(
+              ({ keyPath, oldValue, newValue }, index) => (
+                <React.Fragment key={keyPath}>
+                  <div ref={anchors[index]} />
+                  <StackableHeader
+                    top={index * STICKY_HEADER_HEIGHT - STICKY_HEADER_TOP}
+                    buttonStyle="tertiary"
+                    onClick={() => onAnchorClicked(index)}
+                  >
+                    {keyPath}
+                  </StackableHeader>
+                  <ReactDiffViewer
+                    oldValue={oldValue}
+                    newValue={newValue}
+                    leftTitle={t(
+                      'Last Updated %s by %s',
+                      moment.utc(overwriteConfirmMetadata.updatedAt).calendar(),
+                      overwriteConfirmMetadata.updatedBy,
+                    )}
+                    rightTitle="new value"
+                  />
+                </React.Fragment>
+              ),
+            )}
+            <StyledBottom ref={bottomRef} inView={hasReviewed}>
+              {/* Add submit button at the bottom in case of intersection-observer fallback */}
+              <Button
+                htmlType="button"
+                buttonSize="small"
+                cta
+                buttonStyle="primary"
+                onClick={onConfirmOverwrite}
+              >
+                {t('Yes, overwrite changes')}
+              </Button>
+            </StyledBottom>
+          </StyledEditor>
+        </>
+      )}
     </Modal>
   );
 };
