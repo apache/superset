@@ -76,12 +76,7 @@ describe('Charts list', () => {
         .find('[data-test="crosslinks"]')
         .should('be.empty');
       cy.getBySel('table-row')
-        .eq(1)
-        .find('[data-test="table-row-cell"]')
-        .find('[data-test="crosslinks"]')
-        .contains('Unicode Test');
-      cy.getBySel('table-row')
-        .eq(2)
+        .eq(10)
         .find('[data-test="table-row-cell"]')
         .find('[data-test="crosslinks"]')
         .contains('Supported Charts Dashboard')
