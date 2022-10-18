@@ -169,28 +169,25 @@ class DatasourceControl extends React.PureComponent {
     };
   }
 
-  onDatasourceSave = (datasource) => {
+  onDatasourceSave = datasource => {
     this.props.actions.changeDatasource(datasource);
     const { columns } = this.props.datasource;
     const timeCol = this.props.form_data?.granularity_sqla;
-    const timeColConf = columns.find(({ column_name }) => column_name === timeCol);
-    const firstDttmCol = columns.find(column => column.is_dttm)?.column_name || null;
-    const currentMainDttmCol = columns.find(c => c.column_name === datasource.main_dttm_col);
-    const setDttmCol = currentMainDttmCol?.is_dttm ? currentMainDttmCol.column_name : firstDttmCol;
-    console.log("firstDttmCol", firstDttmCol);
-    console.log("currentMainDttmCol", currentMainDttmCol);
-
-
+    const timeColConf = columns.find(
+      ({ column_name }) => column_name === timeCol,
+    );
+    const firstDttmCol =
+      columns.find(column => column.is_dttm)?.column_name || null;
+    const currentMainDttmCol = columns.find(
+      c => c.column_name === datasource.main_dttm_col,
+    );
+    const setDttmCol = currentMainDttmCol?.is_dttm
+      ? currentMainDttmCol.column_name
+      : firstDttmCol;
     if (datasource.type === 'table') {
       // resets new default time col or picks the first available one
-      if (
-        datasource.main_dttm_col !== timeCol || !timeColConf?.is_dttm
-      ) {
-          console.log("setDttmCol", setDttmCol);
-          this.props.actions.setControlValue(
-            'granularity_sqla',
-            setDttmCol,
-          );
+      if (!timeColConf?.is_dttm) {
+        this.props.actions.setControlValue('granularity_sqla', setDttmCol);
       }
     }
 
