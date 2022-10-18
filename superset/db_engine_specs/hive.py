@@ -213,6 +213,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                 np.dtype("float64"): "DOUBLE",
                 np.dtype("int64"): "BIGINT",
                 np.dtype("object"): "STRING",
+                np.dtype("datetime64[ns]"): "TIMESTAMP",
             }
 
             return hive_type_by_dtype.get(dtype, "STRING")
