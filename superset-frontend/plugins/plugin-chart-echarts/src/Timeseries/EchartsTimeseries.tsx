@@ -17,7 +17,11 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  DTTM_ALIAS,
+  QueryObjectFilterClause,
+  AxisType,
+} from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
@@ -43,6 +47,7 @@ export default function EchartsTimeseries({
   legendData = [],
   onContextMenu,
   xValueFormatter,
+  xAxis,
 }: TimeseriesChartTransformedProps) {
   const { emitFilter, stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -182,16 +187,28 @@ export default function EchartsTimeseries({
         const { data } = eventParams;
         if (data) {
           const pointerEvent = eventParams.event.event;
-          const values = labelMap[eventParams.seriesName];
+          const values = [
+            ...(eventParams.name ? [eventParams.name] : []),
+            ...labelMap[eventParams.seriesName],
+          ];
           const filters: QueryObjectFilterClause[] = [];
-          filters.push({
-            col: formData.granularitySqla,
-            grain: formData.timeGrainSqla,
-            op: '==',
-            val: data[0],
-            formattedVal: xValueFormatter(data[0]),
-          });
-          formData.groupby.forEach((dimension, i) =>
+          if (xAxis.type === AxisType.time) {
+            filters.push({
+              col:
+                // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+                xAxis.label === DTTM_ALIAS
+                  ? formData.granularitySqla
+                  : xAxis.label,
+              grain: formData.timeGrainSqla,
+              op: '==',
+              val: data[0],
+              formattedVal: xValueFormatter(data[0]),
+            });
+          }
+          [
+            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
+            ...formData.groupby,
+          ].forEach((dimension, i) =>
             filters.push({
               col: dimension,
               op: '==',
