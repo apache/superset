@@ -17,11 +17,15 @@
  * under the License.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { DTTM_ALIAS, QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  DTTM_ALIAS,
+  QueryObjectFilterClause,
+  AxisType,
+} from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
-import { AxisType, EchartsHandler, EventHandlers } from '../types';
+import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
 import { currentSeries } from '../utils/series';

@@ -25,6 +25,7 @@ import {
   TimeGranularity,
   ContributionType,
   TimeFormatter,
+  AxisType,
 } from '@superset-ui/core';
 import {
   EchartsLegendFormData,
@@ -101,10 +102,3 @@ export type TimeseriesChartTransformedProps =
       type: AxisType;
     };
   };
-
-export enum AxisType {
-  category = 'category',
-  value = 'value',
-  time = 'time',
-  log = 'log',
-}

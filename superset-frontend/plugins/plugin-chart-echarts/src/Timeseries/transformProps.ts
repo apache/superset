@@ -29,6 +29,7 @@ import {
   TimeseriesChartDataResponseResult,
   t,
   getXAxis,
+  AxisType,
 } from '@superset-ui/core';
 import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
@@ -39,7 +40,6 @@ import {
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
-  AxisType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue } from '../types';
