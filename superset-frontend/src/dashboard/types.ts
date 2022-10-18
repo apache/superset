@@ -73,8 +73,8 @@ export type DashboardState = {
     column: string;
   };
   overwriteConfirmMetadata?: {
-    latestUpdatedAt: string;
-    latestUpdatedBy: string;
+    updatedAt: string;
+    updatedBy: string;
     overwriteConfirmItems: {
       keyPath: string;
       oldValue: string;

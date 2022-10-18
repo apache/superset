@@ -181,9 +181,9 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
                       leftTitle={t(
                         'Last Updated %s by %s',
                         moment
-                          .utc(overwriteConfirmMetadata.latestUpdatedAt)
+                          .utc(overwriteConfirmMetadata.updatedAt)
                           .calendar(),
-                        overwriteConfirmMetadata.latestUpdatedBy,
+                        overwriteConfirmMetadata.updatedBy,
                       )}
                       rightTitle="new value"
                     />

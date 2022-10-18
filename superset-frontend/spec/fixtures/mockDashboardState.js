@@ -33,21 +33,75 @@ export default {
 };
 
 export const overwriteConfirmMetadata = {
-  latestUpdatedAt: '2022-10-07T16:35:30.924212',
-  latestUpdatedBy: 'Superset Admin',
+  updatedAt: '2022-10-07T16:35:30.924212',
+  updatedBy: 'Superset Admin',
   overwriteConfirmItems: [
     {
       keyPath: 'css',
       oldValue: '',
-      newValue:
-        ".navbar {\n    transition: opacity 0.5s ease;\n    opacity: 0.05;\n}\n.navbar:hover {\n    opacity: 1;\n}\n.chart-header .header{\n    font-weight: @font-weight-normal;\n    font-size: 12px;\n}\n/*\nvar bnbColors = [\n    //rausch    hackb      kazan      babu      lima        beach     tirol\n    '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',\n    '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',\n    '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',\n ];\n*/\n",
+      newValue: `
+  .navbar {
+    transition: opacity 0.5s ease;
+  }
+`,
     },
     {
       keyPath: 'json_metadata.filter_scopes',
-      oldValue:
-        '{\n  "122": {\n    "ethnic_minority": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    },\n    "gender": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    },\n    "developer_type": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    },\n    "lang_at_home": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    },\n    "country_live": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    }\n  }\n}',
-      newValue:
-        '{\n  "122": {\n    "ethnic_minority": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": [\n        131,\n        115,\n        123,\n        89,\n        94,\n        71\n      ]\n    },\n    "gender": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    },\n    "developer_type": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    },\n    "lang_at_home": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    },\n    "country_live": {\n      "scope": [\n        "ROOT_ID"\n      ],\n      "immune": []\n    }\n  }\n}',
+      oldValue: `{
+  "122": {
+    "ethnic_minority": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    },
+    "gender": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    },
+    "developer_type": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    },
+    "lang_at_home": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    },
+    "country_live": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    }
+  }
+}`,
+      newValue: `{
+  "122": {
+    "ethnic_minority": {
+      "scope": ["ROOT_ID"],
+      "immune": [
+        131,
+        115,
+        123,
+        89,
+        94,
+        71
+      ]
+    },
+    "gender": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    },
+    "developer_type": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    },
+    "lang_at_home": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    },
+    "country_live": {
+      "scope": ["ROOT_ID"],
+      "immune": []
+    }
+  }
+}`,
     },
   ],
   dashboardId: 9,

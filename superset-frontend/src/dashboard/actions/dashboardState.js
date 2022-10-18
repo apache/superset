@@ -406,8 +406,8 @@ export function saveDashboardRequest(data, id, saveType) {
           if (overwriteConfirmItems.length > 0) {
             dispatch(
               setOverrideConfirm({
-                latestUpdatedAt: dashboard.changed_on,
-                latestUpdatedBy: dashboard.changed_by_name,
+                updatedAt: dashboard.changed_on,
+                updatedBy: dashboard.changed_by_name,
                 overwriteConfirmItems,
                 dashboardId: id,
                 data: updatedDashboard,
