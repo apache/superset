@@ -33,6 +33,7 @@ import {
   TimeFormatter,
   TimeseriesAnnotationLayer,
   TimeseriesDataRecord,
+  AxisType,
 } from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
@@ -52,12 +53,7 @@ import {
 import { MarkLine1DDataItemOption } from 'echarts/types/src/component/marker/MarkLineModel';
 
 import { extractForecastSeriesContext } from '../utils/forecast';
-import {
-  AxisType,
-  ForecastSeriesEnum,
-  LegendOrientation,
-  StackType,
-} from '../types';
+import { ForecastSeriesEnum, LegendOrientation, StackType } from '../types';
 import { EchartsTimeseriesSeriesType } from './types';
 
 import {

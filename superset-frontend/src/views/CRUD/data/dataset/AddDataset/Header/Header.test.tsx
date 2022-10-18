@@ -16,25 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
+import Header, {
+  DEFAULT_TITLE,
+} from 'src/views/CRUD/data/dataset/AddDataset/Header';
 
 describe('Header', () => {
   const mockSetDataset = jest.fn();
 
-  const waitForRender = (datasetName: string) =>
-    waitFor(() =>
-      render(<Header setDataset={mockSetDataset} datasetName={datasetName} />),
-    );
+  const waitForRender = (props?: any) =>
+    waitFor(() => render(<Header setDataset={mockSetDataset} {...props} />));
 
-  it('renders a blank state Header', async () => {
-    await waitForRender('');
+  test('renders a blank state Header', async () => {
+    await waitForRender();
 
-    const datasetNameTextbox = screen.getByRole('textbox', {
-      name: /dataset name/i,
-    });
+    const datasetName = screen.getByTestId('editable-title');
     const saveButton = screen.getByRole('button', {
       name: /save save/i,
     });
@@ -42,38 +39,26 @@ describe('Header', () => {
       name: /menu actions trigger/i,
     });
 
-    expect(datasetNameTextbox).toBeVisible();
+    expect(datasetName).toBeVisible();
     expect(saveButton).toBeVisible();
     expect(saveButton).toBeDisabled();
     expect(menuButton).toBeVisible();
     expect(menuButton).toBeDisabled();
   });
 
-  it('updates display value of dataset name textbox when Header title is changed', async () => {
-    await waitForRender('');
+  test('displays "New dataset" when a table is not selected', async () => {
+    await waitForRender();
 
-    const datasetNameTextbox = screen.getByRole('textbox', {
-      name: /dataset name/i,
-    });
-
-    // Textbox should start with an empty display value and placeholder text
-    expect(datasetNameTextbox).toHaveDisplayValue('');
-    expect(
-      screen.getByPlaceholderText(/add the name of the dataset/i),
-    ).toBeVisible();
-
-    // Textbox should update its display value when user inputs a new value
-    userEvent.type(datasetNameTextbox, 'Test name');
-    expect(datasetNameTextbox).toHaveDisplayValue('Test name');
+    const datasetName = screen.getByTestId('editable-title');
+    expect(datasetName.innerHTML).toBe(DEFAULT_TITLE);
   });
 
-  it('passes an existing dataset title into the dataset name textbox', async () => {
-    await waitForRender('Existing Dataset Name');
+  test('displays table name when a table is selected', async () => {
+    // The schema and table name are passed in through props once selected
+    await waitForRender({ schema: 'testSchema', title: 'testTable' });
 
-    const datasetNameTextbox = screen.getByRole('textbox', {
-      name: /dataset name/i,
-    });
+    const datasetName = screen.getByTestId('editable-title');
 
-    expect(datasetNameTextbox).toHaveDisplayValue('Existing Dataset Name');
+    expect(datasetName.innerHTML).toBe('testTable');
   });
 });
