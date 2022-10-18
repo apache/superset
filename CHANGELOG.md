@@ -19,12 +19,18 @@ under the License.
 
 ## Change Log
 
-### 2.0.1 (Fri Jul 22 13:56:33 2022 -0400)
+### 2.0 (Mon Oct 10 09:38:33 2022 +0530)
 **Database Migrations**
 
 **Features**
 
 **Fixes**
+- [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
+- [#21576](https://github.com/apache/superset/pull/21576) fix(dashboard): dashboard doesn't load properly if it has tabs (@stephenLYZ)
+- [#21549](https://github.com/apache/superset/pull/21549) fix(dashboard): show correct roles for dashboard access dropdown (@mayurnewase)
+- [#21773](https://github.com/apache/superset/pull/21773) fix: remove deprecated ETagResponseMixin (@eschutho)
+- [#21561](https://github.com/apache/superset/pull/21561) fix(report): Fix permission check for set up email report on charts/dashboards. Fixes #21559 (@zhaorui2022)
+- [#20651](https://github.com/apache/superset/pull/20651) fix: annotation broken (@zhaoyongjie)
 - [#20830](https://github.com/apache/superset/pull/20830) fix: remove element reference in alerts report fetchs (@hughhhh)
 - [#20063](https://github.com/apache/superset/pull/20063) fix: Add locale for DatePicker component (@aehanno)
 - [#21302](https://github.com/apache/superset/pull/21302) fix: disallow users from viewing other user's profile on config (@dpgaspar)
@@ -53,6 +59,7 @@ under the License.
 - [#20714](https://github.com/apache/superset/pull/20714) fix: logger message (@betodealmeida)
 
 **Others**
+- [#21721](https://github.com/apache/superset/pull/21721) build: changelog for 2.0.1 (@AAfghahi)
 - [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
 - [#21091](https://github.com/apache/superset/pull/21091) chore(deps): unpin holidays dependency version (@ecederstrand)
 
