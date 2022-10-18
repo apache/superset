@@ -457,7 +457,7 @@ describe('Dashboard edit', () => {
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
       )
         .eq(1)
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(108, 131, 142)');
 
       openExplore('Top 10 California Names Timeseries');
 
@@ -468,7 +468,7 @@ describe('Dashboard edit', () => {
       // label Christopher
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
         .eq(1)
-        .should('have.css', 'fill', 'rgb(234, 11, 140)');
+        .should('have.css', 'fill', 'rgb(108, 131, 142)');
     });
 
     it('should change color scheme multiple times', () => {
