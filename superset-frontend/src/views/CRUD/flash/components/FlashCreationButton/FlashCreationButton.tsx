@@ -374,7 +374,15 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     }
   };
 
-  const validateQuery = (sql: string): Promise<any> => {
+  const queryValidation = (e: any) => {
+    e.stopPropagation();
+    const sqlToValidate = sql || sqlQuery.query;
+    if (sqlToValidate) {
+      validateQueryService(sqlToValidate);
+    }
+  };
+
+  const validateQueryService = (sql: string): Promise<any> => {
     const payload = {
       sql,
     };
@@ -442,13 +450,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
             disabled={!canCreateFlashObject}
             buttonSize="small"
             buttonStyle="primary"
-            onClick={e => {
-              e.stopPropagation();
-              const sqlToValidate = sql || sqlQuery.query;
-              if (sqlToValidate) {
-                validateQuery(sqlToValidate);
-              }
-            }}
+            onClick={e => queryValidation(e)}
           >
             <Icons.PlusOutlined iconSize="l" />
             {t('Create Flash Object')}
