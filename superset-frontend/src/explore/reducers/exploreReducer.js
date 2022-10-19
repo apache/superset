@@ -54,42 +54,39 @@ export default function exploreReducer(state = {}, action) {
       const { prevDatasource, newDatasource } = action;
       const controls = { ...state.controls };
       const controlsTransferred = [];
+
       if (
         prevDatasource.id !== newDatasource.id ||
         prevDatasource.type !== newDatasource.type
       ) {
         // reset time range filter to default
         newFormData.time_range = DEFAULT_TIME_RANGE;
-
         newFormData.datasource = newDatasource.uid;
-
-        // reset control values for column/metric related controls
-        Object.entries(controls).forEach(([controlName, controlState]) => {
-          if (
-            // for direct column select controls
-            controlState.valueKey === 'column_name' ||
-            // for all other controls
-            'savedMetrics' in controlState ||
-            'columns' in controlState ||
-            ('options' in controlState && !Array.isArray(controlState.options))
-          ) {
-            controls[controlName] = {
-              ...controlState,
-            };
-            newFormData[controlName] = getControlValuesCompatibleWithDatasource(
-              newDatasource,
-              controlState,
-              controlState.value,
-            );
-            if (
-              ensureIsArray(newFormData[controlName]).length > 0 &&
-              newFormData[controlName] !== controls[controlName].default
-            ) {
-              controlsTransferred.push(controlName);
-            }
-          }
-        });
       }
+
+      // reset control values for column/metric related controls
+      Object.entries(controls).forEach(([controlName, controlState]) => {
+        if (
+          // for direct column select controls
+          controlState.valueKey === 'column_name' ||
+          // for all other controls
+          'savedMetrics' in controlState ||
+          'columns' in controlState ||
+          ('options' in controlState && !Array.isArray(controlState.options))
+        ) {
+          newFormData[controlName] = getControlValuesCompatibleWithDatasource(
+            newDatasource,
+            controlState,
+            controlState.value,
+          );
+          if (
+            ensureIsArray(newFormData[controlName]).length > 0 &&
+            newFormData[controlName] !== controls[controlName].default
+          ) {
+            controlsTransferred.push(controlName);
+          }
+        }
+      });
 
       const newState = {
         ...state,
