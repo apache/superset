@@ -270,7 +270,6 @@ def test_df_to_sql_schema_definition(mock_upload_to_s3, mock_g):
         "datetime": pd.Series(dtype="datetime64[ns]")
     })
     expected_schema_definition = "`bool` BOOLEAN, `float64` DOUBLE, `int64` BIGINT, `object` STRING, `datetime` TIMESTAMP"
-
     with app.app_context():
         HiveEngineSpec.df_to_sql(
             mock_database,
@@ -279,13 +278,8 @@ def test_df_to_sql_schema_definition(mock_upload_to_s3, mock_g):
             {"if_exists": "replace"},
         )
 
-    mock_execute.assert_any_call(
-        f"""
-        CREATE TABLE {table_name} ({expected_schema_definition})
-        STORED AS PARQUET
-        LOCATION :{mock_location}
-        """
-    )
+    _, call_args, _ = mock_execute.mock_calls[1]
+    assert expected_schema_definition in str(call_args[0])
     app.config = config
     
     
