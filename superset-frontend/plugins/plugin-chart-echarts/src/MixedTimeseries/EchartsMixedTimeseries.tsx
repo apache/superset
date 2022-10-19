@@ -21,7 +21,7 @@ import {
   AxisType,
   DataRecordValue,
   DTTM_ALIAS,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
@@ -128,7 +128,7 @@ export default function EchartsMixedTimeseries({
               eventParams.seriesName
             ],
           ];
-          const filters: QueryObjectFilterClause[] = [];
+          const filters: BinaryQueryObjectFilterClause[] = [];
           if (xAxis.type === AxisType.time) {
             filters.push({
               col:
@@ -154,7 +154,7 @@ export default function EchartsMixedTimeseries({
               formattedVal: String(values[i]),
             }),
           );
-          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
         }
       }
     },

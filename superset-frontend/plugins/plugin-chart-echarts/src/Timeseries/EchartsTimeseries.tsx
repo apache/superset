@@ -19,7 +19,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DTTM_ALIAS,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
   AxisType,
 } from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
@@ -191,7 +191,7 @@ export default function EchartsTimeseries({
             ...(eventParams.name ? [eventParams.name] : []),
             ...labelMap[eventParams.seriesName],
           ];
-          const filters: QueryObjectFilterClause[] = [];
+          const filters: BinaryQueryObjectFilterClause[] = [];
           if (xAxis.type === AxisType.time) {
             filters.push({
               col:
@@ -216,7 +216,7 @@ export default function EchartsTimeseries({
               formattedVal: String(values[i]),
             }),
           );
-          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
         }
       }
     },

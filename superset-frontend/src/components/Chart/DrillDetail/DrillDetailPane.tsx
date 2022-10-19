@@ -44,7 +44,7 @@ import MetadataBar, {
 } from 'src/components/MetadataBar';
 import Alert from 'src/components/Alert';
 import { useApiV1Resource } from 'src/hooks/apiResources';
-import TableControls from './TableControls';
+import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { Dataset, ResultsPage } from './types';
 
@@ -55,12 +55,12 @@ export default function DrillDetailPane({
   initialFilters,
 }: {
   formData: QueryFormData;
-  initialFilters?: BinaryQueryObjectFilterClause[];
+  initialFilters: BinaryQueryObjectFilterClause[];
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
   const lastPageIndex = useRef(pageIndex);
-  const [filters, setFilters] = useState(initialFilters || []);
+  const [filters, setFilters] = useState(initialFilters);
   const [isLoading, setIsLoading] = useState(false);
   const [responseError, setResponseError] = useState('');
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
@@ -72,13 +72,13 @@ export default function DrillDetailPane({
       state.common.conf.SAMPLES_ROW_LIMIT,
   );
 
-  //  Extract datasource ID/type from string ID
+  // Extract datasource ID/type from string ID
   const [datasourceId, datasourceType] = useMemo(
     () => formData.datasource.split('__'),
     [formData.datasource],
   );
 
-  //  Get page of results
+  // Get page of results
   const resultsPage = useMemo(() => {
     const nextResultsPage = resultsPages.get(pageIndex);
     if (nextResultsPage) {
@@ -98,7 +98,7 @@ export default function DrillDetailPane({
     formData.datasource,
   );
 
-  //  Disable sorting on columns
+  // Disable sorting on columns
   const sortDisabledColumns = useMemo(
     () =>
       columns.map(column => ({
@@ -108,26 +108,26 @@ export default function DrillDetailPane({
     [columns],
   );
 
-  //  Update page index on pagination click
+  // Update page index on pagination click
   const onServerPagination = useCallback(({ pageIndex }) => {
     setPageIndex(pageIndex);
   }, []);
 
-  //  Clear cache on reload button click
+  // Clear cache on reload button click
   const handleReload = useCallback(() => {
     setResponseError('');
     setResultsPages(new Map());
     setPageIndex(0);
   }, []);
 
-  //  Clear cache and reset page index if filters change
+  // Clear cache and reset page index if filters change
   useEffect(() => {
     setResponseError('');
     setResultsPages(new Map());
     setPageIndex(0);
   }, [filters]);
 
-  //  Update cache order if page in cache
+  // Update cache order if page in cache
   useEffect(() => {
     if (
       resultsPages.has(pageIndex) &&
@@ -144,7 +144,7 @@ export default function DrillDetailPane({
     }
   }, [pageIndex, resultsPages]);
 
-  //  Download page of results & trim cache if page not in cache
+  // Download page of results & trim cache if page not in cache
   useEffect(() => {
     if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
@@ -196,7 +196,7 @@ export default function DrillDetailPane({
 
   let tableContent = null;
   if (responseError) {
-    //  Render error if page download failed
+    // Render error if page download failed
     tableContent = (
       <pre
         css={css`
@@ -207,14 +207,14 @@ export default function DrillDetailPane({
       </pre>
     );
   } else if (!resultsPages.size) {
-    //  Render loading if first page hasn't loaded
+    // Render loading if first page hasn't loaded
     tableContent = <Loading />;
   } else if (resultsPage?.total === 0) {
-    //  Render empty state if no results are returned for page
+    // Render empty state if no results are returned for page
     const title = t('No rows were returned for this dataset');
     tableContent = <EmptyStateMedium image="document.svg" title={title} />;
   } else {
-    //  Render table if at least one page has successfully loaded
+    // Render table if at least one page has successfully loaded
     tableContent = (
       <TableView
         columns={sortDisabledColumns}
