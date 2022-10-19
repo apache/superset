@@ -26,11 +26,12 @@ import {
   t,
   isFeatureEnabled,
   FeatureFlag,
+  getChartMetadataRegistry,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
+import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu';
-import DrillDetailModal from './DrillDetailModal';
 
 const propTypes = {
   annotationData: PropTypes.object,
@@ -60,7 +61,7 @@ const propTypes = {
   onFilterMenuClose: PropTypes.func,
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
-  source: PropTypes.oneOf(['dashboard', 'explore']),
+  source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
 };
 
 const BLANK = {};
@@ -83,8 +84,10 @@ class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      showContextMenu:
+        props.source === ChartSource.Dashboard &&
+        isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
       inContextMenu: false,
-      drillDetailFilters: null,
     };
     this.hasQueryResponseChange = false;
 
@@ -97,14 +100,13 @@ class ChartRenderer extends React.Component {
     this.handleOnContextMenu = this.handleOnContextMenu.bind(this);
     this.handleContextMenuSelected = this.handleContextMenuSelected.bind(this);
     this.handleContextMenuClosed = this.handleContextMenuClosed.bind(this);
-
-    const showContextMenu =
-      props.source === 'dashboard' &&
-      isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL);
+    this.onContextMenuFallback = this.onContextMenuFallback.bind(this);
 
     this.hooks = {
       onAddFilter: this.handleAddFilter,
-      onContextMenu: showContextMenu ? this.handleOnContextMenu : undefined,
+      onContextMenu: this.state.showContextMenu
+        ? this.handleOnContextMenu
+        : undefined,
       onError: this.handleRenderFailure,
       setControlValue: this.handleSetControlValue,
       onFilterMenuOpen: this.props.onFilterMenuOpen,
@@ -198,17 +200,26 @@ class ChartRenderer extends React.Component {
     }
   }
 
-  handleOnContextMenu(filters, offsetX, offsetY) {
-    this.contextMenuRef.current.open(filters, offsetX, offsetY);
+  handleOnContextMenu(offsetX, offsetY, filters) {
+    this.contextMenuRef.current.open(offsetX, offsetY, filters);
     this.setState({ inContextMenu: true });
   }
 
-  handleContextMenuSelected(filters) {
-    this.setState({ inContextMenu: false, drillDetailFilters: filters });
+  handleContextMenuSelected() {
+    this.setState({ inContextMenu: false });
   }
 
   handleContextMenuClosed() {
     this.setState({ inContextMenu: false });
+  }
+
+  // When viz plugins don't handle `contextmenu` event, fallback handler
+  // calls `handleOnContextMenu` with no `filters` param.
+  onContextMenuFallback(event) {
+    if (!this.state.inContextMenu) {
+      event.preventDefault();
+      this.handleOnContextMenu(event.clientX, event.clientY);
+    }
   }
 
   render() {
@@ -265,7 +276,7 @@ class ChartRenderer extends React.Component {
     let noResultsComponent;
     const noResultTitle = t('No results were returned for this query');
     const noResultDescription =
-      this.props.source === 'explore'
+      this.props.source === ChartSource.Explore
         ? t(
             'Make sure that the controls are configured properly and the datasource contains data for the selected time range',
           )
@@ -285,47 +296,55 @@ class ChartRenderer extends React.Component {
       );
     }
 
+    // Check for Behavior.DRILL_TO_DETAIL to tell if chart can receive Drill to
+    // Detail props or if it'll cause side-effects (e.g. excessive re-renders).
+    const drillToDetailProps = getChartMetadataRegistry()
+      .get(formData.viz_type)
+      ?.behaviors.find(behavior => behavior === Behavior.DRILL_TO_DETAIL)
+      ? { inContextMenu: this.state.inContextMenu }
+      : {};
+
     return (
-      <div>
-        {this.props.source === 'dashboard' && (
-          <>
-            <ChartContextMenu
-              ref={this.contextMenuRef}
-              id={chartId}
-              onSelection={this.handleContextMenuSelected}
-              onClose={this.handleContextMenuClosed}
-            />
-            <DrillDetailModal
-              chartId={chartId}
-              initialFilters={this.state.drillDetailFilters}
-              formData={currentFormData}
-            />
-          </>
+      <>
+        {this.state.showContextMenu && (
+          <ChartContextMenu
+            ref={this.contextMenuRef}
+            id={chartId}
+            formData={currentFormData}
+            onSelection={this.handleContextMenuSelected}
+            onClose={this.handleContextMenuClosed}
+          />
         )}
-        <SuperChart
-          disableErrorBoundary
-          key={`${chartId}${webpackHash}`}
-          id={`chart-id-${chartId}`}
-          className={chartClassName}
-          chartType={vizType}
-          width={width}
-          height={height}
-          annotationData={annotationData}
-          datasource={datasource}
-          initialValues={initialValues}
-          formData={currentFormData}
-          ownState={ownState}
-          filterState={filterState}
-          hooks={this.hooks}
-          behaviors={behaviors}
-          queriesData={queriesResponse}
-          onRenderSuccess={this.handleRenderSuccess}
-          onRenderFailure={this.handleRenderFailure}
-          noResults={noResultsComponent}
-          postTransformProps={postTransformProps}
-          inContextMenu={this.state.inContextMenu}
-        />
-      </div>
+        <div
+          onContextMenu={
+            this.state.showContextMenu ? this.onContextMenuFallback : undefined
+          }
+        >
+          <SuperChart
+            disableErrorBoundary
+            key={`${chartId}${webpackHash}`}
+            id={`chart-id-${chartId}`}
+            className={chartClassName}
+            chartType={vizType}
+            width={width}
+            height={height}
+            annotationData={annotationData}
+            datasource={datasource}
+            initialValues={initialValues}
+            formData={currentFormData}
+            ownState={ownState}
+            filterState={filterState}
+            hooks={this.hooks}
+            behaviors={behaviors}
+            queriesData={queriesResponse}
+            onRenderSuccess={this.handleRenderSuccess}
+            onRenderFailure={this.handleRenderFailure}
+            noResults={noResultsComponent}
+            postTransformProps={postTransformProps}
+            {...drillToDetailProps}
+          />
+        </div>
+      </>
     );
   }
 }
