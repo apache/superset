@@ -93,7 +93,7 @@ describe('Charts list', () => {
       saveChartToDashboard('3 - Sample dashboard');
       saveChartToDashboard('4 - Sample dashboard');
       visitChartList();
-      cy.getBySel('count-crosslinks').contains('+2');
+      cy.getBySel('count-crosslinks').should('be.visible');
       cy.getBySel('crosslinks').first().trigger('mouseover');
       cy.get('.ant-tooltip')
         .contains('4 - Sample dashboard')
