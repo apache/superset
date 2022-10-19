@@ -25,6 +25,12 @@ export type HandlerFunction = (...args: unknown[]) => void;
 export enum Behavior {
   INTERACTIVE_CHART = 'INTERACTIVE_CHART',
   NATIVE_FILTER = 'NATIVE_FILTER',
+
+  /**
+   * Include `DRILL_TO_DETAIL` behavior if plugin handles `contextmenu` event
+   * when dimensions are right-clicked on.
+   */
+  DRILL_TO_DETAIL = 'DRILL_TO_DETAIL',
 }
 
 export enum AppSection {

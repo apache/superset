@@ -29,7 +29,7 @@ import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 
-import { User } from 'src/types/bootstrapTypes';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
 import { ChartState } from '../explore/types';
 
 export { Dashboard } from 'src/types/Dashboard';
@@ -117,7 +117,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
-  user: User;
+  user: BootstrapUser;
 };
 
 /** State of dashboardLayout in redux */
