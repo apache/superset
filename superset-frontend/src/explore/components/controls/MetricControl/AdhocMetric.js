@@ -76,6 +76,7 @@ export default class AdhocMetric {
       this.aggregate = null;
     }
     this.isNew = !!adhocMetric.isNew;
+    this.datasourceWarning = !!adhocMetric.datasourceWarning;
     this.hasCustomLabel = !!(adhocMetric.hasCustomLabel && adhocMetric.label);
     this.label = this.hasCustomLabel
       ? adhocMetric.label

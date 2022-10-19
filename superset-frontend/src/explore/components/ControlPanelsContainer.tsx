@@ -36,6 +36,7 @@ import {
   css,
   SupersetTheme,
   useTheme,
+  isDefined,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -45,6 +46,9 @@ import {
   ExpandedControlItem,
   sections,
 } from '@superset-ui/chart-controls';
+import { useSelector } from 'react-redux';
+import { rgba } from 'emotion-rgba';
+import { kebabCase } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
@@ -57,9 +61,6 @@ import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-
-import { rgba } from 'emotion-rgba';
-import { kebabCase } from 'lodash';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -269,6 +270,36 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const controlsTransferred = useSelector<
+    ExplorePageState,
+    string[] | undefined
+  >(state => state.explore.controlsTransferred);
+
+  useEffect(() => {
+    if (props.chart.chartStatus === 'success') {
+      controlsTransferred?.forEach(controlName => {
+        const alteredControls = ensureIsArray(
+          props.controls[controlName].value,
+        ).map(value => {
+          if (
+            typeof value === 'object' &&
+            isDefined(value) &&
+            'datasourceWarning' in value
+          ) {
+            return { ...value, datasourceWarning: false };
+          }
+          return value;
+        });
+        props.actions.setControlValue(controlName, alteredControls);
+      });
+    }
+  }, [
+    controlsTransferred,
+    props.actions,
+    props.chart.chartStatus,
+    props.controls,
+  ]);
+
   useEffect(() => {
     if (
       prevDatasource &&
@@ -455,7 +486,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           >
             <Icons.InfoCircleOutlined
               css={css`
-                ${iconStyles}
+                ${iconStyles};
                 color: ${errorColor};
               `}
             />
@@ -591,7 +622,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             >
               <Icons.ExclamationCircleOutlined
                 css={css`
-                  ${iconStyles}
+                  ${iconStyles};
                   color: ${errorColor};
                 `}
               />
