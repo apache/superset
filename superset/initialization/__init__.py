@@ -589,11 +589,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         if show_csp_warning:
             logger.warning(
-                "We haven't found any Content Security Policy (CSP) defined in the configurations. "
-                "Please make sure to configure CSP using the TALISMAN_CONFIG key or any other external software. "
-                "Failing to configure CSP have serious security implications. "
-                "Check https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more information. "
-                "You can disable this warning using the CONTENT_SECURITY_POLICY_WARNING key."
+                "We haven't found any Content Security Policy (CSP) defined in "
+                "the configurations. Please make sure to configure CSP using the "
+                "TALISMAN_CONFIG key or any other external software. Failing to "
+                "configure CSP have serious security implications. Check "
+                "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
+                "information. You can disable this warning using the "
+                "CONTENT_SECURITY_POLICY_WARNING key."
             )
 
     def configure_logging(self) -> None:
