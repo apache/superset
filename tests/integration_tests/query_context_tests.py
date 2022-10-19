@@ -1066,7 +1066,13 @@ def test_time_offset_with_temporal_between_filter(app_context, physical_dataset)
 3 2002-10-01          9                    21.0
     """
     assert df["SUM(col1)"].to_list() == [3, 12, 21, 9]
-    assert df["SUM(col1)__3 month ago"].astype("Int64").to_list() == [pd.NA, 3, 12, 21]
+    # df["SUM(col1)__3 month ago"].dtype is object so have to convert to float first
+    assert df["SUM(col1)__3 month ago"].astype("float").astype("Int64").to_list() == [
+        pd.NA,
+        3,
+        12,
+        21,
+    ]
 
     sqls = query_payload["query"].split(";")
     """
