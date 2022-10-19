@@ -25,6 +25,9 @@ import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 const { Option } = AntdSelect;
 
+export const SELECT_ALL_VALUE = 'Select All'
+export const labeledSelectAllOption : AntdLabeledValue = {value: SELECT_ALL_VALUE, label: String(SELECT_ALL_VALUE)}
+
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
     value !== null &&

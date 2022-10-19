@@ -39,6 +39,8 @@ import {
   handleFilterOptionHelper,
   dropDownRenderHelper,
   getSuffixIcon,
+  labeledSelectAllOption,
+  SELECT_ALL_VALUE,
 } from './utils';
 import { SelectOptionsType, SelectProps } from './types';
 import {
@@ -90,6 +92,8 @@ const Select = forwardRef(
       options,
       placeholder = t('Select ...'),
       showSearch = true,
+      selectAllEnabled = false,
+      onSelectAll,
       sortComparator = DEFAULT_SORT_COMPARATOR,
       tokenSeparators,
       value,
@@ -99,6 +103,7 @@ const Select = forwardRef(
     ref: RefObject<HTMLInputElement>,
   ) => {
     const isSingleMode = mode === 'single';
+    const isSelectAllMode = selectAllEnabled && !isSingleMode;
     const shouldShowSearch = allowNewOptions ? true : showSearch;
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
@@ -147,10 +152,18 @@ const Select = forwardRef(
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
         );
-      return missingValues.length > 0
+      const fullOptions = missingValues.length > 0
         ? missingValues.concat(selectOptions)
         : selectOptions;
-    }, [selectOptions, selectValue]);
+      
+      const fullOptionsWithSelectAll = isSelectAllMode && !hasOption(getValue(SELECT_ALL_VALUE), missingValues)
+        ? (isLabeledValue(fullOptions[0]) 
+            ? [labeledSelectAllOption, ...fullOptions]
+            : [labeledSelectAllOption.value, ...fullOptions]
+          )
+        : fullOptions
+      return fullOptionsWithSelectAll
+    }, [selectOptions, selectValue, isSelectAllMode]);
 
     const handleOnSelect = (
       selectedItem: string | number | AntdLabeledValue | undefined,
@@ -162,11 +175,21 @@ const Select = forwardRef(
           const array = ensureIsArray(previousState);
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
-          if (!hasOption(value, array)) {
+          if(value == getValue(SELECT_ALL_VALUE)){
+            if (onSelectAll) {onSelectAll()};
+            const result = isLabeledValue(selectedItem)
+              ? ([labeledSelectAllOption, ...selectOptions] as AntdLabeledValue[])
+              : ([SELECT_ALL_VALUE, ...selectOptions] as (string | number)[]);
+            return result;
+          } else if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
-            return isLabeledValue(selectedItem)
-              ? (result as AntdLabeledValue[])
-              : (result as (string | number)[]);
+            return (result.length === fullSelectOptions.length - 1) && isSelectAllMode 
+              ? isLabeledValue(selectedItem) 
+                ? ([labeledSelectAllOption, ...result] as AntdLabeledValue[])
+                : ([SELECT_ALL_VALUE, ...result] as (string | number)[])
+              : isLabeledValue(selectedItem)
+                ? (result as AntdLabeledValue[])
+                : (result as (string | number)[]);
           }
           return previousState;
         });
@@ -178,10 +201,12 @@ const Select = forwardRef(
       value: string | number | AntdLabeledValue | undefined,
     ) => {
       if (Array.isArray(selectValue)) {
-        if (isLabeledValue(value)) {
+        if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
+          setSelectValue([]); 
+        } else if (isLabeledValue(value)) {
           const array = selectValue as AntdLabeledValue[];
           setSelectValue(
-            array.filter(element => element.value !== value.value),
+            array.filter(element => (element.value !== value.value) && (element.value !== getValue(SELECT_ALL_VALUE))),
           );
         } else {
           const array = selectValue as (string | number)[];

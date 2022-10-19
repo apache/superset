@@ -20,6 +20,7 @@ import React from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Select } from 'src/components';
+import { SELECT_ALL_VALUE } from './utils';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
@@ -566,6 +567,70 @@ test('finds an element with a numeric value and does not duplicate the options',
   expect(await querySelectOption('11')).not.toBeInTheDocument();
 });
 
+test('select all appears in options when multi select is true and selectAllEnabled is true ', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      selectAllEnabled
+    />,
+  );
+  await open();
+  let options = await findAllSelectOptions();
+  expect(options[0]).toHaveTextContent(SELECT_ALL_VALUE);
+});
+
+// test('select all option adds all options to the selected value', async () => {
+//   const onSelectAll = jest.fn();
+//   render(
+//     <Select
+//       {...defaultProps}
+//       mode="multiple"
+//       selectAllEnabled
+//       onSelectAll={onSelectAll}
+//     />,
+//   );
+//   await open();
+//   userEvent.click(await findSelectOption(SELECT_ALL_VALUE));
+//   expect(onSelectAll).toHaveBeenCalled();
+//   const values = await findAllSelectValues();
+//   expect(values.length).toBe(OPTIONS.length + 1);
+// });
+
+// test('deselecting select all option removes all selected values', async () => {
+//   render(
+//     <Select
+//       {...defaultProps}
+//       mode="multiple"
+//       selectAllEnabled
+//     />,
+//   );
+//   userEvent.click(await findSelectOption(SELECT_ALL_VALUE));
+//   let values = await findAllSelectValues();
+//   expect(values.length).toBe(OPTIONS.length + 1);
+//   userEvent.click(await findSelectOption(SELECT_ALL_VALUE));
+//   values = await findAllSelectValues();
+//   expect(values.length).toBe(0);
+// });
+
+// test('deselecting a single option while select all is selected deselects both select all and that single option', async () => {
+//   render(
+//     <Select
+//       {...defaultProps}
+//       mode="multiple"
+//       selectAllEnabled
+//     />,
+//   );
+//   userEvent.click(await findSelectOption(SELECT_ALL_VALUE));
+//   let values = await findAllSelectValues();
+//   expect(values.length).toBe(OPTIONS.length + 1);
+//   expect(values).toHaveTextContent(SELECT_ALL_VALUE);
+//   userEvent.click(await findSelectOption(OPTIONS[0].label));
+//   values = await findAllSelectValues();
+//   expect(values).not.toHaveTextContent(SELECT_ALL_VALUE);
+//   expect(values).not.toHaveTextContent(OPTIONS[0].label);
+//   expect(values.length).toBe(OPTIONS.length - 1);
+// });
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

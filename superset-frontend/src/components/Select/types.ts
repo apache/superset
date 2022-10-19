@@ -150,6 +150,17 @@ export interface SelectProps extends BaseSelectProps {
    * an array of options.
    */
   options: SelectOptionsType;
+  /**
+   * It defines whether select all is an option.
+   * When selected all options are added to the selected
+   * values. Only available in sync select currently.
+   */
+   selectAllEnabled: boolean;
+   /**
+   * Called when select all option is selected
+   */
+   onSelectAll?: () => void;
+  
 }
 
 export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
