@@ -582,7 +582,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         ):
             if self.config["TALISMAN_ENABLED"]:
                 talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
-                if not self.config["TALISMAN_CONFIG"]["content_security_policy"]:
+                if not self.config["TALISMAN_CONFIG"].get("content_security_policy"):
                     show_csp_warning = True
             else:
                 show_csp_warning = True

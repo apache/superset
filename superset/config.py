@@ -1227,10 +1227,10 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
-TALISMAN_ENABLED = True
+TALISMAN_ENABLED = False
 # If you want Talisman, how do you want it configured??
 TALISMAN_CONFIG = {
-    "content_security_policy": "default-src 'self'",
+    "content_security_policy": None,
     "force_https": True,
     "force_https_permanent": False,
 }
