@@ -259,10 +259,10 @@ const RightMenu = ({
   }, [canUploadData]);
 
   useEffect(() => {
-    if (canDatabase) {
+    if (canDatabase || canDataset) {
       existsNonExamplesDatabases();
     }
-  }, [canDatabase]);
+  }, [canDatabase, canDataset]);
 
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
@@ -325,7 +325,7 @@ const RightMenu = ({
       )
     ) {
       if (canUploadData) checkAllowUploads();
-      if (canDatabase) existsNonExamplesDatabases();
+      if (canDatabase || canDataset) existsNonExamplesDatabases();
     }
     return null;
   };
