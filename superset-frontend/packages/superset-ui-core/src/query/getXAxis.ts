@@ -24,6 +24,7 @@ import {
   isQueryFormColumn,
   QueryFormData,
   QueryFormColumn,
+  Optional,
 } from '@superset-ui/core';
 
 export const isXAxisSet = (formData: QueryFormData) =>
@@ -35,7 +36,7 @@ export const hasGenericChartAxes = isFeatureEnabled(
 
 export const getXAxisColumn = (
   formData: QueryFormData,
-): QueryFormColumn | undefined => {
+): Optional<QueryFormColumn> => {
   // The formData should be "raw form_data" -- the snake_case version of formData rather than camelCase.
   if (!(formData.granularity_sqla || formData.x_axis)) {
     return undefined;
@@ -47,7 +48,7 @@ export const getXAxisColumn = (
   return DTTM_ALIAS;
 };
 
-export const getXAxisLabel = (formData: QueryFormData): string | undefined => {
+export const getXAxisLabel = (formData: QueryFormData): Optional<string> => {
   const col = getXAxisColumn(formData);
   if (col) {
     return getColumnLabel(col);
