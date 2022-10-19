@@ -73,6 +73,7 @@ if TYPE_CHECKING:
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
 EVENT_LOGGER = DBEventLogger()
+EVENT_LOG_PRUNE = 90
 
 SUPERSET_LOG_VIEW = True
 
@@ -763,7 +764,11 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
-            "schedule": crontab(minute=0, hour=0),
+            "schedule": crontab(minute="0", hour="0"),
+        },
+        "events.prune_log": {
+            "task": "events.prune_log",
+            "schedule": crontab(minute="0", hour="0"),
         },
     }
 

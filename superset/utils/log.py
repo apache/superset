@@ -43,6 +43,12 @@ from typing_extensions import Literal
 
 from superset.utils.core import get_user_id
 
+from superset.models.core import Log
+from superset.utils.celery import session_scope
+from superset.dao.exceptions import DAODeleteFailedError
+from sqlalchemy.orm import Session
+from superset.extensions import db
+
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
 
@@ -352,3 +358,60 @@ class DBEventLogger(AbstractEventLogger):
         except SQLAlchemyError as ex:
             logging.error("DBEventLogger failed to log event(s)")
             logging.exception(ex)
+
+
+class AsyncPruneEventScheduleLogCommand(AbstractEventLogger):
+    """
+    Prunes events logs
+    """
+
+    def __init__(self, worker_context: bool = True):
+        self._worker_context = worker_context
+
+    def run(self) -> None:
+        log_retention = current_app.config["EVENT_LOG_PRUNE"]
+
+        with session_scope(nullpool=True) as session:
+            self.validate()
+            prune_errors = []
+
+            if log_retention is not None:
+                from_date = datetime.utcnow() - timedelta(days=log_retention)
+                try:
+                    row_count = bulk_delete_logs(
+                        from_date, session=session, commit=False
+                    )
+                    logging.info(
+                        "Deleted %s logs for events",
+                        str(row_count),
+                    )
+                except DAODeleteFailedError as ex:
+                    prune_errors.append(str(ex))
+            if prune_errors:
+                raise "An error occurred while pruning events logs;".join(prune_errors)
+
+    def validate(self) -> None:
+        pass
+
+
+def bulk_delete_logs(
+    from_date: datetime,
+    session: Optional[Session] = None,
+    commit: bool = True,
+) -> Optional[int]:
+    session = session or db.session
+    try:
+        row_count = (
+            session.query(Log)
+            .filter(
+                Log.dttm < from_date,
+            )
+            .delete(synchronize_session="fetch")
+        )
+        if commit:
+            session.commit()
+        return row_count
+    except SQLAlchemyError as ex:
+        if commit:
+            session.rollback()
+        raise DAODeleteFailedError(str(ex)) from ex

@@ -25,6 +25,7 @@ from superset.extensions import celery_app
 from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
 from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
+from superset.utils.log import AsyncPruneEventScheduleLogCommand
 from superset.reports.dao import ReportScheduleDAO
 from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
@@ -99,3 +100,13 @@ def prune_log() -> None:
         logger.warning("A timeout occurred while pruning report schedule logs: %s", ex)
     except CommandException as ex:
         logger.exception("An exception occurred while pruning report schedule logs")
+
+
+@celery_app.task(name="events.prune_log")
+def prune_event_log() -> None:
+    try:
+        AsyncPruneEventScheduleLogCommand().run()
+    except SoftTimeLimitExceeded as ex:
+        logger.warning("A timeout occurred while pruning event logs: %s", ex)
+    except CommandException as ex:
+        logger.exception("An exception occurred while event logs")
