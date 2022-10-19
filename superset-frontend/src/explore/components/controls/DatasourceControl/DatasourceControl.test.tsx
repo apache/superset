@@ -315,7 +315,7 @@ test('should set the first available temporal column', async () => {
   });
 });
 
-test('should set the temporal column at null', async () => {
+test('should not set the temporal column', async () => {
   const props = createProps();
   const overrideProps = {
     ...props,
@@ -345,7 +345,7 @@ test('should set the temporal column at null', async () => {
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
-      null,
+      undefined,
     );
   });
 });

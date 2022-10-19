@@ -27,7 +27,7 @@ import {
   t,
   withTheme,
 } from '@superset-ui/core';
-
+import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
@@ -176,18 +176,14 @@ class DatasourceControl extends React.PureComponent {
     const timeColConf = columns.find(
       ({ column_name }) => column_name === timeCol,
     );
-    const firstDttmCol =
-      columns.find(column => column.is_dttm)?.column_name || null;
-    const currentMainDttmCol = columns.find(
-      c => c.column_name === datasource.main_dttm_col,
-    );
-    const setDttmCol = currentMainDttmCol?.is_dttm
-      ? currentMainDttmCol.column_name
-      : firstDttmCol;
     if (datasource.type === 'table') {
       // resets new default time col or picks the first available one
       if (!timeColConf?.is_dttm) {
-        this.props.actions.setControlValue('granularity_sqla', setDttmCol);
+        const setDttmCol = getTemporalColumns(this.props.datasource);
+        this.props.actions.setControlValue(
+          'granularity_sqla',
+          setDttmCol.defaultTemporalColumn,
+        );
       }
     }
 
