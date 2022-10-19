@@ -30,7 +30,7 @@ interface SafeMarkdownProps {
 
 function isSafeMarkup(node: MarkdownAbstractSyntaxTree) {
   return node.type === 'html' && node.value
-    ? /href="(javascript|vbscript|file):.*"/gim.test(node.value) === false
+    ? !/(href|src)="(javascript|vbscript|file):.*"/gim.test(node.value)
     : true;
 }
 
