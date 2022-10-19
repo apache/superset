@@ -761,6 +761,19 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
+# Dashboard auto refresh intervals
+DASHBOARD_AUTO_REFRESH_INTERVALS = [
+    [0, "Don't refresh"],
+    [10, "10 seconds"],
+    [30, "30 seconds"],
+    [60, "1 minute"],
+    [300, "5 minutes"],
+    [1800, "30 minutes"],
+    [3600, "1 hour"],
+    [21600, "6 hours"],
+    [43200, "12 hours"],
+    [86400, "24 hours"],
+]
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:

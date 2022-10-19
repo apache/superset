@@ -25,19 +25,15 @@ import Button from 'src/components/Button';
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import { FormLabel } from 'src/components/Form';
 import { propertyComparator } from 'src/components/Select/utils';
+import { configs } from 'src/configs';
 
-export const options = [
-  [0, t("Don't refresh")],
-  [10, t('10 seconds')],
-  [30, t('30 seconds')],
-  [60, t('1 minute')],
-  [300, t('5 minutes')],
-  [1800, t('30 minutes')],
-  [3600, t('1 hour')],
-  [21600, t('6 hours')],
-  [43200, t('12 hours')],
-  [86400, t('24 hours')],
-].map(o => ({ value: o[0] as number, label: o[1] }));
+const configValues = configs();
+export const options = configValues.DASHBOARD_AUTO_REFRESH_INTERVALS.map(
+  (o: any[]) => ({
+    value: o[0] as number,
+    label: o[1],
+  }),
+);
 
 const StyledModalTrigger = styled(ModalTrigger)`
   .ant-modal-body {
