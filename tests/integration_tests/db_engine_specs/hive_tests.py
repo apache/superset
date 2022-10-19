@@ -248,7 +248,47 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
     app.config = config
 
+    
+@mock.patch("superset.db_engine_specs.hive.g", spec={})
+@mock.patch("superset.db_engine_specs.hive.upload_to_s3")
+def test_df_to_sql_schema_definition(mock_upload_to_s3, mock_g):
+    config = app.config.copy()
+    app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""
+    mock_location = "mock-location"
+    mock_upload_to_s3.return_value = mock_location
+    mock_g.user = True
+    mock_database = mock.MagicMock()
+    mock_database.get_df.return_value.empty = False
+    mock_execute = mock.MagicMock(return_value=True)
+    mock_database.get_sqla_engine.return_value.execute = mock_execute
+    table_name = "foobar"
+    df = pd.DataFrame({
+        "bool": pd.Series(dtype="bool"),
+        "float64": pd.Series(dtype="float64"),
+        "int64": pd.Series(dtype="int64"),
+        "object": pd.Series(dtype="object"),
+        "datetime": pd.Series(dtype="datetime64[ns]")
+    })
+    expected_schema_definition = "`bool` BOOLEAN, `float64` DOUBLE, `int64` BIGINT, `object` STRING, `datetime` TIMESTAMP"
 
+    with app.app_context():
+        HiveEngineSpec.df_to_sql(
+            mock_database,
+            Table(table=table_name),
+            df,
+            {"if_exists": "replace"},
+        )
+
+    mock_execute.assert_any_call(
+        f"""
+        CREATE TABLE {table_name} ({expected_schema_definition})
+        STORED AS PARQUET
+        LOCATION :{mock_location}
+        """
+    )
+    app.config = config
+    
+    
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
         return HiveEngineSpec.is_readonly_query(ParsedQuery(sql))
