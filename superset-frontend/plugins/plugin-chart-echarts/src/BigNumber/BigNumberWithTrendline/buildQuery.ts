@@ -19,7 +19,7 @@
 import {
   buildQueryContext,
   ensureIsArray,
-  getXAxis,
+  getXAxisColumn,
   isXAxisSet,
   QueryFormData,
 } from '@superset-ui/core';
@@ -35,7 +35,9 @@ export default function buildQuery(formData: QueryFormData) {
     {
       ...baseQueryObject,
       columns: [
-        ...(isXAxisSet(formData) ? ensureIsArray(getXAxis(formData)) : []),
+        ...(isXAxisSet(formData)
+          ? ensureIsArray(getXAxisColumn(formData))
+          : []),
       ],
       ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
       post_processing: [

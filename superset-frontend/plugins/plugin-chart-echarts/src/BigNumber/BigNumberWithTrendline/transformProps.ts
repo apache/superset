@@ -26,7 +26,7 @@ import {
   smartDateVerboseFormatter,
   NumberFormatter,
   TimeFormatter,
-  getXAxis,
+  getXAxisLabel,
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
@@ -102,7 +102,7 @@ export default function transformProps(
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
 
-  const timeColumn = getXAxis(rawFormData) as string;
+  const timeColumn = getXAxisLabel(rawFormData) as string;
   let trendLineData;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
