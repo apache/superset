@@ -82,11 +82,11 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
-          label: 'Yearly seasonality',
+          label: t('Yearly seasonality'),
           choices: [
-            [null, 'default'],
-            [true, 'Yes'],
-            [false, 'No'],
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
           ],
           default: FORECAST_DEFAULT_DATA.forecastSeasonalityYearly,
           description: t(
@@ -101,11 +101,11 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
-          label: 'Weekly seasonality',
+          label: t('Weekly seasonality'),
           choices: [
-            [null, 'default'],
-            [true, 'Yes'],
-            [false, 'No'],
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
           ],
           default: FORECAST_DEFAULT_DATA.forecastSeasonalityWeekly,
           description: t(
@@ -120,11 +120,11 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
         config: {
           type: 'SelectControl',
           freeForm: true,
-          label: 'Daily seasonality',
+          label: t('Daily seasonality'),
           choices: [
-            [null, 'default'],
-            [true, 'Yes'],
-            [false, 'No'],
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
           ],
           default: FORECAST_DEFAULT_DATA.forecastSeasonalityDaily,
           description: t(

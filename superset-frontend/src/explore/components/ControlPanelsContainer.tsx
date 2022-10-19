@@ -451,7 +451,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         {hasErrors && (
           <Tooltip
             id={`${kebabCase('validation-errors')}-tooltip`}
-            title="This section contains validation errors"
+            title={t('This section contains validation errors')}
           >
             <Icons.InfoCircleOutlined
               css={css`
