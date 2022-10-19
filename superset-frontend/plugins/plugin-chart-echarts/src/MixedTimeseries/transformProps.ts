@@ -29,7 +29,7 @@ import {
   QueryFormData,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
-  getXAxis,
+  getXAxisLabel,
 } from '@superset-ui/core';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
@@ -152,7 +152,9 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
 
-  const xAxisCol = getXAxis(chartProps.rawFormData as QueryFormData) as string;
+  const xAxisCol = getXAxisLabel(
+    chartProps.rawFormData as QueryFormData,
+  ) as string;
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
   const rawSeriesA = extractSeries(rebasedDataA, {

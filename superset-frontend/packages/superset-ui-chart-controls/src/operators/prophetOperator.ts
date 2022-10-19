@@ -16,7 +16,7 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingProphet, getXAxis } from '@superset-ui/core';
+import { PostProcessingProphet, getXAxisLabel } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -24,7 +24,7 @@ export const prophetOperator: PostProcessingFactory<PostProcessingProphet> = (
   formData,
   queryObject,
 ) => {
-  const xAxis = getXAxis(formData);
+  const xAxis = getXAxisLabel(formData);
   if (formData.forecastEnabled && xAxis) {
     return {
       operation: 'prophet',
