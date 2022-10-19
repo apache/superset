@@ -118,6 +118,7 @@ export default class AdhocFilter {
     }
     this.isExtra = !!adhocFilter.isExtra;
     this.isNew = !!adhocFilter.isNew;
+    this.datasourceWarning = !!adhocFilter.datasourceWarning;
 
     this.filterOptionName =
       adhocFilter.filterOptionName ||

@@ -210,6 +210,7 @@ test('SQL ad-hoc metric values', () => {
       },
     }),
   ).toEqual({
+    datasourceWarning: true,
     expressionType: 'SQL',
     sqlExpression: 'select * from sample_column_1;',
   });
@@ -279,6 +280,7 @@ test('SQL ad-hoc filter values', () => {
       },
     }),
   ).toEqual({
+    datasourceWarning: true,
     expressionType: 'SQL',
     sqlExpression: 'select * from sample_column_1;',
   });
