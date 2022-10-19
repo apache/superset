@@ -81,7 +81,6 @@ export interface HeaderReportProps {
   setShowReportSubMenu?: (show: boolean) => void;
   setIsDropdownVisible?: (visible: boolean) => void;
   isDropdownVisible?: boolean;
-  showReportSubMenu?: boolean;
 }
 
 export default function HeaderReportDropDown({
@@ -156,10 +155,8 @@ export default function HeaderReportDropDown({
     }
   }, []);
 
-  const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
-
   useEffect(() => {
-    if (showReportSubMenu) {
+    if (report && setShowReportSubMenu && canAddReports()) {
       setShowReportSubMenu(true);
     } else if (!report && setShowReportSubMenu) {
       setShowReportSubMenu(false);
