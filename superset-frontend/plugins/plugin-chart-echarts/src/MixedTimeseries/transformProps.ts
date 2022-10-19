@@ -499,5 +499,9 @@ export default function transformProps(
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     xValueFormatter: tooltipFormatter,
+    xAxis: {
+      label: xAxisCol,
+      type: xAxisType,
+    },
   };
 }

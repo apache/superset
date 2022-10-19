@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
-import { DataRecordValue, QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  AxisType,
+  DataRecordValue,
+  DTTM_ALIAS,
+  QueryObjectFilterClause,
+} from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -37,6 +42,7 @@ export default function EchartsMixedTimeseries({
   seriesBreakdown,
   onContextMenu,
   xValueFormatter,
+  xAxis,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -116,18 +122,31 @@ export default function EchartsMixedTimeseries({
         const { data, seriesIndex } = eventParams;
         if (data) {
           const pointerEvent = eventParams.event.event;
-          const values = labelMap[eventParams.seriesName];
-          const { queryIndex } = (echartOptions.series as any)[seriesIndex];
-          const groupby = queryIndex > 0 ? formData.groupbyB : formData.groupby;
+          const values = [
+            ...(eventParams.name ? [eventParams.name] : []),
+            ...(isFirstQuery(seriesIndex) ? labelMap : labelMapB)[
+              eventParams.seriesName
+            ],
+          ];
           const filters: QueryObjectFilterClause[] = [];
-          filters.push({
-            col: formData.granularitySqla,
-            grain: formData.timeGrainSqla,
-            op: '==',
-            val: data[0],
-            formattedVal: xValueFormatter(data[0]),
-          });
-          groupby.forEach((dimension, i) =>
+          if (xAxis.type === AxisType.time) {
+            filters.push({
+              col:
+                xAxis.label === DTTM_ALIAS
+                  ? formData.granularitySqla
+                  : xAxis.label,
+              grain: formData.timeGrainSqla,
+              op: '==',
+              val: data[0],
+              formattedVal: xValueFormatter(data[0]),
+            });
+          }
+          [
+            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
+            ...(isFirstQuery(seriesIndex)
+              ? formData.groupby
+              : formData.groupbyB),
+          ].forEach((dimension, i) =>
             filters.push({
               col: dimension,
               op: '==',
