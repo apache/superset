@@ -127,13 +127,6 @@ const LeftPanelStyle = styled.div`
 `}
 `;
 
-export const Loader = (inline: string) => (
-  <div className="loading-container">
-    <Loading position="inline" />
-    <p>{inline}</p>
-  </div>
-);
-
 export default function LeftPanel({
   setDataset,
   schema,
@@ -228,6 +221,13 @@ export default function LeftPanel({
 
   const filteredOptions = tableOptions.filter(option =>
     option?.value?.toLowerCase().includes(searchVal.toLowerCase()),
+  );
+
+  const Loader = (inline: string) => (
+    <div className="loading-container">
+      <Loading position="inline" />
+      <p>{inline}</p>
+    </div>
   );
 
   return (
