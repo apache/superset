@@ -17,14 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  css,
-  styled,
-  t,
-  useTheme,
-  DEFAULT_TIME_RANGE,
-  NO_TIME_RANGE,
-} from '@superset-ui/core';
+import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
@@ -128,7 +121,7 @@ const IconWrapper = styled.span`
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
-    value = DEFAULT_TIME_RANGE,
+    value = NO_TIME_RANGE,
     onChange,
     type,
     onOpenPopover = noOp,
