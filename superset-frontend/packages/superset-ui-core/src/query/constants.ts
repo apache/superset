@@ -25,7 +25,6 @@ import {
 } from './types';
 
 export const DTTM_ALIAS = '__timestamp';
-export const DEFAULT_TIME_RANGE = 'No filter'; // TODO: make this configurable per Superset installation
 export const NO_TIME_RANGE = 'No filter';
 
 export const EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS: (keyof ExtraFormDataOverrideExtras)[] =

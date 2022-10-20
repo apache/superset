@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { ensureIsArray, DEFAULT_TIME_RANGE } from '@superset-ui/core';
+import { ensureIsArray } from '@superset-ui/core';
 import { DYNAMIC_PLUGIN_CONTROLS_READY } from 'src/components/Chart/chartAction';
 import { getControlsState } from 'src/explore/store';
 import {
@@ -59,11 +59,8 @@ export default function exploreReducer(state = {}, action) {
         prevDatasource.id !== newDatasource.id ||
         prevDatasource.type !== newDatasource.type
       ) {
-        // reset time range filter to default
-        newFormData.time_range = DEFAULT_TIME_RANGE;
         newFormData.datasource = newDatasource.uid;
       }
-
       // reset control values for column/metric related controls
       Object.entries(controls).forEach(([controlName, controlState]) => {
         if (
