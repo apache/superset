@@ -1033,8 +1033,6 @@ CSV_MAX_ROWS = 500
 CSV_MIN_ROWS = 1
 
 
-
-
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
 # note: index option should not be overridden

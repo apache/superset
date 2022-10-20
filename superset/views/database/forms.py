@@ -108,21 +108,33 @@ class UploadToDatabaseForm(DynamicForm):
 class CsvToDatabaseForm(UploadToDatabaseForm):
     name = StringField(
         _("Table Name"),
-        description=_("Name of table to be created from csv data."),
+        description=_(
+            "Name of table to be created from csv data. Must be alphanumeric and can contain only (_) in between"
+        ),
         validators=[
             DataRequired(),
-            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema")),
+            Regexp(
+                r"^([a-z])[a-z0-9_]+$",
+                message=_(
+                    "Table name cannot contain a schema. Must be alphanumeric, should start with a letter, must be in lower case and can contain (_) in between"
+                ),
+            ),
         ],
         widget=BS3TextFieldWidget(),
     )
     csv_file = FileField(
         _("CSV File"),
-        description=_("Select a CSV file to be uploaded to a database. Max Size of the file should be 1MB and the accepted extensions are .csv, .tsv, .txt"),
+        description=_(
+            "Select a CSV file to be uploaded to a database. Max Size of the file should be 1MB and the accepted extensions are .csv, .tsv, .txt"
+        ),
         validators=[
             FileRequired(),
-            FileSize(config["CSV_MAX_SIZES"],
-                message="File size must not exceed the limit: " + str(config["CSV_MAX_SIZES"] / 1048576) + "MB"
-                ),
+            FileSize(
+                config["CSV_MAX_SIZES"],
+                message="File size must not exceed the limit: "
+                + str(config["CSV_MAX_SIZES"] / 1048576)
+                + "MB",
+            ),
             FileAllowed(
                 config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"]),
                 _(
@@ -212,8 +224,14 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     )
     nrows = IntegerField(
         _("Rows to Read"),
-        description=_("Number of rows of file to read. Minimum 1 and Maximum 500 rows are allowed"),
-        validators=[DataRequired(),NumberRange(min=config["CSV_MIN_ROWS"]), NumberRange(max=config["CSV_MAX_ROWS"])],
+        description=_(
+            "Number of rows of file to read. Minimum 1 and Maximum 500 rows are allowed"
+        ),
+        validators=[
+            DataRequired(),
+            NumberRange(min=config["CSV_MIN_ROWS"]),
+            NumberRange(max=config["CSV_MAX_ROWS"]),
+        ],
         widget=BS3TextFieldWidget(),
     )
     skip_blank_lines = BooleanField(
