@@ -43,7 +43,6 @@ from typing_extensions import Literal
 
 from superset.utils.core import get_user_id
 
-from superset.models.core import Log
 from superset.utils.celery import session_scope
 from superset.dao.exceptions import DAODeleteFailedError
 from sqlalchemy.orm import Session
@@ -369,6 +368,7 @@ class AsyncPruneEventScheduleLogCommand(AbstractEventLogger):
         self._worker_context = worker_context
 
     def run(self) -> None:
+
         log_retention = current_app.config["EVENT_LOG_PRUNE"]
 
         with session_scope(nullpool=True) as session:
@@ -399,6 +399,10 @@ def bulk_delete_logs(
     session: Optional[Session] = None,
     commit: bool = True,
 ) -> Optional[int]:
+
+    # pylint: disable=import-outside-toplevel
+    from superset.models.core import Log
+
     session = session or db.session
     try:
         row_count = (
