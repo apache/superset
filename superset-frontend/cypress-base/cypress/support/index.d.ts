@@ -65,6 +65,7 @@ declare namespace Cypress {
      * Get
      */
     getDashboards(): cy;
+    getDashboard(dashboardId: string | number): Record<string, any>;
     getCharts(): cy;
 
     /**
@@ -80,6 +81,11 @@ declare namespace Cypress {
     deleteDashboardByName(dashboardName: string, failOnStatusCode: boolean): cy;
     deleteChartByName(name: string, failOnStatusCode: boolean): cy;
     deleteChart(id: number, failOnStatusCode: boolean): cy;
+
+    /**
+     * Update
+     */
+    updateDashboard(dashboardId: number, body: Record<string, any>): cy;
   }
 }
 

@@ -478,3 +478,12 @@ export function addCountryNameFilter() {
     testItems.topTenChart.filterColumn,
   );
 }
+
+export function openTab(tabComponentIndex: number, tabIndex: number) {
+  return cy
+    .getBySel('dashboard-component-tabs')
+    .eq(tabComponentIndex)
+    .find('[role="tab"]')
+    .eq(tabIndex)
+    .click();
+}
