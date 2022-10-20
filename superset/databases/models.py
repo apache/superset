@@ -20,6 +20,7 @@ import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 
+from superset import app
 from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -27,20 +28,41 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 
+app_config = app.config
 
-class SSHTunnelConfiguration(
+
+class SSHTunnelCredentials(
     Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin
 ):
     """
-    A table/view in a database.
+    A ssh tunnel configuration in a database.
     """
 
-    __tablename__ = "sl_datasets"
+    __tablename__ = "ssh_tunnel_credentials"
 
     id = sa.Column(sa.Integer, primary_key=True)
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
     database: Database = relationship(
         "Database",
-        backref=backref("datasets", cascade="all, delete-orphan"),
+        backref=backref("ssh_tunnel_credentials", cascade="all, delete-orphan"),
         foreign_keys=[database_id],
+    )
+
+    server_address = sa.Column(sa.EncryptedType(sa.String, app_config["SECRET_KEY"]))
+    server_port = sa.Column(sa.EncryptedType(sa.String, app_config["SECRET_KEY"]))
+
+    # basic authentication
+    username = sa.Column(
+        sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
+    )
+    password = sa.Column(
+        sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
+    )
+
+    # password protected pkey authentication
+    pkey = sa.Column(
+        sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
+    )
+    private_key = sa.Column(
+        sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
