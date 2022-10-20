@@ -764,11 +764,11 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
-            "schedule": crontab(minute="0", hour="0"),
+            "schedule": crontab(minute=0, hour=0),
         },
         "events.prune_log": {
             "task": "events.prune_log",
-            "schedule": crontab(minute="0", hour="0"),
+            "schedule": crontab(minute=0, hour=0),
         },
     }
 
