@@ -181,6 +181,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         setValidTimeRange(true);
       }
       setLastFetchedTimeRange(value);
+      setEvalResponse(actualRange || value);
     });
   }, [value]);
 
