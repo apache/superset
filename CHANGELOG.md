@@ -19,7 +19,7 @@ under the License.
 
 ## Change Log
 
-### 2.0 (Mon Oct 10 09:38:33 2022 +0530)
+### 2.0.1 (Mon Oct 10 09:38:33 2022 +0530)
 **Database Migrations**
 
 **Features**
