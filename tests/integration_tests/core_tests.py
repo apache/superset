@@ -1137,7 +1137,7 @@ class TestCore(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         keys = list(data.keys())
 
-        self.assertEqual(rv.status_code, 202)
+        self.assertEqual(rv.status_code, 200)
         self.assertCountEqual(
             keys, ["channel_id", "job_id", "user_id", "status", "errors", "result_url"]
         )
