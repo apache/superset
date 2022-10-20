@@ -171,20 +171,29 @@ class DatasourceControl extends React.PureComponent {
 
   onDatasourceSave = datasource => {
     this.props.actions.changeDatasource(datasource);
-    const { columns } = this.props.datasource;
+    const { temporalColumns, defaultTemporalColumn } =
+      getTemporalColumns(datasource);
+    const { columns } = datasource;
+    // the current granularity_sqla might not be a temporal column anymore
     const timeCol = this.props.form_data?.granularity_sqla;
-    const timeColConf = columns.find(
+    const isGranularitySqalTemporal = columns.find(
       ({ column_name }) => column_name === timeCol,
-    );
-    if (datasource.type === 'table') {
-      // resets new default time col or picks the first available one
-      if (!timeColConf?.is_dttm) {
-        const setDttmCol = getTemporalColumns(this.props.datasource);
-        this.props.actions.setControlValue(
-          'granularity_sqla',
-          setDttmCol.defaultTemporalColumn,
-        );
-      }
+    )?.is_dttm;
+    // the current main_dttm_col might not be a temporal column anymore
+    const isDefaultTemporal = columns.find(
+      ({ column_name }) => column_name === defaultTemporalColumn,
+    )?.is_dttm;
+
+    // if the current granularity_sqla is empty or it is not a temporal column anymore
+    // let's update the control value
+    if (datasource.type === 'table' && !isGranularitySqalTemporal) {
+      const temporalColumn = isDefaultTemporal
+        ? defaultTemporalColumn
+        : temporalColumns?.[0];
+      this.props.actions.setControlValue(
+        'granularity_sqla',
+        temporalColumn || null,
+      );
     }
 
     if (this.props.onDatasourceSave) {

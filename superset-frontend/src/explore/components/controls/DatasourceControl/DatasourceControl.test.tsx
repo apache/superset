@@ -66,11 +66,10 @@ const createProps = () => ({
   onDatasourceSave: jest.fn(),
 });
 
-fetchMock.post('glob:*/datasource/save/', {
-  ...createProps().datasource,
-});
-
-async function openAndSaveChanges() {
+async function openAndSaveChanges(datasource: any) {
+  fetchMock.post('glob:*/datasource/save/', datasource, {
+    overwriteRoutes: true,
+  });
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
   userEvent.click(await screen.findByTestId('edit-dataset'));
   userEvent.click(await screen.findByTestId('datasource-modal-save'));
@@ -271,7 +270,7 @@ test('should set the default temporal column', async () => {
     useRedux: true,
   });
 
-  await openAndSaveChanges();
+  await openAndSaveChanges(overrideProps.datasource);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -306,7 +305,7 @@ test('should set the first available temporal column', async () => {
     useRedux: true,
   });
 
-  await openAndSaveChanges();
+  await openAndSaveChanges(overrideProps.datasource);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
@@ -341,11 +340,11 @@ test('should not set the temporal column', async () => {
     useRedux: true,
   });
 
-  await openAndSaveChanges();
+  await openAndSaveChanges(overrideProps.datasource);
   await waitFor(() => {
     expect(props.actions.setControlValue).toHaveBeenCalledWith(
       'granularity_sqla',
-      undefined,
+      null,
     );
   });
 });
