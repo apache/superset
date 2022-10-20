@@ -72,9 +72,8 @@ class CreateDatabaseCommand(BaseCommand):
                     error.error_type
                     == SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR
                 ):
-                    raise DatabaseConnectionFailedError(
-                        message=str(error.message)
-                    ) from ex
+                    # Raise original DatabaseTestConnectionFailedError
+                    raise ex
                 raise DatabaseConnectionFailedError() from ex
         except Exception as ex:
             event_logger.log_with_context(

@@ -41,6 +41,7 @@ from superset.databases.commands.exceptions import (
     DatabaseDeleteFailedError,
     DatabaseInvalidError,
     DatabaseNotFoundError,
+    DatabaseTestConnectionFailedError,
     DatabaseUpdateFailedError,
     InvalidParametersError,
 )
@@ -278,6 +279,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
+        except DatabaseTestConnectionFailedError as ex:
+            return self.response_422(message=ex.normalized_messages())
         except DatabaseCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
