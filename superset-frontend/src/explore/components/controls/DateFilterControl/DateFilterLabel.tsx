@@ -347,6 +347,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         onHide={toggleOverlay}
         width="600px"
         hideFooter
+        zIndex={Number.MAX_SAFE_INTEGER}
       >
         {overlayContent}
       </Modal>
