@@ -67,7 +67,7 @@ describe('Charts filters', () => {
       setFilter('Dashboards', 'Unicode Test');
       cy.getBySel('styled-card').should('have.length', 1);
       setFilter('Dashboards', 'Tabbed Dashboard');
-      cy.getBySel('styled-card').should('have.length', 8);
+      cy.getBySel('styled-card').should('have.length', 9);
     });
   });
 
@@ -108,7 +108,7 @@ describe('Charts filters', () => {
       setFilter('Dashboards', 'Unicode Test');
       cy.getBySel('table-row').should('have.length', 1);
       setFilter('Dashboards', 'Tabbed Dashboard');
-      cy.getBySel('table-row').should('have.length', 8);
+      cy.getBySel('table-row').should('have.length', 9);
     });
   });
 });
