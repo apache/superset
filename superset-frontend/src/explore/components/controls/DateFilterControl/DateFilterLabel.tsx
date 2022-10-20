@@ -21,6 +21,7 @@ import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
+import Modal from 'src/components/Modal';
 import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
@@ -44,7 +45,6 @@ import {
   AdvancedFrame,
 } from './components';
 
-const StyledPopover = styled(ControlPopover)``;
 const StyledRangeType = styled(Select)`
   width: 272px;
 `;
@@ -126,6 +126,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     type,
     onOpenPopover = noOp,
     onClosePopover = noOp,
+    overlayStyle = 'Popover',
   } = props;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
@@ -225,7 +226,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     setShow(false);
   }
 
-  const togglePopover = () => {
+  const toggleOverlay = () => {
     if (show) {
       onHide();
       onClosePopover();
@@ -310,25 +311,52 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </IconWrapper>
   );
 
+  const popoverContent = (
+    <ControlPopover
+      placement="right"
+      trigger="click"
+      content={overlayContent}
+      title={title}
+      defaultVisible={show}
+      visible={show}
+      onVisibleChange={toggleOverlay}
+      overlayStyle={{ width: '600px' }}
+    >
+      <Tooltip placement="top" title={tooltipTitle}>
+        <Label className="pointer" data-test="time-range-trigger">
+          {actualTimeRange}
+        </Label>
+      </Tooltip>
+    </ControlPopover>
+  );
+
+  const modalContent = (
+    <>
+      <Tooltip placement="top" title={tooltipTitle}>
+        <Label
+          className="pointer"
+          onClick={toggleOverlay}
+          data-test="time-range-trigger"
+        >
+          {actualTimeRange}
+        </Label>
+      </Tooltip>
+      <Modal
+        title={title}
+        show={show}
+        onHide={toggleOverlay}
+        width="600px"
+        hideFooter
+      >
+        {overlayContent}
+      </Modal>
+    </>
+  );
+
   return (
     <>
       <ControlHeader {...props} />
-      <StyledPopover
-        placement="right"
-        trigger="click"
-        content={overlayContent}
-        title={title}
-        defaultVisible={show}
-        visible={show}
-        onVisibleChange={togglePopover}
-        overlayStyle={{ width: '600px' }}
-      >
-        <Tooltip placement="top" title={tooltipTitle}>
-          <Label className="pointer" data-test="time-range-trigger">
-            {actualTimeRange}
-          </Label>
-        </Tooltip>
-      </StyledPopover>
+      {overlayStyle === 'Modal' ? modalContent : popoverContent}
     </>
   );
 }
