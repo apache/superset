@@ -18,9 +18,10 @@
  */
 import React, { useCallback } from 'react';
 
-import { hasGenericChartAxes } from '@superset-ui/core';
+import { hasGenericChartAxes, t } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
+import ControlHeader from '../../../ControlHeader';
 
 interface DatePickerInFilterProps {
   columnName: string;
@@ -50,11 +51,14 @@ export const useDatePickerInAdhocFilter = ({
   const onTimeRangeChange = (val: string) => onChange(columnName, val);
 
   return hasGenericChartAxes && isDateColumn(columnName, columns) ? (
-    <DateFilterControl
-      value={timeRange}
-      name="time_range"
-      onChange={onTimeRangeChange}
-      overlayStyle="Modal"
-    />
+    <>
+      <ControlHeader label={t('Time Range')} />
+      <DateFilterControl
+        value={timeRange}
+        name="time_range"
+        onChange={onTimeRangeChange}
+        overlayStyle="Modal"
+      />
+    </>
   ) : undefined;
 };
