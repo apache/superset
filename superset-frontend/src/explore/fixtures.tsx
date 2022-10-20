@@ -115,7 +115,6 @@ export const exploreInitialData: ExplorePageInitialData = {
     datasource: '8__table',
     metric: 'count',
     slice_id: 371,
-    time_range: 'No filter',
     viz_type: 'table',
   },
   slice: {
@@ -128,7 +127,6 @@ export const exploreInitialData: ExplorePageInitialData = {
       datasource: '8__table',
       metric: 'count',
       slice_id: 371,
-      time_range: 'No filter',
       viz_type: 'table',
     },
   },
