@@ -30,6 +30,7 @@ import {
   ensureIsArray,
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
 import {
   getFormDataFromControls,
@@ -61,6 +62,10 @@ export const hydrateExplore =
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || 'table';
       initialFormData.viz_type =
         getUrlParam(URL_PARAMS.vizType) || defaultVizType;
+    }
+    if (!initialFormData.time_range) {
+      initialFormData.time_range =
+        common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE;
     }
     if (dashboardId) {
       initialFormData.dashboardId = dashboardId;

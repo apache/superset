@@ -110,6 +110,7 @@ FRONTEND_CONF_KEYS = (
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
     "SAMPLES_ROW_LIMIT",
+    "DEFAULT_TIME_FILTER",
 )
 
 logger = logging.getLogger(__name__)
