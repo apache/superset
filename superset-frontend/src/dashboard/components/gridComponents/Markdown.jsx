@@ -65,6 +65,9 @@ const propTypes = {
   deleteComponent: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
+
+  // markdown HTML schema
+  schemaOverrides: PropTypes.object,
 };
 
 const defaultProps = {};
@@ -265,6 +268,7 @@ class Markdown extends React.PureComponent {
             ? MARKDOWN_ERROR_MESSAGE
             : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
+        schemaOverrides={this.props.schemaOverrides}
       />
     );
   }
@@ -373,6 +377,7 @@ function mapStateToProps(state) {
   return {
     undoLength: state.dashboardLayout.past.length,
     redoLength: state.dashboardLayout.future.length,
+    schemaOverrides: state.common.conf.HTML_SANITIZATION_SCHEMA_OVERRIDES,
   };
 }
 export default connect(mapStateToProps)(Markdown);

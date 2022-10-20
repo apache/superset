@@ -644,6 +644,12 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 ENABLE_CORS = False
 CORS_OPTIONS: Dict[Any, Any] = {}
 
+# Use this configuration to override the HTML sanitization schema. By default we use the
+# Gihtub schema defined in https://github.com/syntax-tree/hast-util-sanitize/blob/main/lib/schema.js
+# As an example, the following configuration would allow the rendering of the style attribute for div elements:
+# HTML_SANITIZATION_SCHEMA_OVERRIDES = {"attributes": {"div": ["style"]}}
+HTML_SANITIZATION_SCHEMA_OVERRIDES = None
+
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
 # next available socket. PR #5039 is trying to allow domain sharding for Superset,

@@ -112,6 +112,7 @@ FRONTEND_CONF_KEYS = (
     "ALLOWED_EXTENSIONS",
     "SAMPLES_ROW_LIMIT",
     "DEFAULT_TIME_FILTER",
+    "HTML_SANITIZATION_SCHEMA_OVERRIDES",
 )
 
 logger = logging.getLogger(__name__)
