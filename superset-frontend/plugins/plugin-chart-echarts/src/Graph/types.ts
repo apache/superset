@@ -19,7 +19,7 @@
 import {
   PlainObject,
   QueryFormData,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { GraphNodeItemOption } from 'echarts/types/src/chart/graph/GraphSeries';
 import { SeriesTooltipOption } from 'echarts/types/src/util/types';
@@ -88,8 +88,8 @@ export type tooltipFormatParams = {
 export type GraphChartTransformedProps = EchartsProps & {
   formData: PlainObject;
   onContextMenu?: (
-    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
   ) => void;
 };

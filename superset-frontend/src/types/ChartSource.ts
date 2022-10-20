@@ -17,4 +17,7 @@
  * under the License.
  */
 
-export { default } from './DrillDetailPane';
+export enum ChartSource {
+  Explore = 'explore',
+  Dashboard = 'dashboard',
+}

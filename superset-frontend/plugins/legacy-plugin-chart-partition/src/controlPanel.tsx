@@ -330,10 +330,10 @@ const config: ControlPanelConfig = {
               label: t('Calculation type'),
               default: 'values',
               choices: [
-                ['values', 'Actual Values'],
-                ['absolute', 'Difference'],
-                ['percentage', 'Percentage change'],
-                ['ratio', 'Ratio'],
+                ['values', t('Actual Values')],
+                ['absolute', t('Difference')],
+                ['percentage', t('Percentage change')],
+                ['ratio', t('Ratio')],
               ],
               description: t(
                 'How to display time shifts: as individual lines; as the ' +

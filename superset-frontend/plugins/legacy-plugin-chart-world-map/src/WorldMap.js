@@ -121,7 +121,7 @@ function WorldMap(element, props) {
           formattedVal: val,
         },
       ];
-      onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
     } else {
       logging.warn(
         t(

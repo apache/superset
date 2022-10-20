@@ -37,6 +37,10 @@ export function interceptPost() {
   cy.intercept('POST', `/api/v1/chart/`).as('post');
 }
 
+export function interceptExploreJson() {
+  cy.intercept('POST', `/superset/explore_json/**`).as('getJson');
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 

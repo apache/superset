@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
 import { EChartTransformedProps, EventHandlers } from '../types';
 
 export type Event = {
@@ -48,7 +48,7 @@ export const contextMenuEventHandler =
     if (onContextMenu) {
       e.event.stop();
       const pointerEvent = e.event.event;
-      const filters: QueryObjectFilterClause[] = [];
+      const filters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
         groupby.forEach((dimension, i) =>
@@ -60,7 +60,7 @@ export const contextMenuEventHandler =
           }),
         );
       }
-      onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
     }
   };
 

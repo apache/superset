@@ -29,6 +29,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
+import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
@@ -237,7 +238,7 @@ class Chart extends React.PureComponent {
         subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
         copyText={message}
         link={queryResponse ? queryResponse.link : null}
-        source={dashboardId ? 'dashboard' : 'explore'}
+        source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
         stackTrace={chartStackTrace}
       />
     );

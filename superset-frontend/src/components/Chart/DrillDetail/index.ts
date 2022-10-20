@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,6 +17,4 @@
  * under the License.
  */
 
-export default function isDefined<T>(x: T): x is NonNullable<T> {
-  return x !== null && x !== undefined;
-}
+export { default as DrillDetailMenuItems } from './DrillDetailMenuItems';
