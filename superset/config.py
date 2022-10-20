@@ -468,7 +468,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "CACHE_IMPERSONATION": False,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
-    "DRILL_TO_DETAIL": False,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
     "HORIZONTAL_FILTER_BAR": False,
 }

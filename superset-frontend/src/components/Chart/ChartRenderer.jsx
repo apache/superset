@@ -24,8 +24,6 @@ import {
   logging,
   Behavior,
   t,
-  isFeatureEnabled,
-  FeatureFlag,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
@@ -84,9 +82,7 @@ class ChartRenderer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      showContextMenu:
-        props.source === ChartSource.Dashboard &&
-        isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL),
+      showContextMenu: props.source === ChartSource.Dashboard,
       inContextMenu: false,
     };
     this.hasQueryResponseChange = false;

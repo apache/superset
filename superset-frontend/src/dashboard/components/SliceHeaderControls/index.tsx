@@ -450,13 +450,12 @@ class SliceHeaderControls extends React.PureComponent<
           </Menu.Item>
         )}
 
-        {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
-          this.props.supersetCanExplore && (
-            <DrillDetailMenuItems
-              chartId={slice.slice_id}
-              formData={this.props.formData}
-            />
-          )}
+        {this.props.supersetCanExplore && (
+          <DrillDetailMenuItems
+            chartId={slice.slice_id}
+            formData={this.props.formData}
+          />
+        )}
 
         {(slice.description || this.props.supersetCanExplore) && (
           <Menu.Divider />

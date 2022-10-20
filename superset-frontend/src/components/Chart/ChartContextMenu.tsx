@@ -27,8 +27,6 @@ import ReactDOM from 'react-dom';
 import { useSelector } from 'react-redux';
 import {
   BinaryQueryObjectFilterClause,
-  FeatureFlag,
-  isFeatureEnabled,
   QueryFormData,
 } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
@@ -68,9 +66,7 @@ const ChartContextMenu = (
   }>({ clientX: 0, clientY: 0 });
 
   const menuItems = [];
-  const showDrillToDetail =
-    isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore;
-
+  const showDrillToDetail = canExplore;
   if (showDrillToDetail) {
     menuItems.push(
       <DrillDetailMenuItems

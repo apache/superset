@@ -48,8 +48,8 @@ const createProps = (viz_type = 'sunburst') =>
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
     slice: {
-      slice_id: 371,
-      slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
+      slice_id: 18,
+      slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%2018%7D',
       slice_name: 'Vaccine Candidates per Country & Stage',
       slice_description: 'Table of vaccine candidates for 100 countries',
       form_data: {
@@ -65,7 +65,7 @@ const createProps = (viz_type = 'sunburst') =>
           secondary_metric: 'metrics',
         },
         row_limit: 10000,
-        slice_id: 371,
+        slice_id: 18,
         time_range: 'No filter',
         url_params: {},
         viz_type,
@@ -166,7 +166,7 @@ test('Should "export to CSV"', async () => {
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to .CSV'));
   expect(props.exportCSV).toBeCalledTimes(1);
-  expect(props.exportCSV).toBeCalledWith(371);
+  expect(props.exportCSV).toBeCalledWith(18);
 });
 
 test('Should not show "Download" if slice is filter box', () => {
@@ -198,7 +198,7 @@ test('Should "export full CSV"', async () => {
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full .CSV'));
   expect(props.exportFullCSV).toBeCalledTimes(1);
-  expect(props.exportFullCSV).toBeCalledWith(371);
+  expect(props.exportFullCSV).toBeCalledWith(18);
 });
 
 test('Should not show export full CSV if report is not table', async () => {
@@ -218,7 +218,7 @@ test('Should "Show chart description"', () => {
   expect(props.toggleExpandSlice).toBeCalledTimes(0);
   userEvent.click(screen.getByText('Show chart description'));
   expect(props.toggleExpandSlice).toBeCalledTimes(1);
-  expect(props.toggleExpandSlice).toBeCalledWith(371);
+  expect(props.toggleExpandSlice).toBeCalledWith(18);
 });
 
 test('Should "Force refresh"', () => {
@@ -227,7 +227,7 @@ test('Should "Force refresh"', () => {
   expect(props.forceRefresh).toBeCalledTimes(0);
   userEvent.click(screen.getByText('Force refresh'));
   expect(props.forceRefresh).toBeCalledTimes(1);
-  expect(props.forceRefresh).toBeCalledWith(371, 26);
+  expect(props.forceRefresh).toBeCalledWith(18, 26);
   expect(props.addSuccessToast).toBeCalledTimes(1);
 });
 
@@ -240,23 +240,8 @@ test('Should "Enter fullscreen"', () => {
   expect(props.handleToggleFullSize).toBeCalledTimes(1);
 });
 
-test('Drill to detail modal is under featureflag', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: false,
-  };
-  const props = createProps();
-  renderWrapper(props);
-  expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
-});
-
 test('Should show the "Drill to detail"', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DRILL_TO_DETAIL]: true,
-  };
   const props = createProps();
-  props.slice.slice_id = 18;
   renderWrapper(props);
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
