@@ -44,7 +44,7 @@ from typing_extensions import Literal
 from superset.utils.core import get_user_id
 
 from sqlalchemy.orm import Session
-        from superset.dao.exceptions import DAODeleteFailedError
+from superset.dao.exceptions import DAODeleteFailedError
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
