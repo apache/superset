@@ -127,7 +127,7 @@ describe('Dashboards list', () => {
 
   describe('common actions', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0, 1, 2, 3]);
       cy.visit(DASHBOARD_LIST);
     });
 
