@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CHART_LIST } from 'cypress/utils/urls';
+import { CHART_LIST, DASHBOARD_LIST } from 'cypress/utils/urls';
 import { setGridMode, toggleBulkSelect } from 'cypress/utils';
 import {
   setFilter,
@@ -68,6 +68,20 @@ describe('Charts list', () => {
       cy.createSampleCharts([0]);
     });
 
+    after(() => {
+      cy.visit(DASHBOARD_LIST);
+      cy.wait(1000);
+      toggleBulkSelect();
+      cy.wait(1000);
+      cy.getBySel('table-row').each($row => {
+        if ($row.text().indexOf('Sample dashboard') > -1) {
+          cy.wrap($row).find('input[type="checkbox"]').click();
+        }
+      });
+      cy.getBySel('bulk-select-action').eq(0).contains('Delete').click();
+      confirmDelete();
+    });
+
     it('should show the cross-referenced dashboards in the table cell', () => {
       interceptDashboardGet();
       cy.getBySel('table-row')
@@ -92,6 +106,7 @@ describe('Charts list', () => {
       saveChartToDashboard('2 - Sample dashboard');
       saveChartToDashboard('3 - Sample dashboard');
       saveChartToDashboard('4 - Sample dashboard');
+      cy.wait(500);
       visitChartList();
       cy.getBySel('count-crosslinks').should('be.visible');
       cy.getBySel('crosslinks')
