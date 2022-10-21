@@ -116,11 +116,11 @@ class ExecuteSqlCommand(BaseCommand):
             }
         except (SupersetErrorsException, SupersetException) as ex:
             if ex.status != 422:
-                query_id = query.id if query else None
+                query_id = query.id if query else -1
                 logger.exception("Query %d: %s", query_id, type(ex))
             raise ex
         except Exception as ex:
-            query_id = query.id if query else None
+            query_id = query.id if query else -1
             logger.exception("Query %d: %s", query_id, type(ex))
             raise SqlLabException(self._execution_context, exception=ex) from ex
 

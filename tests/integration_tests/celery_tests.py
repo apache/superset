@@ -148,6 +148,7 @@ def test_run_sync_query_dont_exist(test_client, ctas_method):
     engine_name = examples_db.db_engine_spec.engine_name
     sql_dont_exist = "SELECT name FROM table_dont_exist"
     result = run_sql(test_client, sql_dont_exist, cta=True, ctas_method=ctas_method)
+    print(result)
     if backend() == "sqlite" and ctas_method == CtasMethod.VIEW:
         assert QueryStatus.SUCCESS == result["status"], result
     elif backend() == "presto":
