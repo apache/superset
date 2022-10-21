@@ -36,9 +36,9 @@ export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
           label: t('Contribution Mode'),
           default: null,
           choices: [
-            [null, 'None'],
-            [ContributionType.Row, 'Row'],
-            [ContributionType.Column, 'Series'],
+            [null, t('None')],
+            [ContributionType.Row, t('Row')],
+            [ContributionType.Column, t('Series')],
           ],
           description: t('Calculate contribution per series or row'),
         },

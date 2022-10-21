@@ -196,7 +196,7 @@ describe('Native filters', () => {
 
   describe('Nativefilters tests initial state required', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0]);
     });
 
     it('Verify that default value is respected after revisit', () => {
@@ -379,7 +379,7 @@ describe('Native filters', () => {
 
   describe('Nativefilters basic interactions', () => {
     before(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0]);
       visitDashboard();
     });
 
@@ -437,7 +437,7 @@ describe('Native filters', () => {
 
   describe('Nativefilters initial state not required', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0]);
     });
 
     it("User can check 'Filter has default value'", () => {

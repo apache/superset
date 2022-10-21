@@ -40,7 +40,7 @@ import {
   ensureIsArray,
   GenericDataType,
   getTimeFormatterForGranularity,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
   styled,
   css,
   t,
@@ -630,7 +630,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleContextMenu =
     onContextMenu && !isRawRecords
       ? (value: D, clientX: number, clientY: number) => {
-          const filters: QueryObjectFilterClause[] = [];
+          const filters: BinaryQueryObjectFilterClause[] = [];
           columnsMeta.forEach(col => {
             if (!col.isMetric) {
               const dataRecordValue = value[col.key];
@@ -642,7 +642,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               });
             }
           });
-          onContextMenu(filters, clientX, clientY);
+          onContextMenu(clientX, clientY, filters);
         }
       : undefined;
 

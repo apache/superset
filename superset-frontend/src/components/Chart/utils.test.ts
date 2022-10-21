@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,6 +17,26 @@
  * under the License.
  */
 
-export default function isDefined<T>(x: T): x is NonNullable<T> {
-  return x !== null && x !== undefined;
-}
+import { getMenuAdjustedY } from './utils';
+
+const originalInnerHeight = window.innerHeight;
+
+beforeEach(() => {
+  window.innerHeight = 500;
+});
+
+afterEach(() => {
+  window.innerHeight = originalInnerHeight;
+});
+
+test('correctly positions at upper edge of screen', () => {
+  expect(getMenuAdjustedY(75, 1)).toEqual(75); // No adjustment
+  expect(getMenuAdjustedY(75, 2)).toEqual(75); // No adjustment
+  expect(getMenuAdjustedY(75, 3)).toEqual(75); // No adjustment
+});
+
+test('correctly positions at lower edge of screen', () => {
+  expect(getMenuAdjustedY(425, 1)).toEqual(425); // No adjustment
+  expect(getMenuAdjustedY(425, 2)).toEqual(404); // Adjustment
+  expect(getMenuAdjustedY(425, 3)).toEqual(372); // Adjustment
+});

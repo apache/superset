@@ -608,6 +608,61 @@ class TestDatasetApi(SupersetTestCase):
             "message": {"table_name": ["Dataset energy_usage already exists"]}
         }
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_create_dataset_with_sql_validate_uniqueness(self):
+        """
+        Dataset API: Test create dataset with sql
+        """
+        if backend() == "sqlite":
+            return
+
+        schema = get_example_default_schema()
+        energy_usage_ds = self.get_energy_usage_dataset()
+        self.login(username="admin")
+        table_data = {
+            "database": energy_usage_ds.database_id,
+            "table_name": energy_usage_ds.table_name,
+            "sql": "select * from energy_usage",
+        }
+        if schema:
+            table_data["schema"] = schema
+        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {"table_name": ["Dataset energy_usage already exists"]}
+        }
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_create_dataset_with_sql(self):
+        """
+        Dataset API: Test create dataset with sql
+        """
+        if backend() == "sqlite":
+            return
+
+        schema = get_example_default_schema()
+        energy_usage_ds = self.get_energy_usage_dataset()
+        self.login(username="alpha")
+        admin = self.get_user("admin")
+        alpha = self.get_user("alpha")
+        table_data = {
+            "database": energy_usage_ds.database_id,
+            "table_name": "energy_usage_virtual",
+            "sql": "select * from energy_usage",
+            "owners": [admin.id],
+        }
+        if schema:
+            table_data["schema"] = schema
+        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(SqlaTable).get(data.get("id"))
+        assert admin in model.owners
+        assert alpha in model.owners
+        db.session.delete(model)
+        db.session.commit()
+
     @unittest.skip("test is failing stochastically")
     def test_create_dataset_same_name_different_schema(self):
         if backend() == "sqlite":
