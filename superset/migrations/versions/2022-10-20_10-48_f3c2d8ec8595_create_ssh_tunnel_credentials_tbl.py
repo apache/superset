@@ -39,7 +39,7 @@ app_config = app.config
 
 def upgrade():
     op.create_table(
-        "ssh_tunnel_credential",
+        "ssh_tunnel_credentials",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
@@ -49,15 +49,14 @@ def upgrade():
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
         sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
-        # specific to model
-        sa.Column("server_port", sa.EncryptedType(sa.String, app_config["SECRET_KEY"])),
+        # Specific to model
         sa.Column(
             "server_address", sa.EncryptedType(sa.String, app_config["SECRET_KEY"])
         ),
+        sa.Column("server_port", sa.EncryptedType(sa.String, app_config["SECRET_KEY"])),
         sa.Column(
             "username",
             sa.EncryptedType(sa.String, app_config["SECRET_KEY"]),
-            nullable=True,
         ),
         sa.Column(
             "password",
@@ -65,7 +64,9 @@ def upgrade():
             nullable=True,
         ),
         sa.Column(
-            "pkey", sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
+            "private_key",
+            sa.EncryptedType(sa.String, app_config["SECRET_KEY"]),
+            nullable=True,
         ),
         sa.Column(
             "private_key_password",

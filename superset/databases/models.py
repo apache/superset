@@ -50,11 +50,9 @@ class SSHTunnelCredentials(
 
     server_address = sa.Column(sa.EncryptedType(sa.String, app_config["SECRET_KEY"]))
     server_port = sa.Column(sa.EncryptedType(sa.String, app_config["SECRET_KEY"]))
+    username = sa.Column(sa.EncryptedType(sa.String, app_config["SECRET_KEY"]))
 
     # basic authentication
-    username = sa.Column(
-        sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
-    )
     password = sa.Column(
         sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
