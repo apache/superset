@@ -115,13 +115,9 @@ class ExecuteSqlCommand(BaseCommand):
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
         except (SupersetErrorsException, SupersetException) as ex:
-            if ex.status != 422:
-                query_id = query.id if query else -1
-                logger.exception("Query %d: %s", query_id, type(ex))
+            logger.warning("ExecuteSqlCommand failed with %s", str(ex))
             raise ex
         except Exception as ex:
-            query_id = query.id if query else -1
-            logger.exception("Query %d: %s", query_id, type(ex))
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
     def _try_get_existing_query(self) -> Optional[Query]:
