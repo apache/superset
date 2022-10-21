@@ -43,7 +43,7 @@ class DynamoDBEngineSpec(BaseEngineSpec):
             "DATETIME({col}, 'start of day', 'weekday 1', '-7 days')"
         ),
     }
-	
+
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "datetime({col}, 'unixepoch')"
