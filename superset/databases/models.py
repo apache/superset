@@ -60,9 +60,9 @@ class SSHTunnelCredentials(
     )
 
     # password protected pkey authentication
-    pkey = sa.Column(
+    private_key = sa.Column(
         sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
-    private_key = sa.Column(
+    private_key_password = sa.Column(
         sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )

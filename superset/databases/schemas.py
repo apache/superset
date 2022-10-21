@@ -676,6 +676,26 @@ class EncryptedDict(EncryptedField, fields.Dict):
     pass
 
 
+class DatabaseSSHTunnelCredentials(Schema):
+    id = fields.Integer()
+    database_id = fields.Integer()
+
+    server_address = fields.String()
+    server_port = fields.Integer()
+    username = fields.String()
+
+    # Basic Authentication
+    password = fields.String(required=False)
+
+    # password protected private key authentication
+    private_key = fields.String(required=False)
+    private_key_password = fields.String(required=False)
+
+    # remote binding port
+    bind_host = fields.String()
+    bind_port = fields.Integer()
+
+
 def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
     ret = {}
     if isinstance(field, EncryptedField):
