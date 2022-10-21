@@ -339,7 +339,7 @@ const SqlEditor = ({
     hotkeys.forEach(keyConfig => {
       Mousetrap.bind([keyConfig.key], keyConfig.func);
     });
-  }, [latestQuery])
+  }, [latestQuery]);
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
