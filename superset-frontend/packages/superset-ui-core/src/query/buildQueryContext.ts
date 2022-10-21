@@ -63,7 +63,7 @@ export default function buildQueryContext(
     if (hasGenericChartAxes && query.time_range) {
       // eslint-disable-next-line no-param-reassign
       query.filters = ensureIsArray(query.filters).map(flt =>
-        flt?.op === 'TEMPORAL_BETWEEN'
+        flt?.op === 'TEMPORAL_RANGE'
           ? ({ ...flt, val: query.time_range } as BinaryQueryObjectFilterClause)
           : flt,
       );

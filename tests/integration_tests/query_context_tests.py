@@ -1020,7 +1020,7 @@ def test_time_grain_and_time_offset_on_legacy_query(app_context, physical_datase
     )
 
 
-def test_time_offset_with_temporal_between_filter(app_context, physical_dataset):
+def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={
             "type": physical_dataset.type,
@@ -1047,7 +1047,7 @@ def test_time_offset_with_temporal_between_filter(app_context, physical_dataset)
                 "filters": [
                     {
                         "col": "col6",
-                        "op": "TEMPORAL_BETWEEN",
+                        "op": "TEMPORAL_RANGE",
                         "val": "2002-01 : 2003-01",
                     }
                 ],

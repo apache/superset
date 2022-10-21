@@ -334,7 +334,7 @@ class QueryContextProcessor:
                 #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }
                 #      ],
                 #      time_offsets: ['1 year ago'],
-                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_BETWEEN', val: '2020 : 2021'}],
+                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],
                 #    }
                 query_object_clone.from_dttm = get_past_or_future(
                     offset,

@@ -77,7 +77,7 @@ def test__since_until_from_time_range(dummy_query_object):
 
 @pytest.mark.query_object(
     {
-        "filters": [{"col": "dttm", "op": "TEMPORAL_BETWEEN", "val": "2001 : 2002"}],
+        "filters": [{"col": "dttm", "op": "TEMPORAL_RANGE", "val": "2001 : 2002"}],
         "columns": [
             {
                 "columnType": "BASE_AXIS",

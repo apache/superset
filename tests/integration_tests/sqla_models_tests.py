@@ -284,7 +284,7 @@ class TestDatabaseModel(SupersetTestCase):
             FilterTestCase("num", FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
             FilterTestCase("num", FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
             FilterTestCase(
-                "ds", FilterOperator.TEMPORAL_BETWEEN, "2020 : 2021", "2020-01-01"
+                "ds", FilterOperator.TEMPORAL_RANGE, "2020 : 2021", "2020-01-01"
             ),
         )
         table = self.get_table(name="birth_names")
@@ -843,7 +843,7 @@ def test__normalize_prequery_result_type(
         assert normalized == result
 
 
-def test__temporal_between_operator_in_adhoc_filter(app_context, physical_dataset):
+def test__temporal_range_operator_in_adhoc_filter(app_context, physical_dataset):
     result = physical_dataset.query(
         {
             "columns": ["col1", "col2"],
@@ -851,12 +851,12 @@ def test__temporal_between_operator_in_adhoc_filter(app_context, physical_datase
                 {
                     "col": "col5",
                     "val": "2000-01-05 : 2000-01-06",
-                    "op": FilterOperator.TEMPORAL_BETWEEN.value,
+                    "op": FilterOperator.TEMPORAL_RANGE.value,
                 },
                 {
                     "col": "col6",
                     "val": "2002-05-11 : 2002-05-12",
-                    "op": FilterOperator.TEMPORAL_BETWEEN.value,
+                    "op": FilterOperator.TEMPORAL_RANGE.value,
                 },
             ],
             "is_timeseries": False,
