@@ -19,7 +19,13 @@
 import React, { useEffect, useState } from 'react';
 import FormItem from 'src/components/Form/FormItem';
 import { Select } from 'src/components';
-import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
+import {
+  t,
+  SupersetClient,
+  SupersetTheme,
+  styled,
+  hasGenericChartAxes,
+} from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -39,9 +45,14 @@ import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { ColumnMeta } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  Dataset,
+  getTemporalColumns,
+} from '@superset-ui/chart-controls';
 import useAdvancedDataTypes from './useAdvancedDataTypes';
 import { useDatePickerInAdhocFilter } from '../utils';
+import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
 
 const StyledInput = styled(Input)`
   margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
@@ -89,12 +100,7 @@ export interface Props {
   adhocFilter: AdhocFilter;
   onChange: (filter: AdhocFilter) => void;
   options: ColumnType[];
-  datasource: {
-    id: string;
-    columns: ColumnMeta[];
-    type: string;
-    filter_select: boolean;
-  };
+  datasource: Dataset;
   partitionColumn: string;
   operators?: Operators[];
   validHandler: (isValid: boolean) => void;
@@ -107,6 +113,8 @@ export interface AdvancedDataTypesState {
 }
 
 export const useSimpleTabFilterProps = (props: Props) => {
+  const defaultTimeFilter = useDefaultTimeFilter();
+
   const isOperatorRelevant = (operator: Operators, subject: string) => {
     const column = props.datasource.columns?.find(
       col => col.column_name === subject,
@@ -157,17 +165,32 @@ export const useSimpleTabFilterProps = (props: Props) => {
       subject = option.label;
       clause = CLAUSES.HAVING;
     }
-    const { operator, operatorId } = props.adhocFilter;
+    let { operator, operatorId, comparator } = props.adhocFilter;
+    operator =
+      operator && operatorId && isOperatorRelevant(operatorId, subject)
+        ? OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation
+        : null;
+
+    if (
+      hasGenericChartAxes &&
+      getTemporalColumns(props.datasource)
+        .temporalColumns.map(col => col.column_name)
+        .includes(id)
+    ) {
+      subject = id;
+      operator = Operators.TEMPORAL_RANGE;
+      operatorId = Operators.TEMPORAL_RANGE;
+      comparator = defaultTimeFilter;
+    }
+
     props.onChange(
       props.adhocFilter.duplicateWith({
         subject,
         clause,
-        operator:
-          operator && operatorId && isOperatorRelevant(operatorId, subject)
-            ? OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation
-            : null,
+        operator,
         expressionType: EXPRESSION_TYPES.SIMPLE,
         operatorId,
+        comparator,
       }),
     );
   };

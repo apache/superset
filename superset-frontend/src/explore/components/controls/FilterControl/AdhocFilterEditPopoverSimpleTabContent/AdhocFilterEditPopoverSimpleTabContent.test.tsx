@@ -37,6 +37,7 @@ import * as featureFlags from 'src/featureFlags';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
+import { TestDataset } from '@superset-ui/chart-controls';
 import AdhocFilterEditPopoverSimpleTabContent, {
   useSimpleTabFilterProps,
   Props,
@@ -99,10 +100,11 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
     onChange,
     options: [{ type: 'DOUBLE', column_name: 'advancedDataType', id: 5 }],
     datasource: {
-      id: 'test-id',
-      columns: [],
-      type: 'postgres',
-      filter_select: false,
+      ...TestDataset,
+      ...{
+        columns: [],
+        filter_select: false,
+      },
     },
     partitionColumn: 'test',
     ...overrides,
@@ -119,10 +121,11 @@ function setup(overrides?: Record<string, any>) {
     onChange,
     options,
     datasource: {
-      id: 'test-id',
-      columns: [],
-      type: 'postgres',
-      filter_select: false,
+      ...TestDataset,
+      ...{
+        columns: [],
+        filter_select: false,
+      },
     },
     partitionColumn: 'test',
     ...overrides,

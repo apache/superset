@@ -17,8 +17,7 @@
  * under the License.
  */
 import { testQueryResponse, testQueryResults } from '@superset-ui/core';
-import { Dataset, getTemporalColumns } from '../../src';
-import { TestDataset } from '../fixtures';
+import { Dataset, getTemporalColumns, TestDataset } from '../../src';
 
 test('get temporal columns from a Dataset', () => {
   expect(getTemporalColumns(TestDataset)).toEqual({

@@ -79,6 +79,8 @@ export interface Dataset {
   description: string | null;
   uid?: string;
   owners?: Owner[];
+  filter_select?: boolean;
+  filter_select_enabled?: boolean;
 }
 
 export interface ControlPanelState {
