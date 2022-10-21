@@ -18,8 +18,12 @@
  */
 /* eslint-disable no-unused-expressions */
 import React from 'react';
+import * as redux from 'react-redux';
 import sinon from 'sinon';
 import { shallow } from 'enzyme';
+import thunk from 'redux-thunk';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
 
 import AdhocFilter, {
   EXPRESSION_TYPES,
@@ -116,6 +120,8 @@ const getAdvancedDataTypeTestProps = (overrides?: Record<string, any>) => {
 function setup(overrides?: Record<string, any>) {
   const onChange = sinon.spy();
   const validHandler = sinon.spy();
+  const spy = jest.spyOn(redux, 'useSelector');
+  spy.mockReturnValue({});
   const props = {
     adhocFilter: simpleAdhocFilter,
     onChange,
@@ -375,14 +381,19 @@ fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
     values: [],
   },
 });
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
 
 describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () => {
   const setupFilter = async (props: Props) => {
     await act(async () => {
       render(
-        <ThemeProvider theme={supersetTheme}>
-          <AdhocFilterEditPopoverSimpleTabContent {...props} />
-        </ThemeProvider>,
+        <Provider store={store}>
+          <ThemeProvider theme={supersetTheme}>
+            <AdhocFilterEditPopoverSimpleTabContent {...props} />
+          </ThemeProvider>
+          ,
+        </Provider>,
       );
     });
   };
