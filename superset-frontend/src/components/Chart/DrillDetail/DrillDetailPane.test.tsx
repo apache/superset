@@ -122,11 +122,11 @@ test('should render', async () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render metadata and table loading indicators', async () => {
+test('should render loading indicator', async () => {
   fetchWithData();
   setup();
   await waitFor(() =>
-    expect(screen.getAllByLabelText('Loading').length).toBe(2),
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument(),
   );
 });
 
