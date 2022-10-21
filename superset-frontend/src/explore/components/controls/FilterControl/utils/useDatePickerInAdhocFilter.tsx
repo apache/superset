@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback } from 'react';
+import React from 'react';
 
 import { hasGenericChartAxes, t } from '@superset-ui/core';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
-import ControlHeader from '../../../ControlHeader';
+import ControlHeader from 'src/explore/components/ControlHeader';
 
 interface DatePickerInFilterProps {
   columnName: string;
@@ -34,23 +34,20 @@ interface DatePickerInFilterProps {
 const isColumnMeta = (column: any): column is ColumnMeta =>
   !!column && 'column_name' in column;
 
+const isTemporalColumn = (colName: string, columns: ColumnMeta[]): boolean =>
+  !!columns.find(
+    column => isColumnMeta(column) && column.column_name === colName,
+  )?.is_dttm;
+
 export const useDatePickerInAdhocFilter = ({
   columnName,
   timeRange,
   columns,
   onChange,
 }: DatePickerInFilterProps): React.ReactElement | undefined => {
-  const isDateColumn = useCallback(
-    (colName: string, columns: ColumnMeta[]): boolean =>
-      !!columns.find(
-        column => isColumnMeta(column) && column.column_name === colName,
-      )?.is_dttm,
-    [columnName],
-  );
-
   const onTimeRangeChange = (val: string) => onChange(columnName, val);
 
-  return hasGenericChartAxes && isDateColumn(columnName, columns) ? (
+  return hasGenericChartAxes && isTemporalColumn(columnName, columns) ? (
     <>
       <ControlHeader label={t('Time Range')} />
       <DateFilterControl
