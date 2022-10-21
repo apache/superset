@@ -28,7 +28,6 @@ These features are considered **unfinished** and should only be used on developm
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
 - CLIENT_CACHE
-- CROSS_REFERENCES
 - DASHBOARD_CACHE
 - DASHBOARD_NATIVE_FILTERS_SET
 - DISABLE_DATASET_SOURCE_EDIT

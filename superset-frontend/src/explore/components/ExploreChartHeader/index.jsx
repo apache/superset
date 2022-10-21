@@ -24,8 +24,6 @@ import { Tooltip } from 'src/components/Tooltip';
 import {
   CategoricalColorNamespace,
   css,
-  FeatureFlag,
-  isFeatureEnabled,
   logging,
   SupersetClient,
   t,
@@ -166,8 +164,7 @@ export const ExploreChartHeader = ({
           ? t('Added to %s dashboard(s)', metadata.dashboards.length)
           : t('Not added to any dashboard'),
       description:
-        metadata.dashboards.length > 0 &&
-        isFeatureEnabled(FeatureFlag.CROSS_REFERENCES)
+        metadata.dashboards.length > 0
           ? t(
               'You can preview the list of dashboards on the chart settings dropdown.',
             )

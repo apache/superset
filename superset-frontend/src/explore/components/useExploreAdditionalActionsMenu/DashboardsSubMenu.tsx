@@ -63,7 +63,7 @@ const DashboardsSubMenu = ({
             margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
           `}
           value={dashboardSearch}
-          onChange={e => setDashboardSearch(e.currentTarget.value?.trim())}
+          onChange={e => setDashboardSearch(e.currentTarget.value)}
         />
       )}
       <div
