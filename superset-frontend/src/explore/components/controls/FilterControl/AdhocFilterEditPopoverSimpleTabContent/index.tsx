@@ -49,7 +49,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   ColumnMeta,
   Dataset,
-  getTemporalColumns,
+  isTemporalColumn,
 } from '@superset-ui/chart-controls';
 import useAdvancedDataTypes from './useAdvancedDataTypes';
 import { useDatePickerInAdhocFilter } from '../utils';
@@ -178,12 +178,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
       comparator = undefined;
     }
 
-    if (
-      hasGenericChartAxes &&
-      getTemporalColumns(props.datasource)
-        .temporalColumns.map(col => col.column_name)
-        .includes(id)
-    ) {
+    if (hasGenericChartAxes && isTemporalColumn(id, props.datasource)) {
       subject = id;
       operator = Operators.TEMPORAL_RANGE;
       operatorId = Operators.TEMPORAL_RANGE;
@@ -396,7 +391,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
       props.adhocFilter.operator === Operators.TEMPORAL_RANGE
         ? props.adhocFilter.comparator
         : undefined,
-    columns: props.datasource.columns,
+    datasource: props.datasource,
     onChange: onDatePickerChange,
   });
 

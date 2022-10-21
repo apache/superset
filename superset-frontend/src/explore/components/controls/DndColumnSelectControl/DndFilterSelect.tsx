@@ -30,8 +30,8 @@ import {
 } from '@superset-ui/core';
 import {
   ColumnMeta,
-  getTemporalColumns,
   isColumnMeta,
+  isTemporalColumn,
   withDndFallback,
 } from '@superset-ui/chart-controls';
 import {
@@ -357,9 +357,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     if (
       hasGenericChartAxes &&
       isColumnMeta(droppedItem) &&
-      getTemporalColumns(props.datasource)
-        .temporalColumns.map(col => col.column_name)
-        .includes(droppedItem?.column_name)
+      isTemporalColumn(droppedItem?.column_name, props.datasource)
     ) {
       config.operator = Operators.TEMPORAL_RANGE;
       config.operatorId = Operators.TEMPORAL_RANGE;
