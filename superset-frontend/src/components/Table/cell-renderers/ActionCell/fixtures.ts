@@ -17,27 +17,29 @@
  * under the License.
  */
 
-import React from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
-import ActionCell from './index';
-import { exampleMenuOptions } from './fixtures';
+import { ActionMenuItem } from './index';
 
-export default {
-  title: 'Design System/Components/Table/Cell Renderers/ActionCell',
-  component: ActionCell,
-} as ComponentMeta<typeof ActionCell>;
-
-export const Basic: ComponentStory<typeof ActionCell> = args => (
-  <ActionCell {...args} />
-);
-
-Basic.args = {
-  menuOptions: exampleMenuOptions,
-  row: {
-    key: 1,
-    buttonCell: 'Click Me',
-    textCell: 'Some text',
-    euroCell: 45.5,
-    dollarCell: 45.5,
+export const exampleMenuOptions: ActionMenuItem[] = [
+  {
+    label: 'Action 1',
+    tooltip: "This is a tip, don't spend it all in one place",
+    onClick: (item: ActionMenuItem) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(item));
+    },
+    payload: {
+      taco: 'spicy chicken',
+    },
   },
-};
+  {
+    label: 'Action 2',
+    tooltip: 'This is another tip',
+    onClick: (item: ActionMenuItem) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(item));
+    },
+    payload: {
+      taco: 'saucy tofu',
+    },
+  },
+];

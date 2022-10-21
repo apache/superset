@@ -53,7 +53,7 @@ const testData: BasicData[] = [
   },
 ];
 
-const testColumns: ColumnsType[] = [
+const testColumns: ColumnsType<BasicData> = [
   {
     title: 'Column Name',
     dataIndex: 'columnName',

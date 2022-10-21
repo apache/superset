@@ -1,240 +1,70 @@
 import { Meta, Source, Story, ArgsTable } from '@storybook/addon-docs';
 
-<Meta title="Design System/Components/Table/Overview" />
+<Meta title="Design System/Components/Table/Cell Renderers/ActionCell/Overview" />
 
-# Table
+# ActionCell
 
-A table is UI that allows the user to explore data in a tabular format.
+An ActionCell is used to display overflow icon that opens a menu allowing the user to take actions
+specific to the data in thae table rowthat the cell is a member of.
 
-## Usage
+### [Basic example](./?path=/docs/design-system-components-table-cell-renderers-actioncell--basic)
 
-Common table applications in Superset:
-
-- Display lists of user-generated entities (e.g. dashboard, charts, queries) for further exploration and use
-- Display data that can help the user make a decision (e.g. query results)
-
-This component wraps an instance of the Ant Design Table and provides some Superset speciufic convenience features, style alignment, and customizations.
-
-The documentation at: <a href="https://ant.design/components/table" target="_blank">https://ant.design/components/table</a> Provides
-supplimentaldocumentation for the capabilities of this component. This documentation will cover common use cases, or customizations
-provided by the Superset Table component. If there is conflicting documentation, the documentation here takes precendence.
+<Story id="design-system-components-table-cell-renderers-actioncell--basic" />
 
 ---
 
-### [Basic example](./?path=/docs/design-system-components-table-examples--basic)
+## Usage
 
-<Story id="design-system-components-table-examples--basic" />
+The action cell accepts an arry of objects that define the label, tooltip, an onClick callback functions
+and an optional data payload to be provided back to the onClick handler function.
 
-### Data and Columns
+### [Basic example](./?path=/docs/design-system-components-table-cell-renderers-actioncell--basic)
 
-To set the visible columns and data for the table you use the `columns` and `data` props.
-
-<details>
-  <overview>The basic table example the `columns` prop is:</overview>
+<Story id="design-system-components-table-cell-renderers-actioncell--basic" />
 
 ```
-const basicColumns: = [
+import { ActionMenuItem } from 'src/components/Table/cell-renderers/index';
+
+export const exampleMenuOptions: ActionMenuItem[] = [
   {
-    title: 'Column Name',
-    dataIndex: 'columnName',
-    key: 'columnName',
-    width: 150,
-    sorter: (a: BasicData, b: BasicData) =>
-      alphabeticalSort('columnName', a, b),
+    label: 'Action 1',
+    tooltip: "This is a tip, don't spend it all in one place",
+    onClick: (item: ActionMenuItem) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(item));
+    },
+    payload: {
+      taco: 'spicy chicken',
+    },
   },
   {
-    title: 'Column Type',
-    dataIndex: 'columnType',
-    key: 'columnType',
-    sorter: (a: BasicData, b: BasicData) =>
-      alphabeticalSort('columnType', a, b),
+    label: 'Action 2',
+    tooltip: 'This is another tip',
+    onClick: (item: ActionMenuItem) => {
+      // eslint-disable-next-line no-alert
+      alert(JSON.stringify(item));
+    },
+    payload: {
+      taco: 'saucy tofu',
+    },
   },
-  {
-    title: 'Data Type',
-    dataIndex: 'dataType',
-    key: 'dataType',
-    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('dataType', a, b),
-  },
+];
+
+```
+
+Within context of ading an action cell to cell definitions provided to the table using the ActionCell component
+for the return valueform the render function on the cell definition. See the [Basic example](./?path=/docs/design-system-components-table-examples--basic)
+
+```
+import ActionCell from './index';
+
+// NOTE: include the other columns you
+const cellExample = [
   {
     title: 'Actions',
     dataIndex: 'actions',
     key: 'actions',
-  },
-];
-```
-
-</details>
-
-The data prop is:
-
-```
-const basicData: = [
-  {
-    key: 1,
-    columnName: 'Column Name 1',
-    columnType: 'Physical',
-    dataType: 'string',
-    actions: ['Action 1', 'Action 2'],
-  },
-  {
-    key: 2,
-    columnName: { name: 'Column Name 2' },
-    columnType: 'Physical',
-    dataType: 'int',
-    actions: ['Action 1', 'Action 2'],
-  },
-  {
-    key: 3,
-    columnName: 'Column Name 3',
-    columnType: 'Virtual',
-    dataType: 'date',
-    actions: ['Action 1', 'Action 2'],
-  },
-];
-```
-
-### Column Sort Functions
-
-To ensure consistency for column sorting and to avoid redundant definitions for common column sorters, reusable sort functions are provided.
-When defining the object for the `columns` prop you can provide an optional attribute `sorter`.
-The function provided in the `sorter` prop is given the entire record representing a row as props `a` and `b`.
-When using a provided sorter function the pattern is to wrap the call to the sorter with an inline function, then specify the specific attribute value from `dataIndex`, representing a column,
-of the data object for that row, as the first argument of the sorter function.
-
-#### alphabeticalSort
-
-The alphabeticalSort is for columns that display a string of text.
-
-```
-import { alphabeticalSort } from 'src/components/Table/sorters';
-
-const basicColumns = [
-  {
-    title: 'Column Name',
-    dataIndex: 'columnName',
-    key: 'columnName',
-    sorter: (a, b) =>
-      alphabeticalSort('columnName', a, b),
+    render: () => <ActionCell menuOptions={exampleMenuOptions} />,
   }
 ]
 ```
-
-#### numericSort
-
-The numericalSort is for columns that display a numeric value.
-
-```
-import { numericalSort } from './sorters';
-
-const basicColumns = [
-  {
-    title: 'Height',
-    dataIndex: 'height',
-    key: 'height',
-    sorter: (a, b) =>
-      numericalSort('height', a, b),
-  }
-]
-```
-
-If a different sort option is needed consider adding it as a re-usable sort function following the pattern provided above.
-
-### Size
-
-**Large** - Column header and cell width set to 44 px. This is the recommended size for displaying lists of user-generated entities (e.g. dashboard, charts, queries) for further exploration and use.
-
-**Small** - Column header and cell width set to 32 px. This is the recommended size for displaying data that can help the user make a decision (e.g. query results). Note that not all cell types (see below) can be used in small table sizes.
-
-### Cell Content Renderers
-
-<Story id="design-system-components-table-examples--cell-renderers" />
-
-The following data types can be displayed in table cells.
-
-- Text (default)
-  - w/ icons - Coming Soon
-- Hyperlink text - Coming Soon
-  - w/ icons - Coming Soon
-- Icon - Coming Soon
-- Button (Large size only) Coming Soon
-- Icon button (Large size only)(Cell is limited to one icon button. If you need to provide multiple actions to the user from a table cell, use the ellipses icon button to open a menu containing available actions.) Coming Soon
-- Single select field (Large size only)
-- Toggle (Large size only)
-
-### Loading
-
-**Pagination** - Table displays set number of rows at a time, user navigates table via pagination. Use in scenarios where the user is searching for a specific piece of content.
-
-**Infinite scroll** - Table displays a set number of rows at a time, then loads more as the user scrolls. Use in scenarios where the user is browsing dynamic information.
-
-Pagination may also be used over infinite scroll for performance optimization.
-
-### Toolbar
-
-The table component can include a toolbar that can contain one or more of the following sub-components:
-
-- **Title** - Includes a name for the table
-- **Buttons** - Allows the user to perform global actions (e.g. select all, add to table) related to table entities
-- **Search** - Allows the user to filter the table by a matching string
-
-## Checklist
-
-The following specifications are required every time a table is used. These choices should be intentional based on the specific user needs for the table instance.
-
-- [ ] Size
-  - Large
-  - Small
-- Columns
-  - [ ] Number of
-  - [ ] Contents
-  - [ ] Order
-  - [ ] Widths
-- Column headers
-  - [ ] Labels
-  - [ ] Has tooltip
-    - [ ] Tooltip text
-- [ ] Default sort
-- Functionality
-  - [ ] Can sort columns
-  - [ ] Can filter columns
-- [ ] Loading
-  - Pagination
-    - [ ] Number of rows per page
-  - Infinite scroll
-- [ ] Has toolbar
-  - [ ] Has table title
-    - [ ] Label
-  - [ ] Has buttons
-    - [ ] Labels
-    - [ ] Actions
-  - [ ] Has search
-
-## Experimental features
-
-The Table component has features that are still experimental and can be used at your own risk.
-These features are inteded to be made fully stable in future releases
-
-### Resizable Columns
-
-The prop `resizeable` enables table columns to be resized by the user dragging from the right edge of each
-column to increase or decrease the columns' width
-
-<Story id="design-system-components-table-examples--resizable-columns" />
-
-### Drag & Drop Columns
-
-The prop `reorderable` can enable column drag drop reordering as well as dragging a column to another component. If you want to accept the drop event of a Table Column
-you can register `onDragOver` and `onDragDrop` event handlers on the destination component. In the `onDragDrop` handler you can check for `SUPERSET_TABLE_COLUMN`
-as the getData key as shown below.
-
-```
-import { SUPERSET_TABLE_COLUMN } from 'src/components/table';
-
-const handleDrop = (ev:Event) => {
-  const json = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
-  const data = JSON.parse(json);
-  // ... do something with the data here
-}
-```
-
-<Story id="design-system-components-table-examples--reorderable-columns" />

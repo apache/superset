@@ -17,19 +17,47 @@
  * under the License.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { styled } from '@superset-ui/core';
 import { Dropdown, IconOrientation } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { MenuProps } from 'antd/lib/menu';
 
 export interface ActionCellProps {
+  /**
+   * The Menu option presented to user when menu displays
+   */
   menuOptions: ActionMenuItem[];
+  /**
+   * Object representing the data rendering the Table row with attribute for each column
+   */
+  row: object;
 }
 
 export interface ActionMenuItem {
+  /**
+   * Click handler specific to the menu item
+   * @param menuItem The definition of the menu item that was clicked
+   * @returns ActionMenuItem
+   */
   onClick: (menuItem: ActionMenuItem) => void;
+  /**
+   * Label user will see displayed in the list of menu options
+   */
   label: string;
+  /**
+   * Optional tooltip user will see if they hover over the menu option to get more context
+   */
   tooltip?: string;
+  /**
+   * Optional variable that can contain data relevant to the menu item that you
+   * want easy access to in the callback function for the menu
+   */
+  payload?: any;
+  /**
+   * Object representing the data rendering the Table row with attribute for each column
+   */
+  row?: object;
 }
 
 export interface ActionMenuProps {
@@ -37,31 +65,59 @@ export interface ActionMenuProps {
   setVisible: (visible: boolean) => void;
 }
 
+export const StyledMenu = styled(Menu)`
+  ${({ theme }) => `
+  .ant-menu {
+    -webkit-box-shadow: 1px 1px 4px 4px ${theme.colors.shadow.light1};
+    box-shadow: 1px 1px 2px 1px ${theme.colors.shadow.light1};
+  }
+  `}
+`;
+
+const appendDataToMenu = (
+  options: ActionMenuItem[],
+  row: object,
+): ActionMenuItem[] => {
+  const newOptions = options?.map?.(option => ({
+    ...option,
+    row,
+  }));
+  return newOptions;
+};
+
 function ActionMenu(props: ActionMenuProps) {
   const { menuOptions, setVisible } = props;
-
-  const handleClick: MenuProps['onClick'] = ({ key, item }) => {
+  const handleClick: MenuProps['onClick'] = ({ key }) => {
     setVisible?.(false);
     // const menuItem = menuOptions[item?.props?.index];
-    const index = key?.split?.('_')?.[1] ?? -1;
-    const menuItem = menuOptions[index];
+    // const index = key?.toString?.()?.split?.('_')?.[1] ?? -1;
+    const menuItem = menuOptions[key];
     if (menuItem) {
       menuItem?.onClick?.(menuItem);
     }
   };
 
   return (
-    <Menu onClick={handleClick}>
-      {menuOptions?.map?.((menuOptions: ActionMenuItem) => (
-        <Menu.Item>{menuOptions?.label ?? 'yo'}</Menu.Item>
+    <StyledMenu onClick={handleClick}>
+      {menuOptions?.map?.((option: ActionMenuItem, index: number) => (
+        <Menu.Item key={index}>{option?.label}</Menu.Item>
       ))}
-    </Menu>
+    </StyledMenu>
   );
 }
 
 export function ActionCell(props: ActionCellProps) {
-  const { menuOptions } = props;
+  const { menuOptions, row } = props;
   const [visible, setVisible] = useState(false);
+  const [appendedMenuOptions, setAppendedMenuOptions] = useState(
+    appendDataToMenu(menuOptions, row),
+  );
+
+  useEffect(() => {
+    const newOptions = appendDataToMenu(menuOptions, row);
+    setAppendedMenuOptions(newOptions);
+  }, [menuOptions, row]);
+
   const handleVisibleChange = (flag: boolean) => {
     setVisible(flag);
   };
@@ -70,8 +126,12 @@ export function ActionCell(props: ActionCellProps) {
       orientation={IconOrientation.HORIZONTAL}
       onVisibleChange={handleVisibleChange}
       trigger={['click']}
-      overlay={<ActionMenu menuOptions={menuOptions} setVisible={setVisible} />}
-      disabled={!(menuOptions?.length && menuOptions.length > 0)}
+      overlay={
+        <ActionMenu menuOptions={appendedMenuOptions} setVisible={setVisible} />
+      }
+      disabled={
+        !(appendedMenuOptions?.length && appendedMenuOptions.length > 0)
+      }
       visible={visible}
     />
   );

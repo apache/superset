@@ -19,11 +19,12 @@
 
 import React from 'react';
 import Button, { ButtonStyle, ButtonSize } from 'src/components/Button';
-type onClickFunction = (data: object, index: number) => void;
+
+type onClickFunction = (row: object, index: number) => void;
 export interface ButtonCellProps {
   label: string;
   onClick: onClickFunction;
-  data: object;
+  row: object;
   index: number;
   tooltip?: string;
   buttonStyle?: ButtonStyle;
@@ -34,7 +35,7 @@ export function ButtonCell(props: ButtonCellProps) {
   const {
     label,
     onClick,
-    data,
+    row,
     index,
     tooltip,
     buttonStyle = 'primary',
@@ -45,7 +46,7 @@ export function ButtonCell(props: ButtonCellProps) {
     <Button
       buttonStyle={buttonStyle}
       buttonSize={buttonSize}
-      onClick={() => onClick?.(data, index)}
+      onClick={() => onClick?.(row, index)}
       key={`${buttonStyle}_${buttonSize}`}
       tooltip={tooltip}
     >

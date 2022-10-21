@@ -1,10 +1,28 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * License); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * AS IS BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import React, { useState, useEffect, useRef, ReactElement } from 'react';
 import { Table as AntTable, ConfigProvider } from 'antd';
 import type { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
+import { t, useTheme } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-// import { css } from '@emotion/react';
-import { useTheme, styled, t } from '@superset-ui/core';
-
+import styled, { StyledComponent } from '@emotion/styled';
 import InteractiveTableUtils from './InteractiveTableUtils';
 
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
@@ -18,40 +36,56 @@ export enum SelectionType {
   'MULTI' = 'multi',
 }
 
-export interface Column extends ColumnsType {
-  title: string | JSX.Element;
-  tooltip?: string;
-  dataIndex: string;
-  key: string;
+export interface Locale {
+  /**
+   * Text contained within the Table UI.
+   */
+  filterTitle: string;
+  filterConfirm: string;
+  filterReset: string;
+  filterEmptyText: string;
+  filterCheckall: string;
+  filterSearchPlaceholder: string;
+  emptyText: string;
+  selectAll: string;
+  selectInvert: string;
+  selectNone: string;
+  selectionAll: string;
+  sortTitle: string;
+  expand: string;
+  collapse: string;
+  triggerDesc: string;
+  triggerAsc: string;
+  cancelSort: string;
 }
 
 export interface TableProps extends AntTableProps<TableProps> {
   /**
-   * Data that will populate the each row and map to the column key
+   * Data that will populate the each row and map to the column key.
    */
-  data: TableDataType[];
+  data: object[];
   /**
-   * Table column definitions
+   * Table column definitions.
    */
-  columns: Column[];
+  columns: ColumnsType<any>;
   /**
-   * Array of row keys to represent list of selected rows
+   * Array of row keys to represent list of selected rows.
    */
   selectedRows?: React.Key[];
   /**
-   * Callback function invoked when a row is selected by user
+   * Callback function invoked when a row is selected by user.
    */
   handleRowSelection?: Function;
   /**
-   * Controls the size of the table
+   * Controls the size of the table.
    */
   size: TableSize;
   /**
-   * Adjusts the padding around elements for different amounts of spacing between elements
+   * Adjusts the padding around elements for different amounts of spacing between elements.
    */
   selectionType?: SelectionType;
   /*
-   * Places table in visual loading state.  Use while waiting to retrieve data or perform an async operation that will update the table
+   * Places table in visual loading state.  Use while waiting to retrieve data or perform an async operation that will update the table.
    */
   loading?: boolean;
   /**
@@ -59,22 +93,22 @@ export interface TableProps extends AntTableProps<TableProps> {
    */
   sticky?: boolean;
   /**
-   * Controls if columns are re-sizeable by user
+   * Controls if columns are re-sizeable by user.
    */
   resizable?: boolean;
   /**
-   * EXPERIMENTAL: Controls if columns are re-orderable by user drag drop
+   * EXPERIMENTAL: Controls if columns are re-orderable by user drag drop.
    */
   reorderable?: boolean;
   /**
-   * Default number of rows table will display per page of data
+   * Default number of rows table will display per page of data.
    */
   defaultPageSize?: number;
   /**
    * Array of numeric options for the number of rows table will display per page of data.
-   * The user can select from these options in the page size drop down menu
+   * The user can select from these options in the page size drop down menu.
    */
-  pageSizeOptions?: number[];
+  pageSizeOptions?: string[];
   /**
    * Set table to display no data even if data has been provided
    */
@@ -84,13 +118,14 @@ export interface TableProps extends AntTableProps<TableProps> {
    */
   emptyComponent?: ReactElement;
   /**
-   * Enables setting the text displayed in various components and tooltips within the Table UI
+   * Enables setting the text displayed in various components and tooltips within the Table UI.
    */
-  locale?: object;
-}
-
-export interface StyledTableProps extends TableProps {
-  theme: object;
+  locale?: Locale;
+  /**
+   * Restricts the visible height of the table and allows for internal scrolling within the table
+   * when the number of rows exceed the visible space.
+   */
+  height?: number;
 }
 
 export enum TableSize {
@@ -99,25 +134,28 @@ export enum TableSize {
 }
 
 const defaultRowSelection: React.Key[] = [];
+// This accounts for the tables header and pagination if user gives table instance a height. this is a temp solution
+const HEIGHT_OFFSET = 108;
 
-export const StyledTable = styled(AntTable)<StyledTableProps>`
-  ${({ theme }) => `
+const StyledTable: StyledComponent<any> = styled(AntTable)<any>`
+  ${({ theme, height }) => `
   .ant-table-body {
     overflow: scroll;
+    height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
   }
 
   th.ant-table-cell {
     font-weight: 600;
     color: ${theme.colors.grayscale.dark1};
+    user-select: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    user-select: none;
   }
 
   .ant-pagination-item-active {
     border-color: ${theme.colors.primary.base};
-}
+  }
   `}
 `;
 
@@ -159,14 +197,13 @@ export function Table(props: TableProps) {
     resizable = false,
     reorderable = false,
     defaultPageSize = 15,
-    pageSizeOptions = [5, 15, 25, 50, 100],
+    pageSizeOptions = ['5', '15', '25', '50', '100'],
     hideData = false,
     emptyComponent,
     locale,
     ...rest
   } = props;
 
-  const theme = useTheme();
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const [derivedColumns, setDerivedColumns] = useState(columns);
   const [pageSize, setPageSize] = useState(defaultPageSize);
@@ -190,7 +227,7 @@ export function Table(props: TableProps) {
   const renderEmpty = () =>
     emptyComponent ?? <div>{mergedLocale.emptyText}</div>;
 
-  const intializeInteractiveTable = () => {
+  const initializeInteractiveTable = () => {
     if (interactiveTableUtils.current) {
       interactiveTableUtils.current?.clearListeners();
     }
@@ -244,24 +281,25 @@ export function Table(props: TableProps) {
   }, [locale]);
 
   useEffect(() => {
-    intializeInteractiveTable();
+    initializeInteractiveTable();
     return () => {
       interactiveTableUtils?.current?.clearListeners?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wrapperRef, reorderable, resizable]);
 
+  const theme = useTheme();
+
   return (
     <ConfigProvider renderEmpty={renderEmpty}>
       <div ref={wrapperRef}>
         <StyledTable
           {...rest}
-          loading={{ spinning: loading, indicator: <Loading /> }}
+          loading={{ spinning: loading ?? false, indicator: <Loading /> }}
           hasData={hideData ? false : data}
-          theme={theme}
           rowSelection={selectionTypeValue ? rowSelection : undefined}
           columns={derivedColumns}
-          dataSource={hideData ? null : data}
+          dataSource={hideData ? [undefined] : data}
           size={size}
           sticky={sticky}
           pagination={{
@@ -272,6 +310,7 @@ export function Table(props: TableProps) {
           }}
           showSorterTooltip={false}
           locale={mergedLocale}
+          theme={theme}
         />
       </div>
     </ConfigProvider>

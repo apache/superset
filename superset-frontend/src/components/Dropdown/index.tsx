@@ -19,7 +19,7 @@
 import React, { RefObject } from 'react';
 import { AntdDropdown } from 'src/components';
 import { DropDownProps } from 'antd/lib/dropdown';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 const MenuDots = styled.div`
@@ -73,11 +73,12 @@ export enum IconOrientation {
 }
 export interface DropdownProps extends DropDownProps {
   overlay: React.ReactElement;
-  orientation: IconOrientation;
+  orientation?: IconOrientation;
 }
 
-const RenderIcon = (orientation: IconOrientation) => {
-  const theme = useTheme();
+const RenderIcon = (
+  orientation: IconOrientation = IconOrientation.VERTICAL,
+) => {
   const component =
     orientation === IconOrientation.HORIZONTAL ? (
       <Icons.MoreHoriz iconSize="xl" />

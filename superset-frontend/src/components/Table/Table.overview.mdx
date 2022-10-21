@@ -30,40 +30,40 @@ provided by the Superset Table component. If there is conflicting documentation,
 To set the visible columns and data for the table you use the `columns` and `data` props.
 
 <details>
-  <overview>The basic table example the `columns` prop is:</overview>
+
+The basic table example for the `columns` prop is:
 
 ```
 const basicColumns: = [
   {
-    title: 'Column Name',
-    dataIndex: 'columnName',
-    key: 'columnName',
+    title: 'Name',
+    dataIndex: 'name',
+    key: 'name',
     width: 150,
     sorter: (a: BasicData, b: BasicData) =>
-      alphabeticalSort('columnName', a, b),
+      alphabeticalSort('name', a, b),
   },
   {
-    title: 'Column Type',
-    dataIndex: 'columnType',
-    key: 'columnType',
+    title: 'Category',
+    dataIndex: 'category',
+    key: 'category',
     sorter: (a: BasicData, b: BasicData) =>
-      alphabeticalSort('columnType', a, b),
+      alphabeticalSort('category', a, b),
   },
   {
-    title: 'Data Type',
-    dataIndex: 'dataType',
-    key: 'dataType',
-    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('dataType', a, b),
+    title: 'Price',
+    dataIndex: 'price',
+    key: 'price',
+    sorter: (a: BasicData, b: BasicData) =>
+      numericalSort('price', a, b),
   },
   {
-    title: 'Actions',
-    dataIndex: 'actions',
-    key: 'actions',
+    title: 'Description',
+    dataIndex: 'description',
+    key: 'description',
   },
 ];
 ```
-
-</details>
 
 The data prop is:
 
@@ -71,27 +71,29 @@ The data prop is:
 const basicData: = [
   {
     key: 1,
-    columnName: 'Column Name 1',
-    columnType: 'Physical',
-    dataType: 'string',
-    actions: ['Action 1', 'Action 2'],
+    name: 'Floppy Disk 10 pack',
+    category: 'Disk Storage',
+    price: '9.99'
+    description: 'A real blast from the past',
   },
   {
     key: 2,
-    columnName: { name: 'Column Name 2' },
-    columnType: 'Physical',
-    dataType: 'int',
-    actions: ['Action 1', 'Action 2'],
+    name: 'DVD 100 pack',
+    category: 'Optical Storage',
+    price: '27.99'
+    description: 'Still pretty ancient',
   },
   {
     key: 3,
-    columnName: 'Column Name 3',
-    columnType: 'Virtual',
-    dataType: 'date',
-    actions: ['Action 1', 'Action 2'],
+    name: '128 GB SSD',
+    category: 'Hardrive',
+    price: '49.99'
+    description: 'Reliable and fast data storage',
   },
 ];
 ```
+
+</details>
 
 ### Column Sort Functions
 
@@ -104,6 +106,8 @@ of the data object for that row, as the first argument of the sorter function.
 #### alphabeticalSort
 
 The alphabeticalSort is for columns that display a string of text.
+
+<details>
 
 ```
 import { alphabeticalSort } from 'src/components/Table/sorters';
@@ -119,9 +123,13 @@ const basicColumns = [
 ]
 ```
 
+</details>
+
 #### numericSort
 
 The numericalSort is for columns that display a numeric value.
+
+<details>
 
 ```
 import { numericalSort } from './sorters';
@@ -137,49 +145,63 @@ const basicColumns = [
 ]
 ```
 
+</details>
+
 If a different sort option is needed consider adding it as a re-usable sort function following the pattern provided above.
 
-### Size
-
-**Large** - Column header and cell width set to 44 px. This is the recommended size for displaying lists of user-generated entities (e.g. dashboard, charts, queries) for further exploration and use.
-
-**Small** - Column header and cell width set to 32 px. This is the recommended size for displaying data that can help the user make a decision (e.g. query results). Note that not all cell types (see below) can be used in small table sizes.
+---
 
 ### Cell Content Renderers
 
+By default each columne will redner the value as simple text. Often you will want to show formatted values, such as a numeric column shwoing as currency, or a more complex component such as a button or action menu as a cell value.
+Cell Renderers are React components provided tot he optional `render` attribute on a columne definition that enable injecting a sepcific React compoent toenable this.
+
 <Story id="design-system-components-table-examples--cell-renderers" />
 
+For convenience and consistency the Table component provides pre-build Cell Renderers for:
 The following data types can be displayed in table cells.
 
 - Text (default)
   - w/ icons - Coming Soon
 - Hyperlink text - Coming Soon
   - w/ icons - Coming Soon
-- Icon - Coming Soon
-- Button (Large size only) Coming Soon
-- Icon button (Large size only)(Cell is limited to one icon button. If you need to provide multiple actions to the user from a table cell, use the ellipses icon button to open a menu containing available actions.) Coming Soon
+- Icon
+  - Coming Soon
+- ButtonCell
+- Icon button
+  - (Large size only)(Cell is limited to one icon button. If you need to provide multiple actions to the user from a table cell, use the ellipses icon button to open a menu containing available actions.) Coming Soon
 - Single select field (Large size only)
 - Toggle (Large size only)
 
+---
+
 ### Loading
 
-**Pagination** - Table displays set number of rows at a time, user navigates table via pagination. Use in scenarios where the user is searching for a specific piece of content.
+The table can be set to a loading state simply by setting the loading prop to true | false
 
-**Infinite scroll** - Table displays a set number of rows at a time, then loads more as the user scrolls. Use in scenarios where the user is browsing dynamic information.
+<Story id="design-system-components-table-examples--loading" />
 
-Pagination may also be used over infinite scroll for performance optimization.
+---
 
-### Toolbar
+### Pagination
 
-The table component can include a toolbar that can contain one or more of the following sub-components:
+Table displays set number of rows at a time, user navigates table via pagination. Use in scenarios where the user is searching for a specific piece of content.
+The default page size and page size options for menu are configurable via the `pageSizeOptions` and `defaultPageSize` props.
+NOTE: Pagination controls will only display when the data for the table has more records than the default page size.
 
-- **Title** - Includes a name for the table
-- **Buttons** - Allows the user to perform global actions (e.g. select all, add to table) related to table entities
-- **Search** - Allows the user to filter the table by a matching string
+<Story id="design-system-components-table-examples--many-columns" />
 
-## Checklist
+```
+<Table pageSizeOptions={[5, 10, 15, 20, 25] defaultPageSize={10} />
+```
+
+---
+
+## Integration Checklist
 
 The following specifications are required every time a table is used. These choices should be intentional based on the specific user needs for the table instance.
+
+<details>
 
 - [ ] Size
   - Large
@@ -208,6 +230,10 @@ The following specifications are required every time a table is used. These choi
     - [ ] Labels
     - [ ] Actions
   - [ ] Has search
+
+</details>
+
+---
 
 ## Experimental features
 

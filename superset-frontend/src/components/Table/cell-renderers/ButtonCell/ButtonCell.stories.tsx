@@ -36,6 +36,13 @@ export const Basic: ComponentStory<typeof ButtonCell> = args => (
 Basic.args = {
   onClick: clickHandler,
   label: 'Primary',
+  row: {
+    key: 1,
+    buttonCell: 'Click Me',
+    textCell: 'Some text',
+    euroCell: 45.5,
+    dollarCell: 45.5,
+  },
 };
 
 export const Secondary: ComponentStory<typeof ButtonCell> = args => (
@@ -46,4 +53,11 @@ Secondary.args = {
   onClick: clickHandler,
   label: 'Secondary',
   buttonStyle: 'secondary',
+  row: {
+    key: 1,
+    buttonCell: 'Click Me',
+    textCell: 'Some text',
+    euroCell: 45.5,
+    dollarCell: 45.5,
+  },
 };

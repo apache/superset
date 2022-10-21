@@ -120,8 +120,11 @@ export default class InteractiveTableUtils {
           this.RESIZE_INDICATOR_THRESHOLD,
         )
       ) {
+        // @ts-ignore
         target.mouseDown = true;
+        // @ts-ignore
         target.oldX = event.x;
+        // @ts-ignore
         target.oldWidth = target.offsetWidth;
         target.draggable = false;
       } else if (this.reorderable) {
@@ -147,10 +150,15 @@ export default class InteractiveTableUtils {
       }
 
       const column = this.columnRef;
-      if (column && column.mouseDown) {
+      // @ts-ignore
+      if (column?.mouseDown) {
+        // @ts-ignore
         let width = column.oldWidth;
+        // @ts-ignore
         const diff = event.x - column.oldX;
+        // @ts-ignore
         if (column.oldWidth + (event.x - column.oldX) > 0) {
+          // @ts-ignore
           width = column.oldWidth + diff;
         }
         const colIndex = this.getColumnIndex();
@@ -166,6 +174,7 @@ export default class InteractiveTableUtils {
 
   handleMouseup = () => {
     if (this.columnRef) {
+      // @ts-ignore
       this.columnRef.mouseDown = false;
       this.columnRef.style.cursor = 'default';
       this.columnRef.draggable = false;
