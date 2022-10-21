@@ -22,7 +22,7 @@ import Icons from 'src/components/Icons';
 import { EmptyStateBig } from 'src/components/EmptyState';
 
 type DatasetPanelProps = {
-  tableName?: string;
+  tableName?: string | null;
 };
 
 const StyledEmptyStateBig = styled(EmptyStateBig)`
