@@ -803,6 +803,47 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             model = db.session.query(Dashboard).get(dashboard_id)
             self.assertEqual(model, None)
 
+    def test_delete_bulk_embedded_dashboards(self):
+        """
+        Dashboard API: Test delete bulk embedded
+        """
+        admin_id = self.get_user("admin").id
+        dashboard_count = 4
+        dashboard_ids = list()
+        for dashboard_name_index in range(dashboard_count):
+            dashboard_ids.append(
+                self.insert_dashboard(
+                    f"title{dashboard_name_index}",
+                    f"slug{dashboard_name_index}",
+                    [admin_id],
+                ).id
+            )
+        self.login(username="admin")
+        for dashboard_id in range(dashboard_ids):
+            # post succeeds and returns value
+            allowed_domains = ["test.example", "embedded.example"]
+            resp = self.post_assert_metric(
+                f"api/v1/dashboard/{dashboard_id}/embedded",
+                {"allowed_domains": allowed_domains},
+                "set_embedded",
+            )
+            self.assertEqual(resp.status_code, 200)
+            result = json.loads(resp.data.decode("utf-8"))["result"]
+            self.assertIsNotNone(result["uuid"])
+            self.assertNotEqual(result["uuid"], "")
+            self.assertEqual(result["allowed_domains"], allowed_domains)
+        self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
+        self.assertEqual(response, expected_response)
+        for dashboard_id in dashboard_ids:
+            model = db.session.query(Dashboard).get(dashboard_id)
+            self.assertEqual(model, None)
+
     def test_delete_bulk_dashboards_bad_request(self):
         """
         Dashboard API: Test delete bulk bad request
