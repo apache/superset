@@ -101,7 +101,6 @@ export const WithNegativeNumbers = ({ width, height }) => (
       { data: negativeNumData, colnames: ['__timestamp'], coltypes: [2] },
     ]}
     formData={{
-      contribution_mode: undefined,
       color_scheme: 'supersetColors',
       seriesType: select(
         'Line type',

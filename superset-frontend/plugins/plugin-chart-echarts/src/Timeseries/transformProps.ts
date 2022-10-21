@@ -99,7 +99,6 @@ export default function transformProps(
     theme,
     inContextMenu,
   } = chartProps;
-  console.log('!!!', chartProps, queriesData, formData);
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
   const { data = [], label_map: labelMap } =
@@ -152,7 +151,6 @@ export default function transformProps(
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
-  console.log('^', xAxisLabel);
   if (
     isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
     isDefined(verboseMap[xAxisLabel])
@@ -294,7 +292,6 @@ export default function transformProps(
     xAxisDataType === GenericDataType.TEMPORAL
       ? getTooltipTimeFormatter(tooltipTimeFormat)
       : String;
-  console.log(xAxisLabel, xAxisDataType);
   const xAxisFormatter =
     xAxisDataType === GenericDataType.TEMPORAL
       ? getXAxisFormatter(xAxisTimeFormat)
