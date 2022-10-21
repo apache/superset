@@ -19,13 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import FormItem from 'src/components/Form/FormItem';
 import { Select } from 'src/components';
-import {
-  t,
-  SupersetClient,
-  SupersetTheme,
-  styled,
-  NO_TIME_RANGE,
-} from '@superset-ui/core';
+import { t, SupersetClient, SupersetTheme, styled } from '@superset-ui/core';
 import {
   Operators,
   OPERATORS_OPTIONS,
@@ -371,7 +365,7 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     timeRange:
       props.adhocFilter.operator === Operators.TEMPORAL_BETWEEN
         ? props.adhocFilter.comparator
-        : NO_TIME_RANGE,
+        : undefined,
     columns: props.datasource.columns,
     onChange: onDatePickerChange,
   });

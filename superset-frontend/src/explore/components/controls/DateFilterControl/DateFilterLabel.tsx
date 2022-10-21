@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
+import {
+  css,
+  styled,
+  t,
+  useTheme,
+  NO_TIME_RANGE,
+  JsonObject,
+} from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
@@ -29,6 +36,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
+import { useSelector } from 'react-redux';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -121,13 +129,16 @@ const IconWrapper = styled.span`
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
-    value = NO_TIME_RANGE,
     onChange,
     type,
     onOpenPopover = noOp,
     onClosePopover = noOp,
     overlayStyle = 'Popover',
   } = props;
+  const defaultTimeFilter = useSelector(
+    (state: JsonObject) => state?.common?.conf?.DEFAULT_TIME_FILTER,
+  );
+  const value = props.value ?? defaultTimeFilter ?? NO_TIME_RANGE;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
@@ -138,6 +149,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
+  const theme = useTheme();
 
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
@@ -243,8 +255,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     }
     setFrame(value);
   }
-
-  const theme = useTheme();
 
   const overlayContent = (
     <ContentStyleWrapper>

@@ -25,7 +25,7 @@ import ControlHeader from '../../../ControlHeader';
 
 interface DatePickerInFilterProps {
   columnName: string;
-  timeRange: string;
+  timeRange?: string;
   columns: ColumnMeta[];
   onChange: (columnName: string, timeRange: string) => void;
 }
