@@ -20,7 +20,6 @@ import React from 'react';
 import { supersetTheme, t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { EmptyStateBig } from 'src/components/EmptyState';
-import RefreshLabel from 'src/components/RefreshLabel';
 
 type DatasetPanelProps = {
   tableName?: string | null | undefined;
@@ -80,14 +79,6 @@ const DatasetPanel = ({ tableName }: DatasetPanelProps) =>
       <div className="table-name">
         <Icons.Table iconColor={supersetTheme.colors.grayscale.base} />
         {tableName}
-        <RefreshLabel
-          onClick={() => {
-            console.log(
-              'This will refresh table columns once the table component is implemented',
-            );
-          }}
-          tooltipContent={t('Refresh table columns')}
-        />
       </div>
       <span>{t('Table columns')}</span>
     </StyledDatasetPanel>
