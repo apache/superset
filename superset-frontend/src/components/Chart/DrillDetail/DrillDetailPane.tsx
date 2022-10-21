@@ -194,6 +194,12 @@ export default function DrillDetailPane({
     resultsPages,
   ]);
 
+  // Get datasource metadata
+  const response = useApiV1Resource<Dataset>(`/api/v1/dataset/${datasourceId}`);
+
+  const bootstrapping =
+    (!responseError && !resultsPages.size) || response.status === 'loading';
+
   let tableContent = null;
   if (responseError) {
     // Render error if page download failed
@@ -206,7 +212,7 @@ export default function DrillDetailPane({
         {responseError}
       </pre>
     );
-  } else if (!resultsPages.size) {
+  } else if (bootstrapping) {
     // Render loading if first page hasn't loaded
     tableContent = <Loading />;
   } else if (resultsPage?.total === 0) {
@@ -240,9 +246,6 @@ export default function DrillDetailPane({
       />
     );
   }
-
-  // Get datasource metadata
-  const response = useApiV1Resource<Dataset>(`/api/v1/dataset/${datasourceId}`);
 
   const metadata = useMemo(() => {
     const { status, result } = response;
@@ -298,7 +301,6 @@ export default function DrillDetailPane({
           margin-bottom: ${theme.gridUnit * 4}px;
         `}
       >
-        {status === 'loading' && <Loading position="inline-centered" />}
         {status === 'complete' && <MetadataBar items={items} />}
         {status === 'error' && (
           <Alert
@@ -312,14 +314,16 @@ export default function DrillDetailPane({
 
   return (
     <>
-      {metadata}
-      <TableControls
-        filters={filters}
-        setFilters={setFilters}
-        totalCount={resultsPage?.total}
-        loading={isLoading}
-        onReload={handleReload}
-      />
+      {!bootstrapping && metadata}
+      {!bootstrapping && (
+        <TableControls
+          filters={filters}
+          setFilters={setFilters}
+          totalCount={resultsPage?.total}
+          loading={isLoading}
+          onReload={handleReload}
+        />
+      )}
       {tableContent}
     </>
   );
