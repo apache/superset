@@ -136,7 +136,8 @@ def create_test_table_context(database: Database):
         engine.execute("INSERT INTO test_table (first, second) VALUES (3, 4)")
 
     yield db.session
-    database.get_sqla_engine().execute("DROP TABLE test_table")
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute("DROP TABLE test_table")
 
 
 @pytest.fixture()
