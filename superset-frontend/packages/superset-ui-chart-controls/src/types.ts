@@ -24,7 +24,6 @@ import type {
   DatasourceType,
   JsonValue,
   Metric,
-  QueryColumn,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
@@ -449,9 +448,7 @@ export type ColorFormatters = {
 
 export default {};
 
-export function isColumnMeta(
-  column: AdhocColumn | ColumnMeta | QueryColumn,
-): column is ColumnMeta {
+export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
 }
 

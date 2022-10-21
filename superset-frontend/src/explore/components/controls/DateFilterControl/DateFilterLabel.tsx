@@ -17,14 +17,7 @@
  * under the License.
  */
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  css,
-  styled,
-  t,
-  useTheme,
-  NO_TIME_RANGE,
-  JsonObject,
-} from '@superset-ui/core';
+import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
@@ -36,7 +29,6 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
-import { useSelector } from 'react-redux';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -45,6 +37,7 @@ import {
   FRAME_OPTIONS,
   getDateFilterControlTestId,
   guessFrame,
+  useDefaultTimeFilter,
 } from './utils';
 import {
   CommonFrame,
@@ -135,10 +128,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onClosePopover = noOp,
     overlayStyle = 'Popover',
   } = props;
-  const defaultTimeFilter = useSelector(
-    (state: JsonObject) => state?.common?.conf?.DEFAULT_TIME_FILTER,
-  );
-  const value = props.value ?? defaultTimeFilter ?? NO_TIME_RANGE;
+  const defaultTimeFilter = useDefaultTimeFilter();
+
+  const value = props.value ?? defaultTimeFilter;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
