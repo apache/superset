@@ -17,7 +17,12 @@
  * under the License.
  */
 import { testQueryResponse, testQueryResults } from '@superset-ui/core';
-import { Dataset, getTemporalColumns, TestDataset } from '../../src';
+import {
+  Dataset,
+  getTemporalColumns,
+  isTemporalColumn,
+  TestDataset,
+} from '../../src';
 
 test('get temporal columns from a Dataset', () => {
   expect(getTemporalColumns(TestDataset)).toEqual({
@@ -91,4 +96,9 @@ test('should accept empty Dataset or queryResponse', () => {
     temporalColumns: [],
     defaultTemporalColumn: undefined,
   });
+});
+
+test('should determine temporal columns in a Dataset', () => {
+  expect(isTemporalColumn('ds', TestDataset)).toBeTruthy();
+  expect(isTemporalColumn('num', TestDataset)).toBeFalsy();
 });
