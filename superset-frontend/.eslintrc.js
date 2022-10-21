@@ -37,6 +37,9 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 module.exports = {
+  workingDirectories: [
+    {"mode": "auto"}
+  ],
   extends: [
     'airbnb',
     'prettier',
@@ -150,7 +153,9 @@ module.exports = {
       },
       settings: {
         'import/resolver': {
-          typescript: {},
+          typescript: {
+            moduleDirectory: ['node_modules', '.'],
+          },
         },
         react: {
           version: 'detect',
