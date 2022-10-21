@@ -99,6 +99,7 @@ export default function transformProps(
     theme,
     inContextMenu,
   } = chartProps;
+  console.log('!!!', queriesData, formData);
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
   const { data = [], label_map: labelMap } =

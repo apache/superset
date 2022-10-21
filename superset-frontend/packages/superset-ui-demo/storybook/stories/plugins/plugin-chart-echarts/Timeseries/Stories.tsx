@@ -26,6 +26,8 @@ import {
 } from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import negativeNumData from './negativeNumData';
+import confbandData from './confbandData';
+import stackWithNullsData from './stackWithNulls';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsTimeseriesChartPlugin()
@@ -117,6 +119,52 @@ export const WithNegativeNumbers = ({ width, height }) => (
         ['vertical', 'horizontal'],
         'vertical',
       ),
+    }}
+  />
+);
+
+export const ConfidenceBand = ({ width, height }) => (
+  <SuperChart
+    chartType="echarts-timeseries"
+    width={width}
+    height={height}
+    queriesData={[
+      {
+        data: confbandData,
+        colnames: [
+          '__timestamp',
+          'SUM(num)',
+          'SUM(num)__yhat_lower',
+          'SUM(num)__yhat_upper',
+        ],
+        coltypes: [2, 0, 0, 0],
+      },
+    ]}
+    formData={{
+      colorScheme: 'supersetColors',
+      seriesType: 'line',
+      xAxisTimeFormat: 'smart_date',
+    }}
+  />
+);
+
+export const StackWithNulls = ({ width, height }) => (
+  <SuperChart
+    chartType="echarts-timeseries"
+    width={width}
+    height={height}
+    queriesData={[
+      {
+        data: stackWithNullsData,
+        colnames: ['__timestamp', '1', '2'],
+        coltypes: [2, 0, 0],
+      },
+    ]}
+    formData={{
+      colorScheme: 'supersetColors',
+      seriesType: 'bar',
+      stack: true,
+      xAxisFormatter: 'smart_date',
     }}
   />
 );
