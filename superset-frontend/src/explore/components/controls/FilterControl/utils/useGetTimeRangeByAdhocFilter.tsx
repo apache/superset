@@ -33,6 +33,9 @@ export const useGetTimeRangeByAdhocFilter = (
   const [actualTimeRange, setActualTimeRange] = useState<Results>({});
 
   useEffect(() => {
+    if (adhocFilter.operator !== Operators.TEMPORAL_RANGE) {
+      setActualTimeRange({});
+    }
     if (
       adhocFilter.operator === Operators.TEMPORAL_RANGE &&
       adhocFilter.comparator === NO_TIME_RANGE
@@ -63,7 +66,7 @@ export const useGetTimeRangeByAdhocFilter = (
         },
       );
     }
-  }, [adhocFilter.comparator]);
+  }, [adhocFilter]);
 
   return actualTimeRange;
 };

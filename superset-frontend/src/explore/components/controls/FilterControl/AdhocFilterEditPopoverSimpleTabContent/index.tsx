@@ -25,6 +25,7 @@ import {
   SupersetTheme,
   styled,
   hasGenericChartAxes,
+  isDefined,
 } from '@superset-ui/core';
 import {
   Operators,
@@ -170,6 +171,12 @@ export const useSimpleTabFilterProps = (props: Props) => {
       operator && operatorId && isOperatorRelevant(operatorId, subject)
         ? OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation
         : null;
+    if (!isDefined(operator)) {
+      // if operator is `null`, use the `IN` and reset the comparator.
+      operator = Operators.IN;
+      operatorId = Operators.IN;
+      comparator = undefined;
+    }
 
     if (
       hasGenericChartAxes &&
