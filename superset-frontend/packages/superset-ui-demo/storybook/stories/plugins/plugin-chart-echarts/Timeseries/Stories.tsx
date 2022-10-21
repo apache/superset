@@ -68,20 +68,19 @@ export const Timeseries = ({ width, height }) => {
         { data: queryData, colnames: ['__timestamp'], coltypes: [2] },
       ]}
       formData={{
-        contributionMode: undefined,
         forecastEnabled,
-        colorScheme: 'supersetColors',
+        color_scheme: 'supersetColors',
         seriesType: select(
           'Line type',
           ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
           'line',
         ),
         logAxis: boolean('Log axis', false),
-        yAxisFormat: 'SMART_NUMBER',
+        y_axis_format: 'SMART_NUMBER',
         stack: boolean('Stack', false),
-        showValue: boolean('Show Values', false),
-        onlyTotal: boolean('Only Total', false),
-        percentageThreshold: number('Percentage Threshold', 0),
+        show_value: boolean('Show Values', false),
+        only_total: boolean('Only Total', false),
+        percentage_threshold: number('Percentage Threshold', 0),
         area: boolean('Area chart', false),
         markerEnabled: boolean('Enable markers', false),
         markerSize: number('Marker Size', 6),
@@ -102,23 +101,24 @@ export const WithNegativeNumbers = ({ width, height }) => (
       { data: negativeNumData, colnames: ['__timestamp'], coltypes: [2] },
     ]}
     formData={{
-      contributionMode: undefined,
-      colorScheme: 'supersetColors',
+      contribution_mode: undefined,
+      color_scheme: 'supersetColors',
       seriesType: select(
         'Line type',
         ['line', 'scatter', 'smooth', 'bar', 'start', 'middle', 'end'],
         'line',
       ),
-      yAxisFormat: '$,.2f',
+      y_axis_format: '$,.2f',
       stack: boolean('Stack', true),
-      showValue: true,
-      showLegend: true,
-      onlyTotal: boolean('Only Total', true),
+      show_value: true,
+      show_legend: true,
+      only_total: boolean('Only Total', true),
       orientation: select(
         'Orientation',
         ['vertical', 'horizontal'],
         'vertical',
       ),
+      granularity_sqla: 'ds',
     }}
   />
 );
@@ -141,9 +141,10 @@ export const ConfidenceBand = ({ width, height }) => (
       },
     ]}
     formData={{
-      colorScheme: 'supersetColors',
-      seriesType: 'line',
-      xAxisTimeFormat: 'smart_date',
+      color_scheme: 'supersetColors',
+      series_type: 'line',
+      x_axis_time_format: 'smart_date',
+      granularity_sqla: 'ds',
     }}
   />
 );
@@ -161,10 +162,11 @@ export const StackWithNulls = ({ width, height }) => (
       },
     ]}
     formData={{
-      colorScheme: 'supersetColors',
-      seriesType: 'bar',
+      color_scheme: 'supersetColors',
+      series_type: 'bar',
       stack: true,
-      xAxisFormatter: 'smart_date',
+      x_axis_time_format: 'smart_date',
+      granularity_sqla: 'ds',
     }}
   />
 );
