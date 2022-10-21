@@ -174,7 +174,7 @@ const SqlEditor = ({
         database: databases[dbId],
         latestQuery: queries[latestQueryId],
         hideLeftBar,
-      }
+      };
     },
   );
 
@@ -332,14 +332,13 @@ const SqlEditor = ({
     };
   }, []);
 
-  useEffect(()=> {
+  useEffect(() => {
     // setup hotkeys
     Mousetrap.reset();
     const hotkeys = getHotkeyConfig();
     hotkeys.forEach(keyConfig => {
       Mousetrap.bind([keyConfig.key], keyConfig.func);
     });
-
   }, [latestQuery])
 
   const onResizeStart = () => {
