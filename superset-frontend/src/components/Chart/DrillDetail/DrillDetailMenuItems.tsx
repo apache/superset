@@ -34,6 +34,9 @@ import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import DrillDetailModal from './DrillDetailModal';
+import { getMenuAdjustedY, MENU_ITEM_HEIGHT } from '../utils';
+
+const MENU_PADDING = 4;
 
 const DisabledMenuItemTooltip = ({ title }: { title: ReactNode }) => (
   <Tooltip title={title} placement="top">
@@ -79,6 +82,7 @@ export type DrillDetailMenuItemsProps = {
   formData: QueryFormData;
   filters?: BinaryQueryObjectFilterClause[];
   isContextMenu?: boolean;
+  contextMenuY?: number;
   onSelection?: () => void;
   onClick?: (event: MouseEvent) => void;
 };
@@ -88,6 +92,7 @@ const DrillDetailMenuItems = ({
   formData,
   filters = [],
   isContextMenu = false,
+  contextMenuY = 0,
   onSelection = () => null,
   onClick = () => null,
   ...props
@@ -176,9 +181,22 @@ const DrillDetailMenuItems = ({
     );
   }
 
+  // Ensure submenu doesn't appear offscreen
+  const submenuYOffset = useMemo(() => {
+    const itemsCount = filters.length > 1 ? filters.length + 1 : filters.length;
+    const submenuY =
+      contextMenuY + MENU_PADDING + MENU_ITEM_HEIGHT + MENU_PADDING;
+
+    return getMenuAdjustedY(submenuY, itemsCount) - submenuY;
+  }, [contextMenuY, filters.length]);
+
   if (handlesDimensionContextMenu && !noAggregations && filters?.length) {
     drillToDetailByMenuItem = (
-      <Menu.SubMenu {...props} title={t('Drill to detail by')}>
+      <Menu.SubMenu
+        {...props}
+        popupOffset={[0, submenuYOffset]}
+        title={t('Drill to detail by')}
+      >
         <div data-test="drill-to-detail-by-submenu">
           {filters.map((filter, i) => (
             <Menu.Item
