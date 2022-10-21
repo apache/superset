@@ -30,7 +30,7 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import UUIDType
+from sqlalchemy_utils import EncryptedType, UUIDType
 
 from superset import app
 
@@ -50,27 +50,25 @@ def upgrade():
         # ImportExportMixin
         sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
         # Specific to model
-        sa.Column(
-            "server_address", sa.EncryptedType(sa.String, app_config["SECRET_KEY"])
-        ),
-        sa.Column("server_port", sa.EncryptedType(sa.String, app_config["SECRET_KEY"])),
+        sa.Column("server_address", EncryptedType(sa.String, app_config["SECRET_KEY"])),
+        sa.Column("server_port", EncryptedType(sa.String, app_config["SECRET_KEY"])),
         sa.Column(
             "username",
-            sa.EncryptedType(sa.String, app_config["SECRET_KEY"]),
+            EncryptedType(sa.String, app_config["SECRET_KEY"]),
         ),
         sa.Column(
             "password",
-            sa.EncryptedType(sa.String, app_config["SECRET_KEY"]),
+            EncryptedType(sa.String, app_config["SECRET_KEY"]),
             nullable=True,
         ),
         sa.Column(
             "private_key",
-            sa.EncryptedType(sa.String, app_config["SECRET_KEY"]),
+            EncryptedType(sa.String, app_config["SECRET_KEY"]),
             nullable=True,
         ),
         sa.Column(
             "private_key_password",
-            sa.EncryptedType(sa.String, app_config["SECRET_KEY"]),
+            EncryptedType(sa.String, app_config["SECRET_KEY"]),
             nullable=True,
         ),
     )

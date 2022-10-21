@@ -19,6 +19,7 @@ from typing import List
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy_utils import EncryptedType
 
 from superset import app
 from superset.models.core import Database
@@ -48,19 +49,19 @@ class SSHTunnelCredentials(
         foreign_keys=[database_id],
     )
 
-    server_address = sa.Column(sa.EncryptedType(sa.String, app_config["SECRET_KEY"]))
-    server_port = sa.Column(sa.EncryptedType(sa.String, app_config["SECRET_KEY"]))
-    username = sa.Column(sa.EncryptedType(sa.String, app_config["SECRET_KEY"]))
+    server_address = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
+    server_port = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
+    username = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
 
     # basic authentication
     password = sa.Column(
-        sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
+        EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
 
     # password protected pkey authentication
     private_key = sa.Column(
-        sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
+        EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
     private_key_password = sa.Column(
-        sa.EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
+        EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
