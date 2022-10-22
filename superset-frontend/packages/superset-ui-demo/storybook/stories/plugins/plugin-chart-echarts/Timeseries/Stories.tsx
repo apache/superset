@@ -87,6 +87,7 @@ export const Timeseries = ({ width, height }) => {
         minorSplitLine: boolean('Minor splitline', false),
         opacity: number('Opacity', 0.2),
         zoomable: boolean('Zoomable', false),
+        x_axis: '__timestamp',
       }}
     />
   );
@@ -117,7 +118,7 @@ export const WithNegativeNumbers = ({ width, height }) => (
         ['vertical', 'horizontal'],
         'vertical',
       ),
-      granularity_sqla: 'ds',
+      x_axis: '__timestamp',
     }}
   />
 );
@@ -131,7 +132,7 @@ export const ConfidenceBand = ({ width, height }) => (
       {
         data: confbandData,
         colnames: [
-          '__timestamp',
+          'ds',
           'SUM(num)',
           'SUM(num)__yhat_lower',
           'SUM(num)__yhat_upper',
@@ -143,7 +144,7 @@ export const ConfidenceBand = ({ width, height }) => (
       color_scheme: 'supersetColors',
       series_type: 'line',
       x_axis_time_format: 'smart_date',
-      granularity_sqla: 'ds',
+      x_axis: 'ds',
     }}
   />
 );
@@ -156,7 +157,7 @@ export const StackWithNulls = ({ width, height }) => (
     queriesData={[
       {
         data: stackWithNullsData,
-        colnames: ['__timestamp', '1', '2'],
+        colnames: ['ds', '1', '2'],
         coltypes: [2, 0, 0],
       },
     ]}
@@ -165,7 +166,7 @@ export const StackWithNulls = ({ width, height }) => (
       series_type: 'bar',
       stack: true,
       x_axis_time_format: 'smart_date',
-      granularity_sqla: 'ds',
+      x_axis: 'ds',
     }}
   />
 );
