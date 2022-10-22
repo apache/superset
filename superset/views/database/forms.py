@@ -125,7 +125,13 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     csv_file = FileField(
         _("CSV File"),
         description=_(
-            "Select a CSV file to be uploaded to a database. Max Size of the file should be 1MB and the accepted extensions are .csv, .tsv, .txt"
+            "Select a CSV file to be uploaded to a database. Max Size of the file should be "
+            + str(config["CSV_MAX_SIZES"] / 1048576)
+            + " MB and the accepted extensions are: "
+            "%(allowed_extensions)s",
+            allowed_extensions=", ".join(
+                config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"])
+            ),
         ),
         validators=[
             FileRequired(),
@@ -225,7 +231,11 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     nrows = IntegerField(
         _("Rows to Read"),
         description=_(
-            "Number of rows of file to read. Minimum 1 and Maximum 500 rows are allowed"
+            "Number of rows of file to read. Minimum "
+            + str(config["CSV_MIN_ROWS"])
+            + " and Maximum "
+            + str(config["CSV_MAX_ROWS"])
+            + " rows are allowed"
         ),
         validators=[
             DataRequired(),
