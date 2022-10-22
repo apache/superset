@@ -71,9 +71,9 @@ const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 function setup({
-  value,
-  formData,
-  columns,
+  value = undefined,
+  formData = baseFormData,
+  columns = [],
 }: {
   value?: AdhocFilter;
   formData?: QueryFormData;
