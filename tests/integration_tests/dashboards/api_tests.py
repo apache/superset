@@ -807,7 +807,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         """
         Dashboard API: Test delete bulk embedded
         """
-        admin_id = self.get_user("admin").id
+        user = self.get_user("admin")
         dashboard_count = 4
         dashboard_ids = list()
         for dashboard_name_index in range(dashboard_count):
@@ -815,10 +815,10 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 self.insert_dashboard(
                     f"title{dashboard_name_index}",
                     f"slug{dashboard_name_index}",
-                    [admin_id],
+                    [user.id],
                 ).id
             )
-        self.login(username="admin")
+        self.login(username=user.username)
         for dashboard_name_index in range(dashboard_count):
             # post succeeds and returns value
             allowed_domains = ["test.example", "embedded.example"]
@@ -832,7 +832,6 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             self.assertIsNotNone(result["uuid"])
             self.assertNotEqual(result["uuid"], "")
             self.assertEqual(result["allowed_domains"], allowed_domains)
-        self.login(username="admin")
         argument = dashboard_ids
         uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
