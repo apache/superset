@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState } from 'react';
+/* eslint-disable theme-colors/no-literal-colors */
+
+import React, { FunctionComponent, useState, useEffect } from 'react';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -26,10 +28,18 @@ import { StyledInputContainer } from '../AlertReportModal';
 const StyledNotificationMethod = styled.div`
   margin-bottom: 10px;
 
+  .error-text {
+    color: red;
+    font-size: 11px;
+  }
   .input-container {
     textarea {
       height: auto;
     }
+  }
+
+  .prominent-error-input {
+    border: 1px solid red;
   }
 
   .inline-container {
@@ -61,6 +71,7 @@ interface NotificationMethodProps {
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
   onRemove?: (index: number) => void;
+  invalid?: boolean;
 }
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
@@ -68,11 +79,21 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   index,
   onUpdate,
   onRemove,
+  invalid,
 }) => {
   const { method, recipients, options } = setting || {};
   const [recipientValue, setRecipientValue] = useState<string>(
     recipients || '',
   );
+  const [invalidEmail, setInvalidEmail] = useState<boolean | null>(
+    invalid || null,
+  );
+
+  useEffect(() => {
+    if (invalid) {
+      setInvalidEmail(invalid);
+    }
+  }, [invalid]);
   const theme = useTheme();
 
   if (!setting) {
@@ -81,6 +102,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
 
   const onMethodChange = (method: NotificationMethodOption) => {
     // Since we're swapping the method, reset the recipients
+    setInvalidEmail(false);
     setRecipientValue('');
     if (onUpdate) {
       const updatedSetting = {
@@ -97,7 +119,6 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
     const { target } = event;
-
     setRecipientValue(target.value);
 
     if (onUpdate) {
@@ -151,14 +172,32 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           <div className="control-label">{t(method)}</div>
           <div className="input-container">
             <textarea
+              className={
+                invalidEmail && method === 'Email'
+                  ? 'prominent-error-input'
+                  : ''
+              }
               name="recipients"
               value={recipientValue}
               onChange={onRecipientsChange}
             />
           </div>
-          <div className="helper">
-            {t('Recipients are separated by "," or ";"')}
-          </div>
+          {invalidEmail && method === 'Email' ? (
+            <div className="error-text">
+              {t(
+                'Email must contain careem domain e.g abc@careem.com OR abc@ext.careem.com',
+              )}
+            </div>
+          ) : null}
+          {method === 'Email' ? (
+            <div className="helper">
+              {t(
+                'Recipients are separated by "," or ";" and must contain (@careem.com OR @ext.careem.com)',
+              )}
+            </div>
+          ) : (
+            <div>{t('Recipients are separated by "," or ";"')}</div>
+          )}
         </StyledInputContainer>
       ) : null}
     </StyledNotificationMethod>

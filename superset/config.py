@@ -263,88 +263,7 @@ PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefi
 FLASH_URL = "https://flash-api.dev.careem-rh.com/"
 
 # Configuration for scheduling queries from SQL Lab.
-SCHEDULED_QUERIES: Dict[str, Any] = {
-    # This information is collected when the user clicks "Schedule query",
-    # and saved into the `extra` field of saved queries.
-    # See: https://github.com/mozilla-services/react-jsonschema-form
-    "JSONSCHEMA": {
-        "title": "Schedule",
-        "description": (
-            "In order to schedule a query, you need to specify when it "
-            "should start running, when it should stop running, and how "
-            "often it should run."
-        ),
-        "type": "object",
-        "properties": {
-            "output_table": {
-                "type": "string",
-                "title": "Output table name",
-            },
-            "start_date": {
-                "type": "string",
-                "title": "Start date",
-                # date-time is parsed using the chrono library, see
-                # https://www.npmjs.com/package/chrono-node#usage
-                "format": "date-time",
-                "default": "tomorrow at 9am",
-            },
-            "end_date": {
-                "type": "string",
-                "title": "End date",
-                # date-time is parsed using the chrono library, see
-                # https://www.npmjs.com/package/chrono-node#usage
-                "format": "date-time",
-                "default": "9am in 30 days",
-            },
-            "schedule_interval": {
-                "type": "string",
-                "title": "Schedule interval",
-                "enum": [
-                    "@15minutes",
-                    "@30minutes",
-                    "@45minutes",
-                    "@hourly",
-                    "@daily",
-                    "@weekly",
-                    "@monthly",
-                    "@quaterly",
-                ],
-                "enumNames": [
-                    "15 Minutes",
-                    "30 Minutes",
-                    "45 Minutes",
-                    "Hourly",
-                    "Daily",
-                    "Weekly",
-                    "Monthly",
-                    "Quaterly",
-                ],
-            },
-            "slack_handle": {
-                "type": "string",
-                "title": "Slack Handle",
-                "pattern": "^(@)[A-Za-z0-9_-\\s&!]+$",
-            },
-        },
-        "required": [
-            "output_table",
-            "start_date",
-            "end_date",
-            "schedule_interval",
-            "slack_handle",
-        ],
-    },
-    "VALIDATION": [
-        # ensure that start_date <= end_date
-        {
-            "name": "less_equal",
-            "arguments": ["start_date", "end_date"],
-            "message": "End date cannot be before start date",
-            # this is where the error message is shown
-            "container": "end_date",
-        },
-    ],
-}
+SCHEDULED_QUERIES: Dict[str, Any] = None
 
 # Flash configurations
 FLASH_CREATION = {
@@ -1028,6 +947,10 @@ EXCEL_EXTENSIONS = {"xlsx", "xls"}
 CSV_EXTENSIONS = {"csv", "tsv", "txt"}
 COLUMNAR_EXTENSIONS = {"parquet", "zip"}
 ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
+CSV_MAX_SIZES = 1 * 1024 * 1024
+CSV_MAX_ROWS = 500
+CSV_MIN_ROWS = 1
+
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
