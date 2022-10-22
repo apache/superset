@@ -814,16 +814,16 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             dashboard_ids.append(
                 self.insert_dashboard(
                     f"title{dashboard_name_index}",
-                    f"slug{dashboard_name_index}",
+                    None,
                     [user.id],
                 ).id
             )
         self.login(username=user.username)
-        for dashboard_name_index in range(dashboard_count):
+        for dashboard_id in dashboard_ids:
             # post succeeds and returns value
             allowed_domains = ["test.example", "embedded.example"]
             resp = self.post_assert_metric(
-                f"api/v1/dashboard/slug{dashboard_name_index}/embedded",
+                f"api/v1/dashboard/{dashboard_id}/embedded",
                 {"allowed_domains": allowed_domains},
                 "set_embedded",
             )

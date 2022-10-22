@@ -160,7 +160,6 @@ class DashboardDAO(BaseDAO):
             for model in models:
                 model.slices = []
                 model.owners = []
-                model.embedded = []
                 db.session.merge(model)
         # bulk delete itself
         try:
