@@ -340,6 +340,37 @@ def import_dashboards(
     session.commit()
 
 
+def medbi_import_dashboards(
+    session: Session,
+    content: str,
+    database_id: Optional[int] = None,
+    clickhouse_database_id: Optional[int] = None,
+    import_time: Optional[int] = None,
+) -> None:
+    """Imports dashboards from a stream to databases"""
+    current_tt = int(time.time())
+    import_time = current_tt if import_time is None else import_time
+    data = json.loads(content, object_hook=decode_dashboards)
+    if not data:
+        raise DashboardImportException(_("No data in file"))
+    dataset_id_mapping: Dict[int, int] = {}
+    for table in data["datasources"]:
+        params = json.loads(table.params)
+        is_clickhouse = 'кликхауз' in params['database_name'].lower() \
+                        or 'clickhouse' in params['database_name'].lower()
+        new_dataset_id = import_dataset(
+            table,
+            database_id if not is_clickhouse else clickhouse_database_id,
+            import_time=import_time)
+        dataset_id_mapping[params["remote_id"]] = new_dataset_id
+
+    session.commit()
+    for dashboard in data["dashboards"]:
+        import_dashboard(dashboard, dataset_id_mapping, import_time=import_time,
+                         database_id=database_id,)
+    session.commit()
+
+
 class ImportDashboardsCommand(BaseCommand):
     """
     Import dashboard in JSON format.
@@ -361,6 +392,43 @@ class ImportDashboardsCommand(BaseCommand):
         for file_name, content in self.contents.items():
             logger.info("Importing dashboard from file %s", file_name)
             import_dashboards(db.session, content, self.database_id)
+
+    def validate(self) -> None:
+        # ensure all files are JSON
+        for content in self.contents.values():
+            try:
+                json.loads(content)
+            except ValueError:
+                logger.exception("Invalid JSON file")
+                raise
+
+
+class MedbiImportDashboardsCommand(BaseCommand):
+    """
+    Import dashboard in JSON format.
+
+    This is the original unversioned format used to export and import dashboards
+    in Superset.
+    """
+
+    # pylint: disable=unused-argument
+    def __init__(
+        self, contents: Dict[str, str],
+        database_id: Optional[int] = None,
+        clickhouse_database_id: Optional[int] = None,
+    ):
+        self.contents = contents
+        self.database_id = database_id
+        self.clickhouse_database_id = clickhouse_database_id
+
+    def run(self) -> None:
+        self.validate()
+
+        for file_name, content in self.contents.items():
+            logger.info("Importing dashboard from file %s", file_name)
+            medbi_import_dashboards(db.session, content,
+                                    self.database_id,
+                                    self.clickhouse_database_id)
 
     def validate(self) -> None:
         # ensure all files are JSON
