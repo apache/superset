@@ -360,7 +360,7 @@ def medbi_import_dashboards(
                         or 'clickhouse' in params['database_name'].lower()
         new_dataset_id = import_dataset(
             table,
-            database_id if not is_clickhouse else clickhouse_database_id,
+            clickhouse_database_id if is_clickhouse else database_id,
             import_time=import_time)
         dataset_id_mapping[params["remote_id"]] = new_dataset_id
 

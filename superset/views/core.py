@@ -733,7 +733,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if request.method == "POST" and import_file:
             success = False
             database_id = request.form.get("db_id")
-            clickhouse_database_id = request.form.get("db_id")
+            clickhouse_database_id = request.form.get("ch_db_id")
             try:
                 MedbiImportDashboardsCommand(
                     {import_file.filename: import_file.read()},

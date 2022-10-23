@@ -16,6 +16,7 @@
 # under the License.
 import json
 import logging
+import re
 from typing import Any, Callable, Dict, List, Optional
 
 import yaml
@@ -194,6 +195,11 @@ def import_datasource(  # pylint: disable=too-many-arguments
         if database_id
         else getattr(lookup_database(i_datasource), "id", None)
     )
+    # Костыли для Medbi чтобы правильно подхватить схему при импорте
+    database = db.session.query(Database).filter(Database.id == database_id).one()
+    if database.data['backend'] == 'clickhouse':
+        schema_name = re.search(r'data_(\d+)', database.sqlalchemy_uri).group()
+        i_datasource.schema = schema_name
     i_datasource.alter_params(import_time=import_time)
 
     # override the datasource
