@@ -53,7 +53,7 @@ export const UPDATE_TYPES = {
   CTAGS: 'ctags',
 };
 
-export const BUTTON_TYPES = {
-  SCHEDULE: 'schedule',
-  FLASH: 'flash',
+export const DATASOURCE_TYPES = {
+  HIVE: 'hive',
+  PINOT: 'pinot',
 };

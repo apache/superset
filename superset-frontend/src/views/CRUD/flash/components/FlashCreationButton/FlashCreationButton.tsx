@@ -39,7 +39,7 @@ import { useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { BUTTON_TYPES } from '../../constants';
+import { DATASOURCE_TYPES } from '../../constants';
 import {
   createFlash,
   fetchDatabases,
@@ -148,11 +148,11 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
                       : ['Please Select'],
                   default:
                     dbDropdown && dbDropdown.enum
-                      ? buttonType === BUTTON_TYPES.SCHEDULE
+                      ? buttonType === DATASOURCE_TYPES.HIVE
                         ? 3
                         : dbDropdown.enum[0]
                       : '',
-                  readOnly: buttonType === BUTTON_TYPES.SCHEDULE,
+                  readOnly: buttonType === DATASOURCE_TYPES.HIVE,
                 };
               }
             }
@@ -400,7 +400,10 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
           saveModal?.current?.open({ preventDefault: () => {} });
           getSchemas();
         } else {
-          addDangerToast(t('Please Add a valid Sql Query', data?.message));
+          const error = data?.message
+            ? data?.message
+            : t('Please Add a valid Sql Query');
+          addDangerToast(error);
         }
       })
       .catch(error => {
@@ -431,7 +434,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
                 htmlType="submit"
                 css={{ float: 'right' }}
               >
-                {buttonType === BUTTON_TYPES.SCHEDULE ? 'Schedule' : 'Create'}
+                {buttonType === DATASOURCE_TYPES.HIVE ? 'Schedule' : 'Create'}
               </Button>
             </SchemaForm>
           </StyledJsonSchema>
@@ -445,7 +448,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
       <ModalTrigger
         ref={saveModal}
         modalTitle={
-          buttonType === BUTTON_TYPES.SCHEDULE
+          buttonType === DATASOURCE_TYPES.HIVE
             ? t('Schedule')
             : t('Create Flash Object')
         }
@@ -463,7 +466,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
             buttonStyle="primary"
             onClick={e => queryValidation(e)}
           >
-            {buttonType === BUTTON_TYPES.SCHEDULE ? (
+            {buttonType === DATASOURCE_TYPES.HIVE ? (
               t('Schedule')
             ) : (
               <>
