@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """Contains the logic to create cohesive forms on the explore view"""
+from tokenize import Number
 from typing import List
 
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _
-from flask_wtf.file import FileAllowed, FileField, FileRequired
+from flask_wtf.file import FileAllowed, FileField, FileRequired, FileSize
 from wtforms import (
     BooleanField,
     IntegerField,
@@ -107,18 +108,39 @@ class UploadToDatabaseForm(DynamicForm):
 class CsvToDatabaseForm(UploadToDatabaseForm):
     name = StringField(
         _("Table Name"),
-        description=_("Name of table to be created from csv data."),
+        description=_(
+            "Name of table to be created from csv data. Must be alphanumeric and can contain only (_) in between"
+        ),
         validators=[
             DataRequired(),
-            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema")),
+            Regexp(
+                r"^([a-z])[a-z0-9_]+$",
+                message=_(
+                    "Table name cannot contain a schema. Must be alphanumeric, should start with a letter, must be in lower case and can contain (_) in between"
+                ),
+            ),
         ],
         widget=BS3TextFieldWidget(),
     )
     csv_file = FileField(
         _("CSV File"),
-        description=_("Select a CSV file to be uploaded to a database."),
+        description=_(
+            "Select a CSV file to be uploaded to a database. Max Size of the file should be "
+            + str(config["CSV_MAX_SIZES"] / 1048576)
+            + " MB and the accepted extensions are: "
+            "%(allowed_extensions)s",
+            allowed_extensions=", ".join(
+                config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"])
+            ),
+        ),
         validators=[
             FileRequired(),
+            FileSize(
+                config["CSV_MAX_SIZES"],
+                message="File size must not exceed the limit: "
+                + str(config["CSV_MAX_SIZES"] / 1048576)
+                + "MB",
+            ),
             FileAllowed(
                 config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"]),
                 _(
@@ -208,8 +230,18 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     )
     nrows = IntegerField(
         _("Rows to Read"),
-        description=_("Number of rows of file to read."),
-        validators=[Optional(), NumberRange(min=0)],
+        description=_(
+            "Number of rows of file to read. Minimum "
+            + str(config["CSV_MIN_ROWS"])
+            + " and Maximum "
+            + str(config["CSV_MAX_ROWS"])
+            + " rows are allowed"
+        ),
+        validators=[
+            DataRequired(),
+            NumberRange(min=config["CSV_MIN_ROWS"]),
+            NumberRange(max=config["CSV_MAX_ROWS"]),
+        ],
         widget=BS3TextFieldWidget(),
     )
     skip_blank_lines = BooleanField(
