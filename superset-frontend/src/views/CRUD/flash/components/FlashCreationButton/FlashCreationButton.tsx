@@ -39,7 +39,11 @@ import { useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { createFlash, fetchDatabases } from '../../services/flash.service';
+import {
+  createFlash,
+  fetchDatabases,
+  validateSqlQuery,
+} from '../../services/flash.service';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -370,6 +374,34 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
     }
   };
 
+  const queryValidation = (e: any) => {
+    e.stopPropagation();
+    const sqlToValidate = sql || sqlQuery.query;
+    if (sqlToValidate) {
+      validateQueryService(sqlToValidate);
+    }
+  };
+
+  const validateQueryService = (sql: string): Promise<any> => {
+    const payload = {
+      sql,
+    };
+    return validateSqlQuery(payload)
+      .then(({ data }) => {
+        if (data && data?.valid === true) {
+          saveModal?.current?.open({ preventDefault: () => {} });
+        } else {
+          addDangerToast(t('Please Add a valid Sql Query', data?.message));
+        }
+      })
+      .catch(error => {
+        const apiError = error?.data?.message
+          ? error?.data?.message
+          : t('Please Add a valid Sql Query');
+        addDangerToast(apiError);
+      });
+  };
+
   const renderModalBody = () => (
     <Form layout="vertical">
       <Row>
@@ -418,6 +450,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
             disabled={!canCreateFlashObject}
             buttonSize="small"
             buttonStyle="primary"
+            onClick={e => queryValidation(e)}
           >
             <Icons.PlusOutlined iconSize="l" />
             {t('Create Flash Object')}

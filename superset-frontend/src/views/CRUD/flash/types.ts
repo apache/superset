@@ -50,6 +50,10 @@ export interface FlashUpdateQuery {
   sqlQuery: string;
 }
 
+export interface FlashValidateQuery {
+  sql: string;
+}
+
 export interface FlashUpdateSchedule {
   scheduleType: string;
   scheduleStartTime: string;
