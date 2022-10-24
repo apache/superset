@@ -55,10 +55,14 @@ import {
 
 const SAMPLE_CHART = { name: 'Most Populated Countries', viz: 'table' };
 
-function visitDashboard() {
+function visitDashboard(createSample = true) {
   interceptCharts();
   interceptGet();
   interceptDatasets();
+
+  if (createSample) {
+    cy.createSampleDashboards([0]);
+  }
 
   cy.visit(SAMPLE_DASHBOARD_1);
   cy.wait('@get');
@@ -70,6 +74,7 @@ function visitDashboard() {
 function prepareDashboardFilters(
   filters: { name: string; column: string; datasetId: number }[],
 ) {
+  cy.createSampleDashboards([0]);
   cy.request({
     method: 'GET',
     url: `api/v1/dashboard/1-sample-dashboard`,
@@ -169,7 +174,7 @@ function prepareDashboardFilters(
             json_metadata: JSON.stringify(jsonMetadata),
           },
         })
-        .then(() => visitDashboard());
+        .then(() => visitDashboard(false));
     }
     return cy;
   });
@@ -379,11 +384,11 @@ describe('Native filters', () => {
 
   describe('Nativefilters basic interactions', () => {
     before(() => {
-      cy.createSampleDashboards([0]);
       visitDashboard();
     });
 
     beforeEach(() => {
+      cy.createSampleDashboards([0]);
       closeFilterModal();
     });
 
@@ -436,10 +441,6 @@ describe('Native filters', () => {
   });
 
   describe('Nativefilters initial state not required', () => {
-    beforeEach(() => {
-      cy.createSampleDashboards([0]);
-    });
-
     it("User can check 'Filter has default value'", () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },

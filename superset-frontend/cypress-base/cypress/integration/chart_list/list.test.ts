@@ -60,12 +60,9 @@ describe('Charts list', () => {
 
   describe('Cross-referenced dashboards', () => {
     beforeEach(() => {
-      visitChartList();
-    });
-
-    before(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.createSampleCharts([0]);
+      visitChartList();
     });
 
     it('should show the cross-referenced dashboards in the table cell', () => {
