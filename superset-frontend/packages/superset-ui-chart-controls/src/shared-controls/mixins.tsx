@@ -17,8 +17,7 @@
  * under the License.
  */
 import {
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   QueryFormData,
   t,
   validateNonEmpty,
@@ -41,7 +40,7 @@ export const xAxisMixin = {
   validators: [validateNonEmpty],
   initialValue: (control: ControlState, state: ControlPanelState | null) => {
     if (
-      isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
+      hasGenericChartAxes &&
       state?.form_data?.granularity_sqla &&
       !state.form_data?.x_axis &&
       !control?.value

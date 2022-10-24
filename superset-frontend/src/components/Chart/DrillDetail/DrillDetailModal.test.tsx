@@ -16,44 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+
+import React, { useState } from 'react';
+import userEvent from '@testing-library/user-event';
+import { render, screen } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import { QueryFormData } from '@superset-ui/core';
-import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import DrillDetailModal from './DrillDetailModal';
 
-const chart = chartQueries[sliceId];
-const setup = (overrides: Record<string, any> = {}) => {
-  const store = getMockStoreWithNativeFilters();
-  const props = {
-    chartId: sliceId,
-    initialFilters: [],
-    formData: chart.form_data as unknown as QueryFormData,
-    ...overrides,
-  };
-  return render(<DrillDetailModal {...props} />, {
-    useRedux: true,
-    useRouter: true,
-    store,
-  });
-};
-const waitForRender = (overrides: Record<string, any> = {}) =>
-  waitFor(() => setup(overrides));
-
-fetchMock.post(
-  'end:/datasource/samples?force=false&datasource_type=table&datasource_id=7&per_page=50&page=1',
-  {
-    result: {
-      data: [],
-      colnames: [],
-      coltypes: [],
-    },
-  },
-);
-
+jest.mock('./DrillDetailPane', () => () => null);
 const mockHistoryPush = jest.fn();
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -62,32 +33,46 @@ jest.mock('react-router-dom', () => ({
   }),
 }));
 
-test('should render', async () => {
-  const { container } = await waitForRender();
-  expect(container).toBeInTheDocument();
-});
+const { id: chartId, form_data: formData } = chartQueries[sliceId];
+const { slice_name: chartName } = formData;
+
+const renderModal = async () => {
+  const store = getMockStoreWithNativeFilters();
+  const DrillDetailModalWrapper = () => {
+    const [showModal, setShowModal] = useState(false);
+    return (
+      <>
+        <button type="button" onClick={() => setShowModal(true)}>
+          Show modal
+        </button>
+        <DrillDetailModal
+          chartId={chartId}
+          formData={formData}
+          initialFilters={[]}
+          showModal={showModal}
+          onHideModal={() => setShowModal(false)}
+        />
+      </>
+    );
+  };
+
+  render(<DrillDetailModalWrapper />, {
+    useRouter: true,
+    useRedux: true,
+    store,
+  });
+
+  userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
+  await screen.findByRole('dialog', { name: `Drill to detail: ${chartName}` });
+};
 
 test('should render the title', async () => {
-  await waitForRender();
-  expect(
-    screen.getByText(`Drill to detail: ${chart.form_data.slice_name}`),
-  ).toBeInTheDocument();
-});
-
-test('should render the modal', async () => {
-  await waitForRender();
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
-});
-
-test('should not render the modal', async () => {
-  await waitForRender({
-    initialFilters: undefined,
-  });
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  await renderModal();
+  expect(screen.getByText(`Drill to detail: ${chartName}`)).toBeInTheDocument();
 });
 
 test('should render the button', async () => {
-  await waitForRender();
+  await renderModal();
   expect(
     screen.getByRole('button', { name: 'Edit chart' }),
   ).toBeInTheDocument();
@@ -95,14 +80,14 @@ test('should render the button', async () => {
 });
 
 test('should close the modal', async () => {
-  await waitForRender();
+  await renderModal();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
   userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
 test('should forward to Explore', async () => {
-  await waitForRender();
+  await renderModal();
   userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
   expect(mockHistoryPush).toHaveBeenCalledWith(
     `/explore/?dashboard_page_id=&slice_id=${sliceId}`,

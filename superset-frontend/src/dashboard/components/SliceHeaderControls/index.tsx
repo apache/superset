@@ -53,7 +53,7 @@ import Button from 'src/components/Button';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import Modal from 'src/components/Modal';
-import DrillDetailPane from 'src/dashboard/components/DrillDetailPane';
+import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -156,7 +156,7 @@ const dropdownIconsStyles = css`
   }
 `;
 
-const DashboardChartModalTrigger = ({
+const ViewResultsModalTrigger = ({
   exploreUrl,
   triggerNode,
   modalTitle,
@@ -205,7 +205,6 @@ const DashboardChartModalTrigger = ({
                 {t('Edit chart')}
               </Button>
               <Button
-                data-test="close-drilltodetail-modal"
                 buttonStyle="primary"
                 buttonSize="small"
                 onClick={closeModal}
@@ -430,7 +429,7 @@ class SliceHeaderControls extends React.PureComponent<
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
-            <DashboardChartModalTrigger
+            <ViewResultsModalTrigger
               exploreUrl={this.props.exploreUrl}
               triggerNode={
                 <span data-test="view-query-menu-item">
@@ -453,18 +452,10 @@ class SliceHeaderControls extends React.PureComponent<
 
         {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
           this.props.supersetCanExplore && (
-            <Menu.Item key={MENU_KEYS.DRILL_TO_DETAIL}>
-              <DashboardChartModalTrigger
-                exploreUrl={this.props.exploreUrl}
-                triggerNode={
-                  <span data-test="view-query-menu-item">
-                    {t('Drill to detail')}
-                  </span>
-                }
-                modalTitle={t('Drill to detail: %s', slice.slice_name)}
-                modalBody={<DrillDetailPane formData={this.props.formData} />}
-              />
-            </Menu.Item>
+            <DrillDetailMenuItems
+              chartId={slice.slice_id}
+              formData={this.props.formData}
+            />
           )}
 
         {(slice.description || this.props.supersetCanExplore) && (

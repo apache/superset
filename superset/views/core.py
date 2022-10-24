@@ -1198,7 +1198,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         extra_dict_by_name = {
             table.name: table.extra_dict
             for table in (
-                db.session.query(SqlaTable).filter(SqlaTable.schema == schema_parsed)
+                db.session.query(SqlaTable).filter(
+                    SqlaTable.database_id == database.id,
+                    SqlaTable.schema == schema_parsed,
+                )
             ).all()
         }
 

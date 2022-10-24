@@ -27,11 +27,7 @@ describe('AddDataset', () => {
     const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
 
     // Header
-    expect(
-      await screen.findByRole('textbox', {
-        name: /dataset name/i,
-      }),
-    ).toBeVisible();
+    expect(await screen.findByTestId('editable-title')).toBeVisible();
     // Left panel
     expect(blankeStateImgs[0]).toBeVisible();
     // Footer

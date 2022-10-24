@@ -332,6 +332,35 @@ Cypress.Commands.add('getDashboards', () =>
     .then(resp => resp.body.result),
 );
 
+Cypress.Commands.add('getDashboard', (dashboardId: string | number) =>
+  cy
+    .request({
+      method: 'GET',
+      url: `api/v1/dashboard/${dashboardId}`,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+      },
+    })
+    .then(resp => resp.body.result),
+);
+
+Cypress.Commands.add(
+  'updateDashboard',
+  (dashboardId: number, body: Record<string, any>) =>
+    cy
+      .request({
+        method: 'PUT',
+        url: `api/v1/dashboard/${dashboardId}`,
+        body,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TokenName}`,
+        },
+      })
+      .then(resp => resp.body.result),
+);
+
 Cypress.Commands.add('deleteChart', (id: number, failOnStatusCode = false) =>
   cy
     .request({

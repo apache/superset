@@ -45,7 +45,7 @@ const colorSchemeOptions = (theme: SupersetTheme) => [
 ];
 
 const operatorOptions = [
-  { value: COMPARATOR.NONE, label: 'None' },
+  { value: COMPARATOR.NONE, label: t('None') },
   { value: COMPARATOR.GREATER_THAN, label: '>' },
   { value: COMPARATOR.LESS_THAN, label: '<' },
   { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },

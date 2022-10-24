@@ -51,7 +51,7 @@ class CategoricalColorScale extends ExtensibleFunction {
    * @param {*} parentForcedColors optional parameter that comes from parent
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
-  constructor(colors: string[], parentForcedColors?: ColorsLookup) {
+  constructor(colors: string[], parentForcedColors: ColorsLookup = {}) {
     super((value: string, sliceId?: number) => this.getColor(value, sliceId));
 
     this.originColors = colors;
@@ -67,17 +67,11 @@ class CategoricalColorScale extends ExtensibleFunction {
     const cleanedValue = stringifyAndTrim(value);
     const sharedLabelColor = getSharedLabelColor();
 
-    const parentColor = this.parentForcedColors?.[cleanedValue];
-    if (parentColor) {
-      sharedLabelColor.addSlice(cleanedValue, parentColor, sliceId);
-      return parentColor;
-    }
-
-    const forcedColor = this.forcedColors[cleanedValue];
-    if (forcedColor) {
-      sharedLabelColor.addSlice(cleanedValue, forcedColor, sliceId);
-      return forcedColor;
-    }
+    // priority: parentForcedColors > forcedColors > labelColors
+    let color =
+      this.parentForcedColors?.[cleanedValue] ||
+      this.forcedColors?.[cleanedValue] ||
+      sharedLabelColor.getColorMap().get(cleanedValue);
 
     if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
       const multiple = Math.floor(
@@ -89,8 +83,10 @@ class CategoricalColorScale extends ExtensibleFunction {
         this.range(this.originColors.concat(newRange));
       }
     }
-
-    const color = this.scale(cleanedValue);
+    const newColor = this.scale(cleanedValue);
+    if (!color) {
+      color = newColor;
+    }
     sharedLabelColor.addSlice(cleanedValue, color, sliceId);
 
     return color;

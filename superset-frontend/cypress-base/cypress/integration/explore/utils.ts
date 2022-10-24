@@ -37,6 +37,10 @@ export function interceptPost() {
   cy.intercept('POST', `/api/v1/chart/`).as('post');
 }
 
+export function interceptExploreJson() {
+  cy.intercept('POST', `/superset/explore_json/**`).as('getJson');
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
@@ -44,4 +48,24 @@ export function setFilter(filter: string, option: string) {
   cy.get(`[aria-label="${filter}"] [title="${option}"]`).click();
 
   cy.wait('@filtering');
+}
+
+export function saveChartToDashboard(dashboardName: string) {
+  cy.getBySel('query-save-button').click();
+  cy.get(
+    '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
+  )
+    .first()
+    .click();
+  cy.get(
+    '.ant-select-selection-search-input[aria-label="Select a dashboard"]',
+  ).type(dashboardName);
+  cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
+  cy.getBySel('btn-modal-save').click();
+}
+
+export function visitSampleChartFromList(chartName: string) {
+  cy.getBySel('table-row').contains(chartName).click();
+  cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  cy.wait(500);
 }
