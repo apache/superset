@@ -73,25 +73,6 @@ def upgrade():
         ),
     )
 
-    op.create_table(
-        "database_ssh_tunnel_credential",
-        sa.Column(
-            "ssh_tunnel_credential_id",
-            sa.INTEGER(),
-            autoincrement=False,
-            nullable=False,
-        ),
-        sa.Column("database_id", sa.INTEGER(), autoincrement=False, nullable=False),
-        sa.ForeignKeyConstraint(
-            ["database_id"], ["dbs.id"], name="database_ssh_tunnel_credential_ibfk_1"
-        ),
-        sa.ForeignKeyConstraint(
-            ["ssh_tunnel_credentials_id"],
-            ["ssh_tunnel_credentials.id"],
-            name="database_ssh_tunnel_credential_ibfk_2",
-        ),
-    )
-
 
 def downgrade():
     op.drop_table("ssh_tunnel_credentials")
