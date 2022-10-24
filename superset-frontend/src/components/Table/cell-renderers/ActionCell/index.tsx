@@ -23,6 +23,9 @@ import { Dropdown, IconOrientation } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { MenuProps } from 'antd/lib/menu';
 
+/**
+ * Props interface for Action Cell Renderer
+ */
 export interface ActionCellProps {
   /**
    * The Menu option presented to user when menu displays
@@ -60,12 +63,15 @@ export interface ActionMenuItem {
   row?: object;
 }
 
+/**
+ * Props interface for ActionMenu
+ */
 export interface ActionMenuProps {
   menuOptions: ActionMenuItem[];
   setVisible: (visible: boolean) => void;
 }
 
-export const StyledMenu = styled(Menu)`
+const StyledMenu = styled(Menu)`
   ${({ theme }) => `
   .ant-menu {
     -webkit-box-shadow: 1px 1px 4px 4px ${theme.colors.shadow.light1};
@@ -74,7 +80,7 @@ export const StyledMenu = styled(Menu)`
   `}
 `;
 
-const appendDataToMenu = (
+export const appendDataToMenu = (
   options: ActionMenuItem[],
   row: object,
 ): ActionMenuItem[] => {
@@ -89,8 +95,6 @@ function ActionMenu(props: ActionMenuProps) {
   const { menuOptions, setVisible } = props;
   const handleClick: MenuProps['onClick'] = ({ key }) => {
     setVisible?.(false);
-    // const menuItem = menuOptions[item?.props?.index];
-    // const index = key?.toString?.()?.split?.('_')?.[1] ?? -1;
     const menuItem = menuOptions[key];
     if (menuItem) {
       menuItem?.onClick?.(menuItem);

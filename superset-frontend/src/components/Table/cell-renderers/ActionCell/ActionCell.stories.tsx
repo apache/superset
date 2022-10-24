@@ -20,7 +20,7 @@
 import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import ActionCell from './index';
-import { exampleMenuOptions } from './fixtures';
+import { exampleMenuOptions, exampleRow } from './fixtures';
 
 export default {
   title: 'Design System/Components/Table/Cell Renderers/ActionCell',
@@ -33,11 +33,5 @@ export const Basic: ComponentStory<typeof ActionCell> = args => (
 
 Basic.args = {
   menuOptions: exampleMenuOptions,
-  row: {
-    key: 1,
-    buttonCell: 'Click Me',
-    textCell: 'Some text',
-    euroCell: 45.5,
-    dollarCell: 45.5,
-  },
+  row: exampleRow,
 };

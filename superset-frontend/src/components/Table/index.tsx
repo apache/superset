@@ -23,7 +23,7 @@ import type { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
 import { t, useTheme } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import styled, { StyledComponent } from '@emotion/styled';
-import InteractiveTableUtils from './InteractiveTableUtils';
+import InteractiveTableUtils from './utils/InteractiveTableUtils';
 
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 export interface TableDataType {

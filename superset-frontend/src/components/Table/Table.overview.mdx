@@ -13,11 +13,7 @@ Common table applications in Superset:
 - Display lists of user-generated entities (e.g. dashboard, charts, queries) for further exploration and use
 - Display data that can help the user make a decision (e.g. query results)
 
-This component wraps an instance of the Ant Design Table and provides some Superset speciufic convenience features, style alignment, and customizations.
-
-The documentation at: <a href="https://ant.design/components/table" target="_blank">https://ant.design/components/table</a> Provides
-supplimentaldocumentation for the capabilities of this component. This documentation will cover common use cases, or customizations
-provided by the Superset Table component. If there is conflicting documentation, the documentation here takes precendence.
+This component provides a general use Table.
 
 ---
 
@@ -162,16 +158,14 @@ For convenience and consistency the Table component provides pre-build Cell Rend
 The following data types can be displayed in table cells.
 
 - Text (default)
+- [Button Cell](./?path=/docs/design-system-components-table-cell-renderers-buttoncell--basic)
+- [Numeric Cell](./docs/design-system-components-table-cell-renderers-numericcell--basic)
+  - Support Locale and currency formatting
   - w/ icons - Coming Soon
-- Hyperlink text - Coming Soon
-  - w/ icons - Coming Soon
-- Icon
-  - Coming Soon
-- ButtonCell
-- Icon button
-  - (Large size only)(Cell is limited to one icon button. If you need to provide multiple actions to the user from a table cell, use the ellipses icon button to open a menu containing available actions.) Coming Soon
-- Single select field (Large size only)
-- Toggle (Large size only)
+- [Action Menu Cell](./?path=/docs/design-system-components-table-cell-renderers-actioncell-overview--page)
+- Provide a list of menu options with callback functions that retain a reference to the row the menu is defined for
+- Custom
+  - You can provide your own React component as a cell renderer in cases not supported
 
 ---
 
