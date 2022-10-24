@@ -380,7 +380,7 @@ function mapStateToProps(state) {
     undoLength: state.dashboardLayout.past.length,
     redoLength: state.dashboardLayout.future.length,
     htmlSanitization: state.common.conf.HTML_SANITIZATION,
-    htmlSchemaOverrides: state.common.conf.HTML_SANITIZATION_SCHEMA_OVERRIDES,
+    htmlSchemaOverrides: state.common.conf.HTML_SANITIZATION_SCHEMA_EXTENSIONS,
   };
 }
 export default connect(mapStateToProps)(Markdown);
