@@ -219,6 +219,7 @@ const SqlEditor = ({
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
       dispatch(postStopQuery(latestQuery));
     }
+    return false;
   };
 
   const runQuery = () => {
@@ -244,7 +245,6 @@ const SqlEditor = ({
   const getHotkeyConfig = () => {
     // Get the user's OS
     const userOS = detectOS();
-
     const base = [
       {
         name: 'runQuery1',
@@ -326,17 +326,20 @@ const SqlEditor = ({
     window.addEventListener('resize', handleWindowResizeWithThrottle);
     window.addEventListener('beforeunload', onBeforeUnload);
 
-    // setup hotkeys
-    const hotkeys = getHotkeyConfig();
-    hotkeys.forEach(keyConfig => {
-      Mousetrap.bind([keyConfig.key], keyConfig.func);
-    });
-
     return () => {
       window.removeEventListener('resize', handleWindowResizeWithThrottle);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
   }, []);
+
+  useEffect(() => {
+    // setup hotkeys
+    Mousetrap.reset();
+    const hotkeys = getHotkeyConfig();
+    hotkeys.forEach(keyConfig => {
+      Mousetrap.bind([keyConfig.key], keyConfig.func);
+    });
+  }, [latestQuery]);
 
   const onResizeStart = () => {
     // Set the heights on the ace editor and the ace content area after drag starts
