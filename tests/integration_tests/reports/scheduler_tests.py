@@ -14,17 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import uuid
+from random import randint
 from unittest.mock import patch
 
-import pytest
 from freezegun import freeze_time
 from freezegun.api import FakeDatetime  # type: ignore
 
 from superset.extensions import db
-from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
 from superset.reports.models import ReportScheduleType
-from superset.tasks.scheduler import scheduler
+from superset.tasks.scheduler import execute, scheduler
 from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app
 
@@ -139,19 +137,24 @@ def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
         db.session.commit()
 
 
-@patch("superset.tasks.scheduler.execute.apply_async")
-def test_execute_task(execute_mock):
+@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.__init__")
+@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.run")
+@patch("superset.tasks.scheduler.execute.update_state")
+def test_execute_task(update_state_mock, command_mock, init_mock):
+    from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
+
     with app.app_context():
         report_schedule = insert_report_schedule(
             type=ReportScheduleType.ALERT,
-            name="report",
+            name=f"report-{randint(0,1000)}",
             crontab="0 4 * * *",
             timezone="America/New_York",
         )
-        execute_mock.side_effect = ReportScheduleUnexpectedError("Unexpected error")
+        init_mock.return_value = None
+        command_mock.side_effect = ReportScheduleUnexpectedError("Unexpected error")
         with freeze_time("2020-01-01T09:00:00Z"):
-            with pytest.raises(ReportScheduleUnexpectedError):
-                scheduler()
-        assert 1 == 0
+            execute(report_schedule.id, "2020-01-01T09:00:00Z")
+            update_state_mock.assert_called_with(state="FAILURE")
+
         db.session.delete(report_schedule)
         db.session.commit()
