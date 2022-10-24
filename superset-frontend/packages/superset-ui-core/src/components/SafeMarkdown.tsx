@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import rehypeRaw from 'rehype-raw';
@@ -25,17 +25,30 @@ import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 interface SafeMarkdownProps {
   source: string;
-  schemaOverrides?: typeof defaultSchema;
+  htmlSanitization?: boolean;
+  htmlSchemaOverrides?: typeof defaultSchema;
 }
 
-function SafeMarkdown({ source, schemaOverrides = {} }: SafeMarkdownProps) {
+function SafeMarkdown({
+  source,
+  htmlSanitization = true,
+  htmlSchemaOverrides = {},
+}: SafeMarkdownProps) {
   const displayHtml = isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML);
   const escapeHtml = isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML);
-  let rehypePlugins: any = [];
-  if (displayHtml && !escapeHtml) {
-    const schema = merge(defaultSchema, schemaOverrides);
-    rehypePlugins = [rehypeRaw, [rehypeSanitize, { schema }]];
-  }
+
+  const rehypePlugins = useMemo(() => {
+    const rehypePlugins: any = [];
+    if (displayHtml && !escapeHtml) {
+      rehypePlugins.push(rehypeRaw);
+      if (htmlSanitization) {
+        const schema = merge(defaultSchema, htmlSchemaOverrides);
+        rehypePlugins.push([rehypeSanitize, schema]);
+      }
+    }
+    return rehypePlugins;
+  }, [displayHtml, escapeHtml, htmlSanitization, htmlSchemaOverrides]);
+
   // React Markdown escapes HTML by default
   return (
     <ReactMarkdown rehypePlugins={rehypePlugins} skipHtml={!displayHtml}>
