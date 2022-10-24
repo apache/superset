@@ -17,14 +17,7 @@
  * under the License.
  */
 
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
-import { useSelector } from 'react-redux';
+import React, { useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   BinaryQueryObjectFilterClause,
@@ -33,22 +26,51 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import DrillDetailPane from 'src/dashboard/components/DrillDetailPane';
+import Modal from 'src/components/Modal';
+import Button from 'src/components/Button';
+import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { Slice } from 'src/types/Chart';
-import Modal from '../Modal';
-import Button from '../Button';
+import DrillDetailPane from './DrillDetailPane';
 
-const DrillDetailModal: React.FC<{
+interface ModalFooterProps {
+  exploreChart: () => void;
+  closeModal?: () => void;
+}
+
+const ModalFooter = ({ exploreChart, closeModal }: ModalFooterProps) => (
+  <>
+    <Button buttonStyle="secondary" buttonSize="small" onClick={exploreChart}>
+      {t('Edit chart')}
+    </Button>
+    <Button
+      buttonStyle="primary"
+      buttonSize="small"
+      onClick={closeModal}
+      data-test="close-drilltodetail-modal"
+    >
+      {t('Close')}
+    </Button>
+  </>
+);
+
+interface DrillDetailModalProps {
   chartId: number;
-  initialFilters?: BinaryQueryObjectFilterClause[];
   formData: QueryFormData;
-}> = ({ chartId, initialFilters, formData }) => {
-  const [showModal, setShowModal] = useState(false);
-  const openModal = useCallback(() => setShowModal(true), []);
-  const closeModal = useCallback(() => setShowModal(false), []);
-  const history = useHistory();
+  initialFilters: BinaryQueryObjectFilterClause[];
+  showModal: boolean;
+  onHideModal: () => void;
+}
+
+export default function DrillDetailModal({
+  chartId,
+  formData,
+  initialFilters,
+  showModal,
+  onHideModal,
+}: DrillDetailModalProps) {
   const theme = useTheme();
+  const history = useHistory();
   const dashboardPageId = useContext(DashboardPageIdContext);
   const { slice_name: chartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
@@ -64,43 +86,18 @@ const DrillDetailModal: React.FC<{
     history.push(exploreUrl);
   }, [exploreUrl, history]);
 
-  //  Trigger modal open when initial filters change
-  useEffect(() => {
-    if (initialFilters) {
-      openModal();
-    }
-  }, [initialFilters, openModal]);
-
   return (
     <Modal
+      show={showModal}
+      onHide={onHideModal ?? (() => null)}
       css={css`
         .ant-modal-body {
           display: flex;
           flex-direction: column;
         }
       `}
-      show={showModal}
-      onHide={closeModal}
       title={t('Drill to detail: %s', chartName)}
-      footer={
-        <>
-          <Button
-            buttonStyle="secondary"
-            buttonSize="small"
-            onClick={exploreChart}
-          >
-            {t('Edit chart')}
-          </Button>
-          <Button
-            data-test="close-drilltodetail-modal"
-            buttonStyle="primary"
-            buttonSize="small"
-            onClick={closeModal}
-          >
-            {t('Close')}
-          </Button>
-        </>
-      }
+      footer={<ModalFooter exploreChart={exploreChart} />}
       responsive
       resizable
       resizableConfig={{
@@ -117,6 +114,4 @@ const DrillDetailModal: React.FC<{
       <DrillDetailPane formData={formData} initialFilters={initialFilters} />
     </Modal>
   );
-};
-
-export default DrillDetailModal;
+}

@@ -68,13 +68,20 @@ from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils.celery import session_scope
-from superset.utils.core import HeaderDataType
+from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
+
+
+def _get_user() -> User:
+    user = security_manager.find_user(username=app.config["THUMBNAIL_SELENIUM_USER"])
+    if not user:
+        raise ReportScheduleSelleniumUserNotFoundError()
+    return user
 
 
 class BaseReportState:
@@ -193,22 +200,13 @@ class BaseReportState:
             **kwargs,
         )
 
-    @staticmethod
-    def _get_user() -> User:
-        user = security_manager.find_user(
-            username=app.config["THUMBNAIL_SELENIUM_USER"]
-        )
-        if not user:
-            raise ReportScheduleSelleniumUserNotFoundError()
-        return user
-
     def _get_screenshots(self) -> List[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
         url = self._get_url()
-        user = self._get_user()
+        user = _get_user()
         if self._report_schedule.chart:
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
@@ -239,7 +237,7 @@ class BaseReportState:
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            self._get_user()
+            _get_user()
         )
 
         if self._report_schedule.chart.query_context is None:
@@ -265,7 +263,7 @@ class BaseReportState:
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            self._get_user()
+            _get_user()
         )
 
         if self._report_schedule.chart.query_context is None:
@@ -437,7 +435,11 @@ class BaseReportState:
         """
         header_data = self._get_log_data()
         header_data["error_text"] = message
-        logger.info("header_data info %s", header_data)
+        logger.info(
+            "header_data in notifications for alerts and reports %s, taskid, %s",
+            header_data,
+            self._execution_id,
+        )
         notification_content = NotificationContent(
             name=name, text=message, header_data=header_data
         )
@@ -675,12 +677,13 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     def run(self) -> None:
         with session_scope(nullpool=True) as session:
             try:
-                self.validate(session=session)
-                if not self._model:
-                    raise ReportScheduleExecuteUnexpectedError()
-                ReportScheduleStateMachine(
-                    session, self._execution_id, self._model, self._scheduled_dttm
-                ).run()
+                with override_user(_get_user()):
+                    self.validate(session=session)
+                    if not self._model:
+                        raise ReportScheduleExecuteUnexpectedError()
+                    ReportScheduleStateMachine(
+                        session, self._execution_id, self._model, self._scheduled_dttm
+                    ).run()
             except CommandException as ex:
                 raise ex
             except Exception as ex:
@@ -690,6 +693,11 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self, session: Session = None
     ) -> None:
         # Validate/populate model exists
+        logger.info(
+            "session is validated: id %s, executionid: %s",
+            self._model_id,
+            self._execution_id,
+        )
         self._model = ReportScheduleDAO.find_by_id(self._model_id, session=session)
         if not self._model:
             raise ReportScheduleNotFoundError()

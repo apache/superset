@@ -75,7 +75,8 @@ const reduxState = {
   },
 };
 
-const key = 'aWrs7w29sd';
+const KEY = 'aWrs7w29sd';
+const SEARCH = `?form_data_key=${KEY}&dataset_id=1`;
 
 jest.mock('react-resize-detector', () => ({
   __esModule: true,
@@ -87,21 +88,20 @@ jest.mock('lodash/debounce', () => ({
   default: (fuc: Function) => fuc,
 }));
 
-fetchMock.post('glob:*/api/v1/explore/form_data*', { key });
-fetchMock.put('glob:*/api/v1/explore/form_data*', { key });
+fetchMock.post('glob:*/api/v1/explore/form_data*', { key: KEY });
+fetchMock.put('glob:*/api/v1/explore/form_data*', { key: KEY });
 fetchMock.get('glob:*/api/v1/explore/form_data*', {});
 fetchMock.get('glob:*/favstar/slice*', { count: 0 });
 
 const defaultPath = '/explore/';
 const renderWithRouter = ({
-  withKey,
+  search = '',
   overridePathname,
 }: {
-  withKey?: boolean;
+  search?: string;
   overridePathname?: string;
 } = {}) => {
   const path = overridePathname ?? defaultPath;
-  const search = withKey ? `?form_data_key=${key}&dataset_id=1` : '';
   Object.defineProperty(window, 'location', {
     get() {
       return { pathname: path, search };
@@ -143,12 +143,12 @@ test('generates a new form_data param when none is available', async () => {
 
 test('generates a different form_data param when one is provided and is mounting', async () => {
   const replaceState = jest.spyOn(window.history, 'replaceState');
-  await waitFor(() => renderWithRouter({ withKey: true }));
+  await waitFor(() => renderWithRouter({ search: SEARCH }));
   expect(replaceState).not.toHaveBeenLastCalledWith(
     0,
     expect.anything(),
     undefined,
-    expect.stringMatching(key),
+    expect.stringMatching(KEY),
   );
   expect(replaceState).toHaveBeenCalledWith(
     expect.anything(),
@@ -164,7 +164,7 @@ test('reuses the same form_data param when updating', async () => {
   });
   const replaceState = jest.spyOn(window.history, 'replaceState');
   const pushState = jest.spyOn(window.history, 'pushState');
-  await waitFor(() => renderWithRouter({ withKey: true }));
+  await waitFor(() => renderWithRouter({ search: SEARCH }));
   expect(replaceState.mock.calls.length).toBe(1);
   userEvent.click(screen.getByText('Update chart'));
   await waitFor(() => expect(pushState.mock.calls.length).toBe(1));
@@ -186,5 +186,19 @@ test('doesnt call replaceState when pathname is not /explore', async () => {
   const replaceState = jest.spyOn(window.history, 'replaceState');
   await waitFor(() => renderWithRouter({ overridePathname: '/dashboard' }));
   expect(replaceState).not.toHaveBeenCalled();
+  replaceState.mockRestore();
+});
+
+test('preserves unknown parameters', async () => {
+  const replaceState = jest.spyOn(window.history, 'replaceState');
+  const unknownParam = 'test=123';
+  await waitFor(() =>
+    renderWithRouter({ search: `${SEARCH}&${unknownParam}` }),
+  );
+  expect(replaceState).toHaveBeenCalledWith(
+    expect.anything(),
+    undefined,
+    expect.stringMatching(unknownParam),
+  );
   replaceState.mockRestore();
 });

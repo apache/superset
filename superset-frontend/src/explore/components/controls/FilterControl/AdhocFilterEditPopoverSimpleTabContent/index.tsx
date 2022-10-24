@@ -39,6 +39,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { Input } from 'src/components/Input';
 import { optionLabel } from 'src/utils/common';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import useAdvancedDataTypes from './useAdvancedDataTypes';
 
 const StyledInput = styled(Input)`
@@ -61,20 +62,9 @@ const SelectWithLabel = styled(Select)<{ labelText: string }>`
   }
 `;
 
-export interface SimpleColumnType {
-  id: number;
-  column_name: string;
-  expression?: string;
-  type: string;
-  optionName?: string;
-  filterBy?: string;
-  value?: string;
-  advanced_data_type?: string;
-}
-
 export interface SimpleExpressionType {
   expressionType: keyof typeof EXPRESSION_TYPES;
-  column: SimpleColumnType;
+  column: ColumnMeta;
   aggregate: keyof typeof AGGREGATES;
   label: string;
 }
@@ -89,7 +79,7 @@ export interface MetricColumnType {
 }
 
 export type ColumnType =
-  | SimpleColumnType
+  | ColumnMeta
   | SimpleExpressionType
   | SQLExpressionType
   | MetricColumnType;
@@ -100,7 +90,7 @@ export interface Props {
   options: ColumnType[];
   datasource: {
     id: string;
-    columns: SimpleColumnType[];
+    columns: ColumnMeta[];
     type: string;
     filter_select: boolean;
   };
@@ -410,31 +400,35 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
     }
   }, [props.adhocFilter.comparator]);
 
-  return (
+  // another name for columns, just for following previous naming.
+  const subjectComponent = (
+    <Select
+      css={(theme: SupersetTheme) => ({
+        marginTop: theme.gridUnit * 4,
+        marginBottom: theme.gridUnit * 4,
+      })}
+      data-test="select-element"
+      options={columns.map(column => ({
+        value:
+          ('column_name' in column && column.column_name) ||
+          ('optionName' in column && column.optionName) ||
+          '',
+        label:
+          ('saved_metric_name' in column && column.saved_metric_name) ||
+          ('column_name' in column && column.column_name) ||
+          ('label' in column && column.label),
+        key:
+          ('id' in column && column.id) ||
+          ('optionName' in column && column.optionName) ||
+          undefined,
+        customLabel: renderSubjectOptionLabel(column),
+      }))}
+      {...subjectSelectProps}
+    />
+  );
+
+  const operatorsAndOperandComponent = (
     <>
-      <Select
-        css={(theme: SupersetTheme) => ({
-          marginTop: theme.gridUnit * 4,
-          marginBottom: theme.gridUnit * 4,
-        })}
-        data-test="select-element"
-        options={columns.map(column => ({
-          value:
-            ('column_name' in column && column.column_name) ||
-            ('optionName' in column && column.optionName) ||
-            '',
-          label:
-            ('saved_metric_name' in column && column.saved_metric_name) ||
-            ('column_name' in column && column.column_name) ||
-            ('label' in column && column.label),
-          key:
-            ('id' in column && column.id) ||
-            ('optionName' in column && column.optionName) ||
-            undefined,
-          customLabel: renderSubjectOptionLabel(column),
-        }))}
-        {...subjectSelectProps}
-      />
       <Select
         css={(theme: SupersetTheme) => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
@@ -482,6 +476,12 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           />
         </Tooltip>
       )}
+    </>
+  );
+  return (
+    <>
+      {subjectComponent}
+      {operatorsAndOperandComponent}
     </>
   );
 };

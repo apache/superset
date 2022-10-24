@@ -26,7 +26,7 @@ import { testWithId } from 'src/utils/testUtils';
 import { FeatureFlag } from 'src/featureFlags';
 import { Preset } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
-import { DATE_FILTER_CONTROL_TEST_ID } from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
+import { DATE_FILTER_CONTROL_TEST_ID } from 'src/explore/components/controls/DateFilterControl';
 import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
 import FilterBar, { FILTER_BAR_TEST_ID } from '.';
