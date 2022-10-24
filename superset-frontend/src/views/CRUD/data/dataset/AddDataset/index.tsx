@@ -65,6 +65,9 @@ export function datasetReducer(
   }
 }
 
+const prevUrl =
+  '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+
 export default function AddDataset() {
   const [dataset, setDataset] = useReducer<
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
@@ -81,8 +84,10 @@ export default function AddDataset() {
       dbId={dataset?.db?.id}
     />
   );
-  const prevUrl =
-    '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+
+  const DatasetPanelComponent = () => (
+    <DatasetPanel tableName={dataset?.table_name} />
+  );
 
   const FooterComponent = () => (
     <Footer url={prevUrl} datasetObject={dataset} />
@@ -92,7 +97,7 @@ export default function AddDataset() {
     <DatasetLayout
       header={HeaderComponent()}
       leftPanel={LeftPanelComponent()}
-      datasetPanel={DatasetPanel()}
+      datasetPanel={DatasetPanelComponent()}
       footer={FooterComponent()}
     />
   );
