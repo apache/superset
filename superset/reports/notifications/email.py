@@ -207,6 +207,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 dryrun=False,
                 header_data=content.header_data,
             )
-            logger.info("Report sent to email")
+            logger.info(
+                "Report sent to email, notification content is %s", content.header_data
+            )
         except Exception as ex:
             raise NotificationError(ex) from ex
