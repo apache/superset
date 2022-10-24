@@ -21,7 +21,7 @@ import React from 'react';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
-import { t, styled, DatasourceType } from '@superset-ui/core';
+import { t, styled, DatasourceType, isDefined } from '@superset-ui/core';
 import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
@@ -91,6 +91,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.changeAction = this.changeAction.bind(this);
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
     this.isNewDashboard = this.isNewDashboard.bind(this);
+    this.removeAlert = this.removeAlert.bind(this);
   }
 
   isNewDashboard(): boolean {
@@ -150,9 +151,6 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   async saveOrOverwrite(gotodash: boolean) {
     this.setState({ alert: null, isLoading: true });
     this.props.actions.removeSaveModalAlert();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-
-    let promise = Promise.resolve();
 
     //  Create or retrieve dashboard
     type DashboardGetResponse = {
@@ -185,30 +183,37 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     //  Get chart dashboards
     let sliceDashboards: number[] = [];
     if (this.props.slice && this.state.action === 'overwrite') {
-      promise = promise
-        .then(() => this.props.actions.getSliceDashboards(this.props.slice))
-        .then(dashboards => {
-          sliceDashboards = dashboards;
-        });
+      try {
+        sliceDashboards = await this.props.actions.getSliceDashboards(
+          this.props.slice,
+        );
+      } catch (e) {
+        this.setState({ isLoading: false });
+        return;
+      }
     }
 
     let dashboard: DashboardGetResponse | null = null;
     if (this.state.newDashboardName || this.state.saveToDashboardId) {
       let saveToDashboardId = this.state.saveToDashboardId || null;
       if (!this.state.saveToDashboardId) {
-        promise = promise
-          .then(() =>
-            this.props.actions.createDashboard(this.state.newDashboardName),
-          )
-          .then((response: { id: number }) => {
-            saveToDashboardId = response.id;
-          });
+        try {
+          const response = await this.props.actions.createDashboard(
+            this.state.newDashboardName,
+          );
+          saveToDashboardId = response.id;
+        } catch (e) {
+          this.setState({ isLoading: false });
+          return;
+        }
       }
 
-      promise = promise
-        .then(() => this.props.actions.getDashboard(saveToDashboardId))
-        .then((response: { result: DashboardGetResponse }) => {
-          dashboard = response.result;
+      try {
+        const response = await this.props.actions.getDashboard(
+          saveToDashboardId,
+        );
+        dashboard = response.result;
+        if (isDefined(dashboard) && isDefined(dashboard?.id)) {
           sliceDashboards = sliceDashboards.includes(dashboard.id)
             ? sliceDashboards
             : [...sliceDashboards, dashboard.id];
@@ -217,13 +222,18 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             ...formData,
             dashboards: sliceDashboards,
           });
-        });
+        }
+      } catch (e) {
+        this.setState({ isLoading: false });
+        return;
+      }
     }
 
     //  Update or create slice
-    if (this.state.action === 'overwrite') {
-      promise = promise.then(() =>
-        this.props.actions.updateSlice(
+    let value: { id: number };
+    try {
+      if (this.state.action === 'overwrite') {
+        value = await this.props.actions.updateSlice(
           this.props.slice,
           this.state.newSliceName,
           sliceDashboards,
@@ -233,11 +243,9 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
                 new: !this.state.saveToDashboardId,
               }
             : null,
-        ),
-      );
-    } else {
-      promise = promise.then(() =>
-        this.props.actions.createSlice(
+        );
+      } else {
+        value = await this.props.actions.createSlice(
           this.state.newSliceName,
           sliceDashboards,
           dashboard
@@ -246,32 +254,32 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
                 new: !this.state.saveToDashboardId,
               }
             : null,
-        ),
-      );
+        );
+      }
+    } catch (e) {
+      this.setState({ isLoading: false });
+      return;
     }
 
-    promise.then(((value: { id: number }) => {
-      //  Update recent dashboard
-      if (dashboard) {
-        sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
-      } else {
-        sessionStorage.removeItem(SK_DASHBOARD_ID);
-      }
+    if (dashboard) {
+      sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
+    } else {
+      sessionStorage.removeItem(SK_DASHBOARD_ID);
+    }
 
-      // Go to new dashboard url
-      if (gotodash && dashboard) {
-        this.props.history.push(dashboard.url);
-        return;
-      }
+    // Go to new dashboard url
+    if (gotodash && dashboard) {
+      this.props.history.push(dashboard.url);
+      return;
+    }
 
-      const searchParams = new URLSearchParams(window.location.search);
-      searchParams.set('save_action', this.state.action);
-      searchParams.delete('form_data_key');
-      if (this.state.action === 'saveas') {
-        searchParams.set('slice_id', value.id.toString());
-      }
-      this.props.history.replace(`/explore/?${searchParams.toString()}`);
-    }) as (value: any) => void);
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('save_action', this.state.action);
+    searchParams.delete('form_data_key');
+    if (this.state.action === 'saveas') {
+      searchParams.set('slice_id', value.id.toString());
+    }
+    this.props.history.replace(`/explore/?${searchParams.toString()}`);
 
     this.setState({ isLoading: false });
     this.props.onHide();
@@ -286,19 +294,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         {(this.state.alert || this.props.alert) && (
           <Alert
             type="warning"
-            message={
-              <>
-                {this.state.alert || this.props.alert}
-                <i
-                  role="button"
-                  aria-label="Remove alert"
-                  tabIndex={0}
-                  className="fa fa-close pull-right"
-                  onClick={this.removeAlert.bind(this)}
-                  style={{ cursor: 'pointer' }}
-                />
-              </>
-            }
+            message={this.state.alert || this.props.alert}
+            onClose={this.removeAlert}
           />
         )}
         <FormItem data-test="radio-group">
