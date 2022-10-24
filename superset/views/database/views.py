@@ -116,18 +116,18 @@ class CsvToDatabaseView(SimpleFormView):
     add_columns = ["database", "schema", "table_name"]
 
     def form_get(self, form: CsvToDatabaseForm) -> None:
-        form.sep.data = ","
+        form.delimiter.data = ","
         form.header.data = 0
-        form.mangle_dupe_cols.data = True
-        form.skipinitialspace.data = False
+        form.overwrite_duplicate.data = True
+        form.skip_initial_space.data = False
         form.skip_blank_lines.data = True
         form.infer_datetime_format.data = True
         form.decimal.data = "."
         form.if_exists.data = "fail"
 
     def form_post(self, form: CsvToDatabaseForm) -> Response:
-        database = form.con.data
-        csv_table = Table(table=form.name.data, schema=form.schema.data)
+        database = form.database.data
+        csv_table = Table(table=form.table_name.data, schema=form.schema.data)
 
         if not schema_allows_file_upload(database, csv_table.schema):
             message = __(
@@ -150,14 +150,14 @@ class CsvToDatabaseView(SimpleFormView):
                     infer_datetime_format=form.infer_datetime_format.data,
                     iterator=True,
                     keep_default_na=not form.null_values.data,
-                    mangle_dupe_cols=form.mangle_dupe_cols.data,
-                    usecols=form.usecols.data if form.usecols.data else None,
+                    mangle_dupe_cols=form.overwrite_duplicate.data,
+                    usecols=form.use_cols.data if form.use_cols.data else None,
                     na_values=form.null_values.data if form.null_values.data else None,
                     nrows=form.nrows.data,
                     parse_dates=form.parse_dates.data,
-                    sep=form.sep.data,
+                    sep=form.delimiter.data,
                     skip_blank_lines=form.skip_blank_lines.data,
-                    skipinitialspace=form.skipinitialspace.data,
+                    skipinitialspace=form.skip_initial_space.data,
                     skiprows=form.skiprows.data,
                 )
             )
@@ -175,7 +175,7 @@ class CsvToDatabaseView(SimpleFormView):
                 to_sql_kwargs={
                     "chunksize": 1000,
                     "if_exists": form.if_exists.data,
-                    "index": form.index.data,
+                    "index": form.dataframe_index.data,
                     "index_label": form.index_label.data,
                 },
             )
@@ -221,7 +221,7 @@ class CsvToDatabaseView(SimpleFormView):
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
                 filename=form.csv_file.data.filename,
-                table_name=form.name.data,
+                table_name=form.table_name.data,
                 db_name=database.database_name,
                 error_msg=str(ex),
             )
@@ -241,9 +241,9 @@ class CsvToDatabaseView(SimpleFormView):
         flash(message, "info")
         event_logger.log_with_context(
             action="successful_csv_upload",
-            database=form.con.data.name,
+            database=form.database.data.name,
             schema=form.schema.data,
-            table=form.name.data,
+            table=form.table_name.data,
         )
         return redirect("/tablemodelview/list/")
 

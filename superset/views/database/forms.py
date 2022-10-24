@@ -105,18 +105,9 @@ class UploadToDatabaseForm(DynamicForm):
 
 
 class CsvToDatabaseForm(UploadToDatabaseForm):
-    name = StringField(
-        _("Table Name"),
-        description=_("Name of table to be created from csv data."),
-        validators=[
-            DataRequired(),
-            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema")),
-        ],
-        widget=BS3TextFieldWidget(),
-    )
     csv_file = FileField(
-        _("CSV File"),
-        description=_("Select a CSV file to be uploaded to a database."),
+        _("CSV Upload"),
+        description=_("Select a file to be uploaded to the database"),
         validators=[
             FileRequired(),
             FileAllowed(
@@ -133,31 +124,37 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
             ),
         ],
     )
-    con = QuerySelectField(
+    table_name = StringField(
+        _("Table Name"),
+        description=_("Name of table to be created with CSV file"),
+        validators=[
+            DataRequired(),
+            Regexp(r"^[^\.]+$", message=_("Table name cannot contain a schema")),
+        ],
+        widget=BS3TextFieldWidget(),
+    )
+    database = QuerySelectField(
         _("Database"),
+        description=_("Select a database to upload the file to"),
         query_factory=UploadToDatabaseForm.file_allowed_dbs,
         get_pk=lambda a: a.id,
         get_label=lambda a: a.database_name,
     )
     schema = StringField(
         _("Schema"),
-        description=_("Specify a schema (if database flavor supports this)."),
+        description=_("Select a schema if the database supports this"),
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
     )
-    sep = StringField(
+    delimiter = StringField(
         _("Delimiter"),
-        description=_("Delimiter used by CSV file (for whitespace use \\s+)."),
+        description=_("Enter a delimiter for this data"),
         validators=[DataRequired()],
         widget=BS3TextFieldWidget(),
     )
     if_exists = SelectField(
-        _("Table Exists"),
-        description=_(
-            "If table exists do one of the following: "
-            "Fail (do nothing), Replace (drop and recreate table) "
-            "or Append (insert data)."
-        ),
+        _("If Table Already Exists"),
+        description=_("What should happen if the table already exists"),
         choices=[
             ("fail", _("Fail")),
             ("replace", _("Replace")),
@@ -165,96 +162,97 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         ],
         validators=[DataRequired()],
     )
-    header = IntegerField(
-        _("Header Row"),
+    skip_initial_space = BooleanField(
+        _("Skip Initial Space"), description=_("Skip spaces after delimiter")
+    )
+    skip_blank_lines = BooleanField(
+        _("Skip Blank Lines"),
         description=_(
-            "Row containing the headers to use as "
-            "column names (0 is first line of data). "
-            "Leave empty if there is no header row."
+            "Skip blank lines rather than interpreting them as Not A Number values"
         ),
-        validators=[Optional(), NumberRange(min=0)],
+    )
+    parse_dates = CommaSeparatedListField(
+        _("Columns To Be Parsed as Dates"),
+        description=_(
+            "A comma separated list of columns that should be parsed as dates"
+        ),
+        filters=[filter_not_empty_values],
+    )
+    infer_datetime_format = BooleanField(
+        _("Interpret Datetime Format Automatically"),
+        description=_("Interpret the datetime format automatically"),
+    )
+    decimal = StringField(
+        _("Decimal Character"),
+        default=".",
+        description=_("Character to interpret as decimal point"),
+        validators=[Optional(), Length(min=1, max=1)],
         widget=BS3TextFieldWidget(),
+    )
+    null_values = JsonListField(
+        _("Null Values"),
+        default=config["CSV_DEFAULT_NA_NAMES"],
+        description=_(
+            "Json list of the values that should be treated as null. "
+            'Examples: [""], ["None", "N/A"], ["nan", "null"]. '
+            "Warning: Hive database supports only single value"
+        ),
     )
     index_col = IntegerField(
         _("Index Column"),
         description=_(
             "Column to use as the row labels of the "
-            "dataframe. Leave empty if no index column."
+            "dataframe. Leave empty if no index column"
         ),
         validators=[Optional(), NumberRange(min=0)],
         widget=BS3TextFieldWidget(),
     )
-    mangle_dupe_cols = BooleanField(
-        _("Mangle Duplicate Columns"),
-        description=_('Specify duplicate columns as "X.0, X.1".'),
-    )
-    usecols = JsonListField(
-        _("Use Columns"),
-        default=None,
-        description=_(
-            "Json list of the column names that should be read. "
-            "If not None, only these columns will be read from the file."
-        ),
-        validators=[Optional()],
-    )
-    skipinitialspace = BooleanField(
-        _("Skip Initial Space"), description=_("Skip spaces after delimiter.")
-    )
-    skiprows = IntegerField(
-        _("Skip Rows"),
-        description=_("Number of rows to skip at start of file."),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    nrows = IntegerField(
-        _("Rows to Read"),
-        description=_("Number of rows of file to read."),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    skip_blank_lines = BooleanField(
-        _("Skip Blank Lines"),
-        description=_("Skip blank lines rather than interpreting them as NaN values."),
-    )
-    parse_dates = CommaSeparatedListField(
-        _("Parse Dates"),
-        description=_(
-            "A comma separated list of columns that should be parsed as dates."
-        ),
-        filters=[filter_not_empty_values],
-    )
-    infer_datetime_format = BooleanField(
-        _("Infer Datetime Format"),
-        description=_("Use Pandas to interpret the datetime format automatically."),
-    )
-    decimal = StringField(
-        _("Decimal Character"),
-        default=".",
-        description=_("Character to interpret as decimal point."),
-        validators=[Optional(), Length(min=1, max=1)],
-        widget=BS3TextFieldWidget(),
-    )
-    index = BooleanField(
-        _("Dataframe Index"), description=_("Write dataframe index as a column.")
+    dataframe_index = BooleanField(
+        _("Dataframe Index"), description=_("Write dataframe index as a column")
     )
     index_label = StringField(
         _("Column Label(s)"),
         description=_(
             "Column label for index column(s). If None is given "
-            "and Dataframe Index is True, Index Names are used."
+            "and Dataframe Index is checked, Index Names are used"
         ),
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
     )
-    null_values = JsonListField(
-        _("Null values"),
-        default=config["CSV_DEFAULT_NA_NAMES"],
+    use_cols = JsonListField(
+        _("Columns To Read"),
+        default=None,
+        description=_("Json list of the column names that should be read"),
+        validators=[Optional()],
+    )
+    overwrite_duplicate = BooleanField(
+        _("Overwrite Duplicate Columns"),
         description=_(
-            "Json list of the values that should be treated as null. "
-            'Examples: [""], ["None", "N/A"], ["nan", "null"]. '
-            "Warning: Hive database supports only single value. "
-            'Use [""] for empty string.'
+            "If duplicate columns are not overridden, "
+            'they will be presented as "X.1, X.2 ...X.x"'
         ),
+    )
+    header = IntegerField(
+        _("Header Row"),
+        description=_(
+            "Row containing the headers to use as "
+            "column names (0 is first line of data). "
+            "Leave empty if there is no header row"
+        ),
+        validators=[Optional(), NumberRange(min=0)],
+        widget=BS3TextFieldWidget(),
+    )
+    nrows = IntegerField(
+        _("Rows to Read"),
+        description=_("Number of rows of file to read"),
+        validators=[Optional(), NumberRange(min=0)],
+        widget=BS3TextFieldWidget(),
+    )
+    skiprows = IntegerField(
+        _("Skip Rows"),
+        description=_("Number of rows to skip at start of file"),
+        validators=[Optional(), NumberRange(min=0)],
+        widget=BS3TextFieldWidget(),
     )
 
 
