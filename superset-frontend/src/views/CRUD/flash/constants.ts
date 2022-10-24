@@ -52,3 +52,8 @@ export const UPDATE_TYPES = {
   OWNER: 'owner',
   CTAGS: 'ctags',
 };
+
+export const DATASOURCE_TYPES = {
+  HIVE: 'hive',
+  PINOT: 'pinot',
+};

@@ -76,6 +76,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { isEmpty } from 'lodash';
 import FlashCreationButton from 'src/views/CRUD/flash/components/FlashCreationButton/FlashCreationButton';
+import { DATASOURCE_TYPES } from 'src/views/CRUD/flash/constants';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import ConnectedSouthPane from '../SouthPane/state';
 import SaveQuery from '../SaveQuery';
@@ -584,7 +585,18 @@ const SqlEditor = ({
         <div className="rightItems">
           {flashCreationConf && (
             <span>
-              <FlashCreationButton sqlEditor={queryEditor} />
+              <FlashCreationButton
+                sqlEditor={queryEditor}
+                buttonType={DATASOURCE_TYPES.HIVE}
+              />
+            </span>
+          )}
+          {flashCreationConf && (
+            <span>
+              <FlashCreationButton
+                sqlEditor={queryEditor}
+                buttonType={DATASOURCE_TYPES.PINOT}
+              />
             </span>
           )}
           <span>
