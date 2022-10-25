@@ -114,12 +114,6 @@ class SupersetErrorsException(SupersetException):
         if status is not None:
             self.status = status
 
-    def normalized_messages(self) -> Dict[Any, Any]:
-        errors: Dict[Any, Any] = {}
-        for error in self.errors:
-            errors.update({error.error_type: error.message})
-        return errors
-
 
 class SupersetSyntaxErrorException(SupersetErrorsException):
     status = 422

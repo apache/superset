@@ -27,6 +27,7 @@ from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
+    DatabaseConnectionFailedError,
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
     DatabaseTestConnectionFailedError,
@@ -49,6 +50,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
     def run(self) -> None:  # pylint: disable=too-many-statements
         self.validate()
+        ex_str = ""
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
@@ -117,13 +119,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                     extra={"sqlalchemy_uri": database.sqlalchemy_uri},
                 ) from ex
-            except Exception as ex:
+            except Exception as ex:  # pylint: disable=broad-except
                 alive = False
                 # So we stop losing the original message if any
-                raise DBAPIError(str(ex), None, None) from ex
+                ex_str = str(ex)
 
             if not alive:
-                raise DBAPIError(None, None, None)
+                raise DBAPIError(ex_str or None, None, None)
 
             # Log succesful connection test with engine
             event_logger.log_with_context(
@@ -148,6 +150,19 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, context)
+            for error in errors:
+                # Why Adding the message for this error type?
+                # Because it's the type returned for Service Accounts without roles
+                # or permissions when connecting to BigQuery DBs, which is
+                # the change we are introducing at this moment and we don't want to
+                # impact other places (tests for example) at least until we discuss
+                # and standardize the way we bubble up exceptions
+                if (
+                    error.error_type
+                    == SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR
+                ):
+                    # Raise original exception with the message
+                    raise DatabaseConnectionFailedError(error.message) from ex
             raise DatabaseTestConnectionFailedError(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(

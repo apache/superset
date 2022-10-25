@@ -28,11 +28,9 @@ from superset.databases.commands.exceptions import (
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseRequiredFieldValidationError,
-    DatabaseTestConnectionFailedError,
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
-from superset.errors import SupersetError, SupersetErrorType
 from superset.extensions import db, event_logger, security_manager
 
 logger = logging.getLogger(__name__)
@@ -48,33 +46,13 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
-        except DatabaseTestConnectionFailedError as ex:
+        except DatabaseConnectionFailedError as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
-            # if the exception is DatabaseTestConnectionFailedError it has errors in it
-            # so we try to return the message from the errors instead of using the
-            # default message
-            error_list: List[SupersetError] = ex.errors
-            for error in error_list:
-                # We could have just set the message coming from the original exception
-                # But that would have impacted all other places that relies on the
-                # current message. Like api_tests for postgres etc. In the future,
-                # after we discuss whether we want to show the original message
-                # all the time we can simply remove the check and set the message
-                # for all cases.
-                # Why Adding the message for this error type?
-                # Because it's the type returned for Service Accounts without roles
-                # or permissions when connecting to BigQuery DBs, which is
-                # the change we are introducing at this moment.
-                if (
-                    error.error_type
-                    == SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR
-                ):
-                    # Raise original DatabaseTestConnectionFailedError
-                    raise ex
-                raise DatabaseConnectionFailedError() from ex
+            # So we can show the original message
+            raise ex
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
