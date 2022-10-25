@@ -50,16 +50,17 @@ def load_world_bank_data():
             "country_name": String(255),
             "region": String(255),
         }
-        _get_dataframe(database).to_sql(
-            WB_HEALTH_POPULATION,
-            get_example_database().get_sqla_engine(),
-            if_exists="replace",
-            chunksize=500,
-            dtype=dtype,
-            index=False,
-            method="multi",
-            schema=get_example_default_schema(),
-        )
+        with database.get_sqla_engine_with_context() as engine:
+            _get_dataframe(database).to_sql(
+                WB_HEALTH_POPULATION,
+                engine,
+                if_exists="replace",
+                chunksize=500,
+                dtype=dtype,
+                index=False,
+                method="multi",
+                schema=get_example_default_schema(),
+            )
 
     yield
     with app.app_context():
