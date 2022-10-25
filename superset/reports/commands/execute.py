@@ -25,7 +25,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app
+from superset import app, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -81,7 +81,9 @@ def _get_user(report_schedule: ReportSchedule) -> User:
     user_types = app.config["ALERT_REPORTS_EXECUTE_AS"]
     for user_type in user_types:
         if user_type == "selenium":
-            return app.config["THUMBNAIL_SELENIUM_USER"]
+            username = app.config["THUMBNAIL_SELENIUM_USER"]
+            if username and (user := security_manager.find_user(username=username)):
+                return user
         if user_type == "creator":
             if user := report_schedule.created_by:
                 return user

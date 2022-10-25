@@ -23,11 +23,12 @@ from uuid import uuid4
 
 import pytest
 from flask import current_app
+from flask_appbuilder.security.sqla.models import User
 from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from sqlalchemy.sql import func
 
-from superset import db, security_manager
+from superset import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -153,9 +154,9 @@ def create_report_email_chart():
 
 
 @pytest.fixture()
-def create_report_email_chart_alpha_owner():
+def create_report_email_chart_alpha_owner(get_user):
     with app.app_context():
-        owners = [security_manager.find_user("alpha")]
+        owners = [get_user("alpha")]
         chart = db.session.query(Slice).first()
         report_schedule = create_report_notification(
             email_target="target@email.com", chart=chart, owners=owners
@@ -677,23 +678,32 @@ def test_email_chart_report_schedule_alpha_owner(
     app.config[config_key] = ["owner"]
 
     # setup screenshot mock
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    username = ""
+
+    def _screenshot_side_effect(user: User) -> Optional[bytes]:
+        nonlocal username
+        username = user.username
+
+        return SCREENSHOT_FILE
+
+    screenshot_mock.side_effect = _screenshot_side_effect
 
     with freeze_time("2020-01-01T00:00:00Z"):
         AsyncExecuteReportScheduleCommand(
-            TEST_ID, create_report_email_chart.id, datetime.utcnow()
+            TEST_ID, create_report_email_chart_alpha_owner.id, datetime.utcnow()
         ).run()
 
         notification_targets = get_target_from_report_schedule(
             create_report_email_chart_alpha_owner
         )
         # assert that the screenshot is executed as the chart owner
-        assert screenshot_mock.call_args[0][0] == "alpha"
+        assert username == "alpha"
+
         # assert that the link sent is correct
         assert (
             '<a href="http://0.0.0.0:8080/explore/?'
             "form_data=%7B%22slice_id%22%3A%20"
-            f"{create_report_email_chart.chart.id}%7D&"
+            f"{create_report_email_chart_alpha_owner.chart.id}%7D&"
             'standalone=0&force=false">Explore in Superset</a>'
             in email_mock.call_args[0][2]
         )
