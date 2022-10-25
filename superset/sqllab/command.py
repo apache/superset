@@ -114,9 +114,6 @@ class ExecuteSqlCommand(BaseCommand):
                 "status": status,
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
-        except (SupersetErrorsException, SupersetException) as ex:
-            logger.warning("ExecuteSqlCommand failed with %s", str(ex))
-            raise ex
         except Exception as ex:
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
