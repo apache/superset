@@ -23,12 +23,13 @@ import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
 describe('Datasource control', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+  });
+
   const newMetricName = `abc${Date.now()}`;
 
   it('should allow edit dataset', () => {
-    let numScripts = 0;
-
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');
@@ -36,16 +37,8 @@ describe('Datasource control', () => {
 
     cy.get('[data-test="datasource-menu-trigger"]').click();
 
-    cy.get('script').then(nodes => {
-      numScripts = nodes.length;
-    });
-
     cy.get('[data-test="edit-dataset"]').click();
 
-    // should load additional scripts for the modal
-    cy.get('script').then(nodes => {
-      expect(nodes.length).to.greaterThan(numScripts);
-    });
     cy.get('[data-test="edit-dataset-tabs"]').within(() => {
       cy.contains('Metrics').click();
     });

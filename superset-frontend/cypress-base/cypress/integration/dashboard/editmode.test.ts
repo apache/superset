@@ -148,16 +148,21 @@ function assertMetadata(text: string) {
     });
 }
 function clearMetadata() {
-  cy.wait(500);
   cy.get('#json_metadata').then($jsonmetadata => {
-    cy.wrap($jsonmetadata).type('{selectall} {backspace}');
+    cy.wrap($jsonmetadata).find('.ace_content').click();
+    cy.wrap($jsonmetadata)
+      .find('.ace_text-input')
+      .type('{selectall} {backspace}');
   });
 }
 
 function writeMetadata(metadata: string) {
-  cy.get('#json_metadata').then($jsonmetadata => {
-    cy.wrap($jsonmetadata).type(metadata, { parseSpecialCharSequences: false });
-  });
+  cy.get('#json_metadata').then($jsonmetadata =>
+    cy
+      .wrap($jsonmetadata)
+      .find('.ace_text-input')
+      .type(metadata, { parseSpecialCharSequences: false }),
+  );
 }
 
 function openExplore(chartName: string) {
