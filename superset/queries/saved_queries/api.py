@@ -19,7 +19,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any
-from zipfile import ZipFile, is_zipfile
+from zipfile import is_zipfile, ZipFile
 
 from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
