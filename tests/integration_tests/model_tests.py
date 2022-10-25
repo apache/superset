@@ -57,30 +57,36 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("hive/default", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/default", db)
 
-        db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEqual("hive/core_db", db)
+        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/core_db", db)
 
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("hive", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive", db)
 
-        db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEqual("hive/core_db", db)
+        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("hive/core_db", db)
 
     def test_database_schema_postgres(self):
         sqlalchemy_uri = "postgresql+psycopg2://postgres.airbnb.io:5439/prod"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("prod", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("prod", db)
 
-        db = make_url(model.get_sqla_engine(schema="foo").url).database
-        self.assertEqual("prod", db)
+        with model.get_sqla_engine_with_context(schema="foo") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("prod", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
@@ -91,11 +97,14 @@ class TestDatabaseModel(SupersetTestCase):
     def test_database_schema_hive(self):
         sqlalchemy_uri = "hive://hive@hive.airbnb.io:10000/default?auth=NOSASL"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("default", db)
 
-        db = make_url(model.get_sqla_engine(schema="core_db").url).database
-        self.assertEqual("core_db", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("default", db)
+
+        with model.get_sqla_engine_with_context(schema="core_db") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("core_db", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
@@ -104,11 +113,13 @@ class TestDatabaseModel(SupersetTestCase):
         sqlalchemy_uri = "mysql://root@localhost/superset"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
 
-        db = make_url(model.get_sqla_engine().url).database
-        self.assertEqual("superset", db)
+        with model.get_sqla_engine_with_context() as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("superset", db)
 
-        db = make_url(model.get_sqla_engine(schema="staging").url).database
-        self.assertEqual("staging", db)
+        with model.get_sqla_engine_with_context(schema="staging") as engine:
+            db = make_url(engine.url).database
+            self.assertEqual("staging", db)
 
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
@@ -120,12 +131,14 @@ class TestDatabaseModel(SupersetTestCase):
 
         with override_user(example_user):
             model.impersonate_user = True
-            username = make_url(model.get_sqla_engine().url).username
-            self.assertEqual(example_user.username, username)
+            with model.get_sqla_engine_with_context() as engine:
+                username = make_url(engine.url).username
+                self.assertEqual(example_user.username, username)
 
             model.impersonate_user = False
-            username = make_url(model.get_sqla_engine().url).username
-            self.assertNotEqual(example_user.username, username)
+            with model.get_sqla_engine_with_context() as engine:
+                username = make_url(engine.url).username
+                self.assertNotEqual(example_user.username, username)
 
     @mock.patch("superset.models.core.create_engine")
     def test_impersonate_user_presto(self, mocked_create_engine):
@@ -368,6 +381,20 @@ class TestDatabaseModel(SupersetTestCase):
         mocked_create_engine.side_effect = Exception()
         with self.assertRaises(SupersetException):
             model.get_sqla_engine()
+
+    # todo(hughhh): update this test
+    # @mock.patch("superset.models.core.create_engine")
+    # def test_get_sqla_engine_with_context(self, mocked_create_engine):
+    #     model = Database(
+    #         database_name="test_database",
+    #         sqlalchemy_uri="mysql://root@localhost",
+    #     )
+    #     model.db_engine_spec.get_dbapi_exception_mapping = mock.Mock(
+    #         return_value={Exception: SupersetException}
+    #     )
+    #     mocked_create_engine.side_effect = Exception()
+    #     with self.assertRaises(SupersetException):
+    #         model.get_sqla_engine()
 
 
 class TestSqlaTableModel(SupersetTestCase):
