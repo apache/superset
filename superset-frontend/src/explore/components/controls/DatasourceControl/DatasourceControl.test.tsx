@@ -18,9 +18,10 @@
  */
 
 import React from 'react';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient, DatasourceType } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -45,7 +46,10 @@ const createProps = () => ({
   },
   validationErrors: [],
   name: 'datasource',
-  actions: {},
+  actions: {
+    changeDatasource: jest.fn(),
+    setControlValue: jest.fn(),
+  },
   isEditable: true,
   user: {
     createdOn: '2021-04-27T18:12:38.952304',
@@ -61,6 +65,16 @@ const createProps = () => ({
   onChange: jest.fn(),
   onDatasourceSave: jest.fn(),
 });
+
+async function openAndSaveChanges(datasource: any) {
+  fetchMock.post('glob:*/datasource/save/', datasource, {
+    overwriteRoutes: true,
+  });
+  userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  userEvent.click(await screen.findByTestId('edit-dataset'));
+  userEvent.click(await screen.findByTestId('datasource-modal-save'));
+  userEvent.click(await screen.findByText('OK'));
+}
 
 test('Should render', async () => {
   const props = createProps();
@@ -228,4 +242,109 @@ test('Click on Save as dataset', async () => {
   expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
   expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
   expect(dropdownField).toBeVisible();
+});
+
+test('should set the default temporal column', async () => {
+  const props = createProps();
+  const overrideProps = {
+    ...props,
+    form_data: {
+      granularity_sqla: 'test-col',
+    },
+    datasource: {
+      ...props.datasource,
+      main_dttm_col: 'test-default',
+      columns: [
+        {
+          column_name: 'test-col',
+          is_dttm: false,
+        },
+        {
+          column_name: 'test-default',
+          is_dttm: true,
+        },
+      ],
+    },
+  };
+  render(<DatasourceControl {...props} {...overrideProps} />, {
+    useRedux: true,
+  });
+
+  await openAndSaveChanges(overrideProps.datasource);
+  await waitFor(() => {
+    expect(props.actions.setControlValue).toHaveBeenCalledWith(
+      'granularity_sqla',
+      'test-default',
+    );
+  });
+});
+
+test('should set the first available temporal column', async () => {
+  const props = createProps();
+  const overrideProps = {
+    ...props,
+    form_data: {
+      granularity_sqla: 'test-col',
+    },
+    datasource: {
+      ...props.datasource,
+      main_dttm_col: null,
+      columns: [
+        {
+          column_name: 'test-col',
+          is_dttm: false,
+        },
+        {
+          column_name: 'test-first',
+          is_dttm: true,
+        },
+      ],
+    },
+  };
+  render(<DatasourceControl {...props} {...overrideProps} />, {
+    useRedux: true,
+  });
+
+  await openAndSaveChanges(overrideProps.datasource);
+  await waitFor(() => {
+    expect(props.actions.setControlValue).toHaveBeenCalledWith(
+      'granularity_sqla',
+      'test-first',
+    );
+  });
+});
+
+test('should not set the temporal column', async () => {
+  const props = createProps();
+  const overrideProps = {
+    ...props,
+    form_data: {
+      granularity_sqla: null,
+    },
+    datasource: {
+      ...props.datasource,
+      main_dttm_col: null,
+      columns: [
+        {
+          column_name: 'test-col',
+          is_dttm: false,
+        },
+        {
+          column_name: 'test-col-2',
+          is_dttm: false,
+        },
+      ],
+    },
+  };
+  render(<DatasourceControl {...props} {...overrideProps} />, {
+    useRedux: true,
+  });
+
+  await openAndSaveChanges(overrideProps.datasource);
+  await waitFor(() => {
+    expect(props.actions.setControlValue).toHaveBeenCalledWith(
+      'granularity_sqla',
+      null,
+    );
+  });
 });
