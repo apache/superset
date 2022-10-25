@@ -190,7 +190,7 @@ image:
 imagePullSecrets: []
 
 initImage:
-  repository: busybox
+  repository: jwilder/dockerize
   tag: latest
   pullPolicy: IfNotPresent
 
@@ -270,8 +270,8 @@ supersetNode:
   # @default -- a container waiting for postgres
   initContainers:
     - name: wait-for-postgres
-      image: jwilder/dockerize
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: "{{ tpl .Values.envFromSecret . }}"
@@ -345,8 +345,8 @@ supersetWorker:
   # @default -- a container waiting for postgres and redis
   initContainers:
     - name: wait-for-postgres-redis
-      image: jwilder/dockerize
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: "{{ tpl .Values.envFromSecret . }}"
@@ -411,8 +411,8 @@ supersetCeleryBeat:
   # @default -- a container waiting for postgres
   initContainers:
     - name: wait-for-postgres-redis
-      image: jwilder/dockerize
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: "{{ tpl .Values.envFromSecret . }}"
@@ -485,8 +485,8 @@ supersetCeleryFlower:
   # @default -- a container waiting for postgres and redis
   initContainers:
     - name: wait-for-postgres-redis
-      image: jwilder/dockerize
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: "{{ tpl .Values.envFromSecret . }}"
@@ -620,8 +620,8 @@ init:
   # @default -- a container waiting for postgres
   initContainers:
     - name: wait-for-postgres
-      image: jwilder/dockerize
-      imagePullPolicy: IfNotPresent
+      image: "{{ .Values.initImage.repository }}:{{ .Values.initImage.tag }}"
+      imagePullPolicy: "{{ .Values.initImage.pullPolicy }}"
       envFrom:
         - secretRef:
             name: "{{ tpl .Values.envFromSecret . }}"

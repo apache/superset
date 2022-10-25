@@ -71,7 +71,7 @@ helm install my-superset superset/superset
 | init.podSecurityContext | object | `{}` |  |
 | init.resources | object | `{}` |  |
 | initImage.pullPolicy | string | `"IfNotPresent"` |  |
-| initImage.repository | string | `"busybox"` |  |
+| initImage.repository | string | `"jwilder/dockerize"` |  |
 | initImage.tag | string | `"latest"` |  |
 | nodeSelector | object | `{}` |  |
 | postgresql | object | see `values.yaml` | Configuration values for the postgresql dependency. ref: https://github.com/kubernetes/charts/blob/master/stable/postgresql/README.md |
