@@ -97,7 +97,7 @@ helm install my-superset superset/superset
 | supersetCeleryFlower.command | list | a `celery flower` command | Command |
 | supersetCeleryFlower.containerSecurityContext | object | `{}` |  |
 | supersetCeleryFlower.deploymentAnnotations | object | `{}` | Annotations to be added to supersetCeleryBeat deployment |
-| supersetCeleryFlower.enabled | bool | `false` | Enables a Celery flower deployment (management UI to monitor celery jobs) WARNING: requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images) flower>=1.0.0 requires Celery 5+ which Superset does not support |
+| supersetCeleryFlower.enabled | bool | `false` | Enables a Celery flower deployment (management UI to monitor celery jobs) WARNING: on superset 1.x, this requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images) flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support |
 | supersetCeleryFlower.initContainers | list | a container waiting for postgres and redis | List of init containers |
 | supersetCeleryFlower.livenessProbe.failureThreshold | int | `3` |  |
 | supersetCeleryFlower.livenessProbe.httpGet.path | string | `"/api/workers"` |  |

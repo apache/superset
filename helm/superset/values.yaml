@@ -440,8 +440,8 @@ supersetCeleryBeat:
 
 supersetCeleryFlower:
   # -- Enables a Celery flower deployment (management UI to monitor celery jobs)
-  # WARNING: requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images)
-  # flower>=1.0.0 requires Celery 5+ which Superset does not support
+  # WARNING: on superset 1.x, this requires a Superset image that has `flower<1.0.0` installed (which is NOT the case of the default images)
+  # flower>=1.0.0 requires Celery 5+ which Superset 1.5 does not support
   enabled: false
   replicaCount: 1
   # -- Command
