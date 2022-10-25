@@ -462,7 +462,9 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
           <Button
             tooltip={
               canCreateFlashObject
-                ? t('Create Flash Object')
+                ? buttonType === DATASOURCE_TYPES.HIVE
+                  ? t('Schedule')
+                  : t('Create Flash Object')
                 : t('Please add a valid SQL QUERY first')
             }
             disabled={!canCreateFlashObject}
