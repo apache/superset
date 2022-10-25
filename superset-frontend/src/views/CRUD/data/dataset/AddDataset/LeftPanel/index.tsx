@@ -208,17 +208,6 @@ export default function LeftPanel({
     }
   }, [resetTables]);
 
-  const search = useMemo(
-    () =>
-      debounce((value: string) => {
-        const endpoint = encodeURI(
-          `/superset/tables/${dbId}/${encodedSchema}/`,
-        );
-        getTablesList(endpoint);
-      }, FAST_DEBOUNCE),
-    [dbId, encodedSchema],
-  );
-
   const filteredOptions = tableOptions.filter(option =>
     option?.value?.toLowerCase().includes(searchVal.toLowerCase()),
   );
@@ -266,7 +255,6 @@ export default function LeftPanel({
                 value={searchVal}
                 prefix={<SearchIcon iconSize="l" />}
                 onChange={evt => {
-                  search(evt.target.value);
                   setSearchVal(evt.target.value);
                 }}
                 className="table-form"
