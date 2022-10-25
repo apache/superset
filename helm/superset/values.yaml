@@ -384,7 +384,7 @@ supersetWorker:
       command:
         - sh
         - -c
-        - celery inspect ping -A superset.tasks.celery_app:app -d celery@$HOSTNAME
+        - celery -A superset.tasks.celery_app:app inspect ping -d celery@$HOSTNAME
     initialDelaySeconds: 120
     timeoutSeconds: 60
     failureThreshold: 3
