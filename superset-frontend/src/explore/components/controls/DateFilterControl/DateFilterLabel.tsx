@@ -33,6 +33,7 @@ import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
 import {
+  DATE_FILTER_TEST_KEY,
   fetchTimeRange,
   FRAME_OPTIONS,
   getDateFilterControlTestId,
@@ -270,7 +271,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {frame === 'No filter' && <div data-test="no-filter" />}
+      {frame === 'No filter' && (
+        <div data-test={DATE_FILTER_TEST_KEY.noFilter} />
+      )}
       <Divider />
       <div>
         <div className="section-title">{t('Actual time range')}</div>
@@ -289,7 +292,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           cta
           key="cancel"
           onClick={onHide}
-          data-test="cancel-button"
+          data-test={DATE_FILTER_TEST_KEY.cancelButton}
         >
           {t('CANCEL')}
         </Button>
@@ -326,7 +329,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       overlayStyle={{ width: '600px' }}
     >
       <Tooltip placement="top" title={tooltipTitle}>
-        <Label className="pointer" data-test="time-range-trigger">
+        <Label
+          className="pointer"
+          data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
+        >
           {actualTimeRange}
         </Label>
       </Tooltip>
@@ -339,7 +345,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         <Label
           className="pointer"
           onClick={toggleOverlay}
-          data-test="time-range-trigger"
+          data-test={DATE_FILTER_TEST_KEY.modalOverlay}
         >
           {actualTimeRange}
         </Label>
