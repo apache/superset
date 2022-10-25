@@ -139,6 +139,10 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
           ([key, value]: [string, any]) => {
             if (key === 'datastoreId') {
               if (dbDropdown) {
+                const index = dbDropdown
+                  ? dbDropdown.enumNames?.indexOf('Hive Flashes')
+                  : 0;
+                const defaultValue = index ? dbDropdown.enum[index] : '';
                 jsonSchema.properties[key] = {
                   ...value,
                   enum: dbDropdown && dbDropdown.enum ? dbDropdown.enum : [''],
@@ -149,7 +153,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
                   default:
                     dbDropdown && dbDropdown.enum
                       ? buttonType === DATASOURCE_TYPES.HIVE
-                        ? 3
+                        ? defaultValue
                         : dbDropdown.enum[0]
                       : '',
                   readOnly: buttonType === DATASOURCE_TYPES.HIVE,
@@ -458,7 +462,9 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
           <Button
             tooltip={
               canCreateFlashObject
-                ? t('Create Flash Object')
+                ? buttonType === DATASOURCE_TYPES.HIVE
+                  ? t('Schedule')
+                  : t('Create Flash Object')
                 : t('Please add a valid SQL QUERY first')
             }
             disabled={!canCreateFlashObject}
