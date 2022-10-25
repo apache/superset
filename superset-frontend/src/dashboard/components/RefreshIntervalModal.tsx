@@ -25,15 +25,6 @@ import Button from 'src/components/Button';
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import { FormLabel } from 'src/components/Form';
 import { propertyComparator } from 'src/components/Select/utils';
-import { configs } from 'src/configs';
-
-const configValues = configs();
-export const options = configValues.DASHBOARD_AUTO_REFRESH_INTERVALS.map(
-  (o: any[]) => ({
-    value: o[0] as number,
-    label: o[1],
-  }),
-);
 
 const StyledModalTrigger = styled(ModalTrigger)`
   .ant-modal-body {
@@ -53,6 +44,7 @@ type RefreshIntervalModalProps = {
   editMode: boolean;
   refreshLimit?: number;
   refreshWarning: string | null;
+  refreshIntervalOptions: any;
 };
 
 type RefreshIntervalModalState = {
@@ -95,13 +87,19 @@ class RefreshIntervalModal extends React.PureComponent<
   }
 
   handleFrequencyChange(value: number) {
+    const { refreshIntervalOptions } = this.props;
     this.setState({
-      refreshFrequency: value || options[0].value,
+      refreshFrequency: value || (refreshIntervalOptions[0][0] as number),
     });
   }
 
   render() {
-    const { refreshLimit = 0, refreshWarning, editMode } = this.props;
+    const {
+      refreshLimit = 0,
+      refreshWarning,
+      editMode,
+      refreshIntervalOptions,
+    } = this.props;
     const { refreshFrequency = 0 } = this.state;
     const showRefreshWarning =
       !!refreshFrequency && !!refreshWarning && refreshFrequency < refreshLimit;
@@ -116,7 +114,10 @@ class RefreshIntervalModal extends React.PureComponent<
             <FormLabel>{t('Refresh frequency')}</FormLabel>
             <Select
               ariaLabel={t('Refresh interval')}
-              options={options}
+              options={refreshIntervalOptions.map((o: any[]) => ({
+                value: o[0] as number,
+                label: t(o[1]),
+              }))}
               value={refreshFrequency}
               onChange={this.handleFrequencyChange}
               sortComparator={propertyComparator('value')}

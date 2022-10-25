@@ -26,16 +26,6 @@ import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import HeaderActionsDropdown from '.';
 
-jest.mock('src/configs', () => ({
-  ...jest.requireActual('src/configs'),
-  configs: jest.fn(() => ({
-    DASHBOARD_AUTO_REFRESH_INTERVALS: [
-      [0, "Don't refresh"],
-      [10, '10 seconds'],
-    ],
-  })),
-}));
-
 const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
@@ -48,7 +38,12 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+        ],
+      },
     },
   },
   dashboardTitle: 'Title',

@@ -97,16 +97,6 @@ fetchMock.get(dashboardEndpoint, {
 global.URL.createObjectURL = jest.fn();
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
 
-jest.mock('src/configs', () => ({
-  ...jest.requireActual('src/configs'),
-  configs: jest.fn(() => ({
-    DASHBOARD_AUTO_REFRESH_INTERVALS: [
-      [0, "Don't refresh"],
-      [10, '10 seconds'],
-    ],
-  })),
-}));
-
 describe('DashboardList', () => {
   const isFeatureEnabledMock = jest
     .spyOn(featureFlags, 'isFeatureEnabled')

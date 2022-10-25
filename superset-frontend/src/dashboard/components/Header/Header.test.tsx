@@ -37,7 +37,12 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+        ],
+      },
     },
   },
   user: {
@@ -112,16 +117,6 @@ const redoProps = {
 };
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
-
-jest.mock('src/configs', () => ({
-  ...jest.requireActual('src/configs'),
-  configs: jest.fn(() => ({
-    DASHBOARD_AUTO_REFRESH_INTERVALS: [
-      [0, "Don't refresh"],
-      [10, '10 seconds'],
-    ],
-  })),
-}));
 
 function setup(props: HeaderProps, initialState = {}) {
   return render(

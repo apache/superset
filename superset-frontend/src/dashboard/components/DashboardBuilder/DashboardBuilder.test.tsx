@@ -85,15 +85,6 @@ jest.mock('src/dashboard/components/nativeFilters/FilterBar', () => () => (
 jest.mock('src/dashboard/containers/DashboardGrid', () => () => (
   <div data-test="mock-dashboard-grid" />
 ));
-jest.mock('src/configs', () => ({
-  ...jest.requireActual('src/configs'),
-  configs: jest.fn(() => ({
-    DASHBOARD_AUTO_REFRESH_INTERVALS: [
-      [0, "Don't refresh"],
-      [10, '10 seconds'],
-    ],
-  })),
-}));
 
 describe('DashboardBuilder', () => {
   let favStarStub: jest.Mock;

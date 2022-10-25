@@ -40,16 +40,6 @@ import dashboardState from 'spec/fixtures/mockDashboardState';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import { getAllActiveFilters } from 'src/dashboard/util/activeAllDashboardFilters';
 
-jest.mock('src/configs', () => ({
-  ...jest.requireActual('src/configs'),
-  configs: jest.fn(() => ({
-    DASHBOARD_AUTO_REFRESH_INTERVALS: [
-      [0, "Don't refresh"],
-      [10, '10 seconds'],
-    ],
-  })),
-}));
-
 describe('Dashboard', () => {
   const props = {
     actions: {

@@ -239,6 +239,9 @@ class HeaderActionsDropdown extends React.PureComponent {
       hash: window.location.hash,
     });
 
+    const refreshIntervalOptions =
+      dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
+
     return (
       <Menu selectable={false} data-test="header-actions-menu" {...rest}>
         {!editMode && (
@@ -386,6 +389,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             refreshWarning={refreshWarning}
             onChange={this.changeRefreshInterval}
             editMode={editMode}
+            refreshIntervalOptions={refreshIntervalOptions}
             triggerNode={<span>{t('Set auto-refresh interval')}</span>}
           />
         </Menu.Item>
