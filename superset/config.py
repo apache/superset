@@ -650,10 +650,11 @@ CORS_OPTIONS: Dict[Any, Any] = {}
 # HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.
 HTML_SANITIZATION = True
 
-# Use this configuration to extend the HTML sanitization schema. By default we use the
-# Gihtub schema defined in https://github.com/syntax-tree/hast-util-sanitize/blob/main/lib/schema.js
-# For example, the following configuration would allow the rendering of the style attribute for div elements
-# and the ftp protocol in hrefs:
+# Use this configuration to extend the HTML sanitization schema.
+# By default we use the Gihtub schema defined in
+# https://github.com/syntax-tree/hast-util-sanitize/blob/main/lib/schema.js
+# For example, the following configuration would allow the rendering of the
+# style attribute for div elements and the ftp protocol in hrefs:
 # HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
 #   "attributes": {
 #     "div": ["style"],
@@ -662,8 +663,8 @@ HTML_SANITIZATION = True
 #     "href": ["ftp"],
 #   }
 # }
-# Be careful when extending the default schema as it can open you up to cross-site scripting (XSS) attacks.
-HTML_SANITIZATION_SCHEMA_EXTENSIONS = {}
+# Be careful when extending the default schema to avoid XSS attacks.
+HTML_SANITIZATION_SCHEMA_EXTENSIONS: Dict[str, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
