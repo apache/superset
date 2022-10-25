@@ -45,9 +45,9 @@ from superset.reports.commands.exceptions import (
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
-    ReportScheduleSelleniumUserNotFoundError,
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
+    ReportScheduleUserNotFoundError,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.dao import (
@@ -77,11 +77,22 @@ from superset.utils.webdriver import DashboardStandaloneMode
 logger = logging.getLogger(__name__)
 
 
-def _get_user() -> User:
-    user = security_manager.find_user(username=app.config["THUMBNAIL_SELENIUM_USER"])
-    if not user:
-        raise ReportScheduleSelleniumUserNotFoundError()
-    return user
+def _get_user(report_schedule: ReportSchedule) -> User:
+    user_types = app.config["ALERT_REPORTS_EXECUTE_AS"]
+    for user_type in user_types:
+        if user_type == "selenium":
+            return app.config["THUMBNAIL_SELENIUM_USER"]
+        elif user_type == "creator":
+            if user := report_schedule.created_by:
+                return user
+        elif user_type == "modifier":
+            if user := report_schedule.changed_by:
+                return user
+        elif user_type == "owner":
+            owners = report_schedule.owners
+            if owners:
+                return owners[0]
+    raise ReportScheduleUserNotFoundError()
 
 
 class BaseReportState:
@@ -182,11 +193,11 @@ class BaseReportState:
                 **kwargs,
             )
 
-        # If we need to render dashboard in a specific sate, use stateful permalink
+        # If we need to render dashboard in a specific state, use stateful permalink
         dashboard_state = self._report_schedule.extra.get("dashboard")
         if dashboard_state:
             permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=self._report_schedule.dashboard_id,
+                dashboard_id=str(self._report_schedule.dashboard_id),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
@@ -206,7 +217,7 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         url = self._get_url()
-        user = _get_user()
+        user = _get_user(self._report_schedule)
         if self._report_schedule.chart:
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
@@ -237,7 +248,7 @@ class BaseReportState:
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            _get_user()
+            _get_user(self._report_schedule)
         )
 
         if self._report_schedule.chart.query_context is None:
@@ -263,7 +274,7 @@ class BaseReportState:
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            _get_user()
+            _get_user(self._report_schedule)
         )
 
         if self._report_schedule.chart.query_context is None:
@@ -674,8 +685,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     def run(self) -> None:
         with session_scope(nullpool=True) as session:
             try:
-                with override_user(_get_user()):
-                    self.validate(session=session)
+                self.validate(session=session)
+                with override_user(_get_user(self._model)):  # type: ignore
                     if not self._model:
                         raise ReportScheduleExecuteUnexpectedError()
                     ReportScheduleStateMachine(

@@ -27,7 +27,7 @@ from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
 from sqlalchemy.sql import func
 
-from superset import db
+from superset import db, security_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -68,7 +68,7 @@ from tests.integration_tests.reports.utils import (
     cleanup_report_schedule,
     create_report_notification,
     CSV_FILE,
-    OWNER_EMAIL,
+    DEFAULT_OWNER_EMAIL,
     SCREENSHOT_FILE,
     TEST_ID,
 )
@@ -146,6 +146,19 @@ def create_report_email_chart():
         chart = db.session.query(Slice).first()
         report_schedule = create_report_notification(
             email_target="target@email.com", chart=chart
+        )
+        yield report_schedule
+
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture()
+def create_report_email_chart_alpha_owner():
+    with app.app_context():
+        owners = [security_manager.find_user("alpha")]
+        chart = db.session.query(Slice).first()
+        report_schedule = create_report_notification(
+            email_target="target@email.com", chart=chart, owners=owners
         )
         yield report_schedule
 
@@ -643,6 +656,56 @@ def test_email_chart_report_schedule(
         assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_chart_alpha_owner"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_email_chart_report_schedule_alpha_owner(
+    screenshot_mock,
+    email_mock,
+    create_report_email_chart_alpha_owner,
+):
+    """
+    ExecuteReport Command: Test chart email report schedule with screenshot
+    executed as the chart creator
+    """
+    config_key = "ALERT_REPORTS_EXECUTE_AS"
+    original_config_value = app.config[config_key]
+    app.config[config_key] = ["owner"]
+
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_chart.id, datetime.utcnow()
+        ).run()
+
+        notification_targets = get_target_from_report_schedule(
+            create_report_email_chart_alpha_owner
+        )
+        # assert that the screenshot is executed as the chart owner
+        assert screenshot_mock.call_args[0][0] == "alpha"
+        # assert that the link sent is correct
+        assert (
+            '<a href="http://0.0.0.0:8080/explore/?'
+            "form_data=%7B%22slice_id%22%3A%20"
+            f"{create_report_email_chart.chart.id}%7D&"
+            'standalone=0&force=false">Explore in Superset</a>'
+            in email_mock.call_args[0][2]
+        )
+        # Assert the email smtp address
+        assert email_mock.call_args[0][0] == notification_targets[0]
+        # Assert the email inline screenshot
+        smtp_images = email_mock.call_args[1]["images"]
+        assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
+        # Assert logs are correct
+        assert_log(ReportState.SUCCESS)
+
+    app.config[config_key] = original_config_value
 
 
 @pytest.mark.usefixtures(
@@ -1465,7 +1528,7 @@ def test_soft_timeout_alert(email_mock, create_alert_email_chart):
 
     notification_targets = get_target_from_report_schedule(create_alert_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == OWNER_EMAIL
+    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while executing the query."
@@ -1494,7 +1557,7 @@ def test_soft_timeout_screenshot(screenshot_mock, email_mock, create_alert_email
         ).run()
 
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == OWNER_EMAIL
+    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="A timeout occurred while taking a screenshot."
@@ -1534,7 +1597,7 @@ def test_soft_timeout_csv(
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == OWNER_EMAIL
+    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR,
@@ -1574,7 +1637,7 @@ def test_generate_no_csv(
         create_report_email_chart_with_csv
     )
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == OWNER_EMAIL
+    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR,
@@ -1603,7 +1666,7 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
 
     notification_targets = get_target_from_report_schedule(create_report_email_chart)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == OWNER_EMAIL
+    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="Failed taking a screenshot Unexpected error"
@@ -1636,7 +1699,7 @@ def test_fail_csv(
 
     get_target_from_report_schedule(create_report_email_chart_with_csv)
     # Assert the email smtp address, asserts a notification was sent with the error
-    assert email_mock.call_args[0][0] == OWNER_EMAIL
+    assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
     assert_log(
         ReportState.ERROR, error_message="Failed generating csv <urlopen error 500>"
@@ -1685,7 +1748,7 @@ def test_invalid_sql_alert(email_mock, create_invalid_sql_alert_email_chart):
             create_invalid_sql_alert_email_chart
         )
         # Assert the email smtp address, asserts a notification was sent with the error
-        assert email_mock.call_args[0][0] == OWNER_EMAIL
+        assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
@@ -1706,7 +1769,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
             create_invalid_sql_alert_email_chart
         )
         # Assert the email smtp address, asserts a notification was sent with the error
-        assert email_mock.call_args[0][0] == OWNER_EMAIL
+        assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
         assert (
             get_notification_error_sent_count(create_invalid_sql_alert_email_chart) == 1
         )
