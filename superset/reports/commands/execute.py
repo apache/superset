@@ -25,7 +25,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app, security_manager
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -82,13 +82,13 @@ def _get_user(report_schedule: ReportSchedule) -> User:
     for user_type in user_types:
         if user_type == "selenium":
             return app.config["THUMBNAIL_SELENIUM_USER"]
-        elif user_type == "creator":
+        if user_type == "creator":
             if user := report_schedule.created_by:
                 return user
-        elif user_type == "modifier":
+        if user_type == "modifier":
             if user := report_schedule.changed_by:
                 return user
-        elif user_type == "owner":
+        if user_type == "owner":
             owners = report_schedule.owners
             if owners:
                 return owners[0]
@@ -686,9 +686,9 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         with session_scope(nullpool=True) as session:
             try:
                 self.validate(session=session)
-                with override_user(_get_user(self._model)):  # type: ignore
-                    if not self._model:
-                        raise ReportScheduleExecuteUnexpectedError()
+                if not self._model:
+                    raise ReportScheduleExecuteUnexpectedError()
+                with override_user(_get_user(self._model)):
                     ReportScheduleStateMachine(
                         session, self._execution_id, self._model, self._scheduled_dttm
                     ).run()
@@ -706,6 +706,6 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             self._model_id,
             self._execution_id,
         )
-        self._model = ReportScheduleDAO.find_by_id(self._model_id, session=session)
+        self._model = session.query(ReportSchedule).filter_by(id=self._model_id).first()
         if not self._model:
             raise ReportScheduleNotFoundError()
