@@ -17,33 +17,6 @@
  * under the License.
  */
 
-import { ActionMenuItem } from './index';
-
-export const exampleMenuOptions: ActionMenuItem[] = [
-  {
-    label: 'Action 1',
-    tooltip: "This is a tip, don't spend it all in one place",
-    onClick: (item: ActionMenuItem) => {
-      // eslint-disable-next-line no-alert
-      alert(JSON.stringify(item));
-    },
-    payload: {
-      taco: 'spicy chicken',
-    },
-  },
-  {
-    label: 'Action 2',
-    tooltip: 'This is another tip',
-    onClick: (item: ActionMenuItem) => {
-      // eslint-disable-next-line no-alert
-      alert(JSON.stringify(item));
-    },
-    payload: {
-      taco: 'saucy tofu',
-    },
-  },
-];
-
 export const exampleRow = {
   key: 1,
   buttonCell: 'Click Me',

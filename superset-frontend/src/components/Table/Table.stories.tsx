@@ -20,8 +20,7 @@
 import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { ColumnsType } from 'antd/es/table';
-import { Table, TableSize, SUPERSET_TABLE_COLUMN } from './index';
+import { Table, TableSize, SUPERSET_TABLE_COLUMN, ColumnsType } from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
 import ActionCell from './cell-renderers/ActionCell';

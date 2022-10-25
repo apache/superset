@@ -86,7 +86,11 @@ export default function AddDataset() {
   );
 
   const DatasetPanelComponent = () => (
-    <DatasetPanel tableName={dataset?.table_name} />
+    <DatasetPanel
+      tableName={dataset?.table_name}
+      dbId={dataset?.db?.id}
+      schema={dataset?.schema}
+    />
   );
 
   const FooterComponent = () => (
