@@ -46,8 +46,8 @@ if TYPE_CHECKING:
 
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
-    "Access Denied: Project User does not have bigquery.jobs.create "
-    + "permission in project (?P<project>.+?)"
+    "Access Denied: Project (?P<project_name>.+?): User does not have "
+    + "bigquery.jobs.create permission in project (?P<project>.+?)"
 )
 
 TABLE_DOES_NOT_EXIST_REGEX = re.compile(
@@ -154,9 +154,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
-                "We were unable to connect to your database. Please "
-                "confirm that your service account has the Viewer "
-                "and Job User roles on the project."
+                "Unable to connect. Verify that the following roles are set "
+                'on the service account: "BigQuery Data Viewer", '
+                '"BigQuery Metadata Viewer", "BigQuery Job User" '
+                "and the following permissions are set "
+                '"bigquery.readsessions.create", '
+                '"bigquery.readsessions.getData"'
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
             {},
