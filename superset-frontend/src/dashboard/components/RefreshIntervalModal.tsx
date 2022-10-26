@@ -89,7 +89,7 @@ class RefreshIntervalModal extends React.PureComponent<
   handleFrequencyChange(value: number) {
     const { refreshIntervalOptions } = this.props;
     this.setState({
-      refreshFrequency: value || (refreshIntervalOptions[0][0] as number),
+      refreshFrequency: value || refreshIntervalOptions[0][0],
     });
   }
 
