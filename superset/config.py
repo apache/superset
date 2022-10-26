@@ -469,6 +469,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "EMBEDDABLE_CHARTS": True,
     "DRILL_TO_DETAIL": False,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    "HORIZONTAL_FILTER_BAR": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
