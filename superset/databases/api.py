@@ -75,10 +75,12 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorsException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.views.base import json_errors_response
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -224,7 +226,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(self) -> FlaskResponse:
         """Creates a new Database
         ---
         post:
@@ -281,6 +283,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
+        except SupersetErrorsException as ex:
+            return json_errors_response(errors=ex.errors, status=ex.status)
         except DatabaseCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
