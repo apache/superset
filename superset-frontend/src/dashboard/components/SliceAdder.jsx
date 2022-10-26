@@ -19,9 +19,8 @@
 /* eslint-env browser */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { List } from 'react-virtualized';
+import { List, AutoSizer } from 'react-virtualized';
 import { createFilter } from 'react-search-input';
-import { ParentSize } from '@vx/responsive';
 import {
   t,
   styled,
@@ -329,11 +328,11 @@ class SliceAdder extends React.Component {
         {this.props.isLoading && <Loading />}
         {!this.props.isLoading && this.state.filteredSlices.length > 0 && (
           <ChartList>
-            <ParentSize>
-              {({ height }) => (
+            <AutoSizer>
+              {({ height, width }) => (
                 <List
-                  width={376}
-                  height={height || window.innerHeight}
+                  width={width}
+                  height={height}
                   rowCount={this.state.filteredSlices.length}
                   rowHeight={DEFAULT_CELL_HEIGHT}
                   rowRenderer={this.rowRenderer}
@@ -342,7 +341,7 @@ class SliceAdder extends React.Component {
                   selectedSliceIds={this.props.selectedSliceIds}
                 />
               )}
-            </ParentSize>
+            </AutoSizer>
           </ChartList>
         )}
         {this.props.errorMessage && (
