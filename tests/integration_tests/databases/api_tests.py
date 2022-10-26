@@ -525,11 +525,55 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         response = self.client.post(uri, json=database_data)
         response_data = json.loads(response.data.decode("utf-8"))
-        expected_response = {
-            "message": "Connection failed, please check your connection settings"
+        superset_error_mysql = SupersetError(
+            message='Either the username "superset" or the password is incorrect.',
+            error_type="CONNECTION_ACCESS_DENIED_ERROR",
+            level="error",
+            extra={
+                "engine_name": "MySQL",
+                "invalid": ["username", "password"],
+                "issue_codes": [
+                    {
+                        "code": 1014,
+                        "message": (
+                            "Issue 1014 - Either the username or the password is wrong."
+                        ),
+                    },
+                    {
+                        "code": 1015,
+                        "message": (
+                            "Issue 1015 - Issue 1015 - Either the database is spelled incorrectly or does not exist."
+                        ),
+                    },
+                ],
+            },
+        )
+        superset_error_postgres = SupersetError(
+            message='The password provided for username "superset" is incorrect.',
+            error_type="CONNECTION_INVALID_PASSWORD_ERROR",
+            level="error",
+            extra={
+                "engine_name": "PostgreSQL",
+                "invalid": ["username", "password"],
+                "issue_codes": [
+                    {
+                        "code": 1013,
+                        "message": (
+                            "Issue 1013 - The password provided when connecting to a database is not valid."
+                        ),
+                    }
+                ],
+            },
+        )
+        expected_response_mysql = {"errors": [dataclasses.asdict(superset_error_mysql)]}
+        expected_response_postgres = {
+            "errors": [dataclasses.asdict(superset_error_postgres)]
         }
-        self.assertEqual(response.status_code, 422)
-        self.assertEqual(response_data, expected_response)
+        self.assertEqual(response.status_code, 500)
+        if example_db.backend == "mysql":
+            self.assertEqual(response_data, expected_response_mysql)
+        else:
+            self.assertEqual(response_data, expected_response_postgres)
 
     def test_update_database(self):
         """
@@ -1516,7 +1560,7 @@ class TestDatabaseApi(SupersetTestCase):
         url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
 
-        assert rv.status_code == 422
+        assert rv.status_code == 500
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"errors": [dataclasses.asdict(superset_error)]}
