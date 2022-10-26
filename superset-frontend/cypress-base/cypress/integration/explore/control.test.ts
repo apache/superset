@@ -198,6 +198,7 @@ describe('Time range filter', () => {
           cy.get('input[value="now"]');
         });
         cy.get('[data-test=cancel-button]').click();
+        cy.wait(500);
         cy.get('.ant-popover').should('not.be.visible');
       });
   });

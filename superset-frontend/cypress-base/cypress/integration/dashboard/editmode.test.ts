@@ -62,6 +62,7 @@ function dragComponent(
     cy.getBySel('dashboard-charts-filter-search-input').type(component);
     cy.wait('@filtering');
   }
+  cy.wait(500);
   drag(`[data-test="${target}"]`, component).to(
     '[data-test="grid-content"] [data-test="dragdroppable-object"]',
   );
