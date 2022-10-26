@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
@@ -46,6 +46,7 @@ export default class EchartsGraphChartPlugin extends ChartPlugin {
           t('Transformable'),
         ],
         thumbnail,
+        behaviors: [Behavior.DRILL_TO_DETAIL],
       }),
       transformProps,
     });

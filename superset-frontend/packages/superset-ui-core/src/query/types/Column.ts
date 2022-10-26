@@ -29,6 +29,7 @@ export interface AdhocColumn {
   expressionType: 'SQL';
   columnType?: 'BASE_AXIS' | 'SERIES';
   timeGrain?: string;
+  datasourceWarning?: boolean;
 }
 
 /**

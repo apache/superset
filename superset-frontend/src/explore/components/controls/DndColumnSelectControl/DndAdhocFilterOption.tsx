@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -63,6 +64,11 @@ export default function DndAdhocFilterOption({
         type={DndItemType.FilterOption}
         withCaret
         isExtra={adhocFilter.isExtra}
+        datasourceWarningMessage={
+          adhocFilter.datasourceWarning
+            ? t('This filter might be incompatible with current dataset')
+            : undefined
+        }
       />
     </AdhocFilterPopoverTrigger>
   );

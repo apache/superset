@@ -725,6 +725,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         show={datasetAddModalOpen}
         onHide={closeDatasetAddModal}
         onDatasetAdd={refreshData}
+        history={history}
       />
       {datasetCurrentlyDeleting && (
         <DeleteModal

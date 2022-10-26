@@ -458,10 +458,10 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         id: 'expose_in_sqllab',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
@@ -477,10 +477,10 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
         id: 'allow_run_async',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {

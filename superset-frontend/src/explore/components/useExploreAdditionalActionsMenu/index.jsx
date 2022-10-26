@@ -255,17 +255,15 @@ export const useExploreAdditionalActionsMenu = (
               {t('Edit chart properties')}
             </Menu.Item>
           )}
-          {isFeatureEnabled(FeatureFlag.CROSS_REFERENCES) && (
-            <Menu.SubMenu
-              title={t('Dashboards added to')}
-              key={MENU_KEYS.DASHBOARDS_ADDED_TO}
-            >
-              <DashboardsSubMenu
-                chartId={slice?.slice_id}
-                dashboards={dashboards}
-              />
-            </Menu.SubMenu>
-          )}
+          <Menu.SubMenu
+            title={t('Dashboards added to')}
+            key={MENU_KEYS.DASHBOARDS_ADDED_TO}
+          >
+            <DashboardsSubMenu
+              chartId={slice?.slice_id}
+              dashboards={dashboards}
+            />
+          </Menu.SubMenu>
           <Menu.Divider />
         </>
         <Menu.SubMenu title={t('Download')} key={MENU_KEYS.DOWNLOAD_SUBMENU}>

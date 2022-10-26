@@ -203,7 +203,7 @@ const MetadataBar = ({ items }: MetadataBarProps) => {
   const { ref } = useResizeDetector({ onResize });
 
   return (
-    <Bar ref={ref} count={count}>
+    <Bar ref={ref} count={count} data-test="metadata-bar">
       {sortedItems.map((item, index) => (
         <Item
           barWidth={width}

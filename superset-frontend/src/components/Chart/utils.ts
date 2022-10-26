@@ -17,4 +17,24 @@
  * under the License.
  */
 
-export { default } from './DrillDetailPane';
+export const MENU_ITEM_HEIGHT = 32;
+const MENU_VERTICAL_SPACING = 32;
+
+/**
+ * Calculates an adjusted Y-offset for a menu or submenu to prevent that
+ * menu from appearing offscreen
+ *
+ * @param clientY The original Y-offset
+ * @param itemsCount The number of menu items
+ */
+export function getMenuAdjustedY(clientY: number, itemsCount: number) {
+  // Viewport height
+  const vh = Math.max(
+    document.documentElement.clientHeight || 0,
+    window.innerHeight || 0,
+  );
+
+  const menuHeight = MENU_ITEM_HEIGHT * itemsCount + MENU_VERTICAL_SPACING;
+  // Always show the context menu inside the viewport
+  return vh - clientY < menuHeight ? vh - menuHeight : clientY;
+}

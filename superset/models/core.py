@@ -21,7 +21,7 @@ import json
 import logging
 import textwrap
 from ast import literal_eval
-from contextlib import closing
+from contextlib import closing, contextmanager
 from copy import deepcopy
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
@@ -361,6 +361,18 @@ class Database(
             if self.impersonate_user
             else None
         )
+
+    @contextmanager
+    def get_sqla_engine_with_context(
+        self,
+        schema: Optional[str] = None,
+        nullpool: bool = True,
+        source: Optional[utils.QuerySource] = None,
+    ) -> Engine:
+        try:
+            yield self.get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     def get_sqla_engine(
         self,
