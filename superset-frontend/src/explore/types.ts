@@ -32,6 +32,8 @@ import { DatabaseObject } from 'src/views/CRUD/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Slice } from 'src/types/Chart';
 
+export type SaveActionType = 'overwrite' | 'saveas';
+
 export type ChartStatus =
   | 'loading'
   | 'rendered'
@@ -113,5 +115,3 @@ export interface ExplorePageState {
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }
-
-export type SaveActionType = 'overwrite' | 'saveas';

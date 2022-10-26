@@ -25,7 +25,7 @@ import {
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
-import { SaveActionType } from '../types';
+import { SaveActionType } from 'src/explore/types';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 

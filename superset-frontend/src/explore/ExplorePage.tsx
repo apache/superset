@@ -124,7 +124,6 @@ export default function ExplorePage() {
     ) as SaveActionType | null;
     const dashboardContextFormData = getDashboardContextFormData();
     if (!isExploreInitialized.current || !!saveAction) {
-      exploreUrlParams.delete(URL_PARAMS.saveAction.name);
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
           const formData = dashboardContextFormData
