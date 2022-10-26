@@ -166,12 +166,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
       dashboard_title: string;
     };
 
-    if (this.props.datasource?.type === DatasourceType.Query) {
-      const { schema, sql, database } = this.props.datasource;
-      const { templateParams } = this.props.datasource;
-      const columns = this.props.datasource?.columns || [];
+    try {
+      if (this.props.datasource?.type === DatasourceType.Query) {
+        const { schema, sql, database } = this.props.datasource;
+        const { templateParams } = this.props.datasource;
+        const columns = this.props.datasource?.columns || [];
 
-      try {
         await this.props.actions.saveDataset({
           schema,
           sql,
@@ -180,42 +180,26 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
           datasourceName: this.state.datasetName,
           columns,
         });
-      } catch {
-        // Don't continue since server was unable to create dataset
-        this.setState({ isLoading: false });
-        return;
       }
-    }
 
-    //  Get chart dashboards
-    let sliceDashboards: number[] = [];
-    if (this.props.slice && this.state.action === 'overwrite') {
-      try {
+      //  Get chart dashboards
+      let sliceDashboards: number[] = [];
+      if (this.props.slice && this.state.action === 'overwrite') {
         sliceDashboards = await this.props.actions.getSliceDashboards(
           this.props.slice,
         );
-      } catch (e) {
-        this.setState({ isLoading: false });
-        return;
       }
-    }
 
-    let dashboard: DashboardGetResponse | null = null;
-    if (this.state.newDashboardName || this.state.saveToDashboardId) {
-      let saveToDashboardId = this.state.saveToDashboardId || null;
-      if (!this.state.saveToDashboardId) {
-        try {
+      let dashboard: DashboardGetResponse | null = null;
+      if (this.state.newDashboardName || this.state.saveToDashboardId) {
+        let saveToDashboardId = this.state.saveToDashboardId || null;
+        if (!this.state.saveToDashboardId) {
           const response = await this.props.actions.createDashboard(
             this.state.newDashboardName,
           );
           saveToDashboardId = response.id;
-        } catch (e) {
-          this.setState({ isLoading: false });
-          return;
         }
-      }
 
-      try {
         const response = await this.props.actions.getDashboard(
           saveToDashboardId,
         );
@@ -230,15 +214,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             dashboards: sliceDashboards,
           });
         }
-      } catch (e) {
-        this.setState({ isLoading: false });
-        return;
       }
-    }
 
-    //  Update or create slice
-    let value: { id: number };
-    try {
+      //  Update or create slice
+      let value: { id: number };
       if (this.state.action === 'overwrite') {
         value = await this.props.actions.updateSlice(
           this.props.slice,
@@ -263,33 +242,32 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             : null,
         );
       }
-    } catch (e) {
+
+      if (dashboard) {
+        sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
+      } else {
+        sessionStorage.removeItem(SK_DASHBOARD_ID);
+      }
+
+      // Go to new dashboard url
+      if (gotodash && dashboard) {
+        this.props.history.push(dashboard.url);
+        return;
+      }
+
+      const searchParams = new URLSearchParams(window.location.search);
+      searchParams.set('save_action', this.state.action);
+      searchParams.delete('form_data_key');
+      if (this.state.action === 'saveas') {
+        searchParams.set('slice_id', value.id.toString());
+      }
+      this.props.history.replace(`/explore/?${searchParams.toString()}`);
+
       this.setState({ isLoading: false });
-      return;
+      this.onHide();
+    } finally {
+      this.setState({ isLoading: false });
     }
-
-    if (dashboard) {
-      sessionStorage.setItem(SK_DASHBOARD_ID, `${dashboard.id}`);
-    } else {
-      sessionStorage.removeItem(SK_DASHBOARD_ID);
-    }
-
-    // Go to new dashboard url
-    if (gotodash && dashboard) {
-      this.props.history.push(dashboard.url);
-      return;
-    }
-
-    const searchParams = new URLSearchParams(window.location.search);
-    searchParams.set('save_action', this.state.action);
-    searchParams.delete('form_data_key');
-    if (this.state.action === 'saveas') {
-      searchParams.set('slice_id', value.id.toString());
-    }
-    this.props.history.replace(`/explore/?${searchParams.toString()}`);
-
-    this.setState({ isLoading: false });
-    this.onHide();
   }
 
   renderSaveChartModal = () => {
