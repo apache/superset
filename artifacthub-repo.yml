@@ -1,0 +1,21 @@
+# Artifact Hub repository metadata file
+#
+# Some settings like the verified publisher flag or the ignored packages won't
+# be applied until the next time the repository is processed. Please keep in
+# mind that the repository won't be processed if it has not changed since the
+# last time it was processed. Depending on the repository kind, this is checked
+# in a different way. For Helm http based repositories, we consider it has
+# changed if the `index.yaml` file changes. For git based repositories, it does
+# when the hash of the last commit in the branch you set up changes. This does
+# NOT apply to ownership claim operations, which are processed immediately.
+#
+repositoryID: ec328bdf-e751-4af0-b418-bc3496715f32
+# owners: # (optional, used to claim repository ownership)
+#   - name: user1
+#     email: user1@email.com
+#   - name: user2
+#     email: user2@email.com
+# ignore: # (optional, packages that should not be indexed by Artifact Hub)
+#   - name: package1
+#   - name: package2 # Exact match
+#     version: beta # Regular expression (when omitted, all versions are ignored)
