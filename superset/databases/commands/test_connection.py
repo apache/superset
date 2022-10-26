@@ -27,16 +27,18 @@ from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
 from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
-    DatabaseConnectionFailedError,
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
-    DatabaseTestConnectionFailedError,
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
-from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
+from superset.exceptions import (
+    SupersetErrorsException,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.extensions import event_logger
 from superset.models.core import Database
 
@@ -150,20 +152,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, context)
-            for error in errors:
-                # Why Adding the message for this error type?
-                # Because it's the type returned for Service Accounts without roles
-                # or permissions when connecting to BigQuery DBs, which is
-                # the change we are introducing at this moment and we don't want to
-                # impact other places (tests for example) at least until we discuss
-                # and standardize the way we bubble up exceptions
-                if (
-                    error.error_type
-                    == SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR
-                ):
-                    # Raise original exception with the message
-                    raise DatabaseConnectionFailedError(error.message) from ex
-            raise DatabaseTestConnectionFailedError(errors) from ex
+            raise SupersetErrorsException(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
