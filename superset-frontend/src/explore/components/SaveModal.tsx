@@ -24,7 +24,13 @@ import { connect } from 'react-redux';
 import ReactMarkdown from 'react-markdown';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import { t, styled, DatasourceType, isDefined } from '@superset-ui/core';
+import {
+  t,
+  styled,
+  DatasourceType,
+  isDefined,
+  ensureIsArray,
+} from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
@@ -110,7 +116,10 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
   componentDidMount() {
     this.props.actions.fetchDashboards(this.props.userId).then(() => {
-      const dashboardIds = this.props.dashboards.map(
+      if (ensureIsArray(this.props.dashboards).length === 0) {
+        return;
+      }
+      const dashboardIds = this.props.dashboards?.map(
         dashboard => dashboard.value,
       );
       const lastDashboard = sessionStorage.getItem(SK_DASHBOARD_ID);
