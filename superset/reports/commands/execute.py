@@ -16,6 +16,7 @@
 # under the License.
 import json
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any, List, Optional, Union
 from uuid import UUID
@@ -434,7 +435,13 @@ class BaseReportState:
         :raises: NotificationError
         """
         header_data = self._get_log_data()
-        header_data["error_text"] = message
+        error_parsing = re.search("Query Job SQL Follows", message)
+        if error_parsing:
+            error_index = error_parsing.span()
+            new_message = message[: error_index[0]]
+            header_data["error_text"] = new_message
+        else:
+            header_data["error_text"] = message
         logger.info(
             "header_data in notifications for alerts and reports %s, taskid, %s",
             header_data,
