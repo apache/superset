@@ -74,7 +74,8 @@ const propTypes = {
   customCss: PropTypes.string,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
-  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
+  setColorScheme: PropTypes.func.isRequired,
+  setUnsavedChanges: PropTypes.func.isRequired,
   isStarred: PropTypes.bool.isRequired,
   isPublished: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
@@ -370,9 +371,8 @@ class Header extends React.PureComponent {
       dashboardInfo?.metadata?.color_scheme || colorScheme;
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
-    const currentSharedLabelColors = getSharedLabelColor().getColorMap(
-      currentColorNamespace,
-      currentColorScheme,
+    const currentSharedLabelColors = Object.fromEntries(
+      getSharedLabelColor().getColorMap(),
     );
 
     const data = {
@@ -438,7 +438,8 @@ class Header extends React.PureComponent {
       customCss,
       colorNamespace,
       dataMask,
-      setColorSchemeAndUnsavedChanges,
+      setColorScheme,
+      setUnsavedChanges,
       colorScheme,
       onUndo,
       onRedo,
@@ -479,6 +480,8 @@ class Header extends React.PureComponent {
 
     const handleOnPropertiesChange = updates => {
       const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
+
+      setColorScheme(updates.colorScheme);
       dashboardInfoChanged({
         slug: updates.slug,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
@@ -487,7 +490,7 @@ class Header extends React.PureComponent {
         owners: updates.owners,
         roles: updates.roles,
       });
-      setColorSchemeAndUnsavedChanges(updates.colorScheme);
+      setUnsavedChanges(true);
       dashboardTitleChanged(updates.title);
     };
 

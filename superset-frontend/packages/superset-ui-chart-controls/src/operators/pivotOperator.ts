@@ -21,7 +21,7 @@ import {
   getColumnLabel,
   getMetricLabel,
   PostProcessingPivot,
-  getXAxis,
+  getXAxisLabel,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
@@ -30,7 +30,7 @@ export const pivotOperator: PostProcessingFactory<PostProcessingPivot> = (
   queryObject,
 ) => {
   const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
-  const xAxis = getXAxis(formData);
+  const xAxis = getXAxisLabel(formData);
 
   if (xAxis && metricLabels.length) {
     return {

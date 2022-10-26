@@ -19,7 +19,7 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import TableControls from './TableControls';
+import TableControls from './DrillDetailTableControls';
 
 const setFilters = jest.fn();
 const onReload = jest.fn();

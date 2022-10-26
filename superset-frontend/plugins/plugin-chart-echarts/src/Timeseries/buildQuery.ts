@@ -22,7 +22,7 @@ import {
   normalizeOrderBy,
   PostProcessingPivot,
   QueryFormData,
-  getXAxis,
+  getXAxisColumn,
   isXAxisSet,
 } from '@superset-ui/core';
 import {
@@ -72,7 +72,9 @@ export default function buildQuery(formData: QueryFormData) {
       {
         ...baseQueryObject,
         columns: [
-          ...(isXAxisSet(formData) ? ensureIsArray(getXAxis(formData)) : []),
+          ...(isXAxisSet(formData)
+            ? ensureIsArray(getXAxisColumn(formData))
+            : []),
           ...ensureIsArray(groupby),
         ],
         series_columns: groupby,

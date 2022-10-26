@@ -196,7 +196,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "schema", "table_name", "owners"]
+    add_columns = ["database", "schema", "table_name", "sql", "owners"]
     edit_columns = [
         "table_name",
         "sql",

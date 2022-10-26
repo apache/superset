@@ -134,8 +134,6 @@ def setup_sample_data() -> Any:
     yield
 
     with app.app_context():
-        engine = get_example_database().get_sqla_engine()
-
         # drop sqlachemy tables
 
         db.session.commit()
@@ -210,14 +208,14 @@ def setup_presto_if_needed():
 
     if backend in {"presto", "hive"}:
         database = get_example_database()
-        engine = database.get_sqla_engine()
-        drop_from_schema(engine, CTAS_SCHEMA_NAME)
-        engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
-        engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
+        with database.get_sqla_engine_with_context() as engine:
+            drop_from_schema(engine, CTAS_SCHEMA_NAME)
+            engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
+            engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
 
-        drop_from_schema(engine, ADMIN_SCHEMA_NAME)
-        engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
-        engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
+            drop_from_schema(engine, ADMIN_SCHEMA_NAME)
+            engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
+            engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
 
 
 def with_feature_flags(**mock_feature_flags):

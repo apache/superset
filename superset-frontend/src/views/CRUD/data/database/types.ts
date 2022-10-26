@@ -28,14 +28,18 @@ export type CatalogObject = {
 
 export type DatabaseObject = {
   // Connection + general
-  id?: number;
-  database_name: string;
-  name: string; // synonym to database_name
-  sqlalchemy_uri?: string;
   backend?: string;
-  created_by?: null | DatabaseUser;
-  changed_on_delta_humanized?: string;
   changed_on?: string;
+  changed_on_delta_humanized?: string;
+  configuration_method: CONFIGURATION_METHOD;
+  created_by?: null | DatabaseUser;
+  database_name: string;
+  engine?: string;
+  extra?: string;
+  id?: number;
+  name: string; // synonym to database_name
+  paramProperties?: Record<string, any>;
+  sqlalchemy_uri?: string;
   parameters?: {
     database_name?: string;
     host?: string;
@@ -47,52 +51,30 @@ export type DatabaseObject = {
     credentials_info?: string;
     service_account_info?: string;
     query?: Record<string, string>;
-    catalog?: Record<string, string>;
+    catalog?: Record<string, string | undefined>;
     properties?: Record<string, any>;
     warehouse?: string;
     role?: string;
     account?: string;
   };
-  configuration_method: CONFIGURATION_METHOD;
-  engine?: string;
-  paramProperties?: Record<string, any>;
 
   // Performance
   cache_timeout?: string;
   allow_run_async?: boolean;
 
   // SQL Lab
-  expose_in_sqllab?: boolean;
   allow_ctas?: boolean;
   allow_cvas?: boolean;
   allow_dml?: boolean;
+  expose_in_sqllab?: boolean;
   force_ctas_schema?: string;
 
   // Security
-  masked_encrypted_extra?: string;
-  server_cert?: string;
   allow_file_upload?: boolean;
   impersonate_user?: boolean;
+  masked_encrypted_extra?: string;
   parameters_schema?: Record<string, any>;
-
-  // Extra
-  extra_json?: {
-    engine_params?: {
-      catalog?: Record<any, any> | string;
-    };
-    metadata_params?: {} | string;
-    metadata_cache_timeout?: {
-      schema_cache_timeout?: number; // in Performance
-      table_cache_timeout?: number; // in Performance
-    }; // No field, holds schema and table timeout
-    allows_virtual_table_explore?: boolean; // in SQL Lab
-    schemas_allowed_for_file_upload?: string[]; // in Security
-    cancel_query_on_windows_unload?: boolean; // in Performance
-
-    version?: string;
-    cost_estimate_enabled?: boolean; // in SQL Lab
-    disable_data_preview?: boolean; // in SQL Lab
-  };
+  server_cert?: string;
 
   // External management
   is_managed_externally: boolean;
@@ -100,7 +82,6 @@ export type DatabaseObject = {
   // Temporary storage
   catalog?: Array<CatalogObject>;
   query_input?: string;
-  extra?: string;
 
   // DB Engine Spec information
   engine_information?: {
@@ -169,4 +150,24 @@ export enum CONFIGURATION_METHOD {
 export enum Engines {
   GSheet = 'gsheets',
   Snowflake = 'snowflake',
+}
+
+export interface ExtraJson {
+  allows_virtual_table_explore?: boolean; // in SQL Lab
+  cancel_query_on_windows_unload?: boolean; // in Performance
+  cost_estimate_enabled?: boolean; // in SQL Lab
+  disable_data_preview?: boolean; // in SQL Lab
+  engine_params?: {
+    catalog?: Record<string, string>;
+    connect_args?: {
+      http_path?: string;
+    };
+  };
+  metadata_params?: {};
+  metadata_cache_timeout?: {
+    schema_cache_timeout?: number; // in Performance
+    table_cache_timeout?: number; // in Performance
+  }; // No field, holds schema and table timeout
+  schemas_allowed_for_file_upload?: string[]; // in Security
+  version?: string;
 }

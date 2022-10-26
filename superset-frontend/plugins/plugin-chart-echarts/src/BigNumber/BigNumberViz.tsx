@@ -26,7 +26,7 @@ import {
   computeMaxFontSize,
   BRAND_COLOR,
   styled,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
 import Echart from '../components/Echart';
@@ -65,9 +65,9 @@ type BigNumberVisProps = {
   mainColor: string;
   echartOptions: EChartsCoreOption;
   onContextMenu?: (
-    filters: QueryObjectFilterClause[],
     clientX: number,
     clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
   ) => void;
   xValueFormatter?: TimeFormatter;
   formData?: BigNumberWithTrendlineFormData;
@@ -171,11 +171,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
     const onContextMenu = (e: MouseEvent<HTMLDivElement>) => {
       if (this.props.onContextMenu) {
         e.preventDefault();
-        this.props.onContextMenu(
-          [],
-          e.nativeEvent.clientX,
-          e.nativeEvent.clientY,
-        );
+        this.props.onContextMenu(e.nativeEvent.clientX, e.nativeEvent.clientY);
       }
     };
 
@@ -249,7 +245,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
           const { data } = eventParams;
           if (data) {
             const pointerEvent = eventParams.event.event;
-            const filters: QueryObjectFilterClause[] = [];
+            const filters: BinaryQueryObjectFilterClause[] = [];
             filters.push({
               col: this.props.formData?.granularitySqla,
               grain: this.props.formData?.timeGrainSqla,
@@ -258,9 +254,9 @@ class BigNumberVis extends React.PureComponent<BigNumberVisProps> {
               formattedVal: this.props.xValueFormatter?.(data[0]),
             });
             this.props.onContextMenu(
-              filters,
               pointerEvent.clientX,
               pointerEvent.clientY,
+              filters,
             );
           }
         }

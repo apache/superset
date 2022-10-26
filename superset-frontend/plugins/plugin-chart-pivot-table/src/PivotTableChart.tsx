@@ -28,7 +28,7 @@ import {
   styled,
   useTheme,
   isAdhocColumn,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
 import {
@@ -370,7 +370,8 @@ export default function PivotTableChart(props: PivotTableProps) {
     ) => {
       if (onContextMenu) {
         e.preventDefault();
-        const filters: QueryObjectFilterClause[] = [];
+        e.stopPropagation();
+        const filters: BinaryQueryObjectFilterClause[] = [];
         if (colKey && colKey.length > 1) {
           colKey.forEach((val, i) => {
             const col = cols[i];
@@ -399,7 +400,7 @@ export default function PivotTableChart(props: PivotTableProps) {
             });
           });
         }
-        onContextMenu(filters, e.clientX, e.clientY);
+        onContextMenu(e.clientX, e.clientY, filters);
       }
     },
     [cols, dateFormatters, onContextMenu, rows],

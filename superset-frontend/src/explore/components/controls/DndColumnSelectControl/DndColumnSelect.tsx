@@ -23,6 +23,8 @@ import {
   isFeatureEnabled,
   tn,
   QueryFormColumn,
+  t,
+  isAdhocColumn,
 } from '@superset-ui/core';
 import {
   ColumnMeta,
@@ -35,7 +37,6 @@ import OptionWrapper from 'src/explore/components/controls/DndColumnSelectContro
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
 import { DndItemType } from 'src/explore/components/DndItemType';
-import { useComponentDidUpdate } from 'src/hooks/useComponentDidUpdate';
 import ColumnSelectPopoverTrigger from './ColumnSelectPopoverTrigger';
 import { DndControlProps } from './types';
 import SelectControl from '../SelectControl';
@@ -67,34 +68,6 @@ function DndColumnSelect(props: DndColumnSelectProps) {
 
     return new OptionSelector(optionsMap, multi, value);
   }, [multi, options, value]);
-
-  // synchronize values in case of dataset changes
-  const handleOptionsChange = useCallback(() => {
-    const optionSelectorValues = optionSelector.getValues();
-    if (typeof value !== typeof optionSelectorValues) {
-      onChange(optionSelectorValues);
-    }
-    if (
-      typeof value === 'string' &&
-      typeof optionSelectorValues === 'string' &&
-      value !== optionSelectorValues
-    ) {
-      onChange(optionSelectorValues);
-    }
-    if (
-      Array.isArray(optionSelectorValues) &&
-      Array.isArray(value) &&
-      (optionSelectorValues.length !== value.length ||
-        optionSelectorValues.every((val, index) => val === value[index]))
-    ) {
-      onChange(optionSelectorValues);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(value), JSON.stringify(optionSelector.getValues())]);
-
-  // useComponentDidUpdate to avoid running this for the first render, to avoid
-  // calling onChange when the initial value is not valid for the dataset
-  useComponentDidUpdate(handleOptionsChange);
 
   const onDrop = useCallback(
     (item: DatasourcePanelDndItem) => {
@@ -142,8 +115,12 @@ function DndColumnSelect(props: DndColumnSelectProps) {
 
   const valuesRenderer = useCallback(
     () =>
-      optionSelector.values.map((column, idx) =>
-        clickEnabled ? (
+      optionSelector.values.map((column, idx) => {
+        const datasourceWarningMessage =
+          isAdhocColumn(column) && column.datasourceWarning
+            ? t('This column might be incompatible with current dataset')
+            : undefined;
+        return clickEnabled ? (
           <ColumnSelectPopoverTrigger
             key={idx}
             columns={options}
@@ -166,6 +143,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
               type={`${DndItemType.ColumnOption}_${name}_${label}`}
               canDelete={canDelete}
               column={column}
+              datasourceWarningMessage={datasourceWarningMessage}
               withCaret
             />
           </ColumnSelectPopoverTrigger>
@@ -178,9 +156,10 @@ function DndColumnSelect(props: DndColumnSelectProps) {
             type={`${DndItemType.ColumnOption}_${name}_${label}`}
             canDelete={canDelete}
             column={column}
+            datasourceWarningMessage={datasourceWarningMessage}
           />
-        ),
-      ),
+        );
+      }),
     [
       canDelete,
       clickEnabled,

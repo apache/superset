@@ -44,6 +44,8 @@ import {
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import Owner from 'src/types/Owner';
 import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState } from './types';
 
@@ -316,14 +318,21 @@ function AlertList({
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => (
-          <Switch
-            data-test="toggle-active"
-            checked={original.active}
-            onClick={(checked: boolean) => toggleActive(original, checked)}
-            size="small"
-          />
-        ),
+        Cell: ({ row: { original } }: any) => {
+          const allowEdit =
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
+            isUserAdmin(user);
+
+          return (
+            <Switch
+              disabled={!allowEdit}
+              data-test="toggle-active"
+              checked={original.active}
+              onClick={(checked: boolean) => toggleActive(original, checked)}
+              size="small"
+            />
+          );
+        },
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
@@ -337,6 +346,10 @@ function AlertList({
           const handleGotoExecutionLog = () =>
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
+          const allowEdit =
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
+            isUserAdmin(user);
+
           const actions = [
             canEdit
               ? {
@@ -349,14 +362,14 @@ function AlertList({
               : null,
             canEdit
               ? {
-                  label: 'edit-action',
-                  tooltip: t('Edit'),
+                  label: allowEdit ? 'edit-action' : 'preview-action',
+                  tooltip: allowEdit ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: 'Edit',
+                  icon: allowEdit ? 'Edit' : 'Binoculars',
                   onClick: handleEdit,
                 }
               : null,
-            canDelete
+            allowEdit && canDelete
               ? {
                   label: 'delete-action',
                   tooltip: t('Delete'),

@@ -309,7 +309,7 @@ test('submitting with onlyApply:false', async () => {
       certificationDetails: 'Sample certification',
       certifiedBy: 'John Doe',
       colorScheme: 'supersetColors',
-      colorNamespace: '',
+      colorNamespace: undefined,
       id: 26,
       jsonMetadata: expect.anything(),
       owners: [],
