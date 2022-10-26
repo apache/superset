@@ -472,7 +472,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str] = None,
         source: Optional[utils.QuerySource] = None,
     ) -> Engine:
-        return database.get_sqla_engine(schema=schema, source=source)
+        with database.get_sqla_engine_with_context(
+            schema=schema, source=source
+        ) as engine:
+            return engine
 
     @classmethod
     def get_timestamp_expr(

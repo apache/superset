@@ -168,7 +168,8 @@ def load_data(
         connection = session.connection()
     else:
         logger.warning("Loading data outside the import transaction")
-        connection = database.get_sqla_engine()
+        with database.get_sqla_engine_with_context() as engine:
+            connection = engine
 
     df.to_sql(
         dataset.table_name,
