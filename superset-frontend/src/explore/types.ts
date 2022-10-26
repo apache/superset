@@ -79,6 +79,7 @@ export interface ExplorePageInitialData {
     created_by?: string;
     changed_by?: string;
   };
+  saveAction?: SaveActionType | null;
 }
 
 export interface ExploreResponsePayload {
@@ -112,3 +113,5 @@ export interface ExplorePageState {
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }
+
+export type SaveActionType = 'overwrite' | 'saveas';

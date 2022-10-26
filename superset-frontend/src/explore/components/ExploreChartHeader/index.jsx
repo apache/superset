@@ -35,6 +35,7 @@ import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
+import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
@@ -83,8 +84,8 @@ export const ExploreChartHeader = ({
   canDownload,
   isStarred,
   sliceUpdated,
+  setSaveChartModalVisibility,
   sliceName,
-  onSaveChart,
   saveDisabled,
   metadata,
 }) => {
@@ -244,7 +245,7 @@ export const ExploreChartHeader = ({
             <div>
               <Button
                 buttonStyle="secondary"
-                onClick={onSaveChart}
+                onClick={() => setSaveChartModalVisibility(true)}
                 disabled={saveDisabled}
                 data-test="query-save-button"
                 css={saveButtonStyles}
@@ -277,7 +278,12 @@ ExploreChartHeader.propTypes = propTypes;
 
 function mapDispatchToProps(dispatch) {
   return bindActionCreators(
-    { sliceUpdated, toggleActive, deleteActiveReport },
+    {
+      sliceUpdated,
+      toggleActive,
+      deleteActiveReport,
+      setSaveChartModalVisibility,
+    },
     dispatch,
   );
 }

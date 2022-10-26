@@ -18,20 +18,23 @@
  */
 /* eslint camelcase: 0 */
 import React from 'react';
+import { Dispatch } from 'redux';
+import { SelectValue } from 'antd/lib/select';
+import { connect } from 'react-redux';
+import ReactMarkdown from 'react-markdown';
+import { withRouter, RouteComponentProps } from 'react-router-dom';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { t, styled, DatasourceType, isDefined } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
 import Alert from 'src/components/Alert';
-import { t, styled, DatasourceType, isDefined } from '@superset-ui/core';
-import ReactMarkdown from 'react-markdown';
 import Modal from 'src/components/Modal';
 import { Radio } from 'src/components/Radio';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
-import { SelectValue } from 'antd/lib/select';
-import { connect } from 'react-redux';
-import { withRouter, RouteComponentProps } from 'react-router-dom';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import Loading from 'src/components/Loading';
+import { setSaveChartModalVisibility } from '../actions/saveModalActions';
+import { SaveActionType } from '../types';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -39,7 +42,6 @@ const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
 interface SaveModalProps extends RouteComponentProps {
   addDangerToast: (msg: string) => void;
-  onHide: () => void;
   actions: Record<string, any>;
   form_data?: Record<string, any>;
   userId: number;
@@ -49,9 +51,9 @@ interface SaveModalProps extends RouteComponentProps {
   slice?: Record<string, any>;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
+  isVisible: boolean;
+  dispatch: Dispatch;
 }
-
-type ActionType = 'overwrite' | 'saveas';
 
 type SaveModalState = {
   saveToDashboardId: number | string | null;
@@ -59,7 +61,7 @@ type SaveModalState = {
   newDashboardName?: string;
   datasetName: string;
   alert: string | null;
-  action: ActionType;
+  action: SaveActionType;
   isLoading: boolean;
   saveStatus?: string | null;
 };
@@ -92,6 +94,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
     this.isNewDashboard = this.isNewDashboard.bind(this);
     this.removeAlert = this.removeAlert.bind(this);
+    this.onHide = this.onHide.bind(this);
   }
 
   isNewDashboard(): boolean {
@@ -144,8 +147,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.setState({ saveToDashboardId, newDashboardName });
   }
 
-  changeAction(action: ActionType) {
+  changeAction(action: SaveActionType) {
     this.setState({ action });
+  }
+
+  onHide() {
+    this.props.dispatch(setSaveChartModalVisibility(false));
   }
 
   async saveOrOverwrite(gotodash: boolean) {
@@ -282,7 +289,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
     this.props.history.replace(`/explore/?${searchParams.toString()}`);
 
     this.setState({ isLoading: false });
-    this.props.onHide();
+    this.onHide();
   }
 
   renderSaveChartModal = () => {
@@ -370,7 +377,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
 
   renderFooter = () => (
     <div data-test="save-modal-footer">
-      <Button id="btn_cancel" buttonSize="small" onClick={this.props.onHide}>
+      <Button id="btn_cancel" buttonSize="small" onClick={this.onHide}>
         {t('Cancel')}
       </Button>
       <Button
@@ -420,8 +427,8 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
   render() {
     return (
       <StyledModal
-        show
-        onHide={this.props.onHide}
+        show={this.props.isVisible}
+        onHide={this.onHide}
         title={t('Save chart')}
         footer={this.renderFooter()}
       >
@@ -441,6 +448,7 @@ interface StateProps {
   userId: any;
   dashboards: any;
   alert: any;
+  isVisible: boolean;
 }
 
 function mapStateToProps({
@@ -454,7 +462,8 @@ function mapStateToProps({
     userId: user?.userId,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,
+    isVisible: saveModal.isVisible,
   };
 }
 
-export default withRouter(connect(mapStateToProps, () => ({}))(SaveModal));
+export default withRouter(connect(mapStateToProps)(SaveModal));
