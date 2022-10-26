@@ -54,7 +54,7 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
     [dispatch, close],
   );
 
-  const onClick = useCallback(() => {
+  const handleClick = useCallback(() => {
     setOpen(true);
   }, [setOpen]);
 
@@ -65,7 +65,7 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
         {...getFilterBarTestId('create-filter')}
         buttonStyle="link"
         buttonSize="xsmall"
-        onClick={onClick}
+        onClick={handleClick}
       >
         {children}
       </HeaderButton>
