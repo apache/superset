@@ -114,9 +114,9 @@ class RefreshIntervalModal extends React.PureComponent<
             <FormLabel>{t('Refresh frequency')}</FormLabel>
             <Select
               ariaLabel={t('Refresh interval')}
-              options={refreshIntervalOptions.map((o: any[]) => ({
-                value: o[0] as number,
-                label: t(o[1]),
+              options={refreshIntervalOptions.map(option => ({
+                value: option[0],
+                label: t(option[1]),
               }))}
               value={refreshFrequency}
               onChange={this.handleFrequencyChange}
