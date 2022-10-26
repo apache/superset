@@ -24,11 +24,11 @@ import { t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 // import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
-// import CssEditor from 'src/dashboard/components/CssEditor';
+import CssEditor from 'src/dashboard/components/CssEditor';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 // import SaveModal from 'src/dashboard/components/SaveModal';
 // import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
-// import injectCustomCss from 'src/dashboard/util/injectCustomCss';
+import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 // import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -103,12 +103,12 @@ class HeaderActionsDropdown extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      // css: props.customCss,
+      css: props.customCss,
       // cssTemplates: [],
       // showReportSubMenu: null,
     };
 
-    // this.changeCss = this.changeCss.bind(this);
+    this.changeCss = this.changeCss.bind(this);
     this.changeRefreshInterval = this.changeRefreshInterval.bind(this);
     this.handleMenuClick = this.handleMenuClick.bind(this);
     // this.setShowReportSubMenu = this.setShowReportSubMenu.bind(this);
@@ -131,13 +131,13 @@ class HeaderActionsDropdown extends React.PureComponent {
       });
   } */
 
-  /* UNSAFE_componentWillReceiveProps(nextProps) {
+  UNSAFE_componentWillReceiveProps(nextProps) {
     if (this.props.customCss !== nextProps.customCss) {
       this.setState({ css: nextProps.customCss }, () => {
         injectCustomCss(nextProps.customCss);
       });
     }
-  } */
+  }
 
   /* setShowReportSubMenu(show) {
     this.setState({
@@ -145,10 +145,10 @@ class HeaderActionsDropdown extends React.PureComponent {
     });
   } */
 
-  /* changeCss(css) {
+  changeCss(css) {
     this.props.onChange();
     this.props.updateCss(css);
-  } */
+  }
 
   changeRefreshInterval(refreshInterval, isPersistent) {
     this.props.setRefreshFrequency(refreshInterval, isPersistent);
@@ -269,7 +269,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             {t('Edit properties')}
           </Menu.Item>
         )} */}
-        {/* {editMode && (
+        {editMode && (
           <Menu.Item key={MENU_KEYS.EDIT_CSS}>
             <CssEditor
               triggerNode={<span>{t('Edit CSS')}</span>}
@@ -278,9 +278,9 @@ class HeaderActionsDropdown extends React.PureComponent {
               onChange={this.changeCss}
             />
           </Menu.Item>
-        )} */}
+        )}
         {/* <Menu.Divider /> */}
-        {/* {userCanSave && (
+        {/* userCanSave && (
           <Menu.Item key={MENU_KEYS.SAVE_MODAL}>
             <SaveModal
               addSuccessToast={this.props.addSuccessToast}
@@ -304,7 +304,7 @@ class HeaderActionsDropdown extends React.PureComponent {
               canOverwrite={userCanEdit}
             />
           </Menu.Item>
-        )} */}
+            ) */}
         {!editMode && (
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
