@@ -44,7 +44,7 @@ type RefreshIntervalModalProps = {
   editMode: boolean;
   refreshLimit?: number;
   refreshWarning: string | null;
-  refreshIntervalOptions: any;
+  refreshIntervalOptions: [[number, string]];
 };
 
 type RefreshIntervalModalState = {
