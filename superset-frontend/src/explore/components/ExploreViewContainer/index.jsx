@@ -81,6 +81,7 @@ const propTypes = {
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
   saveAction: PropTypes.string,
+  isSaveModalVisible: PropTypes.bool,
 };
 
 const ExploreContainer = styled.div`
@@ -686,13 +687,15 @@ function ExploreViewContainer(props) {
           {renderChartContainer()}
         </div>
       </ExplorePanelContainer>
-      <SaveModal
-        addDangerToast={props.addDangerToast}
-        actions={props.actions}
-        form_data={props.form_data}
-        sliceName={props.sliceName}
-        dashboardId={props.dashboardId}
-      />
+      {props.isSaveModalVisible && (
+        <SaveModal
+          addDangerToast={props.addDangerToast}
+          actions={props.actions}
+          form_data={props.form_data}
+          sliceName={props.sliceName}
+          dashboardId={props.dashboardId}
+        />
+      )}
     </ExploreContainer>
   );
 }
@@ -700,8 +703,16 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, common, impressionId, dataMask, reports, user } =
-    state;
+  const {
+    explore,
+    charts,
+    common,
+    impressionId,
+    dataMask,
+    reports,
+    user,
+    saveModal,
+  } = state;
   const { controls, slice, datasource, metadata } = explore;
   const form_data = getFormDataFromControls(controls);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
@@ -750,6 +761,7 @@ function mapStateToProps(state) {
     reports,
     metadata,
     saveAction: explore.saveAction,
+    isSaveModalVisible: saveModal.isVisible,
   };
 }
 
