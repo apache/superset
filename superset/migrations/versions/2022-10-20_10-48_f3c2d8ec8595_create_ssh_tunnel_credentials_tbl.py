@@ -50,6 +50,7 @@ def upgrade():
         # ImportExportMixin
         sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
         # SSHTunnelCredentials
+        sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id"), nullable=True),
         sa.Column("server_address", EncryptedType(sa.String, app_config["SECRET_KEY"])),
         sa.Column("server_port", EncryptedType(sa.String, app_config["SECRET_KEY"])),
@@ -72,7 +73,6 @@ def upgrade():
             EncryptedType(sa.String, app_config["SECRET_KEY"]),
             nullable=True,
         ),
-        sa.PrimaryKeyConstraint("id"),
     )
 
 
