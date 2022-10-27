@@ -104,7 +104,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     },
     [
       filtersWithValues,
-      JSON.stringify(dataMaskSelected),
+      dataMaskSelected,
       directPathToChild,
       onFilterSelectionChange,
     ],
