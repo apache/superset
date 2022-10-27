@@ -16,37 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// Superset's webpack.config.js
-const customConfig = require('../webpack.config.js');
 
-module.exports = {
-  core: {
-    builder: 'webpack5',
-  },
-  stories: [
-    '../src/@(components|common|filters|explore|dashboard)/**/*.stories.@(tsx|jsx|mdx)',
-  ],
-  addons: [
-    '@storybook/addon-essentials',
-    '@storybook/addon-links',
-    'storybook-addon-jsx',
-    '@storybook/addon-knobs',
-    'storybook-addon-paddings',
-  ],
-  staticDirs: ['../src/assets/images'],
-  webpackFinal: config => ({
-    ...config,
-    module: {
-      ...config.module,
-      rules: customConfig.module.rules,
+import React from 'react';
+import FilterDivider, { FilterDividerProps } from './FilterDivider';
+import 'src/dashboard/stylesheets/index.less';
+
+export default {
+  title: 'FilterDivider',
+  component: FilterDivider,
+};
+
+export const InteractiveFilterDivider = (props: FilterDividerProps) => (
+  <FilterDivider {...props} />
+);
+
+InteractiveFilterDivider.args = {
+  title: 'Sample title',
+  description: 'Sample description',
+  horizontal: false,
+  horizontalOverflow: false,
+};
+
+InteractiveFilterDivider.story = {
+  parameters: {
+    knobs: {
+      disable: true,
     },
-    resolve: {
-      ...config.resolve,
-      ...customConfig.resolve,
-    },
-    plugins: [...config.plugins, ...customConfig.plugins],
-  }),
-  typescript: {
-    reactDocgen: 'react-docgen-typescript',
   },
 };

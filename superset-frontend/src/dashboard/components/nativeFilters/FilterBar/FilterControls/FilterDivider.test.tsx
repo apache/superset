@@ -17,36 +17,51 @@
  * under the License.
  */
 
+/* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
+
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import FilterDivider from './FilterDivider';
 
-test('renders short title and description in vertical mode', () => {
-  render(
-    <FilterDivider title="Sample title" description="Sample description" />,
-  );
+const SHORT_TITLE = 'Sample title';
+const LONG_TITLE =
+  'Sample title that is very long, it goes on and on and on and on and on and on and on';
 
-  expect(screen.getByRole('heading', { name: 'Sample title' })).toBeVisible();
-  expect(screen.getByText('Sample description')).toBeVisible();
+const LONG_DESCRIPTION =
+  'Sample description that is even longer, it goes on and on and on and on and on and on and on and on and on and on.';
+
+test('vertical mode, short title', () => {
+  render(<FilterDivider title={SHORT_TITLE} description="" />);
+  const title = screen.getByRole('heading', { name: SHORT_TITLE });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent(SHORT_TITLE);
 });
 
-test('renders long title and description in vertical mode', () => {
-  render(
-    <FilterDivider
-      title="Sample title that is very long, it goes on and on and on and on and on"
-      description="Sample description that is even longer, it goes on and on and on and on and on and on and on and on."
-    />,
-  );
-
-  expect(
-    screen.getByRole('heading', {
-      name: 'Sample title that is very long, it goes on and on and on and on and on',
-    }),
-  ).toBeVisible();
-
-  expect(
-    screen.getByText(
-      'Sample description that is even longer, it goes on and on and on and on and on and on and on and on.',
-    ),
-  ).toBeVisible();
+test('vertical mode, long title and description', () => {
+  render(<FilterDivider title={LONG_TITLE} description={LONG_DESCRIPTION} />);
+  const title = screen.getByRole('heading', { name: LONG_TITLE });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent(LONG_TITLE);
+  const description = screen.getByTestId('divider-description');
+  expect(description).toBeVisible();
+  expect(description).toHaveTextContent(LONG_DESCRIPTION);
 });
+
+test('horizontal mode, short title', () => {
+  render(<FilterDivider horizontal title={SHORT_TITLE} description="" />);
+  const verticalRule = screen.getByTestId('divider-vertical-rule');
+  expect(verticalRule).toBeVisible();
+  const title = screen.getByRole('heading', { name: SHORT_TITLE });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent(SHORT_TITLE);
+  const descriptionIcon = screen.queryByTestId('divider-description-icon');
+  expect(descriptionIcon).not.toBeInTheDocument();
+});
+
+test.todo('horizontal mode, long title');
+test.todo('horizontal mode, short title and description');
+test.todo('horizontal mode, long title and description');
+test.todo('horizontal mode, overflow dropdown, short title');
+test.todo('horizontal mode, overflow dropdown, long title');
+test.todo('horizontal mode, overflow dropdown, short title and description');
+test.todo('horizontal mode, overflow dropdown, long title and description');

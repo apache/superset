@@ -17,18 +17,59 @@
  * under the License.
  */
 
+import { styled } from '@superset-ui/core';
 import React from 'react';
 
-interface FilterDividerProps {
+export interface FilterDividerProps {
   title: string;
   description: string;
+  horizontal?: boolean;
+  horizontalOverflow?: boolean;
 }
 
-const FilterDivider = ({ title, description }: FilterDividerProps) => (
-  <div>
-    <h3>{title}</h3>
-    <p>{description}</p>
-  </div>
-);
+const VerticalWrapper = styled.div``;
+const HorizontalWrapper = styled.div``;
+
+const HorizontalOverflowWrapper = styled.div``;
+
+const VerticalTitle = styled.h3``;
+const HorizontalTitle = styled.h3``;
+const HorizontalOverflowTitle = styled.h3``;
+
+const VerticalDescription = styled.p``;
+const HorizontalDescription = styled.p``;
+const HorizontalOverflowDescription = styled.p``;
+
+const FilterDivider = ({
+  title,
+  description,
+  horizontal = false,
+  horizontalOverflow = false,
+}: FilterDividerProps) => {
+  let Wrapper = VerticalWrapper;
+  let Title = VerticalTitle;
+  let Description = VerticalDescription;
+
+  if (horizontal) {
+    if (horizontalOverflow) {
+      Wrapper = HorizontalOverflowWrapper;
+      Title = HorizontalOverflowTitle;
+      Description = HorizontalOverflowDescription;
+    }
+
+    Wrapper = HorizontalWrapper;
+    Title = HorizontalTitle;
+    Description = HorizontalDescription;
+  }
+
+  return (
+    <Wrapper>
+      <Title>{title}</Title>
+      {description ? (
+        <Description data-test="divider-description">{description}</Description>
+      ) : null}
+    </Wrapper>
+  );
+};
 
 export default FilterDivider;
