@@ -187,9 +187,7 @@ test('does not render the metadata bar when not saved', async () => {
   const props = createProps({ showTitlePanelItems: true, slice: null });
   render(<ExploreHeader {...props} />, { useRedux: true });
   await waitFor(() =>
-    expect(
-      screen.queryByText('Added to 1 dashboard(s)'),
-    ).not.toBeInTheDocument(),
+    expect(screen.queryByText('Added to 1 dashboard')).not.toBeInTheDocument(),
   );
 });
 
