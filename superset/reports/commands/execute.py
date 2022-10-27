@@ -249,16 +249,15 @@ class BaseReportState:
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            _get_user(self._report_schedule)
-        )
+        user = _get_user(self._report_schedule)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s", url)
+            logger.info("Getting chart from %s as user %s", url, user.username)
             csv_data = get_chart_csv_data(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleCsvTimeout() from ex
@@ -275,16 +274,15 @@ class BaseReportState:
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            _get_user(self._report_schedule)
-        )
+        user = _get_user(self._report_schedule)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s", url)
+            logger.info("Getting chart from %s as user %s", url, user.username)
             dataframe = get_chart_dataframe(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleDataFrameTimeout() from ex
@@ -690,7 +688,13 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self.validate(session=session)
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
-                with override_user(_get_user(self._model)):
+                user = _get_user(self._model)
+                with override_user(user):
+                    logger.info(
+                        "Running report schedule %s as user %s",
+                        self._execution_id,
+                        user.username,
+                    )
                     ReportScheduleStateMachine(
                         session, self._execution_id, self._model, self._scheduled_dttm
                     ).run()
