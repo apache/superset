@@ -19,8 +19,9 @@
 import urllib.request
 from io import BytesIO
 from unittest import skipUnless
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, call, MagicMock, patch
 
+import pytest
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
 
@@ -96,23 +97,35 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
 
         app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = False
 
-    @patch("superset.utils.webdriver.WebDriverWait")
-    @patch("superset.utils.webdriver.firefox")
-    def test_find_unexpected_errors(self, mock_webdriver, mock_webdriver_wait):
-        app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
+    def test_find_unexpected_errors_no_alert(self):
+        webdriver = MagicMock()
 
-        webdriver_proxy = WebDriverProxy("firefox")
-        user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
-        )
-        webdriver = webdriver_proxy.auth(user)
-        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
-        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
+        webdriver.find_elements.return_value = []
 
-        # there is no error in example dashboards, unexpected_errors should return 0
-        # and no error should be raised
         unexpected_errors = find_unexpected_errors(driver=webdriver)
         assert len(unexpected_errors) == 0
+
+        assert "alert" in webdriver.find_elements.call_args_list[0][0][1]
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    def test_find_unexpected_errors(self, mock_webdriver_wait):
+        webdriver = MagicMock()
+        alert_div = MagicMock()
+
+        webdriver.find_elements.return_value = [alert_div]
+        alert_div.find_elements.return_value = MagicMock()
+
+        unexpected_errors = find_unexpected_errors(driver=webdriver)
+        assert len(unexpected_errors) == 1
+
+        # attempt to find alerts
+        assert "alert" in webdriver.find_elements.call_args_list[0][0][1]
+        # attempt to click on "See more" buttons
+        assert "button" in alert_div.find_element.call_args_list[0][0][1]
+        # Wait for error modal to show up and to hide
+        assert 2 == len(mock_webdriver_wait.call_args_list)
+        # replace the text in alert div, eg, "unexpected errors"
+        assert alert_div == webdriver.execute_script.call_args_list[0][0][1]
 
 
 class TestWebDriverProxy(SupersetTestCase):
