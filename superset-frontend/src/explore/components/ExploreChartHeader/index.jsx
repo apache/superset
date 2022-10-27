@@ -193,7 +193,7 @@ export const ExploreChartHeader = ({
         value: slice?.description,
       });
     }
-    return <MetadataBar items={items} />;
+    return <MetadataBar items={items} tooltipPlacement="bottom" />;
   }, [metadata, slice?.description]);
 
   const oldSliceName = slice?.slice_name;

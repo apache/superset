@@ -20,7 +20,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { uniqWith } from 'lodash';
 import { styled } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import { ContentType } from './ContentType';
 import { config } from './ContentConfig';
 
@@ -116,11 +116,13 @@ const Item = ({
   contentType,
   collapsed,
   last = false,
+  tooltipPlacement,
 }: {
   barWidth: number | undefined;
   contentType: ContentType;
   collapsed: boolean;
   last?: boolean;
+  tooltipPlacement: TooltipPlacement;
 }) => {
   const { icon, title, tooltip = title } = config(contentType);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -150,7 +152,7 @@ const Item = ({
   );
   return isTruncated || collapsed || (tooltip && tooltip !== title) ? (
     <Tooltip
-      placement="bottom"
+      placement={tooltipPlacement}
       title={<TootipContent>{tooltip}</TootipContent>}
     >
       {content}
@@ -166,6 +168,11 @@ export interface MetadataBarProps {
    * for each content type, check {@link ContentType}
    */
   items: ContentType[];
+  /**
+   * Antd tooltip placement. To see available values, check {@link TooltipPlacement}.
+   * Defaults to "top".
+   */
+  tooltipPlacement?: TooltipPlacement;
 }
 
 /**
@@ -176,7 +183,7 @@ export interface MetadataBarProps {
  * To extend the list of content types, a developer needs to request the inclusion of the new type in the design system.
  * This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
  */
-const MetadataBar = ({ items }: MetadataBarProps) => {
+const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
   const [width, setWidth] = useState<number>();
   const [collapsed, setCollapsed] = useState(false);
   const uniqueItems = uniqWith(items, (a, b) => a.type === b.type);
@@ -214,6 +221,7 @@ const MetadataBar = ({ items }: MetadataBarProps) => {
           contentType={item}
           collapsed={collapsed}
           last={index === count - 1}
+          tooltipPlacement={tooltipPlacement}
         />
       ))}
     </Bar>
