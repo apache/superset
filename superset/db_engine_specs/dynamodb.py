@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
+from typing import Any, Dict, Optional
+
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils import core as utils
 
 
 class DynamoDBEngineSpec(BaseEngineSpec):
@@ -47,3 +51,12 @@ class DynamoDBEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "datetime({col}, 'unixepoch')"
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        tt = target_type.upper()
+        if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):
+            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
+        return None
