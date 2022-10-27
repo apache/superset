@@ -18,6 +18,7 @@ apiVersion: v2
 appVersion: "1.0"
 description: Apache Superset is a modern, enterprise-ready business intelligence web application
 name: superset
+icon: https://artifacthub.io/image/68c1d717-0e97-491f-b046-754e46f46922@2x
 home: https://superset.apache.org/
 keywords:
   - business intelligence

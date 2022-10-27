@@ -10,7 +10,7 @@ Apache Superset is a modern, enterprise-ready business intelligence web applicat
 
 * <https://github.com/apache/superset>
 
-## TL;DR;
+## TL;DR
 
 ```console
 helm repo add superset http://apache.github.io/superset/
