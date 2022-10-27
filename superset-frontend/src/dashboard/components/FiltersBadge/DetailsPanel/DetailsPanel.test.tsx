@@ -106,7 +106,7 @@ test('Should render "appliedCrossFilterIndicators"', () => {
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Clinical Stage' }),);
+  userEvent.click(screen.getByRole('button', { name: 'Clinical Stage' }));
   expect(props.onHighlightFilterSource).toBeCalledTimes(1);
   expect(props.onHighlightFilterSource).toBeCalledWith([
     'ROOT_ID',
