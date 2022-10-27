@@ -38,6 +38,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/state';
 import { useFilters } from '../state';
 import FilterControl from './FilterControl';
+import FilterDivider from './FilterDivider';
 
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -86,10 +87,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       const filter = filtersWithValues[index];
       if (isFilterDivider(filter)) {
         return (
-          <div>
-            <h3>{filter.title}</h3>
-            <p>{filter.description}</p>
-          </div>
+          <FilterDivider
+            title={filter.title}
+            description={filter.description}
+          />
         );
       }
       return (
