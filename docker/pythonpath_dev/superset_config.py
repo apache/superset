@@ -51,6 +51,15 @@ DATABASE_PASSWORD = get_env_variable("DATABASE_PASSWORD")
 DATABASE_HOST = get_env_variable("DATABASE_HOST")
 DATABASE_PORT = get_env_variable("DATABASE_PORT")
 DATABASE_DB = get_env_variable("DATABASE_DB")
+SESSION_COOKIE_SAMESITE = None
+ENABLE_PROXY_FIX = True
+PUBLIC_ROLE_LIKE_GAMMA = True
+CORS_OPTIONS = {
+  'supports_credentials': True,
+  'allow_headers': ['*'],
+  'resources':['*'],
+  'origins': ['http://localhost:8088', 'http://localhost:8888']
+}
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
@@ -101,7 +110,7 @@ class CeleryConfig(object):
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+FEATURE_FLAGS = {"EMBEDDED_SUPERSET": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
