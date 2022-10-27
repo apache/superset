@@ -420,7 +420,14 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         footer={this.renderFooter()}
       >
         {this.state.isLoading ? (
-          <Loading position="normal" />
+          <div
+            css={css`
+              display: flex;
+              justify-content: center;
+            `}
+          >
+            <Loading position="normal" />
+          </div>
         ) : (
           this.renderSaveChartModal()
         )}
