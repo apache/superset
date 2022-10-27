@@ -31,7 +31,7 @@ COPY --from=build /home/superset-websocket/dist ./dist
 COPY package*.json ./
 
 # Only install production dependencies
-RUN npm install --production
+RUN npm install --omit=dev
 
 # Don't run as root!
 USER node
