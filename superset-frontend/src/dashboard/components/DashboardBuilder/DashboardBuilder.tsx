@@ -487,12 +487,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             ) : (
               <Loading />
             )}
-            {editMode && (
-              <BuilderComponentPane
-                isStandalone={!!standaloneMode}
-                topOffset={barTopOffset}
-              />
-            )}
+            {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
           </StyledDashboardContent>
         </div>
       </StyledContent>
