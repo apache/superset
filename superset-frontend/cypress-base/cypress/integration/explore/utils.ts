@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
+
 export function interceptFiltering() {
   cy.intercept('GET', `/api/v1/chart/?q=*`).as('filtering');
 }
@@ -41,6 +43,10 @@ export function interceptExploreJson() {
   cy.intercept('POST', `/superset/explore_json/**`).as('getJson');
 }
 
+export function interceptExploreGet() {
+  cy.intercept('GET', `/api/v1/explore/?slice_id=**`).as('getExplore');
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
@@ -51,6 +57,10 @@ export function setFilter(filter: string, option: string) {
 }
 
 export function saveChartToDashboard(dashboardName: string) {
+  interceptDashboardGet();
+  interceptUpdate();
+  interceptExploreGet();
+
   cy.getBySel('query-save-button').click();
   cy.get(
     '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
@@ -59,13 +69,16 @@ export function saveChartToDashboard(dashboardName: string) {
     .click();
   cy.get(
     '.ant-select-selection-search-input[aria-label="Select a dashboard"]',
-  ).type(dashboardName);
+  ).type(dashboardName.slice(0, 3));
   cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
   cy.getBySel('btn-modal-save').click();
+
+  cy.wait('@update');
+  cy.wait('@get');
+  cy.wait('@getExplore');
 }
 
 export function visitSampleChartFromList(chartName: string) {
   cy.getBySel('table-row').contains(chartName).click();
   cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  cy.wait(500);
 }
