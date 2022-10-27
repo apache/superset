@@ -45,18 +45,17 @@ def create_test_table_context(database: Database):
     schema = get_example_default_schema()
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
-    database.get_sqla_engine().execute(
-        f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
-    )
-    database.get_sqla_engine().execute(
-        f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)"
-    )
-    database.get_sqla_engine().execute(
-        f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)"
-    )
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(
+            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
+        )
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")
 
     yield db.session
-    database.get_sqla_engine().execute(f"DROP TABLE {full_table_name}")
+
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
 
 
 class TestDatasource(SupersetTestCase):

@@ -75,6 +75,10 @@ function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
   interceptCharts();
   interceptGet();
 
+  if (sampleDashboard === SAMPLE_DASHBOARD_1) {
+    cy.createSampleDashboards([0]);
+  }
+
   cy.visit(sampleDashboard);
   cy.wait('@get');
   editDashboard();
@@ -648,11 +652,11 @@ describe('Dashboard edit', () => {
 
   describe('Edit properties', () => {
     before(() => {
-      cy.createSampleDashboards([0]);
       visitEdit();
     });
 
     beforeEach(() => {
+      cy.createSampleDashboards([0]);
       openProperties();
     });
 
@@ -700,11 +704,11 @@ describe('Dashboard edit', () => {
 
   describe('Edit mode', () => {
     before(() => {
-      cy.createSampleDashboards([0]);
       visitEdit();
     });
 
     beforeEach(() => {
+      cy.createSampleDashboards([0]);
       discardChanges();
     });
 
@@ -736,10 +740,6 @@ describe('Dashboard edit', () => {
   });
 
   describe('Components', () => {
-    before(() => {
-      cy.createSampleDashboards([0]);
-    });
-
     beforeEach(() => {
       visitEdit();
     });
@@ -787,7 +787,6 @@ describe('Dashboard edit', () => {
 
   describe('Save', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
       visitEdit();
     });
 
