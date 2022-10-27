@@ -27,6 +27,7 @@ import {
   logging,
   SupersetClient,
   t,
+  tn,
 } from '@superset-ui/core';
 import { toggleActive, deleteActiveReport } from 'src/reports/actions/reports';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
@@ -161,12 +162,17 @@ export const ExploreChartHeader = ({
       type: MetadataType.DASHBOARDS,
       title:
         metadata.dashboards.length > 0
-          ? t('Added to %s dashboard(s)', metadata.dashboards.length)
+          ? tn(
+              'Added to 1 dashboard',
+              'Added to %s dashboards',
+              metadata.dashboards.length,
+              metadata.dashboards.length,
+            )
           : t('Not added to any dashboard'),
       description:
         metadata.dashboards.length > 0
           ? t(
-              'You can preview the list of dashboards on the chart settings dropdown.',
+              'You can preview the list of dashboards in the chart settings dropdown.',
             )
           : undefined,
     });

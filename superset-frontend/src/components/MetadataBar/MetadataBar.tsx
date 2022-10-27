@@ -149,7 +149,10 @@ const Item = ({
     </StyledItem>
   );
   return isTruncated || collapsed || (tooltip && tooltip !== title) ? (
-    <Tooltip title={<TootipContent>{tooltip}</TootipContent>}>
+    <Tooltip
+      placement="bottom"
+      title={<TootipContent>{tooltip}</TootipContent>}
+    >
       {content}
     </Tooltip>
   ) : (
