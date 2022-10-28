@@ -1,6 +1,14 @@
 name: Helm Docs Check
 
-on: pull_request
+on:
+  pull_request:
+    paths:
+      - "helm/**"
+  push:
+    branches:
+      - "master"
+    paths:
+      - "helm/**"
 
 defaults:
   run:

@@ -69,6 +69,10 @@ jobs:
           cache-dependency-path: |
             requirements/base.txt
             requirements/integration.txt
+      # Brew no longer available by default as per https://github.com/actions/runner-images/issues/6283
+      - name: Set up Homebrew
+        id: set-up-homebrew
+        uses: Homebrew/actions/setup-homebrew@master
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
