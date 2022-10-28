@@ -78,11 +78,9 @@ jobs:
             pip install wheel
             pip install -r requirements/base.txt
             pip install -r requirements/integration.txt
-            # brew is installed but not in PATH, see https://github.com/actions/runner-images/issues/6283
-            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-            brew install norwoodj/tap/helm-docs
       - name: pre-commit
-        run: pre-commit run --all-files
+        # helm-docs is checked in a separate workflow, and not easy to install in CI because of https://github.com/actions/runner-images/issues/6283
+        run: SKIP=helm-docs pre-commit run --all-files
 
   babel-extract:
     if: github.event.pull_request.draft == false
