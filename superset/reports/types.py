@@ -27,5 +27,7 @@ class ReportScheduleExtra(TypedDict):
 class ReportScheduleExecutor(str, Enum):
     SELENIUM = "selenium"
     CREATOR = "creator"
+    CREATOR_OWNER = "creator_owner"
     MODIFIER = "modifier"
+    MODIFIER_OWNER = "modifier_owner"
     OWNER = "owner"

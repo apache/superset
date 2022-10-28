@@ -59,8 +59,10 @@ class ReportConfig:
         (
             [
                 ReportScheduleExecutor.CREATOR,
+                ReportScheduleExecutor.CREATOR_OWNER,
                 ReportScheduleExecutor.OWNER,
                 ReportScheduleExecutor.MODIFIER,
+                ReportScheduleExecutor.MODIFIER_OWNER,
                 ReportScheduleExecutor.SELENIUM,
             ],
             ReportConfig(owners=[]),
@@ -69,8 +71,10 @@ class ReportConfig:
         (
             [
                 ReportScheduleExecutor.CREATOR,
+                ReportScheduleExecutor.CREATOR_OWNER,
                 ReportScheduleExecutor.OWNER,
                 ReportScheduleExecutor.MODIFIER,
+                ReportScheduleExecutor.MODIFIER_OWNER,
                 ReportScheduleExecutor.SELENIUM,
             ],
             ReportConfig(owners=[], modifier=1),
@@ -79,8 +83,10 @@ class ReportConfig:
         (
             [
                 ReportScheduleExecutor.CREATOR,
+                ReportScheduleExecutor.CREATOR_OWNER,
                 ReportScheduleExecutor.OWNER,
                 ReportScheduleExecutor.MODIFIER,
+                ReportScheduleExecutor.MODIFIER_OWNER,
                 ReportScheduleExecutor.SELENIUM,
             ],
             ReportConfig(owners=[2], modifier=1),
@@ -89,8 +95,10 @@ class ReportConfig:
         (
             [
                 ReportScheduleExecutor.CREATOR,
+                ReportScheduleExecutor.CREATOR_OWNER,
                 ReportScheduleExecutor.OWNER,
                 ReportScheduleExecutor.MODIFIER,
+                ReportScheduleExecutor.MODIFIER_OWNER,
                 ReportScheduleExecutor.SELENIUM,
             ],
             ReportConfig(owners=[2], creator=3, modifier=1),
@@ -109,6 +117,34 @@ class ReportConfig:
             ],
             ReportConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=3, modifier=8),
             3,
+        ),
+        (
+            [
+                ReportScheduleExecutor.MODIFIER_OWNER,
+            ],
+            ReportConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=9),
+            None,
+        ),
+        (
+            [
+                ReportScheduleExecutor.MODIFIER_OWNER,
+            ],
+            ReportConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=4),
+            4,
+        ),
+        (
+            [
+                ReportScheduleExecutor.CREATOR_OWNER,
+            ],
+            ReportConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=8, modifier=9),
+            None,
+        ),
+        (
+            [
+                ReportScheduleExecutor.CREATOR_OWNER,
+            ],
+            ReportConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=4, modifier=8),
+            4,
         ),
     ],
 )

@@ -33,14 +33,26 @@ def get_executor(report_schedule: ReportSchedule) -> User:
     :return: User to execute the report as
     """
     user_types = app.config["ALERT_REPORTS_EXECUTE_AS"]
+    owners = report_schedule.owners
+    owner_dict = {owner.id: owner for owner in owners}
     for user_type in user_types:
         if user_type == ReportScheduleExecutor.SELENIUM:
             username = app.config["THUMBNAIL_SELENIUM_USER"]
             if username and (user := security_manager.find_user(username=username)):
                 return user
+        if user_type == ReportScheduleExecutor.CREATOR_OWNER:
+            if (user := report_schedule.created_by) and (
+                owner := owner_dict.get(user.id)
+            ):
+                return owner
         if user_type == ReportScheduleExecutor.CREATOR:
             if user := report_schedule.created_by:
                 return user
+        if user_type == ReportScheduleExecutor.MODIFIER_OWNER:
+            if (user := report_schedule.changed_by) and (
+                owner := owner_dict.get(user.id)
+            ):
+                return owner
         if user_type == ReportScheduleExecutor.MODIFIER:
             if user := report_schedule.changed_by:
                 return user
@@ -49,7 +61,6 @@ def get_executor(report_schedule: ReportSchedule) -> User:
             if len(owners) == 1:
                 return owners[0]
             elif len(owners) > 1:
-                owner_dict = {owner.id: owner for owner in owners}
                 if modifier := report_schedule.changed_by:
                     if modifier and (user := owner_dict.get(modifier.id)):
                         return user
