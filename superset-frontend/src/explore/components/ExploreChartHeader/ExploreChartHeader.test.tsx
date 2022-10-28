@@ -159,21 +159,35 @@ test('Cancelling changes to the properties should reset previous properties', as
 test('renders the metadata bar when saved', async () => {
   const props = createProps({ showTitlePanelItems: true });
   render(<ExploreHeader {...props} />, { useRedux: true });
-  expect(
-    await screen.findByText('Added to 1 dashboard(s)'),
-  ).toBeInTheDocument();
+  expect(await screen.findByText('Added to 1 dashboard')).toBeInTheDocument();
   expect(await screen.findByText('Simple description')).toBeInTheDocument();
   expect(await screen.findByText('John Doe')).toBeInTheDocument();
   expect(await screen.findByText('2 days ago')).toBeInTheDocument();
+});
+
+test('Changes "Added to X dashboards" to plural when more than 1 dashboard', async () => {
+  const props = createProps({ showTitlePanelItems: true });
+  render(
+    <ExploreHeader
+      {...props}
+      metadata={{
+        ...props.metadata,
+        dashboards: [
+          { id: 1, dashboard_title: 'Test' },
+          { id: 2, dashboard_title: 'Test2' },
+        ],
+      }}
+    />,
+    { useRedux: true },
+  );
+  expect(await screen.findByText('Added to 2 dashboards')).toBeInTheDocument();
 });
 
 test('does not render the metadata bar when not saved', async () => {
   const props = createProps({ showTitlePanelItems: true, slice: null });
   render(<ExploreHeader {...props} />, { useRedux: true });
   await waitFor(() =>
-    expect(
-      screen.queryByText('Added to 1 dashboard(s)'),
-    ).not.toBeInTheDocument(),
+    expect(screen.queryByText('Added to 1 dashboard')).not.toBeInTheDocument(),
   );
 });
 
