@@ -26,6 +26,7 @@ import {
   logging,
   SupersetClient,
   t,
+  tn,
 } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
@@ -170,12 +171,17 @@ export const ExploreChartHeader = ({
       type: MetadataType.DASHBOARDS,
       title:
         metadata.dashboards.length > 0
-          ? t('Added to %s dashboard(s)', metadata.dashboards.length)
+          ? tn(
+              'Added to 1 dashboard',
+              'Added to %s dashboards',
+              metadata.dashboards.length,
+              metadata.dashboards.length,
+            )
           : t('Not added to any dashboard'),
       description:
         metadata.dashboards.length > 0
           ? t(
-              'You can preview the list of dashboards on the chart settings dropdown.',
+              'You can preview the list of dashboards in the chart settings dropdown.',
             )
           : undefined,
     });
@@ -196,7 +202,7 @@ export const ExploreChartHeader = ({
         value: slice?.description,
       });
     }
-    return <MetadataBar items={items} />;
+    return <MetadataBar items={items} tooltipPlacement="bottom" />;
   }, [metadata, slice?.description]);
 
   const oldSliceName = slice?.slice_name;
