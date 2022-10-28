@@ -16,7 +16,6 @@
 # under the License.
 import json
 import logging
-import re
 from datetime import datetime, timedelta
 from typing import Any, List, Optional, Union
 from uuid import UUID
@@ -323,7 +322,6 @@ class BaseReportState:
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
-            "error_text": None,
         }
         return log_data
 
@@ -355,7 +353,6 @@ class BaseReportState:
                 if not csv_data:
                     error_text = "Unexpected missing csv file"
             if error_text:
-                header_data["error_text"] = error_text
                 return NotificationContent(
                     name=self._report_schedule.name,
                     text=error_text,
@@ -435,13 +432,6 @@ class BaseReportState:
         :raises: NotificationError
         """
         header_data = self._get_log_data()
-        error_parsing = re.search("Query Job SQL Follows", message)
-        if error_parsing:
-            error_index = error_parsing.span()
-            new_message = message[: error_index[0]]
-            header_data["error_text"] = new_message
-        else:
-            header_data["error_text"] = message
         logger.info(
             "header_data in notifications for alerts and reports %s, taskid, %s",
             header_data,
