@@ -30,9 +30,10 @@ from uuid import uuid4
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy_utils import EncryptedType, UUIDType
+from sqlalchemy_utils import UUIDType
 
 from superset import app
+from superset.extensions import encrypted_field_factory
 
 app_config = app.config
 
@@ -51,26 +52,20 @@ def upgrade():
         sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
         # SSHTunnelCredentials
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id"), nullable=True),
-        sa.Column("server_address", EncryptedType(sa.String, app_config["SECRET_KEY"])),
-        sa.Column("server_port", EncryptedType(sa.String, app_config["SECRET_KEY"])),
+        sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id")),
+        sa.Column("server_address", encrypted_field_factory.create(sa.String(1024))),
+        sa.Column("username", encrypted_field_factory.create(sa.String(1024))),
         sa.Column(
-            "username",
-            EncryptedType(sa.String, app_config["SECRET_KEY"]),
-        ),
-        sa.Column(
-            "password",
-            EncryptedType(sa.String, app_config["SECRET_KEY"]),
-            nullable=True,
+            "password", encrypted_field_factory.create(sa.String(1024)), nullable=True
         ),
         sa.Column(
             "private_key",
-            EncryptedType(sa.String, app_config["SECRET_KEY"]),
+            encrypted_field_factory.create(sa.String(1024)),
             nullable=True,
         ),
         sa.Column(
             "private_key_password",
-            EncryptedType(sa.String, app_config["SECRET_KEY"]),
+            encrypted_field_factory.create(sa.String(1024)),
             nullable=True,
         ),
     )
