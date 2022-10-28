@@ -62,6 +62,7 @@ function dragComponent(
     cy.getBySel('dashboard-charts-filter-search-input').type(component);
     cy.wait('@filtering');
   }
+  cy.wait(500);
   drag(`[data-test="${target}"]`, component).to(
     '[data-test="grid-content"] [data-test="dragdroppable-object"]',
   );
@@ -74,6 +75,10 @@ function discardChanges() {
 function visitEdit(sampleDashboard = SAMPLE_DASHBOARD_1) {
   interceptCharts();
   interceptGet();
+
+  if (sampleDashboard === SAMPLE_DASHBOARD_1) {
+    cy.createSampleDashboards([0]);
+  }
 
   cy.visit(sampleDashboard);
   cy.wait('@get');
@@ -144,16 +149,21 @@ function assertMetadata(text: string) {
     });
 }
 function clearMetadata() {
-  cy.wait(500);
   cy.get('#json_metadata').then($jsonmetadata => {
-    cy.wrap($jsonmetadata).type('{selectall} {backspace}');
+    cy.wrap($jsonmetadata).find('.ace_content').click();
+    cy.wrap($jsonmetadata)
+      .find('.ace_text-input')
+      .type('{selectall} {backspace}');
   });
 }
 
 function writeMetadata(metadata: string) {
-  cy.get('#json_metadata').then($jsonmetadata => {
-    cy.wrap($jsonmetadata).type(metadata, { parseSpecialCharSequences: false });
-  });
+  cy.get('#json_metadata').then($jsonmetadata =>
+    cy
+      .wrap($jsonmetadata)
+      .find('.ace_text-input')
+      .type(metadata, { parseSpecialCharSequences: false }),
+  );
 }
 
 function openExplore(chartName: string) {
@@ -648,11 +658,11 @@ describe('Dashboard edit', () => {
 
   describe('Edit properties', () => {
     before(() => {
-      cy.createSampleDashboards([0]);
       visitEdit();
     });
 
     beforeEach(() => {
+      cy.createSampleDashboards([0]);
       openProperties();
     });
 
@@ -700,11 +710,11 @@ describe('Dashboard edit', () => {
 
   describe('Edit mode', () => {
     before(() => {
-      cy.createSampleDashboards([0]);
       visitEdit();
     });
 
     beforeEach(() => {
+      cy.createSampleDashboards([0]);
       discardChanges();
     });
 
@@ -736,10 +746,6 @@ describe('Dashboard edit', () => {
   });
 
   describe('Components', () => {
-    before(() => {
-      cy.createSampleDashboards([0]);
-    });
-
     beforeEach(() => {
       visitEdit();
     });
@@ -787,7 +793,6 @@ describe('Dashboard edit', () => {
 
   describe('Save', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
       visitEdit();
     });
 

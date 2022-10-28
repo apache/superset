@@ -301,7 +301,9 @@ export default function DrillDetailPane({
           margin-bottom: ${theme.gridUnit * 4}px;
         `}
       >
-        {status === 'complete' && <MetadataBar items={items} />}
+        {status === 'complete' && (
+          <MetadataBar items={items} tooltipPlacement="bottom" />
+        )}
         {status === 'error' && (
           <Alert
             type="error"

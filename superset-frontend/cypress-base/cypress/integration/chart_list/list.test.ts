@@ -60,12 +60,9 @@ describe('Charts list', () => {
 
   describe('Cross-referenced dashboards', () => {
     beforeEach(() => {
-      visitChartList();
-    });
-
-    before(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.createSampleCharts([0]);
+      visitChartList();
     });
 
     it('should show the cross-referenced dashboards in the table cell', () => {
@@ -91,7 +88,6 @@ describe('Charts list', () => {
       saveChartToDashboard('1 - Sample dashboard');
       saveChartToDashboard('2 - Sample dashboard');
       saveChartToDashboard('3 - Sample dashboard');
-      saveChartToDashboard('4 - Sample dashboard');
       visitChartList();
       cy.getBySel('count-crosslinks').should('be.visible');
       cy.getBySel('crosslinks')
@@ -99,7 +95,7 @@ describe('Charts list', () => {
         .trigger('mouseover')
         .then(() => {
           cy.get('.ant-tooltip')
-            .contains('4 - Sample dashboard')
+            .contains('3 - Sample dashboard')
             .invoke('removeAttr', 'target')
             .click();
           cy.wait('@get');

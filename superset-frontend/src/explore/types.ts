@@ -32,6 +32,8 @@ import { DatabaseObject } from 'src/views/CRUD/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Slice } from 'src/types/Chart';
 
+export type SaveActionType = 'overwrite' | 'saveas';
+
 export type ChartStatus =
   | 'loading'
   | 'rendered'
@@ -79,6 +81,7 @@ export interface ExplorePageInitialData {
     created_by?: string;
     changed_by?: string;
   };
+  saveAction?: SaveActionType | null;
 }
 
 export interface ExploreResponsePayload {

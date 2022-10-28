@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import List
+from random import randint
 from unittest.mock import patch
 
 from freezegun import freeze_time
@@ -22,7 +22,7 @@ from freezegun.api import FakeDatetime  # type: ignore
 
 from superset.extensions import db
 from superset.reports.models import ReportScheduleType
-from superset.tasks.scheduler import scheduler
+from superset.tasks.scheduler import execute, scheduler
 from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app
 
@@ -87,7 +87,6 @@ def test_scheduler_celery_timeout_utc(execute_mock):
 
         with freeze_time("2020-01-01T09:00:00Z"):
             scheduler()
-            print(execute_mock.call_args)
             assert execute_mock.call_args[1]["soft_time_limit"] == 3601
             assert execute_mock.call_args[1]["time_limit"] == 3610
         db.session.delete(report_schedule)
@@ -134,5 +133,28 @@ def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
         with freeze_time("2020-01-01T09:00:00Z"):
             scheduler()
             execute_mock.assert_not_called()
+        db.session.delete(report_schedule)
+        db.session.commit()
+
+
+@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.__init__")
+@patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.run")
+@patch("superset.tasks.scheduler.execute.update_state")
+def test_execute_task(update_state_mock, command_mock, init_mock):
+    from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
+
+    with app.app_context():
+        report_schedule = insert_report_schedule(
+            type=ReportScheduleType.ALERT,
+            name=f"report-{randint(0,1000)}",
+            crontab="0 4 * * *",
+            timezone="America/New_York",
+        )
+        init_mock.return_value = None
+        command_mock.side_effect = ReportScheduleUnexpectedError("Unexpected error")
+        with freeze_time("2020-01-01T09:00:00Z"):
+            execute(report_schedule.id, "2020-01-01T09:00:00Z")
+            update_state_mock.assert_called_with(state="FAILURE")
+
         db.session.delete(report_schedule)
         db.session.commit()
