@@ -29,17 +29,16 @@ export interface FilterDividerProps {
   horizontalOverflow?: boolean;
 }
 
-const useIsTruncated = <T extends HTMLElement>(): [
-  React.RefObject<T>,
-  boolean,
-] => {
+const useIsTruncated = <T extends HTMLElement>(
+  text: string,
+): [React.RefObject<T>, boolean] => {
   const ref = useRef<T>(null);
   const [isTruncated, setIsTruncated] = useState(true);
   useEffect(() => {
     if (ref.current) {
       setIsTruncated(ref.current.offsetWidth < ref.current.scrollWidth);
     }
-  }, []);
+  }, [text]);
 
   return [ref, isTruncated];
 };
@@ -52,11 +51,17 @@ const VerticalDivider = ({ title, description }: FilterDividerProps) => (
 );
 
 const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
-  const [titleRef, titleIsTruncated] = useIsTruncated<HTMLHeadingElement>();
+  const [titleRef, titleIsTruncated] =
+    useIsTruncated<HTMLHeadingElement>(title);
+
   const tooltipOverlay = (
     <>
-      {titleIsTruncated ? <h3>{title}</h3> : null}
-      {description ? <p>{description}</p> : null}
+      {titleIsTruncated ? (
+        <div>
+          <strong>{title}</strong>
+        </div>
+      ) : null}
+      {description ? <div>{description}</div> : null}
     </>
   );
 
@@ -64,23 +69,40 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
     <div
       css={(theme: SupersetTheme) => css`
         display: flex;
+        align-items: center;
+        height: ${8 * theme.gridUnit}px;
         border-left: 1px solid ${theme.colors.grayscale.light2};
+        padding-left: ${4 * theme.gridUnit}px;
+        margin-right: ${4 * theme.gridUnit}px;
       `}
     >
       <h3
         ref={titleRef}
-        css={css`
+        css={(theme: SupersetTheme) => css`
           max-width: 130px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          font-size: 14px;
+          font-weight: normal;
+          margin: 0;
+          color: ${theme.colors.grayscale.dark1};
         `}
       >
         {title}
       </h3>
       {titleIsTruncated || description ? (
         <Tooltip overlay={tooltipOverlay}>
-          <Icons.BookOutlined data-test="divider-description-icon" />
+          <Icons.BookOutlined
+            data-test="divider-description-icon"
+            css={(theme: SupersetTheme) => css`
+              color: ${theme.colors.grayscale.base};
+              font-size: 16px;
+              margin: 0 ${theme.gridUnit * 1.5}px;
+              vertical-align: unset;
+              line-height: unset;
+            `}
+          />
         </Tooltip>
       ) : null}
     </div>
@@ -91,22 +113,34 @@ const HorizontalOverflowDivider = ({
   title,
   description,
 }: FilterDividerProps) => {
-  const [titleRef, titleIsTruncated] = useIsTruncated<HTMLHeadingElement>();
+  const [titleRef, titleIsTruncated] =
+    useIsTruncated<HTMLHeadingElement>(title);
+
   const [descriptionRef, descriptionIsTruncated] =
-    useIsTruncated<HTMLHeadingElement>();
+    useIsTruncated<HTMLHeadingElement>(description);
+
   return (
     <div
       css={(theme: SupersetTheme) => css`
-        border-left: 1px solid ${theme.colors.grayscale.light2};
+        border-top: 1px solid ${theme.colors.grayscale.light2};
+        padding-top: ${theme.gridUnit * 4}px;
+        &:not(&:last-child) {
+          margin-bottom: ${theme.gridUnit * 4}px;
+        }
       `}
     >
-      <Tooltip overlay={titleIsTruncated ? title : null}>
+      <Tooltip overlay={titleIsTruncated ? <strong>{title}</strong> : null}>
         <h3
           ref={titleRef}
-          css={css`
+          css={(theme: SupersetTheme) => css`
+            display: block;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            color: ${theme.colors.grayscale.dark1};
+            font-weight: normal;
+            font-size: 14px;
+            margin: 0 0 ${theme.gridUnit}px 0;
           `}
         >
           {title}
@@ -117,10 +151,14 @@ const HorizontalOverflowDivider = ({
           <p
             ref={descriptionRef}
             data-test="divider-description"
-            css={css`
+            css={(theme: SupersetTheme) => css`
+              display: block;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
+              font-size: 12px;
+              color: ${theme.colors.grayscale.base};
+              margin: 0;
             `}
           >
             {description}

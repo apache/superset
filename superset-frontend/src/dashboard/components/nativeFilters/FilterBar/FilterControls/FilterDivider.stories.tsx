@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { css } from '@emotion/react';
 import FilterDivider, { FilterDividerProps } from './FilterDivider';
 import 'src/dashboard/stylesheets/index.less';
 
@@ -26,21 +27,94 @@ export default {
   component: FilterDivider,
 };
 
-export const InteractiveFilterDivider = (props: FilterDividerProps) => (
-  <FilterDivider {...props} />
+export const VerticalFilterDivider = (props: FilterDividerProps) => (
+  <div
+    css={css`
+      background-color: #ddd;
+      padding: 50px;
+    `}
+  >
+    <div
+      css={css`
+        display: flex;
+        flex-direction: column;
+        width: 259px;
+        padding: 16px;
+        background-color: white;
+      `}
+    >
+      <FilterDivider {...props} />
+    </div>
+  </div>
 );
 
-InteractiveFilterDivider.args = {
+export const HorizontalFilterDivider = (props: FilterDividerProps) => (
+  <div
+    css={css`
+      background-color: #ddd;
+      padding: 50px;
+    `}
+  >
+    <div
+      css={css`
+        height: 48px;
+        padding: 0 16px;
+        display: flex;
+        align-items: center;
+        background-color: white;
+      `}
+    >
+      <FilterDivider horizontal {...props} />
+    </div>
+  </div>
+);
+
+export const HorizontalOverflowFilterDivider = (props: FilterDividerProps) => (
+  <div
+    css={css`
+      background-color: #ddd;
+      padding: 50px;
+    `}
+  >
+    <div
+      css={css`
+        width: 224px;
+        padding: 16px;
+        background-color: white;
+      `}
+    >
+      <FilterDivider {...props} />
+    </div>
+  </div>
+);
+
+const args = {
   title: 'Sample title',
   description: 'Sample description',
+};
+
+const story = { parameters: { knobs: { disable: true } } };
+
+VerticalFilterDivider.args = {
+  ...args,
   horizontal: false,
   horizontalOverflow: false,
 };
 
-InteractiveFilterDivider.story = {
-  parameters: {
-    knobs: {
-      disable: true,
-    },
-  },
+VerticalFilterDivider.story = story;
+
+HorizontalFilterDivider.args = {
+  ...args,
+  horizontal: true,
+  horizontalOverflow: false,
 };
+
+HorizontalFilterDivider.story = story;
+
+HorizontalOverflowFilterDivider.args = {
+  ...args,
+  horizontal: true,
+  horizontalOverflow: true,
+};
+
+HorizontalOverflowFilterDivider.story = story;
