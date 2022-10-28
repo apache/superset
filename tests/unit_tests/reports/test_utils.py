@@ -96,6 +96,20 @@ class ReportConfig:
             ReportConfig(owners=[2], creator=3, modifier=1),
             3,
         ),
+        (
+            [
+                ReportScheduleExecutor.OWNER,
+            ],
+            ReportConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=3, modifier=4),
+            4,
+        ),
+        (
+            [
+                ReportScheduleExecutor.OWNER,
+            ],
+            ReportConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=3, modifier=8),
+            3,
+        ),
     ],
 )
 def test_get_executor(

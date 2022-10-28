@@ -383,8 +383,9 @@ needed if there isn't a central service account that has access to all objects o
 when using user impersonation on database connections). For this there's the config flag
 `ALERTS_REPORTS_EXECUTE_AS` which makes it possible to customize how alerts and reports are executed.
 For example, to first try to execute as the creator, then fall back to last modifier if the creator is
-undefined, then the owner and finally `THUMBNAIL_SELENIUM_USER` if no creators, modifiers or owners are
-found, set as follows:
+undefined, then an owner (it will first prioritize the last modifier and then the creator if either is
+contained within the list of owners, otherwise the first owner owner will be used) and finally
+`THUMBNAIL_SELENIUM_USER` if no creators, modifiers or owners are found, set as follows:
 
 ```python
 ALERT_REPORTS_EXECUTE_AS = ["creator", "modifier", "owner", "selenium"]

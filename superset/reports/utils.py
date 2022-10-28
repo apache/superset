@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Set
+
 from flask_appbuilder.security.sqla.models import User
 
 from superset import app, security_manager
@@ -44,6 +46,16 @@ def get_executor(report_schedule: ReportSchedule) -> User:
                 return user
         if user_type == ReportScheduleExecutor.OWNER:
             owners = report_schedule.owners
-            if owners:
+            if len(owners) == 1:
                 return owners[0]
+            elif len(owners) > 1:
+                owner_dict = {owner.id: owner for owner in owners}
+                if modifier := report_schedule.changed_by:
+                    if modifier and (user := owner_dict.get(modifier.id)):
+                        return user
+                if creator := report_schedule.created_by:
+                    if creator and (user := owner_dict.get(creator.id)):
+                        return user
+                return owners[0]
+
     raise ReportScheduleUserNotFoundError()

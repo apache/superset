@@ -1147,7 +1147,9 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
 # use the user defined in the `THUMBNAIL_SELENIUM_USER` config parameter.
 # To first try to execute as the report creator, then fall back to last modifier,
-# first owner and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+# an owner (giving priority to the last modifier and then the creator if either is
+# contained within the list of owners, otherwise the first owner will be used)
+# and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
 #     ReportScheduleExecutor.CREATOR,
 #     ReportScheduleExecutor.MODIFIER,
