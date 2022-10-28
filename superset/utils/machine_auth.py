@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 
 class MachineAuthProvider:
     def __init__(
-        self, auth_webdriver_func_override: Callable[[WebDriver, "User"], WebDriver]
+        self, auth_webdriver_func_override: Callable[[WebDriver, User], WebDriver]
     ):
         # This is here in order to allow for the authenticate_webdriver func to be
         # overridden via config, as opposed to the entire provider implementation

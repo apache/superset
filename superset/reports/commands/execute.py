@@ -22,10 +22,9 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app, security_manager
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -47,7 +46,6 @@ from superset.reports.commands.exceptions import (
     ReportScheduleScreenshotTimeout,
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
-    ReportScheduleUserNotFoundError,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.dao import (
@@ -67,6 +65,7 @@ from superset.reports.models import (
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
@@ -75,26 +74,6 @@ from superset.utils.urls import get_url_path
 from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
-
-
-def _get_user(report_schedule: ReportSchedule) -> User:
-    user_types = app.config["ALERT_REPORTS_EXECUTE_AS"]
-    for user_type in user_types:
-        if user_type == "selenium":
-            username = app.config["THUMBNAIL_SELENIUM_USER"]
-            if username and (user := security_manager.find_user(username=username)):
-                return user
-        if user_type == "creator":
-            if user := report_schedule.created_by:
-                return user
-        if user_type == "modifier":
-            if user := report_schedule.changed_by:
-                return user
-        if user_type == "owner":
-            owners = report_schedule.owners
-            if owners:
-                return owners[0]
-    raise ReportScheduleUserNotFoundError()
 
 
 class BaseReportState:
@@ -219,7 +198,7 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         url = self._get_url()
-        user = _get_user(self._report_schedule)
+        user = get_executor(self._report_schedule)
         if self._report_schedule.chart:
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
@@ -249,7 +228,7 @@ class BaseReportState:
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        user = _get_user(self._report_schedule)
+        user = get_executor(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -274,7 +253,7 @@ class BaseReportState:
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
-        user = _get_user(self._report_schedule)
+        user = get_executor(self._report_schedule)
         auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
@@ -688,7 +667,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self.validate(session=session)
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
-                user = _get_user(self._model)
+                user = get_executor(self._model)
                 with override_user(user):
                     logger.info(
                         "Running report schedule %s as user %s",

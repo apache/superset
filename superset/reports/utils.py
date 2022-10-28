@@ -1,0 +1,49 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+from flask_appbuilder.security.sqla.models import User
+
+from superset import app, security_manager
+from superset.reports.commands.exceptions import ReportScheduleUserNotFoundError
+from superset.reports.models import ReportSchedule
+from superset.reports.types import ReportScheduleExecutor
+
+
+def get_executor(report_schedule: ReportSchedule) -> User:
+    """
+    Extract the user that should be used to execute a report schedule as.
+
+    :param report_schedule: The report to execute
+    :return: User to execute the report as
+    """
+    user_types = app.config["ALERT_REPORTS_EXECUTE_AS"]
+    for user_type in user_types:
+        if user_type == ReportScheduleExecutor.SELENIUM:
+            username = app.config["THUMBNAIL_SELENIUM_USER"]
+            if username and (user := security_manager.find_user(username=username)):
+                return user
+        if user_type == ReportScheduleExecutor.CREATOR:
+            if user := report_schedule.created_by:
+                return user
+        if user_type == ReportScheduleExecutor.MODIFIER:
+            if user := report_schedule.changed_by:
+                return user
+        if user_type == ReportScheduleExecutor.OWNER:
+            owners = report_schedule.owners
+            if owners:
+                return owners[0]
+    raise ReportScheduleUserNotFoundError()
