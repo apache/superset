@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import JSONbig from 'json-bigint';
+import JSONbig from 'json-bigint-native';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
 

@@ -140,7 +140,7 @@ describe('parseResponse()', () => {
   it('resolves to big number value if `parseMethod=json-bigint`', async () => {
     const mockBigIntUrl = '/mock/get/bigInt';
     const mockGetBigIntPayload =
-      '{ "value": 9223372036854775807, "minusValue": -483729382918228373892 }';
+      '{ "value": 9223372036854775807, "minusValue": -483729382918228373892, "number": 1234, "floatValue": 0.345221136, "minusFloatValue": -0.345221136 }';
     fetchMock.get(mockBigIntUrl, mockGetBigIntPayload);
     const responseBigNumber = await parseResponse(
       callApi({ url: mockBigIntUrl, method: 'GET' }),
@@ -150,6 +150,17 @@ describe('parseResponse()', () => {
     expect(`${responseBigNumber.json.minusValue}`).toEqual(
       '-483729382918228373892',
     );
+    expect(responseBigNumber.json.number).toEqual(1234);
+    expect(responseBigNumber.json.floatValue).toEqual(0.345221136);
+    expect(responseBigNumber.json.minusFloatValue).toEqual(-0.345221136);
+    expect(
+      responseBigNumber.json.floatValue +
+        responseBigNumber.json.minusFloatValue,
+    ).toEqual(0);
+    expect(
+      responseBigNumber.json.floatValue /
+        responseBigNumber.json.minusFloatValue,
+    ).toEqual(-1);
   });
 
   it('rejects if request.ok=false', async () => {
