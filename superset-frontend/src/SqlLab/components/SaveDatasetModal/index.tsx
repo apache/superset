@@ -51,7 +51,6 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { SelectValue } from 'antd/lib/select';
 import { isEmpty, isString } from 'lodash';
-import { NumberTypeKnob } from '@storybook/addon-knobs/dist/components/types';
 
 interface QueryDatabase {
   id?: number;
@@ -71,7 +70,7 @@ export type Database = {
   backend: string;
   id: number;
   parameter: object;
-}
+};
 
 export interface ISaveableDatasource {
   columns: ISimpleColumn[];
