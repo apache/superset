@@ -29,13 +29,16 @@ from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
-    DatabaseTestConnectionFailedError,
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
-from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
+from superset.exceptions import (
+    SupersetErrorsException,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.extensions import event_logger
 from superset.models.core import Database
 
@@ -49,6 +52,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
     def run(self) -> None:  # pylint: disable=too-many-statements
         self.validate()
+        ex_str = ""
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
@@ -95,36 +99,36 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 with closing(engine.raw_connection()) as conn:
                     return engine.dialect.do_ping(conn)
 
+
             with database.get_sqla_engine_with_context() as engine:
-                try:
-                    alive = func_timeout(
-                        int(
-                            app.config[
-                                "TEST_DATABASE_CONNECTION_TIMEOUT"
-                            ].total_seconds()
-                        ),
-                        ping,
-                        args=(engine,),
-                    )
-                except (sqlite3.ProgrammingError, RuntimeError):
-                    # SQLite can't run on a separate thread, so ``func_timeout`` fails
-                    # RuntimeError catches the equivalent error from duckdb.
-                    alive = engine.dialect.do_ping(engine)
-                except FunctionTimedOut as ex:
-                    raise SupersetTimeoutException(
-                        error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
-                        message=(
-                            "Please check your connection details and database settings, "
-                            "and ensure that your database is accepting connections, "
-                            "then try connecting again."
-                        ),
-                        level=ErrorLevel.ERROR,
-                        extra={"sqlalchemy_uri": database.sqlalchemy_uri},
-                    ) from ex
-                except Exception:  # pylint: disable=broad-except
-                    alive = False
-                if not alive:
-                    raise DBAPIError(None, None, None)
+              try:
+                  alive = func_timeout(
+                      int(app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds()),
+                      ping,
+                      args=(engine,),
+                  )
+              except (sqlite3.ProgrammingError, RuntimeError):
+                  # SQLite can't run on a separate thread, so ``func_timeout`` fails
+                  # RuntimeError catches the equivalent error from duckdb.
+                  alive = engine.dialect.do_ping(engine)
+              except FunctionTimedOut as ex:
+                  raise SupersetTimeoutException(
+                      error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
+                      message=(
+                          "Please check your connection details and database settings, "
+                          "and ensure that your database is accepting connections, "
+                          "then try connecting again."
+                      ),
+                      level=ErrorLevel.ERROR,
+                      extra={"sqlalchemy_uri": database.sqlalchemy_uri},
+                  ) from ex
+              except Exception as ex:  # pylint: disable=broad-except
+                  alive = False
+                  # So we stop losing the original message if any
+                  ex_str = str(ex)
+
+              if not alive:
+                  raise DBAPIError(ex_str or None, None, None)
 
             # Log succesful connection test with engine
             event_logger.log_with_context(
@@ -149,7 +153,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionFailedError(errors) from ex
+            raise SupersetErrorsException(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",
