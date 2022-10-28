@@ -49,8 +49,6 @@ test('vertical mode, long title and description', () => {
 
 test('horizontal mode, short title', () => {
   render(<FilterDivider horizontal title={SHORT_TITLE} description="" />);
-  const verticalRule = screen.getByTestId('divider-vertical-rule');
-  expect(verticalRule).toBeVisible();
   const title = screen.getByRole('heading', { name: SHORT_TITLE });
   expect(title).toBeVisible();
   expect(title).toHaveTextContent(SHORT_TITLE);

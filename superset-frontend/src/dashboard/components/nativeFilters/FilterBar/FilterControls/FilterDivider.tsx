@@ -17,8 +17,10 @@
  * under the License.
  */
 
-import { styled } from '@superset-ui/core';
-import React from 'react';
+import { css, SupersetTheme } from '@superset-ui/core';
+import React, { useEffect, useRef, useState } from 'react';
+import Icons from 'src/components/Icons';
+import { Tooltip } from 'src/components/Tooltip';
 
 export interface FilterDividerProps {
   title: string;
@@ -27,18 +29,106 @@ export interface FilterDividerProps {
   horizontalOverflow?: boolean;
 }
 
-const VerticalWrapper = styled.div``;
-const HorizontalWrapper = styled.div``;
+const useIsTruncated = <T extends HTMLElement>(): [
+  React.RefObject<T>,
+  boolean,
+] => {
+  const ref = useRef<T>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+  useEffect(() => {
+    if (ref.current) {
+      setIsTruncated(ref.current.offsetWidth < ref.current.scrollWidth);
+    }
+  }, []);
 
-const HorizontalOverflowWrapper = styled.div``;
+  return [ref, isTruncated];
+};
 
-const VerticalTitle = styled.h3``;
-const HorizontalTitle = styled.h3``;
-const HorizontalOverflowTitle = styled.h3``;
+const VerticalDivider = ({ title, description }: FilterDividerProps) => (
+  <div>
+    <h3>{title}</h3>
+    {description ? <p data-test="divider-description">{description}</p> : null}
+  </div>
+);
 
-const VerticalDescription = styled.p``;
-const HorizontalDescription = styled.p``;
-const HorizontalOverflowDescription = styled.p``;
+const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
+  const [titleRef, titleIsTruncated] = useIsTruncated<HTMLHeadingElement>();
+  const tooltipOverlay = (
+    <>
+      {titleIsTruncated ? <h3>{title}</h3> : null}
+      {description ? <p>{description}</p> : null}
+    </>
+  );
+
+  return (
+    <div
+      css={(theme: SupersetTheme) => css`
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid ${theme.colors.grayscale.light2};
+      `}
+    >
+      <h3
+        ref={titleRef}
+        css={css`
+          max-width: 130px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        `}
+      >
+        {title}
+      </h3>
+      {titleIsTruncated || description ? (
+        <Tooltip overlay={tooltipOverlay}>
+          <Icons.BookOutlined data-test="divider-description-icon" />
+        </Tooltip>
+      ) : null}
+    </div>
+  );
+};
+
+const HorizontalOverflowDivider = ({
+  title,
+  description,
+}: FilterDividerProps) => {
+  const [titleRef, titleIsTruncated] = useIsTruncated<HTMLHeadingElement>();
+  const [descriptionRef, descriptionIsTruncated] =
+    useIsTruncated<HTMLHeadingElement>();
+  return (
+    <div
+      css={(theme: SupersetTheme) => css`
+        border-left: 1px solid ${theme.colors.grayscale.light2};
+      `}
+    >
+      <Tooltip overlay={titleIsTruncated ? title : null}>
+        <h3
+          ref={titleRef}
+          css={css`
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          `}
+        >
+          {title}
+        </h3>
+      </Tooltip>
+      <Tooltip overlay={descriptionIsTruncated ? description : null}>
+        <p
+          ref={descriptionRef}
+          data-test="divider-description"
+          css={css`
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          `}
+        >
+          {description}
+        </p>
+      </Tooltip>
+    </div>
+  );
+};
 
 const FilterDivider = ({
   title,
@@ -46,30 +136,17 @@ const FilterDivider = ({
   horizontal = false,
   horizontalOverflow = false,
 }: FilterDividerProps) => {
-  let Wrapper = VerticalWrapper;
-  let Title = VerticalTitle;
-  let Description = VerticalDescription;
-
   if (horizontal) {
     if (horizontalOverflow) {
-      Wrapper = HorizontalOverflowWrapper;
-      Title = HorizontalOverflowTitle;
-      Description = HorizontalOverflowDescription;
+      return (
+        <HorizontalOverflowDivider title={title} description={description} />
+      );
     }
 
-    Wrapper = HorizontalWrapper;
-    Title = HorizontalTitle;
-    Description = HorizontalDescription;
+    return <HorizontalDivider title={title} description={description} />;
   }
 
-  return (
-    <Wrapper>
-      <Title>{title}</Title>
-      {description ? (
-        <Description data-test="divider-description">{description}</Description>
-      ) : null}
-    </Wrapper>
-  );
+  return <VerticalDivider title={title} description={description} />;
 };
 
 export default FilterDivider;
