@@ -241,7 +241,7 @@ const SqlEditor = ({
   const getHotkeyConfig = () => {
     // Get the user's OS
     const userOS = detectOS();
-    const base = [
+    return [
       {
         name: 'runQuery1',
         key: 'ctrl+r',
@@ -277,19 +277,6 @@ const SqlEditor = ({
         func: stopQuery,
       },
     ];
-
-    if (userOS === 'MacOS') {
-      base.push({
-        name: 'previousLine',
-        key: 'ctrl+p',
-        descr: t('Previous Line'),
-        func: editor => {
-          editor.navigateUp(1);
-        },
-      });
-    }
-
-    return base;
   };
 
   const handleWindowResize = () => {
@@ -615,7 +602,7 @@ const SqlEditor = ({
             height={`${aceEditorHeight}px`}
             hotkeys={hotkeys}
           />
-          {renderEditorBottomBar(hotkeys)}
+          {renderEditorBottomBar()}
         </div>
         <ConnectedSouthPane
           queryEditorId={queryEditor.id}

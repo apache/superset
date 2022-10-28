@@ -50,7 +50,6 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
     <AceEditorWrapper
       queryEditorId={queryEditor.id}
       height="100px"
-      hotkeys={[]}
       database={{}}
       onChange={jest.fn()}
       onBlur={jest.fn()}

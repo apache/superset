@@ -20,6 +20,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { usePrevious } from 'src/hooks/usePrevious';
 import { areArraysShallowEqual } from 'src/reduxUtils';
+import { detectOS } from 'src/utils/common';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import {
   queryEditorSetSelectedText,
@@ -132,6 +133,7 @@ const AceEditorWrapper = ({
   };
 
   const onEditorLoad = (editor: any) => {
+    const userOS = detectOS();
     editor.commands.addCommand({
       name: 'runQuery',
       bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
@@ -139,6 +141,16 @@ const AceEditorWrapper = ({
         onAltEnter();
       },
     });
+
+    if (userOS === 'MacOS') {
+      editor.commands.addCommand({
+        name: 'previousLine',
+        bindKey: { mac: 'ctrl+p' },
+        exec: (e: { navigateUp: (line: number) => void }) => {
+          e.navigateUp(1);
+        },
+      });
+    }
 
     hotkeys.forEach(keyConfig => {
       editor.commands.addCommand({
