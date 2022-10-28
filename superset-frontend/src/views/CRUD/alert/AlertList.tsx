@@ -431,6 +431,7 @@ function AlertList({
     () => [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -447,6 +448,7 @@ function AlertList({
       },
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -463,6 +465,7 @@ function AlertList({
       },
       {
         Header: t('Status'),
+        key: 'status',
         id: 'last_state',
         input: 'select',
         operator: FilterOperator.equals,
@@ -483,6 +486,7 @@ function AlertList({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'name',
         input: 'search',
         operator: FilterOperator.contains,

@@ -137,6 +137,21 @@ describe('parseResponse()', () => {
     expect(responseRaw.bodyUsed).toBe(false);
   });
 
+  it('resolves to big number value if `parseMethod=json-bigint`', async () => {
+    const mockBigIntUrl = '/mock/get/bigInt';
+    const mockGetBigIntPayload =
+      '{ "value": 9223372036854775807, "minusValue": -483729382918228373892 }';
+    fetchMock.get(mockBigIntUrl, mockGetBigIntPayload);
+    const responseBigNumber = await parseResponse(
+      callApi({ url: mockBigIntUrl, method: 'GET' }),
+      'json-bigint',
+    );
+    expect(`${responseBigNumber.json.value}`).toEqual('9223372036854775807');
+    expect(`${responseBigNumber.json.minusValue}`).toEqual(
+      '-483729382918228373892',
+    );
+  });
+
   it('rejects if request.ok=false', async () => {
     expect.assertions(3);
     const mockNotOkayUrl = '/mock/notokay/url';

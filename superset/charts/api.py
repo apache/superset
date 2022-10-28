@@ -19,7 +19,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Optional
-from zipfile import ZipFile
+from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -66,7 +66,10 @@ from superset.charts.schemas import (
     screenshot_query_schema,
     thumbnail_query_schema,
 )
-from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.exceptions import (
+    IncorrectFormatError,
+    NoValidFilesFoundError,
+)
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
@@ -884,6 +887,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         upload = request.files.get("formData")
         if not upload:
             return self.response_400()
+        if not is_zipfile(upload):
+            raise IncorrectFormatError("Not a ZIP file")
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
