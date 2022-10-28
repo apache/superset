@@ -17,49 +17,112 @@
  * under the License.
  */
 
-/* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
-
+import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import FilterDivider from './FilterDivider';
 
-const SHORT_TITLE = 'Sample title';
-const LONG_TITLE =
-  'Sample title that is very long, it goes on and on and on and on and on and on and on';
-
-const LONG_DESCRIPTION =
+const SAMPLE_TITLE = 'Sample title';
+const SAMPLE_DESCRIPTION =
   'Sample description that is even longer, it goes on and on and on and on and on and on and on and on and on and on.';
 
-test('vertical mode, short title', () => {
-  render(<FilterDivider title={SHORT_TITLE} description="" />);
-  const title = screen.getByRole('heading', { name: SHORT_TITLE });
+test('vertical mode, title', () => {
+  render(<FilterDivider title={SAMPLE_TITLE} description="" />);
+  const title = screen.getByRole('heading', { name: SAMPLE_TITLE });
   expect(title).toBeVisible();
-  expect(title).toHaveTextContent(SHORT_TITLE);
-});
-
-test('vertical mode, long title and description', () => {
-  render(<FilterDivider title={LONG_TITLE} description={LONG_DESCRIPTION} />);
-  const title = screen.getByRole('heading', { name: LONG_TITLE });
-  expect(title).toBeVisible();
-  expect(title).toHaveTextContent(LONG_TITLE);
-  const description = screen.getByTestId('divider-description');
-  expect(description).toBeVisible();
-  expect(description).toHaveTextContent(LONG_DESCRIPTION);
-});
-
-test('horizontal mode, short title', () => {
-  render(<FilterDivider horizontal title={SHORT_TITLE} description="" />);
-  const title = screen.getByRole('heading', { name: SHORT_TITLE });
-  expect(title).toBeVisible();
-  expect(title).toHaveTextContent(SHORT_TITLE);
+  expect(title).toHaveTextContent(SAMPLE_TITLE);
+  const description = screen.queryByTestId('divider-description');
+  expect(description).not.toBeInTheDocument();
   const descriptionIcon = screen.queryByTestId('divider-description-icon');
   expect(descriptionIcon).not.toBeInTheDocument();
 });
 
-test.todo('horizontal mode, long title');
-test.todo('horizontal mode, short title and description');
-test.todo('horizontal mode, long title and description');
-test.todo('horizontal mode, overflow dropdown, short title');
-test.todo('horizontal mode, overflow dropdown, long title');
-test.todo('horizontal mode, overflow dropdown, short title and description');
-test.todo('horizontal mode, overflow dropdown, long title and description');
+test('vertical mode, title and description', () => {
+  render(
+    <FilterDivider title={SAMPLE_TITLE} description={SAMPLE_DESCRIPTION} />,
+  );
+
+  const title = screen.getByRole('heading', { name: SAMPLE_TITLE });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent(SAMPLE_TITLE);
+  const description = screen.getByTestId('divider-description');
+  expect(description).toBeVisible();
+  expect(description).toHaveTextContent(SAMPLE_DESCRIPTION);
+  const descriptionIcon = screen.queryByTestId('divider-description-icon');
+  expect(descriptionIcon).not.toBeInTheDocument();
+});
+
+test('horizontal mode, title', () => {
+  render(<FilterDivider horizontal title={SAMPLE_TITLE} description="" />);
+  const title = screen.getByRole('heading', { name: SAMPLE_TITLE });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent(SAMPLE_TITLE);
+  const description = screen.queryByTestId('divider-description');
+  expect(description).not.toBeInTheDocument();
+  const descriptionIcon = screen.queryByTestId('divider-description-icon');
+  expect(descriptionIcon).not.toBeInTheDocument();
+});
+
+test('horizontal mode, title and description', async () => {
+  render(
+    <FilterDivider
+      horizontal
+      title={SAMPLE_TITLE}
+      description={SAMPLE_DESCRIPTION}
+    />,
+  );
+
+  const title = screen.getByRole('heading', { name: SAMPLE_TITLE });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent(SAMPLE_TITLE);
+  const description = screen.queryByTestId('divider-description');
+  expect(description).not.toBeInTheDocument();
+  const descriptionIcon = screen.getByTestId('divider-description-icon');
+  expect(descriptionIcon).toBeVisible();
+  userEvent.hover(descriptionIcon);
+  const tooltip = await screen.findByRole('tooltip', {
+    name: SAMPLE_DESCRIPTION,
+  });
+
+  expect(tooltip).toBeInTheDocument();
+  expect(tooltip).toHaveTextContent(SAMPLE_DESCRIPTION);
+});
+
+test('horizontal overflow mode, title', () => {
+  render(
+    <FilterDivider
+      horizontal
+      horizontalOverflow
+      title={SAMPLE_TITLE}
+      description=""
+    />,
+  );
+
+  const title = screen.getByRole('heading', { name: SAMPLE_TITLE });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent(SAMPLE_TITLE);
+  const description = screen.queryByTestId('divider-description');
+  expect(description).not.toBeInTheDocument();
+  const descriptionIcon = screen.queryByTestId('divider-description-icon');
+  expect(descriptionIcon).not.toBeInTheDocument();
+});
+
+test('horizontal overflow mode, title and description', () => {
+  render(
+    <FilterDivider
+      horizontal
+      horizontalOverflow
+      title={SAMPLE_TITLE}
+      description={SAMPLE_DESCRIPTION}
+    />,
+  );
+
+  const title = screen.getByRole('heading', { name: SAMPLE_TITLE });
+  expect(title).toBeVisible();
+  expect(title).toHaveTextContent(SAMPLE_TITLE);
+  const description = screen.queryByTestId('divider-description');
+  expect(description).toBeVisible();
+  expect(description).toHaveTextContent(SAMPLE_DESCRIPTION);
+  const descriptionIcon = screen.queryByTestId('divider-description-icon');
+  expect(descriptionIcon).not.toBeInTheDocument();
+});

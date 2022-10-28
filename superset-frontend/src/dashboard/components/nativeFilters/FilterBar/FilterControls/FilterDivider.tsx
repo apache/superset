@@ -34,7 +34,7 @@ const useIsTruncated = <T extends HTMLElement>(): [
   boolean,
 ] => {
   const ref = useRef<T>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(true);
   useEffect(() => {
     if (ref.current) {
       setIsTruncated(ref.current.offsetWidth < ref.current.scrollWidth);
@@ -64,7 +64,6 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
     <div
       css={(theme: SupersetTheme) => css`
         display: flex;
-        flex-direction: column;
         border-left: 1px solid ${theme.colors.grayscale.light2};
       `}
     >
@@ -113,19 +112,21 @@ const HorizontalOverflowDivider = ({
           {title}
         </h3>
       </Tooltip>
-      <Tooltip overlay={descriptionIsTruncated ? description : null}>
-        <p
-          ref={descriptionRef}
-          data-test="divider-description"
-          css={css`
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          `}
-        >
-          {description}
-        </p>
-      </Tooltip>
+      {description ? (
+        <Tooltip overlay={descriptionIsTruncated ? description : null}>
+          <p
+            ref={descriptionRef}
+            data-test="divider-description"
+            css={css`
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            `}
+          >
+            {description}
+          </p>
+        </Tooltip>
+      ) : null}
     </div>
   );
 };
