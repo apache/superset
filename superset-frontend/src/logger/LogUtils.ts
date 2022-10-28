@@ -44,6 +44,7 @@ export const LOG_ACTIONS_DATASET_CREATION_SCHEMA_CANCELLATION =
 export const LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION =
   'dataset_creation_table_cancellation';
 export const LOG_ACTIONS_DATASET_CREATION_SUCCESS = 'dataset_creation_success';
+export const LOG_ACTIONS_SPA_NAVIGATION = 'spa_navigation';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
