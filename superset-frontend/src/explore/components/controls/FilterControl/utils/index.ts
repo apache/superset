@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { useGetTimeRangeByAdhocFilter } from './useGetTimeRangeByAdhocFilter';
+export { useGetTimeRangeLabel } from './useGetTimeRangeLabel';
 export { useDatePickerInAdhocFilter } from './useDatePickerInAdhocFilter';

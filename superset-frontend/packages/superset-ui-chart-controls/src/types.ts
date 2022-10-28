@@ -22,6 +22,7 @@ import type {
   AdhocColumn,
   Column,
   DatasourceType,
+  JsonObject,
   JsonValue,
   Metric,
   QueryFormColumn,
@@ -87,6 +88,7 @@ export interface ControlPanelState {
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
+  common: JsonObject;
 }
 
 /**

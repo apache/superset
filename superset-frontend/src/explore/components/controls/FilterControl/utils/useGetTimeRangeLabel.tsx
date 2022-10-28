@@ -27,9 +27,7 @@ interface Results {
   title?: string;
 }
 
-export const useGetTimeRangeByAdhocFilter = (
-  adhocFilter: AdhocFilter,
-): Results => {
+export const useGetTimeRangeLabel = (adhocFilter: AdhocFilter): Results => {
   const [actualTimeRange, setActualTimeRange] = useState<Results>({});
 
   useEffect(() => {
@@ -41,7 +39,7 @@ export const useGetTimeRangeByAdhocFilter = (
       adhocFilter.comparator === NO_TIME_RANGE
     ) {
       setActualTimeRange({
-        actualTimeRange: NO_TIME_RANGE,
+        actualTimeRange: `${adhocFilter.subject} (${NO_TIME_RANGE})`,
         title: NO_TIME_RANGE,
       });
     }

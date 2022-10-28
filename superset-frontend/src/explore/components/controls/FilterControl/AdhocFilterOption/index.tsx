@@ -23,7 +23,7 @@ import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterCon
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { OptionSortType } from 'src/explore/types';
 import { Operators } from 'src/explore/constants';
-import { useGetTimeRangeByAdhocFilter } from '../utils';
+import { useGetTimeRangeLabel } from '../utils';
 
 export interface AdhocFilterOptionProps {
   adhocFilter: AdhocFilter;
@@ -52,7 +52,7 @@ export default function AdhocFilterOption({
   sections,
   operators,
 }: AdhocFilterOptionProps) {
-  const { actualTimeRange, title } = useGetTimeRangeByAdhocFilter(adhocFilter);
+  const { actualTimeRange, title } = useGetTimeRangeLabel(adhocFilter);
 
   return (
     <AdhocFilterPopoverTrigger

@@ -22,7 +22,7 @@ import { DndItemType } from 'src/explore/components/DndItemType';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { OptionSortType } from 'src/explore/types';
-import { useGetTimeRangeByAdhocFilter } from 'src/explore/components/controls/FilterControl/utils';
+import { useGetTimeRangeLabel } from 'src/explore/components/controls/FilterControl/utils';
 import OptionWrapper from './OptionWrapper';
 
 export interface DndAdhocFilterOptionProps {
@@ -46,7 +46,7 @@ export default function DndAdhocFilterOption({
   partitionColumn,
   index,
 }: DndAdhocFilterOptionProps) {
-  const { actualTimeRange, title } = useGetTimeRangeByAdhocFilter(adhocFilter);
+  const { actualTimeRange, title } = useGetTimeRangeLabel(adhocFilter);
 
   return (
     <AdhocFilterPopoverTrigger
