@@ -691,6 +691,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             self._model_id,
             self._execution_id,
         )
-        self._model = session.query(ReportSchedule).filter_by(id=self._model_id).first()
+        self._model = (
+            session.query(ReportSchedule).filter_by(id=self._model_id).one_or_none()
+        )
         if not self._model:
             raise ReportScheduleNotFoundError()
