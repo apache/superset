@@ -69,10 +69,6 @@ jobs:
           cache-dependency-path: |
             requirements/base.txt
             requirements/integration.txt
-      # Brew no longer available by default as per https://github.com/actions/runner-images/issues/6283
-      - name: Set up Homebrew
-        id: set-up-homebrew
-        uses: Homebrew/actions/setup-homebrew@master
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
@@ -82,6 +78,8 @@ jobs:
             pip install wheel
             pip install -r requirements/base.txt
             pip install -r requirements/integration.txt
+            # brew is installed but not in PATH, see https://github.com/actions/runner-images/issues/6283
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
             brew install norwoodj/tap/helm-docs
       - name: pre-commit
         run: pre-commit run --all-files
