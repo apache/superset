@@ -26,11 +26,7 @@ from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.errors import SupersetErrorType
-from superset.exceptions import (
-    SupersetErrorsException,
-    SupersetException,
-    SupersetGenericErrorException,
-)
+from superset.exceptions import SupersetGenericErrorException
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sqllab.command_status import SqlJsonExecutionStatus
