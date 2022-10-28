@@ -197,7 +197,6 @@ class HeaderDataType(TypedDict):
     notification_source: Optional[str]
     chart_id: Optional[int]
     dashboard_id: Optional[int]
-    error_text: Optional[str]
 
 
 class DatasourceDict(TypedDict):
