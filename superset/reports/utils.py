@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Set
-
 from flask_appbuilder.security.sqla.models import User
 
 from superset import app, security_manager
@@ -25,6 +23,7 @@ from superset.reports.models import ReportSchedule
 from superset.reports.types import ReportScheduleExecutor
 
 
+# pylint: disable=too-many-branches
 def get_executor(report_schedule: ReportSchedule) -> User:
     """
     Extract the user that should be used to execute a report schedule as.
@@ -60,7 +59,7 @@ def get_executor(report_schedule: ReportSchedule) -> User:
             owners = report_schedule.owners
             if len(owners) == 1:
                 return owners[0]
-            elif len(owners) > 1:
+            if len(owners) > 1:
                 if modifier := report_schedule.changed_by:
                     if modifier and (user := owner_dict.get(modifier.id)):
                         return user
