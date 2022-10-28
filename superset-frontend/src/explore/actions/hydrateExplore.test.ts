@@ -70,6 +70,7 @@ test('creates hydrate action from initial data', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
@@ -84,6 +85,7 @@ test('creates hydrate action from initial data', () => {
           slice: exploreInitialData.slice,
           standalone: null,
           force: null,
+          saveAction: null,
         },
       },
     }),
@@ -140,6 +142,7 @@ test('creates hydrate action with existing state', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
@@ -155,8 +158,55 @@ test('creates hydrate action with existing state', () => {
           slice: exploreInitialData.slice,
           standalone: null,
           force: null,
+          saveAction: null,
         },
       },
+    }),
+  );
+});
+
+test('uses configured default time range if not set', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {
+      conf: {
+        DEFAULT_TIME_FILTER: 'Last year',
+      },
+    },
+    explore: {},
+  }));
+  // @ts-ignore
+  hydrateExplore({ form_data: {}, slice: {}, dataset: {} })(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          form_data: expect.objectContaining({
+            time_range: 'Last year',
+          }),
+        }),
+      }),
+    }),
+  );
+  const withTimeRangeSet = {
+    form_data: { time_range: 'Last day' },
+    slice: {},
+    dataset: {},
+  };
+  // @ts-ignore
+  hydrateExplore(withTimeRangeSet)(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          form_data: expect.objectContaining({
+            time_range: 'Last day',
+          }),
+        }),
+      }),
     }),
   );
 });

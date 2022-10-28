@@ -59,7 +59,7 @@ from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
-from superset.utils.core import is_test, parse_boolean_string
+from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
@@ -153,6 +153,9 @@ ROW_LIMIT = 50000
 SAMPLES_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+# default time filter in explore
+# values may be "Last day", "Last week", "<ISO date> : now", etc.
+DEFAULT_TIME_FILTER = NO_TIME_RANGE
 
 SUPERSET_WEBSERVER_PROTOCOL = "http"
 SUPERSET_WEBSERVER_ADDRESS = "0.0.0.0"
@@ -466,7 +469,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "EMBEDDABLE_CHARTS": True,
     "DRILL_TO_DETAIL": False,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
-    "CROSS_REFERENCES": False,
+    "HORIZONTAL_FILTER_BAR": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -761,6 +764,19 @@ SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
+# Dashboard auto refresh intervals
+DASHBOARD_AUTO_REFRESH_INTERVALS = [
+    [0, "Don't refresh"],
+    [10, "10 seconds"],
+    [30, "30 seconds"],
+    [60, "1 minute"],
+    [300, "5 minutes"],
+    [1800, "30 minutes"],
+    [3600, "1 hour"],
+    [21600, "6 hours"],
+    [43200, "12 hours"],
+    [86400, "24 hours"],
+]
 
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
@@ -1222,6 +1238,9 @@ PREFERRED_DATABASES: List[str] = [
 # database times out. Instead of relying on the driver timeout we can specify a shorter
 # one here.
 TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
+
+# Enable/disable CSP warning
+CONTENT_SECURITY_POLICY_WARNING = True
 
 # Do you want Talisman enabled?
 TALISMAN_ENABLED = False

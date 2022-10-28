@@ -130,18 +130,14 @@ def assert_log(state: str, error_message: Optional[str] = None):
 
 @contextmanager
 def create_test_table_context(database: Database):
-    database.get_sqla_engine().execute(
-        "CREATE TABLE test_table AS SELECT 1 as first, 2 as second"
-    )
-    database.get_sqla_engine().execute(
-        "INSERT INTO test_table (first, second) VALUES (1, 2)"
-    )
-    database.get_sqla_engine().execute(
-        "INSERT INTO test_table (first, second) VALUES (3, 4)"
-    )
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute("CREATE TABLE test_table AS SELECT 1 as first, 2 as second")
+        engine.execute("INSERT INTO test_table (first, second) VALUES (1, 2)")
+        engine.execute("INSERT INTO test_table (first, second) VALUES (3, 4)")
 
     yield db.session
-    database.get_sqla_engine().execute("DROP TABLE test_table")
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute("DROP TABLE test_table")
 
 
 @pytest.fixture()

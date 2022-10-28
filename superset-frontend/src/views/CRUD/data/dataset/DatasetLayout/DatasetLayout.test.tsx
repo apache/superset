@@ -57,7 +57,7 @@ describe('DatasetLayout', () => {
   });
 
   it('renders a DatasetPanel when passed in', () => {
-    render(<DatasetLayout datasetPanel={DatasetPanel()} />);
+    render(<DatasetLayout datasetPanel={<DatasetPanel />} />);
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     const blankDatasetTitle = screen.getByText(/select dataset source/i);

@@ -17,7 +17,6 @@
  * under the License.
  */
 import React, { FunctionComponent, useState, useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Modal from 'src/components/Modal';
@@ -29,6 +28,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
+import { isEmpty } from 'lodash';
 
 type DatasetAddObject = {
   id: number;
@@ -42,6 +42,7 @@ interface DatasetModalProps {
   onDatasetAdd?: (dataset: DatasetAddObject) => void;
   onHide: () => void;
   show: boolean;
+  history?: any; // So we can render the modal when not using SPA
 }
 
 const TableSelectorContainer = styled.div`
@@ -54,8 +55,8 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   onDatasetAdd,
   onHide,
   show,
+  history,
 }) => {
-  const history = useHistory();
   const [currentDatabase, setCurrentDatabase] = useState<
     DatabaseObject | undefined
   >();
@@ -128,8 +129,16 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       if (onDatasetAdd) {
         onDatasetAdd({ id: response.id, ...response });
       }
-      history.push(`/chart/add?dataset=${currentTableName}`);
-      cleanup();
+      // We need to be able to work with no SPA routes opening the modal
+      // So useHistory wont be available always thus we check for it
+      if (!isEmpty(history)) {
+        history?.push(`/chart/add?dataset=${currentTableName}`);
+        cleanup();
+      } else {
+        window.location.href = `/chart/add?dataset=${currentTableName}`;
+        cleanup();
+        onHide();
+      }
     });
   };
 

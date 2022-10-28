@@ -19,14 +19,36 @@
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
-import SouthPane from '.';
+import { SqlLabRootState } from 'src/SqlLab/types';
+import SouthPane, { SouthPanePropTypes } from '.';
 
-function mapStateToProps({ sqlLab }: Record<string, any>) {
+function mapStateToProps(
+  { sqlLab }: SqlLabRootState,
+  { queryEditorId }: SouthPanePropTypes,
+) {
+  const { databases, activeSouthPaneTab, offline, user, queries, tables } =
+    sqlLab;
+  const dataPreviewQueries = tables
+    .filter(
+      ({ dataPreviewQueryId, queryEditorId: qeId }) =>
+        dataPreviewQueryId &&
+        queryEditorId === qeId &&
+        queries[dataPreviewQueryId],
+    )
+    .map(({ name, dataPreviewQueryId }) => ({
+      ...queries[dataPreviewQueryId],
+      tableName: name,
+    }));
+  const editorQueries = Object.values(queries).filter(
+    ({ sqlEditorId }) => sqlEditorId === queryEditorId,
+  );
   return {
-    activeSouthPaneTab: sqlLab.activeSouthPaneTab,
-    databases: sqlLab.databases,
-    offline: sqlLab.offline,
-    user: sqlLab.user,
+    editorQueries,
+    dataPreviewQueries,
+    activeSouthPaneTab,
+    databases,
+    offline,
+    user,
   };
 }
 

@@ -20,7 +20,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Dict, List, Optional
-from zipfile import ZipFile
+from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -29,7 +29,10 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
-from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.exceptions import (
+    IncorrectFormatError,
+    NoValidFilesFoundError,
+)
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
@@ -72,10 +75,12 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorsException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.views.base import json_errors_response
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -221,7 +226,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(self) -> FlaskResponse:
         """Creates a new Database
         ---
         post:
@@ -278,6 +283,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
+        except SupersetErrorsException as ex:
+            return json_errors_response(errors=ex.errors, status=ex.status)
         except DatabaseCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
@@ -961,6 +968,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         upload = request.files.get("formData")
         if not upload:
             return self.response_400()
+        if not is_zipfile(upload):
+            raise IncorrectFormatError("Not a ZIP file")
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
