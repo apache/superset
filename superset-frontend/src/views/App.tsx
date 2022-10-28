@@ -24,6 +24,7 @@ import {
   Route,
   useLocation,
 } from 'react-router-dom';
+import { bindActionCreators } from 'redux';
 import { GlobalStyles } from 'src/GlobalStyles';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
@@ -33,8 +34,10 @@ import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
 import { routes, isFrontendRoute } from 'src/views/routes';
-import { Logger } from 'src/logger/LogUtils';
+import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
+import { logEvent } from 'src/logger/actions';
+import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 import QueryProvider from './QueryProvider';
@@ -49,9 +52,15 @@ const menu = {
 };
 let lastLocationPathname: string;
 
+const boundActions = bindActionCreators({ logEvent }, store.dispatch);
+
 const LocationPathnameLogger = () => {
   const location = useLocation();
   useEffect(() => {
+    // This will log client side route changes for single page app user navigation
+    boundActions.logEvent(LOG_ACTIONS_SPA_NAVIGATION, {
+      path: location.pathname,
+    });
     // reset performance logger timer start point to avoid soft navigation
     // cause dashboard perf measurement problem
     if (lastLocationPathname && lastLocationPathname !== location.pathname) {
