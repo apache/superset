@@ -119,7 +119,6 @@ setup(
         "sqlalchemy-utils>=0.38.3, <0.39",
         "sqlparse>=0.4.3, <0.5",
         "tabulate>=0.8.9, <0.9",
-        # needed to support Literal (3.8) and TypeGuard (3.10)
         "typing-extensions>=4, <5",
         "wtforms-json",
     ],
