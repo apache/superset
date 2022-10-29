@@ -119,12 +119,11 @@ setup(
         "sqlalchemy-utils>=0.38.3, <0.39",
         "sqlparse>=0.4.3, <0.5",
         "tabulate>=0.8.9, <0.9",
-        # needed to support Literal (3.8) and TypeGuard (3.10)
-        "typing-extensions>=3.10, <4",
+        "typing-extensions>=4, <5",
         "wtforms-json",
     ],
     extras_require={
-        "athena": ["pyathena>=1.10.8, <1.11"],
+        "athena": ["pyathena[pandas]>=2, <3"],
         "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
             "pandas_gbq>=0.10.0",
