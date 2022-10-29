@@ -31,6 +31,7 @@ from typing import (
     Dict,
     Iterator,
     Optional,
+    Tuple,
     Type,
     TYPE_CHECKING,
     Union,
@@ -45,6 +46,8 @@ from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
+
+logger = logging.getLogger(__name__)
 
 
 def collect_request_payload() -> Dict[str, Any]:
@@ -73,6 +76,19 @@ def collect_request_payload() -> Dict[str, Any]:
         del payload["rison"]
 
     return payload
+
+
+def get_logger_from_status(
+    status: int,
+) -> Tuple[Callable[..., None], str]:
+    """
+    Return logger method by status of exception.
+    Maps logger level to status code level
+    """
+    log_map = {"2": "info", "3": "info", "4": "warning", "5": "exception"}
+    log_level = log_map[str(status)[0]]
+
+    return (getattr(logger, log_level), log_level)
 
 
 class AbstractEventLogger(ABC):

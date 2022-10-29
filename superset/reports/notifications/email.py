@@ -211,4 +211,4 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 "Report sent to email, notification content is %s", content.header_data
             )
         except Exception as ex:
-            raise NotificationError(ex) from ex
+            raise NotificationError(str(ex)) from ex
