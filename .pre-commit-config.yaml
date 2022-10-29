@@ -61,3 +61,4 @@ repos:
     rev: v1.11.0
     hooks:
       - id: helm-docs
+        files: helm
