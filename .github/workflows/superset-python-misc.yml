@@ -78,9 +78,17 @@ jobs:
             pip install wheel
             pip install -r requirements/base.txt
             pip install -r requirements/integration.txt
+      # Add brew to the path - see https://github.com/actions/runner-images/issues/6283
+      - name: Enable brew and helm-docs
+        run: |
+          echo "/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          echo "HOMEBREW_PREFIX=$HOMEBREW_PREFIX" >>"${GITHUB_ENV}"
+          echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
+          echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
+          brew install helm-docs
       - name: pre-commit
-        # helm-docs is checked in a separate workflow, and not easy to install in CI because of https://github.com/actions/runner-images/issues/6283
-        run: SKIP=helm-docs pre-commit run --all-files
+        run: pre-commit run --all-files
 
   babel-extract:
     if: github.event.pull_request.draft == false
