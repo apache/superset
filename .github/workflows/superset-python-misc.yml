@@ -86,7 +86,7 @@ jobs:
           echo "HOMEBREW_PREFIX=$HOMEBREW_PREFIX" >>"${GITHUB_ENV}"
           echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
           echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
-          brew install helm-docs
+          brew install norwoodj/tap/helm-docs
       - name: pre-commit
         run: pre-commit run --all-files
 
