@@ -43,28 +43,28 @@ import {
   ControlState,
   CustomControlItem,
   Dataset,
-  ExpandedControlItem,
   sections,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { rgba } from 'emotion-rgba';
-import { kebabCase } from 'lodash';
-
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
-
 import { usePrevious } from 'src/hooks/usePrevious';
 import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
+import {
+  ExpandedControlPanelSectionConfig,
+  iconStyles,
+  ControlPanelSection,
+} from './ControlPanelSection';
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -80,23 +80,6 @@ export type ControlPanelsContainerProps = {
   canStopQuery: boolean;
   chartIsStale: boolean;
 };
-
-export type ExpandedControlPanelSectionConfig = Omit<
-  ControlPanelSectionConfig,
-  'controlSetRows'
-> & {
-  controlSetRows: ExpandedControlItem[][];
-};
-
-const iconStyles = css`
-  &.anticon {
-    font-size: unset;
-    .anticon {
-      line-height: unset;
-      vertical-align: unset;
-    }
-  }
-`;
 
 const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -431,8 +414,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
-    const { controls } = props;
-    const { label, description } = section;
+    const { controls, actions } = props;
+    const { label, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to
     // have a string ID. Using forced type conversion for now,
@@ -464,99 +447,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       ? colors.error.base
       : colors.alert.base;
 
-    const PanelHeader = () => (
-      <span data-test="collapsible-control-panel-header">
-        <span
-          css={(theme: SupersetTheme) => css`
-            font-size: ${theme.typography.sizes.m}px;
-            line-height: 1.3;
-          `}
-        >
-          {label}
-        </span>{' '}
-        {description && (
-          <Tooltip id={sectionId} title={description}>
-            <Icons.InfoCircleOutlined css={iconStyles} />
-          </Tooltip>
-        )}
-        {hasErrors && (
-          <Tooltip
-            id={`${kebabCase('validation-errors')}-tooltip`}
-            title={t('This section contains validation errors')}
-          >
-            <Icons.InfoCircleOutlined
-              css={css`
-                ${iconStyles};
-                color: ${errorColor};
-              `}
-            />
-          </Tooltip>
-        )}
-      </span>
-    );
+    const isVisible = visibility ? visibility.call(section, props) : undefined;
 
     return (
-      <Collapse.Panel
-        css={theme => css`
-          margin-bottom: 0;
-          box-shadow: none;
-
-          &:last-child {
-            padding-bottom: ${theme.gridUnit * 16}px;
-            border-bottom: 0;
-          }
-
-          .panel-body {
-            margin-left: ${theme.gridUnit * 4}px;
-            padding-bottom: 0;
-          }
-
-          span.label {
-            display: inline-block;
-          }
-          ${!section.label &&
-          `
-            .ant-collapse-header {
-              display: none;
-            }
-          `}
-        `}
-        header={<PanelHeader />}
+      <ControlPanelSection
         key={sectionId}
-      >
-        {section.controlSetRows.map((controlSets, i) => {
-          const renderedControls = controlSets
-            .map(controlItem => {
-              if (!controlItem) {
-                // When the item is invalid
-                return null;
-              }
-              if (React.isValidElement(controlItem)) {
-                // When the item is a React element
-                return controlItem;
-              }
-              if (
-                controlItem.name &&
-                controlItem.config &&
-                controlItem.name !== 'datasource'
-              ) {
-                return renderControl(controlItem);
-              }
-              return null;
-            })
-            .filter(x => x !== null);
-          // don't show the row if it is empty
-          if (renderedControls.length === 0) {
-            return null;
-          }
-          return (
-            <ControlRow
-              key={`controlsetrow-${i}`}
-              controls={renderedControls}
-            />
-          );
-        })}
-      </Collapse.Panel>
+        sectionId={sectionId}
+        actions={actions}
+        section={section}
+        hasErrors={hasErrors}
+        errorColor={errorColor}
+        isVisible={isVisible}
+        renderControl={renderControl}
+      />
     );
   };
 

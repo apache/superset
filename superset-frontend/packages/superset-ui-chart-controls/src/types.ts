@@ -368,6 +368,8 @@ export interface ControlPanelSectionConfig {
   expanded?: boolean;
   tabOverride?: TabOverride;
   controlSetRows: ControlSetRow[];
+  visibility?: (props: ControlPanelsContainerProps) => boolean;
+  resetOnHide?: boolean;
 }
 
 export interface StandardizedControls {

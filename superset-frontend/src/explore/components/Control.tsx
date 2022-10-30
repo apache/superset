@@ -94,6 +94,7 @@ export default function Control(props: ControlProps) {
     setControlValue,
     props.value,
     props.default,
+    resetOnHide,
   ]);
 
   if (!type || isVisible === false) return null;
