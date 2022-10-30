@@ -96,7 +96,7 @@ flask-sqlalchemy==2.5.1
     #   flask-migrate
 flask-talisman==0.8.1
     # via apache-superset
-flask-wtf==0.14.3
+flask-wtf==1.0.1
     # via
     #   apache-superset
     #   flask-appbuilder
