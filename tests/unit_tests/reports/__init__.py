@@ -14,20 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from enum import Enum
-from typing import TypedDict
-
-from superset.dashboards.permalink.types import DashboardPermalinkState
-
-
-class ReportScheduleExtra(TypedDict):
-    dashboard: DashboardPermalinkState
-
-
-class ReportScheduleExecutor(str, Enum):
-    SELENIUM = "selenium"
-    CREATOR = "creator"
-    CREATOR_OWNER = "creator_owner"
-    MODIFIER = "modifier"
-    MODIFIER_OWNER = "modifier_owner"
-    OWNER = "owner"

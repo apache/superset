@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from io import BytesIO
 from typing import Optional, TYPE_CHECKING, Union
@@ -68,7 +70,7 @@ class BaseScreenshot:
         return md5_sha_from_dict(args)
 
     def get_screenshot(
-        self, user: "User", window_size: Optional[WindowSize] = None
+        self, user: User, window_size: Optional[WindowSize] = None
     ) -> Optional[bytes]:
         driver = self.driver(window_size)
         self.screenshot = driver.get_screenshot(self.url, self.element, user)
@@ -76,8 +78,8 @@ class BaseScreenshot:
 
     def get(
         self,
-        user: "User" = None,
-        cache: "Cache" = None,
+        user: User = None,
+        cache: Cache = None,
         thumb_size: Optional[WindowSize] = None,
     ) -> Optional[BytesIO]:
         """
@@ -103,7 +105,7 @@ class BaseScreenshot:
 
     def get_from_cache(
         self,
-        cache: "Cache",
+        cache: Cache,
         window_size: Optional[WindowSize] = None,
         thumb_size: Optional[WindowSize] = None,
     ) -> Optional[BytesIO]:
@@ -111,7 +113,7 @@ class BaseScreenshot:
         return self.get_from_cache_key(cache, cache_key)
 
     @staticmethod
-    def get_from_cache_key(cache: "Cache", cache_key: str) -> Optional[BytesIO]:
+    def get_from_cache_key(cache: Cache, cache_key: str) -> Optional[BytesIO]:
         logger.info("Attempting to get from cache: %s", cache_key)
         payload = cache.get(cache_key)
         if payload:
@@ -121,10 +123,10 @@ class BaseScreenshot:
 
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
-        user: "User" = None,
+        user: User = None,
         window_size: Optional[WindowSize] = None,
         thumb_size: Optional[WindowSize] = None,
-        cache: "Cache" = None,
+        cache: Cache = None,
         force: bool = True,
     ) -> Optional[bytes]:
         """

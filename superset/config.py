@@ -57,6 +57,7 @@ from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
+from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
@@ -1143,6 +1144,24 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 # sliding cron window size, should be synced with the celery beat config minus 1 second
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+# Which user to attempt to execute Alerts/Reports as. By default,
+# use the user defined in the `THUMBNAIL_SELENIUM_USER` config parameter.
+# To first try to execute as the creator in the owners list (if present), then fall
+# back to the creator, then the last modifier in the owners list (if present), then the
+# last modifier, then an owner (giving priority to the last modifier and then the
+# creator if either is contained within the list of owners, otherwise the first owner
+# will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+# ALERT_REPORTS_EXECUTE_AS = [
+#     ReportScheduleExecutor.CREATOR_OWNER,
+#     ReportScheduleExecutor.CREATOR,
+#     ReportScheduleExecutor.MODIFIER_OWNER,
+#     ReportScheduleExecutor.MODIFIER,
+#     ReportScheduleExecutor.OWNER,
+#     ReportScheduleExecutor.SELENIUM,
+# ]
+ALERT_REPORTS_EXECUTE_AS: List[ReportScheduleExecutor] = [
+    ReportScheduleExecutor.SELENIUM
+]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
