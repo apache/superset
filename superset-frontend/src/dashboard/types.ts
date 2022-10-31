@@ -92,6 +92,7 @@ export type DashboardInfo = {
     label_colors: JsonObject;
     shared_label_colors: JsonObject;
   };
+  filterBarLocation: FilterBarLocation;
 };
 
 export type ChartsState = { [key: string]: Chart };
@@ -174,3 +175,8 @@ export type EmbeddedDashboard = {
   dashboard_id: string;
   allowed_domains: string[];
 };
+
+export enum FilterBarLocation {
+  VERTICAL = 'VERTICAL',
+  HORIZONTAL = 'HORIZONTAL',
+}
