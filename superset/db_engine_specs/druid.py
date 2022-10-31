@@ -24,7 +24,7 @@ from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
 from superset.utils import core as utils
 
@@ -144,5 +144,5 @@ class DruidEngineSpec(BaseEngineSpec):
         from requests import exceptions as requests_exceptions
 
         return {
-            requests_exceptions.ConnectionError: SupersetDBAPIDisconnectionError,
+            requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }

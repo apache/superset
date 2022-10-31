@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
@@ -228,5 +228,5 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         from requests import exceptions as requests_exceptions
 
         return {
-            requests_exceptions.ConnectionError: SupersetDBAPIDisconnectionError,
+            requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }
