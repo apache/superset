@@ -373,6 +373,7 @@ def medbi_import_dashboard(
         slc.params_dict["remote_id"]: slc
         for slc in session.query(Slice)
             .filter(Slice.datasource_id.in_(list(dataset_id_mapping.values())))
+            .order_by(Slice.id)
             .all()
         if "remote_id" in slc.params_dict
     }
