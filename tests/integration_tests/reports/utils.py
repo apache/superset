@@ -16,7 +16,7 @@
 # under the License.
 
 import json
-from contextlib import contextmanager, nullcontext
+from contextlib import contextmanager
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 

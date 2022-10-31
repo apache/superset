@@ -56,6 +56,7 @@ from superset.reports.models import (
     ReportScheduleValidatorType,
     ReportState,
 )
+from superset.reports.types import ReportScheduleExecutor
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -671,11 +672,11 @@ def test_email_chart_report_schedule_alpha_owner(
 ):
     """
     ExecuteReport Command: Test chart email report schedule with screenshot
-    executed as the chart creator
+    executed as the chart owner
     """
     config_key = "ALERT_REPORTS_EXECUTE_AS"
     original_config_value = app.config[config_key]
-    app.config[config_key] = ["owner"]
+    app.config[config_key] = [ReportScheduleExecutor.OWNER]
 
     # setup screenshot mock
     username = ""
