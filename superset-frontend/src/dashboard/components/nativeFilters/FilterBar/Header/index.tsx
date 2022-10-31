@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  isFeatureEnabled,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import React, { FC, useMemo } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -86,29 +93,34 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
+  const canSetHorizontalFilterBar = isFeatureEnabled(
+    FeatureFlag.HORIZONTAL_FILTER_BAR,
+  );
 
   return (
     <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
-        <DropdownSelectableIcon
-          onSelect={item => console.log('Selected item', item)}
-          info={t('Placement of filter bar')}
-          icon={
-            <Icons.Gear name="gear" iconColor={theme.colors.grayscale.base} />
-          }
-          menuItems={[
-            {
-              key: 'vertical',
-              label: t('Vertical (Left)'),
-            },
-            {
-              key: 'horizontal',
-              label: t('Horizontal (Top)'),
-            },
-          ]}
-          selectedKeys={['vertical']}
-        />
+        {canSetHorizontalFilterBar && (
+          <DropdownSelectableIcon
+            onSelect={item => console.log('Selected item', item)}
+            info={t('Placement of filter bar')}
+            icon={
+              <Icons.Gear name="gear" iconColor={theme.colors.grayscale.base} />
+            }
+            menuItems={[
+              {
+                key: 'vertical',
+                label: t('Vertical (Left)'),
+              },
+              {
+                key: 'horizontal',
+                label: t('Horizontal (Top)'),
+              },
+            ]}
+            selectedKeys={['vertical']}
+          />
+        )}
         <HeaderButton
           {...getFilterBarTestId('collapse-button')}
           buttonStyle="link"
