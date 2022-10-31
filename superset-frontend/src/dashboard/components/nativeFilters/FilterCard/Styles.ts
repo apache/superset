@@ -17,7 +17,7 @@
  * under the License.
  */
 import { css, styled } from '@superset-ui/core';
-import Icons from '../../../../components/Icons';
+import Icons from 'src/components/Icons';
 
 export const Row = styled.div`
   ${({ theme }) => css`
