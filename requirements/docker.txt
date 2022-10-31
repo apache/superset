@@ -6,7 +6,7 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.
+-e file:///Users/hugh/src/superset
     # via
     #   -r requirements/base.in
     #   -r requirements/docker.in
