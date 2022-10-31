@@ -22,7 +22,6 @@ import { css, styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import ModalTrigger from 'src/components/ModalTrigger';
-import { FileOutlined, FileImageOutlined } from '@ant-design/icons';
 import Button from 'src/components/Button';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
