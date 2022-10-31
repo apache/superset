@@ -17,6 +17,7 @@
  * under the License.
  */
 import { css, styled } from '@superset-ui/core';
+import Icons from '../../../../components/Icons';
 
 export const Row = styled.div`
   ${({ theme }) => css`
@@ -91,4 +92,16 @@ export const TooltipTrigger = styled.div`
   min-width: 0;
   display: inline-flex;
   white-space: nowrap;
+`;
+
+export const InternalRow = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+export const StyledEdit = styled(Icons.Edit)`
+  svg {
+    width: 14px;
+    height: 14px;
+  }
 `;
