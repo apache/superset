@@ -23,7 +23,7 @@ import React, {
   useState,
   useRef,
 } from 'react';
-import { uniq, isEqual, sortBy, debounce } from 'lodash';
+import { uniq, isEqual, sortBy, debounce, isEmpty } from 'lodash';
 import {
   Filter,
   FilterConfiguration,
@@ -91,6 +91,12 @@ export interface FiltersConfigModalProps {
 }
 export const ALLOW_DEPENDENCIES = ['filter_select'];
 
+const DEFAULT_EMPTY_FILTERS: string[] = [];
+const DEFAULT_REMOVED_FILTERS: Record<string, FilterRemoval> = {};
+const DEFAULT_FORM_VALUES: NativeFiltersForm = {
+  filters: {},
+};
+
 /**
  * This is the modal to configure all the dashboard-native filters.
  * Manages modal-level state, such as what filters are in the list,
@@ -99,7 +105,7 @@ export const ALLOW_DEPENDENCIES = ['filter_select'];
  * Calls the `save` callback with the new FilterConfiguration object
  * when the user saves the filters.
  */
-export function FiltersConfigModal({
+function FiltersConfigModal({
   isOpen,
   initialFilterId,
   createNewOnOpen,
@@ -116,14 +122,16 @@ export function FiltersConfigModal({
 
   // new filter ids belong to filters have been added during
   // this configuration session, and only exist in the form state until we submit.
-  const [newFilterIds, setNewFilterIds] = useState<string[]>([]);
+  const [newFilterIds, setNewFilterIds] = useState<string[]>(
+    DEFAULT_EMPTY_FILTERS,
+  );
 
   // store ids of filters that have been removed with the time they were removed
   // so that we can disappear them after a few secs.
   // filters are still kept in state until form is submitted.
   const [removedFilters, setRemovedFilters] = useState<
     Record<string, FilterRemoval>
-  >({});
+  >(DEFAULT_REMOVED_FILTERS);
 
   const [saveAlertVisible, setSaveAlertVisible] = useState<boolean>(false);
 
@@ -143,13 +151,14 @@ export function FiltersConfigModal({
   const [currentFilterId, setCurrentFilterId] = useState(
     initialCurrentFilterId,
   );
-  const [erroredFilters, setErroredFilters] = useState<string[]>([]);
+  const [erroredFilters, setErroredFilters] = useState<string[]>(
+    DEFAULT_EMPTY_FILTERS,
+  );
 
   // the form values are managed by the antd form, but we copy them to here
   // so that we can display them (e.g. filter titles in the tab headers)
-  const [formValues, setFormValues] = useState<NativeFiltersForm>({
-    filters: {},
-  });
+  const [formValues, setFormValues] =
+    useState<NativeFiltersForm>(DEFAULT_FORM_VALUES);
 
   const unsavedFiltersIds = newFilterIds.filter(id => !removedFilters[id]);
   // brings back a filter that was previously removed ("Undo")
@@ -162,12 +171,14 @@ export function FiltersConfigModal({
     },
     [removedFilters],
   );
-  const getInitialFilterOrder = () => Object.keys(filterConfigMap);
+  const initialFilterOrder = useMemo(
+    () => Object.keys(filterConfigMap),
+    [filterConfigMap],
+  );
 
   // State for tracking the re-ordering of filters
-  const [orderedFilters, setOrderedFilters] = useState<string[]>(
-    getInitialFilterOrder(),
-  );
+  const [orderedFilters, setOrderedFilters] =
+    useState<string[]>(initialFilterOrder);
 
   // State for rendered filter to improve performance
   const [renderedFilters, setRenderedFilters] = useState<string[]>([
@@ -225,17 +236,17 @@ export function FiltersConfigModal({
   // After this, it should be as if the modal was just opened fresh.
   // Called when the modal is closed.
   const resetForm = (isSaving = false) => {
-    setNewFilterIds([]);
+    setNewFilterIds(DEFAULT_EMPTY_FILTERS);
     setCurrentFilterId(initialCurrentFilterId);
-    setRemovedFilters({});
+    setRemovedFilters(DEFAULT_REMOVED_FILTERS);
     setSaveAlertVisible(false);
-    setFormValues({ filters: {} });
-    setErroredFilters([]);
+    setFormValues(DEFAULT_FORM_VALUES);
+    setErroredFilters(DEFAULT_EMPTY_FILTERS);
     if (filterIds.length > 0) {
       setActiveFilterPanelKey(getActiveFilterPanelKey(filterIds[0]));
     }
     if (!isSaving) {
-      setOrderedFilters(getInitialFilterOrder());
+      setOrderedFilters(initialFilterOrder);
     }
     setRenderedFilters([initialCurrentFilterId]);
     form.resetFields(['filters']);
@@ -330,7 +341,7 @@ export function FiltersConfigModal({
 
     // no form validation issues found, resets errored filters
     if (!erroredFiltersIds.length && erroredFilters.length > 0) {
-      setErroredFilters([]);
+      setErroredFilters(DEFAULT_EMPTY_FILTERS);
       return;
     }
     // form validation issues found, sets errored filters
@@ -373,10 +384,9 @@ export function FiltersConfigModal({
 
   const handleCancel = () => {
     const changed = form.getFieldValue('changed');
-    const initialOrder = getInitialFilterOrder();
     const didChangeOrder =
-      orderedFilters.length !== initialOrder.length ||
-      orderedFilters.some((val, index) => val !== initialOrder[index]);
+      orderedFilters.length !== initialFilterOrder.length ||
+      orderedFilters.some((val, index) => val !== initialFilterOrder[index]);
     if (
       unsavedFiltersIds.length > 0 ||
       form.isFieldsTouched() ||
@@ -479,9 +489,11 @@ export function FiltersConfigModal({
   );
 
   useEffect(() => {
-    setErroredFilters(prevErroredFilters =>
-      prevErroredFilters.filter(f => !removedFilters[f]),
-    );
+    if (!isEmpty(removedFilters)) {
+      setErroredFilters(prevErroredFilters =>
+        prevErroredFilters.filter(f => !removedFilters[f]),
+      );
+    }
   }, [removedFilters]);
 
   useEffect(() => {
@@ -601,3 +613,5 @@ export function FiltersConfigModal({
     </StyledModalWrapper>
   );
 }
+
+export default React.memo(FiltersConfigModal);
