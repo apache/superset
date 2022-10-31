@@ -17,7 +17,14 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import {
+  css,
+  FeatureFlag,
+  isFeatureEnabled,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import React, { FC, useMemo } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -25,6 +32,7 @@ import { useSelector } from 'react-redux';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { RootState } from 'src/dashboard/types';
+import DropdownSelectableIcon from 'src/components/DropdownSelectableIcon';
 import { getFilterBarTestId } from '..';
 
 const TitleArea = styled.h4`
@@ -41,6 +49,10 @@ const TitleArea = styled.h4`
 
 const HeaderButton = styled(Button)`
   padding: 0;
+
+  .anticon {
+    padding-top: ${({ theme }) => `${theme.gridUnit + 2}px`};
+  }
 `;
 
 const Wrapper = styled.div`
@@ -81,11 +93,34 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
+  const canSetHorizontalFilterBar = isFeatureEnabled(
+    FeatureFlag.HORIZONTAL_FILTER_BAR,
+  );
 
   return (
     <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
+        {canSetHorizontalFilterBar && (
+          <DropdownSelectableIcon
+            onSelect={item => console.log('Selected item', item)}
+            info={t('Placement of filter bar')}
+            icon={
+              <Icons.Gear name="gear" iconColor={theme.colors.grayscale.base} />
+            }
+            menuItems={[
+              {
+                key: 'vertical',
+                label: t('Vertical (Left)'),
+              },
+              {
+                key: 'horizontal',
+                label: t('Horizontal (Top)'),
+              },
+            ]}
+            selectedKeys={['vertical']}
+          />
+        )}
         <HeaderButton
           {...getFilterBarTestId('collapse-button')}
           buttonStyle="link"
