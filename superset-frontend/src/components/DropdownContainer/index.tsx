@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, useEffect, useMemo, useState } from 'react';
+import React, {
+  CSSProperties,
+  ReactElement,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { css, t, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { usePrevious } from 'src/hooks/usePrevious';
@@ -26,18 +33,29 @@ import Button from '../Button';
 import Popover from '../Popover';
 
 /**
+ * Container item.
+ */
+export interface Item {
+  /**
+   * String that uniquely identifies the item.
+   */
+  id: string;
+  /**
+   * The element to be rendered.
+   */
+  element: ReactElement;
+}
+
+/**
  * Horizontal container that displays overflowed items in a popover.
- * It shows an indicator of how many items are currently overflowed.
+ * It shows an indicator of how many items are currently overflowing.
  */
 export interface DropdownContainerProps {
   /**
    * Array of items. The id property is used to uniquely identify
    * the elements when rendering or dealing with event handlers.
    */
-  items: {
-    id: string;
-    element: React.ReactElement;
-  }[];
+  items: Item[];
   /**
    * Event handler called every time an element moves between
    * main container and popover.
@@ -47,13 +65,17 @@ export interface DropdownContainerProps {
     overflowed: string[];
   }) => void;
   /**
+   * Option to customize the content of the popover.
+   */
+  popoverContent?: (overflowedItems: Item[]) => ReactElement;
+  /**
    * Popover additional style properties.
    */
   popoverStyle?: CSSProperties;
   /**
    * Icon of the popover trigger.
    */
-  popoverTriggerIcon?: React.ReactElement;
+  popoverTriggerIcon?: ReactElement;
   /**
    * Text of the popover trigger.
    */
@@ -67,6 +89,7 @@ export interface DropdownContainerProps {
 const DropdownContainer = ({
   items,
   onOverflowingStateChange,
+  popoverContent,
   popoverStyle = {},
   popoverTriggerIcon,
   popoverTriggerText = t('More'),
@@ -79,7 +102,7 @@ const DropdownContainer = ({
   const [overflowingIndex, setOverflowingIndex] = useState<number>(-1);
   const [itemsWidth, setItemsWidth] = useState<number[]>([]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const container = current?.children.item(0);
     if (container) {
       const { children } = container;
@@ -123,37 +146,35 @@ const DropdownContainer = ({
     width,
   ]);
 
-  const notOverflowedItems = useMemo(
+  const reduceItems = (items: Item[]): [Item[], string[]] =>
+    items.reduce(
+      ([items, ids], item) => {
+        items.push({
+          id: item.id,
+          element: React.cloneElement(item.element, { key: item.id }),
+        });
+        ids.push(item.id);
+        return [items, ids];
+      },
+      [[], []] as [Item[], string[]],
+    );
+
+  const [notOverflowedItems, notOverflowedIds] = useMemo(
     () =>
-      items
-        .slice(0, overflowingIndex !== -1 ? overflowingIndex : items.length)
-        .map(item => React.cloneElement(item.element, { key: item.id })),
+      reduceItems(
+        items.slice(
+          0,
+          overflowingIndex !== -1 ? overflowingIndex : items.length,
+        ),
+      ),
     [items, overflowingIndex],
   );
 
-  const notOverflowedIds = useMemo(
-    () =>
-      items
-        .slice(0, overflowingIndex !== -1 ? overflowingIndex : items.length)
-        .map(item => item.id),
-    [items, overflowingIndex],
-  );
-
-  const overflowedItems = useMemo(
+  const [overflowedItems, overflowedIds] = useMemo(
     () =>
       overflowingIndex !== -1
-        ? items
-            .slice(overflowingIndex, items.length)
-            .map(item => React.cloneElement(item.element, { key: item.id }))
-        : [],
-    [items, overflowingIndex],
-  );
-
-  const overflowedIds = useMemo(
-    () =>
-      overflowingIndex !== -1
-        ? items.slice(overflowingIndex, items.length).map(item => item.id)
-        : [],
+        ? reduceItems(items.slice(overflowingIndex, items.length))
+        : [[], []],
     [items, overflowingIndex],
   );
 
@@ -166,7 +187,7 @@ const DropdownContainer = ({
     }
   }, [notOverflowedIds, onOverflowingStateChange, overflowedIds]);
 
-  const popoverContent = useMemo(
+  const content = useMemo(
     () => (
       <div
         css={css`
@@ -177,10 +198,12 @@ const DropdownContainer = ({
         `}
         style={popoverStyle}
       >
-        {overflowedItems}
+        {popoverContent
+          ? popoverContent(overflowedItems)
+          : overflowedItems.map(item => item.element)}
       </div>
     ),
-    [overflowedItems, popoverStyle, theme.gridUnit],
+    [overflowedItems, popoverContent, popoverStyle, theme.gridUnit],
   );
 
   const overflowingCount =
@@ -191,7 +214,7 @@ const DropdownContainer = ({
       ref={ref}
       css={css`
         display: flex;
-        align-items: center;
+        align-items: flex-end;
       `}
     >
       <div
@@ -204,11 +227,11 @@ const DropdownContainer = ({
         `}
         style={style}
       >
-        {notOverflowedItems}
+        {notOverflowedItems.map(item => item.element)}
       </div>
       {overflowingCount > 0 && (
         <Popover
-          content={popoverContent}
+          content={content}
           trigger="click"
           overlayInnerStyle={{
             overflow: 'auto',
