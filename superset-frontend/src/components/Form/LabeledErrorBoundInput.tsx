@@ -91,6 +91,20 @@ const StyledFormLabel = styled(FormLabel)`
   margin-bottom: 0;
 `;
 
+const StyledEyeInvisibleOutlined = styled(Icons.EyeInvisibleOutlined)`
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const StyledEyeOutlined = styled(Icons.EyeOutlined)`
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
 const LabeledErrorBoundInput = ({
   label,
   validationMethods,
@@ -126,11 +140,11 @@ const LabeledErrorBoundInput = ({
           iconRender={visible =>
             visible ? (
               <Tooltip title="Hide password.">
-                <Icons.EyeInvisibleOutlined />
+                <StyledEyeInvisibleOutlined />
               </Tooltip>
             ) : (
               <Tooltip title="Show password.">
-                <Icons.EyeOutlined />
+                <StyledEyeOutlined />
               </Tooltip>
             )
           }

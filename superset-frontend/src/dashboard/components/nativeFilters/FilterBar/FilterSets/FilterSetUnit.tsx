@@ -53,6 +53,20 @@ const IconsBlock = styled.div`
   }
 `;
 
+const StyledCheckOutlined = styled(Icons.CheckOutlined)`
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const StyledEllipsisOutlined = styled(Icons.EllipsisOutlined)`
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
 export type FilterSetUnitProps = {
   editMode?: boolean;
   isApplied?: boolean;
@@ -107,7 +121,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
         </Typography.Text>
         <IconsBlock>
           {isApplied && (
-            <Icons.CheckOutlined style={{ color: theme.colors.success.base }} />
+            <StyledCheckOutlined style={{ color: theme.colors.success.base }} />
           )}
           {onDelete && (
             <AntdDropdown
@@ -124,7 +138,7 @@ const FilterSetUnit: FC<FilterSetUnitProps> = ({
                 buttonStyle="link"
                 buttonSize="xsmall"
               >
-                <Icons.EllipsisOutlined />
+                <StyledEllipsisOutlined />
               </HeaderButton>
             </AntdDropdown>
           )}

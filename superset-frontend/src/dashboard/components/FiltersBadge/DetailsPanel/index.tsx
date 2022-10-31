@@ -19,7 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Global, css } from '@emotion/react';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, styled } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import Collapse from 'src/components/Collapse';
 import Icons from 'src/components/Icons';
@@ -32,6 +32,28 @@ import {
 import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
 import { RootState } from 'src/dashboard/types';
+
+const commonStyles = `
+  span {
+    line-height: 0;
+  }
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const StyledMinusCircleFilled = styled(Icons.MinusCircleFilled)`
+  ${commonStyles}
+`;
+
+const StyledCheckCircleFilled = styled(Icons.CheckCircleFilled)`
+  ${commonStyles}
+`;
+
+const StyledExclamationCircleFilled = styled(Icons.ExclamationCircleFilled)`
+  ${commonStyles}
+`;
 
 export interface DetailsPanelProps {
   appliedCrossFilterIndicators: Indicator[];
@@ -201,7 +223,7 @@ const DetailsPanelPopover = ({
               key="applied"
               header={
                 <Title bold color={theme.colors.success.base}>
-                  <Icons.CheckCircleFilled />{' '}
+                  <StyledCheckCircleFilled />{' '}
                   {t('Applied Filters (%d)', appliedIndicators.length)}
                 </Title>
               }
@@ -222,7 +244,7 @@ const DetailsPanelPopover = ({
               key="incompatible"
               header={
                 <Title bold color={theme.colors.alert.base}>
-                  <Icons.ExclamationCircleFilled />{' '}
+                  <StyledExclamationCircleFilled />{' '}
                   {t(
                     'Incompatible Filters (%d)',
                     incompatibleIndicators.length,
@@ -246,7 +268,7 @@ const DetailsPanelPopover = ({
               key="unset"
               header={
                 <Title bold color={theme.colors.grayscale.light1}>
-                  <Icons.MinusCircleFilled />{' '}
+                  <StyledMinusCircleFilled />{' '}
                   {t('Unset Filters (%d)', unsetIndicators.length)}
                 </Title>
               }

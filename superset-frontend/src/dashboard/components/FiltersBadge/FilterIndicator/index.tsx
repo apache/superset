@@ -18,6 +18,7 @@
  */
 
 import React, { FC } from 'react';
+import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/FilterBar/FilterSets/utils';
 import {
@@ -28,6 +29,13 @@ import {
   Title,
 } from 'src/dashboard/components/FiltersBadge/Styles';
 import { Indicator } from 'src/dashboard/components/FiltersBadge/selectors';
+
+const StyledSearchOutlined = styled(Icons.SearchOutlined)`
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
 
 export interface IndicatorProps {
   indicator: Indicator;
@@ -46,7 +54,7 @@ const FilterIndicator: FC<IndicatorProps> = ({
       <Item onClick={() => onClick([...path, `LABEL-${column}`])}>
         <Title bold>
           <ItemIcon>
-            <Icons.SearchOutlined />
+            <StyledSearchOutlined />
           </ItemIcon>
           {name}
           {resultValue ? ': ' : ''}

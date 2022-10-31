@@ -39,6 +39,13 @@ const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
+const StyledWarningOutlined = styled(Icons.WarningOutlined)`
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
 const Title = styled(Typography.Text)`
   color: ${({ theme }) => theme.colors.primary.dark2};
 `;
@@ -160,7 +167,7 @@ const EditSection: FC<EditSectionProps> = ({
       </ActionButtons>
       {isDuplicateFilterSet && (
         <Warning mark>
-          <Icons.WarningOutlined />
+          <StyledWarningOutlined />
           {t('This filter set is identical to: "%s"', foundFilterSet?.name)}
         </Warning>
       )}

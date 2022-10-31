@@ -16,15 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray, t } from '@superset-ui/core';
+import { ensureIsArray, t, styled } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { DownOutlined } from '@ant-design/icons';
 import React, { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 
 const { Option } = AntdSelect;
+
+const StyledSearchOutlined = styled(Icons.SearchOutlined)`
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
+
+const StyledDownOutlined = styled(Icons.DownOutlined)`
+  svg {
+    width: 12px;
+    height: 12px;
+  }
+`;
 
 export function isObject(value: unknown): value is Record<string, unknown> {
   return (
@@ -127,9 +140,9 @@ export const getSuffixIcon = (
     return <StyledSpin size="small" />;
   }
   if (showSearch && isDropdownVisible) {
-    return <Icons.SearchOutlined />;
+    return <StyledSearchOutlined />;
   }
-  return <DownOutlined />;
+  return <StyledDownOutlined />;
 };
 
 export const dropDownRenderHelper = (
