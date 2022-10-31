@@ -18,19 +18,18 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Set, TYPE_CHECKING
+from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from flask_babel import gettext as __
 
 from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
+    SupersetErrorException,
     SupersetErrorsException,
-    SupersetException,
     SupersetGenericErrorException,
-    SupersetSyntaxErrorException,
 )
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -52,13 +51,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 CommandResult = Dict[str, Any]
-
-# Define set of users client errors these definitions won't
-# be logged as exception vs. warning
-USER_CLIENT_ERRORS: Set[SupersetErrorType] = {
-    SupersetErrorType.SYNTAX_ERROR,
-    SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
-}
 
 
 class ExecuteSqlCommand(BaseCommand):
@@ -122,25 +114,11 @@ class ExecuteSqlCommand(BaseCommand):
                 "status": status,
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
-        except SupersetErrorsException as ex:
-            if all(ex.error_type in USER_CLIENT_ERRORS for ex in ex.errors):
-                raise SupersetSyntaxErrorException(ex.errors) from ex
-            raise ex
-        except SupersetException as ex:
-            if ex.error_type in USER_CLIENT_ERRORS:
-                raise SupersetSyntaxErrorException(
-                    [
-                        SupersetError(
-                            message=ex.message,
-                            error_type=ex.error_type,
-                            level=ErrorLevel.ERROR,
-                        )
-                    ]
-                ) from ex
+        except (SupersetErrorException, SupersetErrorsException) as ex:
+            # to make sure we raising the original
+            # SupersetErrorsException || SupersetErrorsException
             raise ex
         except Exception as ex:
-            query_id = query.id if query else None
-            logger.exception("Query %d: %s", query_id, type(ex))
             raise SqlLabException(self._execution_context, exception=ex) from ex
 
     def _try_get_existing_query(self) -> Optional[Query]:
