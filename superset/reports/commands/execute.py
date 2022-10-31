@@ -22,10 +22,9 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app, security_manager
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -45,7 +44,6 @@ from superset.reports.commands.exceptions import (
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
-    ReportScheduleSelleniumUserNotFoundError,
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
@@ -67,6 +65,7 @@ from superset.reports.models import (
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
@@ -75,13 +74,6 @@ from superset.utils.urls import get_url_path
 from superset.utils.webdriver import DashboardStandaloneMode
 
 logger = logging.getLogger(__name__)
-
-
-def _get_user() -> User:
-    user = security_manager.find_user(username=app.config["THUMBNAIL_SELENIUM_USER"])
-    if not user:
-        raise ReportScheduleSelleniumUserNotFoundError()
-    return user
 
 
 class BaseReportState:
@@ -182,11 +174,11 @@ class BaseReportState:
                 **kwargs,
             )
 
-        # If we need to render dashboard in a specific sate, use stateful permalink
+        # If we need to render dashboard in a specific state, use stateful permalink
         dashboard_state = self._report_schedule.extra.get("dashboard")
         if dashboard_state:
             permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=self._report_schedule.dashboard_id,
+                dashboard_id=str(self._report_schedule.dashboard_id),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
@@ -206,7 +198,7 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         url = self._get_url()
-        user = _get_user()
+        user = get_executor(self._report_schedule)
         if self._report_schedule.chart:
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
@@ -236,16 +228,15 @@ class BaseReportState:
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            _get_user()
-        )
+        user = get_executor(self._report_schedule)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s", url)
+            logger.info("Getting chart from %s as user %s", url, user.username)
             csv_data = get_chart_csv_data(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleCsvTimeout() from ex
@@ -262,16 +253,15 @@ class BaseReportState:
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            _get_user()
-        )
+        user = get_executor(self._report_schedule)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s", url)
+            logger.info("Getting chart from %s as user %s", url, user.username)
             dataframe = get_chart_dataframe(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleDataFrameTimeout() from ex
@@ -674,10 +664,16 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
     def run(self) -> None:
         with session_scope(nullpool=True) as session:
             try:
-                with override_user(_get_user()):
-                    self.validate(session=session)
-                    if not self._model:
-                        raise ReportScheduleExecuteUnexpectedError()
+                self.validate(session=session)
+                if not self._model:
+                    raise ReportScheduleExecuteUnexpectedError()
+                user = get_executor(self._model)
+                with override_user(user):
+                    logger.info(
+                        "Running report schedule %s as user %s",
+                        self._execution_id,
+                        user.username,
+                    )
                     ReportScheduleStateMachine(
                         session, self._execution_id, self._model, self._scheduled_dttm
                     ).run()
@@ -695,6 +691,8 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             self._model_id,
             self._execution_id,
         )
-        self._model = ReportScheduleDAO.find_by_id(self._model_id, session=session)
+        self._model = (
+            session.query(ReportSchedule).filter_by(id=self._model_id).one_or_none()
+        )
         if not self._model:
             raise ReportScheduleNotFoundError()
