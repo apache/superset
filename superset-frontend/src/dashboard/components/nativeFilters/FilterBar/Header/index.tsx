@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { css, styled, t, useTheme } from '@superset-ui/core';
-import React, { FC } from 'react';
+import React, { FC, useMemo } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import { useSelector } from 'react-redux';
@@ -74,7 +74,7 @@ const AddFiltersButtonContainer = styled.div`
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const theme = useTheme();
   const filters = useFilters();
-  const filterValues = Object.values(filters);
+  const filterValues = useMemo(() => Object.values(filters), [filters]);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -109,4 +109,4 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   );
 };
 
-export default Header;
+export default React.memo(Header);
