@@ -384,15 +384,15 @@ def medbi_import_dashboard(
         )
         # Change database name in params due to using new database for imported dashboard
         db_name = slc.params_dict['database_name'].lower()
-        is_clichouse = 'clickhouse' in db_name or 'кликхауз' in db_name
-        if is_clichouse:
+        is_clickhouse = ('clickhouse' in db_name) or ('кликхауз' in db_name)
+        if is_clickhouse:
             search_db_id = clickhouse_database_id
         else:
             search_db_id = database_id
         if search_db_id:
             database = session.query(Database).filter(Database.id == search_db_id).first()
             slc.alter_params(database_name=database.name)
-            if is_clichouse:
+            if is_clickhouse:
                 schema_name = re.search(r'data_(\d+)', database.sqlalchemy_uri).group()
                 slc.alter_params(schema=schema_name)
         remote_slc = remote_id_slice_map.get(slc.id)
@@ -561,8 +561,8 @@ def medbi_import_dashboards(
     dataset_id_mapping: Dict[int, int] = {}
     for table in data["datasources"]:
         params = json.loads(table.params)
-        is_clickhouse = 'кликхауз' in params['database_name'].lower() \
-                        or 'clickhouse' in params['database_name'].lower()
+        is_clickhouse = ('кликхауз' in params['database_name'].lower()) \
+                                or ('clickhouse' in params['database_name'].lower())
         new_dataset_id = import_dataset(
             table,
             clickhouse_database_id if is_clickhouse else database_id,
