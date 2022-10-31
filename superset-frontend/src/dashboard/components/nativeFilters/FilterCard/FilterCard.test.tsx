@@ -218,7 +218,7 @@ const getTextInHTMLTags =
   };
 
 const renderContent = (filter = baseFilter, initialState = baseInitialState) =>
-  render(<FilterCardContent filter={filter} />, {
+  render(<FilterCardContent filter={filter} hidePopover={() => {}} />, {
     useRedux: true,
     initialState,
   });
