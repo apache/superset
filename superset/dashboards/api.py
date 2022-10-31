@@ -265,6 +265,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             self.appbuilder.app.config["VERSION_SHA"],
         )
 
+    @expose("/<id_or_slug>", methods=["GET"])
+    @protect()
     @etag_cache(
         get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_changed_on(  # pylint: disable=line-too-long,useless-suppression
             id_or_slug
@@ -275,8 +277,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ),
         skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    @expose("/<id_or_slug>", methods=["GET"])
-    @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -321,6 +321,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         result = self.dashboard_get_response_schema.dump(dash)
         return self.response(200, result=result)
 
+    @expose("/<id_or_slug>/datasets", methods=["GET"])
+    @protect()
     @etag_cache(
         get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_datasets_changed_on(  # pylint: disable=line-too-long,useless-suppression
             id_or_slug
@@ -331,8 +333,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ),
         skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    @expose("/<id_or_slug>/datasets", methods=["GET"])
-    @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -386,6 +386,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         except DashboardNotFoundError:
             return self.response_404()
 
+    @expose("/<id_or_slug>/charts", methods=["GET"])
+    @protect()
     @etag_cache(
         get_last_modified=lambda _self, id_or_slug: DashboardDAO.get_dashboard_and_slices_changed_on(  # pylint: disable=line-too-long,useless-suppression
             id_or_slug
@@ -396,8 +398,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         ),
         skip=lambda _self, id_or_slug: not is_feature_enabled("DASHBOARD_CACHE"),
     )
-    @expose("/<id_or_slug>/charts", methods=["GET"])
-    @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
