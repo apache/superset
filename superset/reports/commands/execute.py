@@ -322,7 +322,6 @@ class BaseReportState:
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
-            "error_text": None,
         }
         return log_data
 
@@ -354,7 +353,6 @@ class BaseReportState:
                 if not csv_data:
                     error_text = "Unexpected missing csv file"
             if error_text:
-                header_data["error_text"] = error_text
                 return NotificationContent(
                     name=self._report_schedule.name,
                     text=error_text,
@@ -434,7 +432,6 @@ class BaseReportState:
         :raises: NotificationError
         """
         header_data = self._get_log_data()
-        header_data["error_text"] = message
         logger.info(
             "header_data in notifications for alerts and reports %s, taskid, %s",
             header_data,

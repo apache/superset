@@ -593,13 +593,13 @@ describe('Native filters', () => {
     });
 
     it('User can cancel changes in native filter', () => {
-      visitDashboard();
-      enterNativeFilterEditModal(false);
-      fillNativeFilterForm(
-        testItems.filterType.value,
-        'suffix',
-        testItems.datasetForNativeFilter,
-      );
+      prepareDashboardFilters([
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
+      ]);
+      enterNativeFilterEditModal();
+      cy.getBySel('filters-config-modal__name-input').type('|EDITED', {
+        force: true,
+      });
       cancelNativeFilterSettings();
       enterNativeFilterEditModal();
       cy.get(nativeFilters.filtersList.removeIcon).first().click();

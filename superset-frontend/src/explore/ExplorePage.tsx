@@ -37,7 +37,7 @@ import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilter
 import { getParsedExploreURLParams } from './exploreUtils/getParsedExploreURLParams';
 import { hydrateExplore } from './actions/hydrateExplore';
 import ExploreViewContainer from './components/ExploreViewContainer';
-import { ExploreResponsePayload } from './types';
+import { ExploreResponsePayload, SaveActionType } from './types';
 import { fallbackExploreInitialData } from './fixtures';
 import { getItem, LocalStorageKeys } from '../utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from './controlUtils/getFormDataWithDashboardContext';
@@ -119,9 +119,11 @@ export default function ExplorePage() {
 
   useEffect(() => {
     const exploreUrlParams = getParsedExploreURLParams(location);
-    const isSaveAction = !!getUrlParam(URL_PARAMS.saveAction);
+    const saveAction = getUrlParam(
+      URL_PARAMS.saveAction,
+    ) as SaveActionType | null;
     const dashboardContextFormData = getDashboardContextFormData();
-    if (!isExploreInitialized.current || isSaveAction) {
+    if (!isExploreInitialized.current || !!saveAction) {
       fetchExploreData(exploreUrlParams)
         .then(({ result }) => {
           const formData = dashboardContextFormData
@@ -134,6 +136,7 @@ export default function ExplorePage() {
             hydrateExplore({
               ...result,
               form_data: formData,
+              saveAction,
             }),
           );
         })
