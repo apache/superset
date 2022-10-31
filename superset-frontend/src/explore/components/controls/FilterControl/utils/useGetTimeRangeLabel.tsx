@@ -18,9 +18,9 @@
  */
 import { useEffect, useState } from 'react';
 import { NO_TIME_RANGE } from '@superset-ui/core';
-import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { fetchTimeRange } from 'src/explore/components/controls/DateFilterControl';
 import { Operators } from 'src/explore/constants';
+import AdhocFilter, { EXPRESSION_TYPES } from '../AdhocFilter';
 
 interface Results {
   actualTimeRange?: string;
@@ -31,7 +31,10 @@ export const useGetTimeRangeLabel = (adhocFilter: AdhocFilter): Results => {
   const [actualTimeRange, setActualTimeRange] = useState<Results>({});
 
   useEffect(() => {
-    if (adhocFilter.operator !== Operators.TEMPORAL_RANGE) {
+    if (
+      adhocFilter.operator !== Operators.TEMPORAL_RANGE ||
+      adhocFilter.expressionType !== EXPRESSION_TYPES.SIMPLE
+    ) {
       setActualTimeRange({});
     }
     if (
@@ -46,7 +49,9 @@ export const useGetTimeRangeLabel = (adhocFilter: AdhocFilter): Results => {
 
     if (
       adhocFilter.operator === Operators.TEMPORAL_RANGE &&
-      adhocFilter.comparator !== NO_TIME_RANGE
+      adhocFilter.expressionType === EXPRESSION_TYPES.SIMPLE &&
+      adhocFilter.comparator !== NO_TIME_RANGE &&
+      actualTimeRange.title !== adhocFilter.comparator
     ) {
       fetchTimeRange(adhocFilter.comparator, adhocFilter.subject).then(
         ({ value, error }) => {
