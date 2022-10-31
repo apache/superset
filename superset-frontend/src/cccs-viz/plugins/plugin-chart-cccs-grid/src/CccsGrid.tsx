@@ -260,7 +260,6 @@ export default function CccsGrid({
 
     setFilters(updatedFilters);
     setDefaultFilters(updatedDefaultFilters);
-    const example = updatedDefaultFilters;
   };
 
   function autoSizeFirst100Columns(params: any) {
