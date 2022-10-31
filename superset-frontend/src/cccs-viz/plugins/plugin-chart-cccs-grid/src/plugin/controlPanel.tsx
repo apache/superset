@@ -408,9 +408,9 @@ const config: ControlPanelConfig = {
                 name: 'defaultEmitFilterColumn',
                 config: {
                   type: 'SelectControl',
-                  label: t('Default Emit Filter Column'),
+                  label: t('Default Emit Filter Column(s)'),
                   description: t(
-                    'Select a column that the emit filter button will use by default',
+                    'Select columns that the emit filter button will use by default',
                   ),
                   multi: true,
                   freeForm: true,
