@@ -17,34 +17,53 @@
  * under the License.
  */
 import React, { useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { css, SupersetTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { useTruncation } from 'src/hooks/useTruncation';
-import { Row, FilterName } from './Styles';
+import { RootState } from 'src/dashboard/types';
+import { Row, FilterName, StyledEdit, InternalRow } from './Styles';
 import { FilterCardRowProps } from './types';
+import { FilterConfigurationLink } from '../FilterBar/FilterConfigurationLink';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
-export const NameRow = ({ filter }: FilterCardRowProps) => {
+export const NameRow = ({
+  filter,
+  hidePopover,
+}: FilterCardRowProps & { hidePopover: () => void }) => {
   const filterNameRef = useRef<HTMLElement>(null);
   const [elementsTruncated] = useTruncation(filterNameRef);
+  const dashboardId = useSelector<RootState, number>(
+    ({ dashboardInfo }) => dashboardInfo.id,
+  );
   return (
     <Row
       css={(theme: SupersetTheme) =>
         css`
           margin-bottom: ${theme.gridUnit * 3}px;
+          justify-content: space-between;
         `
       }
     >
-      <Icons.FilterSmall
-        css={(theme: SupersetTheme) =>
-          css`
-            margin-right: ${theme.gridUnit}px;
-          `
-        }
-      />
-      <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
-        <FilterName ref={filterNameRef}>{filter.name}</FilterName>
-      </TooltipWithTruncation>
+      <InternalRow>
+        <Icons.FilterSmall
+          css={(theme: SupersetTheme) =>
+            css`
+              margin-right: ${theme.gridUnit}px;
+            `
+          }
+        />
+        <TooltipWithTruncation title={elementsTruncated ? filter.name : null}>
+          <FilterName ref={filterNameRef}>{filter.name}</FilterName>
+        </TooltipWithTruncation>
+      </InternalRow>
+      <FilterConfigurationLink
+        dashboardId={dashboardId}
+        onClick={() => hidePopover()}
+        initialFilterId={filter.id}
+      >
+        <StyledEdit />
+      </FilterConfigurationLink>
     </Row>
   );
 };
