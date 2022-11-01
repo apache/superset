@@ -18,6 +18,7 @@
  */
 import { ensureIsArray, t, styled } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import { DownOutlined } from '@ant-design/icons';
 import React, { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
@@ -26,13 +27,6 @@ import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
 const { Option } = AntdSelect;
 
 const StyledSearchOutlined = styled(Icons.SearchOutlined)`
-  svg {
-    width: 12px;
-    height: 12px;
-  }
-`;
-
-const StyledDownOutlined = styled(Icons.DownOutlined)`
   svg {
     width: 12px;
     height: 12px;
@@ -142,7 +136,7 @@ export const getSuffixIcon = (
   if (showSearch && isDropdownVisible) {
     return <StyledSearchOutlined />;
   }
-  return <StyledDownOutlined />;
+  return <DownOutlined />;
 };
 
 export const dropDownRenderHelper = (
