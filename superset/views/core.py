@@ -1165,35 +1165,40 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
         if not database:
-            return json_error_response("Database not found", status=404)
+            return json_error_response(
+                __("Database not found: %(id)s", id=db_id), status=404
+            )
 
-        tables = security_manager.get_datasources_accessible_by_user(
-            database=database,
-            schema=schema_parsed,
-            datasource_names=[
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_schema(
-                    schema=schema_parsed,
-                    force=force_refresh_parsed,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ],
-        )
+        try:
+            tables = security_manager.get_datasources_accessible_by_user(
+                database=database,
+                schema=schema_parsed,
+                datasource_names=[
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_table_names_in_schema(
+                        schema=schema_parsed,
+                        force=force_refresh_parsed,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
+                ],
+            )
 
-        views = security_manager.get_datasources_accessible_by_user(
-            database=database,
-            schema=schema_parsed,
-            datasource_names=[
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_schema(
-                    schema=schema_parsed,
-                    force=force_refresh_parsed,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ],
-        )
+            views = security_manager.get_datasources_accessible_by_user(
+                database=database,
+                schema=schema_parsed,
+                datasource_names=[
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_view_names_in_schema(
+                        schema=schema_parsed,
+                        force=force_refresh_parsed,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
+                ],
+            )
+        except SupersetException as ex:
+            return json_error_response(ex.message, ex.status)
 
         extra_dict_by_name = {
             table.name: table.extra_dict
