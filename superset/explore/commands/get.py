@@ -144,7 +144,8 @@ class GetExploreCommand(BaseCommand, ABC):
         utils.merge_extra_filters(form_data)
         utils.merge_request_params(form_data, request.args)
 
-        dummy_dataset_data: Dict[str, Any] = {
+        # TODO: this is a dummy placeholder - should be refactored to being just `None`
+        dataset_data: Dict[str, Any] = {
             "type": self._dataset_type,
             "name": dataset_name,
             "columns": [],
@@ -152,9 +153,12 @@ class GetExploreCommand(BaseCommand, ABC):
             "database": {"id": 0, "backend": ""},
         }
         try:
-            dataset_data = dataset.data if dataset else dummy_dataset_data
-        except (SupersetException, SQLAlchemyError):
-            dataset_data = dummy_dataset_data
+            if dataset:
+                dataset_data = dataset.data
+        except SupersetException as ex:
+            message = ex.message
+        except SQLAlchemyError:
+            message = "SQLAlchemy error"
 
         metadata = None
 

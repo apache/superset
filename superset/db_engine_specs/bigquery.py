@@ -35,7 +35,7 @@ from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
-from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -449,7 +449,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from google.auth.exceptions import DefaultCredentialsError
 
-        return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}
+        return {DefaultCredentialsError: SupersetDBAPIConnectionError}
 
     @classmethod
     def validate_parameters(

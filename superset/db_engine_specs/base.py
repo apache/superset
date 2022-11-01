@@ -639,7 +639,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             return cursor.fetchall()
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def expand_data(
@@ -1025,7 +1025,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param schema: Schema to inspect. If omitted, uses default schema for database
         :return: All tables in schema
         """
-        tables = inspector.get_table_names(schema)
+        try:
+            tables = inspector.get_table_names(schema)
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
         if schema and cls.try_remove_schema_from_table_name:
             tables = [re.sub(f"^{schema}\\.", "", table) for table in tables]
         return sorted(tables)
@@ -1045,7 +1049,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param schema: Schema name. If omitted, uses default schema for database
         :return: All views in schema
         """
-        views = inspector.get_view_names(schema)
+        try:
+            views = inspector.get_view_names(schema)
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
         if schema and cls.try_remove_schema_from_table_name:
             views = [re.sub(f"^{schema}\\.", "", view) for view in views]
         return sorted(views)
@@ -1326,7 +1334,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:
