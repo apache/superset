@@ -563,9 +563,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(table, schema) for table in tables]
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Get all table names in schema failed", exc_info=True)
-            return []
+        except Exception as ex:  # pylint: disable=broad-except
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:view_list",
@@ -594,9 +593,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(view, schema) for view in views]
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Get all view names failed", exc_info=True)
-            return []
+        except Exception as ex:  # pylint: disable=broad-except
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
@@ -618,7 +616,10 @@ class Database(
         :param force: whether to force refresh the cache
         :return: schema list
         """
-        return self.db_engine_spec.get_schema_names(self.inspector)
+        try:
+            return self.db_engine_spec.get_schema_names(self.inspector)
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
