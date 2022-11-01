@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import JSONbig from 'json-bigint-native';
+import JSONbig from 'json-bigint';
 import React, { useEffect, useRef, useState } from 'react';
 import JSONTree from 'react-json-tree';
 import {
