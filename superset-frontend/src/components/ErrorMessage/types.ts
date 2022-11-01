@@ -87,7 +87,11 @@ export type ErrorType = ValueOf<typeof ErrorTypeEnum>;
 // Keep in sync with superset/views/errors.py
 export type ErrorLevel = 'info' | 'warning' | 'error';
 
-export type ErrorSource = 'dashboard' | 'explore' | 'sqllab';
+export type ErrorSource =
+  | 'dashboard'
+  | 'explore'
+  | 'sqllab'
+  | 'dbConnectionModal';
 
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: ErrorType;

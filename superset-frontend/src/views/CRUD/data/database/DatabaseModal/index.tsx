@@ -1170,8 +1170,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ErrorMessageWithStackTrace
           title={t('Database Creation Error')}
           description={alertErrors[0]}
-          subtitle={validationErrors?.description}
-          copyText={validationErrors?.description}
+          subtitle={validationErrors?.description || alertErrors[0]}
+          copyText={validationErrors?.description || alertErrors[0]}
+          source="dbConnectionModal"
         />
       );
     }
