@@ -21,11 +21,11 @@ import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
 
-// eslint-disable-next-line consistent-return
 function parseFloatBigNumber(value: any) {
   if (value?.isInteger?.() === false) {
     return Number(value);
   }
+  return undefined;
 }
 
 export default async function parseResponse<T extends ParseMethod = 'json'>(
