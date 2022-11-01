@@ -17,8 +17,16 @@
  * under the License.
  */
 import JSONbig from 'json-bigint';
+import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
+
+// eslint-disable-next-line consistent-return
+function parseFloatBigNumber(value: any) {
+  if (value?.isInteger?.() === false) {
+    return Number(value);
+  }
+}
 
 export default async function parseResponse<T extends ParseMethod = 'json'>(
   apiPromise: Promise<Response>,
@@ -52,7 +60,8 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     const json = JSONbig.parse(rawData);
     const result: JsonResponse = {
       response,
-      json,
+      // TODO: keep it until json-bigint@1.0.1 to ignore bignumber.js for float numbers
+      json: cloneDeepWith(json, parseFloatBigNumber),
     };
     return result as ReturnType;
   }
