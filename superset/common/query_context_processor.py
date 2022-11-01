@@ -126,7 +126,7 @@ class QueryContextProcessor:
                 if invalid_columns:
                     raise QueryObjectValidationError(
                         _(
-                            "Columns missing in datasource: %(invalid_columns)s",
+                            "Columns missing in dataset: %(invalid_columns)s",
                             invalid_columns=invalid_columns,
                         )
                     )
