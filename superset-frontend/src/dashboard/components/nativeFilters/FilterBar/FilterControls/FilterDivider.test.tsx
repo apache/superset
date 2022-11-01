@@ -90,12 +90,7 @@ test('horizontal mode, title and description', async () => {
 
 test('horizontal overflow mode, title', () => {
   render(
-    <FilterDivider
-      horizontal
-      horizontalOverflow
-      title={SAMPLE_TITLE}
-      description=""
-    />,
+    <FilterDivider horizontal overflow title={SAMPLE_TITLE} description="" />,
   );
 
   const title = screen.getByRole('heading', { name: SAMPLE_TITLE });
@@ -111,7 +106,7 @@ test('horizontal overflow mode, title and description', () => {
   render(
     <FilterDivider
       horizontal
-      horizontalOverflow
+      overflow
       title={SAMPLE_TITLE}
       description={SAMPLE_DESCRIPTION}
     />,

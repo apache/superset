@@ -98,7 +98,7 @@ const story = { parameters: { knobs: { disable: true } } };
 VerticalFilterDivider.args = {
   ...args,
   horizontal: false,
-  horizontalOverflow: false,
+  overflow: false,
 };
 
 VerticalFilterDivider.story = story;
@@ -106,7 +106,7 @@ VerticalFilterDivider.story = story;
 HorizontalFilterDivider.args = {
   ...args,
   horizontal: true,
-  horizontalOverflow: false,
+  overflow: false,
 };
 
 HorizontalFilterDivider.story = story;
@@ -114,7 +114,7 @@ HorizontalFilterDivider.story = story;
 HorizontalOverflowFilterDivider.args = {
   ...args,
   horizontal: true,
-  horizontalOverflow: true,
+  overflow: true,
 };
 
 HorizontalOverflowFilterDivider.story = story;

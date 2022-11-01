@@ -26,7 +26,7 @@ export interface FilterDividerProps {
   title: string;
   description: string;
   horizontal?: boolean;
-  horizontalOverflow?: boolean;
+  overflow?: boolean;
 }
 
 const useIsTruncated = <T extends HTMLElement>(
@@ -173,10 +173,10 @@ const FilterDivider = ({
   title,
   description,
   horizontal = false,
-  horizontalOverflow = false,
+  overflow = false,
 }: FilterDividerProps) => {
   if (horizontal) {
-    if (horizontalOverflow) {
+    if (overflow) {
       return (
         <HorizontalOverflowDivider title={title} description={description} />
       );
