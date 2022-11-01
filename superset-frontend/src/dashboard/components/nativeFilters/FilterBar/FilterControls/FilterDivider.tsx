@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, SupersetTheme } from '@superset-ui/core';
+import { css, useTheme } from '@superset-ui/core';
 import React from 'react';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
@@ -38,6 +38,7 @@ const VerticalDivider = ({ title, description }: FilterDividerProps) => (
 );
 
 const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
+  const theme = useTheme();
   const [titleRef, titleIsTruncated] =
     useCSSTextTruncation<HTMLHeadingElement>(title);
 
@@ -54,7 +55,7 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
 
   return (
     <div
-      css={(theme: SupersetTheme) => css`
+      css={css`
         display: flex;
         align-items: center;
         height: ${8 * theme.gridUnit}px;
@@ -65,11 +66,11 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
     >
       <h3
         ref={titleRef}
-        css={(theme: SupersetTheme) => css`
+        css={css`
           ${truncationCSS}
-          max-width: 130px;
-          font-size: 14px;
-          font-weight: normal;
+          max-width: ${theme.gridUnit * 32.5}px;
+          font-size: ${theme.typography.sizes.m}px;
+          font-weight: ${theme.typography.weights.normal};
           margin: 0;
           color: ${theme.colors.grayscale.dark1};
         `}
@@ -80,9 +81,9 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
         <Tooltip overlay={tooltipOverlay}>
           <Icons.BookOutlined
             data-test="divider-description-icon"
-            css={(theme: SupersetTheme) => css`
-              color: ${theme.colors.grayscale.base};
-              font-size: 16px;
+            iconSize="l"
+            iconColor={theme.colors.grayscale.base}
+            css={css`
               margin: 0 ${theme.gridUnit * 1.5}px;
               vertical-align: unset;
               line-height: unset;
@@ -98,6 +99,7 @@ const HorizontalOverflowDivider = ({
   title,
   description,
 }: FilterDividerProps) => {
+  const theme = useTheme();
   const [titleRef, titleIsTruncated] =
     useCSSTextTruncation<HTMLHeadingElement>(title);
 
@@ -106,7 +108,7 @@ const HorizontalOverflowDivider = ({
 
   return (
     <div
-      css={(theme: SupersetTheme) => css`
+      css={css`
         border-top: 1px solid ${theme.colors.grayscale.light2};
         padding-top: ${theme.gridUnit * 4}px;
         &:not(&:last-child) {
@@ -117,12 +119,12 @@ const HorizontalOverflowDivider = ({
       <Tooltip overlay={titleIsTruncated ? <strong>{title}</strong> : null}>
         <h3
           ref={titleRef}
-          css={(theme: SupersetTheme) => css`
+          css={css`
             ${truncationCSS}
             display: block;
             color: ${theme.colors.grayscale.dark1};
-            font-weight: normal;
-            font-size: 14px;
+            font-weight: ${theme.typography.weights.normal};
+            font-size: ${theme.typography.sizes.m}px;
             margin: 0 0 ${theme.gridUnit}px 0;
           `}
         >
@@ -134,10 +136,10 @@ const HorizontalOverflowDivider = ({
           <p
             ref={descriptionRef}
             data-test="divider-description"
-            css={(theme: SupersetTheme) => css`
+            css={css`
               ${truncationCSS}
               display: block;
-              font-size: 12px;
+              font-size: ${theme.typography.sizes.s}px;
               color: ${theme.colors.grayscale.base};
               margin: 0;
             `}
