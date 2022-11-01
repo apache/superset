@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 import uuid
 from typing import Any, Optional, Union
 
@@ -32,6 +33,8 @@ from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
+
+DAR_REGEX = re.compile("DAR-.+")
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -201,11 +204,12 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
         role_model = security_manager.role_model
-        if value:
-            return query.filter(
-                role_model.name.ilike(f"%{value}%"),
-            )
-        return query
+        role_filters = [
+            role_model.name.ilike(f"{role}%")
+            for role in security_manager.get_user_roles()
+            if DAR_REGEX.match(role.name)
+        ]
+        return query.filter(or_(*role_filters))
 
 
 class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods

@@ -308,7 +308,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         base_filters = self.base_related_field_filters.get(column_name)
         if base_filters:
             filters.add_filter_list(base_filters)
-        if value and filter_field:
+        if filter_field:
             filters.add_filter(
                 filter_field.field_name, filter_field.filter_class, value
             )
