@@ -123,6 +123,7 @@ class CustomFormView(SimpleFormView):
     """
 
     @expose("/form", methods=["GET"])
+    @has_access
     def this_form_get(self) -> Any:
         self._init_vars()
         form = self.form.refresh()
@@ -136,6 +137,7 @@ class CustomFormView(SimpleFormView):
         )
 
     @expose("/form", methods=["POST"])
+    @has_access
     def this_form_post(self) -> Any:
         self._init_vars()
         form = self.form.refresh()
