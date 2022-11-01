@@ -195,7 +195,7 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         description=_(
             "Json list of the values that should be treated as null. "
             'Examples: [""], ["None", "N/A"], ["nan", "null"]. '
-            "Warning: Hive database supports only single value"
+            "Warning: Hive database supports only a single value"
         ),
     )
     index_col = IntegerField(
