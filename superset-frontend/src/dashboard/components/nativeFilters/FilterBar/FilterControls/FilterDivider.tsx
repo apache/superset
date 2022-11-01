@@ -18,9 +18,10 @@
  */
 
 import { css, SupersetTheme } from '@superset-ui/core';
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
+import { useCSSTextTruncation, truncationCSS } from 'src/hooks/useTruncation';
 
 export interface FilterDividerProps {
   title: string;
@@ -28,20 +29,6 @@ export interface FilterDividerProps {
   horizontal?: boolean;
   overflow?: boolean;
 }
-
-const useIsTruncated = <T extends HTMLElement>(
-  text: string,
-): [React.RefObject<T>, boolean] => {
-  const ref = useRef<T>(null);
-  const [isTruncated, setIsTruncated] = useState(true);
-  useEffect(() => {
-    if (ref.current) {
-      setIsTruncated(ref.current.offsetWidth < ref.current.scrollWidth);
-    }
-  }, [text]);
-
-  return [ref, isTruncated];
-};
 
 const VerticalDivider = ({ title, description }: FilterDividerProps) => (
   <div>
@@ -52,7 +39,7 @@ const VerticalDivider = ({ title, description }: FilterDividerProps) => (
 
 const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
   const [titleRef, titleIsTruncated] =
-    useIsTruncated<HTMLHeadingElement>(title);
+    useCSSTextTruncation<HTMLHeadingElement>(title);
 
   const tooltipOverlay = (
     <>
@@ -79,10 +66,8 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
       <h3
         ref={titleRef}
         css={(theme: SupersetTheme) => css`
+          ${truncationCSS}
           max-width: 130px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
           font-size: 14px;
           font-weight: normal;
           margin: 0;
@@ -114,10 +99,10 @@ const HorizontalOverflowDivider = ({
   description,
 }: FilterDividerProps) => {
   const [titleRef, titleIsTruncated] =
-    useIsTruncated<HTMLHeadingElement>(title);
+    useCSSTextTruncation<HTMLHeadingElement>(title);
 
   const [descriptionRef, descriptionIsTruncated] =
-    useIsTruncated<HTMLHeadingElement>(description);
+    useCSSTextTruncation<HTMLHeadingElement>(description);
 
   return (
     <div
@@ -133,10 +118,8 @@ const HorizontalOverflowDivider = ({
         <h3
           ref={titleRef}
           css={(theme: SupersetTheme) => css`
+            ${truncationCSS}
             display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             color: ${theme.colors.grayscale.dark1};
             font-weight: normal;
             font-size: 14px;
@@ -152,10 +135,8 @@ const HorizontalOverflowDivider = ({
             ref={descriptionRef}
             data-test="divider-description"
             css={(theme: SupersetTheme) => css`
+              ${truncationCSS}
               display: block;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
               font-size: 12px;
               color: ${theme.colors.grayscale.base};
               margin: 0;
