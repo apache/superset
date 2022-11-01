@@ -93,9 +93,8 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
-  const canSetHorizontalFilterBar = isFeatureEnabled(
-    FeatureFlag.HORIZONTAL_FILTER_BAR,
-  );
+  const canSetHorizontalFilterBar =
+    canEdit && isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR);
 
   return (
     <Wrapper>
