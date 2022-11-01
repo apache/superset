@@ -21,13 +21,6 @@ import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
 
-function parseFloatBigNumber(value: any) {
-  if (value?.isInteger?.() === false) {
-    return Number(value);
-  }
-  return undefined;
-}
-
 export default async function parseResponse<T extends ParseMethod = 'json'>(
   apiPromise: Promise<Response>,
   parseMethod?: T,
@@ -60,8 +53,11 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     const json = JSONbig.parse(rawData);
     const result: JsonResponse = {
       response,
-      // TODO: keep it until json-bigint@1.0.1 to ignore bignumber.js for float numbers
-      json: cloneDeepWith(json, parseFloatBigNumber),
+      // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
+      // TODO: clean up after json-bigint>1.0.1 is released
+      json: cloneDeepWith(json, (value: any) =>
+        value?.isInteger?.() === false ? Number(value) : undefined,
+      ),
     };
     return result as ReturnType;
   }
