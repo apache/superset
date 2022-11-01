@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { AxisSortValue } from '@superset-ui/core';
 
-import { isPhysicalColumn, QueryFormColumn } from './types';
+export type SelectOptionType = {
+  value: string;
+  label: string;
+};
 
-export default function getColumnLabel(column: QueryFormColumn): string {
-  if (isPhysicalColumn(column)) {
-    return column;
-  }
-  if (column?.label) {
-    return column.label;
-  }
-  return column?.sqlExpression;
+export interface xAxisSortControlProps {
+  value: AxisSortValue;
+  onChange: (value: AxisSortValue) => void;
+  xAxisSortByOptions: SelectOptionType[];
+  label: string;
+  description: string;
 }

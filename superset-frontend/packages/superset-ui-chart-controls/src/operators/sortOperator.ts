@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,25 +16,42 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { DTTM_ALIAS, PostProcessingSort, RollingType } from '@superset-ui/core';
+import { isEmpty } from 'lodash';
+import {
+  getXAxisLabel,
+  hasGenericChartAxes,
+  PostProcessingSort,
+  UnsortedXAxis,
+  isAxisSortValue,
+} from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
 export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
   formData,
   queryObject,
 ) => {
-  const { x_axis: xAxis } = formData;
   if (
-    (xAxis || queryObject.is_timeseries) &&
-    Object.values(RollingType).includes(formData.rolling_type)
+    hasGenericChartAxes &&
+    isAxisSortValue(formData?.x_axis_sort) &&
+    formData.x_axis_sort.sortByLabel !== UnsortedXAxis &&
+    // the sort operator doesn't support sort-by multiple series.
+    isEmpty(formData.groupby)
   ) {
-    const index = xAxis || DTTM_ALIAS;
+    if (formData.x_axis_sort.sortByLabel === getXAxisLabel(formData)) {
+      return {
+        operation: 'sort',
+        options: {
+          is_sort_index: true,
+          ascending: formData.x_axis_sort.isAsc,
+        },
+      };
+    }
+
     return {
       operation: 'sort',
       options: {
-        columns: {
-          [index]: true,
-        },
+        by: formData.x_axis_sort.sortByLabel,
+        ascending: formData.x_axis_sort.isAsc,
       },
     };
   }

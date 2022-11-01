@@ -16,9 +16,96 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ContributionType, hasGenericChartAxes, t } from '@superset-ui/core';
-import { ControlPanelSectionConfig } from '../types';
-import { emitFilterControl } from '../shared-controls';
+import {
+  ContributionType,
+  ensureIsArray,
+  getColumnLabel,
+  getMetricLabel,
+  hasGenericChartAxes,
+  UnsortedXAxis,
+  isEqualArray,
+  t,
+  defaultAxisSortValue,
+} from '@superset-ui/core';
+import {
+  ControlPanelSectionConfig,
+  ControlSetItem,
+  ControlSetRow,
+} from '../types';
+import { emitFilterControl } from '../shared-controls/emitFilterControl';
+
+const controlsWithoutXAxis: ControlSetRow[] = [
+  ['metrics'],
+  ['groupby'],
+  [
+    {
+      name: 'contributionMode',
+      config: {
+        type: 'SelectControl',
+        label: t('Contribution Mode'),
+        default: null,
+        choices: [
+          [null, t('None')],
+          [ContributionType.Row, t('Row')],
+          [ContributionType.Column, t('Series')],
+        ],
+        description: t('Calculate contribution per series or row'),
+      },
+    },
+  ],
+  ['adhoc_filters'],
+  emitFilterControl,
+  ['limit'],
+  ['timeseries_limit_metric'],
+  ['order_desc'],
+  ['row_limit'],
+  ['truncate_metric'],
+  ['show_empty_columns'],
+];
+
+const xAxisSort: ControlSetItem = {
+  name: 'x_axis_sort',
+  config: {
+    type: 'XAxisSortControl',
+    label: t('X-Axis Sort By'),
+    description: '',
+    shouldMapStateToProps: (prevState, state) => {
+      const prevOptions = [
+        getColumnLabel(prevState.form_data.x_axis),
+        ...ensureIsArray(prevState.form_data.metrics).map(metric =>
+          getMetricLabel(metric),
+        ),
+      ];
+      const currOptions = [
+        getColumnLabel(state.form_data.x_axis),
+        ...ensureIsArray(state.form_data.metrics).map(metric =>
+          getMetricLabel(metric),
+        ),
+      ];
+      return !isEqualArray(prevOptions, currOptions);
+    },
+    mapStateToProps: state => {
+      const choices = [
+        getColumnLabel(state.form_data.x_axis),
+        ...ensureIsArray(state.form_data.metrics).map(metric =>
+          getMetricLabel(metric),
+        ),
+      ].filter(Boolean);
+
+      const xAxisSortByOptions = [UnsortedXAxis, ...choices].map(entry => ({
+        value: entry,
+        label: entry,
+      }));
+      return {
+        xAxisSortByOptions,
+      };
+    },
+    visibility: ({ controls }) =>
+      Array.isArray(controls?.groupby?.value) &&
+      controls?.groupby?.value.length === 0,
+    default: defaultAxisSortValue,
+  },
+};
 
 export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
@@ -26,31 +113,17 @@ export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   controlSetRows: [
     [hasGenericChartAxes ? 'x_axis' : null],
     [hasGenericChartAxes ? 'time_grain_sqla' : null],
-    ['metrics'],
-    ['groupby'],
-    [
-      {
-        name: 'contributionMode',
-        config: {
-          type: 'SelectControl',
-          label: t('Contribution Mode'),
-          default: null,
-          choices: [
-            [null, t('None')],
-            [ContributionType.Row, t('Row')],
-            [ContributionType.Column, t('Series')],
-          ],
-          description: t('Calculate contribution per series or row'),
-        },
-      },
-    ],
-    ['adhoc_filters'],
-    emitFilterControl,
-    ['limit'],
-    ['timeseries_limit_metric'],
-    ['order_desc'],
-    ['row_limit'],
-    ['truncate_metric'],
-    ['show_empty_columns'],
+    ...controlsWithoutXAxis,
+  ],
+};
+
+export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
+  label: t('Query'),
+  expanded: true,
+  controlSetRows: [
+    [hasGenericChartAxes ? 'x_axis' : null],
+    [hasGenericChartAxes ? 'time_grain_sqla' : null],
+    [hasGenericChartAxes ? xAxisSort : null],
+    ...controlsWithoutXAxis,
   ],
 };

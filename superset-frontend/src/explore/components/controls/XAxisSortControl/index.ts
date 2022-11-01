@@ -16,15 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { isPhysicalColumn, QueryFormColumn } from './types';
-
-export default function getColumnLabel(column: QueryFormColumn): string {
-  if (isPhysicalColumn(column)) {
-    return column;
-  }
-  if (column?.label) {
-    return column.label;
-  }
-  return column?.sqlExpression;
-}
+export { default } from './XAxisSortControl';
