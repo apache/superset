@@ -15,9 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from enum import Enum
-from typing import Final, Set
-
-from superset.views.base import CsvResponse, XlsResponse, XlsxResponse
+from typing import Set
 
 
 class ChartDataResultFormat(str, Enum):
@@ -52,10 +50,3 @@ class ChartDataResultType(str, Enum):
     TIMEGRAINS = "timegrains"
     POST_PROCESSED = "post_processed"
     DRILL_DETAIL = "drill_detail"
-
-
-CHART_DATA_RESULT_FORMAT_TO_RESPONSE: Final = {
-    ChartDataResultFormat.CSV: CsvResponse,
-    ChartDataResultFormat.XLS: XlsResponse,
-    ChartDataResultFormat.XLSX: XlsxResponse,
-}

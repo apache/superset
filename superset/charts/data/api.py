@@ -39,11 +39,7 @@ from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
-from superset.common.chart_data import (
-    CHART_DATA_RESULT_FORMAT_TO_RESPONSE,
-    ChartDataResultFormat,
-    ChartDataResultType,
-)
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
@@ -362,10 +358,12 @@ class ChartDataRestApi(ChartRestApi):
             if len(result["queries"]) == 1:
                 # return single query results
                 data = result["queries"][0]["data"]
-                response_class = CHART_DATA_RESULT_FORMAT_TO_RESPONSE[result_format]
-                return response_class(
-                    data, headers=generate_download_headers(result_format)
-                )
+                if result_format == ChartDataResultFormat.CSV:
+                    return CsvResponse(data, headers=generate_download_headers("csv"))
+                elif result_format == ChartDataResultFormat.XLS:
+                    return XlsResponse(data, headers=generate_download_headers("xls"))
+                elif result_format == ChartDataResultFormat.XLSX:
+                    return XlsxResponse(data, headers=generate_download_headers("xlsx"))
 
             # return multi-query results bundled as a zip file
 
