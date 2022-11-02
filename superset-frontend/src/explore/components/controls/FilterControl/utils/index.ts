@@ -16,11 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isXAxisSet } from '@superset-ui/core';
-
-test('isXAxisSet', () => {
-  expect(isXAxisSet({ datasource: '123', viz_type: 'table' })).not.toBeTruthy();
-  expect(
-    isXAxisSet({ datasource: '123', viz_type: 'table', x_axis: 'axis' }),
-  ).toBeTruthy();
-});
+export { useGetTimeRangeLabel } from './useGetTimeRangeLabel';
+export { useDatePickerInAdhocFilter } from './useDatePickerInAdhocFilter';
