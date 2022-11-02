@@ -612,7 +612,7 @@ export function addNewQueryEditor() {
       },
       common,
     } = getState();
-    const sourceQueryEditor = queryEditors.find(
+    const activeQueryEditor = queryEditors.find(
       qe => qe.id === tabHistory[tabHistory.length - 1],
     );
     const firstDbId = Math.min(
@@ -620,8 +620,8 @@ export function addNewQueryEditor() {
     );
     const queryEditor = {
       ...queryEditors[0],
-      ...sourceQueryEditor,
-      ...(unsavedQueryEditor.id === sourceQueryEditor?.id &&
+      ...activeQueryEditor,
+      ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
         unsavedQueryEditor),
     };
     const warning = isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
