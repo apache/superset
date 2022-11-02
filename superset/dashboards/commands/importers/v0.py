@@ -83,6 +83,7 @@ def import_chart(
 
     slc_to_import.datasource_id = datasource.id  # type: ignore
     if slc_to_override:
+        slc_to_override.datasource_id = slc_to_import.datasource_id
         slc_to_override.override(slc_to_import)
         session.flush()
         return slc_to_override.id
