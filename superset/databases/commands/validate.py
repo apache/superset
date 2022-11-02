@@ -104,7 +104,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         engine = database.get_sqla_engine()
         try:
             with closing(engine.raw_connection()) as conn:
-                alive = engine.dialect.do_ping(conn)
+                alive = engine.dialect.name == "druid" or engine.dialect.do_ping(conn)
         except Exception as ex:
             url = make_url_safe(sqlalchemy_uri)
             context = {

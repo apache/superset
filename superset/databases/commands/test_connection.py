@@ -98,7 +98,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             def ping(engine: Engine) -> bool:
                 with closing(engine.raw_connection()) as conn:
-                    return engine.dialect.do_ping(conn)
+                    return engine.dialect.name == "druid" or engine.dialect.do_ping(
+                        conn
+                    )
 
             try:
                 alive = func_timeout(
@@ -109,7 +111,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             except (sqlite3.ProgrammingError, RuntimeError):
                 # SQLite can't run on a separate thread, so ``func_timeout`` fails
                 # RuntimeError catches the equivalent error from duckdb.
-                alive = engine.dialect.do_ping(engine)
+                alive = engine.dialect.name == "druid" or engine.dialect.do_ping(engine)
             except FunctionTimedOut as ex:
                 raise SupersetTimeoutException(
                     error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,

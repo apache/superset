@@ -1381,7 +1381,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             engine = database.get_sqla_engine()
 
             with closing(engine.raw_connection()) as conn:
-                if engine.dialect.do_ping(conn):
+                # workaround for Druid
+                if engine.dialect.name == "druid" or engine.dialect.do_ping(conn):
                     return json_success('"OK"')
 
                 raise DBAPIError(None, None, None)
