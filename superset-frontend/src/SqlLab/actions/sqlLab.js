@@ -615,10 +615,8 @@ export function addNewQueryEditor() {
     const activeQueryEditor = queryEditors.find(
       qe => qe.id === tabHistory[tabHistory.length - 1],
     );
-    const firstDbId =
-      databases.length > 0
-        ? Math.min(...Object.values(databases).map(database => database.id))
-        : undefined;
+    const dbIds = Object.values(databases).map(database => database.id);
+    const firstDbId = dbIds.length > 0 ? Math.min(...dbIds) : undefined;
     const { dbId, schema, queryLimit, autorun } = {
       ...queryEditors[0],
       ...activeQueryEditor,
