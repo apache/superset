@@ -65,6 +65,9 @@ def import_chart(
     slc_to_import = slc_to_import.copy()
     slc_to_import.reset_ownership()
     params = slc_to_import.params_dict
+
+    logger.info(f"Importing '{slc_to_import.slice_name}'")
+
     datasource = ConnectorRegistry.get_datasource_by_name(
         session,
         slc_to_import.datasource_type,
@@ -72,13 +75,19 @@ def import_chart(
         params["schema"],
         params["database_name"],
     )
+
+    logger.info(f"Datasource: name: {datasource.name} id: {datasource.id} "
+                f"{params['datasource_name']} "
+                f"{params['schema']} "
+                f"{params['database_name']}")
+
     slc_to_import.datasource_id = datasource.id  # type: ignore
     if slc_to_override:
         slc_to_override.override(slc_to_import)
         session.flush()
         return slc_to_override.id
     session.add(slc_to_import)
-    logger.info("Final slice: %s", str(slc_to_import.to_json()))
+    #logger.info("Final slice: %s", str(slc_to_import.to_json()))
     session.flush()
     return slc_to_import.id
 
@@ -378,11 +387,11 @@ def medbi_import_dashboard(
         if "remote_id" in slc.params_dict
     }
     for slc in slices:
-        logger.info(
-            "Importing slice %s from the dashboard: %s",
-            slc.to_json(),
-            dashboard_to_import.dashboard_title,
-        )
+        #logger.info(
+        #    "Importing slice %s from the dashboard: %s",
+        #    slc.to_json(),
+        #    dashboard_to_import.dashboard_title,
+        #)
         # Change database name in params due to using new database for imported dashboard
         db_name = slc.params_dict['database_name'].lower()
         is_clickhouse = ('clickhouse' in db_name) or ('кликхауз' in db_name)
