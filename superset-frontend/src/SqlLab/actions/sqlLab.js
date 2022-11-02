@@ -615,10 +615,11 @@ export function addNewQueryEditor() {
     const activeQueryEditor = queryEditors.find(
       qe => qe.id === tabHistory[tabHistory.length - 1],
     );
-    const firstDbId = Math.min(
-      ...Object.values(databases).map(database => database.id),
-    );
-    const queryEditor = {
+    const firstDbId =
+      databases.length > 0
+        ? Math.min(...Object.values(databases).map(database => database.id))
+        : undefined;
+    const { dbId, schema, queryLimit } = {
       ...queryEditors[0],
       ...activeQueryEditor,
       ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
@@ -634,11 +635,11 @@ export function addNewQueryEditor() {
 
     return dispatch(
       addQueryEditor({
-        dbId: queryEditor.dbId || defaultDbId || firstDbId,
-        schema: queryEditor.schema,
+        dbId: dbId || defaultDbId || firstDbId,
+        schema,
         autorun: false,
         sql: `${warning}SELECT ...`,
-        queryLimit: queryEditor.queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
+        queryLimit: queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
         name,
       }),
     );
