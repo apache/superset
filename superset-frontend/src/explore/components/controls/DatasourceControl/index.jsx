@@ -27,7 +27,7 @@ import {
   t,
   withTheme,
 } from '@superset-ui/core';
-
+import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
@@ -171,19 +171,31 @@ class DatasourceControl extends React.PureComponent {
 
   onDatasourceSave = datasource => {
     this.props.actions.changeDatasource(datasource);
+    const { temporalColumns, defaultTemporalColumn } =
+      getTemporalColumns(datasource);
+    const { columns } = datasource;
+    // the current granularity_sqla might not be a temporal column anymore
     const timeCol = this.props.form_data?.granularity_sqla;
-    const { columns } = this.props.datasource;
-    const firstDttmCol = columns.find(column => column.is_dttm);
-    if (
-      datasource.type === 'table' &&
-      !columns.find(({ column_name }) => column_name === timeCol)?.is_dttm
-    ) {
-      // set `granularity_sqla` to first datatime column name or null
+    const isGranularitySqalTemporal = columns.find(
+      ({ column_name }) => column_name === timeCol,
+    )?.is_dttm;
+    // the current main_dttm_col might not be a temporal column anymore
+    const isDefaultTemporal = columns.find(
+      ({ column_name }) => column_name === defaultTemporalColumn,
+    )?.is_dttm;
+
+    // if the current granularity_sqla is empty or it is not a temporal column anymore
+    // let's update the control value
+    if (datasource.type === 'table' && !isGranularitySqalTemporal) {
+      const temporalColumn = isDefaultTemporal
+        ? defaultTemporalColumn
+        : temporalColumns?.[0];
       this.props.actions.setControlValue(
         'granularity_sqla',
-        firstDttmCol ? firstDttmCol.column_name : null,
+        temporalColumn || null,
       );
     }
+
     if (this.props.onDatasourceSave) {
       this.props.onDatasourceSave(datasource);
     }

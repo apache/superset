@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Type } from 'src/components/Label';
+
 export type SelectOptionType = {
   value: string;
   label: string;
@@ -89,3 +91,13 @@ export type FrameComponentProps = {
   onChange: (timeRange: string) => void;
   value: string;
 };
+
+export interface DateFilterControlProps {
+  name: string;
+  onChange: (timeRange: string) => void;
+  value?: string;
+  type?: Type;
+  onOpenPopover?: () => void;
+  onClosePopover?: () => void;
+  overlayStyle?: 'Modal' | 'Popover';
+}

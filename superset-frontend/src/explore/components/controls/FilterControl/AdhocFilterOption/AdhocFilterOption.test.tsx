@@ -25,7 +25,7 @@ import AdhocFilter, {
   EXPRESSION_TYPES,
   CLAUSES,
 } from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import AdhocFilterOption from '.';
+import AdhocFilterOption, { AdhocFilterOptionProps } from '.';
 
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: EXPRESSION_TYPES.SIMPLE,
@@ -44,18 +44,18 @@ const options = [
 const mockedProps = {
   adhocFilter: simpleAdhocFilter,
   onFilterEdit: jest.fn(),
+  onRemoveFilter: jest.fn(),
   options,
+  sections: [],
+  operators: [],
+  datasource: {},
+  partitionColumn: '',
+  onMoveLabel: jest.fn(),
+  onDropLabel: jest.fn(),
+  index: 1,
 };
 
-const setup = (props: {
-  adhocFilter: typeof simpleAdhocFilter;
-  onFilterEdit: () => void;
-  options: {
-    type: string;
-    column_name: string;
-    id: number;
-  }[];
-}) => (
+const setup = (props: AdhocFilterOptionProps) => (
   <DndProvider backend={HTML5Backend}>
     <AdhocFilterOption {...props} />
   </DndProvider>

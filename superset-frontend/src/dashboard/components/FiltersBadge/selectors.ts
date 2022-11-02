@@ -25,8 +25,9 @@ import {
   FilterState,
   isFeatureEnabled,
   NativeFilterType,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
-import { NO_TIME_RANGE, TIME_FILTER_MAP } from 'src/explore/constants';
+import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterBoxScope } from 'src/dashboard/util/activeDashboardFilters';
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
 import { Layout } from 'src/dashboard/types';

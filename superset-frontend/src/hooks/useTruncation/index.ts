@@ -18,17 +18,23 @@
  */
 import { RefObject, useLayoutEffect, useState, useRef } from 'react';
 
-export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
+export const useTruncation = (
+  elementRef: RefObject<HTMLElement>,
+  plusRef?: RefObject<HTMLElement>,
+) => {
   const [elementsTruncated, setElementsTruncated] = useState(0);
   const [hasHiddenElements, setHasHiddenElements] = useState(false);
 
   const previousEffectInfoRef = useRef({
     scrollWidth: 0,
     parentElementWidth: 0,
+    plusRefWidth: 0,
   });
 
   useLayoutEffect(() => {
     const currentElement = elementRef.current;
+    const plusRefElement = plusRef?.current;
+
     if (!currentElement) {
       return;
     }
@@ -45,36 +51,50 @@ export const useTruncation = (elementRef: RefObject<HTMLElement>) => {
     // the child nodes changes.
     const previousEffectInfo = previousEffectInfoRef.current;
     const parentElementWidth = currentElement.parentElement?.clientWidth || 0;
+    const plusRefWidth = plusRefElement?.offsetWidth || 0;
     previousEffectInfoRef.current = {
       scrollWidth,
       parentElementWidth,
+      plusRefWidth,
     };
 
     if (
       previousEffectInfo.parentElementWidth === parentElementWidth &&
-      previousEffectInfo.scrollWidth === scrollWidth
+      previousEffectInfo.scrollWidth === scrollWidth &&
+      previousEffectInfo.plusRefWidth === plusRefWidth
     ) {
       return;
     }
 
     if (scrollWidth > clientWidth) {
       // "..." is around 6px wide
-      const maxWidth = clientWidth - 6;
+      const truncationWidth = 6;
+      const plusSize = plusRefElement?.offsetWidth || 0;
+      const maxWidth = clientWidth - truncationWidth;
       const elementsCount = childNodes.length;
+
       let width = 0;
-      let i = 0;
-      while (width < maxWidth) {
-        width += (childNodes[i] as HTMLElement).offsetWidth;
-        i += 1;
+      let hiddenElements = 0;
+      for (let i = 0; i < elementsCount; i += 1) {
+        const itemWidth = (childNodes[i] as HTMLElement).offsetWidth;
+        const remainingWidth = maxWidth - truncationWidth - width - plusSize;
+
+        // assures it shows +{number} only when the item is not visible
+        if (remainingWidth <= 0) {
+          hiddenElements += 1;
+        }
+        width += itemWidth;
       }
-      if (i === elementsCount) {
-        setElementsTruncated(1);
-        setHasHiddenElements(false);
-      } else {
-        setElementsTruncated(elementsCount - i);
+
+      if (elementsCount > 1 && hiddenElements) {
         setHasHiddenElements(true);
+        setElementsTruncated(hiddenElements);
+      } else {
+        setHasHiddenElements(false);
+        setElementsTruncated(1);
       }
     } else {
+      setHasHiddenElements(false);
       setElementsTruncated(0);
     }
   }, [

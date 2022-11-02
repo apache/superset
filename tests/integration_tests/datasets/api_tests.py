@@ -610,6 +610,61 @@ class TestDatasetApi(SupersetTestCase):
             "message": {"table_name": ["Dataset energy_usage already exists"]}
         }
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_create_dataset_with_sql_validate_uniqueness(self):
+        """
+        Dataset API: Test create dataset with sql
+        """
+        if backend() == "sqlite":
+            return
+
+        schema = get_example_default_schema()
+        energy_usage_ds = self.get_energy_usage_dataset()
+        self.login(username="admin")
+        table_data = {
+            "database": energy_usage_ds.database_id,
+            "table_name": energy_usage_ds.table_name,
+            "sql": "select * from energy_usage",
+        }
+        if schema:
+            table_data["schema"] = schema
+        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
+        assert rv.status_code == 422
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data == {
+            "message": {"table_name": ["Dataset energy_usage already exists"]}
+        }
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_create_dataset_with_sql(self):
+        """
+        Dataset API: Test create dataset with sql
+        """
+        if backend() == "sqlite":
+            return
+
+        schema = get_example_default_schema()
+        energy_usage_ds = self.get_energy_usage_dataset()
+        self.login(username="alpha")
+        admin = self.get_user("admin")
+        alpha = self.get_user("alpha")
+        table_data = {
+            "database": energy_usage_ds.database_id,
+            "table_name": "energy_usage_virtual",
+            "sql": "select * from energy_usage",
+            "owners": [admin.id],
+        }
+        if schema:
+            table_data["schema"] = schema
+        rv = self.post_assert_metric("/api/v1/dataset/", table_data, "post")
+        assert rv.status_code == 201
+        data = json.loads(rv.data.decode("utf-8"))
+        model = db.session.query(SqlaTable).get(data.get("id"))
+        assert admin in model.owners
+        assert alpha in model.owners
+        db.session.delete(model)
+        db.session.commit()
+
     @unittest.skip("test is failing stochastically")
     def test_create_dataset_same_name_different_schema(self):
         if backend() == "sqlite":
@@ -617,9 +672,10 @@ class TestDatasetApi(SupersetTestCase):
             return
 
         example_db = get_example_database()
-        example_db.get_sqla_engine().execute(
-            f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
-        )
+        with example_db.get_sqla_engine_with_context() as engine:
+            engine.execute(
+                f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
+            )
 
         self.login(username="admin")
         table_data = {
@@ -637,9 +693,8 @@ class TestDatasetApi(SupersetTestCase):
         uri = f'api/v1/dataset/{data.get("id")}'
         rv = self.client.delete(uri)
         assert rv.status_code == 200
-        example_db.get_sqla_engine().execute(
-            f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names"
-        )
+        with example_db.get_sqla_engine_with_context() as engine:
+            engine.execute(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names")
 
     def test_create_dataset_validate_database(self):
         """
@@ -705,13 +760,14 @@ class TestDatasetApi(SupersetTestCase):
         mock_get_table.return_value = None
 
         example_db = get_example_database()
-        engine = example_db.get_sqla_engine()
-        dialect = engine.dialect
+        with example_db.get_sqla_engine_with_context() as engine:
+            engine = engine
+            dialect = engine.dialect
 
-        with patch.object(
-            dialect, "get_view_names", wraps=dialect.get_view_names
-        ) as patch_get_view_names:
-            patch_get_view_names.return_value = ["test_case_view"]
+            with patch.object(
+                dialect, "get_view_names", wraps=dialect.get_view_names
+            ) as patch_get_view_names:
+                patch_get_view_names.return_value = ["test_case_view"]
 
             self.login(username="admin")
             table_data = {
@@ -1907,6 +1963,8 @@ class TestDatasetApi(SupersetTestCase):
         buf = self.create_dataset_import()
         form_data = {
             "formData": (buf, "dataset_export.zip"),
+            "sync_columns": "true",
+            "sync_metrics": "true",
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -1949,6 +2007,8 @@ class TestDatasetApi(SupersetTestCase):
         buf.seek(0)
         form_data = {
             "formData": (buf, "dataset_export.zip"),
+            "sync_columns": "true",
+            "sync_metrics": "true",
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))

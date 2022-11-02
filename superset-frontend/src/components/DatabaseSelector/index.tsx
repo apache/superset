@@ -24,6 +24,10 @@ import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import {
+  getClientErrorMessage,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -238,9 +242,16 @@ export default function DatabaseSelector({
           setLoadingSchemas(false);
           if (refresh > 0) addSuccessToast('List refreshed');
         })
-        .catch(() => {
+        .catch(err => {
           setLoadingSchemas(false);
-          handleError(t('There was an error loading the schemas'));
+          getClientErrorObject(err).then(clientError => {
+            handleError(
+              getClientErrorMessage(
+                t('There was an error loading the schemas'),
+                clientError,
+              ),
+            );
+          });
         });
     }
   }, [currentDb, onSchemasLoad, refresh]);

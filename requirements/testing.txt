@@ -111,6 +111,8 @@ pydata-google-auth==1.2.0
     # via pandas-gbq
 pyfakefs==4.5.6
     # via -r requirements/testing.in
+pyhive[presto]==0.6.5
+    # via apache-superset
 pylint==2.9.6
     # via -r requirements/testing.in
 pytest==6.2.4

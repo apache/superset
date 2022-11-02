@@ -171,3 +171,15 @@ export function getClientErrorObject(
     });
   });
 }
+
+export function getClientErrorMessage(
+  message: string,
+  clientError?: ClientErrorObject,
+) {
+  let finalMessage = message;
+  const errorMessage = clientError?.message || clientError?.error;
+  if (errorMessage) {
+    finalMessage = `${finalMessage}:\n${errorMessage}`;
+  }
+  return finalMessage;
+}

@@ -45,7 +45,6 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -54,7 +53,6 @@ import {
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
-import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
@@ -65,17 +63,18 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
-  user: UserWithPermissionsAndRoles,
+  user: PropTypes.object, // UserWithPermissionsAndRoles,
   dashboardInfo: PropTypes.object.isRequired,
-  dashboardTitle: PropTypes.string.isRequired,
+  dashboardTitle: PropTypes.string,
   dataMask: PropTypes.object.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
-  expandedSlices: PropTypes.object.isRequired,
-  customCss: PropTypes.string.isRequired,
+  expandedSlices: PropTypes.object,
+  customCss: PropTypes.string,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
-  setColorSchemeAndUnsavedChanges: PropTypes.func.isRequired,
+  setColorScheme: PropTypes.func.isRequired,
+  setUnsavedChanges: PropTypes.func.isRequired,
   isStarred: PropTypes.bool.isRequired,
   isPublished: PropTypes.bool.isRequired,
   isLoading: PropTypes.bool.isRequired,
@@ -103,7 +102,7 @@ const propTypes = {
   redoLength: PropTypes.number.isRequired,
   setMaxUndoHistoryExceeded: PropTypes.func.isRequired,
   maxUndoHistoryToast: PropTypes.func.isRequired,
-  refreshFrequency: PropTypes.number.isRequired,
+  refreshFrequency: PropTypes.number,
   shouldPersistRefreshFrequency: PropTypes.bool.isRequired,
   setRefreshFrequency: PropTypes.func.isRequired,
   dashboardInfoChanged: PropTypes.func.isRequired,
@@ -288,12 +287,17 @@ class Header extends React.PureComponent {
 
   startPeriodicRender(interval) {
     let intervalMessage;
+
     if (interval) {
-      const predefinedValue = PeriodicRefreshOptions.find(
-        option => option.value === interval / 1000,
+      const { dashboardInfo } = this.props;
+      const periodicRefreshOptions =
+        dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
+      const predefinedValue = periodicRefreshOptions.find(
+        option => Number(option[0]) === interval / 1000,
       );
+
       if (predefinedValue) {
-        intervalMessage = predefinedValue.label;
+        intervalMessage = t(predefinedValue[1]);
       } else {
         intervalMessage = moment.duration(interval, 'millisecond').humanize();
       }
@@ -371,9 +375,8 @@ class Header extends React.PureComponent {
       dashboardInfo?.metadata?.color_scheme || colorScheme;
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
-    const currentSharedLabelColors = getSharedLabelColor().getColorMap(
-      currentColorNamespace,
-      currentColorScheme,
+    const currentSharedLabelColors = Object.fromEntries(
+      getSharedLabelColor().getColorMap(),
     );
 
     const data = {
@@ -439,7 +442,8 @@ class Header extends React.PureComponent {
       customCss,
       colorNamespace,
       dataMask,
-      setColorSchemeAndUnsavedChanges,
+      setColorScheme,
+      setUnsavedChanges,
       colorScheme,
       onUndo,
       onRedo,
@@ -480,6 +484,8 @@ class Header extends React.PureComponent {
 
     const handleOnPropertiesChange = updates => {
       const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
+
+      setColorScheme(updates.colorScheme);
       dashboardInfoChanged({
         slug: updates.slug,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),
@@ -488,7 +494,7 @@ class Header extends React.PureComponent {
         owners: updates.owners,
         roles: updates.roles,
       });
-      setColorSchemeAndUnsavedChanges(updates.colorScheme);
+      setUnsavedChanges(true);
       dashboardTitleChanged(updates.title);
     };
 

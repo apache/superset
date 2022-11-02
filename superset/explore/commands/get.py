@@ -19,7 +19,7 @@ from abc import ABC
 from typing import Any, cast, Dict, Optional
 
 import simplejson as json
-from flask import current_app as app
+from flask import current_app, request
 from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -121,7 +121,7 @@ class GetExploreCommand(BaseCommand, ABC):
         dataset_name = dataset.name if dataset else _("[Missing Dataset]")
 
         if dataset:
-            if app.config["ENABLE_ACCESS_REQUEST"] and (
+            if current_app.config["ENABLE_ACCESS_REQUEST"] and (
                 not security_manager.can_access_datasource(dataset)
             ):
                 message = __(security_manager.get_datasource_access_error_msg(dataset))
@@ -139,11 +139,13 @@ class GetExploreCommand(BaseCommand, ABC):
             str(self._dataset_id) + "__" + cast(str, self._dataset_type)
         )
 
-        # On explore, merge legacy and extra filters into the form data
+        # On explore, merge legacy/extra filters and URL params into the form data
         utils.convert_legacy_filters_into_adhoc(form_data)
         utils.merge_extra_filters(form_data)
+        utils.merge_request_params(form_data, request.args)
 
-        dummy_dataset_data: Dict[str, Any] = {
+        # TODO: this is a dummy placeholder - should be refactored to being just `None`
+        dataset_data: Dict[str, Any] = {
             "type": self._dataset_type,
             "name": dataset_name,
             "columns": [],
@@ -151,9 +153,12 @@ class GetExploreCommand(BaseCommand, ABC):
             "database": {"id": 0, "backend": ""},
         }
         try:
-            dataset_data = dataset.data if dataset else dummy_dataset_data
-        except (SupersetException, SQLAlchemyError):
-            dataset_data = dummy_dataset_data
+            if dataset:
+                dataset_data = dataset.data
+        except SupersetException as ex:
+            message = ex.message
+        except SQLAlchemyError:
+            message = "SQLAlchemy error"
 
         metadata = None
 

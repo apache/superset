@@ -46,7 +46,7 @@ export default class EchartsTreemapChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsTreemap'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
         category: t('Part of a Whole'),
         credits: ['https://echarts.apache.org'],
         description: t(
