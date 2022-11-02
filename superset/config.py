@@ -88,12 +88,8 @@ else:
 # ---------------------------------------------------------
 # Superset specific config
 # ---------------------------------------------------------
-VERSION_INFO_FILE = pkg_resources.resource_filename(
-    "superset", "static/version_info.json"
-)
-PACKAGE_JSON_FILE = pkg_resources.resource_filename(
-    "superset", "static/assets/package.json"
-)
+VERSION_INFO_FILE = pkg_resources.resource_filename("superset", "static/version_info.json")
+PACKAGE_JSON_FILE = pkg_resources.resource_filename("superset", "static/assets/package.json")
 
 # Multiple favicons can be specified here. The "href" property
 # is mandatory, but "sizes," "type," and "rel" are optional.
@@ -134,9 +130,7 @@ ALEMBIC_SKIP_LOG_CONFIG = False
 # actually running Superset, we will have already installed,
 # therefore it WILL exist. When unit tests are running, however,
 # it WILL NOT exist, so we fall back to reading package.json
-VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversion(
-    PACKAGE_JSON_FILE
-)
+VERSION_STRING = _try_json_readversion(VERSION_INFO_FILE) or _try_json_readversion(PACKAGE_JSON_FILE)
 
 VERSION_SHA_LENGTH = 8
 VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
@@ -232,21 +226,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 #
 #
 #  SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = AesGcmEncryptedAdapter
-SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
-    SQLAlchemyUtilsAdapter
-)
+SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = SQLAlchemyUtilsAdapter  # pylint: disable=invalid-name
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
-# Flask-WTF flag for CSRF
-WTF_CSRF_ENABLED = True
-
-# Add endpoints that need to be exempt from CSRF protection
-WTF_CSRF_EXEMPT_LIST = [
-    "superset.views.core.log",
-    "superset.views.core.explore_json",
-    "superset.charts.data.api.data",
-]
 
 # Whether to run the web server in debug mode or not
 DEBUG = os.environ.get("FLASK_ENV") == "development"
@@ -339,7 +322,9 @@ AUTH_TYPE = AUTH_DB
 # Grant public role the same set of permissions as for a selected builtin role.
 # This is useful if one wants to enable anonymous users to view
 # dashboards. Explicit grant on specific datasets is still required.
-PUBLIC_ROLE_LIKE: Optional[str] = None
+
+
+# PUBLIC_ROLE_LIKE: Optional[str] = None
 
 # ---------------------------------------------------
 # Babel config for translations
@@ -518,9 +503,7 @@ IS_FEATURE_ENABLED_FUNC: Optional[Callable[[str, Optional[bool]], bool]] = None
 #
 # Takes as a parameter the common bootstrap payload before transformations.
 # Returns a dict containing data that should be added or overridden to the payload.
-COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[
-    [Dict[str, Any]], Dict[str, Any]
-] = lambda data: {}  # default: empty dict
+COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[[Dict[str, Any]], Dict[str, Any]] = lambda data: {}  # default: empty dict
 
 # EXTRA_CATEGORICAL_COLOR_SCHEMES is used for adding custom categorical color schemes
 # example code for "My custom warm to hot" color scheme
@@ -881,9 +864,7 @@ ESTIMATE_QUERY_COST = False
 #  Then on define the formatter on the config:
 #
 # "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
-QUERY_COST_FORMATTERS_BY_ENGINE: Dict[
-    str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
-] = {}
+QUERY_COST_FORMATTERS_BY_ENGINE: Dict[str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]] = {}
 
 # Flag that controls if limit should be enforced on the CTA (create table as queries).
 SQLLAB_CTAS_NO_LIMIT = False
@@ -907,9 +888,7 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
-    Callable[["Database", "models.User", str, str], str]
-] = None
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[Callable[["Database", "models.User", str, str], str]] = None
 
 # If enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
@@ -938,9 +917,7 @@ def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
     schema: Optional[str],
 ) -> str:
     # Note the final empty path enforces a trailing slash.
-    return os.path.join(
-        CSV_TO_HIVE_UPLOAD_DIRECTORY, str(database.id), schema or "", ""
-    )
+    return os.path.join(CSV_TO_HIVE_UPLOAD_DIRECTORY, str(database.id), schema or "", "")
 
 
 # The namespace within hive where the tables created from
@@ -953,9 +930,7 @@ UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 
 # mypy doesn't catch that if case ensures list content being always str
 ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[["Database", "models.User"], List[str]] = (
-    lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
-    if UPLOADED_CSV_HIVE_NAMESPACE
-    else []
+    lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE] if UPLOADED_CSV_HIVE_NAMESPACE else []
 )
 
 # Values that should be treated as nulls for the csv uploads.
@@ -1104,9 +1079,7 @@ DB_CONNECTION_MUTATOR = None
 # For backward compatibility, you can unpack any of the above arguments in your
 # function definition, but keep the **kwargs as the last argument to allow new args
 # to be added later without any errors.
-def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
-    sql: str, **kwargs: Any
-) -> str:
+def SQL_QUERY_MUTATOR(sql: str, **kwargs: Any) -> str:  # pylint: disable=invalid-name,unused-argument
     return sql
 
 
@@ -1159,9 +1132,7 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     ReportScheduleExecutor.OWNER,
 #     ReportScheduleExecutor.SELENIUM,
 # ]
-ALERT_REPORTS_EXECUTE_AS: List[ReportScheduleExecutor] = [
-    ReportScheduleExecutor.SELENIUM
-]
+ALERT_REPORTS_EXECUTE_AS: List[ReportScheduleExecutor] = [ReportScheduleExecutor.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -1286,10 +1257,17 @@ RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 #
 # See https://flask.palletsprojects.com/en/1.1.x/security/#set-cookie-options
 # for details
-#
-SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
+
+
+##############################################################################################################################
+# auth-check
+# SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
+SESSION_COOKIE_HTTPONLY = False
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
-SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
+# SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
+SESSION_COOKIE_SAMESITE = "None"
+##############################################################################################################################
+
 
 # Cache static resources.
 SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
@@ -1337,9 +1315,7 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"
-GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
-    timedelta(milliseconds=500).total_seconds() * 1000
-)
+GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(timedelta(milliseconds=500).total_seconds() * 1000)
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
 # Embedded config options
@@ -1411,6 +1387,65 @@ ENVIRONMENT_TAG_CONFIG = {
     },
 }
 
+##############################################################################################################################
+# auth-check
+# Flask-WTF flag for CSRF
+WTF_CSRF_ENABLED = False
+# A CSRF token that expires in 1 year
+WTF_CSRF_TIME_LIMIT = 60 * 60 * 24 * 365
+# Add endpoints that need to be exempt from CSRF protection
+WTF_CSRF_EXEMPT_LIST = [
+    "superset.views.core.log",
+    "superset.views.core.explore_json",
+    "superset.charts.data.api.data",
+]
+
+
+from flask import flash, g, redirect, request
+from flask_appbuilder.security.manager import BaseSecurityManager
+from flask_appbuilder.security.views import AuthDBView, expose, UserDBModelView
+from flask_login import login_user, logout_user
+
+from superset.security import SupersetSecurityManager
+
+
+class CustomAuthDBView(AuthDBView):
+    login_template = "appbuilder/general/security/login_db.html"
+
+    @expose("/login/", methods=["GET", "POST"])
+    def login(self):
+        if request.args.get("username") is not None:
+            user = self.appbuilder.sm.find_user(username=request.args.get("username"))
+            flash("Admin auto logged in", "success")
+            login_user(user, remember=False)
+            return redirect(self.appbuilder.get_url_for_index)
+        elif g.user is not None and g.user.is_authenticated():
+            return redirect(self.appbuilder.get_url_for_index)
+        else:
+            flash("Unable to auto login", "warning")
+            return super(CustomAuthDBView, self).login()
+
+
+class CustomSecurityManager(SupersetSecurityManager):
+    authdbview = CustomAuthDBView
+
+    def __init__(self, appbuilder):
+        super(CustomSecurityManager, self).__init__(appbuilder)
+
+
+# CUSTOM_SECURITY_MANAGER = CustomSecurityManager
+
+
+# PUBLIC_ROLE_LIKE_GAMMA = True
+PUBLIC_ROLE_LIKE: Optional[str] = "Gamma"
+DASHBOARD_RBAC = True
+HTTP_HEADERS = {"X-Frame-Options": "ALLOWALL"}
+DEFAULT_HTTP_HEADERS: Dict[str, Any] = {}
+OVERRIDE_HTTP_HEADERS: Dict[str, Any] = {}
+HTTP_HEADERS: Dict[str, Any] = {}
+##############################################################################################################################
+
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------
@@ -1429,9 +1464,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 
         print(f"Loaded your LOCAL configuration at [{cfg_path}]")
     except Exception:
-        logger.exception(
-            "Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path
-        )
+        logger.exception("Failed to import config for %s=%s", CONFIG_PATH_ENV_VAR, cfg_path)
         raise
 elif importlib.util.find_spec("superset_config") and not is_test():
     try:
