@@ -619,7 +619,7 @@ export function addNewQueryEditor() {
       databases.length > 0
         ? Math.min(...Object.values(databases).map(database => database.id))
         : undefined;
-    const { dbId, schema, queryLimit } = {
+    const { dbId, schema, queryLimit, autorun } = {
       ...queryEditors[0],
       ...activeQueryEditor,
       ...(unsavedQueryEditor.id === activeQueryEditor?.id &&
@@ -636,8 +636,8 @@ export function addNewQueryEditor() {
     return dispatch(
       addQueryEditor({
         dbId: dbId || defaultDbId || firstDbId,
-        schema,
-        autorun: false,
+        schema: schema ?? null,
+        autorun: autorun ?? false,
         sql: `${warning}SELECT ...`,
         queryLimit: queryLimit || common.conf.DEFAULT_SQLLAB_LIMIT,
         name,
