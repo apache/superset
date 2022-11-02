@@ -23,7 +23,7 @@ from zipfile import is_zipfile, ZipFile
 
 import yaml
 
-from flask import g, request, Response, send_file
+from flask import request, Response, send_file
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
