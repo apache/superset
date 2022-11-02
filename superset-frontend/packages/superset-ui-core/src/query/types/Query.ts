@@ -258,6 +258,7 @@ export const CtasEnum = {
 
 export type QueryColumn = {
   name: string;
+  column_name?: string;
   type: string | null;
   is_dttm: boolean;
 };

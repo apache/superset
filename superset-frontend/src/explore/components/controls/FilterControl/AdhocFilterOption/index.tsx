@@ -23,6 +23,7 @@ import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterCon
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { OptionSortType } from 'src/explore/types';
 import { Operators } from 'src/explore/constants';
+import { useGetTimeRangeLabel } from '../utils';
 
 export interface AdhocFilterOptionProps {
   adhocFilter: AdhocFilter;
@@ -51,6 +52,8 @@ export default function AdhocFilterOption({
   sections,
   operators,
 }: AdhocFilterOptionProps) {
+  const { actualTimeRange, title } = useGetTimeRangeLabel(adhocFilter);
+
   return (
     <AdhocFilterPopoverTrigger
       sections={sections}
@@ -62,8 +65,8 @@ export default function AdhocFilterOption({
       partitionColumn={partitionColumn}
     >
       <OptionControlLabel
-        label={adhocFilter.getDefaultLabel()}
-        tooltipTitle={adhocFilter.getTooltipTitle()}
+        label={actualTimeRange ?? adhocFilter.getDefaultLabel()}
+        tooltipTitle={title ?? adhocFilter.getTooltipTitle()}
         onRemove={onRemoveFilter}
         onMoveLabel={onMoveLabel}
         onDropLabel={onDropLabel}

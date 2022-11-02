@@ -21,4 +21,5 @@ export {
   DATE_FILTER_CONTROL_TEST_ID,
   fetchTimeRange,
   guessFrame,
+  DATE_FILTER_TEST_KEY,
 } from './utils';

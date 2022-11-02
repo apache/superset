@@ -39,6 +39,7 @@ from sqlalchemy.exc import ArgumentError
 
 import tests.integration_tests.test_app
 from superset import app, db, security_manager
+from superset.constants import NO_TIME_RANGE
 from superset.exceptions import CertificateException, SupersetException
 from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard
@@ -62,7 +63,6 @@ from superset.utils.core import (
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
-    NO_TIME_RANGE,
     normalize_dttm_col,
     parse_ssl_cert,
     parse_js_uri_path_item,
@@ -1060,7 +1060,7 @@ class TestUtils(SupersetTestCase):
             df: pd.DataFrame,
             timestamp_format: Optional[str],
             offset: int,
-            time_shift: Optional[timedelta],
+            time_shift: Optional[str],
         ) -> pd.DataFrame:
             df = df.copy()
             normalize_dttm_col(
@@ -1091,9 +1091,9 @@ class TestUtils(SupersetTestCase):
         )
 
         # test offset and timedelta
-        assert normalize_col(df, None, 1, timedelta(minutes=30))[DTTM_ALIAS][
-            0
-        ] == pd.Timestamp(2021, 2, 15, 20, 30, 0, 0)
+        assert normalize_col(df, None, 1, "30 minutes")[DTTM_ALIAS][0] == pd.Timestamp(
+            2021, 2, 15, 20, 30, 0, 0
+        )
 
         # test numeric epoch_s format
         df = pd.DataFrame([{"__timestamp": ts.timestamp(), "a": 1}])
