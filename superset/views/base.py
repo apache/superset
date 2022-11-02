@@ -664,6 +664,26 @@ class CsvResponse(Response):
     default_mimetype = "text/csv"
 
 
+class XlsResponse(Response):
+    """
+    Override Response to use xls mimetype
+    """
+
+    charset = "utf-8"
+    default_mimetype = "application/vnd.ms-excel"
+
+
+class XlsxResponse(Response):
+    """
+    Override Response to use xlsx mimetype
+    """
+
+    charset = "utf-8"
+    default_mimetype = (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+
 def bind_field(
     _: Any, form: DynamicForm, unbound_field: UnboundField, options: Dict[Any, Any]
 ) -> Field:

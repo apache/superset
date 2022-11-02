@@ -152,6 +152,8 @@ from superset.views.base import (
     json_errors_response,
     json_success,
     validate_sqlatable,
+    XlsResponse,
+    XlsxResponse,
 )
 from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
@@ -481,6 +483,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if response_type == ChartDataResultFormat.CSV:
             return CsvResponse(
                 viz_obj.get_csv(), headers=generate_download_headers("csv")
+            )
+
+        if response_type == ChartDataResultFormat.XLS:
+            return XlsResponse(
+                viz_obj.get_excel(ChartDataResultFormat(response_type)),
+                headers=generate_download_headers("xls"),
+            )
+
+        if response_type == ChartDataResultFormat.XLSX:
+            return XlsxResponse(
+                viz_obj.get_excel(ChartDataResultFormat(response_type)),
+                headers=generate_download_headers("xlsx"),
             )
 
         if response_type == ChartDataResultType.QUERY:

@@ -56,6 +56,7 @@ from geopy.point import Point
 from pandas.tseries.frequencies import to_offset
 
 from superset import app
+from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.constants import NULL_STRING
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -76,7 +77,7 @@ from superset.superset_typing import (
     VizData,
     VizPayload,
 )
-from superset.utils import core as utils, csv
+from superset.utils import core as utils, csv, excel
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
@@ -669,6 +670,13 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         df = self.get_df_payload()["df"]  # leverage caching logic
         include_index = not isinstance(df.index, pd.RangeIndex)
         return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
+
+    def get_excel(self, excel_format: ChartDataResultFormat) -> Optional[bytes]:
+        df = self.get_df_payload()["df"]
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        return excel.df_to_excel(
+            df, index=include_index, excel_format=excel_format, **config["EXCEL_EXPORT"]
+        )
 
     def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=no-self-use
         return df.to_dict(orient="records")

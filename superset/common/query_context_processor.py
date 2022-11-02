@@ -45,7 +45,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
-from superset.utils import csv
+from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     DatasourceType,
@@ -425,15 +425,22 @@ class QueryContextProcessor:
         return CachedTimeOffset(df=rv_df, queries=queries, cache_keys=cache_keys)
 
     def get_data(self, df: pd.DataFrame) -> Union[str, List[Dict[str, Any]]]:
-        if self._query_context.result_format == ChartDataResultFormat.CSV:
+        if self._query_context.result_format in ChartDataResultFormat.table_like():
             include_index = not isinstance(df.index, pd.RangeIndex)
             columns = list(df.columns)
             verbose_map = self._qc_datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
-            result = csv.df_to_escaped_csv(
-                df, index=include_index, **config["CSV_EXPORT"]
-            )
+            if self._query_context.result_type == ChartDataResultFormat.CSV:
+                result = csv.df_to_escaped_csv(
+                    df, index=include_index, **config["CSV_EXPORT"]
+                )
+            else:
+                result = excel.df_to_excel(
+                    df,
+                    excel_format=self._query_context.result_format,
+                    **config["EXCEL_EXPORT"],
+                )
             return result or ""
 
         return df.to_dict(orient="records")

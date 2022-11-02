@@ -39,13 +39,22 @@ from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data import (
+    CHART_DATA_RESULT_FORMAT_TO_RESPONSE,
+    ChartDataResultFormat,
+    ChartDataResultType,
+)
 from superset.connectors.base.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
-from superset.views.base import CsvResponse, generate_download_headers
+from superset.views.base import (
+    CsvResponse,
+    generate_download_headers,
+    XlsResponse,
+    XlsxResponse,
+)
 from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
@@ -342,8 +351,8 @@ class ChartDataRestApi(ChartRestApi):
         if result_type == ChartDataResultType.POST_PROCESSED:
             result = apply_post_process(result, form_data, datasource)
 
-        if result_format == ChartDataResultFormat.CSV:
-            # Verify user has permission to export CSV file
+        if result_format in ChartDataResultFormat.table_like():
+            # Verify user has permission to export file
             if not security_manager.can_access("can_csv", "Superset"):
                 return self.response_403()
 
@@ -351,14 +360,23 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(_("Empty query result"))
 
             if len(result["queries"]) == 1:
-                # return single query results csv format
+                # return single query results
                 data = result["queries"][0]["data"]
-                return CsvResponse(data, headers=generate_download_headers("csv"))
+                response_class = CHART_DATA_RESULT_FORMAT_TO_RESPONSE[result_format]
+                return response_class(
+                    data, headers=generate_download_headers(result_format)
+                )
 
-            # return multi-query csv results bundled as a zip file
-            encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
+            # return multi-query results bundled as a zip file
+
+            def _process_data(d: Any) -> Any:
+                if result_format == ChartDataResultFormat.CSV:
+                    encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
+                    return d.encode(encoding)
+                return d
+
             files = {
-                f"query_{idx + 1}.csv": result["data"].encode(encoding)
+                f"query_{idx + 1}.{result_format}": _process_data(result["data"])
                 for idx, result in enumerate(result["queries"])
             }
             return Response(

@@ -41,6 +41,8 @@ const MENU_KEYS = {
   EXPORT_TO_CSV: 'export_to_csv',
   EXPORT_TO_CSV_PIVOTED: 'export_to_csv_pivoted',
   EXPORT_TO_JSON: 'export_to_json',
+  EXPORT_TO_XLS: 'export_to_xls',
+  EXPORT_TO_XLSX: 'export_to_xlsx',
   DOWNLOAD_AS_IMAGE: 'download_as_image',
   SHARE_SUBMENU: 'share_submenu',
   COPY_PERMALINK: 'copy_permalink',
@@ -157,6 +159,30 @@ export const useExploreAdditionalActionsMenu = (
       }),
     [latestQueryFormData],
   );
+  const exportXLS = useCallback(
+    () =>
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            ownState,
+            resultType: 'full',
+            resultFormat: 'xls',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
+  );
+  const exportXLSX = useCallback(
+    () =>
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            ownState,
+            resultType: 'full',
+            resultFormat: 'xlsx',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
+  );
 
   const copyLink = useCallback(async () => {
     try {
@@ -192,6 +218,16 @@ export const useExploreAdditionalActionsMenu = (
           setIsDropdownVisible(false);
           setOpenSubmenus([]);
 
+          break;
+        case MENU_KEYS.EXPORT_TO_XLS:
+          exportXLS();
+          setIsDropdownVisible(false);
+          setOpenSubmenus([]);
+          break;
+        case MENU_KEYS.EXPORT_TO_XLSX:
+          exportXLSX();
+          setIsDropdownVisible(false);
+          setOpenSubmenus([]);
           break;
         case MENU_KEYS.DOWNLOAD_AS_IMAGE:
           downloadAsImage(
@@ -295,6 +331,12 @@ export const useExploreAdditionalActionsMenu = (
           )}
           <Menu.Item key={MENU_KEYS.EXPORT_TO_JSON} icon={<FileOutlined />}>
             {t('Export to .JSON')}
+          </Menu.Item>
+          <Menu.Item key={MENU_KEYS.EXPORT_TO_XLS} icon={<FileOutlined />}>
+            {t('Export to .XLS')}
+          </Menu.Item>
+          <Menu.Item key={MENU_KEYS.EXPORT_TO_XLSX} icon={<FileOutlined />}>
+            {t('Export to .XLSX')}
           </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}

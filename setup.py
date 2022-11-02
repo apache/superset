@@ -173,6 +173,8 @@ setup(
         "thumbnails": ["Pillow>=9.1.1, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
+        "xls": ["xlwt>=1.3.0, < 1.4"],
+        "xlsx": ["xlsxwriter>=3.0.0, < 3.1"],
     },
     python_requires="~=3.8",
     author="Apache Software Foundation",

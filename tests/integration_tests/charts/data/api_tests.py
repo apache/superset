@@ -246,31 +246,44 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 200
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_empty_request_with_csv_result_format(self):
+    @pytest.mark.parametrize("result_format", ["csv", "xls", "xlsx"])
+    def test_empty_request_with_table_like_result_format(self, result_format):
         """
-        Chart data API: Test empty chart data with CSV result format
+        Chart data API: Test empty chart data with table like result format
         """
-        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["result_format"] = result_format
         self.query_context_payload["queries"] = []
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 400
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_with_csv_result_format(self):
+    @pytest.mark.parametrize(
+        "result_format,mimetype",
+        [
+            ("csv", "text/csv"),
+            ("xls", "application/vnd.ms-excel"),
+            (
+                "xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        ]
+    )
+    def test_with_table_like_result_format(self, result_format, mimetype):
         """
-        Chart data API: Test chart data with CSV result format
+        Chart data API: Test chart data with table like result format
         """
-        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["result_format"] = result_format
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 200
-        assert rv.mimetype == "text/csv"
+        assert rv.mimetype == mimetype
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_with_multi_query_csv_result_format(self):
+    @pytest.mark.parametrize("result_format", ["csv", "xls", "xlsx"])
+    def test_with_multi_query_table_like_result_format(self, result_format):
         """
-        Chart data API: Test chart data with multi-query CSV result format
+        Chart data API: Test chart data with multi-query table like result format
         """
-        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["result_format"] = result_format
         self.query_context_payload["queries"].append(
             self.query_context_payload["queries"][0]
         )
@@ -278,16 +291,22 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 200
         assert rv.mimetype == "application/zip"
         zipfile = ZipFile(BytesIO(rv.data), "r")
-        assert zipfile.namelist() == ["query_1.csv", "query_2.csv"]
+        assert zipfile.namelist() == [
+            f"query_1.{result_format}",
+            f"query_2.{result_format}",
+        ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_with_csv_result_format_when_actor_not_permitted_for_csv__403(self):
+    @pytest.mark.parametrize("result_format", ["csv", "xls", "xlsx"])
+    def test_with_table_like_result_format_when_actor_not_permitted_for__403(
+        self, result_format
+    ):
         """
-        Chart data API: Test chart data with CSV result format
+        Chart data API: Test chart data with table like result format
         """
         self.logout()
         self.login(username="gamma_no_csv")
-        self.query_context_payload["result_format"] = "csv"
+        self.query_context_payload["result_format"] = result_format
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
         assert rv.status_code == 403
