@@ -30,7 +30,6 @@ def load_bart_lines(only_metadata: bool = False, force: bool = False) -> None:
     tbl_name = "bart_lines"
     database = get_example_database()
     with database.get_sqla_engine_with_context() as engine:
-        engine = database.get_sqla_engine()
         schema = inspect(engine).default_schema_name
         table_exists = database.has_table_by_name(tbl_name)
 
