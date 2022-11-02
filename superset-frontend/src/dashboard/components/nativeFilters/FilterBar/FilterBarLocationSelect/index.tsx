@@ -36,7 +36,7 @@ export const FilterBarLocationSelect = () => {
     useState(filterBarLocation);
 
   const toggleFilterBarLocation = useCallback(
-    (
+    async (
       selection: Parameters<
         Required<Pick<MenuProps, 'onSelect'>>['onSelect']
       >[0],
@@ -47,7 +47,9 @@ export const FilterBarLocationSelect = () => {
         setSelectedFilterBarLocation(selectedKey);
         try {
           // save selection in Redux and backend
-          dispatch(saveFilterBarLocation(selection.key as FilterBarLocation));
+          await dispatch(
+            saveFilterBarLocation(selection.key as FilterBarLocation),
+          );
         } catch {
           // revert local state in case of error when saving
           setSelectedFilterBarLocation(filterBarLocation);

@@ -130,7 +130,7 @@ export function setFilterBarLocation(filterBarLocation: FilterBarLocation) {
 }
 
 export function saveFilterBarLocation(location: FilterBarLocation) {
-  return (dispatch: Dispatch, getState: () => RootState) => {
+  return async (dispatch: Dispatch, getState: () => RootState) => {
     const { id, metadata } = getState().dashboardInfo;
     const updateDashboard = makeApi<
       Partial<DashboardInfo>,
@@ -139,40 +139,39 @@ export function saveFilterBarLocation(location: FilterBarLocation) {
       method: 'PUT',
       endpoint: `/api/v1/dashboard/${id}`,
     });
-    return updateDashboard({
-      json_metadata: JSON.stringify({
-        ...metadata,
-        filter_bar_location: location,
-      }),
-    })
-      .then(response => {
-        const updatedDashboard = response.result;
-        const lastModifiedTime = response.last_modified_time;
-        if (updatedDashboard.json_metadata) {
-          const metadata = JSON.parse(updatedDashboard.json_metadata);
-          if (metadata.filter_bar_location) {
-            dispatch(setFilterBarLocation(metadata.filter_bar_location));
-          }
-        }
-        if (lastModifiedTime) {
-          dispatch(onSave(lastModifiedTime));
-        }
-      })
-      .catch(async errorObject => {
-        const { error, message } = await getClientErrorObject(errorObject);
-        let errorText = t('Sorry, an unknown error occurred.');
-
-        if (error) {
-          errorText = t(
-            'Sorry, there was an error saving this dashboard: %s',
-            error,
-          );
-        }
-        if (typeof message === 'string' && message === 'Forbidden') {
-          errorText = t('You do not have permission to edit this dashboard');
-        }
-        dispatch(addDangerToast(errorText));
-        throw errorObject;
+    try {
+      const response = await updateDashboard({
+        json_metadata: JSON.stringify({
+          ...metadata,
+          filter_bar_location: location,
+        }),
       });
+      const updatedDashboard = response.result;
+      const lastModifiedTime = response.last_modified_time;
+      if (updatedDashboard.json_metadata) {
+        const metadata = JSON.parse(updatedDashboard.json_metadata);
+        if (metadata.filter_bar_location) {
+          dispatch(setFilterBarLocation(metadata.filter_bar_location));
+        }
+      }
+      if (lastModifiedTime) {
+        dispatch(onSave(lastModifiedTime));
+      }
+    } catch (errorObject) {
+      const { error, message } = await getClientErrorObject(errorObject);
+      let errorText = t('Sorry, an unknown error occurred.');
+
+      if (error) {
+        errorText = t(
+          'Sorry, there was an error saving this dashboard: %s',
+          error,
+        );
+      }
+      if (typeof message === 'string' && message === 'Forbidden') {
+        errorText = t('You do not have permission to edit this dashboard');
+      }
+      dispatch(addDangerToast(errorText));
+      throw errorObject;
+    }
   };
 }

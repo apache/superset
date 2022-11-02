@@ -18,12 +18,15 @@
  */
 
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import { FilterBarLocation } from 'src/dashboard/types';
-import { RootState } from 'src/dashboard/types';
+import fetchMock from 'fetch-mock';
+import { waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render, screen, within } from 'spec/helpers/testing-library';
+import { DashboardInfo, FilterBarLocation } from 'src/dashboard/types';
+import * as mockedMessageActions from 'src/components/MessageToasts/actions';
 import { FilterBarLocationSelect } from './index';
 
-const initialState: Partial<RootState> = {
+const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {
     id: 1,
     userId: '1',
@@ -47,14 +50,126 @@ const initialState: Partial<RootState> = {
   },
 };
 
-const setup = (initialStateOverride: Partial<RootState> = {}) => {
-  return render(<FilterBarLocationSelect />, {
+const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
+  render(<FilterBarLocationSelect />, {
     useRedux: true,
-    initialState: { ...initialState, ...initialStateOverride },
+    initialState: {
+      ...initialState,
+      dashboardInfo: {
+        ...initialState.dashboardInfo,
+        ...dashboardInfoOverride,
+      },
+    },
   });
-};
 
 test('Dropdown trigger renders', () => {
   setup();
   expect(screen.getByLabelText('gear')).toBeVisible();
+});
+
+test('Popover opens with "Vertical" selected', async () => {
+  setup();
+  userEvent.click(screen.getByLabelText('gear'));
+  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
+  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+  expect(
+    within(screen.getAllByRole('menuitem')[0]).getByLabelText('check'),
+  ).toBeInTheDocument();
+});
+
+test('Popover opens with "Horizontal" selected', async () => {
+  setup({ filterBarLocation: FilterBarLocation.HORIZONTAL });
+  userEvent.click(screen.getByLabelText('gear'));
+  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
+  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+  expect(
+    within(screen.getAllByRole('menuitem')[1]).getByLabelText('check'),
+  ).toBeInTheDocument();
+});
+
+test('On selection change, send request and update checked value', async () => {
+  fetchMock.reset();
+  fetchMock.put('glob:*/api/v1/dashboard/1', {
+    result: {
+      json_metadata: JSON.stringify({
+        ...initialState.dashboardInfo.metadata,
+        filter_bar_location: 'HORIZONTAL',
+      }),
+    },
+  });
+
+  setup();
+  userEvent.click(screen.getByLabelText('gear'));
+
+  expect(
+    within(screen.getAllByRole('menuitem')[0]).getByLabelText('check'),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getAllByRole('menuitem')[1]).queryByLabelText('check'),
+  ).not.toBeInTheDocument();
+
+  userEvent.click(await screen.findByText('Horizontal (Top)'));
+
+  // 1st check - checkmark appears immediately after click
+  expect(
+    await within(screen.getAllByRole('menuitem')[1]).findByLabelText('check'),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getAllByRole('menuitem')[0]).queryByLabelText('check'),
+  ).not.toBeInTheDocument();
+
+  // successful query
+  await waitFor(() =>
+    expect(fetchMock.lastCall()?.[1]?.body).toEqual(
+      JSON.stringify({
+        json_metadata: JSON.stringify({
+          ...initialState.dashboardInfo.metadata,
+          filter_bar_location: 'HORIZONTAL',
+        }),
+      }),
+    ),
+  );
+
+  // 2nd check - checkmark stays after successful query
+  expect(
+    await within(screen.getAllByRole('menuitem')[1]).findByLabelText('check'),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getAllByRole('menuitem')[0]).queryByLabelText('check'),
+  ).not.toBeInTheDocument();
+
+  fetchMock.reset();
+});
+
+test('On failed request, restore previous selection', async () => {
+  fetchMock.reset();
+  fetchMock.put('glob:*/api/v1/dashboard/1', 400);
+
+  const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
+
+  setup();
+  userEvent.click(screen.getByLabelText('gear'));
+
+  expect(
+    within(screen.getAllByRole('menuitem')[0]).getByLabelText('check'),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getAllByRole('menuitem')[1]).queryByLabelText('check'),
+  ).not.toBeInTheDocument();
+
+  userEvent.click(await screen.findByText('Horizontal (Top)'));
+
+  // checkmark gets rolled back to the original selection after successful query
+  expect(
+    await within(screen.getAllByRole('menuitem')[0]).findByLabelText('check'),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getAllByRole('menuitem')[1]).queryByLabelText('check'),
+  ).not.toBeInTheDocument();
+
+  expect(dangerToastSpy).toHaveBeenCalledWith(
+    'Sorry, there was an error saving this dashboard: Unknown Error',
+  );
+
+  fetchMock.reset();
 });
