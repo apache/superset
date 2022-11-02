@@ -23,9 +23,9 @@ import {
   DataMaskStateWithId,
   styled,
   t,
+  isDefined,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
-import { isNullish } from 'src/utils/common';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import { rgba } from 'emotion-rgba';
 import { getFilterBarTestId } from '../index';
@@ -97,9 +97,9 @@ export const ActionButtons = ({
     () =>
       Object.values(dataMaskApplied).some(
         filter =>
-          !isNullish(dataMaskSelected[filter.id]?.filterState?.value) ||
+          isDefined(dataMaskSelected[filter.id]?.filterState?.value) ||
           (!dataMaskSelected[filter.id] &&
-            !isNullish(filter.filterState?.value)),
+            isDefined(filter.filterState?.value)),
       ),
     [dataMaskApplied, dataMaskSelected],
   );
