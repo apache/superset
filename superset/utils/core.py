@@ -96,6 +96,7 @@ from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+    NO_TIME_RANGE,
 )
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
@@ -115,6 +116,7 @@ from superset.superset_typing import (
     Metric,
 )
 from superset.utils.database import get_example_database
+from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -130,8 +132,6 @@ logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 DTTM_ALIAS = "__timestamp"
-
-NO_TIME_RANGE = "No filter"
 
 TIME_COMPARISON = "__"
 
@@ -256,6 +256,7 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+    TEMPORAL_RANGE = "TEMPORAL_RANGE"
 
 
 class FilterStringOperators(str, Enum):
@@ -1284,6 +1285,11 @@ def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
     return tuple(get_column_name(col) for col in axis_cols)
 
 
+def get_xaxis_label(columns: Optional[List[Column]]) -> Optional[str]:
+    labels = get_base_axis_labels(columns)
+    return labels[0] if labels else None
+
+
 def get_column_name(
     column: Column, verbose_map: Optional[Dict[str, Any]] = None
 ) -> str:
@@ -1855,7 +1861,7 @@ class DateColumn:
     col_label: str
     timestamp_format: Optional[str] = None
     offset: Optional[int] = None
-    time_shift: Optional[timedelta] = None
+    time_shift: Optional[str] = None
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -1868,7 +1874,7 @@ class DateColumn:
         cls,
         timestamp_format: Optional[str],
         offset: Optional[int],
-        time_shift: Optional[timedelta],
+        time_shift: Optional[str],
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
@@ -1907,7 +1913,7 @@ def normalize_dttm_col(
         if _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
         if _col.time_shift is not None:
-            df[_col.col_label] += _col.time_shift
+            df[_col.col_label] += parse_human_timedelta(_col.time_shift)
 
 
 def parse_boolean_string(bool_str: Optional[str]) -> bool:

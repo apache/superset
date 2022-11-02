@@ -22,9 +22,9 @@ import type {
   AdhocColumn,
   Column,
   DatasourceType,
+  JsonObject,
   JsonValue,
   Metric,
-  QueryColumn,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
@@ -80,12 +80,15 @@ export interface Dataset {
   description: string | null;
   uid?: string;
   owners?: Owner[];
+  filter_select?: boolean;
+  filter_select_enabled?: boolean;
 }
 
 export interface ControlPanelState {
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
+  common: JsonObject;
 }
 
 /**
@@ -449,9 +452,7 @@ export type ColorFormatters = {
 
 export default {};
 
-export function isColumnMeta(
-  column: AdhocColumn | ColumnMeta | QueryColumn,
-): column is ColumnMeta {
+export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
 }
 
