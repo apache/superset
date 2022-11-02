@@ -340,6 +340,7 @@ const config: ControlPanelConfig = {
                     : [];
                 return newState;
               },
+              rerender: ['defaultEmitFilterColumn'],
               visibility: isRawMode,
               canCopy: true,
             } as typeof sharedControls.groupby,
@@ -431,10 +432,18 @@ const config: ControlPanelConfig = {
                     state: ControlPanelState,
                     controlState: ControlState,
                   ) => {
+                    const { controls } = state;
                     const originalMapStateToProps =
                       sharedControls?.columns?.mapStateToProps;
                     const newState =
                       originalMapStateToProps?.(state, controlState) ?? {};
+                    newState.choices = controls?.columns?.value;
+                    const invalidOption = ensureIsArray(
+                      controlState.value,
+                    ).find(c => !newState.choices.includes(c));
+                    newState.externalValidationErrors = invalidOption
+                      ? [`'${invalidOption}'${t(' is not a valid option')}`]
+                      : [];
                     return newState;
                   },
                   visibility: ({ controls }) =>
