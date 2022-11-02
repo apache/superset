@@ -22,7 +22,6 @@ from typing import Any, Dict, List
 from zipfile import is_zipfile, ZipFile
 
 import yaml
-
 from flask import request, Response, send_file
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, protect, rison, safe
