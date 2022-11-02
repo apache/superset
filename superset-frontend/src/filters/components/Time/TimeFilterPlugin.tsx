@@ -88,7 +88,6 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   }, [filterState.value]);
 
   return props.formData?.inView ? (
-    // @ts-ignore
     <TimeFilterStyles width={width} height={height}>
       <ControlContainer
         tabIndex={-1}
@@ -103,7 +102,6 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}
-          type={filterState.validateStatus}
           onOpenPopover={() => setFilterActive(true)}
           onClosePopover={() => setFilterActive(false)}
         />
