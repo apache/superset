@@ -22,6 +22,7 @@ import {
   getChartAliasBySpec,
 } from 'cypress/utils';
 import { TABBED_DASHBOARD } from 'cypress/utils/urls';
+import { expandFilterOnLeftPanel } from './utils';
 
 const TREEMAP = { name: 'Treemap', viz: 'treemap' };
 const FILTER_BOX = { name: 'Region Filter', viz: 'filter_box' };
@@ -165,5 +166,34 @@ describe('Dashboard tabs', () => {
         throw new Error('Unexpected API call.');
       });
     });
+  });
+
+  it('should update size when switch tab', () => {
+    topLevelTabs();
+    waitForChartLoad(TREEMAP);
+
+    cy.get('@top-level-tabs')
+      .last()
+      .click()
+      .should('have.class', 'ant-tabs-tab-active');
+
+    expandFilterOnLeftPanel();
+
+    cy.wait(1000);
+
+    cy.get('@top-level-tabs')
+      .first()
+      .click()
+      .should('have.class', 'ant-tabs-tab-active');
+
+    cy.wait(1000);
+
+    cy.get("[data-test-viz-type='treemap'] .chart-container").then(
+      $chartContainer => {
+        expect($chartContainer.get(0).scrollWidth).eq(
+          $chartContainer.get(0).offsetWidth,
+        );
+      },
+    );
   });
 });
