@@ -54,6 +54,7 @@ const setup = (queryEditor: QueryEditor, store?: Store) =>
       onChange={jest.fn()}
       onBlur={jest.fn()}
       autocomplete
+      hotkeys={[]}
     />,
     {
       useRedux: true,
