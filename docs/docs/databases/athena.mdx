@@ -32,3 +32,11 @@ following connection string:
 ```
 awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
 ```
+
+The PyAthena library also allows to assume a specific IAM role, by [importing the datasource from YAML](https://superset.apache.org/docs/miscellaneous/importing-exporting-datasources/#importing-datasources-from-yaml) and passing extra parameters:
+```
+databases:
+  - database_name: awsathena
+    sqlalchemy_uri: awsathena+rest://athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}&...
+    extra: "{\"engine_params\": {\"connect_args\": {\"role_arn\": \"{{  ROLE_ARN  }}\" }}}"
+```

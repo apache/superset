@@ -21,6 +21,7 @@ import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Label, { Type } from 'src/components/Label';
+import Modal from 'src/components/Modal';
 import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
@@ -32,10 +33,12 @@ import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
 import {
+  DATE_FILTER_TEST_KEY,
   fetchTimeRange,
   FRAME_OPTIONS,
   getDateFilterControlTestId,
   guessFrame,
+  useDefaultTimeFilter,
 } from './utils';
 import {
   CommonFrame,
@@ -44,7 +47,6 @@ import {
   AdvancedFrame,
 } from './components';
 
-const StyledPopover = styled(ControlPopover)``;
 const StyledRangeType = styled(Select)`
   width: 272px;
 `;
@@ -121,12 +123,15 @@ const IconWrapper = styled.span`
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
-    value = NO_TIME_RANGE,
     onChange,
     type,
     onOpenPopover = noOp,
     onClosePopover = noOp,
+    overlayStyle = 'Popover',
   } = props;
+  const defaultTimeFilter = useDefaultTimeFilter();
+
+  const value = props.value ?? defaultTimeFilter;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
   const [show, setShow] = useState<boolean>(false);
@@ -137,6 +142,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<string>(value);
+  const theme = useTheme();
 
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
@@ -180,6 +186,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         setValidTimeRange(true);
       }
       setLastFetchedTimeRange(value);
+      setEvalResponse(actualRange || value);
     });
   }, [value]);
 
@@ -225,7 +232,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     setShow(false);
   }
 
-  const togglePopover = () => {
+  const toggleOverlay = () => {
     if (show) {
       onHide();
       onClosePopover();
@@ -241,8 +248,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     }
     setFrame(value);
   }
-
-  const theme = useTheme();
 
   const overlayContent = (
     <ContentStyleWrapper>
@@ -266,7 +271,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       {frame === 'Custom' && (
         <CustomFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}
-      {frame === 'No filter' && <div data-test="no-filter" />}
+      {frame === 'No filter' && (
+        <div data-test={DATE_FILTER_TEST_KEY.noFilter} />
+      )}
       <Divider />
       <div>
         <div className="section-title">{t('Actual time range')}</div>
@@ -285,7 +292,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           cta
           key="cancel"
           onClick={onHide}
-          data-test="cancel-button"
+          data-test={DATE_FILTER_TEST_KEY.cancelButton}
         >
           {t('CANCEL')}
         </Button>
@@ -310,25 +317,56 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </IconWrapper>
   );
 
+  const popoverContent = (
+    <ControlPopover
+      placement="right"
+      trigger="click"
+      content={overlayContent}
+      title={title}
+      defaultVisible={show}
+      visible={show}
+      onVisibleChange={toggleOverlay}
+      overlayStyle={{ width: '600px' }}
+    >
+      <Tooltip placement="top" title={tooltipTitle}>
+        <Label
+          className="pointer"
+          data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
+        >
+          {actualTimeRange}
+        </Label>
+      </Tooltip>
+    </ControlPopover>
+  );
+
+  const modalContent = (
+    <>
+      <Tooltip placement="top" title={tooltipTitle}>
+        <Label
+          className="pointer"
+          onClick={toggleOverlay}
+          data-test={DATE_FILTER_TEST_KEY.modalOverlay}
+        >
+          {actualTimeRange}
+        </Label>
+      </Tooltip>
+      <Modal
+        title={title}
+        show={show}
+        onHide={toggleOverlay}
+        width="600px"
+        hideFooter
+        zIndex={Number.MAX_SAFE_INTEGER}
+      >
+        {overlayContent}
+      </Modal>
+    </>
+  );
+
   return (
     <>
       <ControlHeader {...props} />
-      <StyledPopover
-        placement="right"
-        trigger="click"
-        content={overlayContent}
-        title={title}
-        defaultVisible={show}
-        visible={show}
-        onVisibleChange={togglePopover}
-        overlayStyle={{ width: '600px' }}
-      >
-        <Tooltip placement="top" title={tooltipTitle}>
-          <Label className="pointer" data-test="time-range-trigger">
-            {actualTimeRange}
-          </Label>
-        </Tooltip>
-      </StyledPopover>
+      {overlayStyle === 'Modal' ? modalContent : popoverContent}
     </>
   );
 }

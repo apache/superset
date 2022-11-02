@@ -222,6 +222,12 @@ export default function exploreReducer(state = {}, action) {
         sliceName: action.sliceName,
       };
     },
+    [actions.SET_SAVE_ACTION]() {
+      return {
+        ...state,
+        saveAction: action.saveAction,
+      };
+    },
     [actions.CREATE_NEW_SLICE]() {
       return {
         ...state,
