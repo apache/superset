@@ -47,7 +47,7 @@ interface MenuObjectChildProps {
   perm?: string | boolean;
   view?: string;
   disable?: boolean;
-};
+}
 
 type ConfigDetailsProps = {
   embeddedId: string;
