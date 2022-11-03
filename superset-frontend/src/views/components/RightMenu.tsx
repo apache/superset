@@ -382,7 +382,6 @@ const RightMenu = ({
         mode="horizontal"
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
-        subMenuCloseDelay={60}
       >
         {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
