@@ -388,7 +388,7 @@ const config = {
               lessOptions: {
                 javascriptEnabled: true,
                 modifyVars: {
-                  'root-entry-name': 'default'
+                  'root-entry-name': 'default',
                 },
               },
             },
