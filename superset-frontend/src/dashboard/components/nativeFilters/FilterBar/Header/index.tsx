@@ -32,8 +32,8 @@ import { useSelector } from 'react-redux';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { RootState } from 'src/dashboard/types';
-import DropdownSelectableIcon from 'src/components/DropdownSelectableIcon';
 import { getFilterBarTestId } from '..';
+import { FilterBarLocationSelect } from '../FilterBarLocationSelect';
 
 const TitleArea = styled.h4`
   display: flex;
@@ -100,26 +100,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
     <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
-        {canSetHorizontalFilterBar && (
-          <DropdownSelectableIcon
-            onSelect={item => console.log('Selected item', item)}
-            info={t('Placement of filter bar')}
-            icon={
-              <Icons.Gear name="gear" iconColor={theme.colors.grayscale.base} />
-            }
-            menuItems={[
-              {
-                key: 'vertical',
-                label: t('Vertical (Left)'),
-              },
-              {
-                key: 'horizontal',
-                label: t('Horizontal (Top)'),
-              },
-            ]}
-            selectedKeys={['vertical']}
-          />
-        )}
+        {canSetHorizontalFilterBar && <FilterBarLocationSelect />}
         <HeaderButton
           {...getFilterBarTestId('collapse-button')}
           buttonStyle="link"
