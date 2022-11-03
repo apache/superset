@@ -199,7 +199,7 @@ describe('Native filters', () => {
     cy.preserveLogin();
   });
 
-  describe('Nativefilters tests initial state required', () => {
+  describe.only('Nativefilters tests initial state required', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0]);
     });
