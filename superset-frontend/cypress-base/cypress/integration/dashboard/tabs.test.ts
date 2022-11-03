@@ -92,6 +92,7 @@ describe('Dashboard tabs', () => {
     cy.get('@row-level-tabs').last().click();
     waitForChartLoad(LINE_CHART);
     cy.getBySel('grid-container').find('.line').should('be.visible');
+    cy.get('@row-level-tabs').first().click();
   });
 
   it.skip('should send new queries when tab becomes visible', () => {
@@ -169,9 +170,6 @@ describe('Dashboard tabs', () => {
   });
 
   it('should update size when switch tab', () => {
-    topLevelTabs();
-    waitForChartLoad(TREEMAP);
-
     cy.get('@top-level-tabs')
       .last()
       .click()
