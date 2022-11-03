@@ -34,6 +34,7 @@ const {
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const getProxyConfig = require('./webpack.proxy-config');
+const { cyberhavenPlugins } = require('./cyberhavenPlugins');
 const packageConfig = require('./package');
 
 // input dir
@@ -167,6 +168,8 @@ if (!isDevMode) {
     }),
   );
 }
+
+plugins.push(...cyberhavenPlugins);
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
 if (isDevMode) {
