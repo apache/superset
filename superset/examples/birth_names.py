@@ -81,7 +81,7 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
 
         pdf.to_sql(
             tbl_name,
-            database.get_sqla_engine(),
+            engine,
             schema=schema,
             if_exists="replace",
             chunksize=500,
@@ -104,8 +104,8 @@ def load_birth_names(
 ) -> None:
     """Loading birth name dataset from a zip file in the repo"""
     database = get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
 
     tbl_name = "birth_names"
     table_exists = database.has_table_by_name(tbl_name, schema=schema)
