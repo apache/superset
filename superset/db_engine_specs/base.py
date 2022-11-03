@@ -431,6 +431,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
+    def parse_error_exception(cls, exception_message: str) -> str:
+        """
+        Each engine can implement and converge its own specific parser method
+
+        :return: A parsed string off the original exception
+        """
+        return exception_message
+
+    @classmethod
     def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
         """
         Get a superset custom DBAPI exception from the driver specific exception.
@@ -443,6 +452,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if not new_exception:
+            # We are interested in just BigQuery exceptions
+            if cls.engine == "bigquery":
+                logger.error(cls.parse_error_exception(str(exception)), exc_info=True)
             return exception
         return new_exception(str(exception))
 
