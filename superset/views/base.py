@@ -80,7 +80,8 @@ from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
 
-from .utils import bootstrap_user_data
+from superset.views.utils import bootstrap_user_data
+
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -642,6 +643,8 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
+
+        database_perms = security_manager.user_view_menu_names("database_access")
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         owner_ids_query = (
@@ -649,11 +652,20 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(models.SqlaTable.owners)
             .filter(security_manager.user_model.id == get_user_id())
         )
+        dbIds = []
+        if database_perms:
+            databaseList = list(database_perms)
+            for i in range(len(databaseList)):
+                myStr = databaseList[i]
+                startIndex = myStr.index("(id:")+4
+                endIndex = myStr.index(")",startIndex)
+                dbIds.append(myStr[startIndex:endIndex])
         return query.filter(
             or_(
                 self.model.perm.in_(datasource_perms),
                 self.model.schema_perm.in_(schema_perms),
                 models.SqlaTable.id.in_(owner_ids_query),
+                models.SqlaTable.database_id.in_(dbIds)
             )
         )
 
