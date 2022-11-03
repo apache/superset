@@ -104,9 +104,7 @@ export default function ErrorAlert({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBodyExpanded, setIsBodyExpanded] = useState(false);
 
-  const isExpandable = ['explore', 'sqllab', 'dbConnectionModal'].includes(
-    source,
-  );
+  const isExpandable = ['explore', 'sqllab'].includes(source);
   const iconColor = theme.colors[level].base;
 
   return (

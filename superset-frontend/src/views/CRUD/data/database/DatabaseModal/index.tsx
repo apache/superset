@@ -1172,7 +1172,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           description={alertErrors[0]}
           subtitle={validationErrors?.description || alertErrors[0]}
           copyText={validationErrors?.description || alertErrors[0]}
-          source="dbConnectionModal"
         />
       );
     }
