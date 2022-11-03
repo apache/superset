@@ -19,7 +19,13 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
+import {
+  t,
+  SupersetClient,
+  makeApi,
+  styled,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import FacePile from 'src/components/FacePile';
@@ -48,6 +54,8 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState } from './types';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const PAGE_SIZE = 25;
 
@@ -81,6 +89,18 @@ const RefreshContainer = styled.div`
     ${({ theme }) => theme.gridUnit * 3}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
+
+const StyledHeaderWithIcon = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  > *:first-child {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+const HeaderExtension = extensionsRegistry.get('alertsreports.header.icon');
 
 function AlertList({
   addDangerToast,
@@ -491,11 +511,20 @@ function AlertList({
     [],
   );
 
+  const header = HeaderExtension ? (
+    <StyledHeaderWithIcon>
+      <div>{t('Alerts & reports')}</div>
+      <HeaderExtension />
+    </StyledHeaderWithIcon>
+  ) : (
+    t('Alerts & reports')
+  );
+
   return (
     <>
       <SubMenu
         activeChild={pathName}
-        name={t('Alerts & reports')}
+        name={header}
         tabs={[
           {
             name: 'Alerts',

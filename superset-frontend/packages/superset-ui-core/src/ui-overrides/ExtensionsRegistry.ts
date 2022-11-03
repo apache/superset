@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { MenuObjectChildProps } from 'src/views/components/Menu';
 import { TypedRegistry } from '../models';
 import { makeSingleton } from '../utils';
 
@@ -38,13 +39,19 @@ type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
 type ConfigDetailsProps = {
   embeddedId: string;
 };
+type RightMenuItemIconProps = {
+  menuChild: MenuObjectChildProps;
+};
 
 export type Extensions = Partial<{
+  'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;
   'dashboard.nav.right': React.ComponentType;
+  'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
   'navbar.right': React.ComponentType;
+  'report-modal.dropdown.item.icon': React.ComponentType;
   'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;

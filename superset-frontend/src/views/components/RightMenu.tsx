@@ -84,6 +84,13 @@ const StyledDiv = styled.div<{ align: string }>`
   }
 `;
 
+const StyledMenuItemWithIcon = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+`;
+
 const StyledAnchor = styled.a`
   padding-right: ${({ theme }) => theme.gridUnit}px;
   padding-left: ${({ theme }) => theme.gridUnit}px;
@@ -330,6 +337,9 @@ const RightMenu = ({
     return null;
   };
   const RightMenuExtension = extensionsRegistry.get('navbar.right');
+  const RightMenuItemIconExtension = extensionsRegistry.get(
+    'navbar.right-menu.item.icon',
+  );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
   const handleDatasetAdd = () => setQuery({ datasetAdded: true });
@@ -372,6 +382,7 @@ const RightMenu = ({
         mode="horizontal"
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
+        subMenuCloseDelay={60}
       >
         {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
@@ -447,12 +458,20 @@ const RightMenu = ({
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
               {section?.childs?.map?.(child => {
                 if (typeof child !== 'string') {
+                  const menuItemDisplay = RightMenuItemIconExtension ? (
+                    <StyledMenuItemWithIcon>
+                      {child.label}
+                      <RightMenuItemIconExtension menuChild={child} />
+                    </StyledMenuItemWithIcon>
+                  ) : (
+                    child.label
+                  );
                   return (
                     <Menu.Item key={`${child.label}`}>
                       {isFrontendRoute(child.url) ? (
-                        <Link to={child.url || ''}>{child.label}</Link>
+                        <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={child.url}>{child.label}</a>
+                        <a href={child.url}>{menuItemDisplay}</a>
                       )}
                     </Menu.Item>
                   );
