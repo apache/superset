@@ -21,22 +21,34 @@ import Icons from 'src/components/Icons';
 import { Spin } from 'antd';
 import AntdSelect from 'antd/lib/select';
 
-export const StyledContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+export const StyledHeader = styled.span<{ headerPosition: string }>`
+  ${({ theme, headerPosition }) => `
+    margin-right: ${headerPosition === 'left' ? theme.gridUnit * 2 : 0}px;
+  `}
 `;
 
-export const StyledSelect = styled(AntdSelect)`
-  ${({ theme }) => `
-   && .ant-select-selector {
-     border-radius: ${theme.gridUnit}px;
-   }
-   // Open the dropdown when clicking on the suffix
-   // This is fixed in version 4.16
-   .ant-select-arrow .anticon:not(.ant-select-suffix) {
-     pointer-events: none;
-   }
+export const StyledContainer = styled.div<{ headerPosition: string }>`
+  ${({ headerPosition }) => `
+    display: flex;
+    flex-direction: ${headerPosition === 'top' ? 'column' : 'row'};
+    align-items: ${headerPosition === 'left' ? 'center' : undefined};
+    width: 100%;
+  `}
+`;
+
+export const StyledSelect = styled(AntdSelect, {
+  shouldForwardProp: prop => prop !== 'headerPosition',
+})<{ headerPosition: string }>`
+  ${({ theme, headerPosition }) => `
+    flex: ${headerPosition === 'left' ? 1 : 0};
+    && .ant-select-selector {
+      border-radius: ${theme.gridUnit}px;
+    }
+    // Open the dropdown when clicking on the suffix
+    // This is fixed in version 4.16
+    .ant-select-arrow .anticon:not(.ant-select-suffix) {
+      pointer-events: none;
+    }
  `}
 `;
 
