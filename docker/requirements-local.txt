@@ -1,0 +1,3 @@
+pyarrow==6.0.1
+databricks-sql-connector
+sqlalchemy-databricks
