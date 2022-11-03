@@ -419,14 +419,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {canDelete && (
                 <Tooltip
                   id="delete-action-tooltip"
-                  title={t('Delete')}
+                  title={
+                    allowEdit
+                      ? t('Delete')
+                      : t(
+                          'You must be a dataset owner in order to delete. Please reach out to a dataset owner to request modifications or delete access.',
+                        )
+                  }
                   placement="bottom"
                 >
                   <span
                     role="button"
+                    className={allowEdit ? 'action-button' : 'disabled'}
+                    onClick={allowEdit ? handleDelete : undefined}
                     tabIndex={0}
-                    className="action-button"
-                    onClick={handleDelete}
                   >
                     <Icons.Trash />
                   </span>

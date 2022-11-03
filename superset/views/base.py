@@ -664,7 +664,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 self.model.perm.in_(datasource_perms),
                 self.model.schema_perm.in_(schema_perms),
                 models.SqlaTable.id.in_(owner_ids_query),
-                models.SqlaTable.database_id.in_(dbIds)
+                models.SqlaTable.database_id.in_(dbIds),
             )
         )
 
