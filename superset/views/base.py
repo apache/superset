@@ -643,7 +643,6 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-
         database_perms = security_manager.user_view_menu_names("database_access")
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
@@ -656,10 +655,10 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if database_perms:
             databaseList = list(database_perms)
             for i in range(len(databaseList)):
-                myStr = databaseList[i]
-                startIndex = myStr.index("(id:")+4
-                endIndex = myStr.index(")",startIndex)
-                dbIds.append(myStr[startIndex:endIndex])
+                databaseRole = databaseList[i]
+                startIndex = databaseRole.index("(id:") + 4
+                endIndex = databaseRole.index(")", startIndex)
+                dbIds.append(databaseRole[startIndex:endIndex])
         return query.filter(
             or_(
                 self.model.perm.in_(datasource_perms),
