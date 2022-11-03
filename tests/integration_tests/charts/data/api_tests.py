@@ -995,12 +995,12 @@ def physical_query_context(physical_dataset) -> Dict[str, Any]:
         },
     },
 )
-def test_cache_default_timeout(test_client, login_as_admin, physical_query_context):
+def test_cache_default_timeout(login_as_admin, physical_query_context):
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 1234
 
 
-def test_custom_cache_timeout(test_client, login_as_admin, physical_query_context):
+def test_custom_cache_timeout(login_as_admin, physical_query_context):
     physical_query_context["custom_cache_timeout"] = 5678
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 5678
@@ -1018,7 +1018,6 @@ def test_custom_cache_timeout(test_client, login_as_admin, physical_query_contex
     },
 )
 def test_data_cache_default_timeout(
-    test_client,
     login_as_admin,
     physical_query_context,
 ):
@@ -1027,7 +1026,6 @@ def test_data_cache_default_timeout(
 
 
 def test_chart_cache_timeout(
-    test_client,
     login_as_admin,
     physical_query_context,
     load_energy_table_with_slice: List[Slice],
@@ -1064,9 +1062,7 @@ def test_chart_cache_timeout(
         },
     },
 )
-def test_chart_cache_timeout_not_present(
-    test_client, login_as_admin, physical_query_context
-):
+def test_chart_cache_timeout_not_present(login_as_admin, physical_query_context):
     # should use datasource cache, if it's present
 
     datasource: SqlaTable = (
@@ -1092,9 +1088,7 @@ def test_chart_cache_timeout_not_present(
         },
     },
 )
-def test_chart_cache_timeout_chart_not_found(
-    test_client, login_as_admin, physical_query_context
-):
+def test_chart_cache_timeout_chart_not_found(login_as_admin, physical_query_context):
     # should use default timeout
 
     physical_query_context["form_data"] = {"slice_id": 0}
@@ -1115,7 +1109,6 @@ def test_chart_cache_timeout_chart_not_found(
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=False)
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_chart_data_subquery_not_allowed(
-    test_client,
     login_as_admin,
     physical_dataset,
     physical_query_context,
@@ -1140,7 +1133,6 @@ def test_chart_data_subquery_not_allowed(
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 def test_chart_data_subquery_allowed(
-    test_client,
     login_as_admin,
     physical_dataset,
     physical_query_context,
