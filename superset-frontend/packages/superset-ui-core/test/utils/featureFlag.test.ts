@@ -20,7 +20,7 @@ import mockConsole from 'jest-mock-console';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 
 it('returns false and raises console error if feature flags have not been initialized', () => {
-  const restoreConsole = mockConsole();
+  mockConsole();
   Object.defineProperty(window, 'featureFlags', {
     value: undefined,
   });
@@ -29,7 +29,10 @@ it('returns false and raises console error if feature flags have not been initia
     isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING),
   ).toBeFalsy();
   expect(console.error).toHaveBeenCalled();
-  restoreConsole();
+  // @ts-expect-error
+  expect(console.error.mock.calls[0][0]).toEqual(
+    'Failed to query feature flag ALLOW_DASHBOARD_DOMAIN_SHARDING',
+  );
 });
 
 it('returns false for unset feature flag', () => {
