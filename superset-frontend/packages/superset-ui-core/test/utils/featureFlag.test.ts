@@ -25,9 +25,9 @@ it('returns false and raises console error if feature flags have not been initia
     value: undefined,
   });
 
-  expect(
-    isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING),
-  ).toBeFalsy();
+  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
+    false,
+  );
   expect(console.error).toHaveBeenCalled();
   // @ts-expect-error
   expect(console.error.mock.calls[0][0]).toEqual(
@@ -40,9 +40,9 @@ it('returns false for unset feature flag', () => {
     value: {},
   });
 
-  expect(
-    isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING),
-  ).toBeFalsy();
+  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
+    false,
+  );
 });
 
 it('returns true for set feature flag', () => {
@@ -52,5 +52,5 @@ it('returns true for set feature flag', () => {
     },
   });
 
-  expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toBeTruthy();
+  expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toEqual(true);
 });
