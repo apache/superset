@@ -581,4 +581,9 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def parse_error_exception(cls, exception_message: str) -> str:
-        return exception_message.rsplit("\n")[0]
+        try:
+            return exception_message.rsplit("\n")[0]
+        except Exception:  # pylint: disable=broad-except
+            # If for some reason we get an exception, for example, no new line
+            # We will return the original exception_message
+            return exception_message

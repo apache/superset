@@ -190,6 +190,10 @@ class DatasourceType(str, Enum):
     VIEW = "view"
 
 
+class EngineType(str, Enum):
+    BIGQUERY = "bigquery"
+
+
 class HeaderDataType(TypedDict):
     notification_format: str
     owners: List[int]

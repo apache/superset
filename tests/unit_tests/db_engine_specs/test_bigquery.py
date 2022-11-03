@@ -281,3 +281,25 @@ def test_parse_error_message() -> None:
     )
     assert BigQueryEngineSpec.parse_error_exception(message) == expected_result
     assert BigQueryEngineSpec.parse_error_exception(message_2) == expected_result_2
+
+
+def test_parse_error_raises_exception() -> None:
+    """
+    Test that we handle any exception we might get from calling the parse_error_exception method.
+
+    Example errors:
+    400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]
+    bigquery error: 400 Table \"case_detail_all_suites\" must be qualified with a dataset (e.g. dataset.table).
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    message = 'bigquery error: 400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    message_2 = '400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]'
+    message_3 = "6"
+    expected_result = 'bigquery error: 400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    expected_result_2 = (
+        '400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]'
+    )
+    assert BigQueryEngineSpec.parse_error_exception(message) == expected_result
+    assert BigQueryEngineSpec.parse_error_exception(message_2) == expected_result_2
+    assert BigQueryEngineSpec.parse_error_exception(message_3) == "6"

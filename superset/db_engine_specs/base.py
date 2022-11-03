@@ -64,7 +64,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType, get_username
+from superset.utils.core import ColumnSpec, EngineType, GenericDataType, get_username
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -453,7 +453,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if not new_exception:
             # We are interested in just BigQuery exceptions
-            if cls.engine == "bigquery":
+            if cls.engine == EngineType.BIGQUERY:
                 logger.error(cls.parse_error_exception(str(exception)), exc_info=True)
             return exception
         return new_exception(str(exception))
