@@ -242,7 +242,7 @@ export interface BaseControlConfig<
   ) => boolean;
   mapStateToProps?: (
     state: ControlPanelState,
-    controlState?: ControlState,
+    controlState: ControlState,
     // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
     chartState?: AnyDict,
   ) => ExtraControlProps;
