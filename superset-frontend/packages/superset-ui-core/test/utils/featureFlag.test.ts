@@ -16,48 +16,38 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-
-const originalFeatureFlags = window.featureFlags;
-// eslint-disable-next-line no-console
-const originalConsoleError = console.error;
-const reset = () => {
-  window.featureFlags = originalFeatureFlags;
-  // eslint-disable-next-line no-console
-  console.error = originalConsoleError;
-};
+import mockConsole from 'jest-mock-console';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 
 it('returns false and raises console error if feature flags have not been initialized', () => {
-  // eslint-disable-next-line no-console
-  console.error = jest.fn();
-  delete (window as any).featureFlags;
-  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
-    false,
-  );
+  const restoreConsole = mockConsole();
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
 
-  // eslint-disable-next-line no-console
-  expect(console.error).toHaveBeenNthCalledWith(
-    1,
-    'Failed to query feature flag ALLOW_DASHBOARD_DOMAIN_SHARDING (see error below)',
-  );
-
-  reset();
+  expect(
+    isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING),
+  ).toBeFalsy();
+  expect(console.error).toHaveBeenCalled();
+  restoreConsole();
 });
 
 it('returns false for unset feature flag', () => {
-  expect(isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING)).toEqual(
-    false,
-  );
+  Object.defineProperty(window, 'featureFlags', {
+    value: {},
+  });
 
-  reset();
+  expect(
+    isFeatureEnabled(FeatureFlag.ALLOW_DASHBOARD_DOMAIN_SHARDING),
+  ).toBeFalsy();
 });
 
 it('returns true for set feature flag', () => {
-  window.featureFlags = {
-    [FeatureFlag.CLIENT_CACHE]: true,
-  };
+  Object.defineProperty(window, 'featureFlags', {
+    value: {
+      CLIENT_CACHE: true,
+    },
+  });
 
-  expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toEqual(true);
-  reset();
+  expect(isFeatureEnabled(FeatureFlag.CLIENT_CACHE)).toBeTruthy();
 });
