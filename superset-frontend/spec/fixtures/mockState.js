@@ -35,6 +35,9 @@ export default {
   sliceEntities: sliceEntitiesForChart,
   charts: chartQueries,
   nativeFilters: nativeFiltersInfo,
+  common: {
+    conf: {},
+  },
   dataMask: mockDataMaskInfo,
   dashboardInfo,
   dashboardFilters: emptyFilters,

@@ -43,7 +43,7 @@ describe('Dashboard edit markdown', () => {
     cy.get('[data-test="dashboard-markdown-editor"]')
       .should(
         'have.text',
-        '✨Markdown✨Markdown✨MarkdownClick here to edit markdown',
+        '✨Markdown\n✨Markdown\n✨Markdown\n\nClick here to edit markdown',
       )
       .click();
 
