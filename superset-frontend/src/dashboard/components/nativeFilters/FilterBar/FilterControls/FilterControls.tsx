@@ -16,28 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useCallback, useMemo } from 'react';
-import { css } from '@emotion/react';
+import React, { FC, useMemo, useRef, useState } from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
   Filter,
-  isFilterDivider,
+  isDefined,
   styled,
-  t,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
   InPortal,
   OutPortal,
 } from 'react-reverse-portal';
-import { AntdCollapse } from 'src/components';
+import { useSelector } from 'react-redux';
 import {
   useDashboardHasTabs,
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
-import { useFilters } from '../state';
-import FilterControl from './FilterControl';
+import { FilterBarLocation, RootState } from 'src/dashboard/types';
+import DropdownContainer, { Ref } from 'src/components/DropdownContainer';
+import { useChangeEffect } from 'src/hooks/useChangeEffect';
+import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
+import { useFilterControlFactory } from '../useFilterControlFactory';
+import { FiltersDropdownContent } from '../FiltersDropdownContent';
 
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -56,111 +58,96 @@ const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
   onFilterSelectionChange,
 }) => {
-  const filters = useFilters();
-  const filterValues = useMemo(() => Object.values(filters), [filters]);
+  const dropdownRef = useRef<Ref>(null);
+  const filterBarLocation = useSelector<RootState, FilterBarLocation>(
+    state => state.dashboardInfo.filterBarLocation,
+  );
+  const [overflowedItemIds, setOverflowedItemIds] = useState<string[]>([]);
+
+  const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
+    dataMaskSelected,
+    directPathToChild,
+    onFilterSelectionChange,
+  );
   const portalNodes = useMemo(() => {
-    const nodes = new Array(filterValues.length);
-    for (let i = 0; i < filterValues.length; i += 1) {
+    const nodes = new Array(filtersWithValues.length);
+    for (let i = 0; i < filtersWithValues.length; i += 1) {
       nodes[i] = createHtmlPortalNode();
     }
     return nodes;
-  }, [filterValues.length]);
+  }, [filtersWithValues.length]);
 
-  const filtersWithValues = useMemo(
-    () =>
-      filterValues.map(filter => ({
-        ...filter,
-        dataMask: dataMaskSelected[filter.id],
-      })),
-    [filterValues, dataMaskSelected],
-  );
   const filterIds = new Set(filtersWithValues.map(item => item.id));
 
   const [filtersInScope, filtersOutOfScope] =
     useSelectFiltersInScope(filtersWithValues);
+
+  useChangeEffect(directPathToChild, prev => {
+    if (
+      filterBarLocation === FilterBarLocation.HORIZONTAL &&
+      isDefined(prev) &&
+      overflowedItemIds?.some(id => directPathToChild?.includes(id))
+    ) {
+      dropdownRef.current?.open();
+    }
+  });
+
   const dashboardHasTabs = useDashboardHasTabs();
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
-  const filterControlFactory = useCallback(
-    index => {
-      const filter = filtersWithValues[index];
-      if (isFilterDivider(filter)) {
-        return (
-          <div>
-            <h3>{filter.title}</h3>
-            <p>{filter.description}</p>
-          </div>
-        );
-      }
-      return (
-        <FilterControl
-          dataMaskSelected={dataMaskSelected}
-          filter={filter}
-          directPathToChild={directPathToChild}
-          onFilterSelectionChange={onFilterSelectionChange}
-          inView={false}
+  const renderer = ({ id }: { id: string; [key: string]: any }) => {
+    const index = filtersWithValues.findIndex(f => f.id === id);
+    return <OutPortal node={portalNodes[index]} inView />;
+  };
+
+  const renderVerticalContent = () => (
+    <>
+      {filtersInScope.map(renderer)}
+      {showCollapsePanel && (
+        <FiltersOutOfScopeCollapsible
+          filtersOutOfScope={filtersOutOfScope}
+          hasTopMargin={filtersInScope.length > 0}
+          renderer={renderer}
         />
-      );
-    },
-    [
-      filtersWithValues,
-      JSON.stringify(dataMaskSelected),
-      directPathToChild,
-      onFilterSelectionChange,
-    ],
+      )}
+    </>
   );
+
+  const renderHorizontalContent = () => {
+    const items = filtersInScope.map(filter => ({
+      id: filter.id,
+      element: renderer(filter),
+    }));
+    return (
+      <DropdownContainer
+        items={items}
+        popoverContent={overflowedItems => (
+          <FiltersDropdownContent
+            filtersInScope={overflowedItems}
+            filtersOutOfScope={filtersOutOfScope}
+            renderer={renderer}
+            showCollapsePanel={showCollapsePanel}
+          />
+        )}
+        ref={dropdownRef}
+        onOverflowingStateChange={overflowingState => {
+          setOverflowedItemIds(overflowingState.overflowed);
+        }}
+      />
+    );
+  };
+
   return (
     <Wrapper>
       {portalNodes
-        .filter((node, index) => filterIds.has(filterValues[index].id))
+        .filter((node, index) => filterIds.has(filtersWithValues[index].id))
         .map((node, index) => (
           <InPortal node={node}>{filterControlFactory(index)}</InPortal>
         ))}
-      {filtersInScope.map(filter => {
-        const index = filterValues.findIndex(f => f.id === filter.id);
-        return <OutPortal node={portalNodes[index]} inView />;
-      })}
-      {showCollapsePanel && (
-        <AntdCollapse
-          ghost
-          bordered
-          expandIconPosition="right"
-          collapsible={filtersOutOfScope.length === 0 ? 'disabled' : undefined}
-          css={theme => css`
-            &.ant-collapse {
-              margin-top: ${filtersInScope.length > 0
-                ? theme.gridUnit * 6
-                : 0}px;
-              & > .ant-collapse-item {
-                & > .ant-collapse-header {
-                  padding-left: 0;
-                  padding-bottom: ${theme.gridUnit * 2}px;
-
-                  & > .ant-collapse-arrow {
-                    right: ${theme.gridUnit}px;
-                  }
-                }
-
-                & .ant-collapse-content-box {
-                  padding: ${theme.gridUnit * 4}px 0 0;
-                }
-              }
-            }
-          `}
-        >
-          <AntdCollapse.Panel
-            header={t('Filters out of scope (%d)', filtersOutOfScope.length)}
-            key="1"
-          >
-            {filtersOutOfScope.map(filter => {
-              const index = filtersWithValues.findIndex(
-                f => f.id === filter.id,
-              );
-              return <OutPortal node={portalNodes[index]} inView />;
-            })}
-          </AntdCollapse.Panel>
-        </AntdCollapse>
-      )}
+      {filterBarLocation === FilterBarLocation.VERTICAL &&
+        renderVerticalContent()}
+      {filterBarLocation === FilterBarLocation.HORIZONTAL &&
+        renderHorizontalContent()}
     </Wrapper>
   );
 };
