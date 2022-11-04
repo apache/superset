@@ -40,6 +40,7 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import DatasourceType
+from superset.utils.urls import is_safe_url
 from superset.views.base import (
     api,
     BaseSupersetView,
@@ -69,8 +70,6 @@ class Datasource(BaseSupersetView):
     @api
     @handle_api_exception
     def save(self) -> FlaskResponse:
-        from superset.utils.urls import is_safe_url
-
         data = request.form.get("data")
         if not isinstance(data, str):
             return json_error_response(_("Request missing data field."), status=500)

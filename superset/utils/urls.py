@@ -14,10 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import unicodedata
 import urllib
 from typing import Any
+from urllib.parse import urlparse
 
-from flask import current_app, url_for
+from flask import current_app, request, url_for
 
 
 def get_url_host(user_friendly: bool = False) -> str:
@@ -51,11 +53,6 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
 
 
 def is_safe_url(url: str) -> bool:
-    import unicodedata
-    from urllib.parse import urljoin, urlparse
-
-    from flask import request
-
     if url.startswith("///"):
         return False
     try:
