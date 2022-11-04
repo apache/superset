@@ -20,7 +20,8 @@ import React, { useEffect, useState } from 'react';
 import { isEqual } from 'lodash';
 import { css } from '@superset-ui/core';
 import Select from '../Select/Select';
-import DropdownContainer, { DropdownContainerProps } from '.';
+import Button from '../Button';
+import DropdownContainer, { DropdownContainerProps, Ref } from '.';
 
 export default {
   title: 'DropdownContainer',
@@ -31,6 +32,7 @@ const ITEMS_COUNT = 6;
 const ITEM_OPTIONS = 10;
 const MIN_WIDTH = 700;
 const MAX_WIDTH = 1500;
+const HEIGHT = 400;
 
 const itemsOptions = Array.from({ length: ITEM_OPTIONS }).map((_, i) => ({
   label: `Option ${i}`,
@@ -60,39 +62,42 @@ const generateItems = (overflowingState?: OverflowingState) =>
 export const Component = (props: DropdownContainerProps) => {
   const [items, setItems] = useState<ItemsType>([]);
   const [overflowingState, setOverflowingState] = useState<OverflowingState>();
+  const containerRef = React.useRef<Ref>(null);
 
   useEffect(() => {
     setItems(generateItems(overflowingState));
   }, [overflowingState]);
 
   return (
-    <div
-      css={css`
-        position: relative;
-        overflow: auto;
-        min-width: ${MIN_WIDTH}px;
-        width: ${MIN_WIDTH}px;
-        max-width: ${MAX_WIDTH}px;
-        height: 80vh;
-        border: 1px solid lightgray;
-        resize: horizontal;
-        padding: 24px;
-      `}
-    >
-      <DropdownContainer
-        {...props}
-        items={items}
-        onOverflowingStateChange={value => {
-          if (!isEqual(overflowingState, value)) {
-            setOverflowingState(value);
-          }
-        }}
-      />
+    <div>
+      <div
+        css={css`
+          overflow: auto;
+          min-width: ${MIN_WIDTH}px;
+          width: ${MIN_WIDTH}px;
+          max-width: ${MAX_WIDTH}px;
+          height: ${HEIGHT}px;
+          border: 1px solid lightgray;
+          resize: horizontal;
+          padding: 24px;
+          margin-bottom: 12px;
+        `}
+      >
+        <DropdownContainer
+          {...props}
+          items={items}
+          onOverflowingStateChange={value => {
+            if (!isEqual(overflowingState, value)) {
+              setOverflowingState(value);
+            }
+          }}
+          ref={containerRef}
+        />
+      </div>
+      <Button onClick={() => containerRef.current?.open()}>Open</Button>
       <span
         css={css`
-          position: absolute;
-          right: 20px;
-          bottom: 8px;
+          margin-left: ${MIN_WIDTH - 340}px;
           color: gray;
         `}
       >
