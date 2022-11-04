@@ -48,3 +48,23 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
 
     parts[3] = "&".join(f"{k}={urllib.parse.quote(v[0])}" for k, v in params.items())
     return urllib.parse.urlunsplit(parts)
+
+
+def is_safe_url(url: str) -> bool:
+    import unicodedata
+    from urllib.parse import urljoin, urlparse
+
+    from flask import request
+
+    if url.startswith("///"):
+        return False
+    try:
+        ref_url = urlparse(request.host_url)
+        test_url = urlparse(url)
+    except ValueError:
+        return False
+    if unicodedata.category(url[0])[0] == "C":
+        return False
+    if test_url.scheme not in ("http", "https") or ref_url.netloc != test_url.netloc:
+        return False
+    return True

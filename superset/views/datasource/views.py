@@ -18,7 +18,7 @@ import json
 from collections import Counter
 from typing import Any
 
-from flask import redirect, request
+from flask import current_app, redirect, request
 from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -69,6 +69,8 @@ class Datasource(BaseSupersetView):
     @api
     @handle_api_exception
     def save(self) -> FlaskResponse:
+        from superset.utils.urls import is_safe_url
+
         data = request.form.get("data")
         if not isinstance(data, str):
             return json_error_response(_("Request missing data field."), status=500)
@@ -77,6 +79,20 @@ class Datasource(BaseSupersetView):
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
+        default_endpoint = datasource_dict["default_endpoint"]
+        if (
+            default_endpoint
+            and not is_safe_url(default_endpoint)
+            and current_app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"]
+        ):
+            return json_error_response(
+                _(
+                    "The submitted URL is not considered safe,"
+                    " only use URLs with the same domain as Superset."
+                ),
+                status=500,
+            )
+
         orm_datasource = DatasourceDAO.get_datasource(
             db.session, DatasourceType(datasource_type), datasource_id
         )
