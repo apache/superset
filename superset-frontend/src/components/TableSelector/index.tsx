@@ -327,7 +327,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       />
     );
 
-    const refreshLabel = !formMode && !readOnly && (
+    const refreshLabel = !readOnly && (
       <RefreshLabel
         onClick={() => refetch()}
         tooltipContent={t('Force refresh table list')}
