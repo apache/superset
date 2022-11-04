@@ -28,7 +28,8 @@ import {
 import Button from 'src/components/Button';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import { rgba } from 'emotion-rgba';
-import { getFilterBarTestId } from '../index';
+import { getFilterBarTestId } from '../utils';
+import { FilterBarLocation } from 'src/dashboard/types';
 
 interface ActionButtonsProps {
   width?: number;
@@ -37,38 +38,15 @@ interface ActionButtonsProps {
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
   isApplyDisabled: boolean;
+  orientation?: FilterBarLocation;
 }
 
-const ActionButtonsContainer = styled.div<{ width: number }>`
-  ${({ theme, width }) => css`
+const ActionButtonsContainer = styled.div<{
+  width: number;
+  orientation: FilterBarLocation;
+}>`
+  ${({ theme, width, orientation }) => css`
     display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    position: fixed;
-    z-index: 100;
-
-    // filter bar width minus 1px for border
-    width: ${width - 1}px;
-    bottom: 0;
-
-    padding: ${theme.gridUnit * 4}px;
-    padding-top: ${theme.gridUnit * 6}px;
-
-    background: linear-gradient(
-      ${rgba(theme.colors.grayscale.light5, 0)},
-      ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
-    );
-
-    pointer-events: none;
-
-    & > button {
-      pointer-events: auto;
-    }
-
-    & > .filter-apply-button {
-      margin-bottom: ${theme.gridUnit * 3}px;
-    }
 
     && > .filter-clear-all-button {
       color: ${theme.colors.grayscale.base};
@@ -82,16 +60,61 @@ const ActionButtonsContainer = styled.div<{ width: number }>`
         color: ${theme.colors.grayscale.light1};
       }
     }
+    ${orientation === FilterBarLocation.VERTICAL &&
+    `
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+      position: fixed;
+      z-index: 100;
+
+      // filter bar width minus 1px for border
+      width: ${width - 1}px;
+      bottom: 0;
+
+      padding: ${theme.gridUnit * 4}px;
+      padding-top: ${theme.gridUnit * 6}px;
+
+      background: linear-gradient(
+        ${rgba(theme.colors.grayscale.light5, 0)},
+        ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+      );
+
+      & > button {
+        pointer-events: auto;
+      }
+
+      & > .filter-apply-button {
+        margin-bottom: ${theme.gridUnit * 3}px;
+      }
+    `};
+
+    ${orientation === FilterBarLocation.HORIZONTAL &&
+    `
+      margin: 0 ${theme.gridUnit * 2}px;
+      && > .filter-clear-all-button {
+        text-transform: capitalize;
+        font-weight: ${theme.typography.weights.normal};
+      }
+      & > .filter-apply-button {
+        &[disabled],
+        &[disabled]:hover {
+          color: ${theme.colors.grayscale.light1};
+          background: ${theme.colors.grayscale.light3};
+        }
+      }
+    `};
   `};
 `;
 
-export const ActionButtons = ({
+const ActionButtons = ({
   width = OPEN_FILTER_BAR_WIDTH,
   onApply,
   onClearAll,
   dataMaskApplied,
   dataMaskSelected,
   isApplyDisabled,
+  orientation = FilterBarLocation.VERTICAL,
 }: ActionButtonsProps) => {
   const isClearAllEnabled = useMemo(
     () =>
@@ -103,9 +126,14 @@ export const ActionButtons = ({
       ),
     [dataMaskApplied, dataMaskSelected],
   );
+  const isVertical = orientation === FilterBarLocation.VERTICAL;
 
   return (
-    <ActionButtonsContainer data-test="filterbar-action-buttons" width={width}>
+    <ActionButtonsContainer
+      data-test="filterbar-action-buttons"
+      orientation={orientation}
+      width={width}
+    >
       <Button
         disabled={isApplyDisabled}
         buttonStyle="primary"
@@ -114,7 +142,7 @@ export const ActionButtons = ({
         onClick={onApply}
         {...getFilterBarTestId('apply-button')}
       >
-        {t('Apply filters')}
+        {isVertical ? t('Apply filters') : t('Apply')}
       </Button>
       <Button
         disabled={!isClearAllEnabled}
@@ -129,3 +157,5 @@ export const ActionButtons = ({
     </ActionButtonsContainer>
   );
 };
+
+export default ActionButtons;

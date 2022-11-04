@@ -19,6 +19,7 @@
 
 import { areObjectsEqual } from 'src/reduxUtils';
 import { DataMaskStateWithId, Filter, FilterState } from '@superset-ui/core';
+import { testWithId } from 'src/utils/testUtils';
 
 export enum TabIds {
   AllFilters = 'allFilters',
@@ -65,3 +66,6 @@ export const checkIsApplyDisabled = (
     )
   );
 };
+
+export const FILTER_BAR_TEST_ID = 'filter-bar';
+export const getFilterBarTestId = testWithId(FILTER_BAR_TEST_ID);

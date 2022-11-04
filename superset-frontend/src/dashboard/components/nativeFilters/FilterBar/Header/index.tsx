@@ -32,8 +32,8 @@ import { useSelector } from 'react-redux';
 import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { RootState } from 'src/dashboard/types';
-import { getFilterBarTestId } from '..';
-import { FilterBarLocationSelect } from '../FilterBarLocationSelect';
+import { getFilterBarTestId } from '../utils';
+import FilterBarLocationSelect from '../FilterBarLocationSelect';
 
 const TitleArea = styled.h4`
   display: flex;
@@ -58,6 +58,10 @@ const HeaderButton = styled(Button)`
 const Wrapper = styled.div`
   padding: ${({ theme }) => theme.gridUnit}px
     ${({ theme }) => theme.gridUnit * 2}px;
+
+  .ant-dropdown-trigger span {
+    padding-right: ${({ theme }) => theme.gridUnit * 2}px;
+  }
 `;
 
 type HeaderProps = {

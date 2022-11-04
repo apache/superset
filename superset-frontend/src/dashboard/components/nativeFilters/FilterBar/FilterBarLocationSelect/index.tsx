@@ -26,7 +26,7 @@ import { saveFilterBarLocation } from 'src/dashboard/actions/dashboardInfo';
 import Icons from 'src/components/Icons';
 import DropdownSelectableIcon from 'src/components/DropdownSelectableIcon';
 
-export const FilterBarLocationSelect = () => {
+const FilterBarLocationSelect = () => {
   const dispatch = useDispatch();
   const theme = useTheme();
   const filterBarLocation = useSelector<RootState, FilterBarLocation>(
@@ -62,7 +62,7 @@ export const FilterBarLocationSelect = () => {
   return (
     <DropdownSelectableIcon
       onSelect={toggleFilterBarLocation}
-      info={t('Placement of filter bar')}
+      info={t('Orientation of filter bar')}
       icon={<Icons.Gear name="gear" iconColor={theme.colors.grayscale.base} />}
       menuItems={[
         {
@@ -78,3 +78,5 @@ export const FilterBarLocationSelect = () => {
     />
   );
 };
+
+export default FilterBarLocationSelect;
