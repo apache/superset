@@ -27,6 +27,7 @@ import { logging, t } from '@superset-ui/core';
 import { UseGetDatasetsList } from 'src/views/CRUD/data/hooks';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import Header from './Header';
+import EditPage from './EditDataset';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
 import Footer from './Footer';
@@ -111,6 +112,15 @@ export default function AddDataset() {
       getDatasetsList();
     }
   }, [dataset?.schema, getDatasetsList]);
+  const [showEditPage, setShowEditPage] = useState(false);
+
+  const id = window.location.pathname.split('/')[2];
+  useEffect(() => {
+    if (typeof Number(id) === 'number') {
+      console.log('showeditpage set', Number(id));
+      setShowEditPage(true);
+    }
+  }, [id]);
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -123,6 +133,8 @@ export default function AddDataset() {
       datasetNames={datasetNames}
     />
   );
+
+  const EditPageComponent = () => <EditPage id={id} />;
 
   const DatasetPanelComponent = () => (
     <DatasetPanel
@@ -146,9 +158,12 @@ export default function AddDataset() {
   return (
     <DatasetLayout
       header={HeaderComponent()}
-      leftPanel={LeftPanelComponent()}
-      datasetPanel={DatasetPanelComponent()}
+      leftPanel={showEditPage ? null : LeftPanelComponent()}
+      datasetPanel={
+        showEditPage ? EditPageComponent() : DatasetPanelComponent()
+      }
       footer={FooterComponent()}
+      showEditPage={showEditPage}
     />
   );
 }
