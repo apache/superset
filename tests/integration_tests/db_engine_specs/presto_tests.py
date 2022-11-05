@@ -49,7 +49,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.execute = (
             mock_execute
         )
-        database.get_sqla_engine_with_context.return_value.__enter__.raw_connection.return_value.cursor.return_value.fetchall = (
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.fetchall = (
             mock_fetchall
         )
         result = PrestoEngineSpec.get_view_names(database, mock.Mock(), None)
