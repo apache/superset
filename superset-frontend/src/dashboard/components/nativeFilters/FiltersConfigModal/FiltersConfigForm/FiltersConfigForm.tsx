@@ -318,6 +318,7 @@ const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
 
 // TODO: Rename the filter plugins and remove this mapping
 const FILTER_TYPE_NAME_MAPPING = {
+  [t('Adhoc filter')]: t('Adhoc'),
   [t('Select filter')]: t('Value'),
   [t('Range filter')]: t('Numerical range'),
   [t('Time filter')]: t('Time range'),

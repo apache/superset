@@ -20,7 +20,7 @@ import { styled, NO_TIME_RANGE } from '@superset-ui/core';
 import React, { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
-import { FilterPluginStyle } from '../common';
+import { ControlContainer, FilterPluginStyle } from '../common';
 
 const TimeFilterStyles = styled(FilterPluginStyle)`
   display: flex;
@@ -29,20 +29,6 @@ const TimeFilterStyles = styled(FilterPluginStyle)`
 
   & .ant-tag {
     margin-right: 0;
-  }
-`;
-
-const ControlContainer = styled.div<{
-  validateStatus?: 'error' | 'warning' | 'info';
-}>`
-  display: flex;
-  height: 100%;
-  max-width: 100%;
-  width: 100%;
-  & > div,
-  & > div:hover {
-    ${({ validateStatus, theme }) =>
-      validateStatus && `border-color: ${theme.colors[validateStatus]?.base}`}
   }
 `;
 
