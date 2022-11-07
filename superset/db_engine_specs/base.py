@@ -64,7 +64,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, EngineType, GenericDataType, get_username
+from superset.utils.core import ColumnSpec, GenericDataType, get_username
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -431,13 +431,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
-    def parse_error_exception(cls, exception_message: str) -> str:
+    def parse_error_exception(cls, exception: Exception) -> Exception:
         """
         Each engine can implement and converge its own specific parser method
 
-        :return: A parsed string off the original exception
+        :return: An Exception with a parsed string off the original exception
         """
-        return exception_message
+        return exception
 
     @classmethod
     def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
@@ -452,10 +452,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if not new_exception:
-            # We are interested in just BigQuery exceptions
-            if cls.engine == EngineType.BIGQUERY:
-                logger.error(cls.parse_error_exception(str(exception)), exc_info=True)
-            return exception
+            return cls.parse_error_exception(exception)
         return new_exception(str(exception))
 
     @classmethod

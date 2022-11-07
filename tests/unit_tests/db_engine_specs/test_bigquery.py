@@ -279,8 +279,14 @@ def test_parse_error_message() -> None:
     expected_result_2 = (
         '400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]'
     )
-    assert BigQueryEngineSpec.parse_error_exception(message) == expected_result
-    assert BigQueryEngineSpec.parse_error_exception(message_2) == expected_result_2
+    assert (
+        str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
+        == expected_result
+    )
+    assert (
+        str(BigQueryEngineSpec.parse_error_exception(Exception(message_2)))
+        == expected_result_2
+    )
 
 
 def test_parse_error_raises_exception() -> None:
@@ -300,6 +306,12 @@ def test_parse_error_raises_exception() -> None:
     expected_result_2 = (
         '400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]'
     )
-    assert BigQueryEngineSpec.parse_error_exception(message) == expected_result
-    assert BigQueryEngineSpec.parse_error_exception(message_2) == expected_result_2
-    assert BigQueryEngineSpec.parse_error_exception(message_3) == "6"
+    assert (
+        str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
+        == expected_result
+    )
+    assert (
+        str(BigQueryEngineSpec.parse_error_exception(Exception(message_2)))
+        == expected_result_2
+    )
+    assert str(BigQueryEngineSpec.parse_error_exception(Exception(message_3))) == "6"

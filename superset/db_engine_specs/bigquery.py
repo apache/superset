@@ -580,10 +580,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return [column(c["name"]).label(c["name"].replace(".", "__")) for c in cols]
 
     @classmethod
-    def parse_error_exception(cls, exception_message: str) -> str:
+    def parse_error_exception(cls, exception: Exception) -> Exception:
         try:
-            return exception_message.rsplit("\n")[0]
+            return Exception(
+                str(exception).rsplit("\n")[0]  # pylint: disable=use-maxsplit-arg
+            )
         except Exception:  # pylint: disable=broad-except
             # If for some reason we get an exception, for example, no new line
-            # We will return the original exception_message
-            return exception_message
+            # We will return the original exception
+            return exception
