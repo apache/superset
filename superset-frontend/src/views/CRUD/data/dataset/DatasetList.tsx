@@ -502,6 +502,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     () => [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -521,6 +522,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Database'),
+        key: 'database',
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -536,6 +538,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Schema'),
+        key: 'schema',
         id: 'schema',
         input: 'select',
         operator: FilterOperator.equals,
@@ -551,6 +554,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Type'),
+        key: 'sql',
         id: 'sql',
         input: 'select',
         operator: FilterOperator.datasetIsNullOrEmpty,
@@ -562,6 +566,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Certified'),
+        key: 'certified',
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
@@ -574,6 +579,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'table_name',
         input: 'search',
         operator: FilterOperator.contains,

@@ -1018,3 +1018,85 @@ def test_time_grain_and_time_offset_on_legacy_query(app_context, physical_datase
             }
         )
     )
+
+
+def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
+    qc = QueryContextFactory().create(
+        datasource={
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        queries=[
+            {
+                "columns": [
+                    {
+                        "label": "col6",
+                        "sqlExpression": "col6",
+                        "columnType": "BASE_AXIS",
+                        "timeGrain": "P3M",
+                    }
+                ],
+                "metrics": [
+                    {
+                        "label": "SUM(col1)",
+                        "expressionType": "SQL",
+                        "sqlExpression": "SUM(col1)",
+                    }
+                ],
+                "time_offsets": ["3 month ago"],
+                "filters": [
+                    {
+                        "col": "col6",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2002-01 : 2003-01",
+                    }
+                ],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+    query_payload = qc.get_df_payload(qc.queries[0])
+    df = query_payload["df"]
+    """
+            col6  SUM(col1)  SUM(col1)__3 month ago
+0 2002-01-01          3                     NaN
+1 2002-04-01         12                     3.0
+2 2002-07-01         21                    12.0
+3 2002-10-01          9                    21.0
+    """
+    assert df["SUM(col1)"].to_list() == [3, 12, 21, 9]
+    # df["SUM(col1)__3 month ago"].dtype is object so have to convert to float first
+    assert df["SUM(col1)__3 month ago"].astype("float").astype("Int64").to_list() == [
+        pd.NA,
+        3,
+        12,
+        21,
+    ]
+
+    sqls = query_payload["query"].split(";")
+    """
+    SELECT DATE_TRUNC('quarter', col6) AS col6,
+           SUM(col1) AS "SUM(col1)"
+    FROM physical_dataset
+    WHERE col6 >= TO_TIMESTAMP('2002-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+      AND col6 < TO_TIMESTAMP('2003-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+    GROUP BY DATE_TRUNC('quarter', col6)
+    LIMIT 10000;
+
+    SELECT DATE_TRUNC('quarter', col6) AS col6,
+           SUM(col1) AS "SUM(col1)"
+    FROM physical_dataset
+    WHERE col6 >= TO_TIMESTAMP('2001-10-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+      AND col6 < TO_TIMESTAMP('2002-10-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
+    GROUP BY DATE_TRUNC('quarter', col6)
+    LIMIT 10000;
+    """
+    assert (
+        re.search(r"WHERE col6 >= .*2002-01-01", sqls[0])
+        and re.search(r"AND col6 < .*2003-01-01", sqls[0])
+    ) is not None
+    assert (
+        re.search(r"WHERE col6 >= .*2001-10-01", sqls[1])
+        and re.search(r"AND col6 < .*2002-10-01", sqls[1])
+    ) is not None

@@ -52,6 +52,7 @@ export enum FeatureFlag {
   FORCE_DATABASE_CONNECTIONS_SSL = 'FORCE_DATABASE_CONNECTIONS_SSL',
   GENERIC_CHART_AXES = 'GENERIC_CHART_AXES',
   GLOBAL_ASYNC_QUERIES = 'GLOBAL_ASYNC_QUERIES',
+  HORIZONTAL_FILTER_BAR = 'HORIZONTAL_FILTER_BAR',
   LISTVIEWS_DEFAULT_CARD_VIEW = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   SCHEDULED_QUERIES = 'SCHEDULED_QUERIES',
   SHARE_QUERIES_VIA_KV_STORE = 'SHARE_QUERIES_VIA_KV_STORE',
@@ -86,14 +87,11 @@ declare global {
   }
 }
 
-export function isFeatureEnabled(feature: FeatureFlag) {
+export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
     return !!window.featureFlags[feature];
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(`Failed to query feature flag ${feature} (see error below)`);
-    // eslint-disable-next-line no-console
-    console.error(error);
-    return false;
+    console.error(`Failed to query feature flag ${feature}`);
   }
+  return false;
 }

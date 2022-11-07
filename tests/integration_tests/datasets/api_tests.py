@@ -670,9 +670,10 @@ class TestDatasetApi(SupersetTestCase):
             return
 
         example_db = get_example_database()
-        example_db.get_sqla_engine().execute(
-            f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
-        )
+        with example_db.get_sqla_engine_with_context() as engine:
+            engine.execute(
+                f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
+            )
 
         self.login(username="admin")
         table_data = {
@@ -690,9 +691,8 @@ class TestDatasetApi(SupersetTestCase):
         uri = f'api/v1/dataset/{data.get("id")}'
         rv = self.client.delete(uri)
         assert rv.status_code == 200
-        example_db.get_sqla_engine().execute(
-            f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names"
-        )
+        with example_db.get_sqla_engine_with_context() as engine:
+            engine.execute(f"DROP TABLE {CTAS_SCHEMA_NAME}.birth_names")
 
     def test_create_dataset_validate_database(self):
         """
@@ -758,13 +758,14 @@ class TestDatasetApi(SupersetTestCase):
         mock_get_table.return_value = None
 
         example_db = get_example_database()
-        engine = example_db.get_sqla_engine()
-        dialect = engine.dialect
+        with example_db.get_sqla_engine_with_context() as engine:
+            engine = engine
+            dialect = engine.dialect
 
-        with patch.object(
-            dialect, "get_view_names", wraps=dialect.get_view_names
-        ) as patch_get_view_names:
-            patch_get_view_names.return_value = ["test_case_view"]
+            with patch.object(
+                dialect, "get_view_names", wraps=dialect.get_view_names
+            ) as patch_get_view_names:
+                patch_get_view_names.return_value = ["test_case_view"]
 
             self.login(username="admin")
             table_data = {

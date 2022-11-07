@@ -137,8 +137,6 @@ const StyledSidebar = styled.div`
 const propTypes = {
   actions: PropTypes.object.isRequired,
   tables: PropTypes.array.isRequired,
-  editorQueries: PropTypes.array.isRequired,
-  dataPreviewQueries: PropTypes.array.isRequired,
   queryEditor: PropTypes.object.isRequired,
   defaultQueryLimit: PropTypes.number.isRequired,
   maxRow: PropTypes.number.isRequired,
@@ -150,8 +148,6 @@ const propTypes = {
 const SqlEditor = ({
   actions,
   tables,
-  editorQueries,
-  dataPreviewQueries,
   queryEditor,
   defaultQueryLimit,
   maxRow,
@@ -622,9 +618,8 @@ const SqlEditor = ({
           {renderEditorBottomBar(hotkeys)}
         </div>
         <ConnectedSouthPane
-          editorQueries={editorQueries}
+          queryEditorId={queryEditor.id}
           latestQueryId={latestQuery?.id}
-          dataPreviewQueries={dataPreviewQueries}
           actions={actions}
           height={southPaneHeight}
           displayLimit={displayLimit}
