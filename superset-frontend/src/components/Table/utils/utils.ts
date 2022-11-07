@@ -18,7 +18,7 @@
  */
 
 /**
- * Method to check if a number is within inclusive range between a maximum values minus a threshold
+ * Method to check if a number is within inclusive range between a maximum value minus a threshold
  * Invalid non numeric inputs will not error, but will return false
  *
  * @param value number coordinate to determine if it is within bounds of the targetCoordinate - threshold.  Must be positive and less than maximum.
