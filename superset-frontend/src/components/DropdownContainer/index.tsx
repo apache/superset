@@ -50,7 +50,7 @@ export interface Item {
 }
 
 /**
- * Horizontal container that displays overflowed items in a popover.
+ * Horizontal container that displays overflowed items in a dropdown.
  * It shows an indicator of how many items are currently overflowing.
  */
 export interface DropdownContainerProps {
@@ -61,36 +61,36 @@ export interface DropdownContainerProps {
   items: Item[];
   /**
    * Event handler called every time an element moves between
-   * main container and popover.
+   * main container and dropdown.
    */
   onOverflowingStateChange?: (overflowingState: {
     notOverflowed: string[];
     overflowed: string[];
   }) => void;
   /**
-   * Option to customize the content of the popover.
+   * Option to customize the content of the dropdown.
    */
-  popoverContent?: (overflowedItems: Item[]) => ReactElement;
+  dropdownContent?: (overflowedItems: Item[]) => ReactElement;
   /**
-   * Popover ref.
+   * Dropdown ref.
    */
-  popoverRef?: RefObject<HTMLDivElement>;
+  dropdownRef?: RefObject<HTMLDivElement>;
   /**
-   * Popover additional style properties.
+   * Dropdown additional style properties.
    */
-  popoverStyle?: CSSProperties;
+  dropdownStyle?: CSSProperties;
   /**
-   * Displayed count in the popover trigger.
+   * Displayed count in the dropdown trigger.
    */
-  popoverTriggerCount?: number;
+  dropdownTriggerCount?: number;
   /**
-   * Icon of the popover trigger.
+   * Icon of the dropdown trigger.
    */
-  popoverTriggerIcon?: ReactElement;
+  dropdownTriggerIcon?: ReactElement;
   /**
-   * Text of the popover trigger.
+   * Text of the dropdown trigger.
    */
-  popoverTriggerText?: string;
+  dropdownTriggerText?: string;
   /**
    * Main container additional style properties.
    */
@@ -104,12 +104,12 @@ const DropdownContainer = forwardRef(
     {
       items,
       onOverflowingStateChange,
-      popoverContent,
-      popoverRef,
-      popoverStyle = {},
-      popoverTriggerCount,
-      popoverTriggerIcon,
-      popoverTriggerText = t('More'),
+      dropdownContent: popoverContent,
+      dropdownRef: popoverRef,
+      dropdownStyle: popoverStyle = {},
+      dropdownTriggerCount: popoverTriggerCount,
+      dropdownTriggerIcon: popoverTriggerIcon,
+      dropdownTriggerText: popoverTriggerText = t('More'),
       style,
     }: DropdownContainerProps,
     outerRef: RefObject<Ref>,
@@ -118,9 +118,11 @@ const DropdownContainer = forwardRef(
     const { ref, width = 0 } = useResizeDetector<HTMLDivElement>();
     const previousWidth = usePrevious(width) || 0;
     const { current } = ref;
-    const [overflowingIndex, setOverflowingIndex] = useState<number>(-1);
     const [itemsWidth, setItemsWidth] = useState<number[]>([]);
     const [popoverVisible, setPopoverVisible] = useState(false);
+
+    // We use React.useState to be able to mock the state in Jest
+    const [overflowingIndex, setOverflowingIndex] = React.useState<number>(-1);
 
     useLayoutEffect(() => {
       const container = current?.children.item(0);
@@ -149,10 +151,10 @@ const DropdownContainer = forwardRef(
           const buttonRight = button?.getBoundingClientRect().right || 0;
           const containerRight = current?.getBoundingClientRect().right || 0;
           const remainingSpace = containerRight - buttonRight;
-          // Checks if the first element in the popover fits in the remaining space
+          // Checks if the first element in the dropdown fits in the remaining space
           const fitsInRemainingSpace = remainingSpace >= itemsWidth[0];
           if (fitsInRemainingSpace && overflowingIndex < items.length) {
-            // Moves element from popover to container
+            // Moves element from dropdown to container
             setOverflowingIndex(overflowingIndex + 1);
           }
         }
@@ -215,6 +217,7 @@ const DropdownContainer = forwardRef(
             flex-direction: column;
             gap: ${theme.gridUnit * 3}px;
           `}
+          data-test="dropdown-content"
           style={popoverStyle}
           ref={popoverRef}
         >
@@ -260,6 +263,7 @@ const DropdownContainer = forwardRef(
             margin-right: ${theme.gridUnit * 3}px;
             min-width: 100px;
           `}
+          data-test="container"
           style={style}
         >
           {notOverflowedItems.map(item => item.element)}
@@ -270,10 +274,6 @@ const DropdownContainer = forwardRef(
             trigger="click"
             visible={popoverVisible}
             onVisibleChange={visible => setPopoverVisible(visible)}
-            overlayInnerStyle={{
-              maxHeight: 500,
-              overflowY: 'auto',
-            }}
           >
             <Button buttonStyle="secondary">
               {popoverTriggerIcon}
