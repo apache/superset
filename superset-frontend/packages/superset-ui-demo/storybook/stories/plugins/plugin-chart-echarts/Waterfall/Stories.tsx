@@ -19,8 +19,10 @@
 import React from 'react';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { withKnobs } from '@storybook/addon-knobs';
-import { EchartsWaterfallChartPlugin } from '@superset-ui/plugin-chart-echarts';
-import transformProps from '@superset-ui/plugin-chart-echarts/src/Waterfall/transformProps';
+import {
+  EchartsWaterfallChartPlugin,
+  WaterfallTransformProps,
+} from '@superset-ui/plugin-chart-echarts';
 import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
@@ -30,7 +32,7 @@ new EchartsWaterfallChartPlugin()
 
 getChartTransformPropsRegistry().registerValue(
   'echarts-waterfall',
-  transformProps,
+  WaterfallTransformProps,
 );
 
 export default {
