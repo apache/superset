@@ -23,6 +23,9 @@ import AntdSelect from 'antd/lib/select';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     margin-right: ${headerPosition === 'left' ? theme.gridUnit * 2 : 0}px;
   `}
 `;
