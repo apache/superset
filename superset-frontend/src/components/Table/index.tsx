@@ -145,7 +145,7 @@ const StyledTable: StyledComponent<any> = styled(AntTable)<any>`
   }
 
   th.ant-table-cell {
-    font-weight: 600;
+    font-weight: ${theme.typography.weights.bold};
     color: ${theme.colors.grayscale.dark1};
     user-select: none;
     white-space: nowrap;
