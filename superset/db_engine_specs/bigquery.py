@@ -35,7 +35,7 @@ from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
-from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -46,8 +46,8 @@ if TYPE_CHECKING:
 
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
-    "Access Denied: Project User does not have bigquery.jobs.create "
-    + "permission in project (?P<project>.+?)"
+    "Access Denied: Project (?P<project_name>.+?): User does not have "
+    + "bigquery.jobs.create permission in project (?P<project>.+?)"
 )
 
 TABLE_DOES_NOT_EXIST_REGEX = re.compile(
@@ -154,9 +154,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
-                "We were unable to connect to your database. Please "
-                "confirm that your service account has the Viewer "
-                "and Job User roles on the project."
+                "Unable to connect. Verify that the following roles are set "
+                'on the service account: "BigQuery Data Viewer", '
+                '"BigQuery Metadata Viewer", "BigQuery Job User" '
+                "and the following permissions are set "
+                '"bigquery.readsessions.create", '
+                '"bigquery.readsessions.getData"'
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
             {},
@@ -446,7 +449,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from google.auth.exceptions import DefaultCredentialsError
 
-        return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}
+        return {DefaultCredentialsError: SupersetDBAPIConnectionError}
 
     @classmethod
     def validate_parameters(

@@ -145,7 +145,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 : '')
             }
             canEdit={editMode}
-            emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
             url={canExplore ? exploreUrl : undefined}
