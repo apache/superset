@@ -93,7 +93,7 @@ export interface TableProps extends AntTableProps<TableProps> {
    */
   sticky?: boolean;
   /**
-   * Controls if columns are re-sizeable by user.
+   * Controls if columns are resizable by user.
    */
   resizable?: boolean;
   /**
@@ -123,7 +123,7 @@ export interface TableProps extends AntTableProps<TableProps> {
   locale?: Locale;
   /**
    * Restricts the visible height of the table and allows for internal scrolling within the table
-   * when the number of rows exceed the visible space.
+   * when the number of rows exceeds the visible space.
    */
   height?: number;
 }
@@ -145,7 +145,7 @@ const StyledTable: StyledComponent<any> = styled(AntTable)<any>`
   }
 
   th.ant-table-cell {
-    font-weight: 600;
+    font-weight: ${theme.typography.weights.bold};
     color: ${theme.colors.grayscale.dark1};
     user-select: none;
     white-space: nowrap;
@@ -264,7 +264,7 @@ export function Table(props: TableProps) {
     if (resizable === true) {
       // eslint-disable-next-line no-console
       console.warn(
-        'EXPERIMENTAL FEATURE ENABLED: The "resizeable" prop of Table is experimental and NOT recommended for use in production deployments.',
+        'EXPERIMENTAL FEATURE ENABLED: The "resizable" prop of Table is experimental and NOT recommended for use in production deployments.',
       );
     }
   }, [reorderable, resizable]);

@@ -87,12 +87,12 @@ test('numericalSort bad inputs no errors', () => {
   expect(numericalSort('name', undefined, undefined)).toBe(NaN);
   // @ts-ignore
   expect(numericalSort('name', null, null)).toBe(NaN);
-  // incorect non-object values
+  // incorrect non-object values
   // @ts-ignore
   expect(numericalSort('name', 3, [])).toBe(NaN);
-  // incorect object values without specificed key
+  // incorrect object values without specified key
   expect(numericalSort('name', {}, {})).toBe(NaN);
-  // Object as value for naemw when it should be a string
+  // Object as value for name when it should be a string
   expect(
     numericalSort(
       'name',
