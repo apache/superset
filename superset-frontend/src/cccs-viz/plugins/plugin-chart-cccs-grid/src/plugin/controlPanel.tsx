@@ -246,7 +246,11 @@ const config: ControlPanelConfig = {
                 );
                 return newState;
               },
-              rerender: ['metrics', 'percent_metrics'],
+              rerender: [
+                'metrics',
+                'percent_metrics',
+                'defaultEmitFilterColumn',
+              ],
               canCopy: true,
             } as typeof sharedControls.groupby,
           },
@@ -437,14 +441,20 @@ const config: ControlPanelConfig = {
                       sharedControls?.columns?.mapStateToProps;
                     const newState =
                       originalMapStateToProps?.(state, controlState) ?? {};
-                    newState.choices = controls?.columns?.value;
+                    newState.choices = isRawMode({ controls })
+                      ? controls?.columns?.value
+                      : controls?.groupby?.value;
                     const invalidOption = ensureIsArray(
                       controlState.value,
                     ).find(c => !newState.choices.includes(c));
                     newState.externalValidationErrors = invalidOption
                       ? [`'${invalidOption}'${t(' is not a valid option')}`]
                       : [];
-                    return newState;
+                    return {
+                      choices: newState.choices,
+                      externalValidationErrors:
+                        newState.externalValidationErrors,
+                    };
                   },
                   visibility: ({ controls }) =>
                     // TODO properly emsure is Bool
