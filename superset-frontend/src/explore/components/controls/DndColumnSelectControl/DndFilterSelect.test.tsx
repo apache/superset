@@ -17,7 +17,19 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, GenericDataType } from '@superset-ui/core';
+import thunk from 'redux-thunk';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
+
+import {
+  ensureIsArray,
+  FeatureFlag,
+  GenericDataType,
+  QueryFormData,
+} from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
+import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
+
 import { render, screen } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocFilter, {
@@ -28,7 +40,6 @@ import {
   DndFilterSelectProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/DndFilterSelect';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
-import { TimeseriesDefaultFormData } from '@superset-ui/plugin-chart-echarts';
 
 const defaultProps: DndFilterSelectProps = {
   type: 'DndFilterSelect',
@@ -56,8 +67,32 @@ afterAll(() => {
   window.featureFlags = {};
 });
 
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
+function setup({
+  value = undefined,
+  formData = baseFormData,
+  columns = [],
+}: {
+  value?: AdhocFilter;
+  formData?: QueryFormData;
+  columns?: ColumnMeta[];
+} = {}) {
+  return (
+    <Provider store={store}>
+      <DndFilterSelect
+        {...defaultProps}
+        value={ensureIsArray(value)}
+        formData={formData}
+        columns={columns}
+      />
+    </Provider>
+  );
+}
+
 test('renders with default props', async () => {
-  render(<DndFilterSelect {...defaultProps} />, { useDnd: true });
+  render(setup(), { useDnd: true });
   expect(
     await screen.findByText('Drop columns or metrics here'),
   ).toBeInTheDocument();
@@ -68,7 +103,7 @@ test('renders with value', async () => {
     sqlExpression: 'COUNT(*)',
     expressionType: EXPRESSION_TYPES.SQL,
   });
-  render(<DndFilterSelect {...defaultProps} value={[value]} />, {
+  render(setup({ value }), {
     useDnd: true,
   });
   expect(await screen.findByText('COUNT(*)')).toBeInTheDocument();
@@ -76,14 +111,13 @@ test('renders with value', async () => {
 
 test('renders options with saved metric', async () => {
   render(
-    <DndFilterSelect
-      {...defaultProps}
-      formData={{
+    setup({
+      formData: {
         ...baseFormData,
         ...TimeseriesDefaultFormData,
         metrics: ['saved_metric'],
-      }}
-    />,
+      },
+    }),
     {
       useDnd: true,
     },
@@ -95,17 +129,16 @@ test('renders options with saved metric', async () => {
 
 test('renders options with column', async () => {
   render(
-    <DndFilterSelect
-      {...defaultProps}
-      columns={[
+    setup({
+      columns: [
         {
           id: 1,
           type: 'VARCHAR',
           type_generic: GenericDataType.STRING,
           column_name: 'Column',
         },
-      ]}
-    />,
+      ],
+    }),
     {
       useDnd: true,
     },
@@ -121,14 +154,13 @@ test('renders options with adhoc metric', async () => {
     metric_name: 'avg__num',
   });
   render(
-    <DndFilterSelect
-      {...defaultProps}
-      formData={{
+    setup({
+      formData: {
         ...baseFormData,
         ...TimeseriesDefaultFormData,
         metrics: [adhocMetric],
-      }}
-    />,
+      },
+    }),
     {
       useDnd: true,
     },
