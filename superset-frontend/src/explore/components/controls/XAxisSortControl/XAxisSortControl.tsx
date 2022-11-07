@@ -51,6 +51,8 @@ export default function XAxisSortControl({
     );
   }, [sortByLabel, isAsc]);
 
+  // if the xAxisSortByOptions has been changed and
+  // sortByLabel isn't in the `options`, sortByLabel and LabelOnControl will be reset.
   useEffect(() => {
     if (
       !xAxisSortByOptions
@@ -81,7 +83,7 @@ export default function XAxisSortControl({
         </AntdCheckbox>
       </>
     ),
-    [isAsc, sortByLabel],
+    [isAsc, sortByLabel, xAxisSortByOptions],
   );
 
   return (
