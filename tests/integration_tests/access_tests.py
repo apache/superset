@@ -304,7 +304,7 @@ class TestRequestAccess(SupersetTestCase):
         session.commit()
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
         self.assertTrue(access_requests)
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
@@ -343,7 +343,7 @@ class TestRequestAccess(SupersetTestCase):
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
         self.assertTrue(access_requests)
         # gamma2 request gets fulfilled
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
@@ -386,7 +386,7 @@ class TestRequestAccess(SupersetTestCase):
         gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
         # gamma2 request gets fulfilled
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)

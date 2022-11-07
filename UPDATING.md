@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [22022](https://github.com/apache/superset/pull/22022): HTTP API endpoints `/superset/approve` and `/superset/request_access` have been deprecated and their HTTP methods were changed from GET to POST
 - [21895](https://github.com/apache/superset/pull/21895): Markdown components had their security increased by adhering to the same sanitization process enforced by Github. This means that some HTML elements found in markdowns are not allowed anymore due to the security risks they impose. If you're deploying Superset in a trusted environment and wish to use some of the blocked elements, then you can use the HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration to extend the default sanitization schema. There's also the option to disable HTML sanitization using the HTML_SANITIZATION configuration but we do not recommend this approach because of the security risks. Given the provided configurations, we don't view the improved sanitization as a breaking change but as a security patch.
 
 ## 1.5.2
