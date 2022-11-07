@@ -123,7 +123,7 @@ export interface TableProps extends AntTableProps<TableProps> {
   locale?: Locale;
   /**
    * Restricts the visible height of the table and allows for internal scrolling within the table
-   * when the number of rows exceed the visible space.
+   * when the number of rows exceeds the visible space.
    */
   height?: number;
 }
