@@ -651,14 +651,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(models.SqlaTable.owners)
             .filter(security_manager.user_model.id == get_user_id())
         )
-        dbIds = []
-        if database_perms:
-            databaseList = list(database_perms)
-            for i in range(len(databaseList)):
-                databaseRole = databaseList[i]
-                startIndex = databaseRole.index("(id:") + 4
-                endIndex = databaseRole.index(")", startIndex)
-                dbIds.append(databaseRole[startIndex:endIndex])
+        dbIds = self.get_database_ids(database_perms)
         return query.filter(
             or_(
                 self.model.perm.in_(datasource_perms),
@@ -667,6 +660,17 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 models.SqlaTable.database_id.in_(dbIds),
             )
         )
+
+    def get_database_ids(self, databasepermissions: set) -> List[str]:
+        dbIds = []
+        if databasepermissions is not None and len(databasepermissions) > 0:
+            databaseList = list(databasepermissions)
+            for i in range(len(databaseList)):
+                databaseRole = databaseList[i]
+                startIndex = databaseRole.index("(id:") + 4
+                endIndex = databaseRole.index(")", startIndex)
+                dbIds.append(databaseRole[startIndex:endIndex])
+        return dbIds
 
 
 class CsvResponse(Response):
