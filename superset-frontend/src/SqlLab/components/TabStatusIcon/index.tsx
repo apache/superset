@@ -17,12 +17,32 @@
  * under the License.
  */
 import React from 'react';
-import { QueryState } from '@superset-ui/core';
+import { QueryState, styled, keyframes } from '@superset-ui/core';
+
+const dimmingFrames = keyframes`
+  40% {
+    opacity: 0.5;
+  }
+
+  100% {
+    opacity: 1;
+  }
+`;
+
+const DimmingIcon = styled.div<{ isDimming: boolean }>`
+  animation: ${({ isDimming }) => (isDimming ? dimmingFrames : 'none')} 1s ease
+    infinite;
+`;
 
 interface TabStatusIconProps {
   tabState: QueryState;
 }
 
 export default function TabStatusIcon({ tabState }: TabStatusIconProps) {
-  return <div className={`circle ${tabState}`} />;
+  return (
+    <DimmingIcon
+      className={`circle ${tabState}`}
+      isDimming={tabState === 'running'}
+    />
+  );
 }
