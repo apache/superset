@@ -43,10 +43,6 @@ test('renders a default XAxisSortControl', () => {
   expect(screen.getByText(label)).toBeInTheDocument();
 
   userEvent.click(screen.getByText(label));
-  // select should be in the document
-  expect(
-    screen.getByText(defaultAxisSortValue.sortByLabel),
-  ).toBeInTheDocument();
   // isAsc should be in the document and checked
   expect(screen.getByRole('checkbox')).toBeChecked();
 });
