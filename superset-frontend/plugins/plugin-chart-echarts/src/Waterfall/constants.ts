@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
-export default function buildQuery(formData: QueryFormData) {
-  const { series, columns } = formData;
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      columns: columns?.length ? [series, columns] : [series],
-    },
-  ]);
-}
+import { t } from '@superset-ui/core';
+
+export const TOTAL_MARK = t('Total');
+export const ASSIST_MARK = t('Assist');
+export const LEGEND = {
+  INCREASE: t('Increase'),
+  DECREASE: t('Decrease'),
+  TOTAL: t('Total'),
+};
+export const TOKEN = '-';

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SqlaFormData } from '@superset-ui/core';
 import buildQuery from '../../src/Waterfall/buildQuery';
 
 describe('Waterfall buildQuery', () => {
@@ -24,14 +25,14 @@ describe('Waterfall buildQuery', () => {
     granularity_sqla: 'ds',
     metric: 'foo',
     series: 'bar',
-    columns: ['baz'],
+    columns: 'baz',
     viz_type: 'my_chart',
   };
 
   it('should build query fields from form data', () => {
-    const queryContext = buildQuery(formData);
+    const queryContext = buildQuery(formData as unknown as SqlaFormData);
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['foo']);
-    expect(query.groupby).toEqual(['bar', 'baz']);
+    expect(query.columns).toEqual(['bar', 'baz']);
   });
 });

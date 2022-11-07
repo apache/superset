@@ -19,13 +19,12 @@
 import {
   ChartDataResponseResult,
   ChartProps,
-  DataRecordValue,
   QueryFormData,
   QueryFormMetric,
-  SetDataMaskHook,
 } from '@superset-ui/core';
-import { EChartsOption } from 'echarts';
-import { EchartsLegendFormData } from '../types';
+import { BarDataItemOption } from 'echarts/types/src/chart/bar/BarSeries';
+import { OptionDataValue } from 'echarts/types/src/util/types';
+import { EchartsLegendFormData, EChartTransformedProps } from '../types';
 
 export type WaterfallFormXTicksLayout =
   | '45°'
@@ -33,6 +32,11 @@ export type WaterfallFormXTicksLayout =
   | 'auto'
   | 'flat'
   | 'staggered';
+
+export type ISeriesData =
+  | BarDataItemOption
+  | OptionDataValue
+  | OptionDataValue[];
 
 export type EchartsWaterfallFormData = QueryFormData &
   EchartsLegendFormData & {
@@ -54,14 +58,5 @@ export interface EchartsWaterfallChartProps extends ChartProps {
   queriesData: ChartDataResponseResult[];
 }
 
-export interface WaterfallChartTransformedProps {
-  formData: EchartsWaterfallFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: string[];
-  selectedValues: Record<number, string>;
-}
+export type WaterfallChartTransformedProps =
+  EChartTransformedProps<EchartsWaterfallFormData>;

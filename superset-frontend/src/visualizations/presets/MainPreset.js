@@ -66,6 +66,7 @@ import {
   EchartsTreeChartPlugin,
   EchartsSunburstChartPlugin,
   EchartsBubbleChartPlugin,
+  EchartsWaterfallChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -152,6 +153,9 @@ export default class MainPreset extends Preset {
         }),
         new EchartsTimeseriesStepChartPlugin().configure({
           key: 'echarts_timeseries_step',
+        }),
+        new EchartsWaterfallChartPlugin().configure({
+          key: 'waterfall',
         }),
         new SelectFilterPlugin().configure({ key: 'filter_select' }),
         new RangeFilterPlugin().configure({ key: 'filter_range' }),

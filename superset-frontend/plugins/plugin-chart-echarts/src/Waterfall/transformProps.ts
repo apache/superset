@@ -19,35 +19,32 @@
 import {
   CategoricalColorNamespace,
   DataRecord,
+  getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
   NumberFormatter,
+  SupersetTheme,
   t,
 } from '@superset-ui/core';
 import { EChartsOption, BarSeriesOption } from 'echarts';
+import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
-  CallbackDataParams,
-  OptionDataValue,
-} from 'echarts/types/src/util/types';
-import { BarDataItemOption } from 'echarts/types/src/chart/bar/BarSeries';
-import { EchartsWaterfallFormData, EchartsWaterfallChartProps } from './types';
+  EchartsWaterfallFormData,
+  EchartsWaterfallChartProps,
+  ISeriesData,
+  WaterfallChartTransformedProps,
+} from './types';
 import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
-import { EchartsProps } from '../types';
-
-const TOTAL_MARK = t('Total');
-const ASSIST_MARK = t('assist');
-
-const LEGEND = {
-  INCREASE: t('Increase'),
-  DECREASE: t('Decrease'),
-  TOTAL: t('Total'),
-};
+import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
+import { extractGroupbyLabel, getColtypesMapping } from '../utils/series';
 
 function formatTooltip({
+  theme,
   params,
   numberFormatter,
   richTooltip,
 }: {
+  theme: SupersetTheme;
   params: any;
   numberFormatter: NumberFormatter;
   richTooltip: boolean;
@@ -57,24 +54,35 @@ function formatTooltip({
     <div>${params.name}</div>
     <div>
       ${params.marker}
-      <span style="font-size:14px;color:#666;font-weight:400;margin-left:2px">${
-        params.seriesName
-      }: </span>
-      <span style="float:right;margin-left:20px;font-size:14px;color:#666;font-weight:900">${numberFormatter(
-        params.data,
-      )}</span>
+      <span style="
+        font-size:${theme.typography.sizes.m}px;
+        color:${theme.colors.grayscale.base};
+        font-weight:${theme.typography.weights.normal};
+        margin-left:${theme.gridUnit * 0.5}px;"
+      >
+        ${params.seriesName}:
+      </span>
+      <span style="
+        float:right;
+        margin-left:${theme.gridUnit * 5}px;
+        font-size:${theme.typography.sizes.m}px;
+        color:${theme.colors.grayscale.base};
+        font-weight:${theme.typography.weights.bold}"
+      >
+        ${numberFormatter(params.data)}
+      </span>
     </div>
   `;
 
   if (richTooltip) {
     const [, increaseParams, decreaseParams, totalParams] = params;
-    if (increaseParams.data !== '-' || increaseParams.data === null) {
+    if (increaseParams.data !== TOKEN || increaseParams.data === null) {
       return htmlMaker(increaseParams);
     }
-    if (decreaseParams.data !== '-') {
+    if (decreaseParams.data !== TOKEN) {
       return htmlMaker(decreaseParams);
     }
-    if (totalParams.data !== '-') {
+    if (totalParams.data !== TOKEN) {
       return htmlMaker(totalParams);
     }
   } else if (params.seriesName !== ASSIST_MARK) {
@@ -85,12 +93,12 @@ function formatTooltip({
 
 function transformer({
   data,
-  columns,
+  breakdown,
   series,
   metric,
 }: {
   data: DataRecord[];
-  columns: string;
+  breakdown: string;
   series: string;
   metric: string;
 }) {
@@ -105,7 +113,7 @@ function transformer({
 
   const transformedData: DataRecord[] = [];
 
-  if (columns?.length) {
+  if (breakdown?.length) {
     groupedData.forEach((value, key) => {
       const tempValue = value;
       // Calc total per period
@@ -116,7 +124,7 @@ function transformer({
       // Push total per period to the end of period values array
       tempValue.push({
         [series]: key,
-        [columns]: TOTAL_MARK,
+        [breakdown]: TOTAL_MARK,
         [metric]: sum,
       });
       transformedData.push(...tempValue);
@@ -145,13 +153,24 @@ function transformer({
 
 export default function transformProps(
   chartProps: EchartsWaterfallChartProps,
-): EchartsProps {
-  const { width, height, formData, queriesData } = chartProps;
+): WaterfallChartTransformedProps {
+  const {
+    width,
+    height,
+    formData,
+    queriesData,
+    hooks,
+    filterState,
+    theme,
+    inContextMenu,
+  } = chartProps;
   const { data = [] } = queriesData[0];
+  const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const {
     colorScheme,
     metric = '',
-    columns = '',
+    columns,
     series,
     xTicksLayout,
     showLegend,
@@ -160,6 +179,8 @@ export default function transformProps(
     yAxisFormat,
     richTooltip,
     showValue,
+    emitFilter,
+    sliceId,
   } = formData as EchartsWaterfallFormData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(yAxisFormat);
@@ -171,38 +192,28 @@ export default function transformProps(
     }
     return formattedValue;
   };
-
+  const breakdown = columns?.length ? columns : '';
+  const groupby = breakdown ? [series, breakdown] : [series];
   const metricLabel = getMetricLabel(metric);
+  const columnLabels = groupby.map(getColumnLabel);
+  const columnsLabelMap = new Map<string, string[]>();
 
   const transformedData = transformer({
     data,
-    columns,
+    breakdown,
     series,
     metric: metricLabel,
   });
 
-  const assistData: (
-    | BarDataItemOption
-    | OptionDataValue
-    | OptionDataValue[]
-  )[] = [];
-  const increaseData: (
-    | BarDataItemOption
-    | OptionDataValue
-    | OptionDataValue[]
-  )[] = [];
-  const decreaseData: (
-    | BarDataItemOption
-    | OptionDataValue
-    | OptionDataValue[]
-  )[] = [];
-  const totalData: (BarDataItemOption | OptionDataValue | OptionDataValue[])[] =
-    [];
+  const assistData: ISeriesData[] = [];
+  const increaseData: ISeriesData[] = [];
+  const decreaseData: ISeriesData[] = [];
+  const totalData: ISeriesData[] = [];
 
-  transformedData.forEach((data, index, self) => {
+  transformedData.forEach((datum, index, self) => {
     const totalSum = self.slice(0, index + 1).reduce((prev, cur, i) => {
-      if (columns?.length) {
-        if (cur[columns] !== TOTAL_MARK || i === 0) {
+      if (breakdown?.length) {
+        if (cur[breakdown] !== TOTAL_MARK || i === 0) {
           return prev + ((cur[metricLabel] as number) ?? 0);
         }
       } else if (cur[series] !== TOTAL_MARK) {
@@ -211,40 +222,55 @@ export default function transformProps(
       return prev;
     }, 0);
 
-    const value = data[metricLabel] as number;
+    const joinedName = extractGroupbyLabel({
+      datum,
+      groupby: columnLabels,
+      coltypeMapping,
+    });
+    columnsLabelMap.set(
+      joinedName,
+      columnLabels.map(col => datum[col] as string),
+    );
+    const value = datum[metricLabel] as number;
     const isNegative = value < 0;
-    if (data[columns] === TOTAL_MARK || data[series] === TOTAL_MARK) {
-      increaseData.push('-');
-      decreaseData.push('-');
-      assistData.push('-');
+    if (datum[breakdown] === TOTAL_MARK || datum[series] === TOTAL_MARK) {
+      increaseData.push(TOKEN);
+      decreaseData.push(TOKEN);
+      assistData.push(TOKEN);
       totalData.push(totalSum);
     } else if (isNegative) {
-      increaseData.push('-');
+      increaseData.push(TOKEN);
       decreaseData.push(Math.abs(value));
       assistData.push(totalSum);
-      totalData.push('-');
+      totalData.push(TOKEN);
     } else {
       increaseData.push(value);
-      decreaseData.push('-');
+      decreaseData.push(TOKEN);
       assistData.push(totalSum - value);
-      totalData.push('-');
+      totalData.push(TOKEN);
     }
   });
 
   let axisLabel;
-  if (xTicksLayout === '45°') axisLabel = { rotate: -45 };
-  else if (xTicksLayout === '90°') axisLabel = { rotate: -90 };
-  else if (xTicksLayout === 'flat') axisLabel = { rotate: 0 };
-  else if (xTicksLayout === 'staggered') axisLabel = { rotate: -45 };
-  else axisLabel = { show: true };
+  if (xTicksLayout === '45°') {
+    axisLabel = { rotate: -45 };
+  } else if (xTicksLayout === '90°') {
+    axisLabel = { rotate: -90 };
+  } else if (xTicksLayout === 'flat') {
+    axisLabel = { rotate: 0 };
+  } else if (xTicksLayout === 'staggered') {
+    axisLabel = { rotate: -45 };
+  } else {
+    axisLabel = { show: true };
+  }
 
   let xAxisData: string[] = [];
-  if (columns?.length) {
+  if (breakdown?.length) {
     xAxisData = transformedData.map(row => {
-      if (row[columns] === TOTAL_MARK) {
+      if (row[breakdown] === TOTAL_MARK) {
         return row[series] as string;
       }
-      return row[columns] as string;
+      return row[breakdown] as string;
     });
   } else {
     xAxisData = transformedData.map(row => row[series] as string);
@@ -256,13 +282,13 @@ export default function transformProps(
       type: 'bar',
       stack: 'stack',
       itemStyle: {
-        borderColor: 'rgba(0,0,0,0)',
-        color: 'rgba(0,0,0,0)',
+        borderColor: 'transparent',
+        color: 'transparent',
       },
       emphasis: {
         itemStyle: {
-          borderColor: 'rgba(0,0,0,0)',
-          color: 'rgba(0,0,0,0)',
+          borderColor: 'transparent',
+          color: 'transparent',
         },
       },
       data: assistData,
@@ -277,7 +303,7 @@ export default function transformProps(
         formatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.INCREASE),
+        color: colorFn(LEGEND.INCREASE, sliceId),
       },
       data: increaseData,
     },
@@ -291,7 +317,7 @@ export default function transformProps(
         formatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.DECREASE),
+        color: colorFn(LEGEND.DECREASE, sliceId),
       },
       data: decreaseData,
     },
@@ -305,7 +331,7 @@ export default function transformProps(
         formatter,
       },
       itemStyle: {
-        color: colorFn(LEGEND.TOTAL),
+        color: colorFn(LEGEND.TOTAL, sliceId),
       },
       data: totalData,
     },
@@ -314,10 +340,10 @@ export default function transformProps(
   const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
-      top: 30,
-      bottom: 30,
-      left: 20,
-      right: 20,
+      top: theme.gridUnit * 7,
+      bottom: theme.gridUnit * 7,
+      left: theme.gridUnit * 5,
+      right: theme.gridUnit * 7,
     },
     legend: {
       show: showLegend,
@@ -328,7 +354,7 @@ export default function transformProps(
       data: xAxisData,
       name: xAxisLabel,
       nameTextStyle: {
-        padding: [15, 0, 0, 0],
+        padding: [theme.gridUnit * 4, 0, 0, 0],
       },
       nameLocation: 'middle',
       axisLabel,
@@ -337,19 +363,20 @@ export default function transformProps(
       ...defaultYAxis,
       type: 'value',
       nameTextStyle: {
-        padding: [0, 0, 20, 0],
+        padding: [0, 0, theme.gridUnit * 5, 0],
       },
       nameLocation: 'middle',
       name: yAxisLabel,
-
       axisLabel: { formatter: numberFormatter },
     },
     tooltip: {
       ...defaultTooltip,
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
+      show: !inContextMenu,
       formatter: (params: any) =>
         formatTooltip({
+          theme,
           params,
           numberFormatter,
           richTooltip,
@@ -359,8 +386,15 @@ export default function transformProps(
   };
 
   return {
+    formData,
     width,
     height,
     echartOptions,
+    setDataMask,
+    emitFilter,
+    labelMap: Object.fromEntries(columnsLabelMap),
+    groupby,
+    selectedValues: filterState.selectedValues || [],
+    onContextMenu,
   };
 }

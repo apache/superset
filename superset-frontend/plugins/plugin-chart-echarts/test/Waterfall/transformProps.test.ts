@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { EchartsWaterfallChartProps } from '../../src/Waterfall/types';
 import transformProps from '../../src/Waterfall/transformProps';
 
 describe('Waterfall tranformProps', () => {
@@ -44,8 +45,11 @@ describe('Waterfall tranformProps', () => {
           data,
         },
       ],
+      theme: supersetTheme,
     });
-    expect(transformProps(chartProps)).toEqual(
+    expect(
+      transformProps(chartProps as unknown as EchartsWaterfallChartProps),
+    ).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -87,8 +91,11 @@ describe('Waterfall tranformProps', () => {
           data,
         },
       ],
+      theme: supersetTheme,
     });
-    expect(transformProps(chartProps)).toEqual(
+    expect(
+      transformProps(chartProps as unknown as EchartsWaterfallChartProps),
+    ).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,

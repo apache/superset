@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
@@ -44,6 +44,7 @@ export default class EchartsWaterfallChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsWaterfall'),
       metadata: new ChartMetadata({
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
         credits: ['https://echarts.apache.org'],
         category: t('Evolution'),
         description: '',

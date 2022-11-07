@@ -17,10 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
+import { ensureIsArray, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  emitFilterControl,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import { showValueControl } from '../controls';
@@ -32,10 +34,11 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['metric'],
-        ['adhoc_filters'],
         ['series'],
         ['columns'],
+        ['metric'],
+        ['adhoc_filters'],
+        emitFilterControl,
         ['row_limit'],
       ],
     },
@@ -71,7 +74,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('X Axis')}</h1>],
+        [<div className="section-header">{t('X Axis')}</div>],
         [
           {
             name: 'x_axis_label',
@@ -103,7 +106,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        [<h1 className="section-header">{t('Y Axis')}</h1>],
+        [<div className="section-header">{t('Y Axis')}</div>],
         [
           {
             name: 'y_axis_label',
@@ -125,6 +128,16 @@ const config: ControlPanelConfig = {
       description: t('Defines how each series is broken down'),
       multi: false,
     },
+  },
+  formDataOverrides: formData => {
+    const series = getStandardizedControls()
+      .popAllColumns()
+      .filter(col => !ensureIsArray(formData.columns).includes(col));
+    return {
+      ...formData,
+      series,
+      metric: getStandardizedControls().shiftMetric(),
+    };
   },
 };
 
