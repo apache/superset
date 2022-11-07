@@ -30,7 +30,7 @@ test('renders with default props', async () => {
   exampleMenuOptions[0].onClick = clickHandler;
   render(<ActionCell menuOptions={exampleMenuOptions} row={exampleRow} />);
   // Open the menu
-  await userEvent.click(screen.getByTestId('dropdown-trigger'));
+  userEvent.click(await screen.findByTestId('dropdown-trigger'));
   // verify all of the menu items are being displayed
   exampleMenuOptions.forEach((item, index) => {
     expect(screen.getByText(item.label)).toBeInTheDocument();

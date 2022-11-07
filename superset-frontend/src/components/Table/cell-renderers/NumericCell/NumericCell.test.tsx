@@ -21,7 +21,7 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import NumericCell, { CurrencyCode, LocaleCode, Style } from './index';
 
-test('renders with french locale and Euro currency format', async () => {
+test('renders with French locale and Euro currency format', () => {
   render(
     <NumericCell
       value={5678943}
@@ -35,7 +35,7 @@ test('renders with french locale and Euro currency format', async () => {
   expect(screen.getByText('5 678 943,00 €')).toBeInTheDocument();
 });
 
-test('renders with english US locale and USD currency format', async () => {
+test('renders with English US locale and USD currency format', () => {
   render(
     <NumericCell
       value={5678943}
