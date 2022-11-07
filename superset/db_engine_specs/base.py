@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import (
     Any,
     Callable,
+    ContextManager,
     Dict,
     List,
     Match,
@@ -471,8 +472,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         schema: Optional[str] = None,
         source: Optional[utils.QuerySource] = None,
-    ) -> Engine:
-        # this function now returns a context manager associated with the base class
+    ) -> ContextManager[Engine]:
+        """
+        Return an engine context manager.
+
+            >>> with DBEngineSpec.get_engine(database, schema, source) as engine:
+            ...     connection = engine.connect()
+            ...     connection.execute(sql)
+
+        """
         return database.get_sqla_engine_with_context(schema=schema, source=source)
 
     @classmethod
