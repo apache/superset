@@ -490,8 +490,7 @@ def test_in_app_context():
 
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):
-    with db.get_sqla_engine_with_context() as engine:
-        engine.execute(f"DROP {db_object_type} IF EXISTS {name}")
+    db.get_engine().execute(f"DROP {db_object_type} IF EXISTS {name}")
 
 
 def wait_for_success(result):
