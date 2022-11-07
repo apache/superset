@@ -23,7 +23,7 @@
 import logging
 import os
 from datetime import timedelta
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from cachelib.file import FileSystemCache
 from celery.schedules import crontab
@@ -39,9 +39,7 @@ def get_env_variable(var_name: str, default: Optional[str] = None) -> str:
         if default is not None:
             return default
         else:
-            error_msg = "The environment variable {} was missing, abort...".format(
-                var_name
-            )
+            error_msg = "The environment variable {} was missing, abort...".format(var_name)
             raise EnvironmentError(error_msg)
 
 
@@ -109,6 +107,11 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SQLLAB_CTAS_NO_LIMIT = True
 
+PUBLIC_ROLE_LIKE: Optional[str] = "Gamma"
+DASHBOARD_RBAC = True
+HTTP_HEADERS = {"X-Frame-Options": "ALLOWALL"}
+DEFAULT_HTTP_HEADERS: Dict[str, Any] = {}
+OVERRIDE_HTTP_HEADERS: Dict[str, Any] = {}
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden
@@ -117,8 +120,6 @@ try:
     import superset_config_docker
     from superset_config_docker import *  # noqa
 
-    logger.info(
-        f"Loaded your Docker configuration at " f"[{superset_config_docker.__file__}]"
-    )
+    logger.info(f"Loaded your Docker configuration at " f"[{superset_config_docker.__file__}]")
 except ImportError:
     logger.info("Using default Docker config...")
