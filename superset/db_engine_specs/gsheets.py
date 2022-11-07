@@ -17,7 +17,6 @@
 import json
 import re
 from contextlib import closing
-from msilib import schema
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 from apispec import APISpec
