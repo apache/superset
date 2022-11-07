@@ -18,7 +18,7 @@
 import json
 import logging
 import re
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import datetime
 from typing import (
     Any,
@@ -472,10 +472,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str] = None,
         source: Optional[utils.QuerySource] = None,
     ) -> Engine:
-        with database.get_sqla_engine_with_context(
-            schema=schema, source=source
-        ) as engine:
-            return engine
+        # this function now returns a context manager associated with the base class
+        return database.get_sqla_engine_with_context(schema=schema, source=source)
 
     @classmethod
     def get_timestamp_expr(
@@ -897,17 +895,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
 
-        engine = cls.get_engine(database)
         to_sql_kwargs["name"] = table.table
 
         if table.schema:
             # Only add schema when it is preset and non empty.
             to_sql_kwargs["schema"] = table.schema
 
-        if engine.dialect.supports_multivalues_insert:
-            to_sql_kwargs["method"] = "multi"
+        with cls.get_engine(database) as engine:
+            if engine.dialect.supports_multivalues_insert:
+                to_sql_kwargs["method"] = "multi"
 
-        df.to_sql(con=engine, **to_sql_kwargs)
+            df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
     def convert_dttm(  # pylint: disable=unused-argument
@@ -1264,13 +1262,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
-        engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            for statement in statements:
-                processed_statement = cls.process_statement(statement, database)
-                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
+        with cls.get_engine(database, schema=schema, source=source) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                for statement in statements:
+                    processed_statement = cls.process_statement(statement, database)
+                    costs.append(
+                        cls.estimate_statement_cost(processed_statement, cursor)
+                    )
         return costs
 
     @classmethod
