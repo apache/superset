@@ -62,6 +62,6 @@ def is_safe_url(url: str) -> bool:
         return False
     if unicodedata.category(url[0])[0] == "C":
         return False
-    if test_url.scheme not in ("http", "https") or ref_url.netloc != test_url.netloc:
+    if test_url.scheme != ref_url.scheme or ref_url.netloc != test_url.netloc:
         return False
     return True

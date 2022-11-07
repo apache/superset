@@ -89,7 +89,7 @@ class Datasource(BaseSupersetView):
                     "The submitted URL is not considered safe,"
                     " only use URLs with the same domain as Superset."
                 ),
-                status=500,
+                status=400,
             )
 
         orm_datasource = DatasourceDAO.get_datasource(

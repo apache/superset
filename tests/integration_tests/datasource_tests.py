@@ -307,7 +307,7 @@ class TestDatasource(SupersetTestCase):
         datasource_post["default_endpoint"] = "http://www.google.com"
         data = dict(data=json.dumps(datasource_post))
         resp = self.client.post("/datasource/save/", data=data)
-        assert resp.status_code == 500
+        assert resp.status_code == 400
 
     def test_save_default_endpoint_validation_unsafe(self):
         self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = False

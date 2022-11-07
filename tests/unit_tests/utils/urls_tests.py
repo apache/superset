@@ -42,9 +42,12 @@ def test_convert_dashboard_link() -> None:
     [
         ("http://localhost/", True),
         ("http://localhost/superset/1", True),
+        ("https://localhost/", False),
+        ("https://localhost/superset/1", False),
         ("localhost/superset/1", False),
         ("ftp://localhost/superset/1", False),
         ("http://external.com", False),
+        ("https://external.com", False),
         ("external.com", False),
         ("///localhost", False),
         ("xpto://localhost:[3/1/", False),
