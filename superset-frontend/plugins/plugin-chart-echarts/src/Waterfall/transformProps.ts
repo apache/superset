@@ -24,7 +24,6 @@ import {
   getNumberFormatter,
   NumberFormatter,
   SupersetTheme,
-  t,
 } from '@superset-ui/core';
 import { EChartsOption, BarSeriesOption } from 'echarts';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
