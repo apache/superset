@@ -50,37 +50,32 @@ interface StyledHeaderProps {
 const LOADER_WIDTH = 200;
 const SPINNER_WIDTH = 120;
 const HALF = 0.5;
-const STANDARD_MARGIN_MULTIPLIER = 3;
+const MARGIN_MULTIPLIER = 3;
 
 const StyledHeader = styled.div<StyledHeaderProps>`
   position: ${(props: StyledHeaderProps) => props.position};
-  margin: ${({ theme }) => theme.gridUnit * STANDARD_MARGIN_MULTIPLIER}px;
-  margin-top: ${({ theme }) =>
-    theme.gridUnit * (STANDARD_MARGIN_MULTIPLIER + 1)}px;
+  margin: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin-top: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
   font-size: ${({ theme }) => theme.gridUnit * 6}px;
   font-weight: ${({ theme }) => theme.typography.weights.medium};
-  padding-bottom: ${({ theme }) =>
-    theme.gridUnit * STANDARD_MARGIN_MULTIPLIER}px;
+  padding-bottom: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
 
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   .anticon:first-of-type {
-    margin-right: ${({ theme }) =>
-      theme.gridUnit * (STANDARD_MARGIN_MULTIPLIER + 1)}px;
+    margin-right: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
   }
 
   .anticon:nth-of-type(2) {
-    margin-left: ${({ theme }) =>
-      theme.gridUnit * (STANDARD_MARGIN_MULTIPLIER + 1)}px;
+    margin-left: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
   }
 `;
 
 const StyledTitle = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * STANDARD_MARGIN_MULTIPLIER}px;
-  margin-bottom: ${({ theme }) =>
-    theme.gridUnit * STANDARD_MARGIN_MULTIPLIER}px;
+  margin-left: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin-bottom: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
   font-weight: ${({ theme }) => theme.typography.weights.bold};
 `;
 
@@ -105,7 +100,7 @@ const StyledLoader = styled.div`
 
   div {
     width: 100%;
-    margin-top: ${({ theme }) => theme.gridUnit * STANDARD_MARGIN_MULTIPLIER}px;
+    margin-top: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
     text-align: center;
     font-weight: 400;
     font-size: 16px;
@@ -115,7 +110,7 @@ const StyledLoader = styled.div`
 
 const TableContainer = styled.div`
   position: relative;
-  margin: ${({ theme }) => theme.gridUnit * STANDARD_MARGIN_MULTIPLIER}px;
+  margin: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
   overflow: scroll;
   height: calc(100% - ${({ theme }) => theme.gridUnit * 36}px);
 `;
