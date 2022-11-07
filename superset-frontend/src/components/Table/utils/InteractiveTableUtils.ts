@@ -17,13 +17,20 @@
  * under the License.
  */
 
+import type { ColumnsType } from 'antd/es/table';
 import { SUPERSET_TABLE_COLUMN } from 'src/components/Table';
 import { withinRange } from './utils';
 
+interface IInteractiveColumn extends HTMLElement {
+  mouseDown: boolean;
+  oldX: number;
+  oldWidth: number;
+  draggable: boolean;
+}
 export default class InteractiveTableUtils {
   tableRef: HTMLTableElement | null;
 
-  columnRef: HTMLElement | null;
+  columnRef: IInteractiveColumn | null;
 
   setDerivedColumns: Function;
 
@@ -33,13 +40,13 @@ export default class InteractiveTableUtils {
 
   reorderable: boolean;
 
-  derivedColumns: Array<any>;
+  derivedColumns: ColumnsType<any>;
 
   RESIZE_INDICATOR_THRESHOLD: number;
 
   constructor(
     tableRef: HTMLTableElement,
-    derivedColumns: Array<any>,
+    derivedColumns: ColumnsType<any>,
     setDerivedColumns: Function,
   ) {
     this.setDerivedColumns = setDerivedColumns;
@@ -54,7 +61,7 @@ export default class InteractiveTableUtils {
 
   clearListeners = () => {
     document.removeEventListener('mouseup', this.handleMouseup);
-    this.initializeResizeableColumns(false, this.tableRef);
+    this.initializeResizableColumns(false, this.tableRef);
     this.initializeDragDropColumns(false, this.tableRef);
   };
 
@@ -73,7 +80,7 @@ export default class InteractiveTableUtils {
   };
 
   handleColumnDragStart = (ev: DragEvent): void => {
-    const target: HTMLElement = ev?.currentTarget as HTMLElement;
+    const target: IInteractiveColumn = ev?.currentTarget as IInteractiveColumn;
     if (target) {
       this.columnRef = target;
     }
@@ -109,7 +116,8 @@ export default class InteractiveTableUtils {
   };
 
   handleMouseDown = (event: MouseEvent) => {
-    const target: HTMLElement = event?.currentTarget as HTMLElement;
+    const target: IInteractiveColumn =
+      event?.currentTarget as IInteractiveColumn;
     if (target) {
       this.columnRef = target;
       if (
@@ -120,11 +128,8 @@ export default class InteractiveTableUtils {
           this.RESIZE_INDICATOR_THRESHOLD,
         )
       ) {
-        // @ts-ignore
         target.mouseDown = true;
-        // @ts-ignore
         target.oldX = event.x;
-        // @ts-ignore
         target.oldWidth = target.offsetWidth;
         target.draggable = false;
       } else if (this.reorderable) {
@@ -135,7 +140,8 @@ export default class InteractiveTableUtils {
 
   handleMouseMove = (event: MouseEvent) => {
     if (this.resizable === true && !this.isDragging) {
-      const target: HTMLElement = event.currentTarget as HTMLElement;
+      const target: IInteractiveColumn =
+        event.currentTarget as IInteractiveColumn;
       if (
         event &&
         withinRange(
@@ -150,15 +156,10 @@ export default class InteractiveTableUtils {
       }
 
       const column = this.columnRef;
-      // @ts-ignore
       if (column?.mouseDown) {
-        // @ts-ignore
         let width = column.oldWidth;
-        // @ts-ignore
         const diff = event.x - column.oldX;
-        // @ts-ignore
         if (column.oldWidth + (event.x - column.oldX) > 0) {
-          // @ts-ignore
           width = column.oldWidth + diff;
         }
         const colIndex = this.getColumnIndex();
@@ -174,7 +175,6 @@ export default class InteractiveTableUtils {
 
   handleMouseup = () => {
     if (this.columnRef) {
-      // @ts-ignore
       this.columnRef.mouseDown = false;
       this.columnRef.style.cursor = 'default';
       this.columnRef.draggable = false;
@@ -182,7 +182,7 @@ export default class InteractiveTableUtils {
     this.isDragging = false;
   };
 
-  initializeResizeableColumns = (
+  initializeResizableColumns = (
     resizable = false,
     table: HTMLTableElement | null,
   ) => {

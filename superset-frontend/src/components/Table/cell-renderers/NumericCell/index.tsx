@@ -405,10 +405,11 @@ export enum CurrencyCode {
 
 export function NumericCell(props: NumericCellProps) {
   const { value, locale = LocaleCode.en_US, options } = props;
-  let displayValue = value?.toString();
+  let displayValue = value?.toString() ?? value;
   try {
     displayValue = value?.toLocaleString?.(locale, options);
-  } catch (e: any) {
+  } catch (e) {
+    // eslint-disable-next-line no-console
     console.error(e);
   }
 

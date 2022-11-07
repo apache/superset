@@ -245,7 +245,7 @@ export function Table(props: TableProps) {
         );
       }
       if (resizable) {
-        interactiveTableUtils?.current?.initializeResizeableColumns(
+        interactiveTableUtils?.current?.initializeResizableColumns(
           resizable,
           table,
         );
