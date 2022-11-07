@@ -93,7 +93,7 @@ export interface TableProps extends AntTableProps<TableProps> {
    */
   sticky?: boolean;
   /**
-   * Controls if columns are re-sizeable by user.
+   * Controls if columns are resizable by user.
    */
   resizable?: boolean;
   /**
