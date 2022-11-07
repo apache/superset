@@ -71,13 +71,15 @@ export interface ActionMenuProps {
   setVisible: (visible: boolean) => void;
 }
 
+const SHADOW =
+  'box-shadow: 0px 3px 6px -4px rgba(0, 0, 0, 0.12), 0px 9px 28px 8px rgba(0, 0, 0, 0.05)';
+const FILTER = 'drop-shadow(0px 6px 16px rgba(0, 0, 0, 0.08))';
+
 const StyledMenu = styled(Menu)`
-  ${({ theme }) => `
-  .ant-menu {
-    -webkit-box-shadow: 1px 1px 4px 4px ${theme.colors.shadow.light1};
-    box-shadow: 1px 1px 2px 1px ${theme.colors.shadow.light1};
-  }
-  `}
+  box-shadow: ${SHADOW} !important;
+  filter: ${FILTER} !important;
+  border-radius: 2px !important;
+  -webkit-box-shadow: ${SHADOW} !important;
 `;
 
 export const appendDataToMenu = (

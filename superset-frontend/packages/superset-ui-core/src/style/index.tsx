@@ -124,11 +124,6 @@ const defaultTheme = {
       light1: '#B3DEFE',
       light2: '#EFF8FE',
     },
-    shadow: {
-      light1: 'rgba(0,0,0,0.1)',
-      base: 'rgba(0,0,0,0.3)',
-      dark1: 'rgba(0,0,0,0.6)',
-    },
   },
   opacity: {
     light: '10%',
