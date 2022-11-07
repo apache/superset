@@ -96,7 +96,7 @@ const basicData: = [
 To ensure consistency for column sorting and to avoid redundant definitions for common column sorters, reusable sort functions are provided.
 When defining the object for the `columns` prop you can provide an optional attribute `sorter`.
 The function provided in the `sorter` prop is given the entire record representing a row as props `a` and `b`.
-When using a provided sorter function the pattern is to wrap the call to the sorter with an inline function, then specify the specific attribute value from `dataIndex`, representing a column,
+When using a provided sorter function the pattern is to wrap the call to the sorter with an inline function, then specify the specific attribute value from `dataIndex`, representing a column
 of the data object for that row, as the first argument of the sorter function.
 
 #### alphabeticalSort
