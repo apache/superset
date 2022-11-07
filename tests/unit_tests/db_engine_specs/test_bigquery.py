@@ -251,20 +251,6 @@ def test_parse_error_message() -> None:
     Test that we parse a received message and just extract the useful information.
 
     Example errors:
-    400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]
-
-    (job ID: 60c732c3-4b4e-4da6-9988-18ba20d389ee)
-
-                                                -----Query Job SQL Follows-----
-
-    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |
-    1:SELECT count(*) AS `count_1`
-    2:FROM (SELECT `bigquery-public-data.census_bureau_acs.blockgroup_2010_5yr`.`geo_id` AS `bigquery_public_data_census_bureau_acs_blockgroup_2010_5yr_geo_id`
-    3:FROM `bigquery-public-data.census_bureau_acs.blockgroup_2010_5yr`
-    4:WHERE `bigquery-public-data.census_bureau_acs.blockgroup_2010_5yr`.`geo_id` IN @`geo_id_1`) AS `anon_1`
-    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |
-
-
     bigquery error: 400 Table \"case_detail_all_suites\" must be qualified with a dataset (e.g. dataset.table).
 
     (job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)
@@ -274,18 +260,10 @@ def test_parse_error_message() -> None:
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
     message = 'bigquery error: 400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).\n\n(job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)\n\n     -----Query Job SQL Follows-----     \n\n    |    .    |    .    |    .    |\n   1:select * from case_detail_all_suites\n   2:LIMIT 1001\n    |    .    |    .    |    .    |'
-    message_2 = '400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]\n\n(job ID: 60c732c3-4b4e-4da6-9988-18ba20d389ee)\n\n                                                -----Query Job SQL Follows-----                                                                \n\n    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |    .    |\n\n    1:SELECT count(*) AS `count_1` \n\n    2:FROM (SELECT `bigquery-public-data.census_bureau_acs.blockgroup_2010_5yr`.`geo_id` AS `bigquery_public_data_census_bureau_acs_blockgroup_2010_5yr_geo_id` \n\n    3:FROM `bigquery-public-data.census_bureau_acs.blockgroup_2010_5yr` \n\n    4:WHERE `bigquery-public-data.census_bureau_acs.blockgroup_2010_5yr`.`geo_id` IN @`geo_id_1`) AS `anon_1`'
-    expected_result = 'bigquery error: 400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
-    expected_result_2 = (
-        '400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]'
-    )
+    expected_result = '400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
     assert (
         str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
         == expected_result
-    )
-    assert (
-        str(BigQueryEngineSpec.parse_error_exception(Exception(message_2)))
-        == expected_result_2
     )
 
 
@@ -300,18 +278,10 @@ def test_parse_error_raises_exception() -> None:
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
     message = 'bigquery error: 400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
-    message_2 = '400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]'
-    message_3 = "6"
-    expected_result = 'bigquery error: 400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
-    expected_result_2 = (
-        '400 Syntax error: Expected "(" or keyword UNNEST but got "@" at [4:80]'
-    )
+    message_2 = "6"
+    expected_result = '400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
     assert (
         str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
         == expected_result
     )
-    assert (
-        str(BigQueryEngineSpec.parse_error_exception(Exception(message_2)))
-        == expected_result_2
-    )
-    assert str(BigQueryEngineSpec.parse_error_exception(Exception(message_3))) == "6"
+    assert str(BigQueryEngineSpec.parse_error_exception(Exception(message_2))) == "6"
