@@ -425,6 +425,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": True,
+    "ADHOC_DASHBOARD_NATIVE_FILTERS": False,
     "DASHBOARD_CROSS_FILTERS": False,
     # Feature is under active development and breaking changes are expected
     "DASHBOARD_NATIVE_FILTERS_SET": False,

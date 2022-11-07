@@ -35,6 +35,12 @@ export const FILTER_SUPPORTED_TYPES = {
     GenericDataType.NUMERIC,
     GenericDataType.TEMPORAL,
   ],
+  filter_adhoc: [
+    GenericDataType.BOOLEAN,
+    GenericDataType.STRING,
+    GenericDataType.NUMERIC,
+    GenericDataType.TEMPORAL,
+  ],
   filter_range: [GenericDataType.NUMERIC],
 };
 
