@@ -88,6 +88,7 @@ interface ErrorAlertProps {
   subtitle: ReactNode;
   title: ReactNode;
   description?: string;
+  nonExpand?: boolean;
 }
 
 export default function ErrorAlert({
@@ -98,6 +99,7 @@ export default function ErrorAlert({
   subtitle,
   title,
   description,
+  nonExpand,
 }: ErrorAlertProps) {
   const theme = useTheme();
 
@@ -129,7 +131,7 @@ export default function ErrorAlert({
           </span>
         )}
       </div>
-      {description && (
+      {description && !nonExpand && (
         <div className="error-body">
           <p>{description}</p>
           {!isExpandable && (
@@ -142,6 +144,11 @@ export default function ErrorAlert({
               {t('See more')}
             </span>
           )}
+        </div>
+      )}
+      {description && nonExpand && (
+        <div className="error-body">
+          <p>{description}</p>
         </div>
       )}
       {isExpandable ? (

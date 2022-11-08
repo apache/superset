@@ -34,6 +34,7 @@ type Props = {
   source?: ErrorSource;
   description?: string;
   errorMitigationFunction?: () => void;
+  nonExpand?: boolean;
 };
 
 export default function ErrorMessageWithStackTrace({
@@ -45,6 +46,7 @@ export default function ErrorMessageWithStackTrace({
   stackTrace,
   source,
   description,
+  nonExpand,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -69,6 +71,7 @@ export default function ErrorMessageWithStackTrace({
       subtitle={subtitle}
       copyText={copyText}
       description={description}
+      nonExpand={nonExpand}
       source={source}
       body={
         link || stackTrace ? (

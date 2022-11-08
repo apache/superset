@@ -458,6 +458,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [importingErrorMessage, setImportingErrorMessage] = useState<string>();
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
 
+  const MAX_CHARS = 180;
   const conf = useCommonConf();
   const dbImages = getDatabaseImages();
   const connectionAlert = getConnectionAlert();
@@ -1165,6 +1166,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           : [];
     }
 
+    const showMore = (error: string) => {
+      // Maximum amount of chars before to allow enable modal
+      if (error.length > MAX_CHARS) return true;
+      return false;
+    };
+
     if (alertErrors.length) {
       return (
         <ErrorMessageWithStackTrace
@@ -1172,6 +1179,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           description={alertErrors[0]}
           subtitle={validationErrors?.description || alertErrors[0]}
           copyText={validationErrors?.description || alertErrors[0]}
+          nonExpand={showMore(alertErrors[0])}
         />
       );
     }
