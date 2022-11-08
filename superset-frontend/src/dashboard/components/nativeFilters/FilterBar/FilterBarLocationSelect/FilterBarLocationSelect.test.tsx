@@ -24,7 +24,7 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarLocation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
-import { FilterBarLocationSelect } from './index';
+import FilterBarLocationSelect from '.';
 
 const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {

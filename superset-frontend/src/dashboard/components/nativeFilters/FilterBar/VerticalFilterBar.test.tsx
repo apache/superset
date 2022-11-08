@@ -29,8 +29,9 @@ import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import { DATE_FILTER_TEST_KEY } from 'src/explore/components/controls/DateFilterControl';
 import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
+import { FilterBarLocation } from 'src/dashboard/types';
 import { FILTER_BAR_TEST_ID } from './utils';
-import { VerticalFilterBar } from '.';
+import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
 jest.useFakeTimers();
@@ -121,7 +122,7 @@ const changeFilterValue = async () => {
   userEvent.click(screen.getByTestId(DATE_FILTER_TEST_KEY.applyButton));
 };
 
-describe('FilterBar', () => {
+describe('VerticalFilterBar', () => {
   new MainPreset().register();
   const toggleFiltersBar = jest.fn();
   const closedBarProps = {
@@ -218,7 +219,15 @@ describe('FilterBar', () => {
 
   const renderWrapper = (props = closedBarProps, state?: object) =>
     render(
-      <VerticalFilterBar {...props} width={280} height={400} offset={0} />,
+      <FilterBar
+        orientation={FilterBarLocation.VERTICAL}
+        verticalConfig={{
+          width: 280,
+          height: 400,
+          offset: 0,
+          ...props,
+        }}
+      />,
       {
         initialState: state,
         useDnd: true,

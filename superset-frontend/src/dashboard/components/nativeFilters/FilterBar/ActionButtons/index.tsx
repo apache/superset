@@ -28,8 +28,8 @@ import {
 import Button from 'src/components/Button';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import { rgba } from 'emotion-rgba';
-import { getFilterBarTestId } from '../utils';
 import { FilterBarLocation } from 'src/dashboard/types';
+import { getFilterBarTestId } from '../utils';
 
 interface ActionButtonsProps {
   width?: number;

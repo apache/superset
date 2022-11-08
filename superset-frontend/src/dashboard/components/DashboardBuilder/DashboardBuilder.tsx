@@ -61,10 +61,7 @@ import {
   DASHBOARD_ROOT_DEPTH,
   DashboardStandaloneMode,
 } from 'src/dashboard/util/constants';
-import {
-  VerticalFilterBar,
-  HorizontalFilterBar,
-} from 'src/dashboard/components/nativeFilters/FilterBar';
+import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { useUiConfig } from 'src/components/UiConfigContext';
@@ -367,7 +364,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         {nativeFiltersEnabled &&
           !editMode &&
           filterBarLocation === FilterBarLocation.HORIZONTAL && (
-            <HorizontalFilterBar directPathToChild={directPathToChild} />
+            <FilterBar
+              orientation={FilterBarLocation.HORIZONTAL}
+              directPathToChild={directPathToChild}
+            />
           )}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
         {!isReport && topLevelTabs && !uiConfig.hideNav && (
@@ -433,13 +433,16 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   >
                     <StickyPanel ref={containerRef} width={filterBarWidth}>
                       <ErrorBoundary>
-                        <VerticalFilterBar
-                          filtersOpen={dashboardFiltersOpen}
-                          toggleFiltersBar={toggleDashboardFiltersOpen}
+                        <FilterBar
                           directPathToChild={directPathToChild}
-                          width={filterBarWidth}
-                          height={filterBarHeight}
-                          offset={filterBarOffset}
+                          orientation={FilterBarLocation.VERTICAL}
+                          verticalConfig={{
+                            filtersOpen: dashboardFiltersOpen,
+                            toggleFiltersBar: toggleDashboardFiltersOpen,
+                            width: filterBarWidth,
+                            height: filterBarHeight,
+                            offset: filterBarOffset,
+                          }}
                         />
                       </ErrorBoundary>
                     </StickyPanel>
