@@ -29,6 +29,7 @@ import {
   SupersetClient,
   css,
   SupersetTheme,
+  supersetTheme,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -555,15 +556,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         delete data.last_value_row_json;
 
         updateResource(update_id, data).then(response => {
-          if (!response) {
-            return;
-          }
+          if (!response) return;
 
           addSuccessToast(t('%s updated', data.type));
 
-          if (onAdd) {
-            onAdd();
-          }
+          if (onAdd) onAdd();
 
           hide();
         });
@@ -571,15 +568,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     } else if (currentAlert) {
       // Create
       createResource(data).then(response => {
-        if (!response) {
-          return;
-        }
+        if (!response) return;
 
         addSuccessToast(t('%s updated', data.type));
 
-        if (onAdd) {
-          onAdd(response);
-        }
+        if (onAdd) onAdd(response);
 
         hide();
       });
@@ -614,9 +607,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     (db?: MetaObject) => {
       const database = db || currentAlert?.database;
 
-      if (!database || database.label) {
-        return null;
-      }
+      if (!database || database.label) return null;
 
       let result;
 
@@ -699,9 +690,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const getDashboardData = (db?: MetaObject) => {
     const dashboard = db || currentAlert?.dashboard;
 
-    if (!dashboard || dashboard.label) {
-      return null;
-    }
+    if (!dashboard || dashboard.label) return null;
 
     let result;
 
@@ -719,9 +708,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     (chartData?: MetaObject) => {
       const chart = chartData || currentAlert?.chart;
 
-      if (!chart || chart.label) {
-        return null;
-      }
+      if (!chart || chart.label) return null;
 
       let result;
 
@@ -880,9 +867,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // Make sure notification settings has the required info
   const checkNotificationSettings = () => {
-    if (!notificationSettings.length) {
-      return false;
-    }
+    if (!notificationSettings.length) return false;
 
     let hasInfo = false;
 
@@ -1040,9 +1025,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   ]);
 
   // Show/hide
-  if (isHidden && show) {
-    setIsHidden(false);
-  }
+  if (isHidden && show) setIsHidden(false);
 
   return (
     <StyledModal
@@ -1128,7 +1111,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={onActiveSwitch}
               checked={currentAlert ? currentAlert.active : true}
             />
-            <div className="switch-label">Active</div>
+            <div className="switch-label">{t('Active')}</div>
           </StyledSwitchContainer>
         </div>
         <div className="column-section">
@@ -1285,7 +1268,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   placeholder={t('Time in seconds')}
                   onChange={onTimeoutVerifyChange}
                 />
-                <span className="input-label">seconds</span>
+                <span className="input-label">{t('seconds')}</span>
               </div>
             </StyledInputContainer>
             {!isReport && (
@@ -1300,7 +1283,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     placeholder={t('Time in seconds')}
                     onChange={onTimeoutVerifyChange}
                   />
-                  <span className="input-label">seconds</span>
+                  <span className="input-label">{t('seconds')}</span>
                 </div>
               </StyledInputContainer>
             )}
@@ -1335,6 +1318,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               ariaLabel={t('Dashboard')}
               css={{
                 display: contentType === 'dashboard' ? 'inline' : 'none',
+                margin: `${supersetTheme.gridUnit * 2}px 0`,
               }}
               name="dashboard"
               value={
@@ -1374,7 +1358,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   checked={forceScreenshot}
                   onChange={onForceScreenshotChange}
                 >
-                  Ignore cache when generating screenshot
+                  {t('Ignore cache when generating screenshot')}
                 </StyledCheckbox>
               </div>
             )}
