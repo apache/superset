@@ -171,7 +171,7 @@ const loadEventsFromApi = async () => {
   if (Object.keys(listenersByJobId).length) {
     try {
       const { result: events } = await fetchEvents(eventArgs);
-      if (events && events.length) await processEvents(events);
+      if (events?.length) await processEvents(events);
     } catch (err) {
       logging.warn(err);
     }

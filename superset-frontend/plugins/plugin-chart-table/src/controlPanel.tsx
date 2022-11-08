@@ -23,6 +23,7 @@ import {
   ensureIsArray,
   FeatureFlag,
   GenericDataType,
+  hasGenericChartAxes,
   isAdhocColumn,
   isFeatureEnabled,
   isPhysicalColumn,
@@ -189,7 +190,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && isAggMode
+          hasGenericChartAxes && isAggMode
             ? {
                 name: 'time_grain_sqla',
                 config: {
@@ -217,9 +218,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) && isAggMode
-            ? 'datetime_columns_lookup'
-            : null,
+          hasGenericChartAxes && isAggMode ? 'datetime_columns_lookup' : null,
         ],
         [
           {

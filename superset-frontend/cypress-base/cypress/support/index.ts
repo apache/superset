@@ -42,11 +42,15 @@ before(() => {
   cy.login();
   cy.loadChartFixtures();
   cy.loadDashboardFixtures();
+});
+
+beforeEach(() => {
   cy.cleanDashboards();
   cy.cleanCharts();
 });
 
-Cypress.Commands.add('cleanDashboards', () =>
+Cypress.Commands.add('cleanDashboards', () => {
+  cy.login();
   cy.getDashboards().then((sampleDashboards?: Record<string, any>[]) => {
     const deletableDashboards = [];
     for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
@@ -74,10 +78,11 @@ Cypress.Commands.add('cleanDashboards', () =>
         },
       }).then(resp => resp);
     }
-  }),
-);
+  });
+});
 
-Cypress.Commands.add('cleanCharts', () =>
+Cypress.Commands.add('cleanCharts', () => {
+  cy.login();
   cy.getCharts().then((sampleCharts?: Record<string, any>[]) => {
     const deletableCharts = [];
     for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
@@ -89,7 +94,7 @@ Cypress.Commands.add('cleanCharts', () =>
         deletableCharts.push(isInDb.id);
       }
     }
-    if (deletableCharts) {
+    if (deletableCharts.length) {
       cy.request({
         failOnStatusCode: false,
         method: 'DELETE',
@@ -105,8 +110,8 @@ Cypress.Commands.add('cleanCharts', () =>
         },
       }).then(resp => resp);
     }
-  }),
-);
+  });
+});
 
 Cypress.Commands.add('getBySel', (selector, ...args) =>
   cy.get(`[data-test=${selector}]`, ...args),
@@ -330,6 +335,35 @@ Cypress.Commands.add('getDashboards', () =>
       },
     })
     .then(resp => resp.body.result),
+);
+
+Cypress.Commands.add('getDashboard', (dashboardId: string | number) =>
+  cy
+    .request({
+      method: 'GET',
+      url: `api/v1/dashboard/${dashboardId}`,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TokenName}`,
+      },
+    })
+    .then(resp => resp.body.result),
+);
+
+Cypress.Commands.add(
+  'updateDashboard',
+  (dashboardId: number, body: Record<string, any>) =>
+    cy
+      .request({
+        method: 'PUT',
+        url: `api/v1/dashboard/${dashboardId}`,
+        body,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${TokenName}`,
+        },
+      })
+      .then(resp => resp.body.result),
 );
 
 Cypress.Commands.add('deleteChart', (id: number, failOnStatusCode = false) =>

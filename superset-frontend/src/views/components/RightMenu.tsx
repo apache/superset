@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useEffect } from 'react';
+import React, { Fragment, useState, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
+import { isEmpty } from 'lodash';
 
 import {
   t,
@@ -48,6 +49,7 @@ import {
   RightMenuProps,
 } from './types';
 import { MenuObjectProps } from './Menu';
+import AddDatasetModal from '../CRUD/data/dataset/AddDatasetModal';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -82,6 +84,13 @@ const StyledDiv = styled.div<{ align: string }>`
   }
 `;
 
+const StyledMenuItemWithIcon = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+`;
+
 const StyledAnchor = styled.a`
   padding-right: ${({ theme }) => theme.gridUnit}px;
   padding-left: ${({ theme }) => theme.gridUnit}px;
@@ -89,6 +98,13 @@ const StyledAnchor = styled.a`
 
 const tagStyles = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light5};
+`;
+
+const styledChildMenu = (theme: SupersetTheme) => css`
+  &:hover {
+    color: ${theme.colors.primary.base} !important;
+    cursor: pointer !important;
+  }
 `;
 
 const { SubMenu } = Menu;
@@ -101,7 +117,13 @@ const RightMenu = ({
   environmentTag,
   setQuery,
 }: RightMenuProps & {
-  setQuery: ({ databaseAdded }: { databaseAdded: boolean }) => void;
+  setQuery: ({
+    databaseAdded,
+    datasetAdded,
+  }: {
+    databaseAdded?: boolean;
+    datasetAdded?: boolean;
+  }) => void;
 }) => {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
@@ -118,12 +140,14 @@ const RightMenu = ({
     ALLOWED_EXTENSIONS,
     HAS_GSHEETS_INSTALLED,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
-  const [showModal, setShowModal] = React.useState<boolean>(false);
-  const [engine, setEngine] = React.useState<string>('');
+  const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
+  const [showDatasetModal, setShowDatasetModal] = useState<boolean>(false);
+  const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
+  const canDataset = findPermission('can_write', 'Dataset', roles);
 
   const { canUploadData, canUploadCSV, canUploadColumnar, canUploadExcel } =
     uploadUserPerms(
@@ -135,7 +159,9 @@ const RightMenu = ({
     );
 
   const showActionDropdown = canSql || canChart || canDashboard;
-  const [allowUploads, setAllowUploads] = React.useState<boolean>(false);
+  const [allowUploads, setAllowUploads] = useState<boolean>(false);
+  const [nonExamplesDBConnected, setNonExamplesDBConnected] =
+    useState<boolean>(false);
   const isAdmin = isUserAdmin(user);
   const showUploads = allowUploads || isAdmin;
   const dropdownItems: MenuObjectProps[] = [
@@ -146,7 +172,12 @@ const RightMenu = ({
         {
           label: t('Connect database'),
           name: GlobalMenuDataOptions.DB_CONNECTION,
-          perm: canDatabase,
+          perm: canDatabase && !nonExamplesDBConnected,
+        },
+        {
+          label: t('Create dataset'),
+          name: GlobalMenuDataOptions.DATASET_CREATION,
+          perm: canDataset && nonExamplesDBConnected,
         },
         {
           label: t('Connect Google Sheet'),
@@ -217,11 +248,28 @@ const RightMenu = ({
     });
   };
 
+  const existsNonExamplesDatabases = () => {
+    const payload = {
+      filters: [{ col: 'database_name', opr: 'neq', value: 'examples' }],
+    };
+    SupersetClient.get({
+      endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
+    }).then(({ json }: Record<string, any>) => {
+      setNonExamplesDBConnected(json.count >= 1);
+    });
+  };
+
   useEffect(() => {
     if (canUploadData) {
       checkAllowUploads();
     }
   }, [canUploadData]);
+
+  useEffect(() => {
+    if (canDatabase || canDataset) {
+      existsNonExamplesDatabases();
+    }
+  }, [canDatabase, canDataset]);
 
   const menuIconAndLabel = (menu: MenuObjectProps) => (
     <>
@@ -232,16 +280,22 @@ const RightMenu = ({
 
   const handleMenuSelection = (itemChose: any) => {
     if (itemChose.key === GlobalMenuDataOptions.DB_CONNECTION) {
-      setShowModal(true);
+      setShowDatabaseModal(true);
     } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
-      setShowModal(true);
+      setShowDatabaseModal(true);
       setEngine('Google Sheets');
+    } else if (itemChose.key === GlobalMenuDataOptions.DATASET_CREATION) {
+      setShowDatasetModal(true);
     }
   };
 
   const handleOnHideModal = () => {
     setEngine('');
-    setShowModal(false);
+    setShowDatabaseModal(false);
+  };
+
+  const handleOnHideDatasetModalModal = () => {
+    setShowDatasetModal(false);
   };
 
   const isDisabled = isAdmin && !allowUploads;
@@ -259,21 +313,36 @@ const RightMenu = ({
         </Tooltip>
       </Menu.Item>
     ) : (
-      <Menu.Item key={item.name}>
+      <Menu.Item key={item.name} css={styledChildMenu}>
         {item.url ? <a href={item.url}> {item.label} </a> : item.label}
       </Menu.Item>
     );
   };
 
   const onMenuOpen = (openKeys: string[]) => {
-    if (openKeys.length && canUploadData) {
-      return checkAllowUploads();
+    // We should query the API only if opening Data submenus
+    // because the rest don't need this information. Not using
+    // "Data" directly since we might change the label later on?
+    if (
+      openKeys.length > 1 &&
+      !isEmpty(
+        openKeys?.filter((key: string) =>
+          key.includes(`sub2_${dropdownItems?.[0]?.label}`),
+        ),
+      )
+    ) {
+      if (canUploadData) checkAllowUploads();
+      if (canDatabase || canDataset) existsNonExamplesDatabases();
     }
     return null;
   };
   const RightMenuExtension = extensionsRegistry.get('navbar.right');
+  const RightMenuItemIconExtension = extensionsRegistry.get(
+    'navbar.right-menu.item.icon',
+  );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+  const handleDatasetAdd = () => setQuery({ datasetAdded: true });
 
   const theme = useTheme();
 
@@ -282,12 +351,19 @@ const RightMenu = ({
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}
-          show={showModal}
+          show={showDatabaseModal}
           dbEngine={engine}
           onDatabaseAdd={handleDatabaseAdd}
         />
       )}
-      {environmentTag && environmentTag.text && (
+      {canDataset && (
+        <AddDatasetModal
+          onHide={handleOnHideDatasetModalModal}
+          show={showDatasetModal}
+          onDatasetAdd={handleDatasetAdd}
+        />
+      )}
+      {environmentTag?.text && (
         <Label
           css={{ borderRadius: `${theme.gridUnit * 125}px` }}
           color={
@@ -331,7 +407,7 @@ const RightMenu = ({
                       {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
                           <Fragment key={item.name}>
-                            {idx === 2 && <Menu.Divider />}
+                            {idx === 3 && <Menu.Divider />}
                             {buildMenuItem(item)}
                           </Fragment>
                         ) : null,
@@ -381,12 +457,20 @@ const RightMenu = ({
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
               {section?.childs?.map?.(child => {
                 if (typeof child !== 'string') {
+                  const menuItemDisplay = RightMenuItemIconExtension ? (
+                    <StyledMenuItemWithIcon>
+                      {child.label}
+                      <RightMenuItemIconExtension menuChild={child} />
+                    </StyledMenuItemWithIcon>
+                  ) : (
+                    child.label
+                  );
                   return (
                     <Menu.Item key={`${child.label}`}>
                       {isFrontendRoute(child.url) ? (
-                        <Link to={child.url || ''}>{child.label}</Link>
+                        <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={child.url}>{child.label}</a>
+                        <a href={child.url}>{menuItemDisplay}</a>
                       )}
                     </Menu.Item>
                   );
@@ -486,6 +570,7 @@ const RightMenu = ({
 const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
   const [, setQuery] = useQueryParams({
     databaseAdded: BooleanParam,
+    datasetAdded: BooleanParam,
   });
 
   return <RightMenu setQuery={setQuery} {...props} />;

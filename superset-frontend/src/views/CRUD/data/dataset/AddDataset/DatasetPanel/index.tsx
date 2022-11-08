@@ -17,8 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { t, styled } from '@superset-ui/core';
+import { supersetTheme, t, styled } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 import { EmptyStateBig } from 'src/components/EmptyState';
+
+type DatasetPanelProps = {
+  tableName?: string | null;
+};
 
 const StyledEmptyStateBig = styled(EmptyStateBig)`
   p {
@@ -26,7 +31,31 @@ const StyledEmptyStateBig = styled(EmptyStateBig)`
   }
 `;
 
-const renderDescription = () => (
+const StyledDatasetPanel = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 8}px
+    ${({ theme }) => theme.gridUnit * 6}px;
+
+  .table-name {
+    font-size: ${({ theme }) => theme.gridUnit * 6}px;
+    font-weight: ${({ theme }) => theme.typography.weights.medium};
+    padding-bottom: ${({ theme }) => theme.gridUnit * 20}px;
+    margin: 0;
+
+    .anticon:first-of-type {
+      margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+    }
+
+    .anticon:nth-of-type(2) {
+      margin-left: ${({ theme }) => theme.gridUnit * 4}px;
+    }
+  }
+
+  span {
+    font-weight: ${({ theme }) => theme.typography.weights.bold};
+  }
+`;
+
+const renderEmptyDescription = () => (
   <>
     {t(
       'Datasets can be created from database tables or SQL queries. Select a database table to the left or ',
@@ -44,12 +73,21 @@ const renderDescription = () => (
   </>
 );
 
-export default function DatasetPanel() {
-  return (
+const DatasetPanel = ({ tableName }: DatasetPanelProps) =>
+  tableName ? (
+    <StyledDatasetPanel>
+      <div className="table-name">
+        <Icons.Table iconColor={supersetTheme.colors.grayscale.base} />
+        {tableName}
+      </div>
+      <span>{t('Table columns')}</span>
+    </StyledDatasetPanel>
+  ) : (
     <StyledEmptyStateBig
       image="empty-dataset.svg"
       title={t('Select dataset source')}
-      description={renderDescription()}
+      description={renderEmptyDescription()}
     />
   );
-}
+
+export default DatasetPanel;

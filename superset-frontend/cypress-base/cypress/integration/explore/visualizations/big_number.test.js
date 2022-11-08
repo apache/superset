@@ -19,6 +19,11 @@
 import { interceptChart } from 'cypress/utils';
 
 describe('Visualization > Big Number with Trendline', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    interceptChart({ legacy: false }).as('chartData');
+  });
+
   const BIG_NUMBER_FORM_DATA = {
     datasource: '2__table',
     viz_type: 'big_number',
@@ -48,11 +53,6 @@ describe('Visualization > Big Number with Trendline', () => {
       chartSelector: '.superset-legacy-chart-big-number',
     });
   }
-
-  beforeEach(() => {
-    cy.login();
-    interceptChart({ legacy: false }).as('chartData');
-  });
 
   it('should work', () => {
     verify(BIG_NUMBER_FORM_DATA);

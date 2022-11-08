@@ -96,6 +96,7 @@ from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+    NO_TIME_RANGE,
 )
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
@@ -115,6 +116,7 @@ from superset.superset_typing import (
     Metric,
 )
 from superset.utils.database import get_example_database
+from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -130,8 +132,6 @@ logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 DTTM_ALIAS = "__timestamp"
-
-NO_TIME_RANGE = "No filter"
 
 TIME_COMPARISON = "__"
 
@@ -197,7 +197,6 @@ class HeaderDataType(TypedDict):
     notification_source: Optional[str]
     chart_id: Optional[int]
     dashboard_id: Optional[int]
-    error_text: Optional[str]
 
 
 class DatasourceDict(TypedDict):
@@ -257,6 +256,7 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+    TEMPORAL_RANGE = "TEMPORAL_RANGE"
 
 
 class FilterStringOperators(str, Enum):
@@ -556,9 +556,16 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(  # pylint: disable=inconsistent-return-statements
-    obj: Any,
-) -> Any:
+def base_json_conv(obj: Any) -> Any:
+    """
+    Tries to convert additional types to JSON compatible forms.
+
+    :param obj: The serializable object
+    :returns: The JSON compatible form
+    :raises TypeError: If the object cannot be serialized
+    :see: https://docs.python.org/3/library/json.html#encoders-and-decoders
+    """
+
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
@@ -581,47 +588,60 @@ def base_json_conv(  # pylint: disable=inconsistent-return-statements
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
 
+    raise TypeError(f"Unserializable object {obj} of type {type(obj)}")
 
-def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
-    """
-    json serializer that deals with dates
 
-    >>> dttm = datetime(1970, 1, 1)
-    >>> json.dumps({'dttm': dttm}, default=json_iso_dttm_ser)
-    '{"dttm": "1970-01-01T00:00:00"}'
+def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> Any:
     """
-    val = base_json_conv(obj)
-    if val is not None:
-        return val
+    A JSON serializer that deals with dates by serializing them to ISO 8601.
+
+        >>> json.dumps({'dttm': datetime(1970, 1, 1)}, default=json_iso_dttm_ser)
+        '{"dttm": "1970-01-01T00:00:00"}'
+
+    :param obj: The serializable object
+    :param pessimistic: Whether to be pessimistic regarding serialization
+    :returns: The JSON compatible form
+    :raises TypeError: If the non-pessimistic object cannot be serialized
+    """
+
     if isinstance(obj, (datetime, date, pd.Timestamp)):
-        obj = obj.isoformat()
-    else:
+        return obj.isoformat()
+
+    try:
+        return base_json_conv(obj)
+    except TypeError as ex:
         if pessimistic:
-            return "Unserializable [{}]".format(type(obj))
+            return f"Unserializable [{type(obj)}]"
 
-        raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
-    return obj
+        raise ex
 
 
-def pessimistic_json_iso_dttm_ser(obj: Any) -> str:
+def pessimistic_json_iso_dttm_ser(obj: Any) -> Any:
     """Proxy to call json_iso_dttm_ser in a pessimistic way
 
     If one of object is not serializable to json, it will still succeed"""
     return json_iso_dttm_ser(obj, pessimistic=True)
 
 
-def json_int_dttm_ser(obj: Any) -> float:
-    """json serializer that deals with dates"""
-    val = base_json_conv(obj)
-    if val is not None:
-        return val
+def json_int_dttm_ser(obj: Any) -> Any:
+    """
+    A JSON serializer that deals with dates by serializing them to EPOCH.
+
+        >>> json.dumps({'dttm': datetime(1970, 1, 1)}, default=json_int_dttm_ser)
+        '{"dttm": 0.0}'
+
+    :param obj: The serializable object
+    :returns: The JSON compatible form
+    :raises TypeError: If the object cannot be serialized
+    """
+
     if isinstance(obj, (datetime, pd.Timestamp)):
-        obj = datetime_to_epoch(obj)
-    elif isinstance(obj, date):
-        obj = (obj - EPOCH.date()).total_seconds() * 1000
-    else:
-        raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
-    return obj
+        return datetime_to_epoch(obj)
+
+    if isinstance(obj, date):
+        return (obj - EPOCH.date()).total_seconds() * 1000
+
+    return base_json_conv(obj)
 
 
 def json_dumps_w_dates(payload: Dict[Any, Any], sort_keys: bool = False) -> str:
@@ -1271,7 +1291,9 @@ def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
 
 
 def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
-    return isinstance(column, dict)
+    return isinstance(column, dict) and ({"label", "sqlExpression"}).issubset(
+        column.keys()
+    )
 
 
 def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
@@ -1281,6 +1303,11 @@ def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
         if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
     ]
     return tuple(get_column_name(col) for col in axis_cols)
+
+
+def get_xaxis_label(columns: Optional[List[Column]]) -> Optional[str]:
+    labels = get_base_axis_labels(columns)
+    return labels[0] if labels else None
 
 
 def get_column_name(
@@ -1854,7 +1881,7 @@ class DateColumn:
     col_label: str
     timestamp_format: Optional[str] = None
     offset: Optional[int] = None
-    time_shift: Optional[timedelta] = None
+    time_shift: Optional[str] = None
 
     def __hash__(self) -> int:
         return hash(self.col_label)
@@ -1867,7 +1894,7 @@ class DateColumn:
         cls,
         timestamp_format: Optional[str],
         offset: Optional[int],
-        time_shift: Optional[timedelta],
+        time_shift: Optional[str],
     ) -> DateColumn:
         return cls(
             timestamp_format=timestamp_format,
@@ -1906,7 +1933,7 @@ def normalize_dttm_col(
         if _col.offset:
             df[_col.col_label] += timedelta(hours=_col.offset)
         if _col.time_shift is not None:
-            df[_col.col_label] += _col.time_shift
+            df[_col.col_label] += parse_human_timedelta(_col.time_shift)
 
 
 def parse_boolean_string(bool_str: Optional[str]) -> bool:

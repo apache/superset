@@ -76,7 +76,7 @@ import {
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
   GroupByFilterPlugin,
-} from 'src/filters/components/';
+} from 'src/filters/components';
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';

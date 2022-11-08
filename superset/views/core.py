@@ -277,8 +277,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/request_access/")
+    @expose("/request_access/", methods=["POST"])
     def request_access(self) -> FlaskResponse:
+        logger.warning(
+            "%s.approve "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
+
         datasources = set()
         dashboard_id = request.args.get("dashboard_id")
         if dashboard_id:
@@ -320,7 +326,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/approve")
+    @expose("/approve", methods=["POST"])
     def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
@@ -331,6 +337,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     # Dataset does not exist anymore
                     session.delete(dar)
             session.commit()
+
+        logger.warning(
+            "%s.approve "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
 
         datasource_type = request.args["datasource_type"]
         datasource_id = request.args["datasource_id"]
@@ -1165,40 +1177,48 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
         if not database:
-            return json_error_response("Database not found", status=404)
+            return json_error_response(
+                __("Database not found: %(id)s", id=db_id), status=404
+            )
 
-        tables = security_manager.get_datasources_accessible_by_user(
-            database=database,
-            schema=schema_parsed,
-            datasource_names=[
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_schema(
-                    schema=schema_parsed,
-                    force=force_refresh_parsed,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ],
-        )
+        try:
+            tables = security_manager.get_datasources_accessible_by_user(
+                database=database,
+                schema=schema_parsed,
+                datasource_names=[
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_table_names_in_schema(
+                        schema=schema_parsed,
+                        force=force_refresh_parsed,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
+                ],
+            )
 
-        views = security_manager.get_datasources_accessible_by_user(
-            database=database,
-            schema=schema_parsed,
-            datasource_names=[
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_schema(
-                    schema=schema_parsed,
-                    force=force_refresh_parsed,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ],
-        )
+            views = security_manager.get_datasources_accessible_by_user(
+                database=database,
+                schema=schema_parsed,
+                datasource_names=[
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_view_names_in_schema(
+                        schema=schema_parsed,
+                        force=force_refresh_parsed,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
+                ],
+            )
+        except SupersetException as ex:
+            return json_error_response(ex.message, ex.status)
 
         extra_dict_by_name = {
             table.name: table.extra_dict
             for table in (
-                db.session.query(SqlaTable).filter(SqlaTable.schema == schema_parsed)
+                db.session.query(SqlaTable).filter(
+                    SqlaTable.database_id == database.id,
+                    SqlaTable.schema == schema_parsed,
+                )
             ).all()
         }
 
@@ -1708,6 +1728,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/created_slices/<int:user_id>/", methods=["GET"])
     def created_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices created by this user"""
+        logger.warning(
+            "%s.created_slices "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
         if not user_id:
             user_id = cast(int, get_user_id())
         error_obj = self.get_user_activity_access_error(user_id)

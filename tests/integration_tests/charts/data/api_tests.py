@@ -764,6 +764,47 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "':xyz:qwerty'" in result["query"]
         assert "':qwerty:'" in result["query"]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_table_columns_without_metrics(self):
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = ["name", "gender"]
+        request_payload["queries"][0]["metrics"] = None
+        request_payload["queries"][0]["orderby"] = []
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        result = rv.json["result"][0]
+
+        assert rv.status_code == 200
+        assert "name" in result["colnames"]
+        assert "gender" in result["colnames"]
+        assert "name" in result["query"]
+        assert "gender" in result["query"]
+        assert list(result["data"][0].keys()) == ["name", "gender"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_adhoc_column_without_metrics(self):
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = [
+            "name",
+            {
+                "label": "num divide by 10",
+                "sqlExpression": "num/10",
+                "expressionType": "SQL",
+            },
+        ]
+        request_payload["queries"][0]["metrics"] = None
+        request_payload["queries"][0]["orderby"] = []
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        result = rv.json["result"][0]
+
+        assert rv.status_code == 200
+        assert "num divide by 10" in result["colnames"]
+        assert "name" in result["colnames"]
+        assert "num divide by 10" in result["query"]
+        assert "name" in result["query"]
+        assert list(result["data"][0].keys()) == ["name", "num divide by 10"]
+
 
 @pytest.mark.chart_data_flow
 class TestGetChartDataApi(BaseTestChartDataApi):
@@ -1057,3 +1098,53 @@ def test_chart_cache_timeout_chart_not_found(
 
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 1010
+
+
+@pytest.mark.parametrize(
+    "status_code,extras",
+    [
+        (200, {"where": "1 = 1"}),
+        (200, {"having": "count(*) > 0"}),
+        (400, {"where": "col1 in (select distinct col1 from physical_dataset)"}),
+        (400, {"having": "count(*) > (select count(*) from physical_dataset)"}),
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=False)
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_chart_data_subquery_not_allowed(
+    test_client,
+    login_as_admin,
+    physical_dataset,
+    physical_query_context,
+    status_code,
+    extras,
+):
+    physical_query_context["queries"][0]["extras"] = extras
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == status_code
+
+
+@pytest.mark.parametrize(
+    "status_code,extras",
+    [
+        (200, {"where": "1 = 1"}),
+        (200, {"having": "count(*) > 0"}),
+        (200, {"where": "col1 in (select distinct col1 from physical_dataset)"}),
+        (200, {"having": "count(*) > (select count(*) from physical_dataset)"}),
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_chart_data_subquery_allowed(
+    test_client,
+    login_as_admin,
+    physical_dataset,
+    physical_query_context,
+    status_code,
+    extras,
+):
+    physical_query_context["queries"][0]["extras"] = extras
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == status_code

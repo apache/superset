@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Pivot Table', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const PIVOT_TABLE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'pivot_table',
@@ -57,11 +62,6 @@ describe('Visualization > Pivot Table', () => {
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work with single groupby', () => {
     verify(PIVOT_TABLE_FORM_DATA);

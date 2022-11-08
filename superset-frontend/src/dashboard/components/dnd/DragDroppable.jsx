@@ -34,7 +34,7 @@ import {
 const propTypes = {
   children: PropTypes.func,
   className: PropTypes.string,
-  component: componentShape.isRequired,
+  component: componentShape,
   parentComponent: componentShape,
   depth: PropTypes.number.isRequired,
   disableDragDrop: PropTypes.bool,
@@ -43,7 +43,7 @@ const propTypes = {
   style: PropTypes.object,
   onDrop: PropTypes.func,
   onHover: PropTypes.func,
-  editMode: PropTypes.bool.isRequired,
+  editMode: PropTypes.bool,
   useEmptyDragPreview: PropTypes.bool,
 
   // from react-dnd

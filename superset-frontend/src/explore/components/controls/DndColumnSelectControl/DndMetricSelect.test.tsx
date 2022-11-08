@@ -30,6 +30,13 @@ import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelect
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
 
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) =>
+      <span role="img" aria-label={fileName.replace('_', '-')} />,
+);
+
 const defaultProps = {
   savedMetrics: [
     {
@@ -133,6 +140,7 @@ test('remove selected custom metric when metric gets removed from dataset', () =
   );
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
+  expect(screen.queryByText('metric_b')).not.toBeInTheDocument();
   expect(screen.getByText('SUM(column_a)')).toBeVisible();
   expect(screen.getByText('SUM(Column B)')).toBeVisible();
 });
@@ -171,15 +179,6 @@ test('remove selected custom metric when metric gets removed from dataset for si
     ],
   };
 
-  // rerender twice - first to update columns, second to update value
-  rerender(
-    <DndMetricSelect
-      {...newPropsWithRemovedMetric}
-      value={metricValue}
-      onChange={onChange}
-      multi={false}
-    />,
-  );
   rerender(
     <DndMetricSelect
       {...newPropsWithRemovedMetric}
@@ -220,15 +219,6 @@ test('remove selected adhoc metric when column gets removed from dataset', async
     ],
   };
 
-  // rerender twice - first to update columns, second to update value
-  rerender(
-    <DndMetricSelect
-      {...newPropsWithRemovedColumn}
-      value={metricValues}
-      onChange={onChange}
-      multi
-    />,
-  );
   rerender(
     <DndMetricSelect
       {...newPropsWithRemovedColumn}

@@ -19,9 +19,9 @@
 import React, { useRef } from 'react';
 import { css, SupersetTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
+import { useTruncation } from 'src/hooks/useTruncation';
 import { Row, FilterName } from './Styles';
 import { FilterCardRowProps } from './types';
-import { useTruncation } from './useTruncation';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
 export const NameRow = ({ filter }: FilterCardRowProps) => {

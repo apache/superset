@@ -46,6 +46,7 @@ import { SelectOptionsType, SelectProps } from './types';
 import {
   StyledCheckOutlined,
   StyledContainer,
+  StyledHeader,
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
@@ -78,6 +79,7 @@ const Select = forwardRef(
       ariaLabel,
       filterOption = true,
       header = null,
+      headerPosition = 'top',
       helperText,
       invertSelection = false,
       labelInValue = false,
@@ -288,8 +290,10 @@ const Select = forwardRef(
     }, [value]);
 
     return (
-      <StyledContainer>
-        {header}
+      <StyledContainer headerPosition={headerPosition}>
+        {header && (
+          <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
+        )}
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
@@ -299,6 +303,7 @@ const Select = forwardRef(
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
+          headerPosition={headerPosition}
           labelInValue={labelInValue}
           maxTagCount={MAX_TAG_COUNT}
           mode={mappedMode}
