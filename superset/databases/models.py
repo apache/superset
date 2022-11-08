@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Dict
+
 import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
@@ -64,3 +66,23 @@ class SSHTunnelCredentials(
     private_key_password = sa.Column(
         EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
+
+    bind_host = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
+    bind_port = sa.Column(EncryptedType(sa.Integer, app_config["SECRET_KEY"]))
+
+    def parameters(self) -> Dict:
+        params = {
+            "ssh_address_or_host": self.server_address,
+            "ssh_port": self.server_port,
+            "ssh_username": self.username,
+            "remote_bind_address": (self.bind_host, self.bind_port),
+            "local_bind_address": ("127.0.0.1",),
+        }
+
+        if self.password:
+            params["ssh_password"] = self.password
+        elif self.private_key:
+            params["ssh_pkey"] = self.private_key
+            params["ssh_private_key_password"] = self.private_key_password
+
+        return params
