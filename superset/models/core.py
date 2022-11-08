@@ -563,7 +563,7 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(table, schema) for table in tables]
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
@@ -593,7 +593,7 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(view, schema) for view in views]
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
