@@ -327,7 +327,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/approve", methods=["POST"])
-    def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
+    def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
                 datasource = DatasourceDAO.get_datasource(
