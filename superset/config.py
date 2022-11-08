@@ -57,6 +57,7 @@ from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
+from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
@@ -643,6 +644,28 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 ENABLE_CORS = False
 CORS_OPTIONS: Dict[Any, Any] = {}
 
+# Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
+# Disabling this option is not recommended for security reasons. If you wish to allow
+# valid safe elements that are not included in the default sanitization schema, use the
+# HTML_SANITIZATION_SCHEMA_EXTENSIONS configuration.
+HTML_SANITIZATION = True
+
+# Use this configuration to extend the HTML sanitization schema.
+# By default we use the Gihtub schema defined in
+# https://github.com/syntax-tree/hast-util-sanitize/blob/main/lib/schema.js
+# For example, the following configuration would allow the rendering of the
+# style attribute for div elements and the ftp protocol in hrefs:
+# HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+#   "attributes": {
+#     "div": ["style"],
+#   },
+#   "protocols": {
+#     "href": ["ftp"],
+#   }
+# }
+# Be careful when extending the default schema to avoid XSS attacks.
+HTML_SANITIZATION_SCHEMA_EXTENSIONS: Dict[str, Any] = {}
+
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
 # next available socket. PR #5039 is trying to allow domain sharding for Superset,
@@ -1143,6 +1166,24 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 # sliding cron window size, should be synced with the celery beat config minus 1 second
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+# Which user to attempt to execute Alerts/Reports as. By default,
+# use the user defined in the `THUMBNAIL_SELENIUM_USER` config parameter.
+# To first try to execute as the creator in the owners list (if present), then fall
+# back to the creator, then the last modifier in the owners list (if present), then the
+# last modifier, then an owner (giving priority to the last modifier and then the
+# creator if either is contained within the list of owners, otherwise the first owner
+# will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+# ALERT_REPORTS_EXECUTE_AS = [
+#     ReportScheduleExecutor.CREATOR_OWNER,
+#     ReportScheduleExecutor.CREATOR,
+#     ReportScheduleExecutor.MODIFIER_OWNER,
+#     ReportScheduleExecutor.MODIFIER,
+#     ReportScheduleExecutor.OWNER,
+#     ReportScheduleExecutor.SELENIUM,
+# ]
+ALERT_REPORTS_EXECUTE_AS: List[ReportScheduleExecutor] = [
+    ReportScheduleExecutor.SELENIUM
+]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -1286,6 +1327,9 @@ STATIC_ASSETS_PREFIX = ""
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
+
+# Prevents unsafe default endpoints to be registered on datasets.
+PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.

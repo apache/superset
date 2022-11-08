@@ -576,9 +576,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(table, schema) for table in tables]
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Get all table names in schema failed", exc_info=True)
-            return []
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:view_list",
@@ -607,9 +606,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(view, schema) for view in views]
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Get all view names failed", exc_info=True)
-            return []
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
@@ -631,7 +629,10 @@ class Database(
         :param force: whether to force refresh the cache
         :return: schema list
         """
-        return self.db_engine_spec.get_schema_names(self.inspector)
+        try:
+            return self.db_engine_spec.get_schema_names(self.inspector)
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
@@ -716,9 +717,14 @@ class Database(
         self, table_name: str, schema: Optional[str] = None
     ) -> Dict[str, Any]:
         pk_constraint = self.inspector.get_pk_constraint(table_name, schema) or {}
-        return {
-            key: utils.base_json_conv(value) for key, value in pk_constraint.items()
-        }
+
+        def _convert(value: Any) -> Any:
+            try:
+                return utils.base_json_conv(value)
+            except TypeError:
+                return None
+
+        return {key: _convert(value) for key, value in pk_constraint.items()}
 
     def get_foreign_keys(
         self, table_name: str, schema: Optional[str] = None

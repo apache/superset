@@ -269,7 +269,7 @@ sshtunnel==0.4.0
     # via apache-superset
 tabulate==0.8.9
     # via apache-superset
-typing-extensions==3.10.0.0
+typing-extensions==4.4.0
     # via apache-superset
 urllib3==1.26.6
     # via selenium

@@ -75,7 +75,7 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorsException
+from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
@@ -293,6 +293,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>", methods=["PUT"])
     @protect()
@@ -486,6 +488,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(
                 500, message="There was an error connecting to the database"
             )
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
@@ -544,6 +548,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SQLAlchemyError as ex:
             self.incr_stats("error", self.table_metadata.__name__)
             return self.response_422(error_msg_from_exception(ex))
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
+
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 

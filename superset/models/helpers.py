@@ -1322,7 +1322,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = sa.column(label, type_=col_type)
         return self.make_sqla_column_compatible(col, label)
 
-    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements,unused-argument
         self,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[List[Column]] = None,
@@ -1348,6 +1348,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         row_offset: Optional[int] = None,
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
+        time_shift: Optional[str] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
