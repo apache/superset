@@ -53,6 +53,7 @@ export interface IDatasetPanelWrapperProps {
    */
   schema?: string | null;
   setHasColumns?: Function;
+  linkedDatasets?: string | undefined;
 }
 
 const DatasetPanelWrapper = ({

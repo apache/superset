@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer, useState } from 'react';
+import React, { useReducer, Reducer, useEffect, useState } from 'react';
+import { SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
@@ -73,6 +75,38 @@ export default function AddDataset() {
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
+  const [linkedDatasets, setLinkedDatasets] = useState<string>();
+
+  const encodedSchema = dataset?.schema
+    ? encodeURIComponent(dataset?.schema)
+    : undefined;
+
+  const queryParams = dataset?.schema
+    ? rison.encode_uri({
+        filters: [
+          { col: 'schema', opr: 'eq', value: encodedSchema },
+          { col: 'sql', opr: 'dataset_is_null_or_empty', value: '!t' },
+        ],
+      })
+    : undefined;
+
+  const getDatasetsList = () => {
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/?q=${queryParams}`,
+    })
+      .then(({ json }) => {
+        json.result.map((dataset: any) =>
+          setLinkedDatasets(dataset.table_name),
+        );
+      })
+      .catch(error =>
+        console.log('There was an error fetching dataset', error),
+      );
+  };
+
+  useEffect(() => {
+    if (dataset?.schema) getDatasetsList();
+  }, [dataset?.schema]);
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -83,6 +117,7 @@ export default function AddDataset() {
       setDataset={setDataset}
       schema={dataset?.schema}
       dbId={dataset?.db?.id}
+      linkedDatasets={linkedDatasets}
     />
   );
 
@@ -92,6 +127,7 @@ export default function AddDataset() {
       dbId={dataset?.db?.id}
       schema={dataset?.schema}
       setHasColumns={setHasColumns}
+      linkedDatasets={linkedDatasets}
     />
   );
 

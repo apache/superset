@@ -17,7 +17,13 @@
  * under the License.
  */
 import React, { useEffect, useState, SetStateAction, Dispatch } from 'react';
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import {
+  SupersetClient,
+  t,
+  styled,
+  css,
+  supersetTheme,
+} from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form } from 'src/components/Form';
 import Icons from 'src/components/Icons';
@@ -36,6 +42,7 @@ interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
   schema?: string | null | undefined;
   dbId?: number;
+  linkedDatasets?: string | undefined;
 }
 
 const SearchIcon = styled(Icons.Search)`
@@ -78,6 +85,7 @@ const LeftPanelStyle = styled.div`
       top: ${theme.gridUnit * 92.25}px;
       left: ${theme.gridUnit * 3.25}px;
       right: 0;
+
       .options {
         cursor: pointer;
         padding: ${theme.gridUnit * 1.75}px;
@@ -86,12 +94,19 @@ const LeftPanelStyle = styled.div`
           background-color: ${theme.colors.grayscale.light4}
         }
       }
+
       .options-highlighted {
         cursor: pointer;
         padding: ${theme.gridUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
         background-color: ${theme.colors.primary.dark1};
         color: ${theme.colors.grayscale.light5};
+      }
+
+      .options, .options-highlighted {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
     }
     form > span[aria-label="refresh"] {
@@ -124,6 +139,7 @@ export default function LeftPanel({
   setDataset,
   schema,
   dbId,
+  linkedDatasets,
 }: LeftPanelProps) {
   const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
   const [resetTables, setResetTables] = useState(false);
@@ -166,9 +182,7 @@ export default function LeftPanel({
         setResetTables(false);
         setRefresh(false);
       })
-      .catch(e => {
-        console.log('error', e);
-      });
+      .catch(error => console.log('There was an error fetching tables', error));
   };
 
   const setSchema = (schema: string) => {
@@ -214,7 +228,7 @@ export default function LeftPanel({
 
   return (
     <LeftPanelStyle>
-      <p className="section-title db-schema">Select database & schema</p>
+      <p className="section-title db-schema">{t('Select database & schema')}</p>
       <DatabaseSelector
         handleError={addDangerToast}
         onDbChange={setDatabase}
@@ -234,7 +248,7 @@ export default function LeftPanel({
       {schema && (tableOptions.length > 0 || searchVal.length > 0) && (
         <>
           <Form>
-            <p className="table-title">Select database table</p>
+            <p className="table-title">{t('Select database table')}</p>
             <RefreshLabel
               onClick={() => {
                 setLoadTables(true);
@@ -242,7 +256,7 @@ export default function LeftPanel({
               }}
               tooltipContent={t('Refresh table list')}
             />
-            {refresh && Loader('Refresh tables')}
+            {refresh && Loader(t('Refresh tables'))}
             {!refresh && (
               <Input
                 value={searchVal}
@@ -269,6 +283,19 @@ export default function LeftPanel({
                   onClick={() => setTable(option.value, i)}
                 >
                   {option.label}
+                  {linkedDatasets && option.value.includes(linkedDatasets) && (
+                    <Icons.Warning
+                      iconColor={
+                        selectedTable === i
+                          ? supersetTheme.colors.grayscale.light5
+                          : supersetTheme.colors.info.base
+                      }
+                      iconSize="m"
+                      css={css`
+                        margin-right: ${supersetTheme.gridUnit * 6}px;
+                      `}
+                    />
+                  )}
                 </div>
               ))}
           </div>
