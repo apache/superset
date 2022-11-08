@@ -16,16 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import { configure } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ButtonCell from './index';
 import { exampleRow } from '../fixtures';
 
 test('renders with default props', async () => {
-  configure({ testIdAttribute: 'data-test' });
   const clickHandler = jest.fn();
   const BUTTON_LABEL = 'Button Label';
 

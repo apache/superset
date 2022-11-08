@@ -143,13 +143,13 @@ const basicColumns = [
 
 </details>
 
-If a different sort option is needed, consider adding it as a re-usable sort function following the pattern provided above.
+If a different sort option is needed, consider adding it as a reusable sort function following the pattern provided above.
 
 ---
 
 ### Cell Content Renderers
 
-By default each column will render the value as simple text. Often you will want to show formatted values, such as a numeric column showing as currency, or a more complex component such as a button or action menu as a cell value.
+By default, each column will render the value as simple text. Often you will want to show formatted values, such as a numeric column showing as currency, or a more complex component such as a button or action menu as a cell value.
 Cell Renderers are React components provided to the optional `render` attribute on a column definition that enables injecting a specific React component to enable this.
 
 <Story id="design-system-components-table-examples--cell-renderers" />
@@ -179,8 +179,8 @@ The table can be set to a loading state simply by setting the loading prop to tr
 
 ### Pagination
 
-Table displays set number of rows at a time, user navigates table via pagination. Use in scenarios where the user is searching for a specific piece of content.
-The default page size and page size options for menu are configurable via the `pageSizeOptions` and `defaultPageSize` props.
+The table displays a set number of rows at a time, the user navigates the table via pagination. Use in scenarios where the user is searching for a specific piece of content.
+The default page size and page size options for the menu are configurable via the `pageSizeOptions` and `defaultPageSize` props.
 NOTE: Pagination controls will only display when the data for the table has more records than the default page size.
 
 <Story id="design-system-components-table-examples--many-columns" />

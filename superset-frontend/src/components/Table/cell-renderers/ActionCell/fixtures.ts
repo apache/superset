@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { action } from '@storybook/addon-actions';
 import { ActionMenuItem } from './index';
 
 export const exampleMenuOptions: ActionMenuItem[] = [
   {
     label: 'Action 1',
     tooltip: "This is a tip, don't spend it all in one place",
-    onClick: (item: ActionMenuItem) => {
-      // eslint-disable-next-line no-alert
-      alert(JSON.stringify(item));
-    },
+    onClick: action('menu item onClick'),
     payload: {
       taco: 'spicy chicken',
     },
@@ -34,10 +31,7 @@ export const exampleMenuOptions: ActionMenuItem[] = [
   {
     label: 'Action 2',
     tooltip: 'This is another tip',
-    onClick: (item: ActionMenuItem) => {
-      // eslint-disable-next-line no-alert
-      alert(JSON.stringify(item));
-    },
+    onClick: action('menu item onClick'),
     payload: {
       taco: 'saucy tofu',
     },

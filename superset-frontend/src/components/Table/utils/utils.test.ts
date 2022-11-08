@@ -16,25 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { withinRange } from './utils';
 
-test('withinRange', () => {
+test('withinRange supported positive numbers', () => {
   // Valid inputs within range
   expect(withinRange(50, 60, 16)).toBeTruthy();
 
   // Valid inputs outside of range
   expect(withinRange(40, 60, 16)).toBeFalsy();
+});
 
-  // Invalid inputs should return falsy and not throw an error
-
+test('withinRange unsupported negative numbers', () => {
   // Negative numbers not supported
   expect(withinRange(65, 60, -16)).toBeFalsy();
   expect(withinRange(-60, -65, 16)).toBeFalsy();
   expect(withinRange(-60, -65, 16)).toBeFalsy();
   expect(withinRange(-60, 65, 16)).toBeFalsy();
+});
 
-  // Invalid input types, we need ts-ignore here to be able to pass invalid values and pass linting
+test('withinRange invalid inputs', () => {
+  // Invalid inputs should return falsy and not throw an error
+  // We need ts-ignore here to be able to pass invalid values and pass linting
   // @ts-ignore
   expect(withinRange(null, 60, undefined)).toBeFalsy();
   // @ts-ignore

@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import type { ColumnsType } from 'antd/es/table';
 import { Table, TableSize } from './index';
 
@@ -68,15 +67,11 @@ test('renders with default props', async () => {
   render(
     <Table size={TableSize.MIDDLE} columns={testColumns} data={testData} />,
   );
-  expect(
-    await screen.findByText(testColumns[0].title as string),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByText(testColumns[1].title as string),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByText(testColumns[2].title as string),
-  ).toBeInTheDocument();
+  await waitFor(() =>
+    testColumns.forEach(column =>
+      expect(screen.getByText(column.title as string)).toBeInTheDocument(),
+    ),
+  );
   testData.forEach(row => {
     expect(screen.getByText(row.columnName)).toBeInTheDocument();
     expect(screen.getByText(row.columnType)).toBeInTheDocument();

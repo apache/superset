@@ -73,14 +73,14 @@ export enum IconOrientation {
 }
 export interface DropdownProps extends DropDownProps {
   overlay: React.ReactElement;
-  orientation?: IconOrientation;
+  iconOrientation?: IconOrientation;
 }
 
 const RenderIcon = (
-  orientation: IconOrientation = IconOrientation.VERTICAL,
+  iconOrientation: IconOrientation = IconOrientation.VERTICAL,
 ) => {
   const component =
-    orientation === IconOrientation.HORIZONTAL ? (
+    iconOrientation === IconOrientation.HORIZONTAL ? (
       <Icons.MoreHoriz iconSize="xl" />
     ) : (
       <MenuDots />
@@ -90,12 +90,12 @@ const RenderIcon = (
 
 export const Dropdown = ({
   overlay,
-  orientation = IconOrientation.VERTICAL,
+  iconOrientation = IconOrientation.VERTICAL,
   ...rest
 }: DropdownProps) => (
   <AntdDropdown overlay={overlay} {...rest}>
     <MenuDotsWrapper data-test="dropdown-trigger">
-      {RenderIcon(orientation)}
+      {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
 );

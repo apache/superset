@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { alphabeticalSort, numericalSort } from './sorters';
 
 const rows = [
@@ -69,10 +68,8 @@ test('alphabeticalSort bad inputs no errors', () => {
   // @ts-ignore
   expect(alphabeticalSort('name', 3, [])).toBe(undefined);
   // incorrect object values without specificed key
-  // @ts-ignore
   expect(alphabeticalSort('name', {}, {})).toBe(undefined);
   // Object as value for name when it should be a string
-  // @ts-ignore
   expect(
     alphabeticalSort(
       'name',

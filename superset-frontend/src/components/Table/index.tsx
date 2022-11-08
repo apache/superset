@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React, { useState, useEffect, useRef, ReactElement } from 'react';
 import { Table as AntTable, ConfigProvider } from 'antd';
 import type {
@@ -24,7 +23,7 @@ import type {
   ColumnGroupType,
   TableProps as AntTableProps,
 } from 'antd/es/table';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, logging } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import styled, { StyledComponent } from '@emotion/styled';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
@@ -148,23 +147,23 @@ const HEIGHT_OFFSET = 108;
 
 const StyledTable: StyledComponent<any> = styled(AntTable)<any>`
   ${({ theme, height }) => `
-  .ant-table-body {
-    overflow: scroll;
-    height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
-  }
+    .ant-table-body {
+      overflow: scroll;
+      height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
+    }
 
-  th.ant-table-cell {
-    font-weight: ${theme.typography.weights.bold};
-    color: ${theme.colors.grayscale.dark1};
-    user-select: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+    th.ant-table-cell {
+      font-weight: ${theme.typography.weights.bold};
+      color: ${theme.colors.grayscale.dark1};
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-  .ant-pagination-item-active {
-    border-color: ${theme.colors.primary.base};
-  }
+    .ant-pagination-item-active {
+      border-color: ${theme.colors.primary.base};
+    }
   `}
 `;
 
@@ -265,14 +264,12 @@ export function Table(props: TableProps) {
   // Log use of experimental features
   useEffect(() => {
     if (reorderable === true) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logging.warn(
         'EXPERIMENTAL FEATURE ENABLED: The "reorderable" prop of Table is experimental and NOT recommended for use in production deployments.',
       );
     }
     if (resizable === true) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logging.warn(
         'EXPERIMENTAL FEATURE ENABLED: The "resizable" prop of Table is experimental and NOT recommended for use in production deployments.',
       );
     }
