@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
+import { logging } from '@superset-ui/core';
 
 export interface NumericCellProps {
   /**
