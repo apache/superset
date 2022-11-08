@@ -75,6 +75,11 @@ def setup_sample_data() -> Any:
         db.session.commit()
 
 
+@pytest.fixture
+def login_as_admin(login_as: Callable[..., None]):
+    yield login_as("admin")
+
+
 def drop_from_schema(engine: Engine, schema_name: str):
     schemas = engine.execute(f"SHOW SCHEMAS").fetchall()
     if schema_name not in [s[0] for s in schemas]:
