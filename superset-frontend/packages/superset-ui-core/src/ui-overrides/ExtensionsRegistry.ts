@@ -35,16 +35,36 @@ type ReturningDisplayable<P = void> = (props: P) => string | React.ReactElement;
  * When defining a new option here, take care to keep any parameters to functions (or components) minimal.
  * Any removal or alteration to a parameter will be considered a breaking change.
  */
+
+// from src/views/components/Menu, not imported since this is a separate package
+interface MenuObjectChildProps {
+  label: string;
+  name?: string;
+  icon?: string;
+  index?: number;
+  url?: string;
+  isFrontendRoute?: boolean;
+  perm?: string | boolean;
+  view?: string;
+  disable?: boolean;
+}
+
 type ConfigDetailsProps = {
   embeddedId: string;
 };
+type RightMenuItemIconProps = {
+  menuChild: MenuObjectChildProps;
+};
 
 export type Extensions = Partial<{
+  'alertsreports.header.icon': React.ComponentType;
   'embedded.documentation.configuration_details': React.ComponentType<ConfigDetailsProps>;
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;
   'dashboard.nav.right': React.ComponentType;
+  'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
   'navbar.right': React.ComponentType;
+  'report-modal.dropdown.item.icon': React.ComponentType;
   'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;

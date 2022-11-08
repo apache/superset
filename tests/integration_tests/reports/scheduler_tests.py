@@ -14,9 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 from random import randint
+from typing import List
 from unittest.mock import patch
 
+import pytest
+from flask_appbuilder.security.sqla.models import User
 from freezegun import freeze_time
 from freezegun.api import FakeDatetime  # type: ignore
 
@@ -27,8 +31,14 @@ from tests.integration_tests.reports.utils import insert_report_schedule
 from tests.integration_tests.test_app import app
 
 
+@pytest.fixture
+def owners(get_user) -> List[User]:
+    return [get_user("admin")]
+
+
+@pytest.mark.usefixtures("owners")
 @patch("superset.tasks.scheduler.execute.apply_async")
-def test_scheduler_celery_timeout_ny(execute_mock):
+def test_scheduler_celery_timeout_ny(execute_mock, owners):
     """
     Reports scheduler: Test scheduler setting celery soft and hard timeout
     """
@@ -39,6 +49,7 @@ def test_scheduler_celery_timeout_ny(execute_mock):
             name="report",
             crontab="0 4 * * *",
             timezone="America/New_York",
+            owners=owners,
         )
 
         with freeze_time("2020-01-01T09:00:00Z"):
@@ -49,8 +60,9 @@ def test_scheduler_celery_timeout_ny(execute_mock):
         db.session.commit()
 
 
+@pytest.mark.usefixtures("owners")
 @patch("superset.tasks.scheduler.execute.apply_async")
-def test_scheduler_celery_no_timeout_ny(execute_mock):
+def test_scheduler_celery_no_timeout_ny(execute_mock, owners):
     """
     Reports scheduler: Test scheduler setting celery soft and hard timeout
     """
@@ -61,6 +73,7 @@ def test_scheduler_celery_no_timeout_ny(execute_mock):
             name="report",
             crontab="0 4 * * *",
             timezone="America/New_York",
+            owners=owners,
         )
 
         with freeze_time("2020-01-01T09:00:00Z"):
@@ -71,8 +84,9 @@ def test_scheduler_celery_no_timeout_ny(execute_mock):
         app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
 
 
+@pytest.mark.usefixtures("owners")
 @patch("superset.tasks.scheduler.execute.apply_async")
-def test_scheduler_celery_timeout_utc(execute_mock):
+def test_scheduler_celery_timeout_utc(execute_mock, owners):
     """
     Reports scheduler: Test scheduler setting celery soft and hard timeout
     """
@@ -83,6 +97,7 @@ def test_scheduler_celery_timeout_utc(execute_mock):
             name="report",
             crontab="0 9 * * *",
             timezone="UTC",
+            owners=owners,
         )
 
         with freeze_time("2020-01-01T09:00:00Z"):
@@ -93,8 +108,9 @@ def test_scheduler_celery_timeout_utc(execute_mock):
         db.session.commit()
 
 
+@pytest.mark.usefixtures("owners")
 @patch("superset.tasks.scheduler.execute.apply_async")
-def test_scheduler_celery_no_timeout_utc(execute_mock):
+def test_scheduler_celery_no_timeout_utc(execute_mock, owners):
     """
     Reports scheduler: Test scheduler setting celery soft and hard timeout
     """
@@ -105,6 +121,7 @@ def test_scheduler_celery_no_timeout_utc(execute_mock):
             name="report",
             crontab="0 9 * * *",
             timezone="UTC",
+            owners=owners,
         )
 
         with freeze_time("2020-01-01T09:00:00Z"):
@@ -115,9 +132,10 @@ def test_scheduler_celery_no_timeout_utc(execute_mock):
         app.config["ALERT_REPORTS_WORKING_TIME_OUT_KILL"] = True
 
 
+@pytest.mark.usefixtures("owners")
 @patch("superset.tasks.scheduler.is_feature_enabled")
 @patch("superset.tasks.scheduler.execute.apply_async")
-def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
+def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled, owners):
     """
     Reports scheduler: Test scheduler with feature flag off
     """
@@ -128,6 +146,7 @@ def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
             name="report",
             crontab="0 9 * * *",
             timezone="UTC",
+            owners=owners,
         )
 
         with freeze_time("2020-01-01T09:00:00Z"):
@@ -137,10 +156,11 @@ def test_scheduler_feature_flag_off(execute_mock, is_feature_enabled):
         db.session.commit()
 
 
+@pytest.mark.usefixtures("owners")
 @patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.__init__")
 @patch("superset.reports.commands.execute.AsyncExecuteReportScheduleCommand.run")
 @patch("superset.tasks.scheduler.execute.update_state")
-def test_execute_task(update_state_mock, command_mock, init_mock):
+def test_execute_task(update_state_mock, command_mock, init_mock, owners):
     from superset.reports.commands.exceptions import ReportScheduleUnexpectedError
 
     with app.app_context():
@@ -149,6 +169,7 @@ def test_execute_task(update_state_mock, command_mock, init_mock):
             name=f"report-{randint(0,1000)}",
             crontab="0 4 * * *",
             timezone="America/New_York",
+            owners=owners,
         )
         init_mock.return_value = None
         command_mock.side_effect = ReportScheduleUnexpectedError("Unexpected error")
