@@ -17,21 +17,13 @@
  * under the License.
  */
 import React from 'react';
-import { QueryState, styled, keyframes } from '@superset-ui/core';
+import { QueryState, styled } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 
-const dimmingFrames = keyframes`
-  40% {
-    opacity: 0.5;
-  }
-
-  100% {
-    opacity: 1;
-  }
-`;
-
-const DimmingIcon = styled.div<{ isDimming: boolean }>`
-  animation: ${({ isDimming }) => (isDimming ? dimmingFrames : 'none')} 1s ease
-    infinite;
+const IconContainer = styled.span`
+  position: absolute;
+  top: -7px;
+  left: 0px;
 `;
 
 interface TabStatusIconProps {
@@ -40,9 +32,13 @@ interface TabStatusIconProps {
 
 export default function TabStatusIcon({ tabState }: TabStatusIconProps) {
   return (
-    <DimmingIcon
-      className={`circle ${tabState}`}
-      isDimming={tabState === 'running'}
-    />
+    <div className={`circle ${tabState}`}>
+      {['success', 'failed'].includes(tabState) && (
+        <IconContainer>
+          {tabState === 'success' && <Icons.Check iconSize="xs" />}
+          {tabState === 'failed' && <Icons.CancelX iconSize="xs" />}
+        </IconContainer>
+      )}
+    </div>
   );
 }
