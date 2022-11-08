@@ -131,11 +131,6 @@ class DruidEngineSpec(BaseEngineSpec):
         """
         Update the Druid type map.
         """
-        # pylint: disable=import-outside-toplevel
-        from pydruid.db.sqlalchemy import type_map
-
-        type_map["complex<hllsketch>"] = types.BLOB
-
         return super().get_columns(inspector, table_name, schema)
 
     @classmethod
