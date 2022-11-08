@@ -224,7 +224,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        # pylint: disable=import-error,import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from requests import exceptions as requests_exceptions
 
         return {
