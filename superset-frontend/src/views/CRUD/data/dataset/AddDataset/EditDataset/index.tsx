@@ -42,7 +42,7 @@ const TabStyles = styled.div`
 `;
 
 interface EditPageProps {
-  id: number;
+  id: string;
 }
 
 const EditPage = ({ id }: EditPageProps) => {

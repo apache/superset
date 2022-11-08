@@ -24,7 +24,7 @@ import EditDataset from './index';
 const DATASET_ENDPOINT = 'glob:*api/v1/dataset/1/related_objects';
 
 const mockedProps = {
-  id: 1,
+  id: '1',
 };
 
 fetchMock.get(DATASET_ENDPOINT, { charts: { results: [], count: 2 } });
