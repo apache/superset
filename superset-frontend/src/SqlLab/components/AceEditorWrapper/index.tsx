@@ -37,7 +37,7 @@ import {
   AceCompleterKeyword,
   FullSQLEditor as AceEditor,
 } from 'src/components/AsyncAceEditor';
-import { QueryEditor } from 'src/SqlLab/types';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 type HotKey = {
   key: string;
@@ -50,7 +50,7 @@ type AceEditorWrapperProps = {
   autocomplete: boolean;
   onBlur: (sql: string) => void;
   onChange: (sql: string) => void;
-  queryEditor: QueryEditor;
+  queryEditorId: string;
   database: any;
   extendedTables?: Array<{ name: string; columns: any[] }>;
   height: string;
@@ -61,7 +61,7 @@ const AceEditorWrapper = ({
   autocomplete,
   onBlur = () => {},
   onChange = () => {},
-  queryEditor,
+  queryEditorId,
   database,
   extendedTables = [],
   height,
@@ -69,7 +69,17 @@ const AceEditorWrapper = ({
 }: AceEditorWrapperProps) => {
   const dispatch = useDispatch();
 
-  const { sql: currentSql } = queryEditor;
+  const queryEditor = useQueryEditor(queryEditorId, [
+    'id',
+    'dbId',
+    'sql',
+    'functionNames',
+    'schemaOptions',
+    'tableOptions',
+    'validationResult',
+    'schema',
+  ]);
+  const currentSql = queryEditor.sql ?? '';
   const functionNames = queryEditor.functionNames ?? [];
   const schemas = queryEditor.schemaOptions ?? [];
   const tables = queryEditor.tableOptions ?? [];
@@ -172,7 +182,7 @@ const AceEditorWrapper = ({
     const tableWords = tables.map(t => {
       const tableName = t.value;
       const extendedTable = extendedTables.find(et => et.name === tableName);
-      const cols = (extendedTable && extendedTable.columns) || [];
+      const cols = extendedTable?.columns || [];
       cols.forEach(col => {
         columns[col.name] = null; // using an object as a unique set
       });

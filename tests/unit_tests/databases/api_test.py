@@ -18,10 +18,12 @@
 # pylint: disable=unused-argument, import-outside-toplevel, line-too-long
 
 import json
+from io import BytesIO
 from typing import Any
 from uuid import UUID
 
 import pytest
+from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
 
@@ -53,6 +55,7 @@ def test_post_with_uuid(
 
 
 def test_password_mask(
+    mocker: MockFixture,
     app: Any,
     session: Session,
     client: Any,
@@ -91,6 +94,10 @@ def test_password_mask(
     )
     session.add(database)
     session.commit()
+
+    # mock the lookup so that we don't need to include the driver
+    mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
+    mocker.patch("superset.utils.log.DBEventLogger.log")
 
     response = client.get("/api/v1/database/1")
     assert (
@@ -151,3 +158,36 @@ def test_update_with_password_mask(
         database.encrypted_extra
         == '{"service_account_info": {"project_id": "yellow-unicorn-314419", "private_key": "SECRET"}}'
     )
+
+
+def test_non_zip_import(client: Any, full_api_access: None) -> None:
+    """
+    Test that non-ZIP imports are not allowed.
+    """
+    buf = BytesIO(b"definitely_not_a_zip_file")
+    form_data = {
+        "formData": (buf, "evil.pdf"),
+    }
+    response = client.post(
+        "/api/v1/database/import/",
+        data=form_data,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "Not a ZIP file",
+                "error_type": "GENERIC_COMMAND_ERROR",
+                "level": "warning",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1010,
+                            "message": "Issue 1010 - Superset encountered an error while running a command.",
+                        }
+                    ]
+                },
+            }
+        ]
+    }

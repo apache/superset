@@ -307,7 +307,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                         DateColumn.get_legacy_time_column(
                             timestamp_format=timestamp_format,
                             offset=self.datasource.offset,
-                            time_shift=self.time_shift,
+                            time_shift=self.form_data.get("time_shift"),
                         )
                     ]
                 ),

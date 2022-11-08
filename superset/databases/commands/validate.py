@@ -38,8 +38,8 @@ BYPASS_VALIDATION_ENGINES = {"bigquery"}
 
 
 class ValidateDatabaseParametersCommand(BaseCommand):
-    def __init__(self, parameters: Dict[str, Any]):
-        self._properties = parameters.copy()
+    def __init__(self, properties: Dict[str, Any]):
+        self._properties = properties.copy()
         self._model: Optional[Database] = None
 
     def run(self) -> None:
@@ -66,9 +66,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             )
 
         # perform initial validation
-        errors = engine_spec.validate_parameters(  # type: ignore
-            self._properties.get("parameters", {})
-        )
+        errors = engine_spec.validate_parameters(self._properties)  # type: ignore
         if errors:
             event_logger.log_with_context(action="validation_error", engine=engine)
             raise InvalidParametersError(errors)

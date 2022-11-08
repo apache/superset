@@ -411,7 +411,7 @@ yarn serve
 
 #### Deployment
 
-Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documention with the `docs:` prefix.
+Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documentation with the `docs:` prefix.
 
 ### Flask server
 

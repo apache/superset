@@ -80,6 +80,8 @@ const propTypes = {
   timeout: PropTypes.number,
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
+  saveAction: PropTypes.string,
+  isSaveModalVisible: PropTypes.bool,
 };
 
 const ExploreContainer = styled.div`
@@ -167,7 +169,9 @@ const updateHistory = debounce(
   ) => {
     const payload = { ...formData };
     const chartId = formData.slice_id;
-    const additionalParam = {};
+    const params = new URLSearchParams(window.location.search);
+    const additionalParam = Object.fromEntries(params);
+
     if (chartId) {
       additionalParam[URL_PARAMS.sliceId.name] = chartId;
     } else {
@@ -238,7 +242,6 @@ function ExploreViewContainer(props) {
     props.controls,
   );
 
-  const [showingModal, setShowingModal] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
   const tabId = useTabId();
@@ -334,10 +337,6 @@ function ExploreViewContainer(props) {
     if (props.chart && props.chart.queryController) {
       props.chart.queryController.abort();
     }
-  }
-
-  function toggleModal() {
-    setShowingModal(!showingModal);
   }
 
   function toggleCollapse() {
@@ -456,6 +455,7 @@ function ExploreViewContainer(props) {
           !areObjectsEqual(
             props.controls[key].value,
             lastQueriedControls[key].value,
+            { ignoreFields: ['datasourceWarning'] },
           ),
       );
 
@@ -468,11 +468,11 @@ function ExploreViewContainer(props) {
     return false;
   }, [lastQueriedControls, props.controls]);
 
-  const saveAction = getUrlParam(URL_PARAMS.saveAction);
-  useChangeEffect(saveAction, () => {
-    if (['saveas', 'overwrite'].includes(saveAction)) {
+  useChangeEffect(props.saveAction, () => {
+    if (['saveas', 'overwrite'].includes(props.saveAction)) {
       onQuery();
       addHistory({ isReplace: true });
+      props.actions.setSaveAction(null);
     }
   });
 
@@ -563,7 +563,6 @@ function ExploreViewContainer(props) {
         ownState={props.ownState}
         user={props.user}
         reports={props.reports}
-        onSaveChart={toggleModal}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
         metadata={props.metadata}
       />
@@ -592,16 +591,6 @@ function ExploreViewContainer(props) {
             }
           `}
         />
-        {showingModal && (
-          <SaveModal
-            addDangerToast={props.addDangerToast}
-            onHide={toggleModal}
-            actions={props.actions}
-            form_data={props.form_data}
-            sliceName={props.sliceName}
-            dashboardId={props.dashboardId}
-          />
-        )}
         <Resizable
           onResizeStop={(evt, direction, ref, d) => {
             setShouldForceUpdate(d?.width);
@@ -698,6 +687,15 @@ function ExploreViewContainer(props) {
           {renderChartContainer()}
         </div>
       </ExplorePanelContainer>
+      {props.isSaveModalVisible && (
+        <SaveModal
+          addDangerToast={props.addDangerToast}
+          actions={props.actions}
+          form_data={props.form_data}
+          sliceName={props.sliceName}
+          dashboardId={props.dashboardId}
+        />
+      )}
     </ExploreContainer>
   );
 }
@@ -705,8 +703,16 @@ function ExploreViewContainer(props) {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const { explore, charts, common, impressionId, dataMask, reports, user } =
-    state;
+  const {
+    explore,
+    charts,
+    common,
+    impressionId,
+    dataMask,
+    reports,
+    user,
+    saveModal,
+  } = state;
   const { controls, slice, datasource, metadata } = explore;
   const form_data = getFormDataFromControls(controls);
   const slice_id = form_data.slice_id ?? slice?.slice_id ?? 0; // 0 - unsaved chart
@@ -754,6 +760,8 @@ function mapStateToProps(state) {
     exploreState: explore,
     reports,
     metadata,
+    saveAction: explore.saveAction,
+    isSaveModalVisible: saveModal.isVisible,
   };
 }
 
@@ -773,4 +781,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withToasts(ExploreViewContainer));
+)(withToasts(React.memo(ExploreViewContainer)));

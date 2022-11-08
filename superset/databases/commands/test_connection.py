@@ -29,13 +29,16 @@ from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
-    DatabaseTestConnectionFailedError,
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
-from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
+from superset.exceptions import (
+    SupersetErrorsException,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.extensions import event_logger
 from superset.models.core import Database
 
@@ -49,6 +52,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
     def run(self) -> None:  # pylint: disable=too-many-statements
         self.validate()
+        ex_str = ""
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
@@ -117,10 +121,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                     extra={"sqlalchemy_uri": database.sqlalchemy_uri},
                 ) from ex
-            except Exception:  # pylint: disable=broad-except
+            except Exception as ex:  # pylint: disable=broad-except
                 alive = False
+                # So we stop losing the original message if any
+                ex_str = str(ex)
+
             if not alive:
-                raise DBAPIError(None, None, None)
+                raise DBAPIError(ex_str or None, None, None)
 
             # Log succesful connection test with engine
             event_logger.log_with_context(
@@ -145,7 +152,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionFailedError(errors) from ex
+            raise SupersetErrorsException(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",

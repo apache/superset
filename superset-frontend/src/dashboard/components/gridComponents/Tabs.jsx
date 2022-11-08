@@ -49,7 +49,11 @@ const propTypes = {
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   activeTabs: PropTypes.arrayOf(PropTypes.string),
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
+  filterboxMigrationState: PropTypes.oneOf(
+    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
+      key => FILTER_BOX_MIGRATION_STATES[key],
+    ),
+  ),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,

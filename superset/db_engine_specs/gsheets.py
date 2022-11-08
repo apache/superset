@@ -55,6 +55,11 @@ class GSheetsParametersSchema(Schema):
 
 class GSheetsParametersType(TypedDict):
     service_account_info: str
+    catalog: Optional[Dict[str, str]]
+
+
+class GSheetsPropertiesType(TypedDict):
+    parameters: GSheetsParametersType
     catalog: Dict[str, str]
 
 
@@ -140,10 +145,13 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
+        if encrypted_extra is None:
+            return encrypted_extra
+
         try:
             config = json.loads(encrypted_extra)
-        except json.JSONDecodeError:
+        except (TypeError, json.JSONDecodeError):
             return encrypted_extra
 
         try:
@@ -154,14 +162,19 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         return json.dumps(config)
 
     @classmethod
-    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
+    def unmask_encrypted_extra(
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
         """
         Reuse ``private_key`` if available and unchanged.
         """
+        if old is None or new is None:
+            return new
+
         try:
             old_config = json.loads(old)
             new_config = json.loads(new)
-        except json.JSONDecodeError:
+        except (TypeError, json.JSONDecodeError):
             return new
 
         if "service_account_info" not in new_config:
@@ -200,17 +213,24 @@ class GSheetsEngineSpec(SqliteEngineSpec):
     @classmethod
     def validate_parameters(
         cls,
-        parameters: GSheetsParametersType,
+        properties: GSheetsPropertiesType,
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
+
+        # backwards compatible just incase people are send data
+        # via parameters for validation
+        parameters = properties.get("parameters", {})
+        if parameters and parameters.get("catalog"):
+            table_catalog = parameters.get("catalog", {})
+        else:
+            table_catalog = properties.get("catalog", {})
+
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
         # On create the encrypted credentials are a string,
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
             encrypted_credentials = json.loads(encrypted_credentials)
-
-        table_catalog = parameters.get("catalog", {})
 
         if not table_catalog:
             # Allowing users to submit empty catalogs
@@ -237,6 +257,7 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         )
         conn = engine.connect()
         idx = 0
+
         for name, url in table_catalog.items():
 
             if not name:

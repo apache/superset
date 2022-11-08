@@ -17,15 +17,15 @@
 from typing import Any, List
 
 from sqlalchemy import MetaData
-from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import and_, func, join, literal, select
 
+from superset.extensions import db
 from superset.tags.models import ObjectTypes, TagTypes
 
 
 def add_types_to_charts(
-    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     slices = metadata.tables["slices"]
 
@@ -53,11 +53,11 @@ def add_types_to_charts(
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, charts)
-    engine.execute(query)
+    db.session.execute(query)
 
 
 def add_types_to_dashboards(
-    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     dashboard_table = metadata.tables["dashboards"]
 
@@ -85,11 +85,11 @@ def add_types_to_dashboards(
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, dashboards)
-    engine.execute(query)
+    db.session.execute(query)
 
 
 def add_types_to_saved_queries(
-    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     saved_query = metadata.tables["saved_query"]
 
@@ -117,11 +117,11 @@ def add_types_to_saved_queries(
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, saved_queries)
-    engine.execute(query)
+    db.session.execute(query)
 
 
 def add_types_to_datasets(
-    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     tables = metadata.tables["tables"]
 
@@ -149,10 +149,10 @@ def add_types_to_datasets(
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, datasets)
-    engine.execute(query)
+    db.session.execute(query)
 
 
-def add_types(engine: Engine, metadata: MetaData) -> None:
+def add_types(metadata: MetaData) -> None:
     """
     Tag every object according to its type:
 
@@ -222,18 +222,22 @@ def add_types(engine: Engine, metadata: MetaData) -> None:
     insert = tag.insert()
     for type_ in ObjectTypes.__members__:
         try:
-            engine.execute(insert, name=f"type:{type_}", type=TagTypes.type)
+            db.session.execute(
+                insert,
+                name=f"type:{type_}",
+                type=TagTypes.type,
+            )
         except IntegrityError:
             pass  # already exists
 
-    add_types_to_charts(engine, metadata, tag, tagged_object, columns)
-    add_types_to_dashboards(engine, metadata, tag, tagged_object, columns)
-    add_types_to_saved_queries(engine, metadata, tag, tagged_object, columns)
-    add_types_to_datasets(engine, metadata, tag, tagged_object, columns)
+    add_types_to_charts(metadata, tag, tagged_object, columns)
+    add_types_to_dashboards(metadata, tag, tagged_object, columns)
+    add_types_to_saved_queries(metadata, tag, tagged_object, columns)
+    add_types_to_datasets(metadata, tag, tagged_object, columns)
 
 
 def add_owners_to_charts(
-    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     slices = metadata.tables["slices"]
 
@@ -265,11 +269,11 @@ def add_owners_to_charts(
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, charts)
-    engine.execute(query)
+    db.session.execute(query)
 
 
 def add_owners_to_dashboards(
-    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     dashboard_table = metadata.tables["dashboards"]
 
@@ -301,11 +305,11 @@ def add_owners_to_dashboards(
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, dashboards)
-    engine.execute(query)
+    db.session.execute(query)
 
 
 def add_owners_to_saved_queries(
-    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     saved_query = metadata.tables["saved_query"]
 
@@ -337,11 +341,11 @@ def add_owners_to_saved_queries(
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, saved_queries)
-    engine.execute(query)
+    db.session.execute(query)
 
 
 def add_owners_to_datasets(
-    engine: Engine, metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
+    metadata: MetaData, tag: Any, tagged_object: Any, columns: List[str]
 ) -> None:
     tables = metadata.tables["tables"]
 
@@ -373,10 +377,10 @@ def add_owners_to_datasets(
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, datasets)
-    engine.execute(query)
+    db.session.execute(query)
 
 
-def add_owners(engine: Engine, metadata: MetaData) -> None:
+def add_owners(metadata: MetaData) -> None:
     """
     Tag every object according to its owner:
 
@@ -443,19 +447,19 @@ def add_owners(engine: Engine, metadata: MetaData) -> None:
     # create a custom tag for each user
     ids = select([users.c.id])
     insert = tag.insert()
-    for (id_,) in engine.execute(ids):
+    for (id_,) in db.session.execute(ids):
         try:
-            engine.execute(insert, name=f"owner:{id_}", type=TagTypes.owner)
+            db.session.execute(insert, name=f"owner:{id_}", type=TagTypes.owner)
         except IntegrityError:
             pass  # already exists
 
-    add_owners_to_charts(engine, metadata, tag, tagged_object, columns)
-    add_owners_to_dashboards(engine, metadata, tag, tagged_object, columns)
-    add_owners_to_saved_queries(engine, metadata, tag, tagged_object, columns)
-    add_owners_to_datasets(engine, metadata, tag, tagged_object, columns)
+    add_owners_to_charts(metadata, tag, tagged_object, columns)
+    add_owners_to_dashboards(metadata, tag, tagged_object, columns)
+    add_owners_to_saved_queries(metadata, tag, tagged_object, columns)
+    add_owners_to_datasets(metadata, tag, tagged_object, columns)
 
 
-def add_favorites(engine: Engine, metadata: MetaData) -> None:
+def add_favorites(metadata: MetaData) -> None:
     """
     Tag every object that was favorited:
 
@@ -484,9 +488,13 @@ def add_favorites(engine: Engine, metadata: MetaData) -> None:
     # create a custom tag for each user
     ids = select([users.c.id])
     insert = tag.insert()
-    for (id_,) in engine.execute(ids):
+    for (id_,) in db.session.execute(ids):
         try:
-            engine.execute(insert, name=f"favorited_by:{id_}", type=TagTypes.type)
+            db.session.execute(
+                insert,
+                name=f"favorited_by:{id_}",
+                type=TagTypes.type,
+            )
         except IntegrityError:
             pass  # already exists
 
@@ -518,4 +526,4 @@ def add_favorites(engine: Engine, metadata: MetaData) -> None:
         .where(tagged_object.c.tag_id.is_(None))
     )
     query = tagged_object.insert().from_select(columns, favstars)
-    engine.execute(query)
+    db.session.execute(query)

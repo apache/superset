@@ -19,11 +19,16 @@
 import React, { ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
-import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  SupersetClient,
+  JsonResponse,
+  isDefined,
+} from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { isNullish } from 'src/utils/common';
-import { withRouter, RouteComponentProps } from 'react-router-dom';
+import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
@@ -32,7 +37,6 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import VizTypeGallery, {
   MAX_ADVISABLE_VIZ_GALLERY_WIDTH,
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-import _ from 'lodash';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
@@ -248,7 +252,7 @@ export class AddSliceContainer extends React.PureComponent<
   exploreUrl() {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
     let url = `/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
-    if (!isNullish(dashboardId)) {
+    if (isDefined(dashboardId)) {
       url += `&dashboard_id=${dashboardId}`;
     }
     return url;
@@ -329,18 +333,18 @@ export class AddSliceContainer extends React.PureComponent<
     const isButtonDisabled = this.isBtnDisabled();
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
-        <a
-          href="/tablemodelview/list/#create"
-          rel="noopener noreferrer"
-          target="_blank"
+        <Link
+          to="/tablemodelview/list/#create"
+          data-test="add-chart-new-dataset"
         >
           {t('Add a dataset')}
-        </a>
+        </Link>
         {` ${t('or')} `}
         <a
           href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"
           rel="noopener noreferrer"
           target="_blank"
+          data-test="add-chart-new-dataset-instructions"
         >
           {`${t('view instructions')} `}
           <i className="fa fa-external-link" />

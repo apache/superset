@@ -57,11 +57,13 @@ import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
 import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
 import updateComponentParentsList from '../util/updateComponentParentsList';
+import { FilterBarLocation } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
 export const hydrateDashboard =
   ({
+    history,
     dashboard,
     charts,
     filterboxMigrationState = FILTER_BOX_MIGRATION_STATES.NOOP,
@@ -291,8 +293,25 @@ export const hydrateDashboard =
       future: [],
     };
 
+    // Searches for a focused_chart parameter in the URL to automatically focus a chart
+    const focusedChartId = getUrlParam(URL_PARAMS.dashboardFocusedChart);
+    let focusedChartLayoutId;
+    if (focusedChartId) {
+      // Converts focused_chart to dashboard layout id
+      const found = Object.values(dashboardLayout.present).find(
+        element => element.meta?.chartId === focusedChartId,
+      );
+      focusedChartLayoutId = found?.id;
+      // Removes the focused_chart parameter from the URL
+      const params = new URLSearchParams(window.location.search);
+      params.delete(URL_PARAMS.dashboardFocusedChart.name);
+      history.replace({
+        search: params.toString(),
+      });
+    }
+
     // find direct link component and path from root
-    const directLinkComponentId = getLocationHash();
+    const directLinkComponentId = focusedChartLayoutId || getLocationHash();
     let directPathToChild = dashboardState.directPathToChild || [];
     if (layout[directLinkComponentId]) {
       directPathToChild = (layout[directLinkComponentId].parents || []).slice();
@@ -410,6 +429,8 @@ export const hydrateDashboard =
             flash_messages: common?.flash_messages,
             conf: common?.conf,
           },
+          filterBarLocation:
+            metadata.filter_bar_location ?? FilterBarLocation.VERTICAL,
         },
         dataMask,
         dashboardFilters,

@@ -22,10 +22,9 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
-from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
-from superset import app, security_manager
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import CommandException
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -42,11 +41,9 @@ from superset.reports.commands.exceptions import (
     ReportScheduleDataFrameTimeout,
     ReportScheduleExecuteUnexpectedError,
     ReportScheduleNotFoundError,
-    ReportScheduleNotificationError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
-    ReportScheduleSelleniumUserNotFoundError,
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
@@ -68,8 +65,9 @@ from superset.reports.models import (
 from superset.reports.notifications import create_notification
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.utils import get_executor
 from superset.utils.celery import session_scope
-from superset.utils.core import HeaderDataType
+from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -176,11 +174,11 @@ class BaseReportState:
                 **kwargs,
             )
 
-        # If we need to render dashboard in a specific sate, use stateful permalink
+        # If we need to render dashboard in a specific state, use stateful permalink
         dashboard_state = self._report_schedule.extra.get("dashboard")
         if dashboard_state:
             permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=self._report_schedule.dashboard_id,
+                dashboard_id=str(self._report_schedule.dashboard_id),
                 state=dashboard_state,
             ).run()
             return get_url_path("Superset.dashboard_permalink", key=permalink_key)
@@ -194,22 +192,13 @@ class BaseReportState:
             **kwargs,
         )
 
-    @staticmethod
-    def _get_user() -> User:
-        user = security_manager.find_user(
-            username=app.config["THUMBNAIL_SELENIUM_USER"]
-        )
-        if not user:
-            raise ReportScheduleSelleniumUserNotFoundError()
-        return user
-
     def _get_screenshots(self) -> List[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
         url = self._get_url()
-        user = self._get_user()
+        user = get_executor(self._report_schedule)
         if self._report_schedule.chart:
             screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
                 url,
@@ -239,16 +228,15 @@ class BaseReportState:
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            self._get_user()
-        )
+        user = get_executor(self._report_schedule)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s", url)
+            logger.info("Getting chart from %s as user %s", url, user.username)
             csv_data = get_chart_csv_data(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleCsvTimeout() from ex
@@ -265,16 +253,15 @@ class BaseReportState:
         Return data as a Pandas dataframe, to embed in notifications as a table.
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
-        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(
-            self._get_user()
-        )
+        user = get_executor(self._report_schedule)
+        auth_cookies = machine_auth_provider_factory.instance.get_auth_cookies(user)
 
         if self._report_schedule.chart.query_context is None:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
 
         try:
-            logger.info("Getting chart from %s", url)
+            logger.info("Getting chart from %s as user %s", url, user.username)
             dataframe = get_chart_dataframe(url, auth_cookies)
         except SoftTimeLimitExceeded as ex:
             raise ReportScheduleDataFrameTimeout() from ex
@@ -325,7 +312,6 @@ class BaseReportState:
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
-            "error_text": None,
         }
         return log_data
 
@@ -357,7 +343,6 @@ class BaseReportState:
                 if not csv_data:
                     error_text = "Unexpected missing csv file"
             if error_text:
-                header_data["error_text"] = error_text
                 return NotificationContent(
                     name=self._report_schedule.name,
                     text=error_text,
@@ -399,9 +384,9 @@ class BaseReportState:
         """
         Sends a notification to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
-        notification_errors = []
+        notification_errors: List[NotificationError] = []
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
@@ -415,15 +400,17 @@ class BaseReportState:
                     notification.send()
             except NotificationError as ex:
                 # collect notification errors but keep processing them
-                notification_errors.append(str(ex))
+                notification_errors.append(ex)
         if notification_errors:
-            raise ReportScheduleNotificationError(";".join(notification_errors))
+            # raise errors separately so that we can utilize error status codes
+            for error in notification_errors:
+                raise error
 
     def send(self) -> None:
         """
         Creates the notification content and sends them to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
         notification_content = self._get_notification_content()
         self._send(notification_content, self._report_schedule.recipients)
@@ -432,10 +419,14 @@ class BaseReportState:
         """
         Creates and sends a notification for an error, to all recipients
 
-        :raises: ReportScheduleNotificationError
+        :raises: NotificationError
         """
         header_data = self._get_log_data()
-        header_data["error_text"] = message
+        logger.info(
+            "header_data in notifications for alerts and reports %s, taskid, %s",
+            header_data,
+            self._execution_id,
+        )
         notification_content = NotificationContent(
             name=name, text=message, header_data=header_data
         )
@@ -526,7 +517,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except CommandException as first_ex:
+        except Exception as first_ex:
             self.update_report_schedule_and_log(
                 ReportState.ERROR, error_message=str(first_ex)
             )
@@ -542,7 +533,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
                         ReportState.ERROR,
                         error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
                     )
-                except CommandException as second_ex:
+                except Exception as second_ex:  # pylint: disable=broad-except
                     self.update_report_schedule_and_log(
                         ReportState.ERROR, error_message=str(second_ex)
                     )
@@ -599,7 +590,7 @@ class ReportSuccessState(BaseReportState):
                 if not AlertCommand(self._report_schedule).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
-            except CommandException as ex:
+            except Exception as ex:
                 self.send_error(
                     f"Error occurred for {self._report_schedule.type}:"
                     f" {self._report_schedule.name}",
@@ -614,7 +605,7 @@ class ReportSuccessState(BaseReportState):
         try:
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except CommandException as ex:
+        except Exception as ex:  # pylint: disable=broad-except
             self.update_report_schedule_and_log(
                 ReportState.ERROR, error_message=str(ex)
             )
@@ -676,9 +667,16 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
                 self.validate(session=session)
                 if not self._model:
                     raise ReportScheduleExecuteUnexpectedError()
-                ReportScheduleStateMachine(
-                    session, self._execution_id, self._model, self._scheduled_dttm
-                ).run()
+                user = get_executor(self._model)
+                with override_user(user):
+                    logger.info(
+                        "Running report schedule %s as user %s",
+                        self._execution_id,
+                        user.username,
+                    )
+                    ReportScheduleStateMachine(
+                        session, self._execution_id, self._model, self._scheduled_dttm
+                    ).run()
             except CommandException as ex:
                 raise ex
             except Exception as ex:
@@ -688,6 +686,13 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
         self, session: Session = None
     ) -> None:
         # Validate/populate model exists
-        self._model = ReportScheduleDAO.find_by_id(self._model_id, session=session)
+        logger.info(
+            "session is validated: id %s, executionid: %s",
+            self._model_id,
+            self._execution_id,
+        )
+        self._model = (
+            session.query(ReportSchedule).filter_by(id=self._model_id).one_or_none()
+        )
         if not self._model:
             raise ReportScheduleNotFoundError()

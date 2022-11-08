@@ -75,6 +75,26 @@ const newProps = {
     },
   },
 };
+const asyncQueryProps = {
+  ...mockedProps,
+  database: { allow_run_async: true },
+};
+const asyncRefetchDataPreviewProps = {
+  ...asyncQueryProps,
+  query: {
+    state: 'success',
+    results: undefined,
+    isDataPreview: true,
+  },
+};
+const asyncRefetchResultsTableProps = {
+  ...asyncQueryProps,
+  query: {
+    state: 'success',
+    results: undefined,
+    resultsKey: 'async results key',
+  },
+};
 fetchMock.get('glob:*/api/v1/dataset?*', { result: [] });
 
 const middlewares = [thunk];
@@ -86,13 +106,13 @@ const setup = (props?: any, store?: Store) =>
   });
 
 describe('ResultSet', () => {
-  it('renders a Table', async () => {
+  test('renders a Table', async () => {
     const { getByTestId } = setup(mockedProps, mockStore(initialState));
     const table = getByTestId('table-container');
     expect(table).toBeInTheDocument();
   });
 
-  it('should render success query', async () => {
+  test('should render success query', async () => {
     const { queryAllByText, getByTestId } = setup(
       mockedProps,
       mockStore(initialState),
@@ -114,7 +134,7 @@ describe('ResultSet', () => {
     expect(exploreButton).toBeInTheDocument();
   });
 
-  it('should render empty results', async () => {
+  test('should render empty results', async () => {
     const props = {
       ...mockedProps,
       query: { ...mockedProps.query, results: { data: [] } },
@@ -128,7 +148,7 @@ describe('ResultSet', () => {
     expect(alert).toHaveTextContent('The query returned no data');
   });
 
-  it('should call reRunQuery if timed out', async () => {
+  test('should call reRunQuery if timed out', async () => {
     const store = mockStore(initialState);
     const propsWithError = {
       ...mockedProps,
@@ -143,26 +163,26 @@ describe('ResultSet', () => {
     expect(store.getActions()[0].type).toEqual('START_QUERY');
   });
 
-  it('should not call reRunQuery if no error', async () => {
+  test('should not call reRunQuery if no error', async () => {
     const store = mockStore(initialState);
     setup(mockedProps, store);
     expect(store.getActions()).toEqual([]);
   });
 
-  it('should render cached query', async () => {
+  test('should render cached query', async () => {
     const store = mockStore(initialState);
     const { rerender } = setup(cachedQueryProps, store);
 
     // @ts-ignore
     rerender(<ResultSet {...newProps} />);
-    expect(store.getActions()).toHaveLength(1);
+    expect(store.getActions()).toHaveLength(2);
     expect(store.getActions()[0].query.results).toEqual(
       cachedQueryProps.query.results,
     );
     expect(store.getActions()[0].type).toEqual('CLEAR_QUERY_RESULTS');
   });
 
-  it('should render stopped query', async () => {
+  test('should render stopped query', async () => {
     await waitFor(() => {
       setup(stoppedQueryProps, mockStore(initialState));
     });
@@ -171,13 +191,13 @@ describe('ResultSet', () => {
     expect(alert).toBeInTheDocument();
   });
 
-  it('should render running/pending/fetching query', async () => {
+  test('should render running/pending/fetching query', async () => {
     const { getByTestId } = setup(runningQueryProps, mockStore(initialState));
     const progressBar = getByTestId('progress-bar');
     expect(progressBar).toBeInTheDocument();
   });
 
-  it('should render fetching w/ 100 progress query', async () => {
+  test('should render fetching w/ 100 progress query', async () => {
     const { getByRole, getByText } = setup(
       fetchingQueryProps,
       mockStore(initialState),
@@ -187,7 +207,7 @@ describe('ResultSet', () => {
     expect(getByText('fetching')).toBeInTheDocument();
   });
 
-  it('should render a failed query with an error message', async () => {
+  test('should render a failed query with an error message', async () => {
     await waitFor(() => {
       setup(failedQueryWithErrorMessageProps, mockStore(initialState));
     });
@@ -196,21 +216,56 @@ describe('ResultSet', () => {
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();
   });
 
-  it('should render a failed query with an errors object', async () => {
+  test('should render a failed query with an errors object', async () => {
     await waitFor(() => {
       setup(failedQueryWithErrorsProps, mockStore(initialState));
     });
     expect(screen.getByText('Database error')).toBeInTheDocument();
   });
 
-  it('renders if there is no limit in query.results but has queryLimit', async () => {
+  test('renders if there is no limit in query.results but has queryLimit', async () => {
     const { getByRole } = setup(mockedProps, mockStore(initialState));
     expect(getByRole('grid')).toBeInTheDocument();
   });
 
-  it('renders if there is a limit in query.results but not queryLimit', async () => {
+  test('renders if there is a limit in query.results but not queryLimit', async () => {
     const props = { ...mockedProps, query: queryWithNoQueryLimit };
     const { getByRole } = setup(props, mockStore(initialState));
     expect(getByRole('grid')).toBeInTheDocument();
+  });
+
+  test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
+    setup(asyncRefetchDataPreviewProps, mockStore(initialState));
+    expect(
+      screen.getByRole('button', {
+        name: /fetch data preview/i,
+      }),
+    ).toBeVisible();
+    expect(screen.queryByRole('grid')).toBe(null);
+  });
+
+  test('Async queries - renders "Refetch results" button when a query has no results', () => {
+    setup(asyncRefetchResultsTableProps, mockStore(initialState));
+    expect(
+      screen.getByRole('button', {
+        name: /refetch results/i,
+      }),
+    ).toBeVisible();
+    expect(screen.queryByRole('grid')).toBe(null);
+  });
+
+  test('Async queries - renders on the first call', () => {
+    setup(asyncQueryProps, mockStore(initialState));
+    expect(screen.getByRole('grid')).toBeVisible();
+    expect(
+      screen.queryByRole('button', {
+        name: /fetch data preview/i,
+      }),
+    ).toBe(null);
+    expect(
+      screen.queryByRole('button', {
+        name: /refetch results/i,
+      }),
+    ).toBe(null);
   });
 });

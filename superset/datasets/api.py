@@ -22,7 +22,7 @@ from typing import Any
 from zipfile import is_zipfile, ZipFile
 
 import yaml
-from flask import g, request, Response, send_file
+from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -196,7 +196,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
     duplicate_model_schema = DatasetDuplicateSchema()
-    add_columns = ["database", "schema", "table_name", "owners"]
+    add_columns = ["database", "schema", "table_name", "sql", "owners"]
     edit_columns = [
         "table_name",
         "sql",
@@ -585,7 +585,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            new_model = DuplicateDatasetCommand([g.user.id], item).run()
+            new_model = DuplicateDatasetCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(
@@ -817,6 +817,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing datasets?
                       type: boolean
+                    sync_columns:
+                      description: sync columns?
+                      type: boolean
+                    sync_metrics:
+                      description: sync metrics?
+                      type: boolean
           responses:
             200:
               description: Dataset import result
@@ -855,9 +861,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        sync_columns = request.form.get("sync_columns") == "true"
+        sync_metrics = request.form.get("sync_metrics") == "true"
 
         command = ImportDatasetsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            sync_columns=sync_columns,
+            sync_metrics=sync_metrics,
         )
         command.run()
         return self.response(200, message="OK")

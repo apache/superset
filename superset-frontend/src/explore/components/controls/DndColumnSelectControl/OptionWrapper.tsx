@@ -57,6 +57,7 @@ export default function OptionWrapper(
     clickClose,
     withCaret,
     isExtra,
+    datasourceWarningMessage,
     canDelete = true,
     ...rest
   } = props;
@@ -176,6 +177,7 @@ export default function OptionWrapper(
         clickClose={clickClose}
         withCaret={withCaret}
         isExtra={isExtra}
+        datasourceWarningMessage={datasourceWarningMessage}
         canDelete={canDelete}
       >
         <Label />

@@ -24,12 +24,10 @@ import { bindActionCreators } from 'redux';
 import URI from 'urijs';
 import { styled, t } from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
-import { areArraysShallowEqual } from 'src/reduxUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyStateBig } from 'src/components/EmptyState';
-import { newQueryTabName } from '../../utils/newQueryTabName';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -73,8 +71,6 @@ class TabbedSqlEditors extends React.PureComponent {
     const sqlLabUrl = '/superset/sqllab';
     this.state = {
       sqlLabUrl,
-      queriesArray: [],
-      dataPreviewQueries: [],
     };
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
     this.duplicateQueryEditor = this.duplicateQueryEditor.bind(this);
@@ -187,37 +183,6 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    const nextActiveQeId =
-      nextProps.tabHistory[nextProps.tabHistory.length - 1];
-    const queriesArray = Object.values(nextProps.queries).filter(
-      query => query.sqlEditorId === nextActiveQeId,
-    );
-    if (!areArraysShallowEqual(queriesArray, this.state.queriesArray)) {
-      this.setState({ queriesArray });
-    }
-
-    const dataPreviewQueries = [];
-    nextProps.tables.forEach(table => {
-      const queryId = table.dataPreviewQueryId;
-      if (
-        queryId &&
-        nextProps.queries[queryId] &&
-        table.queryEditorId === nextActiveQeId
-      ) {
-        dataPreviewQueries.push({
-          ...nextProps.queries[queryId],
-          tableName: table.name,
-        });
-      }
-    });
-    if (
-      !areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)
-    ) {
-      this.setState({ dataPreviewQueries });
-    }
-  }
-
   popNewTab() {
     // Clean the url in browser history
     window.history.replaceState({}, document.title, this.state.sqlLabUrl);
@@ -242,10 +207,7 @@ class TabbedSqlEditors extends React.PureComponent {
           '-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n',
         );
 
-    const newTitle = newQueryTabName(this.props.queryEditors || []);
-
     const qe = {
-      name: newTitle,
       dbId:
         activeQueryEditor && activeQueryEditor.dbId
           ? activeQueryEditor.dbId
@@ -255,7 +217,7 @@ class TabbedSqlEditors extends React.PureComponent {
       sql: `${warning}SELECT ...`,
       queryLimit: this.props.defaultQueryLimit,
     };
-    this.props.actions.addQueryEditor(qe);
+    this.props.actions.addNewQueryEditor(qe);
   }
 
   handleSelect(key) {
@@ -302,8 +264,6 @@ class TabbedSqlEditors extends React.PureComponent {
         <SqlEditor
           tables={this.props.tables.filter(xt => xt.queryEditorId === qe.id)}
           queryEditor={qe}
-          editorQueries={this.state.queriesArray}
-          dataPreviewQueries={this.state.dataPreviewQueries}
           actions={this.props.actions}
           defaultQueryLimit={this.props.defaultQueryLimit}
           maxRow={this.props.maxRow}

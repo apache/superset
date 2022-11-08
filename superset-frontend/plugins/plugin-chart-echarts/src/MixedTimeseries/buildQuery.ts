@@ -23,8 +23,8 @@ import {
   PostProcessingPivot,
   QueryFormData,
   QueryObject,
-  getXAxis,
   isXAxisSet,
+  getXAxisColumn,
 } from '@superset-ui/core';
 import {
   pivotOperator,
@@ -54,7 +54,9 @@ export default function buildQuery(formData: QueryFormData) {
       const queryObject = {
         ...baseQueryObject,
         columns: [
-          ...(isXAxisSet(formData) ? ensureIsArray(getXAxis(formData)) : []),
+          ...(isXAxisSet(formData)
+            ? ensureIsArray(getXAxisColumn(formData))
+            : []),
           ...ensureIsArray(fd.groupby),
         ],
         series_columns: fd.groupby,

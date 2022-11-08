@@ -136,7 +136,7 @@ const FilterControl: React.FC<FilterProps> = ({
           {name}
         </StyledFilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
-        {filter.description && filter.description.trim() && (
+        {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
         <StyledIcon data-test="filter-icon">{icon}</StyledIcon>

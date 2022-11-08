@@ -21,7 +21,7 @@ import json
 import logging
 import textwrap
 from ast import literal_eval
-from contextlib import closing
+from contextlib import closing, contextmanager
 from copy import deepcopy
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
@@ -244,31 +244,34 @@ class Database(
 
     @property
     def backend(self) -> str:
-        sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
-        return sqlalchemy_url.get_backend_name()
+        return self.url_object.get_backend_name()
 
     @property
-    def masked_encrypted_extra(self) -> str:
+    def driver(self) -> str:
+        return self.url_object.get_driver_name()
+
+    @property
+    def masked_encrypted_extra(self) -> Optional[str]:
         return self.db_engine_spec.mask_encrypted_extra(self.encrypted_extra)
 
     @property
     def parameters(self) -> Dict[str, Any]:
-        db_engine_spec = self.db_engine_spec
-
+        # Database parameters are a dictionary of values that are used to make up
+        # the sqlalchemy_uri
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
         masked_uri = make_url_safe(self.sqlalchemy_uri)
-        masked_encrypted_extra = db_engine_spec.mask_encrypted_extra(
-            self.encrypted_extra
-        )
-        try:
-            encrypted_config = json.loads(masked_encrypted_extra)
-        except (TypeError, json.JSONDecodeError):
-            encrypted_config = {}
+        masked_encrypted_extra = self.masked_encrypted_extra
+        encrypted_config = {}
+        if masked_encrypted_extra is not None:
+            try:
+                encrypted_config = json.loads(masked_encrypted_extra)
+            except (TypeError, json.JSONDecodeError):
+                pass
 
         try:
             # pylint: disable=useless-suppression
-            parameters = db_engine_spec.get_parameters_from_uri(  # type: ignore
+            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
                 masked_uri,
                 encrypted_extra=encrypted_config,
             )
@@ -358,6 +361,18 @@ class Database(
             if self.impersonate_user
             else None
         )
+
+    @contextmanager
+    def get_sqla_engine_with_context(
+        self,
+        schema: Optional[str] = None,
+        nullpool: bool = True,
+        source: Optional[utils.QuerySource] = None,
+    ) -> Engine:
+        try:
+            yield self.get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     def get_sqla_engine(
         self,
@@ -548,9 +563,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(table, schema) for table in tables]
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Get all table names in schema failed", exc_info=True)
-            return []
+        except Exception as ex:  # pylint: disable=broad-except
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:view_list",
@@ -579,9 +593,8 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(view, schema) for view in views]
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Get all view names failed", exc_info=True)
-            return []
+        except Exception as ex:  # pylint: disable=broad-except
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
@@ -603,7 +616,10 @@ class Database(
         :param force: whether to force refresh the cache
         :return: schema list
         """
-        return self.db_engine_spec.get_schema_names(self.inspector)
+        try:
+            return self.db_engine_spec.get_schema_names(self.inspector)
+        except Exception as ex:
+            raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @property
     def db_engine_spec(self) -> Type[db_engine_specs.BaseEngineSpec]:
@@ -688,9 +704,14 @@ class Database(
         self, table_name: str, schema: Optional[str] = None
     ) -> Dict[str, Any]:
         pk_constraint = self.inspector.get_pk_constraint(table_name, schema) or {}
-        return {
-            key: utils.base_json_conv(value) for key, value in pk_constraint.items()
-        }
+
+        def _convert(value: Any) -> Any:
+            try:
+                return utils.base_json_conv(value)
+            except TypeError:
+                return None
+
+        return {key: _convert(value) for key, value in pk_constraint.items()}
 
     def get_foreign_keys(
         self, table_name: str, schema: Optional[str] = None

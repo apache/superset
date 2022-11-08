@@ -25,7 +25,7 @@ metadata:
     heritage: {{ .Release.Service }}
 {{- if .Values.supersetWorker.deploymentAnnotations }}
   annotations:
-    {{ toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
+    {{- toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}
 {{- end }}
 spec:
   replicas: {{ .Values.supersetWorker.replicaCount }}
@@ -52,13 +52,13 @@ spec:
         force-reload: {{ randAlphaNum 5 | quote }}
         {{ end }}
       {{- if .Values.supersetWorker.podAnnotations }}
-        {{ toYaml .Values.supersetWorker.podAnnotations | nindent 8 }}
+        {{- toYaml .Values.supersetWorker.podAnnotations | nindent 8 }}
       {{- end }}
       labels:
         app: {{ template "superset.name" . }}-worker
         release: {{ .Release.Name }}
       {{- if .Values.supersetWorker.podLabels }}
-        {{ toYaml .Values.supersetWorker.podLabels | nindent 8 }}
+        {{- toYaml .Values.supersetWorker.podLabels | nindent 8 }}
       {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
@@ -67,21 +67,21 @@ spec:
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
       {{- if .Values.supersetWorker.podSecurityContext }}
-        {{ toYaml .Values.supersetWorker.podSecurityContext | nindent 8 }}
+        {{- toYaml .Values.supersetWorker.podSecurityContext | nindent 8 }}
       {{- end }}
       {{- if .Values.supersetWorker.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
       {{- end }}
       {{- with .Values.hostAliases }}
-      hostAliases: {{ toYaml . | nindent 6 }}
+      hostAliases: {{- toYaml . | nindent 6 }}
       {{- end }}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           {{- if .Values.supersetWorker.containerSecurityContext }}
-          securityContext: {{ toYaml .Values.supersetWorker.containerSecurityContext | nindent 12 }}
+          securityContext: {{- toYaml .Values.supersetWorker.containerSecurityContext | nindent 12 }}
           {{- end }}
           command: {{  tpl (toJson .Values.supersetWorker.command) . }}
           env:
@@ -113,27 +113,39 @@ spec:
           {{- with .Values.extraVolumeMounts }}
           {{- tpl (toYaml .) $ | nindent 12 -}}
           {{- end }}
+          {{- if .Values.supersetWorker.startupProbe }}
+          startupProbe:
+            {{- .Values.supersetWorker.startupProbe | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.supersetWorker.readinessProbe }}
+          readinessProbe:
+            {{- .Values.supersetWorker.readinessProbe | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.supersetWorker.livenessProbe }}
+          livenessProbe:
+            {{- .Values.supersetWorker.livenessProbe | toYaml | nindent 12 }}
+          {{- end }}
           resources:
           {{- if .Values.supersetWorker.resources }}
-{{ toYaml .Values.supersetWorker.resources | indent 12 }}
+              {{- toYaml .Values.supersetWorker.resources | nindent 12 }}
           {{- else }}
-{{ toYaml .Values.resources | indent 12 }}
+            {{- toYaml .Values.resources | nindent 12 }}
           {{- end }}
-    {{- with .Values.nodeSelector }}
+      {{- with .Values.nodeSelector }}
       nodeSelector:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- with .Values.affinity }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
       affinity:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-    {{- with .Values.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
       tolerations:
-{{ toYaml . | indent 8 }}
-    {{- end }}
-{{- if .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.imagePullSecrets | indent 8 }}
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
       volumes:
         - name: superset-config

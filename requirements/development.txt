@@ -28,6 +28,8 @@ certifi==2021.10.8
     # via requests
 chardet==4.0.0
     # via tabulator
+charset-normalizer==2.0.12
+    # via requests
 decorator==5.1.1
     # via ipython
 et-xmlfile==1.1.0
