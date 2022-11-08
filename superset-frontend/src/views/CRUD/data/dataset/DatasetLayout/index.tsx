@@ -37,7 +37,7 @@ interface DatasetLayoutProps {
   datasetPanel?: ReactElement<any, string | JSXElementConstructor<any>> | null;
   rightPanel?: ReactElement<any, string | JSXElementConstructor<any>> | null;
   footer?: ReactElement<any, string | JSXElementConstructor<any>> | null;
-  showEditPage: boolean;
+  showEditPage?: boolean;
 }
 
 export default function DatasetLayout({

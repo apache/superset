@@ -116,8 +116,7 @@ export default function AddDataset() {
 
   const id = window.location.pathname.split('/')[2];
   useEffect(() => {
-    if (typeof Number(id) === 'number') {
-      console.log('showeditpage set', Number(id));
+    if (!Number.isNaN(parseFloat(id))) {
       setShowEditPage(true);
     }
   }, [id]);

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';
@@ -24,26 +24,39 @@ import Tabs from 'src/components/Tabs';
 const StyledTabs = styled(Tabs)`
   margin-top: 34px;
   padding-left: 16px;
-  div[role='tablist'] {
-    width: 307px;
+  // display: inline-block;
+  .ant-tabs-top > .ant-tabs-nav::before,
+  .ant-tabs-top > .ant-tabs-nav::before {
+    width: 200px;
+  }
+  .ant-tabs-nav-list > div:nth-last-child(2) {
+    // margin-right: 0px;
   }
 `;
 
 const TabStyles = styled.div`
   .ant-badge {
     width: 32px;
+    margin-left: 10px;
   }
 `;
 
-const EditPage = ({ id }) => {
+interface EditPageProps {
+  id: number;
+}
+
+const EditPage = ({ id }: EditPageProps) => {
   const [usageCount, setUsageCount] = useState(0);
   useEffect(() => {
+    // Todo: this useEffect should be used to call all count methods conncurently
+    // when we populate data for the new tabs. For right separating out this
+    // api call for building the usage page.
     if (id)
       SupersetClient.get({
         endpoint: `/api/v1/dataset/${id}/related_objects`,
       })
         .then(({ json = {} }) => {
-          console.log('JSON', json);
+          setUsageCount(json.charts.count);
         })
         .catch(err => console.log(err));
   }, [id]);
@@ -51,23 +64,18 @@ const EditPage = ({ id }) => {
   const Tab = (
     <TabStyles>
       <span>{t('Usage')}</span>
-      <Badge count={1} />
+      <Badge count={usageCount + 1} />
     </TabStyles>
   );
 
   return (
     <>
-      <StyledTabs>
-        <Tabs.TabPane tab={t('Columns')}>
+      <StyledTabs moreIcon={null} fullWidth={false}>
+        <Tabs.TabPane tab={t('Columns')} key="1" />
+        <Tabs.TabPane tab={t('Metrics')} key="2" />
+        <Tabs.TabPane tab={Tab} key="3">
           <div>placeholder</div>
         </Tabs.TabPane>
-        <Tabs.TabPane tab={t('Metrics')}>
-          <div>placeholder</div>
-        </Tabs.TabPane>
-        <Tabs.TabPane tab={Tab}>
-          <div>placeholder</div>
-        </Tabs.TabPane>
-
       </StyledTabs>
     </>
   );
