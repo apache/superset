@@ -409,8 +409,7 @@ export function NumericCell(props: NumericCellProps) {
   try {
     displayValue = value?.toLocaleString?.(locale, options);
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e);
+    logging.error(e);
   }
 
   return <span>{displayValue}</span>;
