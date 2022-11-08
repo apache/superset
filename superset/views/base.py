@@ -651,26 +651,26 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(models.SqlaTable.owners)
             .filter(security_manager.user_model.id == get_user_id())
         )
-        dbIds = self.get_database_ids(database_perms)
+        database_ids = self.get_database_ids(database_perms)
         return query.filter(
             or_(
                 self.model.perm.in_(datasource_perms),
                 self.model.schema_perm.in_(schema_perms),
                 models.SqlaTable.id.in_(owner_ids_query),
-                models.SqlaTable.database_id.in_(dbIds),
+                models.SqlaTable.database_id.in_(database_ids),
             )
         )
 
-    def get_database_ids(self, databasepermissions: set) -> List[str]:
-        dbIds = []
-        if databasepermissions is not None and len(databasepermissions) > 0:
-            databaseList = list(databasepermissions)
-            for i in range(len(databaseList)):
-                databaseRole = databaseList[i]
-                startIndex = databaseRole.index("(id:") + 4
-                endIndex = databaseRole.index(")", startIndex)
-                dbIds.append(databaseRole[startIndex:endIndex])
-        return dbIds
+    def get_database_ids(self, database_permissions: set) -> List[str]:
+        db_ids = []
+        if database_permissions is not None and len(database_permissions) > 0:
+            database_list = list(database_permissions)
+            for i in range(len(database_list)):
+                database_roles = database_list[i]
+                startIndex = database_roles.index("(id:") + 4
+                endIndex = database_roles.index(")", startIndex)
+                db_ids.append(database_roles[startIndex:endIndex])
+        return db_ids
 
 
 class CsvResponse(Response):
