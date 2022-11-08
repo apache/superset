@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 export const exampleRow = {
   key: 1,
   buttonCell: 'Click Me',

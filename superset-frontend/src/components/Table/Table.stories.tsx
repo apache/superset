@@ -16,12 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import React from 'react';
+import React, { useState } from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { action } from '@storybook/addon-actions';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { ColumnsType } from 'antd/es/table';
-import { Table, TableSize, SUPERSET_TABLE_COLUMN } from './index';
+import { Table, TableSize, SUPERSET_TABLE_COLUMN, ColumnsType } from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
 import ActionCell from './cell-renderers/ActionCell';
@@ -35,11 +34,8 @@ import NumericCell, {
 export default {
   title: 'Design System/Components/Table/Examples',
   component: Table,
+  argTypes: { onClick: { action: 'clicked' } },
 } as ComponentMeta<typeof Table>;
-
-// eslint-disable-next-line no-alert
-const handleClick = (data: object, index: number) =>
-  alert(`I was Clicked: ${JSON.stringify(data)}, index: ${index}`);
 
 export interface BasicData {
   name: string;
@@ -146,7 +142,12 @@ const bigColumns: ColumnsType<ExampleData> = [
     dataIndex: 'name',
     key: 'name',
     render: (text: string, row: object, index: number) => (
-      <ButtonCell label={text} onClick={handleClick} row={row} index={index} />
+      <ButtonCell
+        label={text}
+        onClick={action('button-cell-click')}
+        row={row}
+        index={index}
+      />
     ),
     width: 150,
   },
@@ -174,10 +175,7 @@ const rendererColumns: ColumnsType<RendererData> = [
         label={text}
         row={data}
         index={index}
-        onClick={(row: object, index: number) =>
-          // eslint-disable-next-line no-alert
-          alert(`Cell was clicked: row ${index}, row: ${JSON.stringify(row)}`)
-        }
+        onClick={action('button-cell-click')}
       />
     ),
   },
@@ -269,44 +267,23 @@ export const Basic: ComponentStory<typeof Table> = args => (
 
 function handlers(record: object, rowIndex: number) {
   return {
-    onClick: (event: React.MouseEvent<HTMLTableRowElement>) => {
-      // eslint-disable-next-line no-alert
-      alert(`Click, row:  ${rowIndex}, ${event.currentTarget.tagName}`);
-    }, // click row
-    onDoubleClick: (event: React.MouseEvent<HTMLTableRowElement>) => {
-      // eslint-disable-next-line no-alert
-      alert(`Double Click, row:  ${rowIndex}, ${event.currentTarget.tagName}`);
-    }, // double click row
-    onContextMenu: (event: React.MouseEvent<HTMLTableRowElement>) => {
-      event.preventDefault();
-      // eslint-disable-next-line no-alert
-      alert(`Context Menu, row:  ${rowIndex}, ${event.currentTarget.tagName}`);
-    }, // right button click row
-    onMouseEnter: (event: React.MouseEvent<HTMLTableRowElement>) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        `Mouse Enter, row:  ${rowIndex}, record: ${JSON.stringify(record)} , ${
-          event.currentTarget.tagName
-        }`,
-      );
-    }, // mouse enter row
-    onMouseLeave: (event: React.MouseEvent<HTMLTableRowElement>) => {
-      // eslint-disable-next-line no-console
-      console.log(
-        `Mouse Leave, row:  ${rowIndex}, ${event.currentTarget.tagName}`,
-      );
-    }, // mouse leave row
+    onClick: action(
+      `row onClick, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+    ), // click row
+    onDoubleClick: action(
+      `row onDoubleClick, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+    ), // double click row
+    onContextMenu: action(
+      `row onContextMenu, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+    ), // right button click row
+    onMouseEnter: action(`Mouse Enter, row:  ${rowIndex}`), // mouse enter row
+    onMouseLeave: action(`Mouse Leave, row:  ${rowIndex}`), // mouse leave row
   };
 }
 
 Basic.args = {
   data: basicData,
   columns: basicColumns,
-  selectedRows: [1],
-  handleRowSelection: (selection: React.Key[]) => {
-    // eslint-disable-next-line no-alert
-    alert(selection);
-  },
   size: TableSize.SMALL,
   onRow: handlers,
   pageSizeOptions: ['5', '10', '15', '20', '25'],
@@ -324,10 +301,6 @@ export const ManyColumns: ComponentStory<typeof Table> = args => (
 ManyColumns.args = {
   data: bigdata,
   columns: bigColumns,
-  selectedRows: [1],
-  handleRowSelection: (selection: React.Key[]) => {
-    alert(selection);
-  },
   size: TableSize.SMALL,
   resizable: true,
   reorderable: true,
@@ -358,71 +331,63 @@ export const ResizableColumns: ComponentStory<typeof Table> = args => (
 ResizableColumns.args = {
   data: basicData,
   columns: basicColumns,
-  selectedRows: [1],
-  handleRowSelection: (selection: React.Key[]) => {
-    alert(selection);
-  },
   size: TableSize.SMALL,
   resizable: true,
 };
 
-const dragOver = (ev: React.DragEvent<HTMLDivElement>) => {
-  ev.preventDefault();
-  const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
-  if (element?.style) {
-    element.style.border = '1px dashed green';
-  }
-};
+export const ReorderableColumns: ComponentStory<typeof Table> = args => {
+  const [droppedItem, setDroppedItem] = useState<string | undefined>();
+  const dragOver = (ev: React.DragEvent<HTMLDivElement>) => {
+    ev.preventDefault();
+    const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
+    if (element?.style) {
+      element.style.border = '1px dashed green';
+    }
+  };
 
-const dragOut = (ev: React.DragEvent<HTMLDivElement>) => {
-  ev.preventDefault();
-  const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
-  if (element?.style) {
-    element.style.border = '1px solid grey';
-  }
-};
+  const dragOut = (ev: React.DragEvent<HTMLDivElement>) => {
+    ev.preventDefault();
+    const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
+    if (element?.style) {
+      element.style.border = '1px solid grey';
+    }
+  };
 
-const dragDrop = (ev: React.DragEvent<HTMLDivElement>) => {
-  const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
-  const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
-  if (element?.style) {
-    element.style.border = '1px solid grey';
-  }
-  // eslint-disable-next-line no-alert
-  alert(data);
-};
-
-export const ReorderableColumns: ComponentStory<typeof Table> = args => (
-  <ThemeProvider theme={supersetTheme}>
-    <div>
-      <div
-        onDragOver={(ev: React.DragEvent<HTMLDivElement>) => dragOver(ev)}
-        onDragLeave={(ev: React.DragEvent<HTMLDivElement>) => dragOut(ev)}
-        onDrop={(ev: React.DragEvent<HTMLDivElement>) => dragDrop(ev)}
-        style={{
-          width: '100%',
-          height: '40px',
-          border: '1px solid grey',
-          marginBottom: '8px',
-          padding: '8px',
-          borderRadius: '4px',
-        }}
-      >
-        Drop column here...
+  const dragDrop = (ev: React.DragEvent<HTMLDivElement>) => {
+    const data = ev.dataTransfer?.getData?.(SUPERSET_TABLE_COLUMN);
+    const element: HTMLElement | null = ev?.currentTarget as HTMLElement;
+    if (element?.style) {
+      element.style.border = '1px solid grey';
+    }
+    setDroppedItem(data);
+  };
+  return (
+    <ThemeProvider theme={supersetTheme}>
+      <div>
+        <div
+          onDragOver={(ev: React.DragEvent<HTMLDivElement>) => dragOver(ev)}
+          onDragLeave={(ev: React.DragEvent<HTMLDivElement>) => dragOut(ev)}
+          onDrop={(ev: React.DragEvent<HTMLDivElement>) => dragDrop(ev)}
+          style={{
+            width: '100%',
+            height: '40px',
+            border: '1px solid grey',
+            marginBottom: '8px',
+            padding: '8px',
+            borderRadius: '4px',
+          }}
+        >
+          {droppedItem ?? 'Drop column here...'}
+        </div>
+        <Table {...args} />
       </div>
-      <Table {...args} />
-    </div>
-  </ThemeProvider>
-);
+    </ThemeProvider>
+  );
+};
 
 ReorderableColumns.args = {
   data: basicData,
   columns: basicColumns,
-  selectedRows: [1],
-  handleRowSelection: (selection: React.Key[]) => {
-    // eslint-disable-next-line no-alert
-    alert(selection);
-  },
   size: TableSize.SMALL,
   reorderable: true,
 };
@@ -462,10 +427,6 @@ export const CellRenderers: ComponentStory<typeof Table> = args => (
 CellRenderers.args = {
   data: rendererData,
   columns: rendererColumns,
-  selectedRows: [1],
-  handleRowSelection: (selection: React.Key[]) => {
-    alert(selection);
-  },
   size: TableSize.SMALL,
   reorderable: true,
 };

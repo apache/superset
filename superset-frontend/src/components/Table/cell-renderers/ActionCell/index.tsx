@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React, { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { Dropdown, IconOrientation } from 'src/components/Dropdown';
@@ -129,7 +128,7 @@ export function ActionCell(props: ActionCellProps) {
   };
   return (
     <Dropdown
-      orientation={IconOrientation.HORIZONTAL}
+      iconOrientation={IconOrientation.HORIZONTAL}
       onVisibleChange={handleVisibleChange}
       trigger={['click']}
       overlay={

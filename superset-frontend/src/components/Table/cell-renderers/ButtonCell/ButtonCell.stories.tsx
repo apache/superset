@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { action } from '@storybook/addon-actions';
 import { ButtonCell } from './index';
 
 export default {
@@ -26,8 +26,7 @@ export default {
   component: ButtonCell,
 } as ComponentMeta<typeof ButtonCell>;
 
-// eslint-disable-next-line no-alert
-const clickHandler = () => alert(`I was Clicked`);
+const clickHandler = action('button cell onClick');
 
 export const Basic: ComponentStory<typeof ButtonCell> = args => (
   <ButtonCell {...args} />

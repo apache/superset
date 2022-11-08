@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import React, { useState, useEffect, useRef, ReactElement } from 'react';
 import { Table as AntTable, ConfigProvider } from 'antd';
-import type { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
+import type {
+  ColumnType,
+  ColumnGroupType,
+  TableProps as AntTableProps,
+} from 'antd/es/table';
 import { t, useTheme, logging } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import styled, { StyledComponent } from '@emotion/styled';
@@ -29,6 +32,11 @@ export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 export interface TableDataType {
   key: React.Key;
 }
+
+export declare type ColumnsType<RecordType = unknown> = (
+  | ColumnGroupType<RecordType>
+  | ColumnType<RecordType>
+)[];
 
 export enum SelectionType {
   'DISABLED' = 'disabled',

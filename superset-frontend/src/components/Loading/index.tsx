@@ -20,7 +20,6 @@
 import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
-// @ts-ignore
 import Loader from 'src/assets/images/loading.gif';
 
 export type PositionOption =
