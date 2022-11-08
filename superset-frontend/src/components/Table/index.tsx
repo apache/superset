@@ -256,8 +256,7 @@ export function Table(props: TableProps) {
   // Log use of experimental features
   useEffect(() => {
     if (reorderable === true) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logging.warn(
         'EXPERIMENTAL FEATURE ENABLED: The "reorderable" prop of Table is experimental and NOT recommended for use in production deployments.',
       );
     }
