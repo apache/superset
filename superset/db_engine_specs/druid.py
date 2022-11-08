@@ -19,7 +19,6 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
-from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
@@ -140,7 +139,7 @@ class DruidEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        # pylint: disable=import-error,import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from requests import exceptions as requests_exceptions
 
         return {
