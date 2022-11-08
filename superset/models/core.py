@@ -55,6 +55,7 @@ from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs
 from superset.constants import PASSWORD_MASK
+from superset.databases.models import SSHTunnelCredentials
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
@@ -368,17 +369,27 @@ class Database(
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
+        ssh_tunnel_credentials: Optional[SSHTunnelCredentials] = None
     ) -> Engine:
+        if ssh_tunnel_credentials:
+            # build with override 
+            print('building with params')
+        else:
+            # do look up in table for using database_id
+            print('doing look up on table')
+
         try:
-            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source, ssh_tunnel_credentials=ssh_tunnel_credentials)
         except Exception as ex:
             raise ex
 
+    import sshtunnel
     def _get_sqla_engine(
         self,
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
+        ssh_tunnel_server: Optional[sshtunnel.SSHTunnelForwarder] = None,
     ) -> Engine:
         extra = self.get_extra()
         sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
@@ -422,6 +433,8 @@ class Database(
                 sqlalchemy_url, params, effective_username, security_manager, source
             )
 
+        if ssh_tunnel_server:
+            # update sqlalchemy_url
         try:
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:

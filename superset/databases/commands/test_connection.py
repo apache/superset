@@ -89,6 +89,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
+            
+            from superset.databases.models import SSHTunnelCredentials
+        
+            if self._properties.get('ssh_tunnel_credentials'):
+                ssh_tunnel_credentials = SSHTunnelCredentials(
+                    **self._properties['ssh_tunnel_credentials']
+                )
 
             event_logger.log_with_context(
                 action="test_connection_attempt",
@@ -99,7 +106,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 with closing(engine.raw_connection()) as conn:
                     return engine.dialect.do_ping(conn)
 
-            with database.get_sqla_engine_with_context() as engine:
+            with database.get_sqla_engine_with_context(ssh_tunnel_credentials=ssh_tunnel_credentials) as engine:
                 try:
                     alive = func_timeout(
                         int(
