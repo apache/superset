@@ -43,7 +43,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            self._properties["last_saved_at"] = datetime.now()
+            self._properties["last_saved_at"] = datetime.utcnow()
             self._properties["last_saved_by"] = g.user
             chart = ChartDAO.create(self._properties)
         except DAOCreateFailedError as ex:

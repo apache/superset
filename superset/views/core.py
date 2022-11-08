@@ -1063,7 +1063,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
         slc.last_saved_by = g.user
-        slc.last_saved_at = datetime.now()
+        slc.last_saved_at = datetime.utcnow()
         slc.slice_name = slice_name
         slc.query_context = query_context
 
