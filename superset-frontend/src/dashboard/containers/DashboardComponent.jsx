@@ -76,6 +76,7 @@ function mapStateToProps(
     getComponentById: id => dashboardLayout[id],
     parentComponent: dashboardLayout[parentId],
     editMode: dashboardState.editMode,
+    supersetCanShare: !!dashboardInfo.superset_can_share,
     filters: getActiveFilters(),
     dashboardId: dashboardInfo.id,
     fullSizeChartId: dashboardState.fullSizeChartId,

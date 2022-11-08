@@ -46,6 +46,7 @@ const propTypes = {
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
+  supersetCanShare: PropTypes.bool.isRequired,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -262,6 +263,7 @@ class Tab extends React.PureComponent {
       editMode,
       isFocused,
       isHighlighted,
+      supersetCanShare,
     } = this.props;
 
     return (
@@ -290,7 +292,7 @@ class Tab extends React.PureComponent {
               showTooltip={false}
               editing={editMode && isFocused}
             />
-            {!editMode && (
+            {supersetCanShare && !editMode && (
               <AnchorLink
                 id={component.id}
                 dashboardId={this.props.dashboardId}
