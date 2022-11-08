@@ -29,7 +29,6 @@ from superset.utils.log import (
     AbstractEventLogger,
     DBEventLogger,
     get_event_logger_from_cfg_value,
-    get_logger_from_status,
 )
 from tests.integration_tests.test_app import app
 

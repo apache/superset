@@ -32,7 +32,7 @@ from superset.dashboards.permalink.commands.create import (
     CreateDashboardPermalinkCommand,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException
+from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
 from superset.reports.commands.alert import AlertCommand
 from superset.reports.commands.exceptions import (
@@ -106,7 +106,6 @@ class BaseReportState:
         Update the report schedule state et al. and reflect the change in the execution
         log.
         """
-
         self.update_report_schedule(state)
         self.create_log(error_message)
 
@@ -534,25 +533,34 @@ class ReportNotTriggeredErrorState(BaseReportState):
                     return
             self.send()
             self.update_report_schedule_and_log(ReportState.SUCCESS)
-        except Exception as first_ex:
+        except (SupersetErrorsException, Exception) as first_ex:
+            error_message = str(first_ex)
+            if isinstance(first_ex, SupersetErrorsException):
+                error_message = ";".join([error.message for error in first_ex.errors])
+
             self.update_report_schedule_and_log(
-                ReportState.ERROR, error_message=str(first_ex)
+                ReportState.ERROR, error_message=error_message
             )
+
             # TODO (dpgaspar) convert this logic to a new state eg: ERROR_ON_GRACE
             if not self.is_in_error_grace_period():
+                second_error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
                 try:
                     self.send_error(
                         f"Error occurred for {self._report_schedule.type}:"
                         f" {self._report_schedule.name}",
                         str(first_ex),
                     )
-                    self.update_report_schedule_and_log(
-                        ReportState.ERROR,
-                        error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+
+                except SupersetErrorsException as second_ex:
+                    second_error_message = ";".join(
+                        [error.message for error in second_ex.errors]
                     )
                 except Exception as second_ex:  # pylint: disable=broad-except
+                    second_error_message = str(second_ex)
+                finally:
                     self.update_report_schedule_and_log(
-                        ReportState.ERROR, error_message=str(second_ex)
+                        ReportState.ERROR, error_message=second_error_message
                     )
             raise first_ex
 

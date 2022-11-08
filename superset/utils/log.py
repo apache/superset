@@ -42,7 +42,7 @@ from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 from typing_extensions import Literal
 
-from superset.utils.core import get_user_id
+from superset.utils.core import get_user_id, LoggerLevel
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
@@ -85,7 +85,12 @@ def get_logger_from_status(
     Return logger method by status of exception.
     Maps logger level to status code level
     """
-    log_map = {"2": "info", "3": "info", "4": "warning", "5": "exception"}
+    log_map = {
+        "2": LoggerLevel.INFO,
+        "3": LoggerLevel.INFO,
+        "4": LoggerLevel.WARNING,
+        "5": LoggerLevel.EXCEPTION,
+    }
     log_level = log_map[str(status)[0]]
 
     return (getattr(logger, log_level), log_level)
