@@ -139,23 +139,23 @@ const HEIGHT_OFFSET = 108;
 
 const StyledTable: StyledComponent<any> = styled(AntTable)<any>`
   ${({ theme, height }) => `
-  .ant-table-body {
-    overflow: scroll;
-    height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
-  }
+    .ant-table-body {
+      overflow: scroll;
+      height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
+    }
 
-  th.ant-table-cell {
-    font-weight: ${theme.typography.weights.bold};
-    color: ${theme.colors.grayscale.dark1};
-    user-select: none;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+    th.ant-table-cell {
+      font-weight: ${theme.typography.weights.bold};
+      color: ${theme.colors.grayscale.dark1};
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
-  .ant-pagination-item-active {
-    border-color: ${theme.colors.primary.base};
-  }
+    .ant-pagination-item-active {
+      border-color: ${theme.colors.primary.base};
+    }
   `}
 `;
 
