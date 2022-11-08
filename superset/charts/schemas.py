@@ -819,8 +819,7 @@ class ChartDataFilterSchema(Schema):
     )
     val = fields.Raw(
         description="The value or values to compare against. Can be a string, "
-        "integer, decimal, None or list, depending on the operator.",
-        allow_none=True,
+        "integer, decimal or list, depending on the operator.",
         example=["China", "France", "Japan"],
     )
     grain = fields.String(

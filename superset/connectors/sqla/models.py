@@ -1629,14 +1629,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 elif op == utils.FilterOperator.IS_FALSE.value:
                     where_clause_and.append(sqla_col.is_(False))
                 else:
-                    if (
-                        op
-                        not in {
-                            utils.FilterOperator.EQUALS.value,
-                            utils.FilterOperator.NOT_EQUALS.value,
-                        }
-                        and eq is None
-                    ):
+                    if eq is None:
                         raise QueryObjectValidationError(
                             _(
                                 "Must specify a value for filters "
