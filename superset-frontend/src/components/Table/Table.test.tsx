@@ -68,15 +68,11 @@ test('renders with default props', async () => {
   render(
     <Table size={TableSize.MIDDLE} columns={testColumns} data={testData} />,
   );
-  expect(
-    await screen.findByText(testColumns[0].title as string),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByText(testColumns[1].title as string),
-  ).toBeInTheDocument();
-  expect(
-    await screen.findByText(testColumns[2].title as string),
-  ).toBeInTheDocument();
+  await waitFor(() =>
+    testColumns.forEach(column =>
+      expect(screen.getByText(column.title as string)).toBeInTheDocument(),
+    ),
+  );
   testData.forEach(row => {
     expect(screen.getByText(row.columnName)).toBeInTheDocument();
     expect(screen.getByText(row.columnType)).toBeInTheDocument();
