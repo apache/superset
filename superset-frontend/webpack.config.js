@@ -75,7 +75,7 @@ if (!isDevMode) {
 
 const plugins = [
   new webpack.ProvidePlugin({
-    process: 'process/browser',
+    process: 'process/browser.js',
   }),
 
   // creates a manifest.json mapping of name to hashed output used in template files

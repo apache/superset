@@ -18,8 +18,11 @@
  */
 import React, {
   CSSProperties,
+  forwardRef,
   ReactElement,
+  RefObject,
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useMemo,
   useState,
@@ -47,7 +50,7 @@ export interface Item {
 }
 
 /**
- * Horizontal container that displays overflowed items in a popover.
+ * Horizontal container that displays overflowed items in a dropdown.
  * It shows an indicator of how many items are currently overflowing.
  */
 export interface DropdownContainerProps {
@@ -58,199 +61,234 @@ export interface DropdownContainerProps {
   items: Item[];
   /**
    * Event handler called every time an element moves between
-   * main container and popover.
+   * main container and dropdown.
    */
   onOverflowingStateChange?: (overflowingState: {
     notOverflowed: string[];
     overflowed: string[];
   }) => void;
   /**
-   * Option to customize the content of the popover.
+   * Option to customize the content of the dropdown.
    */
-  popoverContent?: (overflowedItems: Item[]) => ReactElement;
+  dropdownContent?: (overflowedItems: Item[]) => ReactElement;
   /**
-   * Popover additional style properties.
+   * Dropdown ref.
    */
-  popoverStyle?: CSSProperties;
+  dropdownRef?: RefObject<HTMLDivElement>;
   /**
-   * Icon of the popover trigger.
+   * Dropdown additional style properties.
    */
-  popoverTriggerIcon?: ReactElement;
+  dropdownStyle?: CSSProperties;
   /**
-   * Text of the popover trigger.
+   * Displayed count in the dropdown trigger.
    */
-  popoverTriggerText?: string;
+  dropdownTriggerCount?: number;
+  /**
+   * Icon of the dropdown trigger.
+   */
+  dropdownTriggerIcon?: ReactElement;
+  /**
+   * Text of the dropdown trigger.
+   */
+  dropdownTriggerText?: string;
   /**
    * Main container additional style properties.
    */
   style?: CSSProperties;
 }
 
-const DropdownContainer = ({
-  items,
-  onOverflowingStateChange,
-  popoverContent,
-  popoverStyle = {},
-  popoverTriggerIcon,
-  popoverTriggerText = t('More'),
-  style,
-}: DropdownContainerProps) => {
-  const theme = useTheme();
-  const { ref, width = 0 } = useResizeDetector<HTMLDivElement>();
-  const previousWidth = usePrevious(width) || 0;
-  const { current } = ref;
-  const [overflowingIndex, setOverflowingIndex] = useState<number>(-1);
-  const [itemsWidth, setItemsWidth] = useState<number[]>([]);
+export type Ref = HTMLDivElement & { open: () => void };
 
-  useLayoutEffect(() => {
-    const container = current?.children.item(0);
-    if (container) {
-      const { children } = container;
-      const childrenArray = Array.from(children);
+const DropdownContainer = forwardRef(
+  (
+    {
+      items,
+      onOverflowingStateChange,
+      dropdownContent: popoverContent,
+      dropdownRef: popoverRef,
+      dropdownStyle: popoverStyle = {},
+      dropdownTriggerCount: popoverTriggerCount,
+      dropdownTriggerIcon: popoverTriggerIcon,
+      dropdownTriggerText: popoverTriggerText = t('More'),
+      style,
+    }: DropdownContainerProps,
+    outerRef: RefObject<Ref>,
+  ) => {
+    const theme = useTheme();
+    const { ref, width = 0 } = useResizeDetector<HTMLDivElement>();
+    const previousWidth = usePrevious(width) || 0;
+    const { current } = ref;
+    const [itemsWidth, setItemsWidth] = useState<number[]>([]);
+    const [popoverVisible, setPopoverVisible] = useState(false);
 
-      // Stores items width once
-      if (itemsWidth.length === 0) {
-        setItemsWidth(
-          childrenArray.map(child => child.getBoundingClientRect().width),
+    // We use React.useState to be able to mock the state in Jest
+    const [overflowingIndex, setOverflowingIndex] = React.useState<number>(-1);
+
+    useLayoutEffect(() => {
+      const container = current?.children.item(0);
+      if (container) {
+        const { children } = container;
+        const childrenArray = Array.from(children);
+
+        // Stores items width once
+        if (itemsWidth.length === 0) {
+          setItemsWidth(
+            childrenArray.map(child => child.getBoundingClientRect().width),
+          );
+        }
+
+        // Calculates the index of the first overflowed element
+        const index = childrenArray.findIndex(
+          child =>
+            child.getBoundingClientRect().right >
+            container.getBoundingClientRect().right,
         );
-      }
+        setOverflowingIndex(index === -1 ? children.length : index);
 
-      // Calculates the index of the first overflowed element
-      const index = childrenArray.findIndex(
-        child =>
-          child.getBoundingClientRect().right >
-          container.getBoundingClientRect().right,
-      );
-      setOverflowingIndex(index === -1 ? children.length : index);
-
-      if (width > previousWidth && overflowingIndex !== -1) {
-        // Calculates remaining space in the container
-        const button = current?.children.item(1);
-        const buttonRight = button?.getBoundingClientRect().right || 0;
-        const containerRight = current?.getBoundingClientRect().right || 0;
-        const remainingSpace = containerRight - buttonRight;
-        // Checks if the first element in the popover fits in the remaining space
-        const fitsInRemainingSpace = remainingSpace >= itemsWidth[0];
-        if (fitsInRemainingSpace && overflowingIndex < items.length) {
-          // Moves element from popover to container
-          setOverflowingIndex(overflowingIndex + 1);
+        if (width > previousWidth && overflowingIndex !== -1) {
+          // Calculates remaining space in the container
+          const button = current?.children.item(1);
+          const buttonRight = button?.getBoundingClientRect().right || 0;
+          const containerRight = current?.getBoundingClientRect().right || 0;
+          const remainingSpace = containerRight - buttonRight;
+          // Checks if the first element in the dropdown fits in the remaining space
+          const fitsInRemainingSpace = remainingSpace >= itemsWidth[0];
+          if (fitsInRemainingSpace && overflowingIndex < items.length) {
+            // Moves element from dropdown to container
+            setOverflowingIndex(overflowingIndex + 1);
+          }
         }
       }
-    }
-  }, [
-    current,
-    items.length,
-    itemsWidth,
-    overflowingIndex,
-    previousWidth,
-    width,
-  ]);
+    }, [
+      current,
+      items.length,
+      itemsWidth,
+      overflowingIndex,
+      previousWidth,
+      width,
+    ]);
 
-  const reduceItems = (items: Item[]): [Item[], string[]] =>
-    items.reduce(
-      ([items, ids], item) => {
-        items.push({
-          id: item.id,
-          element: React.cloneElement(item.element, { key: item.id }),
-        });
-        ids.push(item.id);
-        return [items, ids];
-      },
-      [[], []] as [Item[], string[]],
+    const reduceItems = (items: Item[]): [Item[], string[]] =>
+      items.reduce(
+        ([items, ids], item) => {
+          items.push({
+            id: item.id,
+            element: React.cloneElement(item.element, { key: item.id }),
+          });
+          ids.push(item.id);
+          return [items, ids];
+        },
+        [[], []] as [Item[], string[]],
+      );
+
+    const [notOverflowedItems, notOverflowedIds] = useMemo(
+      () =>
+        reduceItems(
+          items.slice(
+            0,
+            overflowingIndex !== -1 ? overflowingIndex : items.length,
+          ),
+        ),
+      [items, overflowingIndex],
     );
 
-  const [notOverflowedItems, notOverflowedIds] = useMemo(
-    () =>
-      reduceItems(
-        items.slice(
-          0,
-          overflowingIndex !== -1 ? overflowingIndex : items.length,
-        ),
-      ),
-    [items, overflowingIndex],
-  );
+    const [overflowedItems, overflowedIds] = useMemo(
+      () =>
+        overflowingIndex !== -1
+          ? reduceItems(items.slice(overflowingIndex, items.length))
+          : [[], []],
+      [items, overflowingIndex],
+    );
 
-  const [overflowedItems, overflowedIds] = useMemo(
-    () =>
-      overflowingIndex !== -1
-        ? reduceItems(items.slice(overflowingIndex, items.length))
-        : [[], []],
-    [items, overflowingIndex],
-  );
+    useEffect(() => {
+      if (onOverflowingStateChange) {
+        onOverflowingStateChange({
+          notOverflowed: notOverflowedIds,
+          overflowed: overflowedIds,
+        });
+      }
+    }, [notOverflowedIds, onOverflowingStateChange, overflowedIds]);
 
-  useEffect(() => {
-    if (onOverflowingStateChange) {
-      onOverflowingStateChange({
-        notOverflowed: notOverflowedIds,
-        overflowed: overflowedIds,
-      });
-    }
-  }, [notOverflowedIds, onOverflowingStateChange, overflowedIds]);
-
-  const content = useMemo(
-    () => (
-      <div
-        css={css`
-          display: flex;
-          flex-direction: column;
-          gap: ${theme.gridUnit * 3}px;
-          width: 200px;
-        `}
-        style={popoverStyle}
-      >
-        {popoverContent
-          ? popoverContent(overflowedItems)
-          : overflowedItems.map(item => item.element)}
-      </div>
-    ),
-    [overflowedItems, popoverContent, popoverStyle, theme.gridUnit],
-  );
-
-  const overflowingCount =
-    overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
-
-  return (
-    <div
-      ref={ref}
-      css={css`
-        display: flex;
-        align-items: flex-end;
-      `}
-    >
-      <div
-        css={css`
-          display: flex;
-          align-items: center;
-          gap: ${theme.gridUnit * 3}px;
-          margin-right: ${theme.gridUnit * 3}px;
-          min-width: 100px;
-        `}
-        style={style}
-      >
-        {notOverflowedItems.map(item => item.element)}
-      </div>
-      {overflowingCount > 0 && (
-        <Popover
-          content={content}
-          trigger="click"
-          overlayInnerStyle={{
-            overflow: 'auto',
-            maxHeight: 500,
-          }}
+    const content = useMemo(
+      () => (
+        <div
+          css={css`
+            display: flex;
+            flex-direction: column;
+            gap: ${theme.gridUnit * 3}px;
+          `}
+          data-test="dropdown-content"
+          style={popoverStyle}
+          ref={popoverRef}
         >
-          <Button buttonStyle="secondary">
-            {popoverTriggerIcon}
-            {popoverTriggerText}
-            <Badge count={overflowingCount} />
-            <Icons.DownOutlined
-              iconSize="m"
-              iconColor={theme.colors.grayscale.base}
-            />
-          </Button>
-        </Popover>
-      )}
-    </div>
-  );
-};
+          {popoverContent
+            ? popoverContent(overflowedItems)
+            : overflowedItems.map(item => item.element)}
+        </div>
+      ),
+      [
+        overflowedItems,
+        popoverContent,
+        popoverRef,
+        popoverStyle,
+        theme.gridUnit,
+      ],
+    );
+
+    useImperativeHandle(
+      outerRef,
+      () => ({
+        ...(ref.current as HTMLDivElement),
+        open: () => setPopoverVisible(true),
+      }),
+      [ref],
+    );
+
+    const overflowingCount =
+      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
+
+    return (
+      <div
+        ref={ref}
+        css={css`
+          display: flex;
+          align-items: flex-end;
+        `}
+      >
+        <div
+          css={css`
+            display: flex;
+            align-items: center;
+            gap: ${theme.gridUnit * 3}px;
+            margin-right: ${theme.gridUnit * 3}px;
+            min-width: 100px;
+          `}
+          data-test="container"
+          style={style}
+        >
+          {notOverflowedItems.map(item => item.element)}
+        </div>
+        {overflowingCount > 0 && (
+          <Popover
+            content={content}
+            trigger="click"
+            visible={popoverVisible}
+            onVisibleChange={visible => setPopoverVisible(visible)}
+          >
+            <Button buttonStyle="secondary">
+              {popoverTriggerIcon}
+              {popoverTriggerText}
+              <Badge count={popoverTriggerCount || overflowingCount} />
+              <Icons.DownOutlined
+                iconSize="m"
+                iconColor={theme.colors.grayscale.base}
+              />
+            </Button>
+          </Popover>
+        )}
+      </div>
+    );
+  },
+);
 
 export default DropdownContainer;
