@@ -20,7 +20,7 @@
 import React, { useState, useEffect, useRef, ReactElement } from 'react';
 import { Table as AntTable, ConfigProvider } from 'antd';
 import type { ColumnsType, TableProps as AntTableProps } from 'antd/es/table';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, logging } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import styled, { StyledComponent } from '@emotion/styled';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
