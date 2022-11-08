@@ -74,12 +74,12 @@ function Echart(
     });
 
     chartRef.current.setOption(echartOptions, true);
-    chartRef.current.on('click', (...clickValues) => {
-      console.log('chartClickEvent', {
-        detail: clickValues,
-      });
+    chartRef.current.on('click', event => {
+      const eventCopy = { ...event };
+      eventCopy.event = undefined;
+      console.log('chartClickEvent', eventCopy);
       const chartClickEvent = new CustomEvent('chartClickEvent', {
-        detail: clickValues,
+        detail: eventCopy,
       });
       document.dispatchEvent(chartClickEvent);
     });
