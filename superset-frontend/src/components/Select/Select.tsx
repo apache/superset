@@ -154,17 +154,18 @@ const Select = forwardRef(
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
         );
-      const fullOptions = missingValues.length > 0
-        ? missingValues.concat(selectOptions)
-        : selectOptions;
-      
-      const fullOptionsWithSelectAll = isSelectAllMode && !hasOption(getValue(SELECT_ALL_VALUE), missingValues)
-        ? (isLabeledValue(fullOptions[0]) 
+      const fullOptions =
+        missingValues.length > 0
+          ? missingValues.concat(selectOptions)
+          : selectOptions;
+
+      const fullOptionsWithSelectAll =
+        isSelectAllMode && !hasOption(getValue(SELECT_ALL_VALUE), missingValues)
+          ? isLabeledValue(fullOptions[0])
             ? [labeledSelectAllOption, ...fullOptions]
             : [labeledSelectAllOption.value, ...fullOptions]
-          )
-        : fullOptions
-      return fullOptionsWithSelectAll
+          : fullOptions;
+      return fullOptionsWithSelectAll;
     }, [selectOptions, selectValue, isSelectAllMode]);
 
     const handleOnSelect = (
@@ -177,21 +178,27 @@ const Select = forwardRef(
           const array = ensureIsArray(previousState);
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
-          if(value == getValue(SELECT_ALL_VALUE)){
-            if (onSelectAll) {onSelectAll()};
+          if (value == getValue(SELECT_ALL_VALUE)) {
+            if (onSelectAll) {
+              onSelectAll();
+            }
             const result = isLabeledValue(selectedItem)
-              ? ([labeledSelectAllOption, ...selectOptions] as AntdLabeledValue[])
+              ? ([
+                  labeledSelectAllOption,
+                  ...selectOptions,
+                ] as AntdLabeledValue[])
               : ([SELECT_ALL_VALUE, ...selectOptions] as (string | number)[]);
             return result;
           } else if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
-            return (result.length === fullSelectOptions.length - 1) && isSelectAllMode 
-              ? isLabeledValue(selectedItem) 
+            return result.length === fullSelectOptions.length - 1 &&
+              isSelectAllMode
+              ? isLabeledValue(selectedItem)
                 ? ([labeledSelectAllOption, ...result] as AntdLabeledValue[])
                 : ([SELECT_ALL_VALUE, ...result] as (string | number)[])
               : isLabeledValue(selectedItem)
-                ? (result as AntdLabeledValue[])
-                : (result as (string | number)[]);
+              ? (result as AntdLabeledValue[])
+              : (result as (string | number)[]);
           }
           return previousState;
         });
@@ -204,11 +211,15 @@ const Select = forwardRef(
     ) => {
       if (Array.isArray(selectValue)) {
         if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
-          setSelectValue([]); 
+          setSelectValue([]);
         } else if (isLabeledValue(value)) {
           const array = selectValue as AntdLabeledValue[];
           setSelectValue(
-            array.filter(element => (element.value !== value.value) && (element.value !== getValue(SELECT_ALL_VALUE))),
+            array.filter(
+              element =>
+                element.value !== value.value &&
+                element.value !== getValue(SELECT_ALL_VALUE),
+            ),
           );
         } else {
           const array = selectValue as (string | number)[];

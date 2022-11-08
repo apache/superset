@@ -159,12 +159,11 @@ export interface SelectProps extends BaseSelectProps {
    * When selected all options are added to the selected
    * values. Only available in sync select currently.
    */
-   selectAllEnabled: boolean;
-   /**
+  selectAllEnabled: boolean;
+  /**
    * Called when select all option is selected
    */
-   onSelectAll?: () => void;
-  
+  onSelectAll?: () => void;
 }
 
 export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
