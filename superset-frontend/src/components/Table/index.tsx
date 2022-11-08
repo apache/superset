@@ -262,8 +262,7 @@ export function Table(props: TableProps) {
       );
     }
     if (resizable === true) {
-      // eslint-disable-next-line no-console
-      console.warn(
+      logging.warn(
         'EXPERIMENTAL FEATURE ENABLED: The "resizable" prop of Table is experimental and NOT recommended for use in production deployments.',
       );
     }
