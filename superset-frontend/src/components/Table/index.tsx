@@ -235,32 +235,6 @@ export function Table(props: TableProps) {
   const renderEmpty = () =>
     emptyComponent ?? <div>{mergedLocale.emptyText}</div>;
 
-  const initializeInteractiveTable = () => {
-    if (interactiveTableUtils.current) {
-      interactiveTableUtils.current?.clearListeners();
-    }
-    const table = wrapperRef.current?.getElementsByTagName('table')[0];
-    if (table) {
-      interactiveTableUtils.current = new InteractiveTableUtils(
-        table,
-        derivedColumns,
-        setDerivedColumns,
-      );
-      if (reorderable) {
-        interactiveTableUtils?.current?.initializeDragDropColumns(
-          reorderable,
-          table,
-        );
-      }
-      if (resizable) {
-        interactiveTableUtils?.current?.initializeResizableColumns(
-          resizable,
-          table,
-        );
-      }
-    }
-  };
-
   // Log use of experimental features
   useEffect(() => {
     if (reorderable === true) {
@@ -287,12 +261,38 @@ export function Table(props: TableProps) {
   }, [locale]);
 
   useEffect(() => {
-    initializeInteractiveTable();
+    if (interactiveTableUtils.current) {
+      interactiveTableUtils.current?.clearListeners();
+    }
+    const table = wrapperRef.current?.getElementsByTagName('table')[0];
+    if (table) {
+      interactiveTableUtils.current = new InteractiveTableUtils(
+        table,
+        derivedColumns,
+        setDerivedColumns,
+      );
+      if (reorderable) {
+        interactiveTableUtils?.current?.initializeDragDropColumns(
+          reorderable,
+          table,
+        );
+      }
+      if (resizable) {
+        interactiveTableUtils?.current?.initializeResizableColumns(
+          resizable,
+          table,
+        );
+      }
+    }
     return () => {
       interactiveTableUtils?.current?.clearListeners?.();
     };
+    /**
+     * We DO NOT want this effect to trigger when derivedColumns changes as it will break functionality
+     * The exclusion from the effect dependencies is intentional and should not be modified
+     */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wrapperRef, reorderable, resizable]);
+  }, [wrapperRef, reorderable, resizable, interactiveTableUtils]);
 
   const theme = useTheme();
 

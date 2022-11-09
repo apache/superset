@@ -70,8 +70,7 @@ export default class InteractiveTableUtils {
 
   getColumnIndex = (): number => {
     let index = -1;
-    const parent: HTMLElement | null | undefined = this.columnRef
-      ?.parentNode as HTMLElement;
+    const parent = this.columnRef?.parentNode;
     if (parent) {
       index = Array.prototype.indexOf.call(parent.children, this.columnRef);
     }
@@ -79,7 +78,7 @@ export default class InteractiveTableUtils {
   };
 
   handleColumnDragStart = (ev: DragEvent): void => {
-    const target: IInteractiveColumn = ev?.currentTarget as IInteractiveColumn;
+    const target = ev?.currentTarget as IInteractiveColumn;
     if (target) {
       this.columnRef = target;
     }
