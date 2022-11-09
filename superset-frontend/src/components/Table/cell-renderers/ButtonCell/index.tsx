@@ -16,6 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import Button, { ButtonStyle, ButtonSize } from 'src/components/Button';
 
-declare module '*.svg';
-declare module '*.gif';
+type onClickFunction = (row: object, index: number) => void;
+
+export interface ButtonCellProps {
+  label: string;
+  onClick: onClickFunction;
+  row: object;
+  index: number;
+  tooltip?: string;
+  buttonStyle?: ButtonStyle;
+  buttonSize?: ButtonSize;
+}
+
+export function ButtonCell(props: ButtonCellProps) {
+  const {
+    label,
+    onClick,
+    row,
+    index,
+    tooltip,
+    buttonStyle = 'primary',
+    buttonSize = 'small',
+  } = props;
+
+  return (
+    <Button
+      buttonStyle={buttonStyle}
+      buttonSize={buttonSize}
+      onClick={() => onClick?.(row, index)}
+      key={`${buttonStyle}_${buttonSize}`}
+      tooltip={tooltip}
+    >
+      {label}
+    </Button>
+  );
+}
+
+export default ButtonCell;
