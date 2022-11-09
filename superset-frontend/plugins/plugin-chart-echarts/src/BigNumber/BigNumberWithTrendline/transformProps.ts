@@ -232,7 +232,6 @@ export default function transformProps(
           appendToBody: true,
           show: !inContextMenu,
           trigger: 'axis',
-          confine: true,
           formatter: renderTooltipFactory(formatTime, headerFormatter),
         },
         aria: {

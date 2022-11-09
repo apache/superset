@@ -23,7 +23,7 @@ export const defaultGrid = {
 };
 
 export const defaultTooltip = {
-  confine: true,
+  confine: false,
 };
 
 export const defaultYAxis = {
