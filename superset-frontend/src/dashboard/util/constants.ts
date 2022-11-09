@@ -58,6 +58,7 @@ export const UNDO_LIMIT = 50;
 
 // save dash options
 export const SAVE_TYPE_OVERWRITE = 'overwrite';
+export const SAVE_TYPE_OVERWRITE_CONFIRMED = 'overwriteConfirmed';
 export const SAVE_TYPE_NEWDASHBOARD = 'newDashboard';
 
 // default dashboard layout data size limit
