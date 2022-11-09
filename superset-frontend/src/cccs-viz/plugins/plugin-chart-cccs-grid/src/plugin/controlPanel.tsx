@@ -249,7 +249,7 @@ const config: ControlPanelConfig = {
               rerender: [
                 'metrics',
                 'percent_metrics',
-                'defaultEmitFilterColumn',
+                'principalEmitFilterColumn',
               ],
               canCopy: true,
             } as typeof sharedControls.groupby,
@@ -344,7 +344,7 @@ const config: ControlPanelConfig = {
                     : [];
                 return newState;
               },
-              rerender: ['defaultEmitFilterColumn'],
+              rerender: ['principalColumns'],
               visibility: isRawMode,
               canCopy: true,
             } as typeof sharedControls.groupby,
@@ -410,12 +410,12 @@ const config: ControlPanelConfig = {
         [
           isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
             ? {
-                name: 'defaultEmitFilterColumn',
+                name: 'principalColumns',
                 config: {
                   type: 'SelectControl',
-                  label: t('Default Emit Filter Column(s)'),
+                  label: t('Principal Column(s) to Emit'),
                   description: t(
-                    'Select columns that the emit filter button will use by default',
+                    'Preselect a set of principal columns that can easily be emitted from the context menu',
                   ),
                   multi: true,
                   freeForm: true,
@@ -441,20 +441,31 @@ const config: ControlPanelConfig = {
                       sharedControls?.columns?.mapStateToProps;
                     const newState =
                       originalMapStateToProps?.(state, controlState) ?? {};
-                    newState.choices = isRawMode({ controls })
+                    const choices = isRawMode({ controls })
                       ? controls?.columns?.value
                       : controls?.groupby?.value;
-                    const invalidOption = ensureIsArray(
+                    newState.options = newState.options.filter(
+                      (o: { column_name: string }) =>
+                        ensureIsArray(choices).includes(o.column_name),
+                    );
+                    const invalidOptions = ensureIsArray(
                       controlState.value,
-                    ).find(c => !newState.choices.includes(c));
-                    newState.externalValidationErrors = invalidOption
-                      ? [`'${invalidOption}'${t(' is not a valid option')}`]
-                      : [];
-                    return {
-                      choices: newState.choices,
-                      externalValidationErrors:
-                        newState.externalValidationErrors,
-                    };
+                    ).filter(c => !ensureIsArray(choices).includes(c));
+                    newState.externalValidationErrors =
+                      invalidOptions.length > 0
+                        ? invalidOptions.length > 1
+                          ? [
+                              `'${invalidOptions.join(', ')}'${t(
+                                ' are not valid options',
+                              )}`,
+                            ]
+                          : [
+                              `'${invalidOptions}'${t(
+                                ' is not a valid option',
+                              )}`,
+                            ]
+                        : [];
+                    return newState;
                   },
                   visibility: ({ controls }) =>
                     // TODO properly emsure is Bool
