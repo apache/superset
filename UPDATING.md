@@ -31,6 +31,7 @@ assists people when migrating to a new version.
 - [21002](https://github.com/apache/superset/pull/21002): Support Python 3.10 and bump pandas 1.4 and pyarrow 6.
 - [21163](https://github.com/apache/superset/pull/21163): When `GENERIC_CHART_AXES` feature flags set to `True`, the Time Grain control will move below the X-Axis control.
 - [21284](https://github.com/apache/superset/pull/21284): The non-functional `MAX_TABLE_NAMES` config key has been removed.
+- [21794](https://github.com/apache/superset/pull/21794): Deprecates the undocumented `PRESTO_SPLIT_VIEWS_FROM_TABLES` feature flag. Now for Presto, like other engines, only physical tables are treated as tables.
 
 ### Breaking Changes
 

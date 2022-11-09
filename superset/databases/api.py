@@ -19,7 +19,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, List, Optional
+from typing import Any, cast, Dict, List, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -611,7 +611,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("init", self.table_metadata.__name__)
 
         parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
-        table_name = parse_js_uri_path_item(table_name)  # type: ignore
+        table_name = cast(str, parse_js_uri_path_item(table_name))
         payload = database.db_engine_spec.extra_table_metadata(
             database, table_name, parsed_schema
         )
