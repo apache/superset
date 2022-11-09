@@ -16,6 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import ButtonCell from './index';
+import { exampleRow } from '../fixtures';
 
-declare module '*.svg';
-declare module '*.gif';
+test('renders with default props', async () => {
+  const clickHandler = jest.fn();
+  const BUTTON_LABEL = 'Button Label';
+
+  render(
+    <ButtonCell
+      label={BUTTON_LABEL}
+      key={5}
+      index={0}
+      row={exampleRow}
+      onClick={clickHandler}
+    />,
+  );
+  await userEvent.click(screen.getByText(BUTTON_LABEL));
+  expect(clickHandler).toHaveBeenCalled();
+});

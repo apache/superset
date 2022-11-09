@@ -16,6 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { CurrencyCode, LocaleCode, NumericCell, Style } from './index';
 
-declare module '*.svg';
-declare module '*.gif';
+export default {
+  title: 'Design System/Components/Table/Cell Renderers/NumericCell',
+  component: NumericCell,
+} as ComponentMeta<typeof NumericCell>;
+
+export const Basic: ComponentStory<typeof NumericCell> = args => (
+  <NumericCell {...args} />
+);
+
+Basic.args = {
+  value: 5678943,
+};
+
+export const FrenchLocale: ComponentStory<typeof NumericCell> = args => (
+  <NumericCell {...args} />
+);
+
+FrenchLocale.args = {
+  value: 5678943,
+  locale: LocaleCode.fr,
+  options: {
+    style: Style.CURRENCY,
+    currency: CurrencyCode.EUR,
+  },
+};
