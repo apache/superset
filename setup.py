@@ -119,12 +119,11 @@ setup(
         "sqlalchemy-utils>=0.38.3, <0.39",
         "sqlparse>=0.4.3, <0.5",
         "tabulate>=0.8.9, <0.9",
-        # needed to support Literal (3.8) and TypeGuard (3.10)
-        "typing-extensions>=3.10, <4",
+        "typing-extensions>=4, <5",
         "wtforms-json",
     ],
     extras_require={
-        "athena": ["pyathena>=1.10.8, <1.11"],
+        "athena": ["pyathena[pandas]>=2, <3"],
         "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
             "pandas_gbq>=0.10.0",
@@ -142,8 +141,7 @@ setup(
         "db2": ["ibm-db-sa>=0.3.5, <0.4"],
         "dremio": ["sqlalchemy-dremio>=1.1.5, <1.3"],
         "drill": ["sqlalchemy-drill==0.1.dev"],
-        "druid": ["pydruid>=0.6.1,<0.7"],
-        "dynamodb": ["pydynamodb>=0.4.2"],
+        "druid": ["pydruid>=0.6.5,<0.7"],
         "solr": ["sqlalchemy-solr >= 0.2.0"],
         "elasticsearch": ["elasticsearch-dbapi>=0.2.9, <0.3.0"],
         "exasol": ["sqlalchemy-exasol >= 2.4.0, <3.0"],
@@ -167,7 +165,7 @@ setup(
         "redshift": ["sqlalchemy-redshift>=0.8.1, < 0.9"],
         "rockset": ["rockset>=0.8.10, <0.9"],
         "shillelagh": [
-            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.0.3, <2"
+            "shillelagh[datasetteapi,gsheetsapi,socrata,weatherapi]>=1.1.1, <2"
         ],
         "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
         "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],

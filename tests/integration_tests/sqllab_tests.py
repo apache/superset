@@ -207,19 +207,21 @@ class TestSqlLab(SupersetTestCase):
             # assertions
             db.session.commit()
             examples_db = get_example_database()
-            engine = examples_db.get_sqla_engine()
-            data = engine.execute(
-                f"SELECT * FROM admin_database.{tmp_table_name}"
-            ).fetchall()
-            names_count = engine.execute(f"SELECT COUNT(*) FROM birth_names").first()
-            self.assertEqual(
-                names_count[0], len(data)
-            )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
+            with examples_db.get_sqla_engine_with_context() as engine:
+                data = engine.execute(
+                    f"SELECT * FROM admin_database.{tmp_table_name}"
+                ).fetchall()
+                names_count = engine.execute(
+                    f"SELECT COUNT(*) FROM birth_names"
+                ).first()
+                self.assertEqual(
+                    names_count[0], len(data)
+                )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
-            # cleanup
-            engine.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
-            examples_db.allow_ctas = old_allow_ctas
-            db.session.commit()
+                # cleanup
+                engine.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
+                examples_db.allow_ctas = old_allow_ctas
+                db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_multi_sql(self):
@@ -275,9 +277,10 @@ class TestSqlLab(SupersetTestCase):
             "SchemaUser", ["SchemaPermission", "Gamma", "sql_lab"]
         )
 
-        examples_db.get_sqla_engine().execute(
-            f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
-        )
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute(
+                f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
+            )
 
         data = self.run_sql(
             f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
@@ -303,9 +306,8 @@ class TestSqlLab(SupersetTestCase):
             self.assertEqual(1, len(data["data"]))
 
         db.session.query(Query).delete()
-        get_example_database().get_sqla_engine().execute(
-            f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"
-        )
+        with get_example_database().get_sqla_engine_with_context() as engine:
+            engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
         db.session.commit()
 
     def test_queries_endpoint(self):
@@ -520,12 +522,10 @@ class TestSqlLab(SupersetTestCase):
     def test_sqllab_table_viz(self):
         self.login("admin")
         examples_db = get_example_database()
-        examples_db.get_sqla_engine().execute(
-            "DROP TABLE IF EXISTS test_sqllab_table_viz"
-        )
-        examples_db.get_sqla_engine().execute(
-            "CREATE TABLE test_sqllab_table_viz AS SELECT 2 as col"
-        )
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE IF EXISTS test_sqllab_table_viz")
+            engine.execute("CREATE TABLE test_sqllab_table_viz AS SELECT 2 as col")
+
         examples_dbid = examples_db.id
 
         payload = {
@@ -543,9 +543,9 @@ class TestSqlLab(SupersetTestCase):
         table = db.session.query(SqlaTable).filter_by(id=table_id).one()
         self.assertEqual([owner.username for owner in table.owners], ["admin"])
         db.session.delete(table)
-        get_example_database().get_sqla_engine().execute(
-            "DROP TABLE test_sqllab_table_viz"
-        )
+
+        with get_example_database().get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE test_sqllab_table_viz")
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")

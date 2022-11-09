@@ -225,7 +225,6 @@ function ChartList(props: ChartListProps) {
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const enableBroadUserAccess =
     bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
-  const crossRefEnabled = isFeatureEnabled(FeatureFlag.CROSS_REFERENCES);
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -306,30 +305,6 @@ function ChartList(props: ChartListProps) {
     };
   };
 
-  const dashboardsCol = useMemo(
-    () => ({
-      Cell: ({
-        row: {
-          original: { dashboards },
-        },
-      }: any) => (
-        <CrossLinks
-          crossLinks={ensureIsArray(dashboards).map(
-            (d: ChartLinkedDashboard) => ({
-              title: d.dashboard_title,
-              id: d.id,
-            }),
-          )}
-        />
-      ),
-      Header: t('Dashboards added to'),
-      accessor: 'dashboards',
-      disableSortBy: true,
-      size: 'xxl',
-    }),
-    [],
-  );
-
   const columns = useMemo(
     () => [
       {
@@ -407,7 +382,26 @@ function ChartList(props: ChartListProps) {
         disableSortBy: true,
         size: 'xl',
       },
-      ...(crossRefEnabled ? [dashboardsCol] : []),
+      {
+        Cell: ({
+          row: {
+            original: { dashboards },
+          },
+        }: any) => (
+          <CrossLinks
+            crossLinks={ensureIsArray(dashboards).map(
+              (d: ChartLinkedDashboard) => ({
+                title: d.dashboard_title,
+                id: d.id,
+              }),
+            )}
+          />
+        ),
+        Header: t('Dashboards added to'),
+        accessor: 'dashboards',
+        disableSortBy: true,
+        size: 'xxl',
+      },
       {
         Cell: ({
           row: {
@@ -561,6 +555,7 @@ function ChartList(props: ChartListProps) {
   const favoritesFilter: Filter = useMemo(
     () => ({
       Header: t('Favorite'),
+      key: 'favorite',
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
@@ -574,23 +569,11 @@ function ChartList(props: ChartListProps) {
     [],
   );
 
-  const dashboardsFilter: Filter = useMemo(
-    () => ({
-      Header: t('Dashboards'),
-      id: 'dashboards',
-      input: 'select',
-      operator: FilterOperator.relationManyMany,
-      unfilteredLabel: t('All'),
-      fetchSelects: fetchDashboards,
-      paginate: true,
-    }),
-    [],
-  );
-
   const filters: Filters = useMemo(
     () => [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -612,6 +595,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -633,6 +617,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Chart type'),
+        key: 'viz_type',
         id: 'viz_type',
         input: 'select',
         operator: FilterOperator.equals,
@@ -658,6 +643,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Dataset'),
+        key: 'dataset',
         id: 'datasource_id',
         input: 'select',
         operator: FilterOperator.equals,
@@ -665,10 +651,20 @@ function ChartList(props: ChartListProps) {
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
-      ...(crossRefEnabled ? [dashboardsFilter] : []),
+      {
+        Header: t('Dashboards'),
+        key: 'dashboards',
+        id: 'dashboards',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: fetchDashboards,
+        paginate: true,
+      },
       ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
+        key: 'certified',
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
@@ -681,6 +677,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'slice_name',
         input: 'search',
         operator: FilterOperator.chartAllText,

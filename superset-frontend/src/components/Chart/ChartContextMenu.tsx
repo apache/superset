@@ -36,9 +36,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
 import { DrillDetailMenuItems } from './DrillDetail';
-
-const MENU_ITEM_HEIGHT = 32;
-const MENU_VERTICAL_SPACING = 32;
+import { getMenuAdjustedY } from './utils';
 
 export interface ChartContextMenuProps {
   id: number;
@@ -78,8 +76,9 @@ const ChartContextMenu = (
       <DrillDetailMenuItems
         chartId={id}
         formData={formData}
-        isContextMenu
         filters={filters}
+        isContextMenu
+        contextMenuY={clientY}
         onSelection={onSelection}
       />,
     );
@@ -91,21 +90,12 @@ const ChartContextMenu = (
       clientY: number,
       filters?: BinaryQueryObjectFilterClause[],
     ) => {
-      // Viewport height
-      const vh = Math.max(
-        document.documentElement.clientHeight || 0,
-        window.innerHeight || 0,
-      );
-
       const itemsCount =
         [
           showDrillToDetail ? 2 : 0, // Drill to detail always has 2 top-level menu items
         ].reduce((a, b) => a + b, 0) || 1; // "No actions" appears if no actions in menu
 
-      const menuHeight = MENU_ITEM_HEIGHT * itemsCount + MENU_VERTICAL_SPACING;
-      // Always show the context menu inside the viewport
-      const adjustedY = vh - clientY < menuHeight ? vh - menuHeight : clientY;
-
+      const adjustedY = getMenuAdjustedY(clientY, itemsCount);
       setState({
         clientX,
         clientY: adjustedY,

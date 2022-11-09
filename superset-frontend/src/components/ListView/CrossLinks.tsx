@@ -112,7 +112,7 @@ export default function CrossLinks({
       >
         {links}
         {hasHiddenElements && (
-          <span ref={plusRef} className="count">
+          <span ref={plusRef} className="count" data-test="count-crosslinks">
             +{elementsTruncated}
           </span>
         )}

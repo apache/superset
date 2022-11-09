@@ -70,6 +70,7 @@ test('creates hydrate action from initial data', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
@@ -84,6 +85,8 @@ test('creates hydrate action from initial data', () => {
           slice: exploreInitialData.slice,
           standalone: null,
           force: null,
+          saveAction: null,
+          common: {},
         },
       },
     }),
@@ -140,6 +143,7 @@ test('creates hydrate action with existing state', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
@@ -155,6 +159,8 @@ test('creates hydrate action with existing state', () => {
           slice: exploreInitialData.slice,
           standalone: null,
           force: null,
+          saveAction: null,
+          common: {},
         },
       },
     }),

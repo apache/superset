@@ -57,6 +57,7 @@ export interface ModalProps {
   draggableConfig?: DraggableProps;
   destroyOnClose?: boolean;
   maskClosable?: boolean;
+  zIndex?: number;
 }
 
 interface StyledModalProps {

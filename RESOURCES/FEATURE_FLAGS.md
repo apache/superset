@@ -28,7 +28,6 @@ These features are considered **unfinished** and should only be used on developm
 [//]: # "PLEASE KEEP THE LIST SORTED ALPHABETICALLY"
 
 - CLIENT_CACHE
-- CROSS_REFERENCES
 - DASHBOARD_CACHE
 - DASHBOARD_NATIVE_FILTERS_SET
 - DISABLE_DATASET_SOURCE_EDIT
@@ -36,6 +35,7 @@ These features are considered **unfinished** and should only be used on developm
 - ENABLE_ADVANCED_DATA_TYPES
 - ENABLE_EXPLORE_JSON_CSRF_PROTECTION
 - ENABLE_TEMPLATE_REMOVE_FILTERS
+- HORIZONTAL_FILTER_BAR
 - KV_STORE
 - PRESTO_EXPAND_DATA
 - REMOVE_SLICE_LEVEL_LABEL_COLORS
@@ -51,6 +51,7 @@ These features are **finished** but currently being tested. They are usable, but
 - ALERT_REPORTS: [(docs)](https://superset.apache.org/docs/installation/alerts-reports)
 - ALLOW_FULL_CSV_EXPORT
 - CACHE_IMPERSONATION
+- CONFIRM_DASHBOARD_DIFF
 - DASHBOARD_EDIT_CHART_IN_NEW_TAB
 - DASHBOARD_FILTERS_EXPERIMENTAL
 - DASHBOARD_NATIVE_FILTERS
