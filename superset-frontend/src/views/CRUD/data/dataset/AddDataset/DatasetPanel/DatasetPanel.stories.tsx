@@ -24,7 +24,7 @@ import DatasetPanel from './DatasetPanel';
 import { exampleColumns } from './fixtures';
 
 export default {
-  title: 'Supset App/views/CRUD/data/dataset/DatasetPanel',
+  title: 'Superset App/views/CRUD/data/dataset/DatasetPanel',
   component: DatasetPanel,
 } as ComponentMeta<typeof DatasetPanel>;
 
