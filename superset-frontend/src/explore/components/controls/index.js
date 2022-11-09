@@ -45,7 +45,6 @@ import DndColumnSelectControl, {
   DndFilterSelect,
   DndMetricSelect,
 } from './DndColumnSelectControl';
-import XAxisSortControl from './XAxisSortControl';
 
 const controlMap = {
   AnnotationLayerControl,
@@ -75,7 +74,6 @@ const controlMap = {
   AdhocFilterControl,
   FilterBoxItemControl,
   ConditionalFormattingControl,
-  XAxisSortControl,
   ...sharedControlComponents,
 };
 export default controlMap;

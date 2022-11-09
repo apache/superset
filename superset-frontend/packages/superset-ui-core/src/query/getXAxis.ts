@@ -25,7 +25,6 @@ import {
   QueryFormData,
   QueryFormColumn,
   Optional,
-  isDefined,
 } from '@superset-ui/core';
 
 export const isXAxisSet = (formData: QueryFormData) =>
@@ -55,20 +54,4 @@ export const getXAxisLabel = (formData: QueryFormData): Optional<string> => {
     return getColumnLabel(col);
   }
   return undefined;
-};
-
-export interface AxisSortValue {
-  sortByLabel: string;
-  isAsc: boolean;
-}
-
-export function isAxisSortValue(value: any): value is AxisSortValue {
-  return isDefined(value?.sortByLabel) && isDefined(value.isAsc);
-}
-
-export const UnsortedXAxis = 'unsorted';
-
-export const defaultAxisSortValue = {
-  sortByLabel: UnsortedXAxis,
-  isAsc: true,
 };

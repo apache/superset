@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, SqlaFormData, UnsortedXAxis } from '@superset-ui/core';
+import { QueryObject, SqlaFormData } from '@superset-ui/core';
 import { sortOperator } from '@superset-ui/chart-controls';
 import * as supersetCoreModule from '@superset-ui/core';
 
@@ -69,29 +69,8 @@ test('should ignore the sortOperator', () => {
       {
         ...formData,
         ...{
-          x_axis_sort: {
-            sortByLabel: undefined,
-            isAsc: true,
-          },
-        },
-      },
-      queryObject,
-    ),
-  ).toEqual(undefined);
-
-  // sortOperator will be ignored when sortByLabel is unsorted
-  Object.defineProperty(supersetCoreModule, 'hasGenericChartAxes', {
-    value: true,
-  });
-  expect(
-    sortOperator(
-      {
-        ...formData,
-        ...{
-          x_axis_sort: {
-            sortByLabel: UnsortedXAxis,
-            isAsc: true,
-          },
+          x_axis_sort: undefined,
+          x_axis_sort_asc: true,
         },
       },
       queryObject,
@@ -107,10 +86,8 @@ test('should ignore the sortOperator', () => {
       {
         ...formData,
         ...{
-          x_axis_sort: {
-            sortByLabel: 'metric label',
-            isAsc: true,
-          },
+          x_axis_sort: 'metric label',
+          x_axis_sort_asc: true,
           groupby: ['col1'],
           x_axis: 'axis column',
         },
@@ -129,10 +106,8 @@ test('should sort by metric', () => {
       {
         ...formData,
         ...{
-          x_axis_sort: {
-            sortByLabel: 'a metric label',
-            isAsc: true,
-          },
+          x_axis_sort: 'a metric label',
+          x_axis_sort_asc: true,
         },
       },
       queryObject,
@@ -155,10 +130,8 @@ test('should sort by axis', () => {
       {
         ...formData,
         ...{
-          x_axis_sort: {
-            sortByLabel: 'Categorical Column',
-            isAsc: true,
-          },
+          x_axis_sort: 'Categorical Column',
+          x_axis_sort_asc: true,
           x_axis: 'Categorical Column',
         },
       },

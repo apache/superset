@@ -22,16 +22,17 @@ import {
   getColumnLabel,
   getMetricLabel,
   hasGenericChartAxes,
-  UnsortedXAxis,
   isEqualArray,
+  QueryFormColumn,
   t,
-  defaultAxisSortValue,
 } from '@superset-ui/core';
 import {
-  ControlPanelSectionConfig,
-  ControlSetItem,
-  ControlSetRow,
-} from '../types';
+  ControlPanelState,
+  ControlState,
+  ControlStateMapping,
+  isTemporalColumn,
+} from '@superset-ui/chart-controls';
+import { ControlPanelSectionConfig, ControlSetRow } from '../types';
 import { emitFilterControl } from '../shared-controls/emitFilterControl';
 
 const controlsWithoutXAxis: ControlSetRow[] = [
@@ -63,13 +64,18 @@ const controlsWithoutXAxis: ControlSetRow[] = [
   ['show_empty_columns'],
 ];
 
-const xAxisSort: ControlSetItem = {
+const xAxisSort = {
   name: 'x_axis_sort',
   config: {
-    type: 'XAxisSortControl',
+    type: 'SelectControl',
     label: t('X-Axis Sort By'),
-    description: '',
-    shouldMapStateToProps: (prevState, state) => {
+    description: t(
+      'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
+    ),
+    shouldMapStateToProps: (
+      prevState: ControlPanelState,
+      state: ControlPanelState,
+    ) => {
       const prevOptions = [
         getColumnLabel(prevState.form_data.x_axis),
         ...ensureIsArray(prevState.form_data.metrics).map(metric =>
@@ -84,26 +90,52 @@ const xAxisSort: ControlSetItem = {
       ];
       return !isEqualArray(prevOptions, currOptions);
     },
-    mapStateToProps: state => {
+    mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
       const choices = [
         getColumnLabel(state.form_data.x_axis),
         ...ensureIsArray(state.form_data.metrics).map(metric =>
           getMetricLabel(metric),
         ),
       ].filter(Boolean);
-
-      const xAxisSortByOptions = [UnsortedXAxis, ...choices].map(entry => ({
-        value: entry,
-        label: entry,
-      }));
+      const value =
+        typeof controlState.value === 'string' &&
+        choices.includes(controlState.value)
+          ? controlState.value
+          : undefined;
       return {
-        xAxisSortByOptions,
+        value,
+        options: choices.map(entry => ({
+          value: entry,
+          label: entry,
+        })),
       };
     },
-    visibility: ({ controls }) =>
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      !isTemporalColumn(
+        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+        controls?.datasource?.datasource,
+      ) &&
       Array.isArray(controls?.groupby?.value) &&
-      controls?.groupby?.value.length === 0,
-    default: defaultAxisSortValue,
+      controls.groupby.value.length === 0,
+  },
+};
+
+const xAxisSortAsc = {
+  name: 'x_axis_sort_asc',
+  config: {
+    type: 'CheckboxControl',
+    label: t('X-Axis Sort Ascending'),
+    default: true,
+    description: t(
+      'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
+    ),
+    visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      !isTemporalColumn(
+        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+        controls?.datasource?.datasource,
+      ) &&
+      Array.isArray(controls?.groupby?.value) &&
+      controls.groupby.value.length === 0,
   },
 };
 
@@ -124,6 +156,7 @@ export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
     [hasGenericChartAxes ? 'x_axis' : null],
     [hasGenericChartAxes ? 'time_grain_sqla' : null],
     [hasGenericChartAxes ? xAxisSort : null],
+    [hasGenericChartAxes ? xAxisSortAsc : null],
     ...controlsWithoutXAxis,
   ],
 };

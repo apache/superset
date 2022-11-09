@@ -20,9 +20,8 @@ import { isEmpty } from 'lodash';
 import {
   getXAxisLabel,
   hasGenericChartAxes,
+  isDefined,
   PostProcessingSort,
-  UnsortedXAxis,
-  isAxisSortValue,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
@@ -32,17 +31,17 @@ export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
 ) => {
   if (
     hasGenericChartAxes &&
-    isAxisSortValue(formData?.x_axis_sort) &&
-    formData.x_axis_sort.sortByLabel !== UnsortedXAxis &&
+    isDefined(formData?.x_axis_sort) &&
+    isDefined(formData?.x_axis_sort_asc) &&
     // the sort operator doesn't support sort-by multiple series.
     isEmpty(formData.groupby)
   ) {
-    if (formData.x_axis_sort.sortByLabel === getXAxisLabel(formData)) {
+    if (formData.x_axis_sort === getXAxisLabel(formData)) {
       return {
         operation: 'sort',
         options: {
           is_sort_index: true,
-          ascending: formData.x_axis_sort.isAsc,
+          ascending: formData.x_axis_sort_asc,
         },
       };
     }
@@ -50,8 +49,8 @@ export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
     return {
       operation: 'sort',
       options: {
-        by: formData.x_axis_sort.sortByLabel,
-        ascending: formData.x_axis_sort.isAsc,
+        by: formData.x_axis_sort,
+        ascending: formData.x_axis_sort_asc,
       },
     };
   }
