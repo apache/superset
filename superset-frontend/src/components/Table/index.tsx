@@ -287,8 +287,12 @@ export function Table(props: TableProps) {
     return () => {
       interactiveTableUtils?.current?.clearListeners?.();
     };
+    /**
+     * We DO NOT want this effect to trigger when derivedColumns changes as it will break functionality
+     * The exclusion from the effect dependencies is intentional and should not be modified
+     */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wrapperRef, reorderable, resizable]);
+  }, [wrapperRef, reorderable, resizable, interactiveTableUtils]);
 
   const theme = useTheme();
 
