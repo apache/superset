@@ -113,7 +113,7 @@ def get_permissions(
 
     data_permissions = defaultdict(set)
     roles_permissions = security_manager.get_user_roles_permissions(user)
-    for role_name, permissions in roles_permissions.items():
+    for _, permissions in roles_permissions.items():
         for permission in permissions:
             if permission[0] in ("datasource_access", "database_access"):
                 data_permissions[permission[0]].add(permission[1])
