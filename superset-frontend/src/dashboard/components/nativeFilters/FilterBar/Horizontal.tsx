@@ -74,7 +74,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
   dashboardId,
   dataMaskSelected,
   filterValues,
-  isLoading,
+  isInitialized,
   directPathToChild,
   onSelectionChange,
 }) => {
@@ -82,7 +82,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
-      {isLoading ? (
+      {!isInitialized ? (
         <Loading position="inline-centered" />
       ) : (
         <>

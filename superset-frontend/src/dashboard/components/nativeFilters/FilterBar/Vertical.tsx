@@ -133,7 +133,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
   filterValues,
   height,
   isDisabled,
-  isLoading,
+  isInitialized,
   offset,
   onSelectionChange,
   toggleFiltersBar,
@@ -201,7 +201,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
         </CollapsedBar>
         <Bar className={cx({ open: filtersOpen })} width={width}>
           <Header toggleFiltersBar={toggleFiltersBar} />
-          {!isLoading ? (
+          {!isInitialized ? (
             <div css={{ height }}>
               <Loading />
             </div>

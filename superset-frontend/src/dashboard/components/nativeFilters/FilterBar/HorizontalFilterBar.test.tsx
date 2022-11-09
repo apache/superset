@@ -29,7 +29,7 @@ describe('HorizontalFilterBar', () => {
     dashboardId: 1,
     dataMaskSelected: {},
     filterValues: [],
-    isLoading: false,
+    isInitialized: true,
     onSelectionChange: jest.fn(),
   };
 
@@ -88,7 +88,7 @@ describe('HorizontalFilterBar', () => {
 
   it('should render the loading icon', async () => {
     await renderWrapper({
-      isLoading: true,
+      isInitialized: false,
     });
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
   });

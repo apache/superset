@@ -34,7 +34,7 @@ interface CommonFiltersBarProps {
   dataMaskSelected: DataMaskStateWithId;
   directPathToChild?: string[];
   filterValues: (Filter | Divider)[];
-  isLoading: boolean;
+  isInitialized: boolean;
   onSelectionChange: (
     filter: Pick<Filter, 'id'> & Partial<Filter>,
     dataMask: Partial<DataMask>,

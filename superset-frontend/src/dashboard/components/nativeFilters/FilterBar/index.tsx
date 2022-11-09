@@ -264,7 +264,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       dataMaskSelected={dataMaskSelected}
       directPathToChild={directPathToChild}
       filterValues={filterValues}
-      isLoading={isInitialized}
+      isInitialized={isInitialized}
       onSelectionChange={handleFilterSelectionChange}
     />
   ) : verticalConfig ? (
@@ -275,7 +275,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       directPathToChild={directPathToChild}
       filtersOpen={verticalConfig.filtersOpen}
       filterValues={filterValues}
-      isLoading={isInitialized}
+      isInitialized={isInitialized}
       isDisabled={isApplyDisabled}
       height={verticalConfig.height}
       offset={verticalConfig.offset}
