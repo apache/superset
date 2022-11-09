@@ -22,6 +22,7 @@ import {
   getColumnLabel,
   getMetricLabel,
   hasGenericChartAxes,
+  isDefined,
   isEqualArray,
   QueryFormColumn,
   t,
@@ -111,6 +112,7 @@ const xAxisSort = {
       };
     },
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      isDefined(controls?.x_axis?.value) &&
       !isTemporalColumn(
         getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
         controls?.datasource?.datasource,
@@ -130,6 +132,7 @@ const xAxisSortAsc = {
       'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
     ),
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
+      isDefined(controls?.x_axis?.value) &&
       !isTemporalColumn(
         getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
         controls?.datasource?.datasource,
