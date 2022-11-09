@@ -39,6 +39,10 @@ test('renders with default props', async () => {
   expect(clickHandler).toHaveBeenCalled();
 });
 
+/**
+ * Validate that the appendDataToMenu utility function used within the
+ * Action cell menu rendering works as expected
+ */
 test('appendDataToMenu utility', () => {
   exampleMenuOptions.forEach(item => expect(item?.row).toBeUndefined());
   const modifiedMenuOptions = appendDataToMenu(exampleMenuOptions, exampleRow);
