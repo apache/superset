@@ -25,6 +25,7 @@ import {
   isDefined,
   isEqualArray,
   QueryFormColumn,
+  QueryFormMetric,
   t,
 } from '@superset-ui/core';
 import {
@@ -70,32 +71,30 @@ const xAxisSort = {
   config: {
     type: 'SelectControl',
     label: t('X-Axis Sort By'),
-    description: t(
-      'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
-    ),
+    description: t('Whether to sort descending or ascending on the X-Axis.'),
     shouldMapStateToProps: (
       prevState: ControlPanelState,
       state: ControlPanelState,
     ) => {
       const prevOptions = [
-        getColumnLabel(prevState.form_data.x_axis),
-        ...ensureIsArray(prevState.form_data.metrics).map(metric =>
-          getMetricLabel(metric),
+        getColumnLabel(prevState?.controls?.x_axis?.value as QueryFormColumn),
+        ...ensureIsArray(prevState?.controls?.metrics?.value).map(metric =>
+          getMetricLabel(metric as QueryFormMetric),
         ),
       ];
       const currOptions = [
-        getColumnLabel(state.form_data.x_axis),
-        ...ensureIsArray(state.form_data.metrics).map(metric =>
-          getMetricLabel(metric),
+        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
+        ...ensureIsArray(state?.controls?.metrics?.value).map(metric =>
+          getMetricLabel(metric as QueryFormMetric),
         ),
       ];
       return !isEqualArray(prevOptions, currOptions);
     },
     mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
       const choices = [
-        getColumnLabel(state.form_data.x_axis),
-        ...ensureIsArray(state.form_data.metrics).map(metric =>
-          getMetricLabel(metric),
+        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
+        ...ensureIsArray(state?.controls?.metrics?.value).map(metric =>
+          getMetricLabel(metric as QueryFormMetric),
         ),
       ].filter(Boolean);
       const value =
@@ -128,9 +127,7 @@ const xAxisSortAsc = {
     type: 'CheckboxControl',
     label: t('X-Axis Sort Ascending'),
     default: true,
-    description: t(
-      'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
-    ),
+    description: t('Whether to sort descending or ascending on the X-Axis.'),
     visibility: ({ controls }: { controls: ControlStateMapping }) =>
       isDefined(controls?.x_axis?.value) &&
       !isTemporalColumn(
