@@ -24,7 +24,7 @@ from ast import literal_eval
 from contextlib import closing, contextmanager
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
 
 import numpy
 import pandas as pd
@@ -71,6 +71,9 @@ stats_logger = config["STATS_LOGGER"]
 log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from superset.databases.models import SSHTunnel
 
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
@@ -369,23 +372,24 @@ class Database(
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
-        ssh_tunnel_credentials: Optional["SSHTunnelCredentials"] = None
+        ssh_tunnel_credentials: Optional["SSHTunnel"] = None
     ) -> Engine:
+        ssh_params = None
         if ssh_tunnel_credentials:
             # build with override
             print('building with params')
+            url = make_url_safe(self.sqlalchemy_uri_decrypted)
+            ssh_tunnel_credentials.bind_host = url.host
+            ssh_tunnel_credentials.bind_port = url.port
+            ssh_params = ssh_tunnel_credentials.parameters()
 
         else:
             # do look up in table for using database_id
             print('doing look up on table')
 
         try:
-            from sqlalchemy.engine.url import make_url
-            url = make_url(self.sqlalchemy_uri_decrypted)
-            ssh_tunnel_credentials.bind_host = url.host
-            ssh_tunnel_credentials.bind_port = url.port
             with sshtunnel.open_tunnel(
-                **ssh_tunnel_credentials.parameters()
+                **ssh_params
             ) as server:
                 yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source, ssh_tunnel_server=server)
         except Exception as ex:
@@ -444,7 +448,7 @@ class Database(
         if ssh_tunnel_server:
             # update sqlalchemy_url
             from sqlalchemy.engine.url import make_url
-            url = make_url(sqlalchemy_url)
+            url = make_url_safe(sqlalchemy_url)
             sqlalchemy_url = url.set(host="127.0.0.1", port=ssh_tunnel_server.local_bind_port)
 
         try:

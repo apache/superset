@@ -90,10 +90,10 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
-            from superset.databases.models import SSHTunnelCredentials
+            from superset.databases.models import SSHTunnel
 
             if self._properties.get("ssh_tunnel_credentials"):
-                ssh_tunnel_credentials = SSHTunnelCredentials(
+                ssh_tunnel_credentials = SSHTunnel(
                     **self._properties["ssh_tunnel_credentials"]
                 )
 

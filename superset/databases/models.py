@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Dict
+from typing import Any, Dict
 
 import sqlalchemy as sa
 from flask_appbuilder import Model
@@ -33,14 +33,12 @@ from superset.models.helpers import (
 app_config = app.config
 
 
-class SSHTunnelCredentials(
-    Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin
-):
+class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     """
     A ssh tunnel configuration in a database.
     """
 
-    __tablename__ = "ssh_tunnel_credentials"
+    __tablename__ = "ssh_tunnel"
 
     id = sa.Column(sa.Integer, primary_key=True)
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
@@ -70,7 +68,7 @@ class SSHTunnelCredentials(
     bind_host = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
     bind_port = sa.Column(EncryptedType(sa.Integer, app_config["SECRET_KEY"]))
 
-    def parameters(self) -> Dict:
+    def parameters(self) -> Dict[str, Any]:
         params = {
             "ssh_address_or_host": self.server_address,
             "ssh_port": self.server_port,

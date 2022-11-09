@@ -72,4 +72,4 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_table("ssh_tunnel_credentials")
+    op.drop_table("ssh_tunnel")
