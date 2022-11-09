@@ -122,7 +122,7 @@ const changeFilterValue = async () => {
   userEvent.click(screen.getByTestId(DATE_FILTER_TEST_KEY.applyButton));
 };
 
-describe('VerticalFilterBar', () => {
+describe('FilterBar', () => {
   new MainPreset().register();
   const toggleFiltersBar = jest.fn();
   const closedBarProps = {
