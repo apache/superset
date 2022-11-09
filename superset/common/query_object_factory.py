@@ -20,7 +20,7 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
-from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceType
 
 if TYPE_CHECKING:
@@ -58,15 +58,9 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         datasource_model_instance = None
         if datasource:
             datasource_model_instance = self._convert_to_model(datasource)
-        processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
         row_limit = self._process_row_limit(row_limit, result_type)
-        from_dttm, to_dttm = get_since_until_from_time_range(
-            time_range, time_shift, processed_extras
-        )
-        kwargs["from_dttm"] = from_dttm
-        kwargs["to_dttm"] = to_dttm
-        return QueryObject(
+        query_object = QueryObject(
             datasource=datasource_model_instance,
             extras=extras,
             row_limit=row_limit,
@@ -74,6 +68,10 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             time_shift=time_shift,
             **kwargs,
         )
+        from_dttm, to_dttm = get_since_until_from_query_object(query_object)
+        query_object.from_dttm = from_dttm
+        query_object.to_dttm = to_dttm
+        return query_object
 
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
         return self._datasource_dao.get_datasource(
