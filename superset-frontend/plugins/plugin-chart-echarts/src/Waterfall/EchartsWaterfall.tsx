@@ -32,14 +32,9 @@ export default function EchartsWaterfall(
     labelMap,
     groupby,
     selectedValues,
-    formData,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
-        return;
-      }
-
       const groupbyValues = values.map(value => labelMap[value]);
 
       setDataMask({
@@ -67,7 +62,7 @@ export default function EchartsWaterfall(
         },
       });
     },
-    [formData.emitFilter, setDataMask, groupby, labelMap],
+    [setDataMask, groupby, labelMap],
   );
 
   const eventHandlers = allEventHandlers(props, handleChange);

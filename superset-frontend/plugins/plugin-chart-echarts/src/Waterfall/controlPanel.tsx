@@ -20,7 +20,6 @@ import React from 'react';
 import { ensureIsArray, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  emitFilterControl,
   formatSelectOptions,
   getStandardizedControls,
   sections,
@@ -38,7 +37,6 @@ const config: ControlPanelConfig = {
         ['columns'],
         ['metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         ['row_limit'],
       ],
     },

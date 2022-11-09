@@ -178,7 +178,6 @@ export default function transformProps(
     yAxisFormat,
     richTooltip,
     showValue,
-    emitFilter,
     sliceId,
   } = formData as EchartsWaterfallFormData;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -390,7 +389,6 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
