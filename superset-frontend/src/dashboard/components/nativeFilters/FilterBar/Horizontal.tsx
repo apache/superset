@@ -28,15 +28,25 @@ import FilterConfigurationLink from './FilterConfigurationLink';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
+  padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
+  background: ${theme.colors.grayscale.light5};
+  box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
+`}
+`;
+
+const HorizontalBarContent = styled.div`
+  ${({ theme }) => `
   display: flex;
   flex-direction: row;
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  height: 48px;
-  background: ${theme.colors.grayscale.light5};
-  box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
-  padding: 0 ${theme.gridUnit * 4}px;
+  padding: 0 ${theme.gridUnit * 2}px;
+
+  .loading {
+    margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 2}px;
+    padding: 0;
+  }
 `}
 `;
 
@@ -82,36 +92,38 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
-      {!isInitialized ? (
-        <Loading position="inline-centered" />
-      ) : (
-        <>
-          {canEdit && <FilterBarLocationSelect />}
-          {!hasFilters && (
-            <FilterBarEmptyStateContainer>
-              {t('No filters are currently added to this dashboard.')}
-            </FilterBarEmptyStateContainer>
-          )}
-          {canEdit && (
-            <FiltersLinkContainer hasFilters={hasFilters}>
-              <FilterConfigurationLink
-                dashboardId={dashboardId}
-                createNewOnOpen={filterValues.length === 0}
-              >
-                <Icons.PlusSmall /> {t('Add/Edit Filters')}
-              </FilterConfigurationLink>
-            </FiltersLinkContainer>
-          )}
-          {hasFilters && (
-            <FilterControls
-              dataMaskSelected={dataMaskSelected}
-              directPathToChild={directPathToChild}
-              onFilterSelectionChange={onSelectionChange}
-            />
-          )}
-          {actions}
-        </>
-      )}
+      <HorizontalBarContent>
+        {!isInitialized ? (
+          <Loading position="inline-centered" />
+        ) : (
+          <>
+            {canEdit && <FilterBarLocationSelect />}
+            {!hasFilters && (
+              <FilterBarEmptyStateContainer>
+                {t('No filters are currently added to this dashboard.')}
+              </FilterBarEmptyStateContainer>
+            )}
+            {canEdit && (
+              <FiltersLinkContainer hasFilters={hasFilters}>
+                <FilterConfigurationLink
+                  dashboardId={dashboardId}
+                  createNewOnOpen={filterValues.length === 0}
+                >
+                  <Icons.PlusSmall /> {t('Add/Edit Filters')}
+                </FilterConfigurationLink>
+              </FiltersLinkContainer>
+            )}
+            {hasFilters && (
+              <FilterControls
+                dataMaskSelected={dataMaskSelected}
+                directPathToChild={directPathToChild}
+                onFilterSelectionChange={onSelectionChange}
+              />
+            )}
+            {actions}
+          </>
+        )}
+      </HorizontalBarContent>
     </HorizontalBar>
   );
 };
