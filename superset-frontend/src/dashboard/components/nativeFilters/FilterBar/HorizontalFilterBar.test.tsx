@@ -17,30 +17,46 @@
  * under the License.
  */
 
+import { NativeFilterType } from '@superset-ui/core';
 import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import { testWithId } from 'src/utils/testUtils';
-import { FilterBarLocation } from 'src/dashboard/types';
-import { FILTER_BAR_TEST_ID } from './utils';
-import FilterBar from '.';
+import HorizontalBar from './Horizontal';
 
 describe('HorizontalFilterBar', () => {
-  const getTestId = testWithId<string>(FILTER_BAR_TEST_ID, true);
+  const defaultProps = {
+    actions: null,
+    canEdit: true,
+    dashboardId: 1,
+    dataMaskSelected: {},
+    filterValues: [],
+    isLoading: false,
+    onSelectionChange: jest.fn(),
+  };
 
-  const renderWrapper = (state?: object) =>
+  const renderWrapper = (overrideProps?: Record<string, any>) =>
     waitFor(() =>
-      render(<FilterBar orientation={FilterBarLocation.HORIZONTAL} />, {
-        initialState: state,
-        useDnd: true,
+      render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
         useRedux: true,
-        useRouter: true,
       }),
     );
 
   it('should render', async () => {
     const { container } = await renderWrapper();
     expect(container).toBeInTheDocument();
+  });
+
+  it('should not render the empty message', async () => {
+    await renderWrapper({
+      filterValues: [
+        {
+          id: 'test',
+          type: NativeFilterType.NATIVE_FILTER,
+        },
+      ],
+    });
+    expect(
+      screen.queryByText('No filters are currently added to this dashboard.'),
+    ).not.toBeInTheDocument();
   });
 
   it('should render the empty message', async () => {
@@ -50,31 +66,42 @@ describe('HorizontalFilterBar', () => {
     ).toBeInTheDocument();
   });
 
-  it('should render the "Clear all" option', async () => {
+  it('should render the gear icon', async () => {
     await renderWrapper();
-    expect(screen.getByText('Clear all')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
   });
 
-  it('should render the "Apply" option', async () => {
-    await renderWrapper();
-    expect(screen.getByText('Apply')).toBeInTheDocument();
-  });
-
-  it('should not allow edit by disabled permissions', async () => {
+  it('should not render the gear icon', async () => {
     await renderWrapper({
-      ...stateWithoutNativeFilters,
-      dashboardInfo: { metadata: {} },
+      canEdit: false,
     });
 
+    expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
+  });
+
+  it('should not render the loading icon', async () => {
+    await renderWrapper();
     expect(
-      screen.queryByTestId(getTestId('create-filter')),
+      screen.queryByRole('status', { name: 'Loading' }),
     ).not.toBeInTheDocument();
   });
 
-  it('should show as disabled with no filters', async () => {
-    await renderWrapper(stateWithoutNativeFilters);
+  it('should render the loading icon', async () => {
+    await renderWrapper({
+      isLoading: true,
+    });
+    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+  });
 
-    expect(screen.getByTestId(getTestId('clear-button'))).toBeDisabled();
-    expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  it('should render Add/Edit Filters', async () => {
+    await renderWrapper();
+    expect(screen.getByText('Add/Edit Filters')).toBeInTheDocument();
+  });
+
+  it('should not render Add/Edit Filters', async () => {
+    await renderWrapper({
+      canEdit: false,
+    });
+    expect(screen.queryByText('Add/Edit Filters')).not.toBeInTheDocument();
   });
 });

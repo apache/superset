@@ -82,7 +82,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
 
   return (
     <HorizontalBar {...getFilterBarTestId()}>
-      {!isLoading ? (
+      {isLoading ? (
         <Loading position="inline-centered" />
       ) : (
         <>
