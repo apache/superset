@@ -43,7 +43,7 @@ export type Description = {
 
 export type LastModified = {
   type: MetadataType.LAST_MODIFIED;
-  value: Date;
+  value: string;
   modifiedBy: string;
   onClick?: (type: string) => void;
 };
@@ -52,7 +52,7 @@ export type Owner = {
   type: MetadataType.OWNER;
   createdBy: string;
   owners: string[];
-  createdOn: Date;
+  createdOn: string;
   onClick?: (type: string) => void;
 };
 

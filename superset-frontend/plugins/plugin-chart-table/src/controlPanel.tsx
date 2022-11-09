@@ -23,7 +23,10 @@ import {
   ensureIsArray,
   FeatureFlag,
   GenericDataType,
+  hasGenericChartAxes,
+  isAdhocColumn,
   isFeatureEnabled,
+  isPhysicalColumn,
   QueryFormColumn,
   QueryMode,
   smartDateFormatter,
@@ -145,7 +148,7 @@ const percentMetricsControl: typeof sharedControls.metrics = {
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
@@ -185,6 +188,37 @@ const config: ControlPanelConfig = {
               rerender: ['metrics', 'percent_metrics'],
             },
           },
+        ],
+        [
+          hasGenericChartAxes && isAggMode
+            ? {
+                name: 'time_grain_sqla',
+                config: {
+                  ...sharedControls.time_grain_sqla,
+                  visibility: ({ controls }) => {
+                    const dttmLookup = Object.fromEntries(
+                      ensureIsArray(controls?.groupby?.options).map(option => [
+                        option.column_name,
+                        option.is_dttm,
+                      ]),
+                    );
+
+                    return ensureIsArray(controls?.groupby.value)
+                      .map(selection => {
+                        if (isAdhocColumn(selection)) {
+                          return true;
+                        }
+                        if (isPhysicalColumn(selection)) {
+                          return !!dttmLookup[selection];
+                        }
+                        return false;
+                      })
+                      .some(Boolean);
+                  },
+                },
+              }
+            : null,
+          hasGenericChartAxes && isAggMode ? 'datetime_columns_lookup' : null,
         ],
         [
           {

@@ -826,6 +826,10 @@ export class TableRenderer extends React.Component {
     );
   }
 
+  isDashboardEditMode() {
+    return document.contains(document.querySelector('.dashboard--editing'));
+  }
+
   render() {
     if (this.cachedProps !== this.props) {
       this.cachedProps = this.props;
@@ -867,7 +871,7 @@ export class TableRenderer extends React.Component {
     };
 
     return (
-      <Styles>
+      <Styles isDashboardEditMode={this.isDashboardEditMode()}>
         <table className="pvtTable" role="grid">
           <thead>
             {colAttrs.map((c, j) =>

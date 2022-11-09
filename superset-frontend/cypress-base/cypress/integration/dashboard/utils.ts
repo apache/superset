@@ -33,12 +33,14 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Box plot', viz: 'box_plot' },
 ] as ChartSpec[];
 
-export const ECHARTS_CHARTS = [
-  { name: 'Number of Girls', viz: 'big_number_total' },
-  { name: 'Participants', viz: 'big_number' },
-  { name: 'Box plot', viz: 'box_plot' },
-  { name: 'Genders', viz: 'pie' },
-  { name: 'Energy Force Layout', viz: 'graph_chart' },
+export const SUPPORTED_TIER1_CHARTS = [
+  { name: 'Big Number', viz: 'big_number_total' },
+  { name: 'Big Number with Trendline', viz: 'big_number' },
+  { name: 'Pie Chart', viz: 'pie' },
+] as ChartSpec[];
+
+export const SUPPORTED_TIER2_CHARTS = [
+  { name: 'Box Plot Chart', viz: 'box_plot' },
 ] as ChartSpec[];
 
 export const testItems = {
@@ -475,4 +477,13 @@ export function addCountryNameFilter() {
     testItems.datasetForNativeFilter,
     testItems.topTenChart.filterColumn,
   );
+}
+
+export function openTab(tabComponentIndex: number, tabIndex: number) {
+  return cy
+    .getBySel('dashboard-component-tabs')
+    .eq(tabComponentIndex)
+    .find('[role="tab"]')
+    .eq(tabIndex)
+    .click();
 }

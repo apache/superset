@@ -226,3 +226,15 @@ def test_wrong_endpoint(mock_get_datasource, test_client, login_as_admin, datase
     data = json.loads(resp.data.decode("utf-8"))
     assert resp.status_code == 302
     assert data["redirect"] == dataset.default_endpoint
+
+
+def test_get_url_params(test_client, login_as_admin, chart_id):
+    resp = test_client.get(f"api/v1/explore/?slice_id={chart_id}&foo=bar")
+    assert resp.status_code == 200
+    data = json.loads(resp.data.decode("utf-8"))
+    result = data.get("result")
+
+    assert result["form_data"]["url_params"] == {
+        "foo": "bar",
+        "slice_id": str(chart_id),
+    }

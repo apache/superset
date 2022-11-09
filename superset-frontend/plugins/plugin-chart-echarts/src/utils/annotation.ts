@@ -31,8 +31,9 @@ import {
   isRecordAnnotationResult,
   isTableAnnotationLayer,
   isTimeseriesAnnotationResult,
+  AxisType,
 } from '@superset-ui/core';
-import { AxisType, EchartsTimeseriesChartProps } from '../types';
+import { EchartsTimeseriesChartProps } from '../types';
 import { EchartsMixedTimeseriesProps } from '../MixedTimeseries/types';
 
 export function evalFormula(

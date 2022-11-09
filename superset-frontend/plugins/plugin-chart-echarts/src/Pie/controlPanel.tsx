@@ -125,6 +125,7 @@ const config: ControlPanelConfig = {
               description: `${t(
                 'D3 format syntax: https://github.com/d3/d3-format',
               )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              tokenSeparators: ['\n', '\t', ';'],
             },
           },
         ],

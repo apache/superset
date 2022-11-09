@@ -38,6 +38,7 @@ const propTypes = {
   index: PropTypes.number,
   type: PropTypes.string,
   multi: PropTypes.bool,
+  datasourceWarningMessage: PropTypes.string,
 };
 
 class AdhocMetricOption extends React.PureComponent {
@@ -64,6 +65,7 @@ class AdhocMetricOption extends React.PureComponent {
       index,
       type,
       multi,
+      datasourceWarningMessage,
     } = this.props;
 
     return (
@@ -87,6 +89,7 @@ class AdhocMetricOption extends React.PureComponent {
           withCaret
           isFunction
           multi={multi}
+          datasourceWarningMessage={datasourceWarningMessage}
         />
       </AdhocMetricPopoverTrigger>
     );

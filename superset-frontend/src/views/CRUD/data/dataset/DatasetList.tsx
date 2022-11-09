@@ -48,7 +48,6 @@ import SubMenu, {
   SubMenuProps,
   ButtonProps,
 } from 'src/views/components/SubMenu';
-import { commonMenuData } from 'src/views/CRUD/data/common';
 import Owner from 'src/types/Owner';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
@@ -503,6 +502,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     () => [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -522,6 +522,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Database'),
+        key: 'database',
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -537,6 +538,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Schema'),
+        key: 'schema',
         id: 'schema',
         input: 'select',
         operator: FilterOperator.equals,
@@ -552,6 +554,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Type'),
+        key: 'sql',
         id: 'sql',
         input: 'select',
         operator: FilterOperator.datasetIsNullOrEmpty,
@@ -563,6 +566,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Certified'),
+        key: 'certified',
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
@@ -575,6 +579,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'table_name',
         input: 'search',
         operator: FilterOperator.contains,
@@ -585,7 +590,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const menuData: SubMenuProps = {
     activeChild: 'Datasets',
-    ...commonMenuData,
+    name: t('Datasets'),
   };
 
   const buttonArr: Array<ButtonProps> = [];
@@ -702,7 +707,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
     SupersetClient.post({
       endpoint: `/api/v1/dataset/duplicate`,
-      postPayload: {
+      jsonPayload: {
         base_model_id: datasetCurrentlyDuplicating?.id,
         table_name: newDatasetName,
       },
@@ -726,6 +731,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         show={datasetAddModalOpen}
         onHide={closeDatasetAddModal}
         onDatasetAdd={refreshData}
+        history={history}
       />
       {datasetCurrentlyDeleting && (
         <DeleteModal

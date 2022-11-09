@@ -57,14 +57,6 @@ timeout in configuration. For example:
 SQLLAB_ASYNC_TIME_LIMIT_SEC = 60 * 60 * 6
 ```
 
-Superset is running on gunicorn web server, which may time out web requests. If you want to increase
-the default (50), you can specify the timeout when starting the web server with the -t flag, which
-is expressed in seconds.
-
-```
-superset runserver -t 300
-```
-
 If you are seeing timeouts (504 Gateway Time-out) when loading dashboard or explore slice, you are
 probably behind gateway or proxy server (such as Nginx). If it did not receive a timely response
 from Superset server (which is processing long queries), these web servers will send 504 status code

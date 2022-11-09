@@ -150,10 +150,6 @@ def test_hive_error_msg():
     )
 
 
-def test_hive_get_view_names_return_empty_list():  # pylint: disable=invalid-name
-    assert HiveEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY) == []
-
-
 def test_convert_dttm():
     dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
     assert HiveEngineSpec.convert_dttm("DATE", dttm) == "CAST('2019-01-02' AS DATE)"

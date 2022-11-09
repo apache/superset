@@ -32,6 +32,7 @@ from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
 from superset.databases.utils import make_url_safe
+from superset.db_engine_specs.base import BasicPropertiesType
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
@@ -242,7 +243,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def validate_parameters(
-        cls, parameters: SnowflakeParametersType
+        cls, properties: BasicPropertiesType
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
         required = {
@@ -253,6 +254,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             "role",
             "password",
         }
+        parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
         missing = sorted(required - present)
 

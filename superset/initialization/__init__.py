@@ -49,6 +49,7 @@ from superset.extensions import (
 )
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
+from superset.tags.core import register_sqla_event_listeners
 from superset.utils.core import pessimistic_connection_handling
 from superset.utils.log import DBEventLogger, get_event_logger_from_cfg_value
 
@@ -426,6 +427,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if flask_app_mutator:
             flask_app_mutator(self.superset_app)
 
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            register_sqla_event_listeners()
+
         self.init_views()
 
     def check_secret_key(self) -> None:
@@ -571,8 +575,28 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Flask-Compress
         Compress(self.superset_app)
 
-        if self.config["TALISMAN_ENABLED"]:
-            talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
+        show_csp_warning = False
+        if (
+            self.config["CONTENT_SECURITY_POLICY_WARNING"]
+            and not self.superset_app.debug
+        ):
+            if self.config["TALISMAN_ENABLED"]:
+                talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
+                if not self.config["TALISMAN_CONFIG"].get("content_security_policy"):
+                    show_csp_warning = True
+            else:
+                show_csp_warning = True
+
+        if show_csp_warning:
+            logger.warning(
+                "We haven't found any Content Security Policy (CSP) defined in "
+                "the configurations. Please make sure to configure CSP using the "
+                "TALISMAN_CONFIG key or any other external software. Failing to "
+                "configure CSP have serious security implications. Check "
+                "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
+                "information. You can disable this warning using the "
+                "CONTENT_SECURITY_POLICY_WARNING key."
+            )
 
     def configure_logging(self) -> None:
         self.config["LOGGING_CONFIGURATOR"].configure_logging(

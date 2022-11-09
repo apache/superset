@@ -24,6 +24,10 @@ import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import {
+  getClientErrorMessage,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -132,17 +136,7 @@ export default function DatabaseSelector({
 }: DatabaseSelectorProps) {
   const [loadingSchemas, setLoadingSchemas] = useState(false);
   const [schemaOptions, setSchemaOptions] = useState<SchemaValue[]>([]);
-  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>(
-    db
-      ? {
-          label: (
-            <SelectLabel backend={db.backend} databaseName={db.database_name} />
-          ),
-          value: db.id,
-          ...db,
-        }
-      : undefined,
-  );
+  const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
   const [currentSchema, setCurrentSchema] = useState<SchemaValue | undefined>(
     schema ? { label: schema, value: schema } : undefined,
   );
@@ -209,6 +203,25 @@ export default function DatabaseSelector({
   );
 
   useEffect(() => {
+    setCurrentDb(current =>
+      current?.id !== db?.id
+        ? db
+          ? {
+              label: (
+                <SelectLabel
+                  backend={db.backend}
+                  databaseName={db.database_name}
+                />
+              ),
+              value: db.id,
+              ...db,
+            }
+          : undefined
+        : current,
+    );
+  }, [db]);
+
+  useEffect(() => {
     if (currentDb) {
       setLoadingSchemas(true);
       const queryParams = rison.encode({ force: refresh > 0 });
@@ -229,9 +242,16 @@ export default function DatabaseSelector({
           setLoadingSchemas(false);
           if (refresh > 0) addSuccessToast('List refreshed');
         })
-        .catch(() => {
+        .catch(err => {
           setLoadingSchemas(false);
-          handleError(t('There was an error loading the schemas'));
+          getClientErrorObject(err).then(clientError => {
+            handleError(
+              getClientErrorMessage(
+                t('There was an error loading the schemas'),
+                clientError,
+              ),
+            );
+          });
         });
     }
   }, [currentDb, onSchemasLoad, refresh]);
@@ -286,7 +306,7 @@ export default function DatabaseSelector({
   }
 
   function renderSchemaSelect() {
-    const refreshIcon = !formMode && !readOnly && (
+    const refreshIcon = !readOnly && (
       <RefreshLabel
         onClick={() => setRefresh(refresh + 1)}
         tooltipContent={t('Force refresh schema list')}

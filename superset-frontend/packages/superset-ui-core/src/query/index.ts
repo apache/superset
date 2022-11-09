@@ -29,6 +29,13 @@ export { default as getMetricLabel } from './getMetricLabel';
 export { default as DatasourceKey } from './DatasourceKey';
 export { default as normalizeOrderBy } from './normalizeOrderBy';
 export { normalizeTimeColumn } from './normalizeTimeColumn';
+export {
+  getXAxisLabel,
+  getXAxisColumn,
+  isXAxisSet,
+  hasGenericChartAxes,
+} from './getXAxis';
+export { default as extractQueryFields } from './extractQueryFields';
 
 export * from './types/AnnotationLayer';
 export * from './types/QueryFormData';

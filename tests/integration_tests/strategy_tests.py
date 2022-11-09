@@ -35,7 +35,7 @@ from superset.utils.database import get_example_database
 from superset import db
 
 from superset.models.core import Log
-from superset.models.tags import get_tag, ObjectTypes, TaggedObject, TagTypes
+from superset.tags.models import get_tag, ObjectTypes, TaggedObject, TagTypes
 from superset.tasks.cache import (
     DashboardTagsStrategy,
     TopNDashboardsStrategy,

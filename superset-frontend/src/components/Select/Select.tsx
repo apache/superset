@@ -32,34 +32,28 @@ import {
   getValue,
   hasOption,
   isLabeledValue,
-  DEFAULT_SORT_COMPARATOR,
-  EMPTY_OPTIONS,
-  MAX_TAG_COUNT,
-  SelectOptionsType,
-  StyledCheckOutlined,
-  StyledStopOutlined,
-  TOKEN_SEPARATORS,
   renderSelectOptions,
-  StyledSelect,
-  StyledContainer,
   hasCustomLabels,
-  BaseSelectProps,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   handleFilterOptionHelper,
   dropDownRenderHelper,
   getSuffixIcon,
 } from './utils';
-
-export interface SelectProps extends BaseSelectProps {
-  /**
-   * It defines the options of the Select.
-   * The options can be static, an array of options.
-   * The options can also be async, a promise that returns
-   * an array of options.
-   */
-  options: SelectOptionsType;
-}
+import { SelectOptionsType, SelectProps } from './types';
+import {
+  StyledCheckOutlined,
+  StyledContainer,
+  StyledHeader,
+  StyledSelect,
+  StyledStopOutlined,
+} from './styles';
+import {
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  TOKEN_SEPARATORS,
+  DEFAULT_SORT_COMPARATOR,
+} from './constants';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -83,6 +77,7 @@ const Select = forwardRef(
       ariaLabel,
       filterOption = true,
       header = null,
+      headerPosition = 'top',
       helperText,
       invertSelection = false,
       labelInValue = false,
@@ -270,8 +265,10 @@ const Select = forwardRef(
     }, [value]);
 
     return (
-      <StyledContainer>
-        {header}
+      <StyledContainer headerPosition={headerPosition}>
+        {header && (
+          <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
+        )}
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
@@ -281,6 +278,7 @@ const Select = forwardRef(
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
+          headerPosition={headerPosition}
           labelInValue={labelInValue}
           maxTagCount={MAX_TAG_COUNT}
           mode={mappedMode}

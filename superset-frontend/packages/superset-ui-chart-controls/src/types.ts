@@ -22,6 +22,7 @@ import type {
   AdhocColumn,
   Column,
   DatasourceType,
+  JsonObject,
   JsonValue,
   Metric,
   QueryFormColumn,
@@ -79,12 +80,15 @@ export interface Dataset {
   description: string | null;
   uid?: string;
   owners?: Owner[];
+  filter_select?: boolean;
+  filter_select_enabled?: boolean;
 }
 
 export interface ControlPanelState {
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
+  common: JsonObject;
 }
 
 /**
@@ -238,7 +242,7 @@ export interface BaseControlConfig<
   ) => boolean;
   mapStateToProps?: (
     state: ControlPanelState,
-    controlState?: ControlState,
+    controlState: ControlState,
     // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
     chartState?: AnyDict,
   ) => ExtraControlProps;
@@ -448,10 +452,8 @@ export type ColorFormatters = {
 
 export default {};
 
-export function isColumnMeta(
-  column: AdhocColumn | ColumnMeta,
-): column is ColumnMeta {
-  return 'column_name' in column;
+export function isColumnMeta(column: AnyDict): column is ColumnMeta {
+  return !!column && 'column_name' in column;
 }
 
 export function isSavedExpression(
@@ -477,9 +479,5 @@ export function isDataset(
 export function isQueryResponse(
   datasource: Dataset | QueryResponse | null | undefined,
 ): datasource is QueryResponse {
-  return (
-    !!datasource &&
-    ('results' in datasource ||
-      datasource?.type === ('query' as DatasourceType.Query))
-  );
+  return !!datasource && 'results' in datasource && 'sql' in datasource;
 }
