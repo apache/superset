@@ -3672,6 +3672,14 @@
         },
         "type": "object"
       },
+      "DatabaseRelatedSSHTunnelResponse": {
+        "properties": {
+          "ssh_tunnel": {
+            "$ref": "#/components/schemas/DatabaseRelatedSSHTunnel"
+          }
+        },
+        "type": "object"
+      },
       "DatabaseRestApi.get": {
         "properties": {
           "allow_ctas": {
