@@ -80,7 +80,8 @@ from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
 
-from .utils import bootstrap_user_data
+from superset.views.utils import bootstrap_user_data
+
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -642,6 +643,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
+        database_perms = security_manager.user_view_menu_names("database_access")
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         owner_ids_query = (
@@ -649,13 +651,26 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(models.SqlaTable.owners)
             .filter(security_manager.user_model.id == get_user_id())
         )
+        database_ids = self.get_database_ids(database_perms)
         return query.filter(
             or_(
                 self.model.perm.in_(datasource_perms),
                 self.model.schema_perm.in_(schema_perms),
                 models.SqlaTable.id.in_(owner_ids_query),
+                models.SqlaTable.database_id.in_(database_ids),
             )
         )
+
+    def get_database_ids(self, database_permissions: set) -> List[str]:
+        db_ids = []
+        if database_permissions is not None and len(database_permissions) > 0:
+            database_list = list(database_permissions)
+            for i in range(len(database_list)):
+                database_roles = database_list[i]
+                startIndex = database_roles.index("(id:") + 4
+                endIndex = database_roles.index(")", startIndex)
+                db_ids.append(database_roles[startIndex:endIndex])
+        return db_ids
 
 
 class CsvResponse(Response):
