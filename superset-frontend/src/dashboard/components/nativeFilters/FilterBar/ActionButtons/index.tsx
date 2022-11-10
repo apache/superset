@@ -21,9 +21,9 @@ import {
   css,
   DataMaskState,
   DataMaskStateWithId,
-  styled,
   t,
   isDefined,
+  SupersetTheme,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
@@ -41,70 +41,64 @@ interface ActionButtonsProps {
   filterBarOrientation?: FilterBarOrientation;
 }
 
-const ActionButtonsContainer = styled.div<{
-  width: number;
-  filterBarOrientation: FilterBarOrientation;
-}>`
-  ${({ theme, width, filterBarOrientation }) => css`
-    display: flex;
+const containerStyle = (theme: SupersetTheme) => css`
+  display: flex;
 
-    && > .filter-clear-all-button {
-      color: ${theme.colors.grayscale.base};
-      margin-left: 0;
-      &:hover {
-        color: ${theme.colors.primary.dark1};
-      }
-
-      &[disabled],
-      &[disabled]:hover {
-        color: ${theme.colors.grayscale.light1};
-      }
+  && > .filter-clear-all-button {
+    color: ${theme.colors.grayscale.base};
+    margin-left: 0;
+    &:hover {
+      color: ${theme.colors.primary.dark1};
     }
-    ${filterBarOrientation === FilterBarOrientation.VERTICAL &&
-    `
-      flex-direction: column;
-      align-items: center;
-      pointer-events: none;
-      position: fixed;
-      z-index: 100;
 
-      // filter bar width minus 1px for border
-      width: ${width - 1}px;
-      bottom: 0;
+    &[disabled],
+    &[disabled]:hover {
+      color: ${theme.colors.grayscale.light1};
+    }
+  }
+`;
 
-      padding: ${theme.gridUnit * 4}px;
-      padding-top: ${theme.gridUnit * 6}px;
+const verticalStyle = (theme: SupersetTheme, width: number) => css`
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  position: fixed;
+  z-index: 100;
 
-      background: linear-gradient(
-        ${rgba(theme.colors.grayscale.light5, 0)},
-        ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
-      );
+  // filter bar width minus 1px for border
+  width: ${width - 1}px;
+  bottom: 0;
 
-      & > button {
-        pointer-events: auto;
-      }
+  padding: ${theme.gridUnit * 4}px;
+  padding-top: ${theme.gridUnit * 6}px;
 
-      & > .filter-apply-button {
-        margin-bottom: ${theme.gridUnit * 3}px;
-      }
-    `};
+  background: linear-gradient(
+    ${rgba(theme.colors.grayscale.light5, 0)},
+    ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+  );
 
-    ${filterBarOrientation === FilterBarOrientation.HORIZONTAL &&
-    `
-      margin: 0 ${theme.gridUnit * 2}px;
-      && > .filter-clear-all-button {
-        text-transform: capitalize;
-        font-weight: ${theme.typography.weights.normal};
-      }
-      & > .filter-apply-button {
-        &[disabled],
-        &[disabled]:hover {
-          color: ${theme.colors.grayscale.light1};
-          background: ${theme.colors.grayscale.light3};
-        }
-      }
-    `};
-  `};
+  & > button {
+    pointer-events: auto;
+  }
+
+  & > .filter-apply-button {
+    margin-bottom: ${theme.gridUnit * 3}px;
+  }
+`;
+
+const horizontalStyle = (theme: SupersetTheme) => css`
+  margin: 0 ${theme.gridUnit * 2}px;
+  && > .filter-clear-all-button {
+    text-transform: capitalize;
+    font-weight: ${theme.typography.weights.normal};
+  }
+  & > .filter-apply-button {
+    &[disabled],
+    &[disabled]:hover {
+      color: ${theme.colors.grayscale.light1};
+      background: ${theme.colors.grayscale.light3};
+    }
+  }
 `;
 
 const ActionButtons = ({
@@ -129,10 +123,12 @@ const ActionButtons = ({
   const isVertical = filterBarOrientation === FilterBarOrientation.VERTICAL;
 
   return (
-    <ActionButtonsContainer
+    <div
+    css={(theme: SupersetTheme) => [
+      containerStyle(theme),
+      isVertical ? verticalStyle(theme, width) : horizontalStyle(theme),
+    ]}
       data-test="filterbar-action-buttons"
-      filterBarOrientation={filterBarOrientation}
-      width={width}
     >
       <Button
         disabled={isApplyDisabled}
@@ -154,7 +150,7 @@ const ActionButtons = ({
       >
         {t('Clear all')}
       </Button>
-    </ActionButtonsContainer>
+    </div>
   );
 };
 

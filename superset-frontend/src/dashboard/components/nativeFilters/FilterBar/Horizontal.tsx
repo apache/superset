@@ -22,7 +22,8 @@ import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import FilterControls from './FilterControls/FilterControls';
-import { getFilterBarTestId, HorizontalBarProps } from './utils';
+import { getFilterBarTestId } from './utils';
+import { HorizontalBarProps } from './types';
 import FilterBarOrientationSelect from './FilterBarOrientationSelect';
 import FilterConfigurationLink from './FilterConfigurationLink';
 

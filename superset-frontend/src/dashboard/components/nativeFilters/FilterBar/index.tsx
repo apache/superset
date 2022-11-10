@@ -44,7 +44,8 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import { checkIsApplyDisabled, FiltersBarProps } from './utils';
+import { checkIsApplyDisabled } from './utils';
+import { FiltersBarProps } from './types';
 import {
   useNativeFiltersDataMask,
   useFilters,
@@ -241,19 +242,16 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   );
   const isInitialized = useInitialization();
 
-  const actions = useMemo(
-    () => (
-      <ActionButtons
-        filterBarOrientation={orientation}
-        width={verticalConfig?.width}
-        onApply={handleApply}
-        onClearAll={handleClearAll}
-        dataMaskSelected={dataMaskSelected}
-        dataMaskApplied={dataMaskApplied}
-        isApplyDisabled={isApplyDisabled}
-      />
-    ),
-    [verticalConfig?.width, dataMaskSelected, dataMaskApplied, isApplyDisabled],
+  const actions = (
+    <ActionButtons
+      filterBarOrientation={orientation}
+      width={verticalConfig?.width}
+      onApply={handleApply}
+      onClearAll={handleClearAll}
+      dataMaskSelected={dataMaskSelected}
+      dataMaskApplied={dataMaskApplied}
+      isApplyDisabled={isApplyDisabled}
+    />
   );
 
   return orientation === FilterBarOrientation.HORIZONTAL ? (

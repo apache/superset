@@ -34,7 +34,8 @@ import { AntdTabs } from 'src/components';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import Loading from 'src/components/Loading';
 import { EmptyStateSmall } from 'src/components/EmptyState';
-import { TabIds, getFilterBarTestId, VerticalBarProps } from './utils';
+import { getFilterBarTestId } from './utils';
+import { TabIds, VerticalBarProps } from './types';
 import FilterSets from './FilterSets';
 import { useFilterSets } from './state';
 import EditSection from './FilterSets/EditSection';
@@ -53,50 +54,56 @@ const BarWrapper = styled.div<{ width: number }>`
 `;
 
 const Bar = styled.div<{ width: number }>`
-  & .ant-typography-edit-content {
+  ${({ theme, width }) => `
+    & .ant-typography-edit-content {
+      left: 0;
+      margin-top: 0;
+      width: 100%;
+    }
+    position: absolute;
+    top: 0;
     left: 0;
-    margin-top: 0;
-    width: 100%;
-  }
-  position: absolute;
-  top: 0;
-  left: 0;
-  flex-direction: column;
-  flex-grow: 1;
-  width: ${({ width }) => width}px;
-  background: ${({ theme }) => theme.colors.grayscale.light5};
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  min-height: 100%;
-  display: none;
-  &.open {
-    display: flex;
-  }
+    flex-direction: column;
+    flex-grow: 1;
+    width: ${width}px;
+    background: ${theme.colors.grayscale.light5};
+    border-right: 1px solid ${theme.colors.grayscale.light2};
+    border-bottom: 1px solid ${theme.colors.grayscale.light2};
+    min-height: 100%;
+    display: none;
+    &.open {
+      display: flex;
+    }
+  `}
 `;
 
 const CollapsedBar = styled.div<{ offset: number }>`
-  position: absolute;
-  top: ${({ offset }) => offset}px;
-  left: 0;
-  height: 100%;
-  width: ${({ theme }) => theme.gridUnit * 8}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
-  display: none;
-  text-align: center;
-  &.open {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: ${({ theme }) => theme.gridUnit * 2}px;
-  }
-  svg {
-    cursor: pointer;
-  }
+  ${({ theme, offset }) => `
+    position: absolute;
+    top: ${offset}px;
+    left: 0;
+    height: 100%;
+    width: ${theme.gridUnit * 8}px;
+    padding-top: ${theme.gridUnit * 2}px;
+    display: none;
+    text-align: center;
+    &.open {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: ${theme.gridUnit * 2}px;
+    }
+    svg {
+      cursor: pointer;
+    }
+  `}
 `;
 
 const StyledCollapseIcon = styled(Icons.Collapse)`
-  color: ${({ theme }) => theme.colors.primary.base};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+  ${({ theme }) => `
+    color: ${theme.colors.primary.base};
+    margin-bottom: ${theme.gridUnit * 3}px;
+  `}
 `;
 
 const StyledFilterIcon = styled(Icons.Filter)`

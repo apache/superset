@@ -22,86 +22,84 @@ import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import HorizontalBar from './Horizontal';
 
-describe('HorizontalFilterBar', () => {
-  const defaultProps = {
-    actions: null,
-    canEdit: true,
-    dashboardId: 1,
-    dataMaskSelected: {},
-    filterValues: [],
-    isInitialized: true,
-    onSelectionChange: jest.fn(),
-  };
+const defaultProps = {
+  actions: null,
+  canEdit: true,
+  dashboardId: 1,
+  dataMaskSelected: {},
+  filterValues: [],
+  isInitialized: true,
+  onSelectionChange: jest.fn(),
+};
 
-  const renderWrapper = (overrideProps?: Record<string, any>) =>
-    waitFor(() =>
-      render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
-        useRedux: true,
-      }),
-    );
+const renderWrapper = (overrideProps?: Record<string, any>) =>
+  waitFor(() =>
+    render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
+      useRedux: true,
+    }),
+  );
 
-  it('should render', async () => {
-    const { container } = await renderWrapper();
-    expect(container).toBeInTheDocument();
+it('should render', async () => {
+  const { container } = await renderWrapper();
+  expect(container).toBeInTheDocument();
+});
+
+it('should not render the empty message', async () => {
+  await renderWrapper({
+    filterValues: [
+      {
+        id: 'test',
+        type: NativeFilterType.NATIVE_FILTER,
+      },
+    ],
+  });
+  expect(
+    screen.queryByText('No filters are currently added to this dashboard.'),
+  ).not.toBeInTheDocument();
+});
+
+it('should render the empty message', async () => {
+  await renderWrapper();
+  expect(
+    screen.getByText('No filters are currently added to this dashboard.'),
+  ).toBeInTheDocument();
+});
+
+it('should render the gear icon', async () => {
+  await renderWrapper();
+  expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
+});
+
+it('should not render the gear icon', async () => {
+  await renderWrapper({
+    canEdit: false,
   });
 
-  it('should not render the empty message', async () => {
-    await renderWrapper({
-      filterValues: [
-        {
-          id: 'test',
-          type: NativeFilterType.NATIVE_FILTER,
-        },
-      ],
-    });
-    expect(
-      screen.queryByText('No filters are currently added to this dashboard.'),
-    ).not.toBeInTheDocument();
-  });
+  expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
+});
 
-  it('should render the empty message', async () => {
-    await renderWrapper();
-    expect(
-      screen.getByText('No filters are currently added to this dashboard.'),
-    ).toBeInTheDocument();
-  });
+it('should not render the loading icon', async () => {
+  await renderWrapper();
+  expect(
+    screen.queryByRole('status', { name: 'Loading' }),
+  ).not.toBeInTheDocument();
+});
 
-  it('should render the gear icon', async () => {
-    await renderWrapper();
-    expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
+it('should render the loading icon', async () => {
+  await renderWrapper({
+    isInitialized: false,
   });
+  expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
+});
 
-  it('should not render the gear icon', async () => {
-    await renderWrapper({
-      canEdit: false,
-    });
+it('should render Add/Edit Filters', async () => {
+  await renderWrapper();
+  expect(screen.getByText('Add/Edit Filters')).toBeInTheDocument();
+});
 
-    expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
+it('should not render Add/Edit Filters', async () => {
+  await renderWrapper({
+    canEdit: false,
   });
-
-  it('should not render the loading icon', async () => {
-    await renderWrapper();
-    expect(
-      screen.queryByRole('status', { name: 'Loading' }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('should render the loading icon', async () => {
-    await renderWrapper({
-      isInitialized: false,
-    });
-    expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
-  });
-
-  it('should render Add/Edit Filters', async () => {
-    await renderWrapper();
-    expect(screen.getByText('Add/Edit Filters')).toBeInTheDocument();
-  });
-
-  it('should not render Add/Edit Filters', async () => {
-    await renderWrapper({
-      canEdit: false,
-    });
-    expect(screen.queryByText('Add/Edit Filters')).not.toBeInTheDocument();
-  });
+  expect(screen.queryByText('Add/Edit Filters')).not.toBeInTheDocument();
 });

@@ -19,56 +19,12 @@
 
 import { areObjectsEqual } from 'src/reduxUtils';
 import {
-  DataMask,
   DataMaskStateWithId,
-  Divider,
   Filter,
   FilterState,
 } from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { FilterBarOrientation } from 'src/dashboard/types';
 
-interface CommonFiltersBarProps {
-  actions: React.ReactNode;
-  canEdit: boolean;
-  dataMaskSelected: DataMaskStateWithId;
-  directPathToChild?: string[];
-  filterValues: (Filter | Divider)[];
-  isInitialized: boolean;
-  onSelectionChange: (
-    filter: Pick<Filter, 'id'> & Partial<Filter>,
-    dataMask: Partial<DataMask>,
-  ) => void;
-}
-
-interface VerticalBarConfig {
-  filtersOpen: boolean;
-  height: number | string;
-  offset: number;
-  toggleFiltersBar: any;
-  width: number;
-}
-
-export interface FiltersBarProps
-  extends Pick<CommonFiltersBarProps, 'directPathToChild'> {
-  orientation: FilterBarOrientation;
-  verticalConfig?: VerticalBarConfig;
-}
-
-export type HorizontalBarProps = CommonFiltersBarProps & {
-  dashboardId: number;
-};
-
-export type VerticalBarProps = Omit<FiltersBarProps, 'orientation'> &
-  CommonFiltersBarProps &
-  VerticalBarConfig & {
-    isDisabled: boolean;
-  };
-
-export enum TabIds {
-  AllFilters = 'allFilters',
-  FilterSets = 'filterSets',
-}
 
 export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
   Object.values(data).reduce(

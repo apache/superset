@@ -284,6 +284,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     uiConfig.hideTitle ||
     standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE ||
     isReport;
+
   const [barTopOffset, setBarTopOffset] = useState(0);
 
   useEffect(() => {
@@ -319,6 +320,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filterSetEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
   );
+  const showFilterBar = nativeFiltersEnabled && !editMode;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
@@ -361,9 +363,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
       <div>
         {!hideDashboardHeader && <DashboardHeader />}
-        {nativeFiltersEnabled &&
-          !editMode &&
-          filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
+        {showFilterBar && filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
             <FilterBar
               directPathToChild={directPathToChild}
               orientation={FilterBarOrientation.HORIZONTAL}
@@ -411,9 +411,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   return (
     <StyledDiv>
-      {nativeFiltersEnabled &&
-        !editMode &&
-        filterBarOrientation === FilterBarOrientation.VERTICAL && (
+      {showFilterBar && filterBarOrientation === FilterBarOrientation.VERTICAL && (
           <>
             <ResizableSidebar
               id={`dashboard:${dashboardId}`}
