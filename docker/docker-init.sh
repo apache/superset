@@ -20,7 +20,7 @@ set -e
 #
 # Always install local overrides first
 #
-/app/docker/docker-bootstrap.sh
+#/app/docker/docker-bootstrap.sh
 
 STEP_CNT=4
 
@@ -76,3 +76,5 @@ if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     fi
     echo_step "4" "Complete" "Loading examples"
 fi
+
+/app/docker/docker-bootstrap.sh
