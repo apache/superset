@@ -33,7 +33,7 @@ import FilterConfigurationLink from 'src/dashboard/components/nativeFilters/Filt
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { RootState } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
-import FilterBarLocationSelect from '../FilterBarLocationSelect';
+import FilterBarOrientationSelect from '../FilterBarOrientationSelect';
 
 const TitleArea = styled.h4`
   display: flex;
@@ -104,7 +104,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
     <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
-        {canSetHorizontalFilterBar && <FilterBarLocationSelect />}
+        {canSetHorizontalFilterBar && <FilterBarOrientationSelect />}
         <HeaderButton
           {...getFilterBarTestId('collapse-button')}
           buttonStyle="link"

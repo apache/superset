@@ -26,7 +26,7 @@ import {
   FilterState,
 } from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { FilterBarLocation } from 'src/dashboard/types';
+import { FilterBarOrientation } from 'src/dashboard/types';
 
 interface CommonFiltersBarProps {
   actions: React.ReactNode;
@@ -51,7 +51,7 @@ interface VerticalBarConfig {
 
 export interface FiltersBarProps
   extends Pick<CommonFiltersBarProps, 'directPathToChild'> {
-  orientation: FilterBarLocation;
+  orientation: FilterBarOrientation;
   verticalConfig?: VerticalBarConfig;
 }
 

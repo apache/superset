@@ -42,7 +42,7 @@ import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import {
   DashboardLayout,
-  FilterBarLocation,
+  FilterBarOrientation,
   RootState,
 } from 'src/dashboard/types';
 import {
@@ -245,8 +245,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const fullSizeChartId = useSelector<RootState, number | null>(
     state => state.dashboardState.fullSizeChartId,
   );
-  const filterBarLocation = useSelector<RootState, FilterBarLocation>(
-    ({ dashboardInfo }) => dashboardInfo.filterBarLocation,
+  const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
+    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
 
   const handleChangeTab = useCallback(
@@ -363,10 +363,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         {!hideDashboardHeader && <DashboardHeader />}
         {nativeFiltersEnabled &&
           !editMode &&
-          filterBarLocation === FilterBarLocation.HORIZONTAL && (
+          filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
             <FilterBar
-              orientation={FilterBarLocation.HORIZONTAL}
               directPathToChild={directPathToChild}
+              orientation={FilterBarOrientation.HORIZONTAL}
             />
           )}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
@@ -398,7 +398,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     ),
     [
       nativeFiltersEnabled,
-      filterBarLocation,
+      filterBarOrientation,
       editMode,
       handleChangeTab,
       handleDeleteTopLevelTabs,
@@ -413,7 +413,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     <StyledDiv>
       {nativeFiltersEnabled &&
         !editMode &&
-        filterBarLocation === FilterBarLocation.VERTICAL && (
+        filterBarOrientation === FilterBarOrientation.VERTICAL && (
           <>
             <ResizableSidebar
               id={`dashboard:${dashboardId}`}
@@ -435,7 +435,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                       <ErrorBoundary>
                         <FilterBar
                           directPathToChild={directPathToChild}
-                          orientation={FilterBarLocation.VERTICAL}
+                          orientation={FilterBarOrientation.VERTICAL}
                           verticalConfig={{
                             filtersOpen: dashboardFiltersOpen,
                             toggleFiltersBar: toggleDashboardFiltersOpen,

@@ -28,7 +28,7 @@ import {
 import Button from 'src/components/Button';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import { rgba } from 'emotion-rgba';
-import { FilterBarLocation } from 'src/dashboard/types';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
 
 interface ActionButtonsProps {
@@ -38,14 +38,14 @@ interface ActionButtonsProps {
   dataMaskSelected: DataMaskState;
   dataMaskApplied: DataMaskStateWithId;
   isApplyDisabled: boolean;
-  orientation?: FilterBarLocation;
+  filterBarOrientation?: FilterBarOrientation;
 }
 
 const ActionButtonsContainer = styled.div<{
   width: number;
-  orientation: FilterBarLocation;
+  filterBarOrientation: FilterBarOrientation;
 }>`
-  ${({ theme, width, orientation }) => css`
+  ${({ theme, width, filterBarOrientation }) => css`
     display: flex;
 
     && > .filter-clear-all-button {
@@ -60,7 +60,7 @@ const ActionButtonsContainer = styled.div<{
         color: ${theme.colors.grayscale.light1};
       }
     }
-    ${orientation === FilterBarLocation.VERTICAL &&
+    ${filterBarOrientation === FilterBarOrientation.VERTICAL &&
     `
       flex-direction: column;
       align-items: center;
@@ -89,7 +89,7 @@ const ActionButtonsContainer = styled.div<{
       }
     `};
 
-    ${orientation === FilterBarLocation.HORIZONTAL &&
+    ${filterBarOrientation === FilterBarOrientation.HORIZONTAL &&
     `
       margin: 0 ${theme.gridUnit * 2}px;
       && > .filter-clear-all-button {
@@ -114,7 +114,7 @@ const ActionButtons = ({
   dataMaskApplied,
   dataMaskSelected,
   isApplyDisabled,
-  orientation = FilterBarLocation.VERTICAL,
+  filterBarOrientation = FilterBarOrientation.VERTICAL,
 }: ActionButtonsProps) => {
   const isClearAllEnabled = useMemo(
     () =>
@@ -126,12 +126,12 @@ const ActionButtons = ({
       ),
     [dataMaskApplied, dataMaskSelected],
   );
-  const isVertical = orientation === FilterBarLocation.VERTICAL;
+  const isVertical = filterBarOrientation === FilterBarOrientation.VERTICAL;
 
   return (
     <ActionButtonsContainer
       data-test="filterbar-action-buttons"
-      orientation={orientation}
+      filterBarOrientation={filterBarOrientation}
       width={width}
     >
       <Button

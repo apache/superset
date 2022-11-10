@@ -23,7 +23,7 @@ import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import FilterControls from './FilterControls/FilterControls';
 import { getFilterBarTestId, HorizontalBarProps } from './utils';
-import FilterBarLocationSelect from './FilterBarLocationSelect';
+import FilterBarOrientationSelect from './FilterBarOrientationSelect';
 import FilterConfigurationLink from './FilterConfigurationLink';
 
 const HorizontalBar = styled.div`
@@ -97,7 +97,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
           <Loading position="inline-centered" />
         ) : (
           <>
-            {canEdit && <FilterBarLocationSelect />}
+            {canEdit && <FilterBarOrientationSelect />}
             {!hasFilters && (
               <FilterBarEmptyStateContainer>
                 {t('No filters are currently added to this dashboard.')}

@@ -43,7 +43,7 @@ import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
-import { FilterBarLocation, RootState } from 'src/dashboard/types';
+import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { checkIsApplyDisabled, FiltersBarProps } from './utils';
 import {
   useNativeFiltersDataMask,
@@ -117,7 +117,7 @@ const publishDataMask = debounce(
 export const FilterBarScrollContext = createContext(false);
 const FilterBar: React.FC<FiltersBarProps> = ({
   directPathToChild,
-  orientation = FilterBarLocation.VERTICAL,
+  orientation = FilterBarOrientation.VERTICAL,
   verticalConfig,
 }) => {
   const history = useHistory();
@@ -244,7 +244,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
   const actions = useMemo(
     () => (
       <ActionButtons
-        orientation={orientation}
+        filterBarOrientation={orientation}
         width={verticalConfig?.width}
         onApply={handleApply}
         onClearAll={handleClearAll}
@@ -256,7 +256,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
     [verticalConfig?.width, dataMaskSelected, dataMaskApplied, isApplyDisabled],
   );
 
-  return orientation === FilterBarLocation.HORIZONTAL ? (
+  return orientation === FilterBarOrientation.HORIZONTAL ? (
     <Horizontal
       actions={actions}
       canEdit={canEdit}
