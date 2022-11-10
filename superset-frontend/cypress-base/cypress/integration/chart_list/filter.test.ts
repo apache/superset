@@ -53,7 +53,7 @@ describe('Charts filters', () => {
       setFilter('Chart type', 'Area Chart');
       cy.getBySel('styled-card').should('have.length', 3);
       setFilter('Chart type', 'Bubble Chart');
-      cy.getBySel('styled-card').should('have.length', 1);
+      cy.getBySel('styled-card').should('have.length', 2);
     });
 
     it('should filter by datasource correctly', () => {
@@ -61,6 +61,13 @@ describe('Charts filters', () => {
       cy.getBySel('styled-card').should('have.length', 3);
       setFilter('Dataset', 'unicode_test');
       cy.getBySel('styled-card').should('have.length', 1);
+    });
+
+    it('should filter by dashboards correctly', () => {
+      setFilter('Dashboards', 'Unicode Test');
+      cy.getBySel('styled-card').should('have.length', 1);
+      setFilter('Dashboards', 'Tabbed Dashboard');
+      cy.getBySel('styled-card').should('have.length', 9);
     });
   });
 
@@ -87,7 +94,7 @@ describe('Charts filters', () => {
       setFilter('Chart type', 'Area Chart');
       cy.getBySel('table-row').should('have.length', 3);
       setFilter('Chart type', 'Bubble Chart');
-      cy.getBySel('table-row').should('have.length', 1);
+      cy.getBySel('table-row').should('have.length', 2);
     });
 
     it('should filter by datasource correctly', () => {
@@ -95,6 +102,13 @@ describe('Charts filters', () => {
       cy.getBySel('table-row').should('have.length', 3);
       setFilter('Dataset', 'unicode_test');
       cy.getBySel('table-row').should('have.length', 1);
+    });
+
+    it('should filter by dashboards correctly', () => {
+      setFilter('Dashboards', 'Unicode Test');
+      cy.getBySel('table-row').should('have.length', 1);
+      setFilter('Dashboards', 'Tabbed Dashboard');
+      cy.getBySel('table-row').should('have.length', 9);
     });
   });
 });

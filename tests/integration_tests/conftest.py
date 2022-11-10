@@ -19,7 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
-from typing import Any, Callable, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional, TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -134,8 +134,6 @@ def setup_sample_data() -> Any:
     yield
 
     with app.app_context():
-        engine = get_example_database().get_sqla_engine()
-
         # drop sqlachemy tables
 
         db.session.commit()
@@ -210,14 +208,14 @@ def setup_presto_if_needed():
 
     if backend in {"presto", "hive"}:
         database = get_example_database()
-        engine = database.get_sqla_engine()
-        drop_from_schema(engine, CTAS_SCHEMA_NAME)
-        engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
-        engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
+        with database.get_sqla_engine_with_context() as engine:
+            drop_from_schema(engine, CTAS_SCHEMA_NAME)
+            engine.execute(f"DROP SCHEMA IF EXISTS {CTAS_SCHEMA_NAME}")
+            engine.execute(f"CREATE SCHEMA {CTAS_SCHEMA_NAME}")
 
-        drop_from_schema(engine, ADMIN_SCHEMA_NAME)
-        engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
-        engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
+            drop_from_schema(engine, ADMIN_SCHEMA_NAME)
+            engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
+            engine.execute(f"CREATE SCHEMA {ADMIN_SCHEMA_NAME}")
 
 
 def with_feature_flags(**mock_feature_flags):
@@ -249,6 +247,38 @@ def with_feature_flags(**mock_feature_flags):
                 side_effect=mock_get_feature_flags,
             ):
                 test_fn(*args, **kwargs)
+
+        return functools.update_wrapper(wrapper, test_fn)
+
+    return decorate
+
+
+def with_config(override_config: Dict[str, Any]):
+    """
+    Use this decorator to mock specific config keys.
+
+    Usage:
+
+        class TestYourFeature(SupersetTestCase):
+
+            @with_config({"SOME_CONFIG": True})
+            def test_your_config(self):
+                self.assertEqual(curren_app.config["SOME_CONFIG"), True)
+
+    """
+
+    def decorate(test_fn):
+        config_backup = {}
+
+        def wrapper(*args, **kwargs):
+            from flask import current_app
+
+            for key, value in override_config.items():
+                config_backup[key] = current_app.config[key]
+                current_app.config[key] = value
+            test_fn(*args, **kwargs)
+            for key, value in config_backup.items():
+                current_app.config[key] = value
 
         return functools.update_wrapper(wrapper, test_fn)
 

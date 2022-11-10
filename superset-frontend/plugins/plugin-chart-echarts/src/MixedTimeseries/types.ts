@@ -25,6 +25,7 @@ import {
   QueryFormColumn,
   ContributionType,
   TimeFormatter,
+  AxisType,
 } from '@superset-ui/core';
 import {
   EchartsLegendFormData,
@@ -144,4 +145,8 @@ export type EchartsMixedTimeseriesChartTransformedProps =
     labelMapB: Record<string, string[]>;
     seriesBreakdown: number;
     xValueFormatter: TimeFormatter | StringConstructor;
+    xAxis: {
+      label: string;
+      type: AxisType;
+    };
   };

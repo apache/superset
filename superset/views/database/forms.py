@@ -52,6 +52,7 @@ class UploadToDatabaseForm(DynamicForm):
             file_enabled_db
             for file_enabled_db in file_enabled_dbs
             if UploadToDatabaseForm.at_least_one_schema_is_allowed(file_enabled_db)
+            and UploadToDatabaseForm.is_engine_allowed_to_file_upl(file_enabled_db)
         ]
 
     @staticmethod
@@ -86,6 +87,19 @@ class UploadToDatabaseForm(DynamicForm):
         if schemas and security_manager.get_schemas_accessible_by_user(
             database, schemas, False
         ):
+            return True
+        return False
+
+    @staticmethod
+    def is_engine_allowed_to_file_upl(database: Database) -> bool:
+        """
+        This method is mainly used for existing Gsheets and Clickhouse DBs
+        that have allow_file_upload set as True but they are no longer valid
+        DBs for file uploading.
+        New GSheets and Clickhouse DBs won't have the option to set
+        allow_file_upload set as True.
+        """
+        if database.db_engine_spec.supports_file_upload:
             return True
         return False
 

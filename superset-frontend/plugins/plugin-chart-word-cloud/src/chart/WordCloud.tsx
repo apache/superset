@@ -31,6 +31,7 @@ import {
   seed,
   CategoricalColorScale,
 } from '@superset-ui/core';
+import { isEqual } from 'lodash';
 
 const seedRandom = seed('superset-ui');
 export const ROTATION = {
@@ -134,8 +135,8 @@ class WordCloud extends React.PureComponent<
     const { data, encoding, width, height, rotation } = this.props;
 
     if (
-      prevProps.data !== data ||
-      prevProps.encoding !== encoding ||
+      !isEqual(prevProps.data, data) ||
+      !isEqual(prevProps.encoding, encoding) ||
       prevProps.width !== width ||
       prevProps.height !== height ||
       prevProps.rotation !== rotation

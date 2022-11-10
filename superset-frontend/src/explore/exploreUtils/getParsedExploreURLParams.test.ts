@@ -31,7 +31,7 @@ test('get form_data_key and slice_id from search params - url when moving from d
     `${EXPLORE_BASE_URL}?form_data_key=yrLXmyE9fmhQ11lM1KgaD1PoPSBpuLZIJfqdyIdw9GoBwhPFRZHeIgeFiNZljbpd&slice_id=56`,
   );
   expect(getParsedExploreURLParams().toString()).toEqual(
-    'slice_id=56&form_data_key=yrLXmyE9fmhQ11lM1KgaD1PoPSBpuLZIJfqdyIdw9GoBwhPFRZHeIgeFiNZljbpd',
+    'form_data_key=yrLXmyE9fmhQ11lM1KgaD1PoPSBpuLZIJfqdyIdw9GoBwhPFRZHeIgeFiNZljbpd&slice_id=56',
   );
 });
 

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
 import { EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { GraphChartTransformedProps } from './types';
@@ -47,7 +47,7 @@ export default function EchartsGraph({
         const sourceValue = data.find(item => item.id === e.data.source)?.name;
         const targetValue = data.find(item => item.id === e.data.target)?.name;
         if (sourceValue && targetValue) {
-          const filters: QueryObjectFilterClause[] = [
+          const filters: BinaryQueryObjectFilterClause[] = [
             {
               col: formData.source,
               op: '==',
@@ -61,7 +61,7 @@ export default function EchartsGraph({
               formattedVal: targetValue,
             },
           ];
-          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
         }
       }
     },

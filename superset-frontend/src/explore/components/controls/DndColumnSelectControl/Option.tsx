@@ -38,6 +38,7 @@ export default function Option({
   clickClose,
   withCaret,
   isExtra,
+  datasourceWarningMessage,
   canDelete = true,
 }: OptionProps) {
   const theme = useTheme();
@@ -60,15 +61,18 @@ export default function Option({
         </CloseContainer>
       )}
       <Label data-test="control-label">{children}</Label>
-      {isExtra && (
+      {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltipWithTrigger
           icon="exclamation-triangle"
           placement="top"
           bsStyle="warning"
-          tooltip={t(`
+          tooltip={
+            datasourceWarningMessage ||
+            t(`
                 This filter was inherited from the dashboard's context.
                 It won't be saved when saving the chart.
-              `)}
+              `)
+          }
         />
       )}
       {withCaret && (

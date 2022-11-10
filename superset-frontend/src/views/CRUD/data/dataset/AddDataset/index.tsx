@@ -53,7 +53,7 @@ export function datasetReducer(
     case DatasetActionType.selectTable:
       return {
         ...trimmedState,
-        ...action.payload,
+        [action.payload.name]: action.payload.value,
       };
     case DatasetActionType.changeDataset:
       return {
@@ -65,29 +65,40 @@ export function datasetReducer(
   }
 }
 
+const prevUrl =
+  '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+
 export default function AddDataset() {
   const [dataset, setDataset] = useReducer<
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
 
   const HeaderComponent = () => (
-    <Header setDataset={setDataset} datasetName={dataset?.dataset_name ?? ''} />
+    <Header setDataset={setDataset} title={dataset?.table_name} />
   );
 
   const LeftPanelComponent = () => (
     <LeftPanel
       setDataset={setDataset}
       schema={dataset?.schema}
-      dbId={dataset?.id}
+      dbId={dataset?.db?.id}
     />
+  );
+
+  const DatasetPanelComponent = () => (
+    <DatasetPanel tableName={dataset?.table_name} />
+  );
+
+  const FooterComponent = () => (
+    <Footer url={prevUrl} datasetObject={dataset} />
   );
 
   return (
     <DatasetLayout
       header={HeaderComponent()}
       leftPanel={LeftPanelComponent()}
-      datasetPanel={DatasetPanel()}
-      footer={Footer()}
+      datasetPanel={DatasetPanelComponent()}
+      footer={FooterComponent()}
     />
   );
 }

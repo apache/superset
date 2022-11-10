@@ -24,7 +24,7 @@ from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
 from superset.queries.schemas import openapi_spec_methods_override, QuerySchema
 from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,10 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "tab_name",
         "user.first_name",
     ]
-
+    filter_rel_fields = {
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "user": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "user": RelatedFieldFilter("first_name", FilterRelatedOwners),

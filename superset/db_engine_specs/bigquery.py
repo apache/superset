@@ -34,8 +34,8 @@ from typing_extensions import TypedDict
 from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
+from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -46,8 +46,8 @@ if TYPE_CHECKING:
 
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
-    "Access Denied: Project User does not have bigquery.jobs.create "
-    + "permission in project (?P<project>.+?)"
+    "Access Denied: Project (?P<project_name>.+?): User does not have "
+    + "bigquery.jobs.create permission in project (?P<project>.+?)"
 )
 
 TABLE_DOES_NOT_EXIST_REGEX = re.compile(
@@ -154,9 +154,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
-                "We were unable to connect to your database. Please "
-                "confirm that your service account has the Viewer "
-                "and Job User roles on the project."
+                "Unable to connect. Verify that the following roles are set "
+                'on the service account: "BigQuery Data Viewer", '
+                '"BigQuery Metadata Viewer", "BigQuery Job User" '
+                "and the following permissions are set "
+                '"bigquery.readsessions.create", '
+                '"bigquery.readsessions.getData"'
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
             {},
@@ -396,10 +399,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
         raise ValidationError("Invalid service credentials")
 
     @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
+        if encrypted_extra is None:
+            return encrypted_extra
+
         try:
             config = json.loads(encrypted_extra)
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, TypeError):
             return encrypted_extra
 
         try:
@@ -410,14 +416,19 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return json.dumps(config)
 
     @classmethod
-    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
+    def unmask_encrypted_extra(
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
         """
         Reuse ``private_key`` if available and unchanged.
         """
+        if old is None or new is None:
+            return new
+
         try:
             old_config = json.loads(old)
             new_config = json.loads(new)
-        except json.JSONDecodeError:
+        except (TypeError, json.JSONDecodeError):
             return new
 
         if "credentials_info" not in new_config:
@@ -438,11 +449,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from google.auth.exceptions import DefaultCredentialsError
 
-        return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}
+        return {DefaultCredentialsError: SupersetDBAPIConnectionError}
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+        cls,
+        properties: BasicPropertiesType,  # pylint: disable=unused-argument
     ) -> List[SupersetError]:
         return []
 

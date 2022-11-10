@@ -313,7 +313,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
         if query.status == QueryStatus.STOPPED:
             raise SqlLabQueryStoppedException() from ex
 
-        logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
         raise SqlLabException(db_engine_spec.extract_error_message(ex)) from ex
 

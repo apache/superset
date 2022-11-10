@@ -19,21 +19,20 @@
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 describe('Visualization > Distribution bar chart', () => {
-  const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'dist_bar' };
-
   beforeEach(() => {
-    cy.login();
+    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
-  it('should work with adhoc metric', () => {
-    const formData = {
-      ...VIZ_DEFAULTS,
-      metrics: NUM_METRIC,
-      groupby: ['state'],
-    };
+  const VIZ_DEFAULTS = { ...FORM_DATA_DEFAULTS, viz_type: 'dist_bar' };
+  const DISTBAR_FORM_DATA = {
+    ...VIZ_DEFAULTS,
+    metrics: NUM_METRIC,
+    groupby: ['state'],
+  };
 
-    cy.visitChartByParams(formData);
+  it('should work with adhoc metric', () => {
+    cy.visitChartByParams(DISTBAR_FORM_DATA);
     cy.verifySliceSuccess({
       waitAlias: '@getJson',
       querySubstring: NUM_METRIC.label,
@@ -79,6 +78,8 @@ describe('Visualization > Distribution bar chart', () => {
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
+    cy.visitChartByParams(DISTBAR_FORM_DATA);
+
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')

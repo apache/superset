@@ -28,9 +28,12 @@ import {
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
   t,
-  DTTM_ALIAS,
+  AxisType,
+  getXAxisLabel,
+  isPhysicalColumn,
+  isDefined,
 } from '@superset-ui/core';
-import { getAxis, isDerivedSeries } from '@superset-ui/chart-controls';
+import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import { ZRLineType } from 'echarts/types/src/util/types';
 import {
@@ -39,7 +42,6 @@ import {
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
-  AxisType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
 import { ForecastSeriesEnum, ForecastValue } from '../types';
@@ -148,21 +150,25 @@ export default function transformProps(
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
-  // todo: if the both granularity_sqla and x_axis are `null`, should throw an error
-  const xAxisCol =
-    verboseMap[xAxisOrig] || getAxis(chartProps.rawFormData) || DTTM_ALIAS;
+  let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
+  if (
+    isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
+    isDefined(verboseMap[xAxisLabel])
+  ) {
+    xAxisLabel = verboseMap[xAxisLabel];
+  }
   const isHorizontal = orientation === OrientationType.horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
       stack,
       percentageThreshold,
-      xAxisCol,
+      xAxisCol: xAxisLabel,
     },
   );
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
-    xAxis: xAxisCol,
+    xAxis: xAxisLabel,
     removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
     stack,
     totalStackedValues,
@@ -177,7 +183,7 @@ export default function transformProps(
     Object.values(rawSeries).map(series => series.name as string),
   );
   const isAreaExpand = stack === AreaChartExtraControlsValue.Expand;
-  const xAxisDataType = dataTypes?.[xAxisCol] ?? dataTypes?.[xAxisOrig];
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
 
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
@@ -231,7 +237,7 @@ export default function transformProps(
           transformFormulaAnnotation(
             layer,
             data,
-            xAxisCol,
+            xAxisLabel,
             xAxisType,
             colorScale,
             sliceId,
@@ -453,5 +459,9 @@ export default function transformProps(
     legendData,
     onContextMenu,
     xValueFormatter: tooltipFormatter,
+    xAxis: {
+      label: xAxisLabel,
+      type: xAxisType,
+    },
   };
 }

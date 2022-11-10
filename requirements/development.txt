@@ -28,6 +28,8 @@ certifi==2021.10.8
     # via requests
 chardet==4.0.0
     # via tabulator
+charset-normalizer==2.0.12
+    # via requests
 decorator==5.1.1
     # via ipython
 et-xmlfile==1.1.0
@@ -76,7 +78,7 @@ pure-eval==0.2.2
     # via stack-data
 pure-sasl==0.6.2
     # via thrift-sasl
-pydruid==0.6.2
+pydruid==0.6.5
     # via apache-superset
 pygments==2.12.0
     # via ipython

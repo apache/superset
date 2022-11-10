@@ -16,6 +16,7 @@
 # under the License.
 import logging
 
+from celery import Celery
 from celery.exceptions import SoftTimeLimitExceeded
 from dateutil import parser
 
@@ -70,12 +71,17 @@ def scheduler() -> None:
                 )
 
 
-@celery_app.task(name="reports.execute")
-def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
+@celery_app.task(name="reports.execute", bind=True)
+def execute(self: Celery.task, report_schedule_id: int, scheduled_dttm: str) -> None:
     task_id = None
     try:
         task_id = execute.request.id
         scheduled_dttm_ = parser.parse(scheduled_dttm)
+        logger.info(
+            "Executing alert/report, task id: %s, scheduled_dttm: %s",
+            task_id,
+            scheduled_dttm,
+        )
         AsyncExecuteReportScheduleCommand(
             task_id,
             report_schedule_id,
@@ -85,10 +91,12 @@ def execute(report_schedule_id: int, scheduled_dttm: str) -> None:
         logger.exception(
             "An unexpected occurred while executing the report: %s", task_id
         )
+        self.update_state(state="FAILURE")
     except CommandException:
         logger.exception(
             "A downstream exception occurred while generating" " a report: %s", task_id
         )
+        self.update_state(state="FAILURE")
 
 
 @celery_app.task(name="reports.prune_log")

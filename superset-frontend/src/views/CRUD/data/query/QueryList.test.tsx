@@ -32,6 +32,7 @@ import { QueryObject } from 'src/views/CRUD/types';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
+import SubMenu from 'src/views/components/SubMenu';
 
 // store needed for withToasts
 const mockStore = configureStore([thunk]);
@@ -145,6 +146,28 @@ describe('QueryList', () => {
     await waitForComponentToPaint(wrapper);
     expect((fetchMock.lastCall() ?? [])[0]).toMatchInlineSnapshot(
       `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
+    );
+  });
+
+  it('renders a SubMenu', () => {
+    expect(wrapper.find(SubMenu)).toExist();
+  });
+
+  it('renders a SubMenu with Saved queries and Query History links', () => {
+    expect(wrapper.find(SubMenu).props().tabs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Saved queries' }),
+        expect.objectContaining({ label: 'Query history' }),
+      ]),
+    );
+  });
+
+  it('renders a SubMenu without Databases and Datasets links', () => {
+    expect(wrapper.find(SubMenu).props().tabs).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Databases' }),
+        expect.objectContaining({ label: 'Datasets' }),
+      ]),
     );
   });
 });

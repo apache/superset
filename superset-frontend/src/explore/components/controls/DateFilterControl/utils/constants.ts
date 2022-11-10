@@ -131,3 +131,12 @@ export const LOCALE_MAPPING = {
   sl: 'sl_SI',
   nl: 'nl_NL',
 };
+
+export enum DATE_FILTER_TEST_KEY {
+  commonFrame = 'common-frame',
+  modalOverlay = 'modal-overlay',
+  popoverOverlay = 'time-range-trigger',
+  noFilter = 'no-filter',
+  cancelButton = 'cancel-button',
+  applyButton = 'date-filter-control__apply-button',
+}

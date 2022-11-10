@@ -23,6 +23,7 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import * as chartAction from 'src/components/Chart/chartAction';
+import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { FeatureFlag } from '@superset-ui/core';
@@ -36,7 +37,7 @@ window.featureFlags = {
   [FeatureFlag.EMBEDDABLE_CHARTS]: true,
 };
 
-const createProps = () => ({
+const createProps = (additionalProps = {}) => ({
   chart: {
     id: 1,
     latestQueryFormData: {
@@ -63,7 +64,7 @@ const createProps = () => ({
     changed_on: '2021-03-19T16:30:56.750230',
     changed_on_humanized: '7 days ago',
     datasource: 'FCC 2018 Survey',
-    description: null,
+    description: 'Simple description',
     description_markeddown: '',
     edit_url: '/chart/edit/318',
     form_data: {
@@ -106,10 +107,18 @@ const createProps = () => ({
   user: {
     userId: 1,
   },
-  onSaveChart: jest.fn(),
+  metadata: {
+    created_on_humanized: 'a week ago',
+    changed_on_humanized: '2 days ago',
+    owners: ['John Doe'],
+    created_by: 'John Doe',
+    changed_by: 'John Doe',
+    dashboards: [{ id: 1, dashboard_title: 'Test' }],
+  },
   canOverwrite: false,
   canDownload: false,
   isStarred: false,
+  ...additionalProps,
 });
 
 fetchMock.post(
@@ -147,20 +156,65 @@ test('Cancelling changes to the properties should reset previous properties', as
   expect(await screen.findByDisplayValue(prevChartName)).toBeInTheDocument();
 });
 
+test('renders the metadata bar when saved', async () => {
+  const props = createProps({ showTitlePanelItems: true });
+  render(<ExploreHeader {...props} />, { useRedux: true });
+  expect(await screen.findByText('Added to 1 dashboard')).toBeInTheDocument();
+  expect(await screen.findByText('Simple description')).toBeInTheDocument();
+  expect(await screen.findByText('John Doe')).toBeInTheDocument();
+  expect(await screen.findByText('2 days ago')).toBeInTheDocument();
+});
+
+test('Changes "Added to X dashboards" to plural when more than 1 dashboard', async () => {
+  const props = createProps({ showTitlePanelItems: true });
+  render(
+    <ExploreHeader
+      {...props}
+      metadata={{
+        ...props.metadata,
+        dashboards: [
+          { id: 1, dashboard_title: 'Test' },
+          { id: 2, dashboard_title: 'Test2' },
+        ],
+      }}
+    />,
+    { useRedux: true },
+  );
+  expect(await screen.findByText('Added to 2 dashboards')).toBeInTheDocument();
+});
+
+test('does not render the metadata bar when not saved', async () => {
+  const props = createProps({ showTitlePanelItems: true, slice: null });
+  render(<ExploreHeader {...props} />, { useRedux: true });
+  await waitFor(() =>
+    expect(screen.queryByText('Added to 1 dashboard')).not.toBeInTheDocument(),
+  );
+});
+
 test('Save chart', async () => {
+  const setSaveChartModalVisibility = jest.spyOn(
+    saveModalActions,
+    'setSaveChartModalVisibility',
+  );
   const props = createProps();
   render(<ExploreHeader {...props} />, { useRedux: true });
   expect(await screen.findByText('Save')).toBeInTheDocument();
   userEvent.click(screen.getByText('Save'));
-  expect(props.onSaveChart).toHaveBeenCalled();
+  expect(setSaveChartModalVisibility).toHaveBeenCalledWith(true);
+  setSaveChartModalVisibility.mockClear();
 });
 
 test('Save disabled', async () => {
+  const setSaveChartModalVisibility = jest.spyOn(
+    saveModalActions,
+    'setSaveChartModalVisibility',
+  );
   const props = createProps();
   render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
   expect(await screen.findByText('Save')).toBeInTheDocument();
   userEvent.click(screen.getByText('Save'));
-  expect(props.onSaveChart).not.toHaveBeenCalled();
+  expect(setSaveChartModalVisibility).not.toHaveBeenCalled();
+  setSaveChartModalVisibility.mockClear();
 });
 
 describe('Additional actions tests', () => {

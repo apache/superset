@@ -35,6 +35,18 @@ export const LOG_ACTIONS_EXPLORE_DASHBOARD_CHART = 'explore_dashboard_chart';
 export const LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART =
   'export_csv_dashboard_chart';
 export const LOG_ACTIONS_CHANGE_DASHBOARD_FILTER = 'change_dashboard_filter';
+export const LOG_ACTIONS_DATASET_CREATION_EMPTY_CANCELLATION =
+  'dataset_creation_empty_cancellation';
+export const LOG_ACTIONS_DATASET_CREATION_DATABASE_CANCELLATION =
+  'dataset_creation_database_cancellation';
+export const LOG_ACTIONS_DATASET_CREATION_SCHEMA_CANCELLATION =
+  'dataset_creation_schema_cancellation';
+export const LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION =
+  'dataset_creation_table_cancellation';
+export const LOG_ACTIONS_DATASET_CREATION_SUCCESS = 'dataset_creation_success';
+export const LOG_ACTIONS_SPA_NAVIGATION = 'spa_navigation';
+export const LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA =
+  'confirm_overwrite_dashboard_metadata';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
@@ -54,7 +66,16 @@ export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_MOUNT_EXPLORER,
+  LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA,
 ]);
+
+export const LOG_EVENT_DATASET_TYPE_DATASET_CREATION = [
+  LOG_ACTIONS_DATASET_CREATION_EMPTY_CANCELLATION,
+  LOG_ACTIONS_DATASET_CREATION_DATABASE_CANCELLATION,
+  LOG_ACTIONS_DATASET_CREATION_SCHEMA_CANCELLATION,
+  LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION,
+  LOG_ACTIONS_DATASET_CREATION_SUCCESS,
+];
 
 export const Logger = {
   timeOriginOffset: 0,
