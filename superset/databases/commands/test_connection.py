@@ -93,9 +93,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             from superset.databases.models import SSHTunnel
 
             if self._properties.get("ssh_tunnel"):
-                ssh_tunnel = SSHTunnel(
-                    **self._properties["ssh_tunnel"]
-                )
+                ssh_tunnel = SSHTunnel(**self._properties["ssh_tunnel"])
 
             event_logger.log_with_context(
                 action="test_connection_attempt",
@@ -106,9 +104,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 with closing(engine.raw_connection()) as conn:
                     return engine.dialect.do_ping(conn)
 
-            with database.get_sqla_engine_with_context(
-                ssh_tunnel=ssh_tunnel
-            ) as engine:
+            with database.get_sqla_engine_with_context(ssh_tunnel=ssh_tunnel) as engine:
                 try:
                     alive = func_timeout(
                         int(
