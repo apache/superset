@@ -77,6 +77,17 @@ export type DashboardState = {
     chartId: number;
     column: string;
   };
+  overwriteConfirmMetadata?: {
+    updatedAt: string;
+    updatedBy: string;
+    overwriteConfirmItems: {
+      keyPath: string;
+      oldValue: string;
+      newValue: string;
+    }[];
+    dashboardId: number;
+    data: JsonObject;
+  };
 };
 export type DashboardInfo = {
   id: number;
