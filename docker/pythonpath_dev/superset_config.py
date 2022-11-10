@@ -30,7 +30,7 @@ from celery.schedules import crontab
 
 
 MAPBOX_API_KEY = ""
-APP_NAME = "LIQ Superset A"
+APP_NAME = "LIQ Superset"
 
 logger = logging.getLogger()
 
