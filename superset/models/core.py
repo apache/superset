@@ -374,7 +374,7 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         ssh_tunnel: Optional["SSHTunnel"] = None
     ) -> Engine:
-        ssh_params = None
+        ssh_params = {}
         if ssh_tunnel:
             # build with override
             print('building with params')
@@ -382,18 +382,21 @@ class Database(
             ssh_tunnel.bind_host = url.host
             ssh_tunnel.bind_port = url.port
             ssh_params = ssh_tunnel.parameters()
+            try:
+                with sshtunnel.open_tunnel(
+                    **ssh_params
+                ) as server:
+                    yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source, ssh_tunnel_server=server)
+            except Exception as ex:
+                raise ex
 
         else:
             # do look up in table for using database_id
             print('doing look up on table')
-
-        try:
-            with sshtunnel.open_tunnel(
-                **ssh_params
-            ) as server:
-                yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source, ssh_tunnel_server=server)
-        except Exception as ex:
-            raise ex
+            try:
+                yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+            except Exception as ex:
+                raise ex
 
     import sshtunnel
     def _get_sqla_engine(
