@@ -142,7 +142,7 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     title: 'Datatype',
     dataIndex: 'type',
     key: 'type',
-    width: ${({ theme }) => theme.gridUnit * 25}px,
+    width: '100px',
     sorter: (a: ITableColumn, b: ITableColumn) =>
       alphabeticalSort('type', a, b),
   },
