@@ -159,14 +159,15 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
     [toggleFiltersBar],
   );
 
-  const onScroll = useCallback(
-    throttle(() => {
-      clearTimeout(timeout.current);
-      setIsScrolling(true);
-      timeout.current = setTimeout(() => {
-        setIsScrolling(false);
-      }, 300);
-    }, 200),
+  const onScroll = useMemo(
+    () =>
+      throttle(() => {
+        clearTimeout(timeout.current);
+        setIsScrolling(true);
+        timeout.current = setTimeout(() => {
+          setIsScrolling(false);
+        }, 300);
+      }, 200),
     [],
   );
 

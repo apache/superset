@@ -56,12 +56,13 @@ const HeaderButton = styled(Button)`
 `;
 
 const Wrapper = styled.div`
-  padding: ${({ theme }) => theme.gridUnit}px
-    ${({ theme }) => theme.gridUnit * 2}px;
+  ${({ theme }) => `
+    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
 
-  .ant-dropdown-trigger span {
-    padding-right: ${({ theme }) => theme.gridUnit * 2}px;
-  }
+    .ant-dropdown-trigger span {
+      padding-right: ${theme.gridUnit * 2}px;
+    }
+  `}
 `;
 
 type HeaderProps = {
