@@ -33,13 +33,11 @@ import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
 import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import QueryProvider from 'src/views/QueryProvider';
-import { AntdDropdown } from 'src/components';
 import {
   queryEditorSetFunctionNames,
   queryEditorSetSelectedText,
   queryEditorSetSchemaOptions,
 } from 'src/SqlLab/actions/sqlLab';
-import { EmptyStateBig } from 'src/components/EmptyState';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import {
   initialState,
