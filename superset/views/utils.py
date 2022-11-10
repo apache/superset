@@ -101,10 +101,6 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
     return payload
 
 
-# 019353721141815185
-# 00747002124786377
-
-
 def get_permissions(
     user: User,
 ) -> Tuple[Dict[str, List[Tuple[str]]], DefaultDict[str, List[str]]]:
