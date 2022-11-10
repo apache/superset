@@ -16,16 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import SelectControl from './SelectControl';
 
 export default function XAxisSortControl(props: {
-  onChange: (val: string) => void;
-  value: string;
+  onChange: (val: string | undefined) => void;
+  value: string | undefined;
+  shouldReset: boolean;
 }) {
+  const [value, setValue] = useState(props.value);
   useEffect(() => {
-    props.onChange(props.value);
-  }, [props.value]);
+    if (props.shouldReset) {
+      props.onChange(undefined);
+      setValue(undefined);
+    }
+  }, [props.shouldReset, props.value]);
 
-  return <SelectControl {...props} />;
+  return <SelectControl {...props} value={value} />;
 }

@@ -90,20 +90,27 @@ const xAxisSort = {
       ];
       return !isEqualArray(prevOptions, currOptions);
     },
-    mapStateToProps: (state: ControlPanelState, controlState: ControlState) => {
+    mapStateToProps: (
+      { controls }: { controls: ControlStateMapping },
+      controlState: ControlState,
+    ) => {
       const choices = [
-        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
-        ...ensureIsArray(state?.controls?.metrics?.value).map(metric =>
+        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+        ...ensureIsArray(controls?.metrics?.value).map(metric =>
           getMetricLabel(metric as QueryFormMetric),
         ),
       ].filter(Boolean);
-      const value =
+      const shouldReset = !(
         typeof controlState.value === 'string' &&
-        choices.includes(controlState.value)
-          ? controlState.value
-          : undefined;
+        choices.includes(controlState.value) &&
+        !isTemporalColumn(
+          getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+          controls?.datasource?.datasource,
+        )
+      );
+
       return {
-        value,
+        shouldReset,
         options: choices.map(entry => ({
           value: entry,
           label: entry,
