@@ -372,16 +372,16 @@ class Database(
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
-        ssh_tunnel_credentials: Optional["SSHTunnel"] = None
+        ssh_tunnel: Optional["SSHTunnel"] = None
     ) -> Engine:
         ssh_params = None
-        if ssh_tunnel_credentials:
+        if ssh_tunnel:
             # build with override
             print('building with params')
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
-            ssh_tunnel_credentials.bind_host = url.host
-            ssh_tunnel_credentials.bind_port = url.port
-            ssh_params = ssh_tunnel_credentials.parameters()
+            ssh_tunnel.bind_host = url.host
+            ssh_tunnel.bind_port = url.port
+            ssh_params = ssh_tunnel.parameters()
 
         else:
             # do look up in table for using database_id

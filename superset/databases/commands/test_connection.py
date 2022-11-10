@@ -92,9 +92,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             from superset.databases.models import SSHTunnel
 
-            if self._properties.get("ssh_tunnel_credentials"):
-                ssh_tunnel_credentials = SSHTunnel(
-                    **self._properties["ssh_tunnel_credentials"]
+            if self._properties.get("ssh_tunnel"):
+                ssh_tunnel = SSHTunnel(
+                    **self._properties["ssh_tunnel"]
                 )
 
             event_logger.log_with_context(
@@ -107,7 +107,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     return engine.dialect.do_ping(conn)
 
             with database.get_sqla_engine_with_context(
-                ssh_tunnel_credentials=ssh_tunnel_credentials
+                ssh_tunnel=ssh_tunnel
             ) as engine:
                 try:
                     alive = func_timeout(
