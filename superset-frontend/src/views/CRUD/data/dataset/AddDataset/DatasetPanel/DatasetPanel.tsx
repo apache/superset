@@ -102,8 +102,8 @@ const StyledLoader = styled.div`
     width: 100%;
     margin-top: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
     text-align: center;
-    font-weight: 400;
-    font-size: 16px;
+    font-weight: ${({ theme }) => theme.typography.weights.normal};
+    font-size: ${({ theme }) => theme.typography.sizes.l}px;
     color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 `;
@@ -142,7 +142,7 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     title: 'Datatype',
     dataIndex: 'type',
     key: 'type',
-    width: '100px',
+    width: ${({ theme }) => theme.gridUnit * 25}px,
     sorter: (a: ITableColumn, b: ITableColumn) =>
       alphabeticalSort('type', a, b),
   },
