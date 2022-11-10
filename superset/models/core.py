@@ -372,33 +372,37 @@ class Database(
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
-        ssh_tunnel: Optional["SSHTunnel"] = None
+        ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
         ssh_params = {}
         if ssh_tunnel:
             # build with override
-            print('building with params')
+            print("building with params")
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
             ssh_tunnel.bind_host = url.host
             ssh_tunnel.bind_port = url.port
             ssh_params = ssh_tunnel.parameters()
             try:
-                with sshtunnel.open_tunnel(
-                    **ssh_params
-                ) as server:
-                    yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source, ssh_tunnel_server=server)
+                with sshtunnel.open_tunnel(**ssh_params) as server:
+                    yield self._get_sqla_engine(
+                        schema=schema,
+                        nullpool=nullpool,
+                        source=source,
+                        ssh_tunnel_server=server,
+                    )
             except Exception as ex:
                 raise ex
 
         else:
             # do look up in table for using database_id
-            print('doing look up on table')
+            print("doing look up on table")
             try:
-                yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+                yield self._get_sqla_engine(
+                    schema=schema, nullpool=nullpool, source=source
+                )
             except Exception as ex:
                 raise ex
 
-    import sshtunnel
     def _get_sqla_engine(
         self,
         schema: Optional[str] = None,
@@ -450,9 +454,10 @@ class Database(
 
         if ssh_tunnel_server:
             # update sqlalchemy_url
-            from sqlalchemy.engine.url import make_url
             url = make_url_safe(sqlalchemy_url)
-            sqlalchemy_url = url.set(host="127.0.0.1", port=ssh_tunnel_server.local_bind_port)
+            sqlalchemy_url = url.set(
+                host="127.0.0.1", port=ssh_tunnel_server.local_bind_port
+            )
 
         try:
             return create_engine(sqlalchemy_url, **params)
