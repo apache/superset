@@ -138,7 +138,6 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  // RTL
   it('render a SqlEditorLeftBar', async () => {
     const { getByTestId } = setup(mockedProps, store);
     await waitFor(() =>
@@ -151,7 +150,6 @@ describe('SqlEditor', () => {
     expect(await findByTestId('react-ace')).toBeInTheDocument();
   });
 
-  // RTL
   it('renders sql from unsaved change', async () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
     const { findByTestId } = setup(
@@ -195,7 +193,6 @@ describe('SqlEditor', () => {
     ).toBeInTheDocument();
   });
 
-  // RTL
   it('runs query action with ctas false', async () => {
     const expectedStore = mockStore({
       ...initialState,
