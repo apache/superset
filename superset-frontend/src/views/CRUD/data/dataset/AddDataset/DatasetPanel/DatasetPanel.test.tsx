@@ -36,6 +36,13 @@ import {
   ERROR_DESCRIPTION,
 } from './MessageContent';
 
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) =>
+      <span role="img" aria-label={fileName.replace('_', '-')} />,
+);
+
 describe('DatasetPanel', () => {
   it('renders a blank state DatasetPanel', () => {
     render(<DatasetPanel hasError={false} columnList={[]} loading={false} />);
@@ -108,7 +115,7 @@ describe('DatasetPanel', () => {
     expect(errorDescription).toBeVisible();
   });
 
-  it('renders a table with columns displayed', () => {
+  it('renders a table with columns displayed', async () => {
     const tableName = 'example_name';
     render(
       <DatasetPanel
@@ -118,7 +125,7 @@ describe('DatasetPanel', () => {
         loading={false}
       />,
     );
-    expect(screen.getByText(tableName)).toBeVisible();
+    expect(await screen.findByText(tableName)).toBeVisible();
     expect(screen.getByText(COLUMN_TITLE)).toBeVisible();
     expect(
       screen.getByText(tableColumnDefinition[0].title as string),
