@@ -130,13 +130,15 @@ describe('SqlEditor', () => {
       },
     );
 
-  it('does not render SqlEditor if no db selected', () => {
+  it('does not render SqlEditor if no db selected', async () => {
     const queryEditor = initialState.sqlLab.queryEditors[1];
-    const updatedProps = { ...mockedProps, queryEditor };
-    const wrapper = buildWrapper(updatedProps);
-    expect(wrapper.find(EmptyStateBig)).toExist();
+    const { findByText } = setup({ ...mockedProps, queryEditor }, store);
+    expect(
+      await findByText('Select a database to write a query'),
+    ).toBeInTheDocument();
   });
 
+  // RTL
   it('render a SqlEditorLeftBar', async () => {
     const { getByTestId } = setup(mockedProps, store);
     await waitFor(() =>
@@ -145,14 +147,14 @@ describe('SqlEditor', () => {
   });
 
   it('render an AceEditorWrapper', async () => {
-    const wrapper = buildWrapper();
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(AceEditorWrapper)).toExist();
+    const { findByTestId } = setup(mockedProps, store);
+    expect(await findByTestId('react-ace')).toBeInTheDocument();
   });
 
-  it('renders sql from unsaved change', () => {
+  // RTL
+  it('renders sql from unsaved change', async () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
-    const { getByTestId } = setup(
+    const { findByTestId } = setup(
       mockedProps,
       mockStore({
         ...initialState,
@@ -181,17 +183,19 @@ describe('SqlEditor', () => {
       }),
     );
 
-    expect(getByTestId('react-ace')).toHaveTextContent(
+    expect(await findByTestId('react-ace')).toHaveTextContent(
       JSON.stringify({ value: expectedSql }).slice(1, -1),
     );
   });
 
   it('render a SouthPane', async () => {
-    const wrapper = buildWrapper();
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(ConnectedSouthPane)).toExist();
+    const { findByText } = setup(mockedProps, store);
+    expect(
+      await findByText(/run a query to display results/i),
+    ).toBeInTheDocument();
   });
 
+  // RTL
   it('runs query action with ctas false', async () => {
     const expectedStore = mockStore({
       ...initialState,
@@ -263,8 +267,8 @@ describe('SqlEditor', () => {
   it('render a Limit Dropdown', async () => {
     const defaultQueryLimit = 101;
     const updatedProps = { ...mockedProps, defaultQueryLimit };
-    const wrapper = buildWrapper(updatedProps);
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(AntdDropdown)).toExist();
+    const { findByText } = setup(updatedProps, store);
+    fireEvent.click(await findByText('LIMIT:'));
+    expect(await findByText('10 000')).toBeInTheDocument();
   });
 });
