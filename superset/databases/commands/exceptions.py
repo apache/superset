@@ -176,3 +176,11 @@ class DatabaseOfflineError(SupersetErrorException):
 
 class InvalidParametersError(SupersetErrorsException):
     status = 422
+
+
+class SSHTunnelDeleteFailedError(DeleteFailedError):
+    message = _("SSH Tunnel could not be deleted.")
+
+
+class SSHTunnelNotFoundError(CommandException):
+    message = _("SSH Tunnel not found.")

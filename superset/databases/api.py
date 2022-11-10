@@ -37,6 +37,7 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
+from superset.databases.commands.delete_ssh_tunnel import DeleteSSHTunnelCommand
 from superset.databases.commands.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
@@ -46,6 +47,8 @@ from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
     InvalidParametersError,
+    SSHTunnelDeleteFailedError,
+    SSHTunnelNotFoundError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
@@ -62,6 +65,7 @@ from superset.databases.schemas import (
     DatabasePostSchema,
     DatabasePutSchema,
     DatabaseRelatedObjectsResponse,
+    DatabaseRelatedSSHTunnelResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
     get_export_ids_schema,
@@ -107,6 +111,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "available",
         "validate_parameters",
         "validate_sql",
+        "related_ssh_tunnel",
+        "delete_ssh_tunnel",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -207,6 +213,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     openapi_spec_component_schemas = (
         DatabaseFunctionNamesResponse,
         DatabaseRelatedObjectsResponse,
+        DatabaseRelatedSSHTunnelResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
         TableExtraMetadataResponseSchema,
@@ -1204,3 +1211,117 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ValidateDatabaseParametersCommand(payload)
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<int:pk>/ssh_tunnel/", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".related_ssh_tunnel",
+        log_to_statsd=False,
+    )
+    def related_ssh_tunnel(self, pk: int) -> Response:
+        """Get related_ssh_tunnel associated to a database
+        ---
+        get:
+          description:
+            Get related_ssh_tunnel associated to a database
+          parameters:
+          - in: path
+            name: pk
+            schema:
+              type: integer
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DatabaseRelatedSSHTunnelResponse"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
+        data = DatabaseDAO.get_related_ssh_tunnel(pk)
+        if not data or not data["ssh_tunnel"]:
+            return self.response(
+                200,
+                ssh_tunnel={
+                    "result": {},
+                },
+            )
+        ssh_tunnel = data["ssh_tunnel"]
+        ssh_tunnel = {
+            "id": ssh_tunnel.id,
+            "database_id": ssh_tunnel.database_id,
+            "server_address": ssh_tunnel.server_address,
+            "server_port": ssh_tunnel.server_port,
+        }
+        return self.response(
+            200,
+            ssh_tunnel={
+                "result": ssh_tunnel,
+            },
+        )
+
+    @expose("/<int:pk>/ssh_tunnel/", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".delete_ssh_tunnel",
+        log_to_statsd=False,
+    )
+    def delete_ssh_tunnel(self, pk: int) -> Response:
+        """Deletes a SSH Tunnel
+        ---
+        delete:
+          description: >-
+            Deletes a SSH Tunnel.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: SSH Tunnel deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            DeleteSSHTunnelCommand(pk).run()
+            return self.response(200, message="OK")
+        except SSHTunnelNotFoundError:
+            return self.response_404()
+        except SSHTunnelDeleteFailedError as ex:
+            logger.error(
+                "Error deleting SSH Tunnel %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))

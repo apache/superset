@@ -502,7 +502,7 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
 
-    ssh_tunnel_credentials = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class TableMetadataOptionsResponseSchema(Schema):
@@ -720,6 +720,23 @@ class EncryptedString(EncryptedField, fields.String):
 
 class EncryptedDict(EncryptedField, fields.Dict):
     pass
+
+
+class DatabaseRelatedSSHTunnel(Schema):
+    id = fields.Integer()
+    database_id = fields.Integer()
+    server_address = fields.String()
+    server_port = fields.String()
+
+
+class DatabaseRelatedSSHTunnels(Schema):
+    result = fields.List(
+        fields.Nested(DatabaseRelatedSSHTunnel), description="A SSH Tunnel"
+    )
+
+
+class DatabaseRelatedSSHTunnelResponse(Schema):
+    ssh_tunnel = fields.Nested(DatabaseRelatedSSHTunnels)
 
 
 def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
