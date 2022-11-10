@@ -431,6 +431,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
+    def parse_error_exception(cls, exception: Exception) -> Exception:
+        """
+        Each engine can implement and converge its own specific parser method
+
+        :return: An Exception with a parsed string off the original exception
+        """
+        return exception
+
+    @classmethod
     def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
         """
         Get a superset custom DBAPI exception from the driver specific exception.
@@ -443,7 +452,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if not new_exception:
-            return exception
+            return cls.parse_error_exception(exception)
         return new_exception(str(exception))
 
     @classmethod
