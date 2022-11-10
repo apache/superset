@@ -69,6 +69,10 @@ function PivotTable(element, props) {
 
   const { html, columns } = data;
   const container = element;
+  if ($ === undefined) {
+    container.innerHTML = 'jQuery must be available to use Pivot Table';
+    return;
+  }
   const $container = $(element);
   let dateFormatter;
 
