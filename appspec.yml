@@ -1,0 +1,10 @@
+version: 0.0
+os: linux
+files:
+  - source: /
+    destination: /home/ec2-user/liq_superset
+hooks:
+  Deploy:
+    - location: deploy_scripts/deploy.sh
+      timeout: 500
+      runas: ec2-user
