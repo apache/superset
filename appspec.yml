@@ -4,7 +4,15 @@ files:
   - source: /
     destination: /home/ec2-user/liq_superset
 hooks:
-  Deploy:
-    - location: deploy_scripts/deploy.sh
+  ApplicationStop:
+    - location: deploy_scripts/app_stop.sh
+      timeout: 300
+      runas: ec2-user
+  BeforeInstall:
+    - location: deploy_scripts/before_install.sh
+      timeout: 300
+      runas: ec2-user
+  ApplicationStart:
+    - location: deploy_scripts/app_start.sh
       timeout: 500
       runas: ec2-user
