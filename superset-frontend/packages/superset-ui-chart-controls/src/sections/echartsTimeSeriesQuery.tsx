@@ -69,7 +69,7 @@ const controlsWithoutXAxis: ControlSetRow[] = [
 const xAxisSort = {
   name: 'x_axis_sort',
   config: {
-    type: 'SelectControl',
+    type: 'XAxisSortControl',
     label: t('X-Axis Sort By'),
     description: t('Whether to sort descending or ascending on the X-Axis.'),
     shouldMapStateToProps: (
