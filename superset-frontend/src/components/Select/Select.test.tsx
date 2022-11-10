@@ -567,10 +567,10 @@ test('finds an element with a numeric value and does not duplicate the options',
   expect(await querySelectOption('11')).not.toBeInTheDocument();
 });
 
-test('select all appears in options when multi select is true and selectAllEnabled is true ', async () => {
+test('select all appears in options when multi select is true and selectAllEnabled is true', async () => {
   render(<Select {...defaultProps} mode="multiple" selectAllEnabled />);
   await open();
-  let options = await findAllSelectOptions();
+  const options = await findAllSelectOptions();
   expect(options[0]).toHaveTextContent(SELECT_ALL_VALUE);
 });
 

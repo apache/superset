@@ -178,7 +178,7 @@ const Select = forwardRef(
           const array = ensureIsArray(previousState);
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
-          if (value == getValue(SELECT_ALL_VALUE)) {
+          if (value === getValue(SELECT_ALL_VALUE)) {
             if (onSelectAll) {
               onSelectAll();
             }
@@ -189,7 +189,8 @@ const Select = forwardRef(
                 ] as AntdLabeledValue[])
               : ([SELECT_ALL_VALUE, ...selectOptions] as (string | number)[]);
             return result;
-          } else if (!hasOption(value, array)) {
+          }
+          if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
             return result.length === fullSelectOptions.length - 1 &&
               isSelectAllMode
