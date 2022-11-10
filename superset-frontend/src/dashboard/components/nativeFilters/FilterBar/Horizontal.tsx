@@ -28,54 +28,54 @@ import FilterConfigurationLink from './FilterConfigurationLink';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
-  padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
-  background: ${theme.colors.grayscale.light5};
-  box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
-`}
+    padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
+    background: ${theme.colors.grayscale.light5};
+    box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
+  `}
 `;
 
 const HorizontalBarContent = styled.div`
   ${({ theme }) => `
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0 ${theme.gridUnit * 2}px;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 ${theme.gridUnit * 2}px;
 
-  .loading {
-    margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 2}px;
-    padding: 0;
-  }
-`}
+    .loading {
+      margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 2}px;
+      padding: 0;
+    }
+  `}
 `;
 
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
-  margin: 0 ${theme.gridUnit * 2}px;
-  font-weight: ${theme.typography.weights.bold};
-`}
+    margin: 0 ${theme.gridUnit * 2}px;
+    font-weight: ${theme.typography.weights.bold};
+  `}
 `;
 
 const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
   ${({ theme, hasFilters }) => `
-  padding: 0 ${theme.gridUnit * 2}px;
-  border-right: ${
-    hasFilters ? `1px solid ${theme.colors.grayscale.light2}` : 0
-  };
+    padding: 0 ${theme.gridUnit * 2}px;
+    border-right: ${
+      hasFilters ? `1px solid ${theme.colors.grayscale.light2}` : 0
+    };
 
-  button {
-    display: flex;
-    align-items: center;
-    text-transform: capitalize;
-    font-weight: ${theme.typography.weights.normal};
-    color: ${theme.colors.primary.base};
-    > .anticon + span, > .anticon {
-        margin-right: 0;
-        margin-left: 0;
-      }
-  }
-`}
+    button {
+      display: flex;
+      align-items: center;
+      text-transform: capitalize;
+      font-weight: ${theme.typography.weights.normal};
+      color: ${theme.colors.primary.base};
+      > .anticon + span, > .anticon {
+          margin-right: 0;
+          margin-left: 0;
+        }
+    }
+  `}
 `;
 
 const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
