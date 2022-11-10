@@ -32,7 +32,7 @@ def test_convert_dttm(dttm: datetime) -> None:
     )
 
 
-def test_execute_connection_error():
+def test_execute_connection_error() -> None:
     from urllib3.exceptions import NewConnectionError
 
     from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
