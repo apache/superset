@@ -7,6 +7,6 @@ if [-d "$DIR" ]; then
     docker-compose down
     echo "Done"
     echo "Removing container volumes..."
-    docker volume rm `docker volume ls | grep -v -e superset_db_home | tr -d " \t" | sed -E -e "s/local|DRIVER.*//" | tr "\n" " " | sed 's/^ *//g'`
+    docker volume rm `docker volume ls | grep -v -e liq_superset_db_home | tr -d " \t" | sed -E -e "s/local|DRIVER.*//" | tr "\n" " " | sed 's/^ *//g'`
     echo "Done"
 fi
