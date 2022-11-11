@@ -18,6 +18,7 @@
 
 import importlib
 import os
+import unittest.mock
 from typing import Any, Callable, Iterator
 
 import pytest
@@ -29,6 +30,8 @@ from sqlalchemy.orm.session import Session
 
 from superset import security_manager
 from superset.app import SupersetApp
+from superset.common.chart_data import ChartDataResultType
+from superset.common.query_object_factory import QueryObjectFactory
 from superset.extensions import appbuilder
 from superset.initialization import SupersetAppInitializer
 
@@ -136,3 +139,27 @@ def full_api_access(mocker: MockFixture) -> Iterator[None]:
     mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 
     yield
+
+
+@pytest.fixture
+def dummy_query_object(request, app_context):
+    query_obj_marker = request.node.get_closest_marker("query_object")
+    result_type_marker = request.node.get_closest_marker("result_type")
+
+    if query_obj_marker is None:
+        query_object = {}
+    else:
+        query_object = query_obj_marker.args[0]
+
+    if result_type_marker is None:
+        result_type = ChartDataResultType.FULL
+    else:
+        result_type = result_type_marker.args[0]
+
+    yield QueryObjectFactory(
+        app_configurations={
+            "ROW_LIMIT": 100,
+        },
+        _datasource_dao=unittest.mock.Mock(),
+        session_maker=unittest.mock.Mock(),
+    ).create(parent_result_type=result_type, **query_object)

@@ -563,7 +563,7 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(table, schema) for table in tables]
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
@@ -593,7 +593,7 @@ class Database(
                 database=self, inspector=self.inspector, schema=schema
             )
             return [(view, schema) for view in views]
-        except Exception as ex:  # pylint: disable=broad-except
+        except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @cache_util.memoized_func(
@@ -704,9 +704,14 @@ class Database(
         self, table_name: str, schema: Optional[str] = None
     ) -> Dict[str, Any]:
         pk_constraint = self.inspector.get_pk_constraint(table_name, schema) or {}
-        return {
-            key: utils.base_json_conv(value) for key, value in pk_constraint.items()
-        }
+
+        def _convert(value: Any) -> Any:
+            try:
+                return utils.base_json_conv(value)
+            except TypeError:
+                return None
+
+        return {key: _convert(value) for key, value in pk_constraint.items()}
 
     def get_foreign_keys(
         self, table_name: str, schema: Optional[str] = None

@@ -773,7 +773,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-markdown-editor')
         .should(
           'have.text',
-          '✨Header 1✨Header 2✨Header 3Click here to learn more about markdown formatting',
+          '✨Header 1\n✨Header 2\n✨Header 3\n\nClick here to learn more about markdown formatting',
         )
         .click(10, 10);
 

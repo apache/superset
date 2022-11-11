@@ -38,3 +38,4 @@ export * from './shared-controls/emitFilterControl';
 export * from './shared-controls/components';
 export * from './types';
 export * from './shared-controls/mixins';
+export * from './fixtures';

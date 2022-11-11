@@ -104,8 +104,8 @@ CMD /usr/bin/run-server.sh
 # Dev image...
 ######################################################################
 FROM lean AS dev
-ARG GECKODRIVER_VERSION=v0.28.0
-ARG FIREFOX_VERSION=88.0
+ARG GECKODRIVER_VERSION=v0.32.0
+ARG FIREFOX_VERSION=106.0.3
 
 COPY ./requirements/*.txt ./docker/requirements-*.txt/ /app/requirements/
 
