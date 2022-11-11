@@ -20,7 +20,7 @@
 import React from 'react';
 import { BoxPlotSeries, XYChart } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
-import { WithLegend, Margin, Dimension } from '@superset-ui/core';
+import { WithLegend, Margin, Dimension, CH_FEATURES } from '@superset-ui/core';
 import { Dataset, PlainObject, isFieldDef } from 'encodable';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
 import {
@@ -37,6 +37,7 @@ import convertScaleToDataUIScale from '../../utils/convertScaleToDataUIScaleShap
 import createXYChartLayoutWithTheme from '../../utils/createXYChartLayoutWithTheme';
 import createRenderLegend from '../legend/createRenderLegend';
 import { LegendHooks } from '../legend/types';
+import { XYChartClickHandlerCyberhaven } from '../XYChartCyberhaven';
 
 export interface TooltipProps {
   datum: BoxPlotDataRow;
@@ -97,6 +98,11 @@ export default class BoxPlot extends React.PureComponent<Props> {
       yEncoder: channels.y,
     });
 
+    const cyberhavenProps: Record<string, any> = {};
+    if (CH_FEATURES.XYCHART) {
+      cyberhavenProps.onClick = XYChartClickHandlerCyberhaven;
+    }
+
     return layout.renderChartWithFrame((chartDim: Dimension) => (
       <XYChart
         showYGrid
@@ -104,6 +110,7 @@ export default class BoxPlot extends React.PureComponent<Props> {
         height={chartDim.height}
         ariaLabel="BoxPlot"
         margin={layout.margin}
+        {...cyberhavenProps}
         renderTooltip={({
           datum,
           color,

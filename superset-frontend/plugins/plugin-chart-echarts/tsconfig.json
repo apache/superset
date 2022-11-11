@@ -4,15 +4,13 @@
     "outDir": "lib",
     "rootDir": "src"
   },
-  "exclude": [
-    "lib",
-    "test"
-  ],
+  "exclude": ["lib", "test"],
   "extends": "../../tsconfig.json",
   "include": [
     "src/**/*",
     "types/**/*",
-    "../../types/**/*"
+    "../../types/**/*",
+    "../cyberhavenFeature.ts"
   ],
   "references": [
     {

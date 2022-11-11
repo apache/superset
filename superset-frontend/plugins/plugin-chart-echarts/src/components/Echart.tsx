@@ -25,9 +25,10 @@ import React, {
   useLayoutEffect,
   useCallback,
 } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, CH_FEATURES } from '@superset-ui/core';
 import { ECharts, init } from 'echarts';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
+import { echartSettings, onChartClick } from './EchartCyberhaven';
 
 const Styles = styled.div<EchartsStylesProps>`
   height: ${({ height }) => height};
@@ -60,7 +61,11 @@ function Echart(
   useEffect(() => {
     if (!divRef.current) return;
     if (!chartRef.current) {
-      chartRef.current = init(divRef.current);
+      if (CH_FEATURES.ECHART) {
+        chartRef.current = init(divRef.current, undefined, echartSettings);
+      } else {
+        chartRef.current = init(divRef.current);
+      }
     }
 
     Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
@@ -74,6 +79,9 @@ function Echart(
     });
 
     chartRef.current.setOption(echartOptions, true);
+    if (CH_FEATURES.ECHART) {
+      onChartClick(chartRef.current, divRef);
+    }
   }, [echartOptions, eventHandlers, zrEventHandlers]);
 
   // highlighting

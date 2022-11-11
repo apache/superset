@@ -19,6 +19,7 @@
 
 export * from './models';
 export * from './utils';
+export * from './cyberhaven';
 export * from './types';
 export * from './translation';
 export * from './connection';

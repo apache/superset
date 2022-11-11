@@ -28,7 +28,7 @@ import {
   WithTooltip,
 } from '@data-ui/xy-chart';
 import { chartTheme } from '@data-ui/theme';
-import { WithLegend, Margin, Dimension } from '@superset-ui/core';
+import { WithLegend, Margin, Dimension, CH_FEATURES } from '@superset-ui/core';
 import { createSelector } from 'reselect';
 import { Dataset, PlainObject } from 'encodable';
 import DefaultTooltipRenderer from './DefaultTooltipRenderer';
@@ -47,6 +47,7 @@ import {
   LineChannelOutputs,
 } from './Encoder';
 import DefaultLegendItemMarkRenderer from './DefaultLegendItemMarkRenderer';
+import { XYChartClickHandlerCyberhaven } from '../XYChartCyberhaven';
 
 export interface TooltipProps {
   encoder: LineEncoder;
@@ -221,6 +222,10 @@ export default class LineChart extends PureComponent<Props> {
       xEncoder: channels.x,
       yEncoder: channels.y,
     });
+    const cyberhavenProps: Record<string, any> = {};
+    if (CH_FEATURES.XYCHART) {
+      cyberhavenProps.onClick = XYChartClickHandlerCyberhaven;
+    }
 
     return layout.renderChartWithFrame((chartDim: Dimension) => (
       <WithTooltip
@@ -261,6 +266,7 @@ export default class LineChart extends PureComponent<Props> {
             margin={layout.margin}
             renderTooltip={null}
             theme={theme}
+            {...cyberhavenProps}
             tooltipData={tooltipData}
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             xScale={convertScaleToDataUIScale(

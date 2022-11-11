@@ -63,9 +63,7 @@
     /* Completeness */
     "skipLibCheck": true
   },
-  "exclude": [
-    "./packages/generator-superset/test/**/*"
-  ],
+  "exclude": ["./packages/generator-superset/test/**/*"],
   "include": [
     "./src/**/*",
     "./spec/**/*",
@@ -74,6 +72,7 @@
     "./plugins/*/src/**/*",
     "./plugins/*/types/**/*",
     "./packages/*/test/**/*",
-    "./plugins/*/test/**/*"
+    "./plugins/*/test/**/*",
+    "plugins/cyberhavenFeatures.ts"
   ]
 }

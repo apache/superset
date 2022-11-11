@@ -21,6 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
+import { getRowClickHandlerCyberhaven } from './TableRenderersCyberhaven';
 
 const parseLabel = value => {
   if (typeof value === 'number' || typeof value === 'string') {
@@ -667,7 +668,6 @@ export class TableRenderer extends React.Component {
       const flatColKey = flatKey(colKey);
       const agg = pivotData.getAggregator(rowKey, colKey);
       const aggValue = agg.value();
-
       const keys = [...rowKey, ...colKey];
       let backgroundColor;
       if (cellColorFormatters) {
@@ -731,8 +731,14 @@ export class TableRenderer extends React.Component {
       ...valueCells,
       totalCell,
     ];
-
-    return <tr key={`keyRow-${flatRowKey}`}>{rowCells}</tr>;
+    return (
+      <tr
+        onClick={getRowClickHandlerCyberhaven(pivotSettings.rowAttrs, rowKey)}
+        key={`keyRow-${flatRowKey}`}
+      >
+        {rowCells}
+      </tr>
+    );
   }
 
   renderTotalsRow(pivotSettings) {

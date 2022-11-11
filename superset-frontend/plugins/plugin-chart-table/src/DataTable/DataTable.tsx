@@ -38,7 +38,7 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
-import { typedMemo } from '@superset-ui/core';
+import { CH_FEATURES, typedMemo } from '@superset-ui/core';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
@@ -48,6 +48,7 @@ import SimplePagination from './components/Pagination';
 import useSticky from './hooks/useSticky';
 import { PAGE_SIZE_OPTIONS } from '../consts';
 import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
+import { getRowClickHandlerCyberhaven } from './DataTableCyberhaven';
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableClassName?: string;
@@ -272,8 +273,16 @@ export default typedMemo(function DataTable<D extends object>({
           page.map(row => {
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
+
+            const cyberhavenProps: Record<string, any> = {};
+            if (CH_FEATURES.DATATABLE) {
+              cyberhavenProps.onClick = getRowClickHandlerCyberhaven(
+                row.original,
+              );
+            }
             return (
               <tr
+                {...cyberhavenProps}
                 key={rowKey || row.id}
                 {...rowProps}
                 onContextMenu={(e: MouseEvent) => {

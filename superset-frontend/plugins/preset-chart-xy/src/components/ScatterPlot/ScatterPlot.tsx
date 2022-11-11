@@ -20,7 +20,7 @@
 import React, { PureComponent } from 'react';
 import { XYChart, PointSeries } from '@data-ui/xy-chart';
 import { chartTheme, ChartTheme } from '@data-ui/theme';
-import { WithLegend, Margin, Dimension } from '@superset-ui/core';
+import { WithLegend, Margin, Dimension, CH_FEATURES } from '@superset-ui/core';
 import { isFieldDef, Dataset, PlainObject } from 'encodable';
 
 import {
@@ -37,6 +37,7 @@ import convertScaleToDataUIScale from '../../utils/convertScaleToDataUIScaleShap
 import createXYChartLayoutWithTheme from '../../utils/createXYChartLayoutWithTheme';
 import createRenderLegend from '../legend/createRenderLegend';
 import { LegendHooks } from '../legend/types';
+import { XYChartClickHandlerCyberhaven } from '../XYChartCyberhaven';
 
 export interface TooltipProps {
   datum: PlainObject;
@@ -98,6 +99,11 @@ export default class ScatterPlot extends PureComponent<Props> {
       yEncoder: channels.y,
     });
 
+    const cyberhavenProps: Record<string, any> = {};
+    if (CH_FEATURES.XYCHART) {
+      cyberhavenProps.onClick = XYChartClickHandlerCyberhaven;
+    }
+
     return layout.renderChartWithFrame((chartDim: Dimension) => (
       <XYChart
         showYGrid
@@ -108,6 +114,7 @@ export default class ScatterPlot extends PureComponent<Props> {
         renderTooltip={({ datum }: { datum: PlainObject }) => (
           <TooltipRenderer datum={datum} encoder={encoder} />
         )}
+        {...cyberhavenProps}
         theme={theme}
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         xScale={convertScaleToDataUIScale(channels.x.definition.scale as any)}
