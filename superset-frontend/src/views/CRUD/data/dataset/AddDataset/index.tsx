@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer } from 'react';
+import React, { useReducer, Reducer, useState } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
@@ -72,6 +72,7 @@ export default function AddDataset() {
   const [dataset, setDataset] = useReducer<
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
+  const [hasColumns, setHasColumns] = useState(false);
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -86,11 +87,16 @@ export default function AddDataset() {
   );
 
   const DatasetPanelComponent = () => (
-    <DatasetPanel tableName={dataset?.table_name} />
+    <DatasetPanel
+      tableName={dataset?.table_name}
+      dbId={dataset?.db?.id}
+      schema={dataset?.schema}
+      setHasColumns={setHasColumns}
+    />
   );
 
   const FooterComponent = () => (
-    <Footer url={prevUrl} datasetObject={dataset} />
+    <Footer url={prevUrl} datasetObject={dataset} hasColumns={hasColumns} />
   );
 
   return (
