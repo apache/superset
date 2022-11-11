@@ -40,7 +40,7 @@ def test_execute_connection_error() -> None:
 
     cursor = mock.Mock()
     cursor.execute.side_effect = NewConnectionError(
-        "Dummypool", message="Exception with sensitive data"
+        "Dummypool", "Exception with sensitive data"
     )
     with pytest.raises(SupersetDBAPIDatabaseError) as ex:
         ClickHouseEngineSpec.execute(cursor, "SELECT col1 from table1")
