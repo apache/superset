@@ -6,6 +6,6 @@ if [-d "$DIR" ]; then
     docker-compose down
     echo "Done"
     echo "Removing container volumes..."
-    docker volume rm `python3 get_vol_remove.py` > /dev/null
+    docker volume rm `docker volume ls | grep -v -e superset_db_home | tr -d " \t" | sed -E -e "s/local|DRIVER.*//" | tr "\n" " " | sed 's/^ *//g'`
     echo "Done"
 fi
