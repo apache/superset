@@ -211,6 +211,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/datasources/")
+    @deprecated()
     def datasources(self) -> FlaskResponse:
         return self.json_response(
             sorted(
