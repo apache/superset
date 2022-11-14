@@ -28,8 +28,8 @@ from typing import Optional
 from cachelib.file import FileSystemCache
 from celery.schedules import crontab
 
-
-MAPBOX_API_KEY = ""
+SECRET_KEY = os.getenv('SUPERSET_FLASK_SECRET')
+MAPBOX_API_KEY = os.getenv('MAPBOX_API_KEY') if 'MAPBOX_API_KEY' in os.environ else ''
 APP_NAME = "LIQ Superset"
 
 logger = logging.getLogger()
