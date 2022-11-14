@@ -190,6 +190,12 @@ class DatasourceType(str, Enum):
     VIEW = "view"
 
 
+class LoggerLevel(str, Enum):
+    INFO = "info"
+    WARNING = "warning"
+    EXCEPTION = "exception"
+
+
 class HeaderDataType(TypedDict):
     notification_format: str
     owners: List[int]

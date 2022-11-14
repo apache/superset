@@ -14,33 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.exceptions import SupersetException
 
 
-class NotificationError(SupersetException):
-    """
-    Generic unknown exception - only used when
-    bubbling up unknown exceptions from lower levels
-    """
+from superset.utils.log import get_logger_from_status
 
 
-class NotificationParamException(SupersetException):
-    status = 422
+def test_log_from_status_exception() -> None:
+    (func, log_level) = get_logger_from_status(500)
+    assert func.__name__ == "exception"
+    assert log_level == "exception"
 
 
-class NotificationAuthorizationException(SupersetException):
-    status = 401
+def test_log_from_status_warning() -> None:
+    (func, log_level) = get_logger_from_status(422)
+    assert func.__name__ == "warning"
+    assert log_level == "warning"
 
 
-class NotificationUnprocessableException(SupersetException):
-    """
-    When a third party client service is down.
-    The request should be retried. There is no further
-    action required on our part or the user's other than to retry
-    """
-
-    status = 400
-
-
-class NotificationMalformedException(SupersetException):
-    status = 400
+def test_log_from_status_info() -> None:
+    (func, log_level) = get_logger_from_status(300)
+    assert func.__name__ == "info"
+    assert log_level == "info"
