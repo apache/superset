@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { QueryState, styled } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
+import Icons, { IconType } from 'src/components/Icons';
 
 const IconContainer = styled.span`
   position: absolute;
@@ -30,13 +30,18 @@ interface TabStatusIconProps {
   tabState: QueryState;
 }
 
+const STATE_ICONS: Record<string, React.FC<IconType>> = {
+  success: Icons.Check,
+  failed: Icons.CancelX,
+};
+
 export default function TabStatusIcon({ tabState }: TabStatusIconProps) {
+  const StatusIcon = STATE_ICONS[tabState];
   return (
     <div className={`circle ${tabState}`}>
-      {['success', 'failed'].includes(tabState) && (
+      {StatusIcon && (
         <IconContainer>
-          {tabState === 'success' && <Icons.Check iconSize="xs" />}
-          {tabState === 'failed' && <Icons.CancelX iconSize="xs" />}
+          <StatusIcon iconSize="xs" />
         </IconContainer>
       )}
     </div>
