@@ -1409,17 +1409,18 @@ export function popQuery(queryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
+    const datasetId = datasourceKey.split('__')[0];
     return SupersetClient.get({
-      endpoint: `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+      endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
     })
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            name: `Query ${json.name}`,
-            dbId: json.database.id,
-            schema: json.schema,
+            name: `Query ${json.result.name}`,
+            dbId: json.result.database.id,
+            schema: json.result.schema,
             autorun: sql !== undefined,
-            sql: sql || json.select_star,
+            sql: sql || json.result.select_star,
           }),
         ),
       )
