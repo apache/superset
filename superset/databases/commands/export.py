@@ -57,7 +57,7 @@ class ExportDatabasesCommand(ExportModelsCommand):
     def _export(
         model: Database, export_related: bool = True
     ) -> Iterator[Tuple[str, str]]:
-        db_file_name = get_filename(model.database_name, model.id)
+        db_file_name = get_filename(model.database_name, model.id, skip_id=True)
         file_path = f"databases/{db_file_name}.yaml"
 
         payload = model.export_to_dict(
@@ -93,7 +93,9 @@ class ExportDatabasesCommand(ExportModelsCommand):
 
         if export_related:
             for dataset in model.tables:
-                ds_file_name = get_filename(dataset.table_name, dataset.id)
+                ds_file_name = get_filename(
+                    dataset.table_name, dataset.id, skip_id=True
+                )
                 file_path = f"datasets/{db_file_name}/{ds_file_name}.yaml"
 
                 payload = dataset.export_to_dict(

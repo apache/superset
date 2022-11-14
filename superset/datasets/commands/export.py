@@ -42,8 +42,10 @@ class ExportDatasetsCommand(ExportModelsCommand):
     def _export(
         model: SqlaTable, export_related: bool = True
     ) -> Iterator[Tuple[str, str]]:
-        db_file_name = get_filename(model.database.database_name, model.database.id)
-        ds_file_name = get_filename(model.table_name, model.id)
+        db_file_name = get_filename(
+            model.database.database_name, model.database.id, skip_id=True
+        )
+        ds_file_name = get_filename(model.table_name, model.id, skip_id=True)
         file_path = f"datasets/{db_file_name}/{ds_file_name}.yaml"
 
         payload = model.export_to_dict(

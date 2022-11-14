@@ -27,9 +27,10 @@ DATABASES_KEY = "databases"
 logger = logging.getLogger(__name__)
 
 
-def get_filename(model_name: str, model_id: int) -> str:
+def get_filename(model_name: str, model_id: int, skip_id=False) -> str:
     slug = secure_filename(model_name)
-    return f"{slug}_{model_id}" if slug else str(model_id)
+    filename = slug if skip_id else f"{slug}_{model_id}"
+    return filename if slug else str(model_id)
 
 
 def export_schema_to_dict(back_references: bool) -> Dict[str, Any]:
