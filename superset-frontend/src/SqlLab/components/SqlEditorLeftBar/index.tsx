@@ -103,7 +103,7 @@ const SqlEditorLeftBar = ({
   setEmptyState,
 }: SqlEditorLeftBarProps) => {
   const dispatch = useDispatch();
-  const queryEditor = useQueryEditor(queryEditorId, ['schema']);
+  const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'schema']);
 
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
