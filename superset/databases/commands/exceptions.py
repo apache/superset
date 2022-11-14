@@ -184,3 +184,11 @@ class SSHTunnelDeleteFailedError(DeleteFailedError):
 
 class SSHTunnelNotFoundError(CommandException):
     message = _("SSH Tunnel not found.")
+
+
+class SSHTunnelInvalidError(CommandInvalidError):
+    message = _("SSH Tunnel parameters are invalid.")
+
+
+class SSHTunnelUpdateFailedError(UpdateFailedError):
+    message = _("SSH Tunnel could not be updated.")

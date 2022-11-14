@@ -739,6 +739,22 @@ class DatabaseRelatedSSHTunnelResponse(Schema):
     ssh_tunnel = fields.Nested(DatabaseRelatedSSHTunnels)
 
 
+class SSHTunnelPutSchema(Schema):
+    class Meta:  # pylint: disable=too-few-public-methods
+        unknown = EXCLUDE
+
+    server_address = fields.String(allow_none=True, description="Server Address")
+    server_port = fields.String(allow_none=True, description="Server Port")
+    username = fields.String(allow_none=True, description="Username")
+    password = fields.String(allow_none=True, description="Password")
+    private_key = fields.String(allow_none=True, description="Private Key")
+    private_key_password = fields.String(
+        allow_none=True, description="Private Key Password"
+    )
+    bind_host = fields.String(allow_none=True, description="Bind Host")
+    bind_port = fields.String(allow_none=True, description="Bind Port")
+
+
 def encrypted_field_properties(self, field: Any, **_) -> Dict[str, Any]:  # type: ignore
     ret = {}
     if isinstance(field, EncryptedField):

@@ -15,15 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
+from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAODeleteFailedError
+from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.commands.exceptions import (
-    SSHTunnelDeleteFailedError,
+    SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
+    SSHTunnelUpdateFailedError,
 )
 from superset.databases.models import SSHTunnel
 from superset.databases.ssh_tunnel_dao import SSHTunnelDAO
@@ -31,22 +33,31 @@ from superset.databases.ssh_tunnel_dao import SSHTunnelDAO
 logger = logging.getLogger(__name__)
 
 
-class DeleteSSHTunnelCommand(BaseCommand):
-    def __init__(self, model_id: int):
+class UpdateSSHTunnelCommand(BaseCommand):
+    def __init__(self, model_id: int, data: Dict[str, Any]):
+        self._properties = data.copy()
         self._model_id = model_id
         self._model: Optional[SSHTunnel] = None
 
     def run(self) -> Model:
         self.validate()
+        if not self._model:
+            raise SSHTunnelNotFoundError()
+
         try:
-            ssh_tunnel = SSHTunnelDAO.delete(self._model)
-        except DAODeleteFailedError as ex:
+            tunnel = SSHTunnelDAO.update(self._model, self._properties, commit=True)
+        except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise SSHTunnelDeleteFailedError() from ex
-        return ssh_tunnel
+            raise SSHTunnelUpdateFailedError() from ex
+        return tunnel
 
     def validate(self) -> None:
+        exceptions: List[ValidationError] = []
         # Validate/populate model exists
         self._model = SSHTunnelDAO.find_by_id(self._model_id)
         if not self._model:
             raise SSHTunnelNotFoundError()
+        if exceptions:
+            exception = SSHTunnelInvalidError()
+            exception.add_list(exceptions)
+            raise exception

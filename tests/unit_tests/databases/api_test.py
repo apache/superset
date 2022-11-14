@@ -261,3 +261,85 @@ def test_delete_ssh_tunnel(
         # check we actually deleted the SSHTunnel record
         response_tunnel = client.get("/api/v1/database/1/ssh_tunnel/")
         assert not response_tunnel.json["ssh_tunnel"]["result"]
+
+
+def test_update_ssh_tunnel(
+    mocker: MockFixture,
+    app: Any,
+    session: Session,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that we can update SSH Tunnel
+    """
+    with app.app_context():
+        from superset.databases.api import DatabaseRestApi
+        from superset.databases.models import SSHTunnel
+        from superset.models.core import Database
+
+        DatabaseRestApi.datamodel.session = session
+
+        # create table for databases
+        Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+        # Create our Database
+        database = Database(
+            database_name="my_database",
+            sqlalchemy_uri="gsheets://",
+            encrypted_extra=json.dumps(
+                {
+                    "service_account_info": {
+                        "type": "service_account",
+                        "project_id": "black-sanctum-314419",
+                        "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
+                        "private_key": "SECRET",
+                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                        "client_id": "SSH_TUNNEL_CREDENTIALS_CLIENT",
+                        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                        "token_uri": "https://oauth2.googleapis.com/token",
+                        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
+                    },
+                }
+            ),
+        )
+        session.add(database)
+        session.commit()
+
+        # mock the lookup so that we don't need to include the driver
+        mocker.patch("sqlalchemy.engine.URL.get_driver_name", return_value="gsheets")
+        mocker.patch("superset.utils.log.DBEventLogger.log")
+
+        # Create our SSHTunnel
+        tunnel = SSHTunnel(
+            database_id=1, database=database, server_address="Test", server_port="123"
+        )
+
+        session.add(tunnel)
+        session.commit()
+
+        # Get our recently created SSHTunnel
+        response_tunnel = client.get("/api/v1/database/1/ssh_tunnel/")
+        assert response_tunnel.json["ssh_tunnel"]["result"]["database_id"] == 1
+        assert response_tunnel.json["ssh_tunnel"]["result"]["server_address"] == "Test"
+        assert response_tunnel.json["ssh_tunnel"]["result"]["server_port"] == "123"
+
+        # Update the recently created SSHTunnel
+        response_update_tunnel = client.put(
+            "/api/v1/database/1/ssh_tunnel/",
+            json={
+                "server_address": "New_Address",
+                "server_port": "321",
+            },
+        )
+        assert response_update_tunnel.json["result"]["server_address"] == "New_Address"
+        assert response_update_tunnel.json["result"]["server_port"] == "321"
+
+        # check we actually updated the SSHTunnel record
+        response_tunnel = client.get("/api/v1/database/1/ssh_tunnel/")
+        assert (
+            response_tunnel.json["ssh_tunnel"]["result"]["server_address"]
+            == "New_Address"
+        )
+        assert response_tunnel.json["ssh_tunnel"]["result"]["server_port"] == "321"

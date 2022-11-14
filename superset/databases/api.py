@@ -48,12 +48,15 @@ from superset.databases.commands.exceptions import (
     DatabaseUpdateFailedError,
     InvalidParametersError,
     SSHTunnelDeleteFailedError,
+    SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
+    SSHTunnelUpdateFailedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
 from superset.databases.commands.importers.dispatcher import ImportDatabasesCommand
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.commands.update import UpdateDatabaseCommand
+from superset.databases.commands.update_ssh_tunnel import UpdateSSHTunnelCommand
 from superset.databases.commands.validate import ValidateDatabaseParametersCommand
 from superset.databases.commands.validate_sql import ValidateSQLCommand
 from superset.databases.dao import DatabaseDAO
@@ -71,6 +74,7 @@ from superset.databases.schemas import (
     get_export_ids_schema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
+    SSHTunnelPutSchema,
     TableExtraMetadataResponseSchema,
     TableMetadataResponseSchema,
     ValidateSQLRequest,
@@ -113,6 +117,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "validate_sql",
         "related_ssh_tunnel",
         "delete_ssh_tunnel",
+        "update_ssh_tunnel",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -203,6 +208,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     max_page_size = -1
     add_model_schema = DatabasePostSchema()
     edit_model_schema = DatabasePutSchema()
+    edit_ssh_tunnel_model_schema = SSHTunnelPutSchema()
 
     apispec_parameter_schemas = {
         "database_schemas_query_schema": database_schemas_query_schema,
@@ -1320,6 +1326,79 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SSHTunnelDeleteFailedError as ex:
             logger.error(
                 "Error deleting SSH Tunnel %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>/ssh_tunnel/", methods=["PUT"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".update_ssh_tunnel",
+        log_to_statsd=False,
+    )
+    def update_ssh_tunnel(self, pk: int) -> Response:
+        """Changes a SSH Tunnel
+        ---
+        put:
+          description: >-
+            Changes a SSH Tunnel.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          requestBody:
+            description: SSH Tunnel schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/SSHTunnelPutSchema'
+          responses:
+            200:
+              description: SSH Tunnel changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/SSHTunnelPutSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.edit_ssh_tunnel_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            changed_model = UpdateSSHTunnelCommand(pk, item).run()
+            return self.response(200, id=changed_model.id, result=item)
+        except SSHTunnelNotFoundError:
+            return self.response_404()
+        except SSHTunnelInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except SSHTunnelUpdateFailedError as ex:
+            logger.error(
+                "Error updating model %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
