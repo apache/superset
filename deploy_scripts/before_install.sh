@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#generate our secret key
-export SUPERSET_FLASK_SECRET=$(openssl rand -base64 64)
-
 #create our working directory if it doesnt exist
 DIR="/home/ec2-user/liq_superset"
 if [ -d "$DIR" ]; then
