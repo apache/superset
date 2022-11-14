@@ -191,13 +191,33 @@ describe('sqlLabReducer', () => {
       const selectedText = 'TEST';
       const action = {
         type: actions.QUERY_EDITOR_SET_SELECTED_TEXT,
-        queryEditor: newState.queryEditors[0],
+        queryEditor: qe,
         sql: selectedText,
       };
-      expect(newState.queryEditors[0].selectedText).toBeFalsy();
+      expect(qe.selectedText).toBeFalsy();
       newState = sqlLabReducer(newState, action);
       expect(newState.unsavedQueryEditor.selectedText).toBe(selectedText);
-      expect(newState.unsavedQueryEditor.id).toBe(newState.queryEditors[0].id);
+      expect(newState.unsavedQueryEditor.id).toBe(qe.id);
+    });
+    it('should not wiped out unsaved changes while delayed async call intercepted', () => {
+      const expectedSql = 'Updated SQL WORKING IN PROGRESS--';
+      const action = {
+        type: actions.QUERY_EDITOR_SET_SQL,
+        queryEditor: qe,
+        sql: expectedSql,
+      };
+      newState = sqlLabReducer(newState, action);
+      expect(newState.unsavedQueryEditor.sql).toBe(expectedSql);
+      const interceptedAction = {
+        type: actions.QUERY_EDITOR_SET_FUNCTION_NAMES,
+        queryEditor: newState.queryEditors[0],
+        functionNames: ['func1', 'func2'],
+      };
+      newState = sqlLabReducer(newState, interceptedAction);
+      expect(newState.unsavedQueryEditor.sql).toBe(expectedSql);
+      expect(newState.queryEditors[0].functionNames).toBe(
+        interceptedAction.functionNames,
+      );
     });
   });
   describe('Tables', () => {

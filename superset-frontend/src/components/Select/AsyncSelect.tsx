@@ -60,6 +60,7 @@ import {
   StyledContainer,
   StyledError,
   StyledErrorMessage,
+  StyledHeader,
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
@@ -103,6 +104,7 @@ const AsyncSelect = forwardRef(
       fetchOnlyOnSearch,
       filterOption = true,
       header = null,
+      headerPosition = 'top',
       helperText,
       invertSelection = false,
       lazyLoading = true,
@@ -470,8 +472,10 @@ const AsyncSelect = forwardRef(
     );
 
     return (
-      <StyledContainer>
-        {header}
+      <StyledContainer headerPosition={headerPosition}>
+        {header && (
+          <StyledHeader headerPosition={headerPosition}>{header}</StyledHeader>
+        )}
         <StyledSelect
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel || name}
@@ -481,6 +485,7 @@ const AsyncSelect = forwardRef(
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
+          headerPosition={headerPosition}
           labelInValue
           maxTagCount={MAX_TAG_COUNT}
           mode={mappedMode}

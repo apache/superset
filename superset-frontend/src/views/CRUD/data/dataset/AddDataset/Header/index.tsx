@@ -32,6 +32,8 @@ import {
   DSReducerActionType,
 } from 'src/views/CRUD/data/dataset/AddDataset/types';
 
+export const DEFAULT_TITLE = t('New dataset');
+
 const tooltipProps: { text: string; placement: TooltipPlacement } = {
   text: t('Select a database table and create dataset'),
   placement: 'bottomRight',
@@ -59,21 +61,22 @@ const renderOverlay = () => (
 
 export default function Header({
   setDataset,
-  datasetName,
+  title = DEFAULT_TITLE,
 }: {
   setDataset: React.Dispatch<DSReducerActionType>;
-  datasetName: string;
+  title?: string | null | undefined;
+  schema?: string | null | undefined;
 }) {
   const editableTitleProps = {
-    title: datasetName,
-    placeholder: t('Add the name of the dataset'),
+    title: title ?? DEFAULT_TITLE,
+    placeholder: DEFAULT_TITLE,
     onSave: (newDatasetName: string) => {
       setDataset({
         type: DatasetActionType.changeDataset,
         payload: { name: 'dataset_name', value: newDatasetName },
       });
     },
-    canEdit: true,
+    canEdit: false,
     label: t('dataset name'),
   };
 

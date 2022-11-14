@@ -431,6 +431,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
+    def parse_error_exception(cls, exception: Exception) -> Exception:
+        """
+        Each engine can implement and converge its own specific parser method
+
+        :return: An Exception with a parsed string off the original exception
+        """
+        return exception
+
+    @classmethod
     def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
         """
         Get a superset custom DBAPI exception from the driver specific exception.
@@ -443,7 +452,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if not new_exception:
-            return exception
+            return cls.parse_error_exception(exception)
         return new_exception(str(exception))
 
     @classmethod
@@ -639,7 +648,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             return cursor.fetchall()
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def expand_data(
@@ -1018,14 +1027,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str],
     ) -> List[str]:
         """
-        Get all tables from schema
+        Get all the real table names within the specified schema.
 
-        :param database: The database to get info
-        :param inspector: SqlAlchemy inspector
-        :param schema: Schema to inspect. If omitted, uses default schema for database
-        :return: All tables in schema
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The physical table names
         """
-        tables = inspector.get_table_names(schema)
+
+        try:
+            tables = inspector.get_table_names(schema)
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
         if schema and cls.try_remove_schema_from_table_name:
             tables = [re.sub(f"^{schema}\\.", "", table) for table in tables]
         return sorted(tables)
@@ -1038,14 +1055,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str],
     ) -> List[str]:
         """
-        Get all views from schema
+        Get all the view names within the specified schema.
 
-        :param database: The database to get info
-        :param inspector: SqlAlchemy inspector
-        :param schema: Schema name. If omitted, uses default schema for database
-        :return: All views in schema
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The view names
         """
-        views = inspector.get_view_names(schema)
+
+        try:
+            views = inspector.get_view_names(schema)
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
         if schema and cls.try_remove_schema_from_table_name:
             views = [re.sub(f"^{schema}\\.", "", view) for view in views]
         return sorted(views)
@@ -1326,7 +1351,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:

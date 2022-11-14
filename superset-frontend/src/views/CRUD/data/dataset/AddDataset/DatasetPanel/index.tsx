@@ -16,40 +16,112 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t, styled } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import React, { useEffect, useState, useRef } from 'react';
+import { SupersetClient } from '@superset-ui/core';
+import DatasetPanel from './DatasetPanel';
+import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
 
-const StyledEmptyStateBig = styled(EmptyStateBig)`
-  p {
-    width: ${({ theme }) => theme.gridUnit * 115}px;
-  }
-`;
+/**
+ * Interface for the getTableMetadata API call
+ */
+interface IColumnProps {
+  /**
+   * Unique id of the database
+   */
+  dbId: number;
+  /**
+   * Name of the table
+   */
+  tableName: string;
+  /**
+   * Name of the schema
+   */
+  schema: string;
+}
 
-const renderDescription = () => (
-  <>
-    {t(
-      'Datasets can be created from database tables or SQL queries. Select a database table to the left or ',
-    )}
-    <span
-      role="button"
-      onClick={() => {
-        window.location.href = `/superset/sqllab`;
-      }}
-      tabIndex={0}
-    >
-      {t('create dataset from SQL query')}
-    </span>
-    {t(' to open SQL Lab. From there you can save the query as a dataset.')}
-  </>
-);
+export interface IDatasetPanelWrapperProps {
+  /**
+   * Name of the database table
+   */
+  tableName?: string | null;
+  /**
+   * Database ID
+   */
+  dbId?: number;
+  /**
+   * The selected schema for the database
+   */
+  schema?: string | null;
+  setHasColumns?: Function;
+}
 
-export default function DatasetPanel() {
+const DatasetPanelWrapper = ({
+  tableName,
+  dbId,
+  schema,
+  setHasColumns,
+}: IDatasetPanelWrapperProps) => {
+  const [columnList, setColumnList] = useState<ITableColumn[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const tableNameRef = useRef(tableName);
+
+  const getTableMetadata = async (props: IColumnProps) => {
+    const { dbId, tableName, schema } = props;
+    setLoading(true);
+    setHasColumns?.(false);
+    const path = `/api/v1/database/${dbId}/table/${tableName}/${schema}/`;
+    try {
+      const response = await SupersetClient.get({
+        endpoint: path,
+      });
+
+      if (isIDatabaseTable(response?.json)) {
+        const table: IDatabaseTable = response.json as IDatabaseTable;
+        /**
+         *  The user is able to click other table columns while the http call for last selected table column is made
+         *  This check ensures we process the response that matches the last selected table name and ignore the others
+         */
+        if (table.name === tableNameRef.current) {
+          setColumnList(table.columns);
+          setHasColumns?.(table.columns.length > 0);
+          setHasError(false);
+        }
+      } else {
+        setColumnList([]);
+        setHasColumns?.(false);
+        setHasError(true);
+        // eslint-disable-next-line no-console
+        console.error(
+          `The API response from ${path} does not match the IDatabaseTable interface.`,
+        );
+      }
+    } catch (error) {
+      setColumnList([]);
+      setHasColumns?.(false);
+      setHasError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    tableNameRef.current = tableName;
+    if (tableName && schema && dbId) {
+      getTableMetadata({ tableName, dbId, schema });
+    }
+    // getTableMetadata is a const and should not be independency array
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableName, dbId, schema]);
+
   return (
-    <StyledEmptyStateBig
-      image="empty-dataset.svg"
-      title={t('Select dataset source')}
-      description={renderDescription()}
+    <DatasetPanel
+      columnList={columnList}
+      hasError={hasError}
+      loading={loading}
+      tableName={tableName}
     />
   );
-}
+};
+
+export default DatasetPanelWrapper;

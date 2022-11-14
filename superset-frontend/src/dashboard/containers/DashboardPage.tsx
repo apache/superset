@@ -17,11 +17,13 @@
  * under the License.
  */
 import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   CategoricalColorNamespace,
   FeatureFlag,
   getSharedLabelColor,
   isFeatureEnabled,
+  SharedLabelColorSource,
   t,
   useTheme,
 } from '@superset-ui/core';
@@ -155,6 +157,7 @@ const useSyncDashboardStateWithLocalStorage = () => {
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const theme = useTheme();
+  const history = useHistory();
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -301,6 +304,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
         dispatch(
           hydrateDashboard({
+            history,
             dashboard,
             charts,
             activeTabs,
@@ -333,17 +337,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     return () => {};
   }, [css]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const sharedLabelColor = getSharedLabelColor();
+    sharedLabelColor.source = SharedLabelColorSource.dashboard;
+    return () => {
       // clean up label color
       const categoricalNamespace = CategoricalColorNamespace.getNamespace(
         metadata?.color_namespace,
       );
       categoricalNamespace.resetColors();
-      getSharedLabelColor().clear();
-    },
-    [metadata?.color_namespace],
-  );
+      sharedLabelColor.clear();
+    };
+  }, [metadata?.color_namespace]);
 
   useEffect(() => {
     if (datasetsApiError) {

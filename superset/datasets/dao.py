@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.base import BaseDAO
@@ -34,6 +36,26 @@ logger = logging.getLogger(__name__)
 class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     model_cls = SqlaTable
     base_filter = DatasourceFilter
+
+    @classmethod
+    def find_by_ids(cls, model_ids: Union[List[str], List[int]]) -> List[SqlaTable]:
+        """
+        Find a List of models by a list of ids, if defined applies `base_filter`
+        """
+        id_col = getattr(SqlaTable, cls.id_column_name, None)
+        if id_col is None:
+            return []
+
+        # the joinedload option ensures that the database is
+        # available in the session later and not lazy loaded
+        query = (
+            db.session.query(SqlaTable)
+            .options(joinedload(SqlaTable.database))
+            .filter(id_col.in_(model_ids))
+        )
+        data_model = SQLAInterface(SqlaTable, db.session)
+        query = DatasourceFilter(cls.id_column_name, data_model).apply(query, None)
+        return query.all()
 
     @staticmethod
     def get_database_by_id(database_id: int) -> Optional[Database]:

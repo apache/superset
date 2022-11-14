@@ -43,13 +43,29 @@ function openModalFromChartContext(targetMenuItem: string) {
   interceptSamples();
 
   cy.wait(500);
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
-    .first()
-    .find("[role='menu'] [role='menuitem']")
-    .contains(targetMenuItem)
-    .first()
-    .click();
+  if (targetMenuItem.startsWith('Drill to detail by')) {
+    cy.get('.ant-dropdown')
+      .not('.ant-dropdown-hidden')
+      .first()
+      .find("[role='menu'] [role='menuitem'] [title='Drill to detail by']")
+      .trigger('mouseover');
+    cy.wait(500);
+    cy.get('[data-test="drill-to-detail-by-submenu"]')
+      .not('.ant-dropdown-menu-hidden [data-test="drill-to-detail-by-submenu"]')
+      .find('[role="menuitem"]')
+      .contains(new RegExp(`^${targetMenuItem}$`))
+      .first()
+      .click();
+  } else {
+    cy.get('.ant-dropdown')
+      .not('.ant-dropdown-hidden')
+      .first()
+      .find("[role='menu'] [role='menuitem']")
+      .contains(new RegExp(`^${targetMenuItem}$`))
+      .first()
+      .click();
+  }
+
   cy.wait('@samples');
 }
 
@@ -393,14 +409,26 @@ describe('Drill to detail modal', () => {
 
         cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
           cy.wrap($canvas).scrollIntoView().rightclick(70, 150);
-          openModalFromChartContext('Drill to detail by United States');
-          cy.getBySel('filter-val').should('contain', 'United States');
+          openModalFromChartContext('Drill to detail by USA');
+          cy.getBySel('filter-val').should('contain', 'USA');
           closeModal();
         });
         cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
           cy.wrap($canvas).scrollIntoView().rightclick(200, 140);
-          openModalFromChartContext('Drill to detail by Slovakia');
-          cy.getBySel('filter-val').should('contain', 'Slovakia');
+          openModalFromChartContext('Drill to detail by SVK');
+          cy.getBySel('filter-val').should('contain', 'SVK');
+        });
+      });
+    });
+
+    describe('Bar Chart', () => {
+      it('opens the modal for unsupported chart without filters', () => {
+        interceptSamples();
+
+        cy.get("[data-test-viz-type='dist_bar'] svg").then($canvas => {
+          cy.wrap($canvas).scrollIntoView().rightclick(70, 150);
+          openModalFromChartContext('Drill to detail');
+          cy.getBySel('filter-val').should('not.exist');
         });
       });
     });

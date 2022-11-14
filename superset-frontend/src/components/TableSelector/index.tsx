@@ -38,6 +38,10 @@ import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { SchemaOption } from 'src/SqlLab/types';
 import { useTables, Table } from 'src/hooks/apiResources';
+import {
+  getClientErrorMessage,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 
 const REFRESH_WIDTH = 30;
 
@@ -184,10 +188,19 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
     onSuccess: (data: { options: Table[] }) => {
       onTablesLoad?.(data.options);
       if (isFetched) {
-        addSuccessToast('List updated');
+        addSuccessToast(t('List updated'));
       }
     },
-    onError: () => handleError(t('There was an error loading the tables')),
+    onError: (err: Response) => {
+      getClientErrorObject(err).then(clientError => {
+        handleError(
+          getClientErrorMessage(
+            t('There was an error loading the tables'),
+            clientError,
+          ),
+        );
+      });
+    },
   });
 
   const tableOptions = useMemo<TableOption[]>(
@@ -314,7 +327,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       />
     );
 
-    const refreshLabel = !formMode && !readOnly && (
+    const refreshLabel = !readOnly && (
       <RefreshLabel
         onClick={() => refetch()}
         tooltipContent={t('Force refresh table list')}
