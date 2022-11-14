@@ -527,6 +527,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/annotation_json/<int:layer_id>")
+    @deprecated()
     def annotation_json(  # pylint: disable=no-self-use
         self, layer_id: int
     ) -> FlaskResponse:
