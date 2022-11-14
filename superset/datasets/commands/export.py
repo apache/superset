@@ -26,7 +26,8 @@ from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
-from superset.utils.dict_import_export import EXPORT_VERSION, get_filename
+from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils.file import get_filename
 
 logger = logging.getLogger(__name__)
 

@@ -26,7 +26,8 @@ from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.dao import DatabaseDAO
 from superset.commands.export.models import ExportModelsCommand
 from superset.models.core import Database
-from superset.utils.dict_import_export import EXPORT_VERSION, get_filename
+from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils.file import get_filename
 
 logger = logging.getLogger(__name__)
 

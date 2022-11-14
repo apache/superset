@@ -27,7 +27,8 @@ from superset.charts.dao import ChartDAO
 from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.commands.export.models import ExportModelsCommand
 from superset.models.slice import Slice
-from superset.utils.dict_import_export import EXPORT_VERSION, get_filename
+from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils.file import get_filename
 
 logger = logging.getLogger(__name__)
 
