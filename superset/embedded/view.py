@@ -82,9 +82,9 @@ class EmbeddedView(BaseSupersetView):
                 "dashboard_id": embedded.dashboard_id,
             },
         }
-
+        # Use superset/embedded.html as it contains the necessary JS/CSS bundles.
         return self.render_template(
-            "superset/spa.html",
+            "superset/embedded.html",
             entry="embedded",
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser

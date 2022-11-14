@@ -16,10 +16,13 @@
   specific language governing permissions and limitations
   under the License.
 #}
+{% extends "superset/basic.html" %}
 
-{#
-  This file may be overriden in your custom deployment.
-  It will be included in every view in superset and is a
-  good place to include your custom frontend code, such as
-  scripts to initialize google analytics, intercom, segment, etc.
-#}
+{% block navbar %}
+{% endblock %}
+
+{% block tail_js %}
+  {{ js_bundle(entry) }}
+  {% include "tail_js_custom_extra.html" %}
+  <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+{% endblock %}
