@@ -18,12 +18,18 @@ import logging
 from typing import Any, Dict
 
 from sqlalchemy.orm import Session
+from werkzeug.utils import secure_filename
 
 from superset.models.core import Database
 
 EXPORT_VERSION = "1.0.0"
 DATABASES_KEY = "databases"
 logger = logging.getLogger(__name__)
+
+
+def get_filename(model_name: str, model_id: int) -> str:
+    slug = secure_filename(model_name)
+    return f"{slug}_{model_id}" if slug else str(model_id)
 
 
 def export_schema_to_dict(back_references: bool) -> Dict[str, Any]:

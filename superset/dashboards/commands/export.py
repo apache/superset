@@ -23,7 +23,6 @@ import string
 from typing import Any, Dict, Iterator, Optional, Set, Tuple
 
 import yaml
-from werkzeug.utils import secure_filename
 
 from superset.charts.commands.export import ExportChartsCommand
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
@@ -34,7 +33,7 @@ from superset.datasets.commands.export import ExportDatasetsCommand
 from superset.datasets.dao import DatasetDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils.dict_import_export import EXPORT_VERSION, get_filename
 
 logger = logging.getLogger(__name__)
 
@@ -111,8 +110,8 @@ class ExportDashboardsCommand(ExportModelsCommand):
     def _export(
         model: Dashboard, export_related: bool = True
     ) -> Iterator[Tuple[str, str]]:
-        dashboard_slug = secure_filename(model.dashboard_title)
-        file_name = f"dashboards/{dashboard_slug}_{model.id}.yaml"
+        file_name = get_filename(model.dashboard_title, model.id)
+        file_path = f"dashboards/{file_name}.yaml"
 
         payload = model.export_to_dict(
             recursive=False,
@@ -163,7 +162,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_name, file_content
+        yield file_path, file_content
 
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
