@@ -324,7 +324,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/approve", methods=["POST"])
     @deprecated()
-    def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals
+    def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
                 datasource = DatasourceDAO.get_datasource(
@@ -1347,7 +1347,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/testconn", methods=["POST", "GET"])
     @deprecated()
-    def testconn(self) -> FlaskResponse:
+    def testconn(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Tests a sqla connection"""
         db_name = request.json.get("name")
         uri = request.json.get("uri")
@@ -1546,7 +1546,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
     @deprecated()
-    def available_domains(self) -> FlaskResponse:
+    def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Returns the list of available Superset Webserver domains (if any)
         defined in config. This enables charts embedded in other apps to
@@ -2117,7 +2117,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
     @event_logger.log_this
     @deprecated()
-    def extra_table_metadata(
+    def extra_table_metadata(  # pylint: disable=no-self-use
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
         parsed_schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
@@ -2322,7 +2322,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/validate_sql_json/", methods=["POST", "GET"])
     @deprecated()
     def validate_sql_json(
-        # pylint: disable=too-many-locals
+        # pylint: disable=too-many-locals,no-self-use
         self,
     ) -> FlaskResponse:
         """Validates that arbitrary sql is acceptable for the given database.
