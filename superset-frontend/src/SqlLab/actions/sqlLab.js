@@ -1365,6 +1365,7 @@ export function popStoredQuery(urlId) {
             schema: json.schema ? json.schema : null,
             autorun: json.autorun ? json.autorun : false,
             sql: json.sql ? json.sql : 'SELECT ...',
+            templateParams: json.templateParams,
           }),
         ),
       )
