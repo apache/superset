@@ -56,6 +56,7 @@ import setPeriodicRunner, {
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
+import OverwriteConfirm from '../OverwriteConfirm';
 
 const uiOverrideRegistry = getUiOverrideRegistry();
 
@@ -695,6 +696,8 @@ class Header extends React.PureComponent {
             onlyApply
           />
         )}
+
+        <OverwriteConfirm />
 
         {userCanCurate && (
           <DashboardEmbedModal

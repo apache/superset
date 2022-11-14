@@ -48,13 +48,19 @@ function ShareSqlLabQuery({
 }: ShareSqlLabQueryPropTypes) {
   const theme = useTheme();
 
-  const { dbId, name, schema, autorun, sql, remoteId } = useQueryEditor(
-    queryEditorId,
-    ['dbId', 'name', 'schema', 'autorun', 'sql', 'remoteId'],
-  );
+  const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
+    useQueryEditor(queryEditorId, [
+      'dbId',
+      'name',
+      'schema',
+      'autorun',
+      'sql',
+      'remoteId',
+      'templateParams',
+    ]);
 
   const getCopyUrlForKvStore = (callback: Function) => {
-    const sharedQuery = { dbId, name, schema, autorun, sql };
+    const sharedQuery = { dbId, name, schema, autorun, sql, templateParams };
 
     return storeQuery(sharedQuery)
       .then(shortUrl => {

@@ -1328,6 +1328,9 @@ STATIC_ASSETS_PREFIX = ""
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
 
+# Prevents unsafe default endpoints to be registered on datasets.
+PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
+
 # Path used to store SSL certificates that are generated when using custom certs.
 # Defaults to temporary directory.
 # Example: SSL_CERT_PATH = "/certs"
