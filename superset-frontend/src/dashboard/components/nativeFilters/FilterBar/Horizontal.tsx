@@ -43,6 +43,7 @@ const HorizontalBarContent = styled.div`
     align-items: center;
     justify-content: flex-start;
     padding: 0 ${theme.gridUnit * 2}px;
+    line-height: 0;
 
     .loading {
       margin: ${theme.gridUnit * 2}px auto ${theme.gridUnit * 2}px;
@@ -53,8 +54,10 @@ const HorizontalBarContent = styled.div`
 
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
-    margin: 0 ${theme.gridUnit * 2}px;
+    margin: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
     font-weight: ${theme.typography.weights.bold};
+    color: ${theme.colors.grayscale.base};
+    font-size: ${theme.typography.sizes.s}px;
   `}
 `;
 
@@ -71,6 +74,10 @@ const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
       text-transform: capitalize;
       font-weight: ${theme.typography.weights.normal};
       color: ${theme.colors.primary.base};
+      > .anticon {
+        height: 24px;
+        padding-right: ${theme.gridUnit * 2}px;
+      }
       > .anticon + span, > .anticon {
           margin-right: 0;
           margin-left: 0;

@@ -18,13 +18,8 @@
  */
 
 import { areObjectsEqual } from 'src/reduxUtils';
-import {
-  DataMaskStateWithId,
-  Filter,
-  FilterState,
-} from '@superset-ui/core';
+import { DataMaskStateWithId, Filter, FilterState } from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-
 
 export const getOnlyExtraFormData = (data: DataMaskStateWithId) =>
   Object.values(data).reduce(

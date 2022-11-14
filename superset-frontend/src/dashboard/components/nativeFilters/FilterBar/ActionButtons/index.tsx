@@ -124,10 +124,10 @@ const ActionButtons = ({
 
   return (
     <div
-    css={(theme: SupersetTheme) => [
-      containerStyle(theme),
-      isVertical ? verticalStyle(theme, width) : horizontalStyle(theme),
-    ]}
+      css={(theme: SupersetTheme) => [
+        containerStyle(theme),
+        isVertical ? verticalStyle(theme, width) : horizontalStyle(theme),
+      ]}
       data-test="filterbar-action-buttons"
     >
       <Button

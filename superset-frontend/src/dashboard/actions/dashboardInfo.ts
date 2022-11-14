@@ -125,7 +125,9 @@ export interface SetFilterBarOrientation {
   type: typeof SET_FILTER_BAR_ORIENTATION;
   filterBarOrientation: FilterBarOrientation;
 }
-export function setFilterBarOrientation(filterBarOrientation: FilterBarOrientation) {
+export function setFilterBarOrientation(
+  filterBarOrientation: FilterBarOrientation,
+) {
   return { type: SET_FILTER_BAR_ORIENTATION, filterBarOrientation };
 }
 
