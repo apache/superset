@@ -88,6 +88,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         css: str = "",
         json_metadata: str = "",
         published: bool = False,
+        description: str = "",
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
         description: str = ""
@@ -112,6 +113,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             slices=slices,
             published=published,
             created_by=created_by,
+            description=description,
             certified_by=certified_by,
             certification_details=certification_details,
             description=description

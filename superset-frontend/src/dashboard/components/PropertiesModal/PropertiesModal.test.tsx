@@ -225,7 +225,7 @@ test('should render - FeatureFlag enabled', async () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
   expect(screen.getAllByRole('button')).toHaveLength(4);
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(4);
+  expect(screen.getAllByRole('textbox')).toHaveLength(5);
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
 
   expect(spyColorSchemeControlWrapper).toBeCalledWith(
@@ -244,7 +244,9 @@ test('should open advance', async () => {
     await screen.findByTestId('dashboard-edit-properties-form'),
   ).toBeInTheDocument();
 
-  expect(screen.getAllByRole('textbox')).toHaveLength(4);
+  expect(screen.getAllByRole('combobox')).toHaveLength(2);
+  userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
+  expect(screen.getAllByRole('textbox')).toHaveLength(6);
   expect(screen.getAllByRole('combobox')).toHaveLength(2);
   userEvent.click(screen.getByRole('button', { name: 'Advanced' }));
   expect(screen.getAllByRole('textbox')).toHaveLength(5);
