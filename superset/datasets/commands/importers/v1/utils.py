@@ -166,14 +166,22 @@ def load_data(
     if database.sqlalchemy_uri == current_app.config.get("SQLALCHEMY_DATABASE_URI"):
         logger.info("Loading data inside the import transaction")
         connection = session.connection()
+        df.to_sql(
+            dataset.table_name,
+            con=connection,
+            schema=dataset.schema,
+            if_exists="replace",
+            chunksize=CHUNKSIZE,
+            dtype=dtype,
+            index=False,
+            method="multi",
+        )
     else:
         logger.warning("Loading data outside the import transaction")
         with database.get_sqla_engine_with_context() as engine:
-            connection = engine
-
             df.to_sql(
                 dataset.table_name,
-                con=connection,
+                con=engine,
                 schema=dataset.schema,
                 if_exists="replace",
                 chunksize=CHUNKSIZE,
