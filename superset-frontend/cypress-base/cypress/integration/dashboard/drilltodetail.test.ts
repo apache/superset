@@ -409,14 +409,14 @@ describe('Drill to detail modal', () => {
 
         cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
           cy.wrap($canvas).scrollIntoView().rightclick(70, 150);
-          openModalFromChartContext('Drill to detail by United States');
-          cy.getBySel('filter-val').should('contain', 'United States');
+          openModalFromChartContext('Drill to detail by USA');
+          cy.getBySel('filter-val').should('contain', 'USA');
           closeModal();
         });
         cy.get("[data-test-viz-type='world_map'] svg").then($canvas => {
           cy.wrap($canvas).scrollIntoView().rightclick(200, 140);
-          openModalFromChartContext('Drill to detail by Slovakia');
-          cy.getBySel('filter-val').should('contain', 'Slovakia');
+          openModalFromChartContext('Drill to detail by SVK');
+          cy.getBySel('filter-val').should('contain', 'SVK');
         });
       });
     });
