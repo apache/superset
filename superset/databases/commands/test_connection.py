@@ -102,11 +102,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             with database.get_sqla_engine_with_context() as engine:
                 try:
                     alive = func_timeout(
-                        int(
-                            app.config[
-                                "TEST_DATABASE_CONNECTION_TIMEOUT"
-                            ].total_seconds()
-                        ),
+                        app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds(),
                         ping,
                         args=(engine,),
                     )

@@ -171,13 +171,13 @@ def load_data(
         with database.get_sqla_engine_with_context() as engine:
             connection = engine
 
-    df.to_sql(
-        dataset.table_name,
-        con=connection,
-        schema=dataset.schema,
-        if_exists="replace",
-        chunksize=CHUNKSIZE,
-        dtype=dtype,
-        index=False,
-        method="multi",
-    )
+            df.to_sql(
+                dataset.table_name,
+                con=connection,
+                schema=dataset.schema,
+                if_exists="replace",
+                chunksize=CHUNKSIZE,
+                dtype=dtype,
+                index=False,
+                method="multi",
+            )

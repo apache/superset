@@ -101,6 +101,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)
 
+        alive = False
         with database.get_sqla_engine_with_context() as engine:
             try:
                 with closing(engine.raw_connection()) as conn:
@@ -117,14 +118,14 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 errors = database.db_engine_spec.extract_errors(ex, context)
                 raise DatabaseTestConnectionFailedError(errors) from ex
 
-            if not alive:
-                raise DatabaseOfflineError(
-                    SupersetError(
-                        message=__("Database is offline."),
-                        error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        level=ErrorLevel.ERROR,
-                    ),
-                )
+        if not alive:
+            raise DatabaseOfflineError(
+                SupersetError(
+                    message=__("Database is offline."),
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+            )
 
     def validate(self) -> None:
         database_id = self._properties.get("id")
