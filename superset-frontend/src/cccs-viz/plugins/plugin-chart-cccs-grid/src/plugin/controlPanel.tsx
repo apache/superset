@@ -40,6 +40,7 @@ import {
   ControlPanelState,
   ControlState,
   formatSelectOptions,
+  ColumnMeta,
 } from '@superset-ui/chart-controls';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 
@@ -245,7 +246,11 @@ const config: ControlPanelConfig = {
                 );
                 return newState;
               },
-              rerender: ['metrics', 'percent_metrics'],
+              rerender: [
+                'metrics',
+                'percent_metrics',
+                'principalEmitFilterColumn',
+              ],
               canCopy: true,
             } as typeof sharedControls.groupby,
           },
@@ -339,6 +344,7 @@ const config: ControlPanelConfig = {
                     : [];
                 return newState;
               },
+              rerender: ['principalColumns'],
               visibility: isRawMode,
               canCopy: true,
             } as typeof sharedControls.groupby,
@@ -397,6 +403,74 @@ const config: ControlPanelConfig = {
                   default: false,
                   renderTrigger: true,
                   description: t('Emit dashboard cross filters.'),
+                },
+              }
+            : null,
+        ],
+        [
+          isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)
+            ? {
+                name: 'principalColumns',
+                config: {
+                  type: 'SelectControl',
+                  label: t('Principal Column(s) to Emit'),
+                  description: t(
+                    'Preselect a set of principal columns that can easily be emitted from the context menu',
+                  ),
+                  multi: true,
+                  freeForm: true,
+                  allowAll: true,
+                  default: [],
+                  canSelectAll: true,
+                  optionRenderer: (c: ColumnMeta) => (
+                    // eslint-disable-next-line react/react-in-jsx-scope
+                    <StyledColumnOption showType column={c} />
+                  ),
+                  // eslint-disable-next-line react/react-in-jsx-scope
+                  valueRenderer: (c: ColumnMeta) => (
+                    // eslint-disable-next-line react/react-in-jsx-scope
+                    <StyledColumnOption column={c} />
+                  ),
+                  valueKey: 'column_name',
+                  mapStateToProps: (
+                    state: ControlPanelState,
+                    controlState: ControlState,
+                  ) => {
+                    const { controls } = state;
+                    const originalMapStateToProps =
+                      sharedControls?.columns?.mapStateToProps;
+                    const newState =
+                      originalMapStateToProps?.(state, controlState) ?? {};
+                    const choices = isRawMode({ controls })
+                      ? controls?.columns?.value
+                      : controls?.groupby?.value;
+                    newState.options = newState.options.filter(
+                      (o: { column_name: string }) =>
+                        ensureIsArray(choices).includes(o.column_name),
+                    );
+                    const invalidOptions = ensureIsArray(
+                      controlState.value,
+                    ).filter(c => !ensureIsArray(choices).includes(c));
+                    newState.externalValidationErrors =
+                      invalidOptions.length > 0
+                        ? invalidOptions.length > 1
+                          ? [
+                              `'${invalidOptions.join(', ')}'${t(
+                                ' are not valid options',
+                              )}`,
+                            ]
+                          : [
+                              `'${invalidOptions}'${t(
+                                ' is not a valid option',
+                              )}`,
+                            ]
+                        : [];
+                    return newState;
+                  },
+                  visibility: ({ controls }) =>
+                    // TODO properly emsure is Bool
+                    Boolean(controls?.emitFilter?.value),
+                  canCopy: true,
                 },
               }
             : null,
