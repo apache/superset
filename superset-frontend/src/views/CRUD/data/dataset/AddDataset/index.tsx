@@ -132,7 +132,12 @@ export default function AddDataset() {
   );
 
   const FooterComponent = () => (
-    <Footer url={prevUrl} datasetObject={dataset} hasColumns={hasColumns} />
+    <Footer
+      url={prevUrl}
+      datasetObject={dataset}
+      hasColumns={hasColumns}
+      linkedDatasets={linkedDatasetNames}
+    />
   );
 
   return (

@@ -37,6 +37,7 @@ interface FooterProps {
   datasetObject?: Partial<DatasetObject> | null;
   onDatasetAdd?: (dataset: DatasetObject) => void;
   hasColumns?: boolean;
+  linkedDatasets?: (string | null | undefined)[] | undefined;
 }
 
 const INPUT_FIELDS = ['db', 'schema', 'table_name'];
@@ -52,6 +53,7 @@ function Footer({
   datasetObject,
   addDangerToast,
   hasColumns = false,
+  linkedDatasets,
 }: FooterProps) {
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
@@ -113,7 +115,11 @@ function Footer({
       <Button onClick={cancelButtonOnClick}>Cancel</Button>
       <Button
         buttonStyle="primary"
-        disabled={!datasetObject?.table_name || !hasColumns}
+        disabled={
+          !datasetObject?.table_name ||
+          !hasColumns ||
+          linkedDatasets?.includes(datasetObject?.table_name)
+        }
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={onSave}
       >

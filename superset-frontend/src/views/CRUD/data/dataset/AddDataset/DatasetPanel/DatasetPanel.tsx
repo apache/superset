@@ -19,10 +19,12 @@
 import React from 'react';
 import { supersetTheme, t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
+import Alert from 'src/components/Alert';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import { alphabeticalSort } from 'src/components/Table/sorters';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
+import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
 import { ITableColumn } from './types';
 import MessageContent from './MessageContent';
 
@@ -54,8 +56,10 @@ const MARGIN_MULTIPLIER = 3;
 
 const StyledHeader = styled.div<StyledHeaderProps>`
   position: ${(props: StyledHeaderProps) => props.position};
-  margin: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
-  margin-top: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
+  margin: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px
+    ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px
+    ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px
+    ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
   font-size: ${({ theme }) => theme.gridUnit * 6}px;
   font-weight: ${({ theme }) => theme.typography.weights.medium};
   padding-bottom: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
@@ -74,7 +78,7 @@ const StyledHeader = styled.div<StyledHeaderProps>`
 `;
 
 const StyledTitle = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin-left: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
   margin-bottom: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
   font-weight: ${({ theme }) => theme.typography.weights.bold};
 `;
@@ -111,6 +115,7 @@ const StyledLoader = styled.div`
 const TableContainer = styled.div`
   position: relative;
   margin: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin-left: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
   overflow: scroll;
   height: calc(100% - ${({ theme }) => theme.gridUnit * 36}px);
 `;
@@ -121,6 +126,19 @@ const StyledTable = styled(Table)`
   top: 0;
   bottom: 0;
   right: 0;
+`;
+
+const StyledAlert = styled(Alert)`
+  border: 1px solid ${supersetTheme.colors.info.base};
+  padding: ${supersetTheme.gridUnit * 4}px;
+  margin: ${supersetTheme.gridUnit * 6}px ${supersetTheme.gridUnit * 6}px
+    ${supersetTheme.gridUnit * 8}px;
+  .view-dataset-button {
+    position: absolute;
+    top: ${supersetTheme.gridUnit * 4}px;
+    right: ${supersetTheme.gridUnit * 4}px;
+    font-weight: ${supersetTheme.typography.weights.normal};
+  }
 `;
 
 export const REFRESHING = t('Refreshing columns');
@@ -168,15 +186,44 @@ export interface IDatasetPanelProps {
    * Boolean indicating if the component is in a loading state
    */
   loading: boolean;
+  linkedDatasets?: DatasetObject[] | undefined;
 }
+
+const renderExistingDatasetAlert = (linkedDataset: any) => (
+  <StyledAlert
+    closable={false}
+    type="info"
+    showIcon
+    message={t('This table already has a dataset')}
+    description={
+      <>
+        {t(
+          'You can only associate one dataset with one table. This table already has a dataset associated with it in Preset.\n',
+        )}
+        <span
+          role="button"
+          onClick={() => {
+            window.location.href = linkedDataset.explore_url;
+          }}
+          tabIndex={0}
+          className="view-dataset-button"
+        >
+          {t('View Dataset')}
+        </span>
+      </>
+    }
+  />
+);
 
 const DatasetPanel = ({
   tableName,
   columnList,
   loading,
   hasError,
+  linkedDatasets,
 }: IDatasetPanelProps) => {
   const hasColumns = columnList?.length > 0 ?? false;
+  const linkedDatasetNames = linkedDatasets?.map(dataset => dataset.table_name);
 
   let component;
   if (loading) {
@@ -217,17 +264,23 @@ const DatasetPanel = ({
   return (
     <>
       {tableName && (
-        <StyledHeader
-          position={
-            !loading && hasColumns ? EPosition.RELATIVE : EPosition.ABSOLUTE
-          }
-          title={tableName || ''}
-        >
-          {tableName && (
-            <Icons.Table iconColor={supersetTheme.colors.grayscale.base} />
-          )}
-          {tableName}
-        </StyledHeader>
+        <>
+          {linkedDatasetNames?.includes(tableName) &&
+            renderExistingDatasetAlert(
+              linkedDatasets?.find(dataset => dataset.table_name === tableName),
+            )}
+          <StyledHeader
+            position={
+              !loading && hasColumns ? EPosition.RELATIVE : EPosition.ABSOLUTE
+            }
+            title={tableName || ''}
+          >
+            {tableName && (
+              <Icons.Table iconColor={supersetTheme.colors.grayscale.base} />
+            )}
+            {tableName}
+          </StyledHeader>
+        </>
       )}
       {component}
     </>
