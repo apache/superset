@@ -92,7 +92,7 @@ test('should render the loading icon', async () => {
   expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
 });
 
-it('should render Add/Edit Filters', async () => {
+test('should render Add/Edit Filters', async () => {
   await renderWrapper();
   expect(screen.getByText('Add/Edit Filters')).toBeInTheDocument();
 });
