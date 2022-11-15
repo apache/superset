@@ -58,7 +58,7 @@ test('should not render the empty message', async () => {
   ).not.toBeInTheDocument();
 });
 
-it('should render the empty message', async () => {
+test('should render the empty message', async () => {
   await renderWrapper();
   expect(
     screen.getByText('No filters are currently added to this dashboard.'),
