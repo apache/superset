@@ -65,7 +65,7 @@ test('should render the empty message', async () => {
   ).toBeInTheDocument();
 });
 
-it('should render the gear icon', async () => {
+test('should render the gear icon', async () => {
   await renderWrapper();
   expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
 });
