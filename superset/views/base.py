@@ -643,7 +643,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
             return query
-        database_perms = security_manager.user_view_menu_names("database_access")
+        # database_perms = security_manager.user_view_menu_names("database_access")
         datasource_perms = security_manager.user_view_menu_names("datasource_access")
         schema_perms = security_manager.user_view_menu_names("schema_access")
         owner_ids_query = (
@@ -651,7 +651,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .join(models.SqlaTable.owners)
             .filter(security_manager.user_model.id == get_user_id())
         )
-        database_ids = self.get_database_ids(database_perms)
+        # database_ids = self.get_database_ids(database_perms)
         return query.filter(
             or_(
                 self.model.perm.in_(datasource_perms),
@@ -661,16 +661,16 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
-    def get_database_ids(self, database_permissions: set) -> List[str]:
-        db_ids = []
-        if database_permissions is not None and len(database_permissions) > 0:
-            database_list = list(database_permissions)
-            for i in range(len(database_list)):
-                database_roles = database_list[i]
-                startIndex = database_roles.index("(id:") + 4
-                endIndex = database_roles.index(")", startIndex)
-                db_ids.append(database_roles[startIndex:endIndex])
-        return db_ids
+    # def get_database_ids(self, database_permissions: set) -> List[str]:
+    #     db_ids = []
+    #     if database_permissions is not None and len(database_permissions) > 0:
+    #         database_list = list(database_permissions)
+    #         for i in range(len(database_list)):
+    #             database_roles = database_list[i]
+    #             startIndex = database_roles.index("(id:") + 4
+    #             endIndex = database_roles.index(")", startIndex)
+    #             db_ids.append(database_roles[startIndex:endIndex])
+    #     return db_ids
 
 
 class CsvResponse(Response):
