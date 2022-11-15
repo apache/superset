@@ -44,7 +44,7 @@ test('should render', async () => {
   expect(container).toBeInTheDocument();
 });
 
-it('should not render the empty message', async () => {
+test('should not render the empty message', async () => {
   await renderWrapper({
     filterValues: [
       {
