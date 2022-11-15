@@ -16,11 +16,10 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
-from flask.ctx import AppContext
 from pytest import raises
 
 
-def test_odbc_impersonation(app_context: AppContext) -> None:
+def test_odbc_impersonation() -> None:
     """
     Test ``get_url_for_impersonation`` method when driver == odbc.
 
@@ -36,7 +35,7 @@ def test_odbc_impersonation(app_context: AppContext) -> None:
     assert url.query["DelegationUID"] == username
 
 
-def test_jdbc_impersonation(app_context: AppContext) -> None:
+def test_jdbc_impersonation() -> None:
     """
     Test ``get_url_for_impersonation`` method when driver == jdbc.
 
@@ -52,7 +51,7 @@ def test_jdbc_impersonation(app_context: AppContext) -> None:
     assert url.query["impersonation_target"] == username
 
 
-def test_sadrill_impersonation(app_context: AppContext) -> None:
+def test_sadrill_impersonation() -> None:
     """
     Test ``get_url_for_impersonation`` method when driver == sadrill.
 
@@ -68,7 +67,7 @@ def test_sadrill_impersonation(app_context: AppContext) -> None:
     assert url.query["impersonation_target"] == username
 
 
-def test_invalid_impersonation(app_context: AppContext) -> None:
+def test_invalid_impersonation() -> None:
     """
     Test ``get_url_for_impersonation`` method when driver == foobar.
 

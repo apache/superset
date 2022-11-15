@@ -49,7 +49,7 @@ const allColumns: typeof sharedControls.groupby = {
     options: datasource?.columns || [],
     queryMode: getQueryMode(controls),
     externalValidationErrors:
-      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
+      isRawMode({ controls }) && ensureIsArray(controlState?.value).length === 0
         ? [t('must have a value')]
         : [],
   }),
@@ -74,7 +74,7 @@ const dndAllColumns: typeof sharedControls.groupby = {
     }
     newState.queryMode = getQueryMode(controls);
     newState.externalValidationErrors =
-      isRawMode({ controls }) && ensureIsArray(controlState.value).length === 0
+      isRawMode({ controls }) && ensureIsArray(controlState?.value).length === 0
         ? [t('must have a value')]
         : [];
     return newState;

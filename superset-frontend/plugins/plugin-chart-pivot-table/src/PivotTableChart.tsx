@@ -28,6 +28,7 @@ import {
   styled,
   useTheme,
   isAdhocColumn,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
 import {
@@ -142,6 +143,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     metricsLayout,
     metricColorFormatters,
     dateFormatters,
+    onContextMenu,
   } = props;
 
   const theme = useTheme();
@@ -360,6 +362,50 @@ export default function PivotTableChart(props: PivotTableProps) {
     [colSubtotalPosition, rowSubtotalPosition],
   );
 
+  const handleContextMenu = useCallback(
+    (
+      e: MouseEvent,
+      colKey: (string | number | boolean)[] | undefined,
+      rowKey: (string | number | boolean)[] | undefined,
+    ) => {
+      if (onContextMenu) {
+        e.preventDefault();
+        e.stopPropagation();
+        const filters: BinaryQueryObjectFilterClause[] = [];
+        if (colKey && colKey.length > 1) {
+          colKey.forEach((val, i) => {
+            const col = cols[i];
+            const formattedVal =
+              dateFormatters[col]?.(val as number) || String(val);
+            if (i > 0) {
+              filters.push({
+                col,
+                op: '==',
+                val,
+                formattedVal,
+              });
+            }
+          });
+        }
+        if (rowKey) {
+          rowKey.forEach((val, i) => {
+            const col = rows[i];
+            const formattedVal =
+              dateFormatters[col]?.(val as number) || String(val);
+            filters.push({
+              col,
+              op: '==',
+              val,
+              formattedVal,
+            });
+          });
+        }
+        onContextMenu(e.clientX, e.clientY, filters);
+      }
+    },
+    [cols, dateFormatters, onContextMenu, rows],
+  );
+
   return (
     <Styles height={height} width={width} margin={theme.gridUnit * 4}>
       <PivotTableWrapper>
@@ -378,6 +424,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           tableOptions={tableOptions}
           subtotalOptions={subtotalOptions}
           namesMapping={verboseMap}
+          onContextMenu={handleContextMenu}
         />
       </PivotTableWrapper>
     </Styles>

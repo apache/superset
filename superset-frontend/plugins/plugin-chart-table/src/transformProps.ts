@@ -204,7 +204,11 @@ const transformProps = (
     queriesData = [],
     filterState,
     ownState: serverPaginationData,
-    hooks: { onAddFilter: onChangeFilter, setDataMask = () => {} },
+    hooks: {
+      onAddFilter: onChangeFilter,
+      setDataMask = () => {},
+      onContextMenu,
+    },
   } = chartProps;
 
   const {
@@ -274,6 +278,7 @@ const transformProps = (
     columnColorFormatters,
     timeGrain,
     allowRearrangeColumns,
+    onContextMenu,
   };
 };
 

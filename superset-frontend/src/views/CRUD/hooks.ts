@@ -641,7 +641,7 @@ export const testDatabaseConnection = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   SupersetClient.post({
-    endpoint: 'api/v1/database/test_connection',
+    endpoint: 'api/v1/database/test_connection/',
     body: JSON.stringify(connection),
     headers: { 'Content-Type': 'application/json' },
   }).then(
@@ -668,6 +668,21 @@ export function useAvailableDatabases() {
   return [availableDbs, getAvailable] as const;
 }
 
+const transformDB = (db: Partial<DatabaseObject> | null) => {
+  if (db && Array.isArray(db?.catalog)) {
+    return {
+      ...db,
+      catalog: Object.assign(
+        {},
+        ...db.catalog.map((x: { name: string; value: string }) => ({
+          [x.name]: x.value,
+        })),
+      ),
+    };
+  }
+  return db;
+};
+
 export function useDatabaseValidation() {
   const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
     null,
@@ -675,8 +690,8 @@ export function useDatabaseValidation() {
   const getValidation = useCallback(
     (database: Partial<DatabaseObject> | null, onCreate = false) =>
       SupersetClient.post({
-        endpoint: '/api/v1/database/validate_parameters',
-        body: JSON.stringify(database),
+        endpoint: '/api/v1/database/validate_parameters/',
+        body: JSON.stringify(transformDB(database)),
         headers: { 'Content-Type': 'application/json' },
       })
         .then(() => {

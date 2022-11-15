@@ -154,103 +154,148 @@ describe('rebaseForecastDatum', () => {
   });
 });
 
-describe('extractForecastValuesFromTooltipParams', () => {
-  it('should extract the proper data from tooltip params', () => {
-    expect(
-      extractForecastValuesFromTooltipParams([
-        {
-          marker: '<img>',
-          seriesId: 'abc',
-          value: [new Date(0), 10],
-        },
-        {
-          marker: '<img>',
-          seriesId: 'abc__yhat',
-          value: [new Date(0), 1],
-        },
-        {
-          marker: '<img>',
-          seriesId: 'abc__yhat_lower',
-          value: [new Date(0), 5],
-        },
-        {
-          marker: '<img>',
-          seriesId: 'abc__yhat_upper',
-          value: [new Date(0), 6],
-        },
-        {
-          marker: '<img>',
-          seriesId: 'qwerty',
-          value: [new Date(0), 2],
-        },
-      ]),
-    ).toEqual({
-      abc: {
+test('extractForecastValuesFromTooltipParams should extract the proper data from tooltip params', () => {
+  expect(
+    extractForecastValuesFromTooltipParams([
+      {
         marker: '<img>',
-        observation: 10,
-        forecastTrend: 1,
-        forecastLower: 5,
-        forecastUpper: 6,
+        seriesId: 'abc',
+        value: [new Date(0), 10],
       },
-      qwerty: {
+      {
         marker: '<img>',
-        observation: 2,
+        seriesId: 'abc__yhat',
+        value: [new Date(0), 1],
       },
-    });
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat_lower',
+        value: [new Date(0), 5],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'abc__yhat_upper',
+        value: [new Date(0), 6],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'qwerty',
+        value: [new Date(0), 2],
+      },
+    ]),
+  ).toEqual({
+    abc: {
+      marker: '<img>',
+      observation: 10,
+      forecastTrend: 1,
+      forecastLower: 5,
+      forecastUpper: 6,
+    },
+    qwerty: {
+      marker: '<img>',
+      observation: 2,
+    },
+  });
+});
+
+test('extractForecastValuesFromTooltipParams should extract valid values', () => {
+  expect(
+    extractForecastValuesFromTooltipParams([
+      {
+        marker: '<img>',
+        seriesId: 'foo',
+        value: [0, 10],
+      },
+      {
+        marker: '<img>',
+        seriesId: 'bar',
+        value: [100, 0],
+      },
+    ]),
+  ).toEqual({
+    foo: {
+      marker: '<img>',
+      observation: 10,
+    },
+    bar: {
+      marker: '<img>',
+      observation: 0,
+    },
   });
 });
 
 const formatter = getNumberFormatter(NumberFormats.INTEGER);
 
-describe('formatForecastTooltipSeries', () => {
-  it('should generate a proper series tooltip', () => {
-    expect(
-      formatForecastTooltipSeries({
-        seriesName: 'abc',
-        marker: '<img>',
-        observation: 10.1,
-        formatter,
-      }),
-    ).toEqual('<img>abc: 10');
-    expect(
-      formatForecastTooltipSeries({
-        seriesName: 'qwerty',
-        marker: '<img>',
-        observation: 10.1,
-        forecastTrend: 20.1,
-        forecastLower: 5.1,
-        forecastUpper: 7.1,
-        formatter,
-      }),
-    ).toEqual('<img>qwerty: 10, ŷ = 20 (5, 12)');
-    expect(
-      formatForecastTooltipSeries({
-        seriesName: 'qwerty',
-        marker: '<img>',
-        forecastTrend: 20,
-        forecastLower: 5,
-        forecastUpper: 7,
-        formatter,
-      }),
-    ).toEqual('<img>qwerty: ŷ = 20 (5, 12)');
-    expect(
-      formatForecastTooltipSeries({
-        seriesName: 'qwerty',
-        marker: '<img>',
-        observation: 10.1,
-        forecastLower: 6,
-        forecastUpper: 7,
-        formatter,
-      }),
-    ).toEqual('<img>qwerty: 10 (6, 13)');
-    expect(
-      formatForecastTooltipSeries({
-        seriesName: 'qwerty',
-        marker: '<img>',
-        forecastLower: 7,
-        forecastUpper: 8,
-        formatter,
-      }),
-    ).toEqual('<img>qwerty: (7, 15)');
-  });
+test('formatForecastTooltipSeries should apply format to value', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      observation: 10.1,
+      formatter,
+    }),
+  ).toEqual('<img>abc: 10');
+});
+
+test('formatForecastTooltipSeries should show falsy value', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'abc',
+      marker: '<img>',
+      observation: 0,
+      formatter,
+    }),
+  ).toEqual('<img>abc: 0');
+});
+
+test('formatForecastTooltipSeries should format full forecast', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10.1,
+      forecastTrend: 20.1,
+      forecastLower: 5.1,
+      forecastUpper: 7.1,
+      formatter,
+    }),
+  ).toEqual('<img>qwerty: 10, ŷ = 20 (5, 12)');
+});
+
+test('formatForecastTooltipSeries should format forecast without observation', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      forecastTrend: 20,
+      forecastLower: 5,
+      forecastUpper: 7,
+      formatter,
+    }),
+  ).toEqual('<img>qwerty: ŷ = 20 (5, 12)');
+});
+
+test('formatForecastTooltipSeries should format forecast without point estimate', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      observation: 10.1,
+      forecastLower: 6,
+      forecastUpper: 7,
+      formatter,
+    }),
+  ).toEqual('<img>qwerty: 10 (6, 13)');
+});
+
+test('formatForecastTooltipSeries should format forecast with only confidence band', () => {
+  expect(
+    formatForecastTooltipSeries({
+      seriesName: 'qwerty',
+      marker: '<img>',
+      forecastLower: 7,
+      forecastUpper: 8,
+      formatter,
+    }),
+  ).toEqual('<img>qwerty: (7, 15)');
 });

@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import JSONbig from 'json-bigint';
+import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
 
@@ -25,7 +27,7 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
 ) {
   type ReturnType = T extends 'raw' | null
     ? Response
-    : T extends 'json' | undefined
+    : T extends 'json' | 'json-bigint' | undefined
     ? JsonResponse
     : T extends 'text'
     ? TextResponse
@@ -46,6 +48,19 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     };
     return result as ReturnType;
   }
+  if (parseMethod === 'json-bigint') {
+    const rawData = await response.text();
+    const json = JSONbig.parse(rawData);
+    const result: JsonResponse = {
+      response,
+      // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
+      // TODO: clean up after json-bigint>1.0.1 is released
+      json: cloneDeepWith(json, (value: any) =>
+        value?.isInteger?.() === false ? Number(value) : undefined,
+      ),
+    };
+    return result as ReturnType;
+  }
   // by default treat this as json
   if (parseMethod === undefined || parseMethod === 'json') {
     const json = await response.json();
@@ -56,6 +71,6 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
     return result as ReturnType;
   }
   throw new Error(
-    `Expected parseResponse=json|text|raw|null, got '${parseMethod}'.`,
+    `Expected parseResponse=json|json-bigint|text|raw|null, got '${parseMethod}'.`,
   );
 }

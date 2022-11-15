@@ -21,13 +21,12 @@ Revises: 06e1e70058c7
 Create Date: 2022-07-19 15:16:06.091961
 
 """
+from alembic import op
+from sqlalchemy.dialects.mysql.base import MySQLDialect
 
 # revision identifiers, used by Alembic.
 revision = "a39867932713"
 down_revision = "06e1e70058c7"
-
-from alembic import op
-from sqlalchemy.dialects.mysql.base import MySQLDialect
 
 
 def upgrade():

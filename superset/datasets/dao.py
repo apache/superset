@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import joinedload
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.base import BaseDAO
@@ -34,6 +36,26 @@ logger = logging.getLogger(__name__)
 class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     model_cls = SqlaTable
     base_filter = DatasourceFilter
+
+    @classmethod
+    def find_by_ids(cls, model_ids: Union[List[str], List[int]]) -> List[SqlaTable]:
+        """
+        Find a List of models by a list of ids, if defined applies `base_filter`
+        """
+        id_col = getattr(SqlaTable, cls.id_column_name, None)
+        if id_col is None:
+            return []
+
+        # the joinedload option ensures that the database is
+        # available in the session later and not lazy loaded
+        query = (
+            db.session.query(SqlaTable)
+            .options(joinedload(SqlaTable.database))
+            .filter(id_col.in_(model_ids))
+        )
+        data_model = SQLAInterface(SqlaTable, db.session)
+        query = DatasourceFilter(cls.id_column_name, data_model).apply(query, None)
+        return query.all()
 
     @staticmethod
     def get_database_by_id(database_id: int) -> Optional[Database]:
@@ -147,17 +169,25 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
 
     @classmethod
     def update(
-        cls, model: SqlaTable, properties: Dict[str, Any], commit: bool = True
+        cls,
+        model: SqlaTable,
+        properties: Dict[str, Any],
+        commit: bool = True,
     ) -> Optional[SqlaTable]:
         """
         Updates a Dataset model on the metadata DB
         """
 
         if "columns" in properties:
-            properties["columns"] = cls.update_columns(model, properties["columns"])
+            cls.update_columns(
+                model,
+                properties.pop("columns"),
+                commit=commit,
+                override_columns=bool(properties.get("override_columns")),
+            )
 
         if "metrics" in properties:
-            properties["metrics"] = cls.update_metrics(model, properties["metrics"])
+            cls.update_metrics(model, properties.pop("metrics"), commit=commit)
 
         return super().update(model, properties, commit=commit)
 
@@ -166,7 +196,9 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         cls,
         model: SqlaTable,
         property_columns: List[Dict[str, Any]],
-    ) -> List[TableColumn]:
+        commit: bool = True,
+        override_columns: bool = False,
+    ) -> None:
         """
         Creates/updates and/or deletes a list of columns, based on a
         list of Dict.
@@ -178,33 +210,49 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
 
         column_by_id = {column.id: column for column in model.columns}
-        columns = []
+        seen = set()
+        original_cols = {obj.id for obj in model.columns}
 
-        for properties in property_columns:
-            if "id" in properties:
-                columns.append(
+        if override_columns:
+            for id_ in original_cols:
+                DatasetDAO.delete_column(column_by_id[id_], commit=False)
+
+            db.session.flush()
+
+            for properties in property_columns:
+                DatasetDAO.create_column(
+                    {**properties, "table_id": model.id},
+                    commit=False,
+                )
+        else:
+            for properties in property_columns:
+                if "id" in properties:
+                    seen.add(properties["id"])
+
                     DatasetDAO.update_column(
                         column_by_id[properties["id"]],
                         properties,
                         commit=False,
                     )
-                )
-            else:
+                else:
+                    DatasetDAO.create_column(
+                        {**properties, "table_id": model.id},
+                        commit=False,
+                    )
 
-                # Note for new columns the primary key is undefined sans a commit/flush.
-                columns.append(DatasetDAO.create_column(properties, commit=False))
+            for id_ in {obj.id for obj in model.columns} - seen:
+                DatasetDAO.delete_column(column_by_id[id_], commit=False)
 
-        for id_ in {obj.id for obj in model.columns} - {obj.id for obj in columns}:
-            DatasetDAO.delete_column(column_by_id[id_], commit=False)
-
-        return columns
+        if commit:
+            db.session.commit()
 
     @classmethod
     def update_metrics(
         cls,
         model: SqlaTable,
         property_metrics: List[Dict[str, Any]],
-    ) -> List[SqlMetric]:
+        commit: bool = True,
+    ) -> None:
         """
         Creates/updates and/or deletes a list of metrics, based on a
         list of Dict.
@@ -216,26 +264,28 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
 
         metric_by_id = {metric.id: metric for metric in model.metrics}
-        metrics = []
+        seen = set()
 
         for properties in property_metrics:
             if "id" in properties:
-                metrics.append(
-                    DatasetDAO.update_metric(
-                        metric_by_id[properties["id"]],
-                        properties,
-                        commit=False,
-                    )
+                seen.add(properties["id"])
+
+                DatasetDAO.update_metric(
+                    metric_by_id[properties["id"]],
+                    properties,
+                    commit=False,
                 )
             else:
+                DatasetDAO.create_metric(
+                    {**properties, "table_id": model.id},
+                    commit=False,
+                )
 
-                # Note for new metrics the primary key is undefined sans a commit/flush.
-                metrics.append(DatasetDAO.create_metric(properties, commit=False))
-
-        for id_ in {obj.id for obj in model.metrics} - {obj.id for obj in metrics}:
+        for id_ in {obj.id for obj in model.metrics} - seen:
             DatasetDAO.delete_column(metric_by_id[id_], commit=False)
 
-        return metrics
+        if commit:
+            db.session.commit()
 
     @classmethod
     def find_dataset_column(

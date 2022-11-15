@@ -62,7 +62,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
-from superset.extensions import async_query_manager
+from superset.extensions import async_query_manager, cache_manager
 from superset.models import core as models
 from superset.models.annotations import Annotation, AnnotationLayer
 from superset.models.dashboard import Dashboard
@@ -156,7 +156,7 @@ class TestCore(SupersetTestCase):
         example_db = superset.utils.database.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
         self.login(username="gamma")
-        uri = f"superset/tables/{example_db.id}/{schema_name}/undefined/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -185,7 +185,7 @@ class TestCore(SupersetTestCase):
 
         example_db = utils.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
@@ -197,7 +197,6 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_superset_tables_not_allowed_with_out_permissions(self):
         session = db.session
-        table_name = "energy_usage"
         role_name = "dummy_role_no_table_access"
         self.logout()
         self.login(username="gamma")
@@ -210,7 +209,7 @@ class TestCore(SupersetTestCase):
 
         example_db = utils.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -219,38 +218,18 @@ class TestCore(SupersetTestCase):
         gamma_user.roles.remove(security_manager.find_role(role_name))
         session.commit()
 
-    def test_get_superset_tables_substr(self):
-        example_db = superset.utils.database.get_example_database()
-        if example_db.backend in {"presto", "hive", "sqlite"}:
-            # TODO: change table to the real table that is in examples.
-            return
+    def test_get_superset_tables_database_not_found(self):
         self.login(username="admin")
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/ab_role/"
-        rv = self.client.get(uri)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
-
-        expected_response = {
-            "options": [
-                {
-                    "label": "ab_role",
-                    "schema": schema_name,
-                    "title": "ab_role",
-                    "type": "table",
-                    "value": "ab_role",
-                    "extra": None,
-                }
-            ],
-            "tableLength": 1,
-        }
-        self.assertEqual(response, expected_response)
-
-    def test_get_superset_tables_not_found(self):
-        self.login(username="admin")
-        uri = f"superset/tables/invalid/public/undefined/"
+        uri = f"superset/tables/invalid/public/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
+
+    def test_get_superset_tables_schema_undefined(self):
+        example_db = superset.utils.database.get_example_database()
+        self.login(username="gamma")
+        uri = f"superset/tables/{example_db.id}/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 422)
 
     def test_annotation_json_endpoint(self):
         # Set up an annotation layer and annotation
@@ -763,6 +742,52 @@ class TestCore(SupersetTestCase):
             f"/superset/extra_table_metadata/{example_db.id}/birth_names/{schema}/"
         )
 
+    def test_required_params_in_sql_json(self):
+        self.login()
+        client_id = "{}".format(random.getrandbits(64))[:10]
+
+        data = {"client_id": client_id}
+        rv = self.client.post(
+            "/superset/sql_json/",
+            json=data,
+        )
+        failed_resp = {
+            "sql": ["Missing data for required field."],
+            "database_id": ["Missing data for required field."],
+        }
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+        data = {"sql": "SELECT 1", "client_id": client_id}
+        rv = self.client.post(
+            "/superset/sql_json/",
+            json=data,
+        )
+        failed_resp = {"database_id": ["Missing data for required field."]}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+        data = {"database_id": 1, "client_id": client_id}
+        rv = self.client.post(
+            "/superset/sql_json/",
+            json=data,
+        )
+        failed_resp = {"sql": ["Missing data for required field."]}
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertDictEqual(resp_data, failed_resp)
+        self.assertEqual(rv.status_code, 400)
+
+        data = {"sql": "SELECT 1", "database_id": 1, "client_id": client_id}
+        rv = self.client.post(
+            "/superset/sql_json/",
+            json=data,
+        )
+        resp_data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(resp_data.get("status"), "success")
+        self.assertEqual(rv.status_code, 200)
+
     def test_templated_sql_json(self):
         if superset.utils.database.get_example_database().backend == "presto":
             # TODO: make it work for presto
@@ -847,6 +872,18 @@ class TestCore(SupersetTestCase):
         for endpoint in self._get_user_activity_endpoints(username):
             data = self.get_json_resp(endpoint)
             self.assertNotIn("message", data)
+
+    def test_user_profile_optional_access(self):
+        self.login(username="gamma")
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 200)
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 403)
+
+        # Restore config
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_user_activity_access(self, username="gamma"):
@@ -1397,6 +1434,8 @@ class TestCore(SupersetTestCase):
         """
         Functions in feature flags don't break bootstrap data serialization.
         """
+        # feature flags are cached
+        cache_manager.cache.clear()
         self.login()
 
         encoded = json.dumps(
@@ -1467,6 +1506,38 @@ class TestCore(SupersetTestCase):
         # associated with any tabs
         payload = views.Superset._get_sqllab_tabs(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
+
+    @mock.patch.dict(
+        "superset.extensions.feature_flag_manager._feature_flags",
+        {"SQLLAB_BACKEND_PERSISTENCE": True},
+        clear=True,
+    )
+    def test_tabstate_with_name(self):
+        """
+        The tabstateview endpoint GET should be able to take name or title
+        for backward compatibility
+        """
+        username = "admin"
+        self.login(username)
+
+        # create a tab
+        data = {
+            "queryEditor": json.dumps(
+                {
+                    "name": "Untitled Query foo",
+                    "dbId": 1,
+                    "schema": None,
+                    "autorun": False,
+                    "sql": "SELECT ...",
+                    "queryLimit": 1000,
+                }
+            )
+        }
+        resp = self.get_json_resp("/tabstateview/", data=data)
+        tab_state_id = resp["id"]
+        payload = self.get_json_resp(f"/tabstateview/{tab_state_id}")
+
+        self.assertEqual(payload["label"], "Untitled Query foo")
 
     def test_virtual_table_explore_visibility(self):
         # test that default visibility it set to True
@@ -1622,6 +1693,20 @@ class TestCore(SupersetTestCase):
         )
 
         assert rv.status_code == 422
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch("superset.explore.form_data.commands.create.CreateFormDataCommand.run")
+    def test_explore_redirect(self, mock_command: mock.Mock):
+        self.login(username="admin")
+        random_key = "random_key"
+        mock_command.return_value = random_key
+        slice_name = f"Energy Sankey"
+        slice_id = self.get_slice(slice_name, db.session).id
+        form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
+        rv = self.client.get(
+            f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
+        )
+        self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
 
 
 if __name__ == "__main__":

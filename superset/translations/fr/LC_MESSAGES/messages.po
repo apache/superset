@@ -676,7 +676,7 @@ msgstr "Intervalle de temps courant"
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:49
 #, fuzzy
 msgid "Adaptive formatting"
-msgstr "Format Datetime"
+msgstr "Formatage adapté"
 
 #: superset-frontend/src/components/ReportModal/index.tsx:267
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:133
@@ -928,7 +928,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:84
 #, fuzzy
 msgid "After"
-msgstr "date"
+msgstr "Après"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:45
 #, fuzzy
@@ -2035,7 +2035,7 @@ msgstr "Faites attention."
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:76
 #, fuzzy
 msgid "Before"
-msgstr "Forcer à rafraîchir"
+msgstr "Avant"
 
 #: superset-frontend/plugins/legacy-preset-chart-big-number/src/BigNumberTotal/index.ts:38
 #: superset/viz.py:1254
@@ -2500,7 +2500,7 @@ msgstr "Détails de certification"
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:504
 #, fuzzy
 msgid "Certified"
-msgstr "Certifié par"
+msgstr "Certifié"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:259
 msgid "Certified By"
@@ -3750,7 +3750,7 @@ msgstr "Actif"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:33
 #, fuzzy
 msgid "Custom"
-msgstr "Personnaliser"
+msgstr "Personnalisée"
 
 #: superset/views/dynamic_plugins.py:59
 msgid "Custom Plugin"
@@ -4241,7 +4241,7 @@ msgstr "Filtre de date"
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:216
 #, fuzzy
 msgid "Date format"
-msgstr "Format Datetime"
+msgstr "Format Date"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:235
 msgid "Date/Time"
@@ -4270,7 +4270,7 @@ msgstr "Jour"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:66
 #, fuzzy, python-format
 msgid "Days %s"
-msgstr "A exécuté %s"
+msgstr "Jours %s"
 
 #: superset/connectors/sqla/models.py:1593
 msgid "Db engine did not return all queried columns"
@@ -4794,6 +4794,10 @@ msgstr "Distibution - histogramme"
 msgid "Divider"
 msgstr "Diviseur"
 
+#: superset-frontend/src/components/ListView/Filters/Select.tsx:77
+msgid "Filter"
+msgstr "Filtre"
+
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:86
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:211
 msgid "Do you want a donut or a pie?"
@@ -5023,11 +5027,11 @@ msgstr ""
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:41
 msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
-msgstr ""
+msgstr "Durée en ms (1.40008 => 1ms 400µs 80ns)"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/utils/D3Formatting.ts:40
 msgid "Duration in ms (66000 => 1m 6s)"
-msgstr ""
+msgstr "Durée en ms (66000 => 1m 6s)"
 
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:205
 #, python-format
@@ -5934,7 +5938,7 @@ msgstr "Filtrer par base de données"
 
 #: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:240
 msgid "Filter by status"
-msgstr "Filtrer par status"
+msgstr "Filtrer par statut"
 
 #: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:195
 msgid "Filter by user"
@@ -6035,7 +6039,7 @@ msgstr "Configuration et portée des filtres"
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:159
 #, python-format
 msgid "Filters out of scope (%d)"
-msgstr ""
+msgstr "Filtres hors du périmètre (%d)"
 
 #: superset/connectors/sqla/views.py:348
 msgid ""
@@ -6340,6 +6344,7 @@ msgid "Histogram"
 msgstr "Histogramme"
 
 #: superset/initialization/__init__.py:222
+#: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:278
 msgid "Home"
 msgstr "Accueil"
 
@@ -6371,7 +6376,7 @@ msgstr "Heure"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
 #, fuzzy, python-format
 msgid "Hours %s"
-msgstr "heure"
+msgstr "Heures %s"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:779
 msgid "Hours offset"
@@ -7706,7 +7711,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:93
 msgid "Midnight"
-msgstr ""
+msgstr "Minuit"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:88
 #: superset-frontend/src/explore/components/controls/BoundsControl.jsx:112
@@ -7783,7 +7788,7 @@ msgstr "Minute"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:64
 #, fuzzy, python-format
 msgid "Minutes %s"
-msgstr "minute"
+msgstr "Minutes %s"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:93
 #, fuzzy
@@ -7839,7 +7844,7 @@ msgstr "Mois"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:68
 #, fuzzy, python-format
 msgid "Months %s"
-msgstr "mois"
+msgstr "Mois %s"
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:238
 msgid "More dataset related options"
@@ -8080,7 +8085,7 @@ msgstr "Non"
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:74
 #, python-format
 msgid "No %(tableName)s yet"
-msgstr ""
+msgstr "Il n'y a pas encore de %(tableName)s"
 
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:376
 #, python-format
@@ -8133,7 +8138,7 @@ msgstr "Pas de données"
 
 #: superset-frontend/plugins/legacy-preset-chart-big-number/src/BigNumber/BigNumber.tsx:219
 msgid "No data after filtering or data is NULL for the latest time record"
-msgstr ""
+msgstr "Pas de données après filtrage ou données manquantes pour la période sélectionnée"
 
 #: superset/dashboards/commands/importers/v0.py:321
 msgid "No data in file"
@@ -8154,6 +8159,7 @@ msgstr "Aucun tableau de bord favori pour le moment, cliquer sur les étoiles !"
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:313
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:35
 #: superset-frontend/src/explore/controls.jsx:342
+#: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:320
 msgid "No filter"
 msgstr "Pas de filtre"
 
@@ -8279,7 +8285,7 @@ msgstr "Novembre"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:92
 #, fuzzy
 msgid "Now"
-msgstr "Ligne"
+msgstr "Maintenant"
 
 #: superset/datasets/filters.py:26
 msgid "Null or Empty"
@@ -9435,7 +9441,7 @@ msgstr "Trimestre"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:69
 #, fuzzy, python-format
 msgid "Quarters %s"
-msgstr "Trimestre"
+msgstr "Trimestres %s"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:32
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:26
@@ -9591,7 +9597,7 @@ msgstr "Spatial"
 #: superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx:318
 #, python-format
 msgid "Ran %s"
-msgstr "A exécuté %s"
+msgstr "A été exécuté %s"
 
 #: superset-frontend/plugins/legacy-plugin-chart-country-map/src/index.js:35
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/index.js:38
@@ -9810,7 +9816,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:91
 #, fuzzy
 msgid "Relative Date/Time"
-msgstr "Quantité relative"
+msgstr "Date/Heure Relative"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:157
 #: superset-frontend/src/explore/components/controls/DateFilterControl/components/CustomFrame.tsx:210
@@ -10260,6 +10266,14 @@ msgstr "Exécuter"
 msgid "Run a query to display results here"
 msgstr "Lancer la requête pour afficher les résultats ici"
 
+#: superset-frontend/src/explore/components/DataTablesPane/index.tsx:182
+msgid "Run a query to display results"
+msgstr "Lancer une requête pour afficher les résultats"
+
+#: superset-frontend/src/explore/components/DataTablesPane/index.tsx:181
+msgid "Run a query to display samples"
+msgstr "Lancer une requête pour afficher les exemples"
+
 #: superset-frontend/src/explore/components/ExploreAdditionalActionsMenu/index.jsx:101
 msgid "Run in SQL Lab"
 msgstr "Exécuter dans SQL Lab"
@@ -10677,7 +10691,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:63
 #, fuzzy, python-format
 msgid "Seconds %s"
-msgstr "30 secondes"
+msgstr "%s secondes"
 
 #: superset/views/database/mixins.py:197
 msgid "Secure Extra"
@@ -10701,7 +10715,7 @@ msgstr "Securité et accès"
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:157
 #, fuzzy, python-format
 msgid "See all %(tableName)s"
-msgstr "Explorer - %(table)s"
+msgstr "Explorer - %(tableName)s"
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:155
 msgid "See less"
@@ -11328,16 +11342,16 @@ msgstr "Filtres par métrique"
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1234
 #, fuzzy
 msgid "Single Value"
-msgstr "Valeur droite"
+msgstr "Valeur Unique"
 
 #: superset-frontend/src/filters/components/Range/controlPanel.ts:65
 #, fuzzy
 msgid "Single value"
-msgstr "Valeur droite"
+msgstr "Valeur unique"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1251
 msgid "Single value type"
-msgstr ""
+msgstr "Type de valeur unique"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:261
 msgid "Size of edge symbols"
@@ -11507,7 +11521,22 @@ msgstr "Trier par"
 #: superset-frontend/src/dashboard/components/SliceAdder.jsx:256
 #, fuzzy, python-format
 msgid "Sort by %s"
-msgstr "Trier par"
+msgstr "Trier par %s"
+
+#: superset-frontend/src/dashboard/components/SliceAdder.jsx:66
+#, fuzzy, python-format
+msgid "viz type"
+msgstr "type de visualisation"
+
+#: superset-frontend/src/dashboard/components/SliceAdder.jsx:65
+#, fuzzy, python-format
+msgid "name"
+msgstr "nom"
+
+#: superset-frontend/src/dashboard/components/SliceAdder.jsx:66
+#, fuzzy, python-format
+msgid "recent"
+msgstr "date"
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:39
 #: superset-frontend/plugins/legacy-plugin-chart-force-directed/src/controlPanel.ts:38
@@ -11588,7 +11617,7 @@ msgstr "Spatial"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:90
 #, fuzzy
 msgid "Specific Date/Time"
-msgstr "Retour au datetime spécifique."
+msgstr "Date/Heure Spécifique"
 
 #: superset/views/database/forms.py:127 superset/views/database/forms.py:286
 #: superset/views/database/forms.py:414
@@ -11698,7 +11727,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:302
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:492
 msgid "Status"
-msgstr "Status"
+msgstr "Statut"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:112
 #, fuzzy
@@ -13735,7 +13764,7 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:439
 msgid "Totals"
-msgstr ""
+msgstr "Totaux"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:820
 msgid "Track job"
@@ -14357,7 +14386,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/welcome/DashboardTable.tsx:219
 #: superset-frontend/src/views/CRUD/welcome/SavedQueries.tsx:296
 msgid "View All »"
-msgstr ""
+msgstr "Tout voir »"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:287
 msgid "View chart in Explore"
@@ -14395,7 +14424,7 @@ msgstr "Consultés"
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:124
 #, fuzzy, python-format
 msgid "Viewed %s"
-msgstr "Consultés"
+msgstr "Consultés %s"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:268
 #, fuzzy
@@ -14646,7 +14675,7 @@ msgstr "Semaine terminant le dimanche"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:67
 #, fuzzy, python-format
 msgid "Weeks %s"
-msgstr "semaine"
+msgstr "Semaines %s"
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:52
 #, python-format
@@ -15201,7 +15230,7 @@ msgstr "Année"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:70
 #, fuzzy, python-format
 msgid "Years %s"
-msgstr "année"
+msgstr "Année %s"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:443
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:537
@@ -15624,7 +15653,7 @@ msgstr "graphique"
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:26
 #, fuzzy
 msgid "charts"
-msgstr "graphique"
+msgstr "graphiques"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent/index.jsx:101
 msgid "choose WHERE or HAVING..."
@@ -15666,7 +15695,7 @@ msgstr "tableau de bord"
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:27
 #, fuzzy
 msgid "dashboards"
-msgstr "tableau de bord"
+msgstr "tableaux de bord"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:89
 #: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:471
@@ -15879,27 +15908,27 @@ msgstr "Label"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:39
 #, fuzzy
 msgid "last day"
-msgstr "Samedi"
+msgstr "hier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:41
 #, fuzzy
 msgid "last month"
-msgstr "mois"
+msgstr "le mois dernier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:42
 #, fuzzy
 msgid "last quarter"
-msgstr "Trimestre"
+msgstr "le trimestre dernier"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:40
 #, fuzzy
 msgid "last week"
-msgstr "semaine"
+msgstr "la semaine derniere"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:43
 #, fuzzy
 msgid "last year"
-msgstr "Cluster"
+msgstr "l'année dernière"
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:120
 msgid "latest partition:"
@@ -15991,15 +16020,15 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:53
 msgid "previous calendar month"
-msgstr ""
+msgstr "mois calendaire précédent"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:50
 msgid "previous calendar week"
-msgstr ""
+msgstr "semaine calendaire précédente"
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:56
 msgid "previous calendar year"
-msgstr ""
+msgstr "année calendaire précédente"
 
 #: superset-frontend/src/views/CRUD/dashboard/DashboardCard.tsx:153
 msgid "published"
@@ -16020,7 +16049,7 @@ msgstr "reboot"
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:28
 #, fuzzy
 msgid "recents"
-msgstr "Récents"
+msgstr "récents"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:43
 msgid "red"
@@ -16055,7 +16084,7 @@ msgstr "lignes récupérées"
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:29
 #, fuzzy
 msgid "saved queries"
-msgstr "Requêtes sauvegardées"
+msgstr "requêtes sauvegardées"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:124
 msgid "search.num_records"
@@ -16117,3 +16146,238 @@ msgstr "année"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 msgid "yellow"
 msgstr "jaune"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:104
+msgid "Add/Edit Filters"
+msgstr "Ajouter/Editer les filtres"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:109
+msgid "Add and edit filters"
+msgstr "Ajouter et modifier les filtres"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal.tsx:500
+msgid "Add filters and dividers"
+msgstr "Ajouter un filtre ou un diviseur"
+
+#: superset-frontend/src/views/components/MenuRight.tsx:105
+msgid "Connect database"
+msgstr "Connexion à la base de données"
+
+#: superset-frontend/src/views/components/MenuRight.tsx:105
+msgid "No %s yet"
+msgstr "Aucune %s"
+
+#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:394
+msgid "There are no charts added to this dashboard"
+msgstr "Il n'y a pas de graphiques ajouté dans ce tableau de bord"
+
+#: superset-frontend/src/dashboard/components/DashboardBuilder/DashboardBuilder.tsx:398
+msgid "Go to the edit mode to configure the dashboard and add charts"
+msgstr "Allez dans l'edition pour configurer le tableau de bord et ajouter des graphiques"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:276
+msgid "Filter Settings"
+msgstr "Paramètres des filtres"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:276
+msgid "Filter Configuration"
+msgstr "Configuration du filtre"
+
+#: superset-frontend/src/filters/components/Select/controlPanel.ts:104
+msgid "Select first filter value by default"
+msgstr "Selectionne la première valeur du filtre par défaut"
+
+#: superset-frontend/src/filters/components/GroupBy/controlPanel.ts:59
+#: superset-frontend/src/filters/components/Select/controlPanel.ts:77
+msgid "Can select multiple values"
+msgstr "Peut selectionner plusieurs valeurs"
+
+#: superset-frontend/src/filters/components/Select/controlPanel.ts:136
+msgid "Dynamically search all filter values"
+msgstr "Charge dynamiquement les valeurs du filtre"
+
+#: superset-frontend/src/filters/components/GroupBy/controlPanel.ts:72
+#: superset-frontend/src/filters/components/Range/controlPanel.ts:55
+#: superset-frontend/src/filters/components/Select/controlPanel.ts:90
+#: superset-frontend/src/filters/components/Time/controlPanel.ts:53
+#: superset-frontend/src/filters/components/TimeColumn/controlPanel.ts:33
+#: superset-frontend/src/filters/components/TimeGrain/controlPanel.ts:33
+msgid "Filter value is required"
+msgstr "La valeur du filtre est requise"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/index.tsx:388
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/index.tsx:428
+msgid "No filters are currently added"
+msgstr "Aucun filtre ajouté"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/index.tsx:392
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/index.tsx:432
+msgid "Click the button above to add a filter to the dashboard"
+msgstr "Pour ajouter un filtre, cliquez sur le bouton au dessus"
+
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:155
+msgid "Drag and drop components and charts to the dashboard"
+msgstr "Glissez/Déposez des composants et des graphiques sur le tableau de bord"
+
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:155
+msgid "You can create a new chart or use existing ones from the panel on the right"
+msgstr "Vous pouvez créer un nouveau graphique ou utililser ceux existants à partir du panneau de droite"
+
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:156
+msgid "You can create new charts or use existing ones from the panel on the right"
+msgstr "Vous pouvez créer de nouveaux graphiques ou utililser ceux existants à partir du panneau de droite"
+
+#: superset-frontend/src/views/components/MenuRight.tsx:127
+msgid "Upload Excel file to database"
+msgstr "Importer des fichiers Excel vers la base de données"
+
+#: superset-frontend/src/views/components/MenuRight.tsx:121
+msgid "Upload columnar file to database"
+msgstr "Importer des colonnes vers la base de données"
+
+#: superset-frontend/src/views/components/MenuRight.tsx:115
+msgid "Upload CSV to database"
+msgstr "Importer des fichiers CSV vers la base de données"
+
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:319
+#: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:269
+msgid "Share permalink by email"
+msgstr "Partager le lien par mail"
+
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:318
+#: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:268
+msgid "Copy permalink to clipboard"
+msgstr "Copier le lien dans le presse-papiers"
+
+#: superset-frontend/src/views/components/MenuRight.tsx:222
+#: superset-frontend/src/views/components/SubMenu.tsx:289
+msgid "Enable 'Allow data upload' in any database's settings"
+msgstr "Activez l'option 'Autoriser le chargement de données' dans les paramètres de la base de données"
+
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:195
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:179
+msgid "There are no components added to this tab"
+msgstr "Il n'y a pas de composant à ajouter dans cet onglet"
+
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:200
+msgid "You can add the components in the edit mode"
+msgstr "Vous pouvez ajouter les composants via mode edition"
+
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:184
+msgid "You can add the components in the"
+msgstr "Vous pouvez ajouter les composants via le"
+
+#: superset-frontend/src/dashboard/components/gridComponents/Tab.jsx:190
+msgid "edit mode"
+msgstr "mode edition"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/ActionButtons/index.tsx:111
+msgid "Apply filters"
+msgstr "Appliquer les filtres"
+
+#: superset-frontend/src/filters/components/Select/controlPanel.ts:110
+msgid "When using this option, default value can’t be set"
+msgstr "Quand l'option est utilisée, une valeur par defaut doit être indiquée"
+
+#: superset-frontend/src/dashboard/components/DashboardGrid.jsx:199
+msgid "Edit the dashboard"
+msgstr "Modifier le tableau de bord"
+
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:161
+msgid "Time Column"
+msgstr "Colonne de temps"
+
+
+#: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:199
+msgid "Time Grain"
+msgstr "Granularité"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:46
+msgid "Pivot Options"
+msgstr "Options de pivot"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:86
+msgid "Combine Metrics"
+msgstr "Combiner les métriques"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:53
+msgid "Aggregation function"
+msgstr "Fonction d'agrégation"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:101
+msgid "Transpose Pivot"
+msgstr "Pivot de transposition"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:77
+msgid "Show totals"
+msgstr "Afficher les totaux"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:77
+msgid "Swap Groups and Columns"
+msgstr "Permuter les groupes et les colonnes"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:77
+msgid "Display metrics side by side within each column, as opposed to each column being displayed side by side for each metric."
+msgstr "Affichez les indicateurs côte à côte dans chaque colonne, au lieu d'afficher chaque colonne côte à côte pour chaque indicateur."
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:77
+msgid "Display total row/column"
+msgstr "Affiche le total ligne/colonne"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:77
+msgid "Aggregate function to apply when pivoting and computing the total rows and columns"
+msgstr "Fonction d'agrégation à appliquer lors du pivotement et du calcul du total des lignes et des colonnes"
+
+#: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:77
+msgid "update chart"
+msgstr "Mettre à jour"
+
+#: superset-frontend/src/explore/components/DataTablesPane/index.tsx:500
+msgid "Samples"
+msgstr "Exemples"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:193
+msgid "Values are dependent on other filters"
+msgstr "Les valeurs dépendent d'autres filtres"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:197
+msgid "Values selected in other filters will affect the filter options to only show relevant values"
+msgstr "Les valeurs sélectionnées dans d'autres filtres affecteront les options de filtrage afin de n'afficher que les valeurs pertinentes"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:197
+msgid "Values dependent on"
+msgstr "Valeurs dépendent de"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:197
+msgid "No results were returned for this query"
+msgstr "Aucun résultat avec ces paramètres"
+
+#: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:154
+#: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:164
+msgid "Data refreshed"
+msgstr "Données rafraîchies"
+
+#: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:415
+msgid "Shift + Click to sort by multiple columns"
+msgstr "Maintenir Shift + Clic pour trier plusieurs colonnes"
+
+#: #: flask_appbuilder/security/views.py:211
+msgid "User info"
+msgstr "Informations utilisateurs"
+
+#: flask_appbuilder/security/views.py:250
+msgid "Reset my password"
+msgstr "Réinitialiser mon mot de passe"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/DependenciesRow.tsx:85
+msgid "Filter only displays values relevant to selections made in other filters."
+msgstr "Le filtre n'affiche que les valeurs pertinentes après les sélections effectuées dans d'autres filtres."
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/TypeRow.tsx:68
+msgid "Scope"
+msgstr "Périmètre"
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterCard/DependenciesRow.tsx:86
+msgid "Dependent on"
+msgstr "Dépend de"

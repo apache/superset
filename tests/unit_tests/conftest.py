@@ -18,9 +18,11 @@
 
 import importlib
 import os
+import unittest.mock
 from typing import Any, Callable, Iterator
 
 import pytest
+from _pytest.fixtures import SubRequest
 from pytest_mock import MockFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -28,6 +30,8 @@ from sqlalchemy.orm.session import Session
 
 from superset import security_manager
 from superset.app import SupersetApp
+from superset.common.chart_data import ChartDataResultType
+from superset.common.query_object_factory import QueryObjectFactory
 from superset.extensions import appbuilder
 from superset.initialization import SupersetAppInitializer
 
@@ -53,6 +57,9 @@ def get_session(mocker: MockFixture) -> Callable[[], Session]:
         get_session.return_value = in_memory_session
         # FAB calls get_session.get_bind() to get a handler to the engine
         get_session.get_bind.return_value = engine
+        # Allow for queries on security manager
+        get_session.query = in_memory_session.query
+
         mocker.patch("superset.db.session", in_memory_session)
         return in_memory_session
 
@@ -65,7 +72,7 @@ def session(get_session) -> Iterator[Session]:
 
 
 @pytest.fixture(scope="module")
-def app() -> Iterator[SupersetApp]:
+def app(request: SubRequest) -> Iterator[SupersetApp]:
     """
     A fixture that generates a Superset app.
     """
@@ -78,6 +85,11 @@ def app() -> Iterator[SupersetApp]:
     app.config["WTF_CSRF_ENABLED"] = False
     app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = False
     app.config["TESTING"] = True
+
+    # loop over extra configs passed in by tests
+    if request and hasattr(request, "param"):
+        for key, val in request.param.items():
+            app.config[key] = val
 
     # ``superset.extensions.appbuilder`` is a singleton, and won't rebuild the
     # routes when this fixture is called multiple times; we need to clear the
@@ -102,7 +114,7 @@ def client(app: SupersetApp) -> Any:
         yield client
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def app_context(app: SupersetApp) -> Iterator[None]:
     """
     A fixture that yields and application context.
@@ -124,5 +136,30 @@ def full_api_access(mocker: MockFixture) -> Iterator[None]:
         return_value=True,
     )
     mocker.patch.object(security_manager, "has_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_all_databases", return_value=True)
 
     yield
+
+
+@pytest.fixture
+def dummy_query_object(request, app_context):
+    query_obj_marker = request.node.get_closest_marker("query_object")
+    result_type_marker = request.node.get_closest_marker("result_type")
+
+    if query_obj_marker is None:
+        query_object = {}
+    else:
+        query_object = query_obj_marker.args[0]
+
+    if result_type_marker is None:
+        result_type = ChartDataResultType.FULL
+    else:
+        result_type = result_type_marker.args[0]
+
+    yield QueryObjectFactory(
+        app_configurations={
+            "ROW_LIMIT": 100,
+        },
+        _datasource_dao=unittest.mock.Mock(),
+        session_maker=unittest.mock.Mock(),
+    ).create(parent_result_type=result_type, **query_object)

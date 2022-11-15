@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties, useCallback, useMemo, useState } from 'react';
+import React, {
+  CSSProperties,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   ColumnInstance,
   ColumnWithLooseAccessor,
@@ -26,6 +32,7 @@ import { extent as d3Extent, max as d3Max } from 'd3-array';
 import { FaSort } from '@react-icons/all-files/fa/FaSort';
 import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
 import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+import cx from 'classnames';
 import {
   DataRecord,
   DataRecordValue,
@@ -33,7 +40,9 @@ import {
   ensureIsArray,
   GenericDataType,
   getTimeFormatterForGranularity,
+  BinaryQueryObjectFilterClause,
   styled,
+  css,
   t,
   tn,
 } from '@superset-ui/core';
@@ -50,8 +59,14 @@ import Styles from './Styles';
 import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS } from './consts';
 import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 
 type ValueRange = [number, number];
+
+interface TableSize {
+  width: number;
+  height: number;
+}
 
 /**
  * Return sortType based on data type
@@ -67,44 +82,64 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
 }
 
 /**
- * Cell background to render columns as horizontal bar chart
+ * Cell background width calculation for horizontal bar chart
  */
-function cellBar({
+function cellWidth({
   value,
   valueRange,
-  colorPositiveNegative = false,
   alignPositiveNegative,
 }: {
   value: number;
   valueRange: ValueRange;
-  colorPositiveNegative: boolean;
   alignPositiveNegative: boolean;
 }) {
   const [minValue, maxValue] = valueRange;
-  const r = colorPositiveNegative && value < 0 ? 150 : 0;
   if (alignPositiveNegative) {
     const perc = Math.abs(Math.round((value / maxValue) * 100));
-    // The 0.01 to 0.001 is a workaround for what appears to be a
-    // CSS rendering bug on flat, transparent colors
-    return (
-      `linear-gradient(to right, rgba(${r},0,0,0.2), rgba(${r},0,0,0.2) ${perc}%, ` +
-      `rgba(0,0,0,0.01) ${perc}%, rgba(0,0,0,0.001) 100%)`
-    );
+    return perc;
   }
   const posExtent = Math.abs(Math.max(maxValue, 0));
   const negExtent = Math.abs(Math.min(minValue, 0));
   const tot = posExtent + negExtent;
-  const perc1 = Math.round(
-    (Math.min(negExtent + value, negExtent) / tot) * 100,
-  );
   const perc2 = Math.round((Math.abs(value) / tot) * 100);
-  // The 0.01 to 0.001 is a workaround for what appears to be a
-  // CSS rendering bug on flat, transparent colors
-  return (
-    `linear-gradient(to right, rgba(0,0,0,0.01), rgba(0,0,0,0.001) ${perc1}%, ` +
-    `rgba(${r},0,0,0.2) ${perc1}%, rgba(${r},0,0,0.2) ${perc1 + perc2}%, ` +
-    `rgba(0,0,0,0.01) ${perc1 + perc2}%, rgba(0,0,0,0.001) 100%)`
-  );
+  return perc2;
+}
+
+/**
+ * Cell left margin (offset) calculation for horizontal bar chart elements
+ * when alignPositiveNegative is not set
+ */
+function cellOffset({
+  value,
+  valueRange,
+  alignPositiveNegative,
+}: {
+  value: number;
+  valueRange: ValueRange;
+  alignPositiveNegative: boolean;
+}) {
+  if (alignPositiveNegative) {
+    return 0;
+  }
+  const [minValue, maxValue] = valueRange;
+  const posExtent = Math.abs(Math.max(maxValue, 0));
+  const negExtent = Math.abs(Math.min(minValue, 0));
+  const tot = posExtent + negExtent;
+  return Math.round((Math.min(negExtent + value, negExtent) / tot) * 100);
+}
+
+/**
+ * Cell background color calculation for horizontal bar chart
+ */
+function cellBackground({
+  value,
+  colorPositiveNegative = false,
+}: {
+  value: number;
+  colorPositiveNegative: boolean;
+}) {
+  const r = colorPositiveNegative && value < 0 ? 150 : 0;
+  return `rgba(${r},0,0,0.2)`;
 }
 
 function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
@@ -193,12 +228,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     sticky = true, // whether to use sticky header
     columnColorFormatters,
     allowRearrangeColumns = false,
+    onContextMenu,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
     [timeGrain],
   );
-
+  const [tableSize, setTableSize] = useState<TableSize>({
+    width: 0,
+    height: 0,
+  });
   // keep track of whether column order changed, so that column widths can too
   const [columnOrderToggle, setColumnOrderToggle] = useState(false);
 
@@ -376,9 +415,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             columnColorFormatters!
               .filter(formatter => formatter.column === column.key)
               .forEach(formatter => {
-                const formatterResult = formatter.getColorFromValue(
-                  value as number,
-                );
+                const formatterResult = value
+                  ? formatter.getColorFromValue(value as number)
+                  : false;
                 if (formatterResult) {
                   backgroundColor = formatterResult;
                 }
@@ -387,16 +426,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
           const StyledCell = styled.td`
             text-align: ${sharedStyle.textAlign};
-            background: ${backgroundColor ||
-            (valueRange
-              ? cellBar({
+            white-space: ${value instanceof Date ? 'nowrap' : undefined};
+            position: relative;
+            background: ${backgroundColor || undefined};
+          `;
+
+          const cellBarStyles = css`
+            position: absolute;
+            height: 100%;
+            display: block;
+            top: 0;
+            ${valueRange &&
+            `
+                width: ${`${cellWidth({
                   value: value as number,
                   valueRange,
                   alignPositiveNegative,
+                })}%`};
+                left: ${`${cellOffset({
+                  value: value as number,
+                  valueRange,
+                  alignPositiveNegative,
+                })}%`};
+                background-color: ${cellBackground({
+                  value: value as number,
                   colorPositiveNegative,
-                })
-              : undefined)};
-            white-space: ${value instanceof Date ? 'nowrap' : undefined};
+                })};
+              `}
           `;
 
           const cellProps = {
@@ -432,6 +488,16 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           // render `Cell`. This saves some time for large tables.
           return (
             <StyledCell {...cellProps}>
+              {valueRange && (
+                <div
+                  /* The following classes are added to support custom CSS styling */
+                  className={cx(
+                    'cell-bar',
+                    value && value < 0 ? 'negative' : 'positive',
+                  )}
+                  css={cellBarStyles}
+                />
+              )}
               {truncateLongCells ? (
                 <div
                   className="dt-truncate-cell"
@@ -526,6 +592,60 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [setDataMask],
   );
 
+  const handleSizeChange = useCallback(
+    ({ width, height }: { width: number; height: number }) => {
+      setTableSize({ width, height });
+    },
+    [],
+  );
+
+  useLayoutEffect(() => {
+    // After initial load the table should resize only when the new sizes
+    // Are not only scrollbar updates, otherwise, the table would twicth
+    const scrollBarSize = getScrollBarSize();
+    const { width: tableWidth, height: tableHeight } = tableSize;
+    // Table is increasing its original size
+    if (
+      width - tableWidth > scrollBarSize ||
+      height - tableHeight > scrollBarSize
+    ) {
+      handleSizeChange({
+        width: width - scrollBarSize,
+        height: height - scrollBarSize,
+      });
+    } else if (
+      tableWidth - width > scrollBarSize ||
+      tableHeight - height > scrollBarSize
+    ) {
+      // Table is decreasing its original size
+      handleSizeChange({
+        width,
+        height,
+      });
+    }
+  }, [width, height, handleSizeChange, tableSize]);
+
+  const { width: widthFromState, height: heightFromState } = tableSize;
+
+  const handleContextMenu =
+    onContextMenu && !isRawRecords
+      ? (value: D, clientX: number, clientY: number) => {
+          const filters: BinaryQueryObjectFilterClause[] = [];
+          columnsMeta.forEach(col => {
+            if (!col.isMetric) {
+              const dataRecordValue = value[col.key];
+              filters.push({
+                col: col.key,
+                op: '==',
+                val: dataRecordValue as string | number | boolean,
+                formattedVal: formatColumnValue(col, dataRecordValue)[1],
+              });
+            }
+          });
+          onContextMenu(clientX, clientY, filters);
+        }
+      : undefined;
+
   return (
     <Styles>
       <DataTable<D>
@@ -536,8 +656,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         pageSize={pageSize}
         serverPaginationData={serverPaginationData}
         pageSizeOptions={pageSizeOptions}
-        width={width}
-        height={height}
+        width={widthFromState}
+        height={heightFromState}
         serverPagination={serverPagination}
         onServerPaginationChange={handleServerPaginationChange}
         onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
@@ -548,6 +668,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         selectPageSize={pageSize !== null && SelectPageSize}
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
+        onContextMenu={handleContextMenu}
       />
     </Styles>
   );

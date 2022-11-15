@@ -716,7 +716,7 @@ class TestPairedTTest(SupersetTestCase):
         self.assertEqual(data, expected)
 
     def test_get_data_empty_null_keys(self):
-        form_data = {"groupby": [], "metrics": ["", None]}
+        form_data = {"groupby": [], "metrics": [""]}
         datasource = self.get_datasource_mock()
         # Test data
         raw = {}
@@ -739,18 +739,12 @@ class TestPairedTTest(SupersetTestCase):
                     "group": "All",
                 }
             ],
-            "NULL": [
-                {
-                    "values": [
-                        {"x": 100, "y": 10},
-                        {"x": 200, "y": 20},
-                        {"x": 300, "y": 30},
-                    ],
-                    "group": "All",
-                }
-            ],
         }
         self.assertEqual(data, expected)
+
+        form_data = {"groupby": [], "metrics": [None]}
+        with self.assertRaises(ValueError):
+            viz.viz_types["paired_ttest"](datasource, form_data)
 
 
 class TestPartitionViz(SupersetTestCase):

@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 import pytest
-from flask.ctx import AppContext
 
 
 @pytest.mark.parametrize(
@@ -32,7 +31,6 @@ from flask.ctx import AppContext
     ],
 )
 def test_apply_top_to_sql_limit(
-    app_context: AppContext,
     limit: int,
     original: str,
     expected: str,

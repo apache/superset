@@ -31,7 +31,7 @@ import {
 export const NULL_STRING = '<NULL>';
 
 export const TIMESERIES_CONSTANTS = {
-  gridOffsetRight: 40,
+  gridOffsetRight: 20,
   gridOffsetLeft: 20,
   gridOffsetTop: 20,
   gridOffsetBottom: 20,

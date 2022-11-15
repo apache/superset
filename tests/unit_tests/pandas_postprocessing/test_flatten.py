@@ -156,3 +156,22 @@ def test_flat_integer_column_name():
             }
         )
     )
+
+
+def test_escape_column_name():
+    index = pd.to_datetime(["2021-01-01", "2021-01-02", "2021-01-03"])
+    index.name = "__timestamp"
+    columns = pd.MultiIndex.from_arrays(
+        [
+            ["level1,value1", "level1,value2", "level1,value3"],
+            ["level2, value1", "level2, value2", "level2, value3"],
+        ],
+        names=["level1", "level2"],
+    )
+    df = pd.DataFrame(index=index, columns=columns, data=1)
+    assert list(pp.flatten(df).columns.values) == [
+        "__timestamp",
+        "level1\\,value1" + FLAT_COLUMN_SEPARATOR + "level2\\, value1",
+        "level1\\,value2" + FLAT_COLUMN_SEPARATOR + "level2\\, value2",
+        "level1\\,value3" + FLAT_COLUMN_SEPARATOR + "level2\\, value3",
+    ]

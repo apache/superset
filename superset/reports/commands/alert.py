@@ -27,7 +27,6 @@ from flask_babel import lazy_gettext as _
 
 from superset import app, jinja_context, security_manager
 from superset.commands.base import BaseCommand
-from superset.models.reports import ReportSchedule, ReportScheduleValidatorType
 from superset.reports.commands.exceptions import (
     AlertQueryError,
     AlertQueryInvalidTypeError,
@@ -36,6 +35,7 @@ from superset.reports.commands.exceptions import (
     AlertQueryTimeout,
     AlertValidatorConfigError,
 )
+from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
 from superset.utils.core import override_user
 from superset.utils.retries import retry_call
 

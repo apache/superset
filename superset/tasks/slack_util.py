@@ -23,9 +23,9 @@ from typing import cast, Optional, Union
 
 import backoff
 from flask import current_app
-from slack import WebClient
-from slack.errors import SlackApiError
-from slack.web.slack_response import SlackResponse
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web.slack_response import SlackResponse
 
 # Globals
 logger = logging.getLogger("tasks.slack_util")

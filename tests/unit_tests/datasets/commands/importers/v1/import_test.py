@@ -24,7 +24,7 @@ from typing import Any, Dict
 from sqlalchemy.orm.session import Session
 
 
-def test_import_dataset(app_context: None, session: Session) -> None:
+def test_import_dataset(session: Session) -> None:
     """
     Test importing a dataset.
     """
@@ -137,7 +137,7 @@ def test_import_dataset(app_context: None, session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
-def test_import_dataset_duplicate_column(app_context: None, session: Session) -> None:
+def test_import_dataset_duplicate_column(session: Session) -> None:
     """
     Test importing a dataset with a column that already exists.
     """
@@ -260,7 +260,7 @@ def test_import_dataset_duplicate_column(app_context: None, session: Session) ->
     assert sqla_table.database.id == database.id
 
 
-def test_import_column_extra_is_string(app_context: None, session: Session) -> None:
+def test_import_column_extra_is_string(session: Session) -> None:
     """
     Test importing a dataset when the column extra is a string.
     """
@@ -340,7 +340,7 @@ def test_import_column_extra_is_string(app_context: None, session: Session) -> N
     assert sqla_table.extra == '{"warning_markdown": "*WARNING*"}'
 
 
-def test_import_dataset_managed_externally(app_context: None, session: Session) -> None:
+def test_import_dataset_managed_externally(session: Session) -> None:
     """
     Test importing a dataset that is managed externally.
     """

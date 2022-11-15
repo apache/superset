@@ -40,7 +40,7 @@
           rel="{{favicon.rel if favicon.rel else "icon"}}"
           type="{{favicon.type if favicon.type else "image/png"}}"
           {% if favicon.sizes %}sizes={{favicon.sizes}}{% endif %}
-          href="{{ assets_prefix }}{{favicon.href}}"
+          href="{{ "" if favicon.href.startswith("http") else assets_prefix }}{{favicon.href}}"
         >
       {% endfor %}
       <link rel="stylesheet" type="text/css" href="{{ assets_prefix }}/static/appbuilder/css/flags/flags16.css" />

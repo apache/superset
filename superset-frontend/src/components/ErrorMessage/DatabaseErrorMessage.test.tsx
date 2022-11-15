@@ -23,6 +23,13 @@ import userEvent from '@testing-library/user-event';
 import DatabaseErrorMessage from './DatabaseErrorMessage';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from './types';
 
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) =>
+      <span role="img" aria-label={fileName.replace('_', '-')} />,
+);
+
 const mockedProps = {
   error: {
     error_type: ErrorTypeEnum.DATABASE_SECURITY_ACCESS_ERROR,

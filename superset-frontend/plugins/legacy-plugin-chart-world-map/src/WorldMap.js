@@ -24,6 +24,8 @@ import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
+  logging,
+  t,
 } from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { ColorBy } from './utils';
@@ -50,6 +52,8 @@ const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
   const {
+    countryFieldtype,
+    entity,
     data,
     width,
     height,
@@ -61,6 +65,8 @@ function WorldMap(element, props) {
     colorScheme,
     sliceId,
     theme,
+    onContextMenu,
+    inContextMenu,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -102,6 +108,31 @@ function WorldMap(element, props) {
     mapData[d.country] = d;
   });
 
+  const handleContextMenu = source => {
+    const pointerEvent = d3.event;
+    pointerEvent.preventDefault();
+    const key = source.id || source.country;
+    const val = countryFieldtype === 'name' ? mapData[key]?.name : key;
+    if (val) {
+      const filters = [
+        {
+          col: entity,
+          op: '==',
+          val,
+          formattedVal: val,
+        },
+      ];
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+    } else {
+      logging.warn(
+        t(
+          `Unable to process right-click on %s. Check you chart configuration.`,
+        ),
+        key,
+      );
+    }
+  };
+
   const map = new Datamap({
     element,
     width,
@@ -111,8 +142,8 @@ function WorldMap(element, props) {
       defaultFill: theme.colors.grayscale.light2,
     },
     geographyConfig: {
-      popupOnHover: true,
-      highlightOnHover: true,
+      popupOnHover: !inContextMenu,
+      highlightOnHover: !inContextMenu,
       borderWidth: 1,
       borderColor: theme.colors.grayscale.light5,
       highlightBorderColor: theme.colors.grayscale.light5,
@@ -127,7 +158,7 @@ function WorldMap(element, props) {
       borderWidth: 1,
       borderOpacity: 1,
       borderColor: color,
-      popupOnHover: true,
+      popupOnHover: !inContextMenu,
       radius: null,
       popupTemplate: (geo, d) =>
         `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
@@ -135,7 +166,7 @@ function WorldMap(element, props) {
         )}</div>`,
       fillOpacity: 0.5,
       animate: true,
-      highlightOnHover: true,
+      highlightOnHover: !inContextMenu,
       highlightFillColor: color,
       highlightBorderColor: theme.colors.grayscale.dark2,
       highlightBorderWidth: 2,
@@ -143,6 +174,11 @@ function WorldMap(element, props) {
       highlightFillOpacity: 0.85,
       exitDelay: 100,
       key: JSON.stringify,
+    },
+    done: datamap => {
+      datamap.svg
+        .selectAll('.datamaps-subunit')
+        .on('contextmenu', handleContextMenu);
     },
   });
 
@@ -153,7 +189,8 @@ function WorldMap(element, props) {
     div
       .selectAll('circle.datamaps-bubble')
       .style('fill', color)
-      .style('stroke', color);
+      .style('stroke', color)
+      .on('contextmenu', handleContextMenu);
   }
 }
 

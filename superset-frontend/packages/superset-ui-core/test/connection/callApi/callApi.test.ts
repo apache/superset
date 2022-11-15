@@ -23,6 +23,12 @@ import callApi from '../../../src/connection/callApi/callApi';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 
+// missing the toString function causing method to error out when casting to String
+class BadObject {}
+const corruptObject = new BadObject();
+/* @ts-expect-error */
+BadObject.prototype.toString = undefined;
+
 describe('callApi()', () => {
   beforeAll(() => {
     fetchMock.get(LOGIN_GLOB, { result: '1234' });
@@ -177,6 +183,44 @@ describe('callApi()', () => {
         expect(unstringified.get(key)).toBe(String(value));
         expect(jsonRequestBody[key]).toEqual(value);
       });
+    });
+
+    it('removes corrupt value when building formData with stringify = false', async () => {
+      /*
+        There has been a case when 'stringify' is false an object value on one of the
+        attributes was missing a toString function making the cast to String() fail
+        and causing entire method call to fail.  The new logic skips corrupt values that fail cast to String()
+        and allows all valid attributes to be added as key / value pairs to the formData
+        instance.  This test case replicates a corrupt object missing the .toString method
+        representing a real bug report.
+      */
+      const postPayload = {
+        string: 'value',
+        number: 1237,
+        array: [1, 2, 3],
+        object: { a: 'a', 1: 1 },
+        null: null,
+        emptyString: '',
+        // corruptObject has no toString method and will fail cast to String()
+        corrupt: [corruptObject],
+      };
+      jest.spyOn(console, 'error').mockImplementation();
+
+      await callApi({
+        url: mockPostUrl,
+        method: 'POST',
+        postPayload,
+        stringify: false,
+      });
+
+      const calls = fetchMock.calls(mockPostUrl);
+      expect(calls).toHaveLength(1);
+      const unstringified = (calls[0][1] as RequestInit).body as FormData;
+      const hasCorruptKey = unstringified.has('corrupt');
+      expect(hasCorruptKey).toBeFalsy();
+      // When a corrupt attribute is encountred, a console.error call is made with info about the corrupt attribute
+      // eslint-disable-next-line no-console
+      expect(console.error).toHaveBeenCalledTimes(1);
     });
   });
 

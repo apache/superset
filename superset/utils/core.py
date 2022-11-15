@@ -16,6 +16,8 @@
 # under the License.
 """Utility functions used across Superset"""
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import _thread
 import collections
 import decimal
@@ -27,12 +29,14 @@ import platform
 import re
 import signal
 import smtplib
+import ssl
 import tempfile
 import threading
 import traceback
 import uuid
 import zlib
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from distutils.util import strtobool
 from email.mime.application import MIMEApplication
@@ -92,6 +96,7 @@ from superset.constants import (
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
+    NO_TIME_RANGE,
 )
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
@@ -111,6 +116,7 @@ from superset.superset_typing import (
     Metric,
 )
 from superset.utils.database import get_example_database
+from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.dates import datetime_to_epoch, EPOCH
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
@@ -127,13 +133,13 @@ logger = logging.getLogger(__name__)
 
 DTTM_ALIAS = "__timestamp"
 
-NO_TIME_RANGE = "No filter"
-
 TIME_COMPARISON = "__"
 
 JS_MAX_INTEGER = 9007199254740991  # Largest int Java Script can handle 2^53-1
 
 InputType = TypeVar("InputType")
+
+ADHOC_FILTERS_REGEX = re.compile("^adhoc_filters")
 
 
 class LenientEnum(Enum):
@@ -182,6 +188,21 @@ class DatasourceType(str, Enum):
     QUERY = "query"
     SAVEDQUERY = "saved_query"
     VIEW = "view"
+
+
+class LoggerLevel(str, Enum):
+    INFO = "info"
+    WARNING = "warning"
+    EXCEPTION = "exception"
+
+
+class HeaderDataType(TypedDict):
+    notification_format: str
+    owners: List[int]
+    notification_type: str
+    notification_source: Optional[str]
+    chart_id: Optional[int]
+    dashboard_id: Optional[int]
 
 
 class DatasourceDict(TypedDict):
@@ -241,6 +262,7 @@ class FilterOperator(str, Enum):
     REGEX = "REGEX"
     IS_TRUE = "IS TRUE"
     IS_FALSE = "IS FALSE"
+    TEMPORAL_RANGE = "TEMPORAL_RANGE"
 
 
 class FilterStringOperators(str, Enum):
@@ -540,9 +562,16 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(  # pylint: disable=inconsistent-return-statements
-    obj: Any,
-) -> Any:
+def base_json_conv(obj: Any) -> Any:
+    """
+    Tries to convert additional types to JSON compatible forms.
+
+    :param obj: The serializable object
+    :returns: The JSON compatible form
+    :raises TypeError: If the object cannot be serialized
+    :see: https://docs.python.org/3/library/json.html#encoders-and-decoders
+    """
+
     if isinstance(obj, memoryview):
         obj = obj.tobytes()
     if isinstance(obj, np.int64):
@@ -565,47 +594,60 @@ def base_json_conv(  # pylint: disable=inconsistent-return-statements
         except Exception:  # pylint: disable=broad-except
             return "[bytes]"
 
+    raise TypeError(f"Unserializable object {obj} of type {type(obj)}")
 
-def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> str:
-    """
-    json serializer that deals with dates
 
-    >>> dttm = datetime(1970, 1, 1)
-    >>> json.dumps({'dttm': dttm}, default=json_iso_dttm_ser)
-    '{"dttm": "1970-01-01T00:00:00"}'
+def json_iso_dttm_ser(obj: Any, pessimistic: bool = False) -> Any:
     """
-    val = base_json_conv(obj)
-    if val is not None:
-        return val
+    A JSON serializer that deals with dates by serializing them to ISO 8601.
+
+        >>> json.dumps({'dttm': datetime(1970, 1, 1)}, default=json_iso_dttm_ser)
+        '{"dttm": "1970-01-01T00:00:00"}'
+
+    :param obj: The serializable object
+    :param pessimistic: Whether to be pessimistic regarding serialization
+    :returns: The JSON compatible form
+    :raises TypeError: If the non-pessimistic object cannot be serialized
+    """
+
     if isinstance(obj, (datetime, date, pd.Timestamp)):
-        obj = obj.isoformat()
-    else:
+        return obj.isoformat()
+
+    try:
+        return base_json_conv(obj)
+    except TypeError as ex:
         if pessimistic:
-            return "Unserializable [{}]".format(type(obj))
+            return f"Unserializable [{type(obj)}]"
 
-        raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
-    return obj
+        raise ex
 
 
-def pessimistic_json_iso_dttm_ser(obj: Any) -> str:
+def pessimistic_json_iso_dttm_ser(obj: Any) -> Any:
     """Proxy to call json_iso_dttm_ser in a pessimistic way
 
     If one of object is not serializable to json, it will still succeed"""
     return json_iso_dttm_ser(obj, pessimistic=True)
 
 
-def json_int_dttm_ser(obj: Any) -> float:
-    """json serializer that deals with dates"""
-    val = base_json_conv(obj)
-    if val is not None:
-        return val
+def json_int_dttm_ser(obj: Any) -> Any:
+    """
+    A JSON serializer that deals with dates by serializing them to EPOCH.
+
+        >>> json.dumps({'dttm': datetime(1970, 1, 1)}, default=json_int_dttm_ser)
+        '{"dttm": 0.0}'
+
+    :param obj: The serializable object
+    :returns: The JSON compatible form
+    :raises TypeError: If the object cannot be serialized
+    """
+
     if isinstance(obj, (datetime, pd.Timestamp)):
-        obj = datetime_to_epoch(obj)
-    elif isinstance(obj, date):
-        obj = (obj - EPOCH.date()).total_seconds() * 1000
-    else:
-        raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
-    return obj
+        return datetime_to_epoch(obj)
+
+    if isinstance(obj, date):
+        return (obj - EPOCH.date()).total_seconds() * 1000
+
+    return base_json_conv(obj)
 
 
 def json_dumps_w_dates(payload: Dict[Any, Any], sort_keys: bool = False) -> str:
@@ -904,6 +946,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     cc: Optional[str] = None,
     bcc: Optional[str] = None,
     mime_subtype: str = "mixed",
+    header_data: Optional[HeaderDataType] = None,
 ) -> None:
     """
     Send an email with html content, eg:
@@ -917,6 +960,7 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
     msg["Subject"] = subject
     msg["From"] = smtp_mail_from
     msg["To"] = ", ".join(smtp_mail_to)
+
     msg.preamble = "This is a multi-part message in MIME format."
 
     recipients = smtp_mail_to
@@ -963,8 +1007,10 @@ def send_email_smtp(  # pylint: disable=invalid-name,too-many-arguments,too-many
         image.add_header("Content-ID", "<%s>" % msgid)
         image.add_header("Content-Disposition", "inline")
         msg.attach(image)
-
-    send_mime_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
+    msg_mutator = config["EMAIL_HEADER_MUTATOR"]
+    # the base notification returns the message without any editing.
+    new_msg = msg_mutator(msg, **(header_data or {}))
+    send_mime_email(smtp_mail_from, recipients, new_msg, config, dryrun=dryrun)
 
 
 def send_mime_email(
@@ -980,23 +1026,28 @@ def send_mime_email(
     smtp_password = config["SMTP_PASSWORD"]
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
+    smpt_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
 
-    if not dryrun:
-        smtp = (
-            smtplib.SMTP_SSL(smtp_host, smtp_port)
-            if smtp_ssl
-            else smtplib.SMTP(smtp_host, smtp_port)
-        )
-        if smtp_starttls:
-            smtp.starttls()
-        if smtp_user and smtp_password:
-            smtp.login(smtp_user, smtp_password)
-        logger.debug("Sent an email to %s", str(e_to))
-        smtp.sendmail(e_from, e_to, mime_msg.as_string())
-        smtp.quit()
-    else:
+    if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
         logger.info(mime_msg.as_string())
+        return
+
+    # Default ssl context is SERVER_AUTH using the default system
+    # root CA certificates
+    ssl_context = ssl.create_default_context() if smpt_ssl_server_auth else None
+    smtp = (
+        smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
+        if smtp_ssl
+        else smtplib.SMTP(smtp_host, smtp_port)
+    )
+    if smtp_starttls:
+        smtp.starttls(context=ssl_context)
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
+    logger.debug("Sent an email to %s", str(e_to))
+    smtp.sendmail(e_from, e_to, mime_msg.as_string())
+    smtp.quit()
 
 
 def get_email_address_list(address_string: str) -> List[str]:
@@ -1246,7 +1297,23 @@ def is_adhoc_metric(metric: Metric) -> TypeGuard[AdhocMetric]:
 
 
 def is_adhoc_column(column: Column) -> TypeGuard[AdhocColumn]:
-    return isinstance(column, dict)
+    return isinstance(column, dict) and ({"label", "sqlExpression"}).issubset(
+        column.keys()
+    )
+
+
+def get_base_axis_labels(columns: Optional[List[Column]]) -> Tuple[str, ...]:
+    axis_cols = [
+        col
+        for col in columns or []
+        if is_adhoc_column(col) and col.get("columnType") == "BASE_AXIS"
+    ]
+    return tuple(get_column_name(col) for col in axis_cols)
+
+
+def get_xaxis_label(columns: Optional[List[Column]]) -> Optional[str]:
+    labels = get_base_axis_labels(columns)
+    return labels[0] if labels else None
 
 
 def get_column_name(
@@ -1268,9 +1335,12 @@ def get_column_name(
         expr = column.get("sqlExpression")
         if expr:
             return expr
-        raise ValueError("Missing label")
-    verbose_map = verbose_map or {}
-    return verbose_map.get(column, column)
+
+    if isinstance(column, str):
+        verbose_map = verbose_map or {}
+        return verbose_map.get(column, column)
+
+    raise ValueError("Missing label")
 
 
 def get_metric_name(
@@ -1294,7 +1364,7 @@ def get_metric_name(
             sql_expression = metric.get("sqlExpression")
             if sql_expression:
                 return sql_expression
-        elif expression_type == "SIMPLE":
+        if expression_type == "SIMPLE":
             column: AdhocMetricColumn = metric.get("column") or {}
             column_name = column.get("column_name")
             aggregate = metric.get("aggregate")
@@ -1302,10 +1372,12 @@ def get_metric_name(
                 return f"{aggregate}({column_name})"
             if column_name:
                 return column_name
-        raise ValueError(__("Invalid metric object"))
 
-    verbose_map = verbose_map or {}
-    return verbose_map.get(metric, metric)  # type: ignore
+    if isinstance(metric, str):
+        verbose_map = verbose_map or {}
+        return verbose_map.get(metric, metric)
+
+    raise ValueError(__("Invalid metric object: %(metric)s", metric=str(metric)))
 
 
 def get_column_names(
@@ -1687,7 +1759,7 @@ def extract_dataframe_dtypes(
         column_object = columns_by_name.get(column)
         series = df[column]
         inferred_type = infer_dtype(series)
-        if isinstance(column_object, dict):  # type: ignore
+        if isinstance(column_object, dict):
             generic_type = (
                 GenericDataType.TEMPORAL
                 if column_object and column_object.get("is_dttm")
@@ -1810,33 +1882,64 @@ def remove_duplicates(
     return result
 
 
+@dataclass
+class DateColumn:
+    col_label: str
+    timestamp_format: Optional[str] = None
+    offset: Optional[int] = None
+    time_shift: Optional[str] = None
+
+    def __hash__(self) -> int:
+        return hash(self.col_label)
+
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, DateColumn) and hash(self) == hash(other)
+
+    @classmethod
+    def get_legacy_time_column(
+        cls,
+        timestamp_format: Optional[str],
+        offset: Optional[int],
+        time_shift: Optional[str],
+    ) -> DateColumn:
+        return cls(
+            timestamp_format=timestamp_format,
+            offset=offset,
+            time_shift=time_shift,
+            col_label=DTTM_ALIAS,
+        )
+
+
 def normalize_dttm_col(
     df: pd.DataFrame,
-    timestamp_format: Optional[str],
-    offset: int,
-    time_shift: Optional[timedelta],
+    dttm_cols: Tuple[DateColumn, ...] = tuple(),
 ) -> None:
-    if DTTM_ALIAS not in df.columns:
-        return
-    if timestamp_format in ("epoch_s", "epoch_ms"):
-        dttm_col = df[DTTM_ALIAS]
-        if is_numeric_dtype(dttm_col):
-            # Column is formatted as a numeric value
-            unit = timestamp_format.replace("epoch_", "")
-            df[DTTM_ALIAS] = pd.to_datetime(
-                dttm_col, utc=False, unit=unit, origin="unix", errors="coerce"
-            )
+    for _col in dttm_cols:
+        if _col.col_label not in df.columns:
+            continue
+
+        if _col.timestamp_format in ("epoch_s", "epoch_ms"):
+            dttm_series = df[_col.col_label]
+            if is_numeric_dtype(dttm_series):
+                # Column is formatted as a numeric value
+                unit = _col.timestamp_format.replace("epoch_", "")
+                df[_col.col_label] = pd.to_datetime(
+                    dttm_series, utc=False, unit=unit, origin="unix", errors="coerce"
+                )
+            else:
+                # Column has already been formatted as a timestamp.
+                df[_col.col_label] = dttm_series.apply(pd.Timestamp)
         else:
-            # Column has already been formatted as a timestamp.
-            df[DTTM_ALIAS] = dttm_col.apply(pd.Timestamp)
-    else:
-        df[DTTM_ALIAS] = pd.to_datetime(
-            df[DTTM_ALIAS], utc=False, format=timestamp_format, errors="coerce"
-        )
-    if offset:
-        df[DTTM_ALIAS] += timedelta(hours=offset)
-    if time_shift is not None:
-        df[DTTM_ALIAS] += time_shift
+            df[_col.col_label] = pd.to_datetime(
+                df[_col.col_label],
+                utc=False,
+                format=_col.timestamp_format,
+                errors="coerce",
+            )
+        if _col.offset:
+            df[_col.col_label] += timedelta(hours=_col.offset)
+        if _col.time_shift is not None:
+            df[_col.col_label] += parse_human_timedelta(_col.time_shift)
 
 
 def parse_boolean_string(bool_str: Optional[str]) -> bool:
@@ -1904,3 +2007,16 @@ def create_zip(files: Dict[str, Any]) -> BytesIO:
                 fp.write(contents)
     buf.seek(0)
     return buf
+
+
+def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
+    """
+    Remove filters from slice data that originate from a filter box or native filter
+    """
+    adhoc_filters = {
+        key: value for key, value in form_data.items() if ADHOC_FILTERS_REGEX.match(key)
+    }
+    for key, value in adhoc_filters.items():
+        form_data[key] = [
+            filter_ for filter_ in value or [] if not filter_.get("isExtra")
+        ]

@@ -27,7 +27,7 @@ from superset.models.slice import Slice
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
@@ -44,8 +44,8 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("san_francisco.csv.gz", make_bytes=True)
-        pdf = pd.read_csv(data, encoding="utf-8")
+        url = get_example_url("san_francisco.csv.gz")
+        pdf = pd.read_csv(url, encoding="utf-8", compression="gzip")
         start = datetime.datetime.now().replace(
             hour=0, minute=0, second=0, microsecond=0
         )

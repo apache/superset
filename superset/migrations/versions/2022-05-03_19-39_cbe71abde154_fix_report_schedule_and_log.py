@@ -31,7 +31,7 @@ from sqlalchemy import Column, Float, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
-from superset.models.reports import ReportState
+from superset.reports.models import ReportState
 
 Base = declarative_base()
 

@@ -14,9 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=no-self-use, unused-argument
+
 import inspect
 import json
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
@@ -26,11 +29,12 @@ from marshmallow_enum import EnumField
 from sqlalchemy import MetaData
 
 from superset import db
+from superset.constants import PASSWORD_MASK
 from superset.databases.commands.exceptions import DatabaseInvalidError
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs import BaseEngineSpec, get_engine_specs
+from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
-from superset.models.core import ConfigurationMethod, Database, PASSWORD_MASK
+from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils.core import markdown, parse_ssl_cert
 
@@ -66,11 +70,6 @@ allow_dml_description = (
     "(UPDATE, DELETE, CREATE, ...) "
     "in SQL Lab"
 )
-allow_multi_schema_metadata_fetch_description = (
-    "Allow SQL Lab to fetch a list of all tables and all views across "
-    "all database schemas. For large data warehouse with thousands of "
-    "tables, this can be expensive and put strain on the system."
-)  # pylint: disable=invalid-name
 configuration_method_description = (
     "Configuration_method is used on the frontend to "
     "inform the backend whether to explode parameters "
@@ -150,7 +149,7 @@ def sqlalchemy_uri_validator(value: str) -> str:
             [
                 _(
                     "Invalid connection string, a valid string usually follows: "
-                    "driver://user:password@database-host/database-name"
+                    "backend+driver://user:password@database-host/database-name"
                 )
             ]
         ) from ex
@@ -231,6 +230,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     """
 
     engine = fields.String(allow_none=True, description="SQLAlchemy engine to use")
+    driver = fields.String(allow_none=True, description="SQLAlchemy driver to use")
     parameters = fields.Dict(
         keys=fields.String(),
         values=fields.Raw(),
@@ -243,7 +243,6 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         missing=ConfigurationMethod.SQLALCHEMY_FORM,
     )
 
-    # pylint: disable=no-self-use, unused-argument
     @pre_load
     def build_sqlalchemy_uri(
         self, data: Dict[str, Any], **kwargs: Any
@@ -262,10 +261,20 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             or parameters.pop("engine", None)
             or data.pop("backend", None)
         )
+        driver = data.pop("driver", None)
 
         configuration_method = data.get("configuration_method")
         if configuration_method == ConfigurationMethod.DYNAMIC_FORM:
-            engine_spec = get_engine_spec(engine)
+            if not engine:
+                raise ValidationError(
+                    [
+                        _(
+                            "An engine must be specified when passing "
+                            "individual parameters to a database."
+                        )
+                    ]
+                )
+            engine_spec = get_engine_spec(engine, driver)
 
             if not hasattr(engine_spec, "build_sqlalchemy_uri") or not hasattr(
                 engine_spec, "parameters_schema"
@@ -282,51 +291,54 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             # validate parameters
             parameters = engine_spec.parameters_schema.load(parameters)  # type: ignore
 
-            serialized_encrypted_extra = data.get("encrypted_extra") or "{}"
+            serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
                 encrypted_extra = json.loads(serialized_encrypted_extra)
             except json.decoder.JSONDecodeError:
                 encrypted_extra = {}
 
             data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(  # type: ignore
-                parameters, encrypted_extra
+                parameters,
+                encrypted_extra,
             )
 
         return data
 
 
-def get_engine_spec(engine: Optional[str]) -> Type[BaseEngineSpec]:
-    if not engine:
-        raise ValidationError(
-            [
-                _(
-                    "An engine must be specified when passing "
-                    "individual parameters to a database."
-                )
-            ]
-        )
-    engine_specs = get_engine_specs()
-    if engine not in engine_specs:
-        raise ValidationError(
-            [
-                _(
-                    'Engine "%(engine)s" is not a valid engine.',
-                    engine=engine,
-                )
-            ]
-        )
-    return engine_specs[engine]
+def rename_encrypted_extra(
+    self: Schema,
+    data: Dict[str, Any],
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """
+    Rename ``encrypted_extra`` to ``masked_encrypted_extra``.
+
+    PR #21248 changed the database schema for security reasons. This pre-loader keeps
+    Superset backwards compatible with older clients.
+    """
+    if "encrypted_extra" in data:
+        data["masked_encrypted_extra"] = data.pop("encrypted_extra")
+    return data
 
 
 class DatabaseValidateParametersSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
+    rename_encrypted_extra = pre_load(rename_encrypted_extra)
+
+    id = fields.Integer(allow_none=True, description="Database ID (for updates)")
     engine = fields.String(required=True, description="SQLAlchemy engine to use")
+    driver = fields.String(allow_none=True, description="SQLAlchemy driver to use")
     parameters = fields.Dict(
         keys=fields.String(),
         values=fields.Raw(allow_none=True),
         description="DB-specific parameters for configuration",
+    )
+    catalog = fields.Dict(
+        keys=fields.String(),
+        values=fields.Raw(allow_none=True),
+        description="Gsheets specific column for managing label to sheet urls",
     )
     database_name = fields.String(
         description=database_name_description,
@@ -335,7 +347,7 @@ class DatabaseValidateParametersSchema(Schema):
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,
@@ -357,6 +369,8 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
+    rename_encrypted_extra = pre_load(rename_encrypted_extra)
+
     database_name = fields.String(
         description=database_name_description,
         required=True,
@@ -376,11 +390,8 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
         allow_none=True,
         validate=Length(0, 250),
     )
-    allow_multi_schema_metadata_fetch = fields.Boolean(
-        description=allow_multi_schema_metadata_fetch_description,
-    )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,
@@ -404,6 +415,8 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
+    rename_encrypted_extra = pre_load(rename_encrypted_extra)
+
     database_name = fields.String(
         description=database_name_description,
         allow_none=True,
@@ -423,11 +436,8 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
         allow_none=True,
         validate=Length(0, 250),
     )
-    allow_multi_schema_metadata_fetch = fields.Boolean(
-        description=allow_multi_schema_metadata_fetch_description
-    )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         allow_none=True,
         validate=encrypted_extra_validator,
@@ -447,6 +457,9 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
 
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
+
+    rename_encrypted_extra = pre_load(rename_encrypted_extra)
+
     database_name = fields.String(
         description=database_name_description,
         allow_none=True,
@@ -454,7 +467,7 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
     )
     impersonate_user = fields.Boolean(description=impersonate_user_description)
     extra = fields.String(description=extra_description, validate=extra_validator)
-    encrypted_extra = fields.String(
+    masked_encrypted_extra = fields.String(
         description=encrypted_extra_description,
         validate=encrypted_extra_validator,
         allow_none=True,
@@ -592,9 +605,8 @@ class DatabaseFunctionNamesResponse(Schema):
 
 
 class ImportV1DatabaseExtraSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
     @pre_load
-    def fix_schemas_allowed_for_csv_upload(
+    def fix_schemas_allowed_for_csv_upload(  # pylint: disable=invalid-name
         self, data: Dict[str, Any], **kwargs: Any
     ) -> Dict[str, Any]:
         """
@@ -626,10 +638,10 @@ class ImportV1DatabaseExtraSchema(Schema):
     cost_estimate_enabled = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
+    disable_data_preview = fields.Boolean(required=False)
 
 
 class ImportV1DatabaseSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
     @pre_load
     def fix_allow_csv_upload(
         self, data: Dict[str, Any], **kwargs: Any
@@ -660,7 +672,6 @@ class ImportV1DatabaseSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
 
-    # pylint: disable=no-self-use, unused-argument
     @validates_schema
     def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
         """If sqlalchemy_uri has a masked password, password is required"""

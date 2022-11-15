@@ -42,6 +42,7 @@ import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
 import {
   testDatabaseConnection,
@@ -58,13 +59,14 @@ import {
   DatabaseForm,
   CONFIGURATION_METHOD,
   CatalogObject,
+  Engines,
+  ExtraJson,
 } from 'src/views/CRUD/data/database/types';
 import Loading from 'src/components/Loading';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
-  antDErrorAlertStyles,
   antDAlertStyles,
   antdWarningAlertStyles,
   StyledAlertMargin,
@@ -87,10 +89,7 @@ import {
 } from './styles';
 import ModalHeader, { DOCUMENTATION_LINK } from './ModalHeader';
 
-enum Engines {
-  GSheet = 'gsheets',
-  Snowflake = 'snowflake',
-}
+const DEFAULT_EXTRA = JSON.stringify({ allows_virtual_table_explore: true });
 
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
@@ -116,17 +115,23 @@ const TabsStyled = styled(Tabs)`
   }
 `;
 
+const ErrorAlertContainer = styled.div`
+  ${({ theme }) => `
+    margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  `};
+`;
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  onDatabaseAdd?: (database?: DatabaseObject) => void; // TODO: should we add a separate function for edit?
+  onDatabaseAdd?: (database?: DatabaseObject) => void;
   onHide: () => void;
   show: boolean;
   databaseId: number | undefined; // If included, will go into edit mode
   dbEngine: string | undefined; // if included goto step 2 with engine already set
 }
 
-enum ActionType {
+export enum ActionType {
   configMethodChange,
   dbSelected,
   editorChange,
@@ -151,7 +156,7 @@ interface DBReducerPayloadType {
   value?: string;
 }
 
-type DBReducerActionType =
+export type DBReducerActionType =
   | {
       type:
         | ActionType.extraEditorChange
@@ -173,6 +178,7 @@ type DBReducerActionType =
         database_name?: string;
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
+        engine_information?: {};
       };
     }
   | {
@@ -198,7 +204,7 @@ const StyledBtns = styled.div`
   margin-left: ${({ theme }) => theme.gridUnit * 3}px;
 `;
 
-function dbReducer(
+export function dbReducer(
   state: Partial<DatabaseObject> | null,
   action: DBReducerActionType,
 ): Partial<DatabaseObject> | null {
@@ -207,54 +213,56 @@ function dbReducer(
   };
   let query = {};
   let query_input = '';
-  let deserializeExtraJSON = { allows_virtual_table_explore: true };
-  let extra_json: DatabaseObject['extra_json'];
+  let parametersCatalog;
+  const extraJson: ExtraJson = JSON.parse(trimmedState.extra || '{}');
 
   switch (action.type) {
     case ActionType.extraEditorChange:
+      // "extra" payload in state is a string
       return {
         ...trimmedState,
-        extra_json: {
-          ...trimmedState.extra_json,
+        extra: JSON.stringify({
+          ...extraJson,
           [action.payload.name]: action.payload.json,
-        },
+        }),
       };
     case ActionType.extraInputChange:
+      // "extra" payload in state is a string
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
       ) {
         return {
           ...trimmedState,
-          extra_json: {
-            ...trimmedState.extra_json,
+          extra: JSON.stringify({
+            ...extraJson,
             metadata_cache_timeout: {
-              ...trimmedState.extra_json?.metadata_cache_timeout,
+              ...extraJson?.metadata_cache_timeout,
               [action.payload.name]: action.payload.value,
             },
-          },
+          }),
         };
       }
       if (action.payload.name === 'schemas_allowed_for_file_upload') {
         return {
           ...trimmedState,
-          extra_json: {
-            ...trimmedState.extra_json,
-            schemas_allowed_for_file_upload: (action.payload.value || '').split(
-              ',',
-            ),
-          },
+          extra: JSON.stringify({
+            ...extraJson,
+            schemas_allowed_for_file_upload: (action.payload.value || '')
+              .split(',')
+              .filter(schema => schema !== ''),
+          }),
         };
       }
       return {
         ...trimmedState,
-        extra_json: {
-          ...trimmedState.extra_json,
+        extra: JSON.stringify({
+          ...extraJson,
           [action.payload.name]:
             action.payload.type === 'checkbox'
               ? action.payload.checked
               : action.payload.value,
-        },
+        }),
       };
     case ActionType.inputChange:
       if (action.payload.type === 'checkbox') {
@@ -268,26 +276,36 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.parametersChange:
+      // catalog params will always have a catalog state for
+      // dbs that use a catalog, i.e., gsheets, even if the
+      // fields are empty strings
       if (
-        trimmedState.catalog !== undefined &&
-        action.payload.type?.startsWith('catalog')
+        action.payload.type?.startsWith('catalog') &&
+        trimmedState.catalog !== undefined
       ) {
         // Formatting wrapping google sheets table catalog
+        const catalogCopy: CatalogObject[] = [...trimmedState.catalog];
         const idx = action.payload.type?.split('-')[1];
-        const catalogToUpdate = trimmedState?.catalog[idx] || {};
+        const catalogToUpdate: CatalogObject = catalogCopy[idx] || {};
         catalogToUpdate[action.payload.name] = action.payload.value;
 
-        const paramatersCatalog = {};
+        // insert updated catalog to existing state
+        catalogCopy.splice(parseInt(idx, 10), 1, catalogToUpdate);
+
+        // format catalog for state
         // eslint-disable-next-line array-callback-return
-        trimmedState.catalog?.map((item: CatalogObject) => {
-          paramatersCatalog[item.name] = item.value;
-        });
+        parametersCatalog = catalogCopy.reduce((obj, item: any) => {
+          const catalog = { ...obj };
+          catalog[item.name] = item.value;
+          return catalog;
+        }, {});
 
         return {
           ...trimmedState,
+          catalog: catalogCopy,
           parameters: {
             ...trimmedState.parameters,
-            catalog: paramatersCatalog,
+            catalog: parametersCatalog,
           },
         };
       }
@@ -298,6 +316,7 @@ function dbReducer(
           [action.payload.name]: action.payload.value,
         },
       };
+
     case ActionType.addTableCatalogSheet:
       if (trimmedState.catalog !== undefined) {
         return {
@@ -334,22 +353,6 @@ function dbReducer(
         [action.payload.name]: action.payload.value,
       };
     case ActionType.fetched:
-      // convert all the keys in this payload into strings
-      if (action.payload.extra) {
-        extra_json = {
-          ...JSON.parse(action.payload.extra || ''),
-        } as DatabaseObject['extra_json'];
-
-        deserializeExtraJSON = {
-          ...deserializeExtraJSON,
-          ...JSON.parse(action.payload.extra || ''),
-          metadata_params: JSON.stringify(extra_json?.metadata_params),
-          engine_params: JSON.stringify(extra_json?.engine_params),
-          schemas_allowed_for_file_upload:
-            extra_json?.schemas_allowed_for_file_upload,
-        };
-      }
-
       // convert query to a string and store in query_input
       query = action.payload?.parameters?.query || {};
       query_input = Object.entries(query)
@@ -357,41 +360,49 @@ function dbReducer(
         .join('&');
 
       if (
-        action.payload.encrypted_extra &&
+        action.payload.masked_encrypted_extra &&
         action.payload.configuration_method ===
           CONFIGURATION_METHOD.DYNAMIC_FORM
       ) {
-        const engineParamsCatalog = Object.entries(
-          extra_json?.engine_params?.catalog || {},
-        ).map(([key, value]) => ({
-          name: key,
-          value,
-        }));
+        // "extra" payload from the api is a string
+        const extraJsonPayload: ExtraJson = {
+          ...JSON.parse((action.payload.extra as string) || '{}'),
+        };
+
+        const payloadCatalog = extraJsonPayload.engine_params?.catalog;
+
+        const engineRootCatalog = Object.entries(payloadCatalog || {}).map(
+          ([name, value]: string[]) => ({ name, value }),
+        );
+
         return {
           ...action.payload,
           engine: action.payload.backend || trimmedState.engine,
           configuration_method: action.payload.configuration_method,
-          extra_json: deserializeExtraJSON,
-          catalog: engineParamsCatalog,
-          parameters: action.payload.parameters || trimmedState.parameters,
+          catalog: engineRootCatalog,
+          parameters: {
+            ...(action.payload.parameters || trimmedState.parameters),
+            catalog: payloadCatalog,
+          },
           query_input,
         };
       }
       return {
         ...action.payload,
-        encrypted_extra: action.payload.encrypted_extra || '',
+        masked_encrypted_extra: action.payload.masked_encrypted_extra || '',
         engine: action.payload.backend || trimmedState.engine,
         configuration_method: action.payload.configuration_method,
-        extra_json: deserializeExtraJSON,
         parameters: action.payload.parameters || trimmedState.parameters,
         query_input,
       };
 
     case ActionType.dbSelected:
+      // set initial state for blank form
       return {
         ...action.payload,
+        extra: DEFAULT_EXTRA,
+        expose_in_sqllab: true,
       };
-
     case ActionType.configMethodChange:
       return {
         ...action.payload,
@@ -404,16 +415,6 @@ function dbReducer(
 }
 
 const DEFAULT_TAB_KEY = '1';
-
-const serializeExtra = (extraJson: DatabaseObject['extra_json']) =>
-  JSON.stringify({
-    ...extraJson,
-    metadata_params: JSON.parse((extraJson?.metadata_params as string) || '{}'),
-    engine_params: JSON.parse((extraJson?.engine_params as string) || '{}'),
-    schemas_allowed_for_file_upload: (
-      extraJson?.schemas_allowed_for_file_upload || []
-    ).filter(schema => schema !== ''),
-  });
 
 const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   addDangerToast,
@@ -445,6 +446,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [validationErrors, getValidation, setValidationErrors] =
     useDatabaseValidation();
   const [hasConnectedDb, setHasConnectedDb] = useState<boolean>(false);
+  const [showCTAbtns, setShowCTAbtns] = useState(false);
   const [dbName, setDbName] = useState('');
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
@@ -474,7 +476,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
   const isEmpty = (data?: Object | null) =>
-    data && Object.keys(data).length === 0;
+    !data || (data && Object.keys(data).length === 0);
 
   const dbModel: DatabaseForm =
     availableDbs?.databases?.find(
@@ -494,8 +496,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       sqlalchemy_uri: db?.sqlalchemy_uri || '',
       database_name: db?.database_name?.trim() || undefined,
       impersonate_user: db?.impersonate_user || undefined,
-      extra: serializeExtra(db?.extra_json) || undefined,
-      encrypted_extra: db?.encrypted_extra || '',
+      extra: db?.extra,
+      masked_encrypted_extra: db?.masked_encrypted_extra || '',
       server_cert: db?.server_cert || undefined,
     };
     setTestInProgress(true);
@@ -510,6 +512,18 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         addSuccessToast(errorMsg);
       },
     );
+  };
+
+  const getPlaceholder = (field: string) => {
+    if (field === 'database') {
+      switch (db?.engine) {
+        case Engines.Snowflake:
+          return t('e.g. xy12345.us-east-2.aws');
+        default:
+          return t('e.g. world_population');
+      }
+    }
+    return undefined;
   };
 
   const removeFile = (removedFile: UploadFile) => {
@@ -550,40 +564,48 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const onSave = async () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...update } = db || {};
     // Clone DB object
-    const dbToUpdate = JSON.parse(JSON.stringify(update));
+    const dbToUpdate = { ...(db || {}) };
 
     if (dbToUpdate.configuration_method === CONFIGURATION_METHOD.DYNAMIC_FORM) {
       // Validate DB before saving
+      if (dbToUpdate?.parameters?.catalog) {
+        // need to stringify gsheets catalog to allow it to be serialized
+        dbToUpdate.extra = JSON.stringify({
+          ...JSON.parse(dbToUpdate.extra || '{}'),
+          engine_params: {
+            catalog: dbToUpdate.parameters.catalog,
+          },
+        });
+      }
       const errors = await getValidation(dbToUpdate, true);
       if ((validationErrors && !isEmpty(validationErrors)) || errors) {
         return;
       }
       const parameters_schema = isEditMode
-        ? dbToUpdate.parameters_schema.properties
+        ? dbToUpdate.parameters_schema?.properties
         : dbModel?.parameters.properties;
       const additionalEncryptedExtra = JSON.parse(
-        dbToUpdate.encrypted_extra || '{}',
+        dbToUpdate.masked_encrypted_extra || '{}',
       );
       const paramConfigArray = Object.keys(parameters_schema || {});
 
       paramConfigArray.forEach(paramConfig => {
         /*
-         * Parameters that are annotated with the `x-encrypted-extra` properties should be moved to
-         * `encrypted_extra`, so that they are stored encrypted in the backend when the database is
-         * created or edited.
+         * Parameters that are annotated with the `x-encrypted-extra` properties should be
+         * moved to `masked_encrypted_extra`, so that they are stored encrypted in the
+         * backend when the database is created or edited.
          */
         if (
           parameters_schema[paramConfig]['x-encrypted-extra'] &&
           dbToUpdate.parameters?.[paramConfig]
         ) {
           if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
-            // add new encrypted extra to encrypted_extra object
+            // add new encrypted extra to masked_encrypted_extra object
             additionalEncryptedExtra[paramConfig] =
               dbToUpdate.parameters?.[paramConfig];
-            // The backend expects `encrypted_extra` as a string for historical reasons.
+            // The backend expects `masked_encrypted_extra` as a string for historical
+            // reasons.
             dbToUpdate.parameters[paramConfig] = JSON.stringify(
               dbToUpdate.parameters[paramConfig],
             );
@@ -595,7 +617,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }
       });
       // cast the new encrypted extra object into a string
-      dbToUpdate.encrypted_extra = JSON.stringify(additionalEncryptedExtra);
+      dbToUpdate.masked_encrypted_extra = JSON.stringify(
+        additionalEncryptedExtra,
+      );
       // this needs to be added by default to gsheets
       if (dbToUpdate.engine === Engines.GSheet) {
         dbToUpdate.impersonate_user = true;
@@ -604,16 +628,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
     if (dbToUpdate?.parameters?.catalog) {
       // need to stringify gsheets catalog to allow it to be seralized
-      dbToUpdate.extra_json = {
-        engine_params: JSON.stringify({
+      dbToUpdate.extra = JSON.stringify({
+        ...JSON.parse(dbToUpdate.extra || '{}'),
+        engine_params: {
           catalog: dbToUpdate.parameters.catalog,
-        }),
-      };
-    }
-
-    if (dbToUpdate?.extra_json) {
-      // convert extra_json to back to string
-      dbToUpdate.extra = serializeExtra(dbToUpdate?.extra_json);
+        },
+      });
     }
 
     setLoading(true);
@@ -666,6 +686,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
     }
 
+    setShowCTAbtns(true);
     setEditNewDb(false);
     setLoading(false);
   };
@@ -701,7 +722,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const { engine, parameters } = selectedDbModel;
+      const { engine, parameters, engine_information } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -711,11 +732,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           configuration_method: isDynamic
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
+          engine_information,
         },
       });
-    }
 
-    setDB({ type: ActionType.addTableCatalogSheet });
+      if (engine === Engines.GSheet) {
+        // only create a catalog if the DB is Google Sheets
+        setDB({ type: ActionType.addTableCatalogSheet });
+      }
+    }
   };
 
   const renderAvailableSelector = () => (
@@ -808,6 +833,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (dbFetched) {
       fetchResource(dbFetched.id as number);
     }
+    setShowCTAbtns(false);
     setEditNewDb(true);
   };
 
@@ -836,7 +862,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderModalFooter = () => {
     if (db) {
-      // if db show back + connenct
+      // if db show back + connect
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
@@ -890,7 +916,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       );
     }
 
-    return [];
+    return <></>;
   };
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
@@ -1123,22 +1149,29 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   // eslint-disable-next-line consistent-return
   const errorAlert = () => {
     let alertErrors: string[] = [];
-    if (isEmpty(dbErrors) === false) {
-      alertErrors = typeof dbErrors === 'object' ? Object.values(dbErrors) : [];
-    } else if (db?.engine === Engines.Snowflake) {
+    if (!isEmpty(dbErrors)) {
+      alertErrors =
+        typeof dbErrors === 'object'
+          ? Object.values(dbErrors)
+          : typeof dbErrors === 'string'
+          ? [dbErrors]
+          : [];
+    } else if (!isEmpty(validationErrors)) {
       alertErrors =
         validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
-          ? [validationErrors?.description]
+          ? [
+              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
+            ]
           : [];
     }
 
     if (alertErrors.length) {
       return (
-        <Alert
-          type="error"
-          css={(theme: SupersetTheme) => antDErrorAlertStyles(theme)}
-          message={t('Database Creation Error')}
-          description={t(alertErrors[0])}
+        <ErrorMessageWithStackTrace
+          title={t('Database Creation Error')}
+          description={alertErrors[0]}
+          subtitle={validationErrors?.description}
+          copyText={validationErrors?.description}
         />
       );
     }
@@ -1156,24 +1189,25 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     <StyledBtns>
       <Button
         // eslint-disable-next-line no-return-assign
-        buttonStyle="default"
+        buttonStyle="secondary"
         onClick={() => {
+          setLoading(true);
           fetchAndSetDB();
-          window.location.href = '/tablemodelview/list';
+          window.location.href = '/tablemodelview/list#create';
         }}
       >
-        {' '}
-        {t('CREATE A DATASET')}{' '}
+        {t('CREATE DATASET')}
       </Button>
       <Button
-        buttonStyle="default"
+        buttonStyle="secondary"
         // eslint-disable-next-line no-return-assign
         onClick={() => {
+          setLoading(true);
           fetchAndSetDB();
           window.location.href = `/superset/sqllab/?db=true`;
         }}
       >
-        {t('QUERY DATA IN SQL LAB')}{' '}
+        {t('QUERY DATA IN SQL LAB')}
       </Button>
     </StyledBtns>
   );
@@ -1290,7 +1324,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       </Modal>
     );
   }
-
+  const modalFooter = isEditMode
+    ? renderEditModalFooter(db)
+    : renderModalFooter();
   return useTabLayout ? (
     <Modal
       css={(theme: SupersetTheme) => [
@@ -1311,7 +1347,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={
         <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
       }
-      footer={isEditMode ? renderEditModalFooter(db) : renderModalFooter()}
+      footer={modalFooter}
     >
       <StyledStickyHeader>
         <TabHeader>
@@ -1476,7 +1512,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {showDBError && errorAlert()}
+          {showDBError && (
+            <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
+          )}
         </Tabs.TabPane>
       </TabsStyled>
     </Modal>
@@ -1498,7 +1536,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       title={<h4>{t('Connect a database')}</h4>}
       footer={renderModalFooter()}
     >
-      {hasConnectedDb ? (
+      {!isLoading && hasConnectedDb ? (
         <>
           <ModalHeader
             isLoading={isLoading}
@@ -1510,7 +1548,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             dbModel={dbModel}
             editNewDb={editNewDb}
           />
-          {renderCTABtns()}
+          {showCTAbtns && renderCTABtns()}
           {renderFinishState()}
         </>
       ) : (
@@ -1603,6 +1641,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   }
                   getValidation={() => getValidation(db)}
                   validationErrors={validationErrors}
+                  getPlaceholder={getPlaceholder}
                 />
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
@@ -1637,7 +1676,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
                 {/* Step 2 */}
-                {showDBError && errorAlert()}
+                {showDBError && (
+                  <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
+                )}
               </>
             ))}
         </>

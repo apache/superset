@@ -99,9 +99,7 @@ FROM my_catalog.my_schema.my_table
     yield session
 
 
-def test_get_datasource_sqlatable(
-    app_context: None, session_with_data: Session
-) -> None:
+def test_get_datasource_sqlatable(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasource.dao import DatasourceDAO
 
@@ -116,7 +114,7 @@ def test_get_datasource_sqlatable(
     assert isinstance(result, SqlaTable)
 
 
-def test_get_datasource_query(app_context: None, session_with_data: Session) -> None:
+def test_get_datasource_query(session_with_data: Session) -> None:
     from superset.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import Query
 
@@ -128,9 +126,7 @@ def test_get_datasource_query(app_context: None, session_with_data: Session) -> 
     assert isinstance(result, Query)
 
 
-def test_get_datasource_saved_query(
-    app_context: None, session_with_data: Session
-) -> None:
+def test_get_datasource_saved_query(session_with_data: Session) -> None:
     from superset.datasource.dao import DatasourceDAO
     from superset.models.sql_lab import SavedQuery
 
@@ -144,43 +140,35 @@ def test_get_datasource_saved_query(
     assert isinstance(result, SavedQuery)
 
 
-def test_get_datasource_sl_table(app_context: None, session_with_data: Session) -> None:
+def test_get_datasource_sl_table(session_with_data: Session) -> None:
     from superset.datasource.dao import DatasourceDAO
     from superset.tables.models import Table
 
-    # todo(hugh): This will break once we remove the dual write
-    # update the datsource_id=1 and this will pass again
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SLTABLE,
-        datasource_id=2,
+        datasource_id=1,
         session=session_with_data,
     )
 
-    assert result.id == 2
+    assert result.id == 1
     assert isinstance(result, Table)
 
 
-def test_get_datasource_sl_dataset(
-    app_context: None, session_with_data: Session
-) -> None:
+def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
     from superset.datasets.models import Dataset
     from superset.datasource.dao import DatasourceDAO
 
-    # todo(hugh): This will break once we remove the dual write
-    # update the datsource_id=1 and this will pass again
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.DATASET,
-        datasource_id=2,
+        datasource_id=1,
         session=session_with_data,
     )
 
-    assert result.id == 2
+    assert result.id == 1
     assert isinstance(result, Dataset)
 
 
-def test_get_datasource_w_str_param(
-    app_context: None, session_with_data: Session
-) -> None:
+def test_get_datasource_w_str_param(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
     from superset.datasets.models import Dataset
     from superset.datasource.dao import DatasourceDAO
@@ -205,8 +193,20 @@ def test_get_datasource_w_str_param(
     )
 
 
-def test_get_all_datasources(app_context: None, session_with_data: Session) -> None:
+def test_get_all_datasources(session_with_data: Session) -> None:
     from superset.connectors.sqla.models import SqlaTable
 
     result = SqlaTable.get_all_datasources(session=session_with_data)
     assert len(result) == 1
+
+
+def test_not_found_datasource(session_with_data: Session) -> None:
+    from superset.dao.exceptions import DatasourceNotFound
+    from superset.datasource.dao import DatasourceDAO
+
+    with pytest.raises(DatasourceNotFound):
+        DatasourceDAO.get_datasource(
+            datasource_type="table",
+            datasource_id=500000,
+            session=session_with_data,
+        )

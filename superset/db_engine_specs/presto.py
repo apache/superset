@@ -15,14 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import logging
 import re
-import textwrap
 import time
+from abc import ABCMeta
 from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
+from textwrap import dedent
 from typing import Any, cast, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
 from urllib import parse
 
@@ -55,7 +58,6 @@ from superset.models.sql_types.presto_sql_types import (
     TinyInteger,
 )
 from superset.result_set import destringify
-from superset.sql_parse import ParsedQuery
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
 from superset.utils.core import ColumnSpec, GenericDataType
@@ -63,6 +65,12 @@ from superset.utils.core import ColumnSpec, GenericDataType
 if TYPE_CHECKING:
     # prevent circular imports
     from superset.models.core import Database
+
+    # need try/catch because pyhive may not be installed
+    try:
+        from pyhive.presto import Cursor  # pylint: disable=unused-import
+    except ImportError:
+        pass
 
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
     "line (?P<location>.+?): .*Column '(?P<column_name>.+?)' cannot be resolved"
@@ -142,11 +150,12 @@ def get_children(column: ResultSetColumnType) -> List[ResultSetColumnType]:
     raise Exception(f"Unknown type {type_}!")
 
 
-class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-methods
-    engine = "presto"
-    engine_name = "Presto"
-    allows_alias_to_source_column = False
+class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
+    """
+    A base class that share common functions between Presto and Trino
+    """
 
+    # pylint: disable=line-too-long
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "date_trunc('second', CAST({col} AS TIMESTAMP))",
@@ -157,11 +166,145 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         "P1M": "date_trunc('month', CAST({col} AS TIMESTAMP))",
         "P3M": "date_trunc('quarter', CAST({col} AS TIMESTAMP))",
         "P1Y": "date_trunc('year', CAST({col} AS TIMESTAMP))",
-        "P1W/1970-01-03T00:00:00Z": "date_add('day', 5, date_trunc('week', "
-        "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
-        "1969-12-28T00:00:00Z/P1W": "date_add('day', -1, date_trunc('week', "
-        "date_add('day', 1, CAST({col} AS TIMESTAMP))))",
+        # Week starting Sunday
+        "1969-12-28T00:00:00Z/P1W": "date_trunc('week', CAST({col} AS TIMESTAMP) + interval '1' day) - interval '1' day",  # noqa
+        # Week starting Monday
+        "1969-12-29T00:00:00Z/P1W": "date_trunc('week', CAST({col} AS TIMESTAMP))",
+        # Week ending Saturday
+        "P1W/1970-01-03T00:00:00Z": "date_trunc('week', CAST({col} AS TIMESTAMP) + interval '1' day) + interval '5' day",  # noqa
+        # Week ending Sunday
+        "P1W/1970-01-04T00:00:00Z": "date_trunc('week', CAST({col} AS TIMESTAMP)) + interval '6' day",  # noqa
     }
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        """
+        Convert a Python `datetime` object to a SQL expression.
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :param db_extra: The database extra object
+        :return: The SQL expression
+        Superset only defines time zone naive `datetime` objects, though this method
+        handles both time zone naive and aware conversions.
+        """
+        tt = target_type.upper()
+        if tt == utils.TemporalType.DATE:
+            return f"DATE '{dttm.date().isoformat()}'"
+        if tt in (
+            utils.TemporalType.TIMESTAMP,
+            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
+        ):
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
+        return None
+
+    @classmethod
+    def epoch_to_dttm(cls) -> str:
+        return "from_unixtime({col})"
+
+    @classmethod
+    def adjust_database_uri(
+        cls, uri: URL, selected_schema: Optional[str] = None
+    ) -> URL:
+        database = uri.database
+        if selected_schema and database:
+            selected_schema = parse.quote(selected_schema, safe="")
+            if "/" in database:
+                database = database.split("/")[0] + "/" + selected_schema
+            else:
+                database += "/" + selected_schema
+            uri = uri.set(database=database)
+
+        return uri
+
+    @classmethod
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
+        """
+        Run a SQL query that estimates the cost of a given statement.
+        :param statement: A single SQL statement
+        :param cursor: Cursor instance
+        :return: JSON response from Trino
+        """
+        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
+        cursor.execute(sql)
+
+        # the output from Trino is a single column and a single row containing
+        # JSON:
+        #
+        #   {
+        #     ...
+        #     "estimate" : {
+        #       "outputRowCount" : 8.73265878E8,
+        #       "outputSizeInBytes" : 3.41425774958E11,
+        #       "cpuCost" : 3.41425774958E11,
+        #       "maxMemory" : 0.0,
+        #       "networkCost" : 3.41425774958E11
+        #     }
+        #   }
+        result = json.loads(cursor.fetchone()[0])
+        return result
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: List[Dict[str, Any]]
+    ) -> List[Dict[str, str]]:
+        """
+        Format cost estimate.
+        :param raw_cost: JSON estimate from Trino
+        :return: Human readable cost estimate
+        """
+
+        def humanize(value: Any, suffix: str) -> str:
+            try:
+                value = int(value)
+            except ValueError:
+                return str(value)
+
+            prefixes = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
+            prefix = ""
+            to_next_prefix = 1000
+            while value > to_next_prefix and prefixes:
+                prefix = prefixes.pop(0)
+                value //= to_next_prefix
+
+            return f"{value} {prefix}{suffix}"
+
+        cost = []
+        columns = [
+            ("outputRowCount", "Output count", " rows"),
+            ("outputSizeInBytes", "Output size", "B"),
+            ("cpuCost", "CPU cost", ""),
+            ("maxMemory", "Max memory", "B"),
+            ("networkCost", "Network cost", ""),
+        ]
+        for row in raw_cost:
+            estimate: Dict[str, float] = row.get("estimate", {})
+            statement_cost = {}
+            for key, label, suffix in columns:
+                if key in estimate:
+                    statement_cost[label] = humanize(estimate[key], suffix).strip()
+            cost.append(statement_cost)
+
+        return cost
+
+    @classmethod
+    @cache_manager.data_cache.memoize()
+    def get_function_names(cls, database: Database) -> List[str]:
+        """
+        Get a list of function names that are able to be called on the database.
+        Used for SQL Lab autocomplete.
+
+        :param database: The database to get functions for
+        :return: A list of function names useable in the database
+        """
+        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
+
+
+class PrestoEngineSpec(PrestoBaseEngineSpec):
+    engine = "presto"
+    engine_name = "Presto"
+    allows_alias_to_source_column = False
 
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
@@ -249,46 +392,84 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def get_table_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: Optional[str],
     ) -> List[str]:
-        tables = super().get_table_names(database, inspector, schema)
-        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
-            return tables
+        """
+        Get all the real table names within the specified schema.
 
-        views = set(cls.get_view_names(database, inspector, schema))
-        actual_tables = set(tables) - views
-        return list(actual_tables)
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        Note that PyHive's Hive and Presto SQLAlchemy dialects do not adhere to the
+        specification where the `get_table_names` method returns both real tables and
+        views. Futhermore the dialects wrongfully infer the request as schema agnostic
+        when the schema is omitted.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The physical table names
+        """
+
+        return sorted(
+            list(
+                set(super().get_table_names(database, inspector, schema))
+                - set(cls.get_view_names(database, inspector, schema))
+            )
+        )
 
     @classmethod
     def get_view_names(
-        cls, database: "Database", inspector: Inspector, schema: Optional[str]
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: Optional[str],
     ) -> List[str]:
-        """Returns an empty list
-
-        get_table_names() function returns all table names and view names,
-        and get_view_names() is not implemented in sqlalchemy_presto.py
-        https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
         """
-        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
-            return []
+        Get all the view names within the specified schema.
+
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        Note that PyHive's Hive and Presto SQLAlchemy dialects do not implement the
+        `get_view_names` method. To ensure consistency with the `get_table_names` method
+        the request is deemed schema agnostic when the schema is omitted.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The view names
+        """
 
         if schema:
-            sql = (
-                "SELECT table_name FROM information_schema.views "
-                "WHERE table_schema=%(schema)s"
-            )
+            sql = dedent(
+                """
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = %(schema)s
+                AND table_type = 'VIEW'
+                """
+            ).strip()
             params = {"schema": schema}
         else:
-            sql = "SELECT table_name FROM information_schema.views"
+            sql = dedent(
+                """
+                SELECT table_name FROM information_schema.tables
+                WHERE table_type = 'VIEW'
+                """
+            ).strip()
             params = {}
 
         engine = cls.get_engine(database, schema=schema)
+
         with closing(engine.raw_connection()) as conn:
             cursor = conn.cursor()
             cursor.execute(sql, params)
             results = cursor.fetchall()
 
-        return [row[0] for row in results]
+        return sorted([row[0] for row in results])
 
     @classmethod
     def _create_column_info(
@@ -619,7 +800,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     @classmethod
     def select_star(  # pylint: disable=too-many-arguments
         cls,
-        database: "Database",
+        database: Database,
         table_name: str,
         engine: Engine,
         schema: Optional[str] = None,
@@ -652,142 +833,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             latest_partition,
             presto_cols,
         )
-
-    @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
-        """
-        Run a SQL query that estimates the cost of a given statement.
-
-        :param statement: A single SQL statement
-        :param cursor: Cursor instance
-        :return: JSON response from Presto
-        """
-        sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
-        cursor.execute(sql)
-
-        # the output from Presto is a single column and a single row containing
-        # JSON:
-        #
-        #   {
-        #     ...
-        #     "estimate" : {
-        #       "outputRowCount" : 8.73265878E8,
-        #       "outputSizeInBytes" : 3.41425774958E11,
-        #       "cpuCost" : 3.41425774958E11,
-        #       "maxMemory" : 0.0,
-        #       "networkCost" : 3.41425774958E11
-        #     }
-        #   }
-        result = json.loads(cursor.fetchone()[0])
-        return result
-
-    @classmethod
-    def query_cost_formatter(
-        cls, raw_cost: List[Dict[str, Any]]
-    ) -> List[Dict[str, str]]:
-        """
-        Format cost estimate.
-
-        :param raw_cost: JSON estimate from Presto
-        :return: Human readable cost estimate
-        """
-
-        def humanize(value: Any, suffix: str) -> str:
-            try:
-                value = int(value)
-            except ValueError:
-                return str(value)
-
-            prefixes = ["K", "M", "G", "T", "P", "E", "Z", "Y"]
-            prefix = ""
-            to_next_prefix = 1000
-            while value > to_next_prefix and prefixes:
-                prefix = prefixes.pop(0)
-                value //= to_next_prefix
-
-            return f"{value} {prefix}{suffix}"
-
-        cost = []
-        columns = [
-            ("outputRowCount", "Output count", " rows"),
-            ("outputSizeInBytes", "Output size", "B"),
-            ("cpuCost", "CPU cost", ""),
-            ("maxMemory", "Max memory", "B"),
-            ("networkCost", "Network cost", ""),
-        ]
-        for row in raw_cost:
-            estimate: Dict[str, float] = row.get("estimate", {})
-            statement_cost = {}
-            for key, label, suffix in columns:
-                if key in estimate:
-                    statement_cost[label] = humanize(estimate[key], suffix).strip()
-            cost.append(statement_cost)
-
-        return cost
-
-    @classmethod
-    def adjust_database_uri(
-        cls, uri: URL, selected_schema: Optional[str] = None
-    ) -> URL:
-        database = uri.database
-        if selected_schema and database:
-            selected_schema = parse.quote(selected_schema, safe="")
-            if "/" in database:
-                database = database.split("/")[0] + "/" + selected_schema
-            else:
-                database += "/" + selected_schema
-            uri = uri.set(database=database)
-
-        return uri
-
-    @classmethod
-    def convert_dttm(
-        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
-        """
-        Convert a Python `datetime` object to a SQL expression.
-
-        :param target_type: The target type of expression
-        :param dttm: The datetime object
-        :param db_extra: The database extra object
-        :return: The SQL expression
-
-        Superset only defines time zone naive `datetime` objects, though this method
-        handles both time zone naive and aware conversions.
-        """
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
-            return f"""DATE '{dttm.date().isoformat()}'"""
-        if tt in (
-            utils.TemporalType.TIMESTAMP,
-            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
-        ):
-            return f"""TIMESTAMP '{dttm.isoformat(timespec="milliseconds", sep=" ")}'"""
-        return None
-
-    @classmethod
-    def epoch_to_dttm(cls) -> str:
-        return "from_unixtime({col})"
-
-    @classmethod
-    def get_all_datasource_names(
-        cls, database: "Database", datasource_type: str
-    ) -> List[utils.DatasourceName]:
-        datasource_df = database.get_df(
-            "SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S "
-            "ORDER BY concat(table_schema, '.', table_name)".format(
-                datasource_type.upper()
-            ),
-            None,
-        )
-        datasource_names: List[utils.DatasourceName] = []
-        for _unused, row in datasource_df.iterrows():
-            datasource_names.append(
-                utils.DatasourceName(
-                    schema=row["table_schema"], table=row["table_name"]
-                )
-            )
-        return datasource_names
 
     @classmethod
     def expand_data(  # pylint: disable=too-many-locals
@@ -900,7 +945,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def extra_table_metadata(
-        cls, database: "Database", table_name: str, schema_name: Optional[str]
+        cls, database: Database, table_name: str, schema_name: Optional[str]
     ) -> Dict[str, Any]:
         metadata = {}
 
@@ -932,7 +977,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def get_create_view(
-        cls, database: "Database", schema: Optional[str], table: str
+        cls, database: Database, schema: Optional[str], table: str
     ) -> Optional[str]:
         """
         Return a CREATE VIEW statement, or `None` if not a view.
@@ -957,8 +1002,23 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         return rows[0][0]
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+    def get_tracking_url(cls, cursor: "Cursor") -> Optional[str]:
+        try:
+            if cursor.last_query_id:
+                # pylint: disable=protected-access, line-too-long
+                return f"{cursor._protocol}://{cursor._host}:{cursor._port}/ui/query.html?{cursor.last_query_id}"
+        except AttributeError:
+            pass
+        return None
+
+    @classmethod
+    def handle_cursor(cls, cursor: "Cursor", query: Query, session: Session) -> None:
         """Updates progress information"""
+        tracking_url = cls.get_tracking_url(cursor)
+        if tracking_url:
+            query.tracking_url = tracking_url
+            session.commit()
+
         query_id = query.id
         poll_interval = query.database.connect_args.get(
             "poll_interval", current_app.config["PRESTO_POLL_INTERVAL"]
@@ -1022,7 +1082,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
     def _partition_query(  # pylint: disable=too-many-arguments,too-many-locals
         cls,
         table_name: str,
-        database: "Database",
+        database: Database,
         limit: int = 0,
         order_by: Optional[List[Tuple[str, bool]]] = None,
         filters: Optional[Dict[Any, Any]] = None,
@@ -1065,7 +1125,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
             else f"SHOW PARTITIONS FROM {table_name}"
         )
 
-        sql = textwrap.dedent(
+        sql = dedent(
             f"""\
             {partition_select_clause}
             {where_clause}
@@ -1080,7 +1140,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         cls,
         table_name: str,
         schema: Optional[str],
-        database: "Database",
+        database: Database,
         query: Select,
         columns: Optional[List[Dict[str, str]]] = None,
     ) -> Optional[Select]:
@@ -1121,7 +1181,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         cls,
         table_name: str,
         schema: Optional[str],
-        database: "Database",
+        database: Database,
         show_first: bool = False,
     ) -> Tuple[List[str], Optional[List[str]]]:
         """Returns col name and the latest (max) partition value for a table
@@ -1164,7 +1224,7 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
 
     @classmethod
     def latest_sub_partition(
-        cls, table_name: str, schema: Optional[str], database: "Database", **kwargs: Any
+        cls, table_name: str, schema: Optional[str], database: Database, **kwargs: Any
     ) -> Any:
         """Returns the latest (max) partition value for a table
 
@@ -1214,23 +1274,6 @@ class PrestoEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-metho
         if df.empty:
             return ""
         return df.to_dict()[field_to_return][0]
-
-    @classmethod
-    @cache_manager.data_cache.memoize()
-    def get_function_names(cls, database: "Database") -> List[str]:
-        """
-        Get a list of function names that are able to be called on the database.
-        Used for SQL Lab autocomplete.
-
-        :param database: The database to get functions for
-        :return: A list of function names useable in the database
-        """
-        return database.get_df("SHOW FUNCTIONS")["Function"].tolist()
-
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return super().is_readonly_query(parsed_query) or parsed_query.is_show()
 
     @classmethod
     def get_column_spec(

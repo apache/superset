@@ -54,7 +54,7 @@ const initialState = {
   },
 };
 
-const store = mockStore(initialState);
+const initialStore = mockStore(initialState);
 
 const defaultProps = {
   onHide: () => ({}),
@@ -79,16 +79,36 @@ const mockDashboardData = {
   result: [{ id: 'id', dashboard_title: 'dashboard title' }],
 };
 
+const queryStore = mockStore({
+  chart: {},
+  saveModal: {
+    dashboards: [],
+  },
+  explore: {
+    datasource: { name: 'test', type: 'query' },
+    slice: null,
+    alert: null,
+  },
+  user: {
+    userId: 1,
+  },
+});
+
+const queryDefaultProps = {
+  ...defaultProps,
+  form_data: { datasource: '107__query', url_params: { foo: 'bar' } },
+};
+
 const fetchDashboardsEndpoint = `glob:*/dashboardasync/api/read?_flt_0_owners=${1}`;
 
 beforeAll(() => fetchMock.get(fetchDashboardsEndpoint, mockDashboardData));
 
 afterAll(() => fetchMock.restore());
 
-const getWrapper = () =>
+const getWrapper = (props = defaultProps, store = initialStore) =>
   shallow(
     <BrowserRouter>
-      <SaveModal {...defaultProps} store={store} />
+      <SaveModal {...props} store={store} />
     </BrowserRouter>,
   )
     .dive()
@@ -168,7 +188,7 @@ test('sets action when overwriting slice', () => {
 test('fetches dashboards on component mount', () => {
   sinon.spy(defaultProps.actions, 'fetchDashboards');
   mount(
-    <Provider store={store}>
+    <Provider store={initialStore}>
       <SaveModal {...defaultProps} />
     </Provider>,
   );
@@ -197,4 +217,10 @@ test('removes alert', () => {
   expect(defaultProps.actions.removeSaveModalAlert.callCount).toBe(1);
   expect(wrapper.state().alert).toBeNull();
   defaultProps.actions.removeSaveModalAlert.restore();
+});
+
+test('set dataset name when chart source is query', () => {
+  const wrapper = getWrapper(queryDefaultProps, queryStore);
+  expect(wrapper.find('[data-test="new-dataset-name"]')).toExist();
+  expect(wrapper.state().datasetName).toBe('test');
 });

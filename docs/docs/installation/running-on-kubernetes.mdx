@@ -63,7 +63,7 @@ superset-worker-75b48bbcc-qrq49         1/1     Running     0          4m12s
 
 The exact list will depend on some of your specific configuration overrides but you should generally expect:
 
-- N `superset-xxxx-yyyy` and `superset-worker-xxxx-yyyy` pods (depending on your `replicaCount` value)
+- N `superset-xxxx-yyyy` and `superset-worker-xxxx-yyyy` pods (depending on your `supersetNode.replicaCount` and `supersetWorker.replicaCount` values)
 - 1 `superset-postgresql-0` depending on your postgres settings
 - 1 `superset-redis-master-0` depending on your redis settings
 - 1 `superset-celerybeat-xxxx-yyyy` pod if you have `supersetCeleryBeat.enabled = true` in your values overrides

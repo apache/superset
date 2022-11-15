@@ -21,9 +21,9 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import RefreshLabel from 'src/components/RefreshLabel';
 
-test('renders with default props', () => {
+test('renders with default props', async () => {
   render(<RefreshLabel tooltipContent="Tooltip" onClick={jest.fn()} />);
-  const refresh = screen.getByRole('button');
+  const refresh = await screen.findByRole('button');
   expect(refresh).toBeInTheDocument();
   userEvent.hover(refresh);
 });
@@ -38,10 +38,10 @@ test('renders tooltip on hover', async () => {
   expect(tooltip).toHaveTextContent(tooltipText);
 });
 
-test('triggers on click event', () => {
+test('triggers on click event', async () => {
   const onClick = jest.fn();
   render(<RefreshLabel tooltipContent="Tooltip" onClick={onClick} />);
-  const refresh = screen.getByRole('button');
+  const refresh = await screen.findByRole('button');
   userEvent.click(refresh);
   expect(onClick).toHaveBeenCalled();
 });

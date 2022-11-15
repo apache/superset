@@ -76,6 +76,7 @@ export const databaseField = ({
   changeMethods,
   getValidation,
   validationErrors,
+  placeholder,
   db,
 }: FieldPropTypes) => (
   <ValidatedInput
@@ -85,10 +86,10 @@ export const databaseField = ({
     value={db?.parameters?.database}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.database}
-    placeholder={t('e.g. world_population')}
+    placeholder={placeholder ?? t('e.g. world_population')}
     label={t('Database name')}
     onChange={changeMethods.onParametersChange}
-    helpText={t('Copy the name of the  database you are trying to connect to.')}
+    helpText={t('Copy the name of the database you are trying to connect to.')}
   />
 );
 export const usernameField = ({

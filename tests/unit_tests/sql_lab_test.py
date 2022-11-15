@@ -63,7 +63,6 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
 
 def test_execute_sql_statement_with_rls(
     mocker: MockerFixture,
-    app_context: None,
 ) -> None:
     """
     Test for `execute_sql_statement` when an RLS rule is in place.
@@ -118,7 +117,6 @@ def test_execute_sql_statement_with_rls(
 def test_sql_lab_insert_rls(
     mocker: MockerFixture,
     session: Session,
-    app_context: None,
 ) -> None:
     """
     Integration test for `insert_rls`.

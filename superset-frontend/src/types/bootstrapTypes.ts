@@ -64,6 +64,16 @@ export type DashboardResponse = {
   result: DashboardData[];
 };
 
+export type ChartData = {
+  slice_name: string;
+  created_on_delta_humanized?: string;
+  url: string;
+};
+
+export type ChartResponse = {
+  result: ChartData[];
+};
+
 export interface CommonBootstrapData {
   flash_messages: string[][];
   conf: JsonObject;

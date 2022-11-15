@@ -70,6 +70,7 @@ test('creates hydrate action from initial data', () => {
         saveModal: {
           dashboards: [],
           saveModalAlert: null,
+          isVisible: false,
         },
         explore: {
           can_add: false,
@@ -82,11 +83,132 @@ test('creates hydrate action from initial data', () => {
           controls: expect.any(Object),
           form_data: exploreInitialData.form_data,
           slice: exploreInitialData.slice,
-          controlsTransferred: [],
           standalone: null,
           force: null,
+          saveAction: null,
+          common: {},
         },
       },
+    }),
+  );
+});
+
+test('creates hydrate action with existing state', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: { controlsTransferred: ['all_columns'] },
+  }));
+  // ignore type check - we dont need exact explore state for this test
+  // @ts-ignore
+  hydrateExplore(exploreInitialData)(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: {
+        charts: {
+          371: {
+            id: 371,
+            chartAlert: null,
+            chartStatus: null,
+            chartStackTrace: null,
+            chartUpdateEndTime: null,
+            chartUpdateStartTime: 0,
+            latestQueryFormData: {
+              cache_timeout: undefined,
+              datasource: '8__table',
+              slice_id: 371,
+              url_params: undefined,
+              viz_type: 'table',
+            },
+            sliceFormData: {
+              cache_timeout: undefined,
+              datasource: '8__table',
+              slice_id: 371,
+              url_params: undefined,
+              viz_type: 'table',
+            },
+            queryController: null,
+            queriesResponse: null,
+            triggerQuery: false,
+            lastRendered: 0,
+          },
+        },
+        datasources: {
+          '8__table': exploreInitialData.dataset,
+        },
+        saveModal: {
+          dashboards: [],
+          saveModalAlert: null,
+          isVisible: false,
+        },
+        explore: {
+          can_add: false,
+          can_download: false,
+          can_overwrite: false,
+          isDatasourceMetaLoading: false,
+          isStarred: false,
+          triggerRender: false,
+          datasource: exploreInitialData.dataset,
+          controls: expect.any(Object),
+          controlsTransferred: ['all_columns'],
+          form_data: exploreInitialData.form_data,
+          slice: exploreInitialData.slice,
+          standalone: null,
+          force: null,
+          saveAction: null,
+          common: {},
+        },
+      },
+    }),
+  );
+});
+
+test('uses configured default time range if not set', () => {
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {
+      conf: {
+        DEFAULT_TIME_FILTER: 'Last year',
+      },
+    },
+    explore: {},
+  }));
+  // @ts-ignore
+  hydrateExplore({ form_data: {}, slice: {}, dataset: {} })(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          form_data: expect.objectContaining({
+            time_range: 'Last year',
+          }),
+        }),
+      }),
+    }),
+  );
+  const withTimeRangeSet = {
+    form_data: { time_range: 'Last day' },
+    slice: {},
+    dataset: {},
+  };
+  // @ts-ignore
+  hydrateExplore(withTimeRangeSet)(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          form_data: expect.objectContaining({
+            time_range: 'Last day',
+          }),
+        }),
+      }),
     }),
   );
 });

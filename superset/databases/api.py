@@ -19,8 +19,8 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, List, Optional
-from zipfile import ZipFile
+from typing import Any, cast, Dict, List, Optional
+from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -29,7 +29,10 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
-from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.exceptions import (
+    IncorrectFormatError,
+    NoValidFilesFoundError,
+)
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
@@ -72,10 +75,12 @@ from superset.databases.schemas import (
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.views.base import json_errors_response
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -120,23 +125,23 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_cvas",
         "allow_dml",
         "backend",
+        "driver",
         "force_ctas_schema",
-        "allow_multi_schema_metadata_fetch",
         "impersonate_user",
-        "encrypted_extra",
+        "masked_encrypted_extra",
         "extra",
         "parameters",
         "parameters_schema",
         "server_cert",
         "sqlalchemy_uri",
         "is_managed_externally",
+        "engine_information",
     ]
     list_columns = [
         "allow_file_upload",
         "allow_ctas",
         "allow_cvas",
         "allow_dml",
-        "allow_multi_schema_metadata_fetch",
         "allow_run_async",
         "allows_cost_estimate",
         "allows_subquery",
@@ -153,6 +158,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "force_ctas_schema",
         "id",
         "disable_data_preview",
+        "engine_information",
     ]
     add_columns = [
         "database_name",
@@ -167,7 +173,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "configuration_method",
         "force_ctas_schema",
         "impersonate_user",
-        "allow_multi_schema_metadata_fetch",
         "extra",
         "encrypted_extra",
         "server_cert",
@@ -221,7 +226,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(self) -> FlaskResponse:
         """Creates a new Database
         ---
         post:
@@ -270,11 +275,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if new_model.parameters:
                 item["parameters"] = new_model.parameters
 
+            if new_model.driver:
+                item["driver"] = new_model.driver
+
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
+        except SupersetErrorsException as ex:
+            return json_errors_response(errors=ex.errors, status=ex.status)
         except DatabaseCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
@@ -283,6 +293,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>", methods=["PUT"])
     @protect()
@@ -476,6 +488,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(
                 500, message="There was an error connecting to the database"
             )
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
@@ -534,6 +548,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SQLAlchemyError as ex:
             self.incr_stats("error", self.table_metadata.__name__)
             return self.response_422(error_msg_from_exception(ex))
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
+
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
@@ -594,7 +611,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("init", self.table_metadata.__name__)
 
         parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
-        table_name = parse_js_uri_path_item(table_name)  # type: ignore
+        table_name = cast(str, parse_js_uri_path_item(table_name))
         payload = database.db_engine_spec.extra_table_metadata(
             database, table_name, parsed_schema
         )
@@ -662,7 +679,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
 
-    @expose("/test_connection", methods=["POST"])
+    @expose("/test_connection/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -778,7 +795,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             },
         )
 
-    @expose("/<int:pk>/validate_sql", methods=["POST"])
+    @expose("/<int:pk>/validate_sql/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -958,6 +975,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         upload = request.files.get("formData")
         if not upload:
             return self.response_400()
+        if not is_zipfile(upload):
+            raise IncorrectFormatError("Not a ZIP file")
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
@@ -1065,6 +1084,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         parameters:
                           description: JSON schema defining the needed parameters
                           type: object
+                        engine_information:
+                          description: Dict with public properties form the DB Engine
+                          type: object
+                          properties:
+                            supports_file_upload:
+                              description: Whether the engine supports file uploads
+                              type: boolean
             400:
               $ref: '#/components/responses/400'
             500:
@@ -1081,10 +1107,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "engine": engine_spec.engine,
                 "available_drivers": sorted(drivers),
                 "preferred": engine_spec.engine_name in preferred_databases,
+                "engine_information": engine_spec.get_public_information(),
             }
 
-            if hasattr(engine_spec, "default_driver"):
-                payload["default_driver"] = engine_spec.default_driver  # type: ignore
+            if engine_spec.default_driver:
+                payload["default_driver"] = engine_spec.default_driver
 
             # show configuration parameters for DBs that support it
             if (
@@ -1121,7 +1148,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         return self.response(200, databases=response)
 
-    @expose("/validate_parameters", methods=["POST"])
+    @expose("/validate_parameters/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(

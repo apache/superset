@@ -14,31 +14,62 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
+from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app
-from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 
+from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.presto import PrestoEngineSpec
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.presto import PrestoBaseEngineSpec
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.models.core import Database
 
+    try:
+        from trino.dbapi import Cursor
+    except ImportError:
+        pass
+
 logger = logging.getLogger(__name__)
 
 
-class TrinoEngineSpec(PrestoEngineSpec):
+class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
-    engine_aliases = {"trinonative"}  # Required for backwards compatibility.
     engine_name = "Trino"
+
+    @classmethod
+    def extra_table_metadata(
+        cls,
+        database: Database,
+        table_name: str,
+        schema_name: Optional[str],
+    ) -> Dict[str, Any]:
+        metadata = {}
+
+        indexes = database.get_indexes(table_name, schema_name)
+        if indexes:
+            partitions_columns = []
+            for index in indexes:
+                if index.get("name") == "partition":
+                    partitions_columns += index.get("column_names", [])
+            metadata["partitions"] = {"cols": partitions_columns}
+
+        if database.has_view_by_name(table_name, schema_name):
+            metadata["view"] = database.inspector.get_view_definition(
+                table_name, schema_name
+            )
+
+        return metadata
 
     @classmethod
     def update_impersonation_config(
@@ -83,38 +114,53 @@ class TrinoEngineSpec(PrestoEngineSpec):
         return True
 
     @classmethod
-    def get_table_names(
-        cls,
-        database: "Database",
-        inspector: Inspector,
-        schema: Optional[str],
-    ) -> List[str]:
-        return BaseEngineSpec.get_table_names(
-            database=database,
-            inspector=inspector,
-            schema=schema,
-        )
+    def get_tracking_url(cls, cursor: Cursor) -> Optional[str]:
+        try:
+            return cursor.info_uri
+        except AttributeError:
+            try:
+                conn = cursor.connection
+                # pylint: disable=protected-access, line-too-long
+                return f"{conn.http_scheme}://{conn.host}:{conn.port}/ui/query.html?{cursor._query.query_id}"
+            except AttributeError:
+                pass
+        return None
 
     @classmethod
-    def get_view_names(
-        cls,
-        database: "Database",
-        inspector: Inspector,
-        schema: Optional[str],
-    ) -> List[str]:
-        return BaseEngineSpec.get_view_names(
-            database=database,
-            inspector=inspector,
-            schema=schema,
-        )
+    def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
+        tracking_url = cls.get_tracking_url(cursor)
+        if tracking_url:
+            query.tracking_url = tracking_url
+
+        # Adds the executed query id to the extra payload so the query can be cancelled
+        query.set_extra_json_key("cancel_query", cursor.stats["queryId"])
+
+        session.commit()
+        super().handle_cursor(cursor=cursor, query=query, session=session)
 
     @classmethod
-    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
-        """Updates progress information"""
-        BaseEngineSpec.handle_cursor(cursor=cursor, query=query, session=session)
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Trino `queryId`
+        :return: True if query cancelled successfully, False otherwise
+        """
+        try:
+            cursor.execute(
+                f"CALL system.runtime.kill_query(query_id => '{cancel_query_id}',"
+                "message => 'Query cancelled by Superset')"
+            )
+            cursor.fetchall()  # needed to trigger the call
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return True
 
     @staticmethod
-    def get_extra_params(database: "Database") -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> Dict[str, Any]:
         """
         Some databases require adding elements to connection parameters,
         like passing certificates to `extra`. This can be done here.
@@ -126,6 +172,8 @@ class TrinoEngineSpec(PrestoEngineSpec):
         engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
         connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
 
+        connect_args.setdefault("source", USER_AGENT)
+
         if database.server_cert:
             connect_args["http_scheme"] = "https"
             connect_args["verify"] = utils.create_ssl_cert_file(database.server_cert)
@@ -133,8 +181,9 @@ class TrinoEngineSpec(PrestoEngineSpec):
         return extra
 
     @staticmethod
-    def update_encrypted_extra_params(
-        database: "Database", params: Dict[str, Any]
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: Dict[str, Any],
     ) -> None:
         if not database.encrypted_extra:
             return
@@ -152,6 +201,8 @@ class TrinoEngineSpec(PrestoEngineSpec):
                 from trino.auth import BasicAuthentication as trino_auth  # noqa
             elif auth_method == "kerberos":
                 from trino.auth import KerberosAuthentication as trino_auth  # noqa
+            elif auth_method == "certificate":
+                from trino.auth import CertificateAuthentication as trino_auth  # noqa
             elif auth_method == "jwt":
                 from trino.auth import JWTAuthentication as trino_auth  # noqa
             else:
@@ -170,3 +221,12 @@ class TrinoEngineSpec(PrestoEngineSpec):
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
             raise ex
+
+    @classmethod
+    def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
+        # pylint: disable=import-outside-toplevel
+        from requests import exceptions as requests_exceptions
+
+        return {
+            requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
+        }

@@ -21,7 +21,7 @@ import unittest
 import copy
 from datetime import datetime
 from io import BytesIO
-from typing import Optional
+from typing import Any, Dict, Optional, List
 from unittest import mock
 from zipfile import ZipFile
 
@@ -38,8 +38,12 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,
 )
 from tests.integration_tests.test_app import app
-
+from tests.integration_tests.fixtures.energy_dashboard import (
+    load_energy_table_with_slice,
+    load_energy_table_data,
+)
 import pytest
+from superset.models.slice import Slice
 
 from superset.charts.data.commands.get_data_command import ChartDataCommand
 from superset.connectors.sqla.models import TableColumn, SqlaTable
@@ -760,6 +764,47 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert "':xyz:qwerty'" in result["query"]
         assert "':qwerty:'" in result["query"]
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_table_columns_without_metrics(self):
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = ["name", "gender"]
+        request_payload["queries"][0]["metrics"] = None
+        request_payload["queries"][0]["orderby"] = []
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        result = rv.json["result"][0]
+
+        assert rv.status_code == 200
+        assert "name" in result["colnames"]
+        assert "gender" in result["colnames"]
+        assert "name" in result["query"]
+        assert "gender" in result["query"]
+        assert list(result["data"][0].keys()) == ["name", "gender"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_with_adhoc_column_without_metrics(self):
+        request_payload = self.query_context_payload
+        request_payload["queries"][0]["columns"] = [
+            "name",
+            {
+                "label": "num divide by 10",
+                "sqlExpression": "num/10",
+                "expressionType": "SQL",
+            },
+        ]
+        request_payload["queries"][0]["metrics"] = None
+        request_payload["queries"][0]["orderby"] = []
+
+        rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
+        result = rv.json["result"][0]
+
+        assert rv.status_code == 200
+        assert "num divide by 10" in result["colnames"]
+        assert "name" in result["colnames"]
+        assert "num divide by 10" in result["query"]
+        assert "name" in result["query"]
+        assert list(result["data"][0].keys()) == ["name", "num divide by 10"]
+
 
 @pytest.mark.chart_data_flow
 class TestGetChartDataApi(BaseTestChartDataApi):
@@ -915,3 +960,191 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]
+
+
+@pytest.fixture()
+def physical_query_context(physical_dataset) -> Dict[str, Any]:
+    return {
+        "datasource": {
+            "type": physical_dataset.type,
+            "id": physical_dataset.id,
+        },
+        "queries": [
+            {
+                "columns": ["col1"],
+                "metrics": ["count"],
+                "orderby": [["col1", True]],
+            }
+        ],
+        "result_type": ChartDataResultType.FULL,
+        "force": True,
+    }
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 1234,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": None,
+        },
+    },
+)
+def test_cache_default_timeout(test_client, login_as_admin, physical_query_context):
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1234
+
+
+def test_custom_cache_timeout(test_client, login_as_admin, physical_query_context):
+    physical_query_context["custom_cache_timeout"] = 5678
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 5678
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "CACHE_DEFAULT_TIMEOUT": 100000,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 3456,
+        },
+    },
+)
+def test_data_cache_default_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+):
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 3456
+
+
+def test_chart_cache_timeout(
+    test_client,
+    login_as_admin,
+    physical_query_context,
+    load_energy_table_with_slice: List[Slice],
+):
+    # should override datasource cache timeout
+
+    slice_with_cache_timeout = load_energy_table_with_slice[0]
+    slice_with_cache_timeout.cache_timeout = 20
+    db.session.merge(slice_with_cache_timeout)
+
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 1254
+    db.session.merge(datasource)
+
+    db.session.commit()
+
+    physical_query_context["form_data"] = {"slice_id": slice_with_cache_timeout.id}
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 20
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 1010,
+        },
+    },
+)
+def test_chart_cache_timeout_not_present(
+    test_client, login_as_admin, physical_query_context
+):
+    # should use datasource cache, if it's present
+
+    datasource: SqlaTable = (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.id == physical_query_context["datasource"]["id"])
+        .first()
+    )
+    datasource.cache_timeout = 1980
+    db.session.merge(datasource)
+    db.session.commit()
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1980
+
+
+@mock.patch(
+    "superset.common.query_context_processor.config",
+    {
+        **app.config,
+        "DATA_CACHE_CONFIG": {
+            **app.config["DATA_CACHE_CONFIG"],
+            "CACHE_DEFAULT_TIMEOUT": 1010,
+        },
+    },
+)
+def test_chart_cache_timeout_chart_not_found(
+    test_client, login_as_admin, physical_query_context
+):
+    # should use default timeout
+
+    physical_query_context["form_data"] = {"slice_id": 0}
+
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+    assert rv.json["result"][0]["cache_timeout"] == 1010
+
+
+@pytest.mark.parametrize(
+    "status_code,extras",
+    [
+        (200, {"where": "1 = 1"}),
+        (200, {"having": "count(*) > 0"}),
+        (400, {"where": "col1 in (select distinct col1 from physical_dataset)"}),
+        (400, {"having": "count(*) > (select count(*) from physical_dataset)"}),
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=False)
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_chart_data_subquery_not_allowed(
+    test_client,
+    login_as_admin,
+    physical_dataset,
+    physical_query_context,
+    status_code,
+    extras,
+):
+    physical_query_context["queries"][0]["extras"] = extras
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == status_code
+
+
+@pytest.mark.parametrize(
+    "status_code,extras",
+    [
+        (200, {"where": "1 = 1"}),
+        (200, {"having": "count(*) > 0"}),
+        (200, {"where": "col1 in (select distinct col1 from physical_dataset)"}),
+        (200, {"having": "count(*) > (select count(*) from physical_dataset)"}),
+    ],
+)
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_chart_data_subquery_allowed(
+    test_client,
+    login_as_admin,
+    physical_dataset,
+    physical_query_context,
+    status_code,
+    extras,
+):
+    physical_query_context["queries"][0]["extras"] = extras
+    rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
+
+    assert rv.status_code == status_code

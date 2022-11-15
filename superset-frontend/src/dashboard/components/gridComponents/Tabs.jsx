@@ -49,7 +49,11 @@ const propTypes = {
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   activeTabs: PropTypes.arrayOf(PropTypes.string),
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
+  filterboxMigrationState: PropTypes.oneOf(
+    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
+      key => FILTER_BOX_MIGRATION_STATES[key],
+    ),
+  ),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
@@ -114,22 +118,7 @@ const StyledTabsContainer = styled.div`
 export class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
-    let tabIndex = Math.max(
-      0,
-      findTabIndexByComponentId({
-        currentComponent: props.component,
-        directPathToChild: props.directPathToChild,
-      }),
-    );
-    if (tabIndex === 0 && props.activeTabs?.length) {
-      props.component.children.forEach((tabId, index) => {
-        if (tabIndex === 0 && props.activeTabs.includes(tabId)) {
-          tabIndex = index;
-        }
-      });
-    }
-    const { children: tabIds } = props.component;
-    const activeKey = tabIds[tabIndex];
+    const { tabIndex, activeKey } = this.getTabInfo(props);
 
     this.state = {
       tabIndex,
@@ -164,6 +153,15 @@ export class Tabs extends React.PureComponent {
       this.setState(() => ({ tabIndex: maxIndex }));
     }
 
+    // reset tab index if dashboard was changed
+    if (nextProps.dashboardId !== this.props.dashboardId) {
+      const { tabIndex, activeKey } = this.getTabInfo(nextProps);
+      this.setState(() => ({
+        tabIndex,
+        activeKey,
+      }));
+    }
+
     if (nextProps.isComponentVisible) {
       const nextFocusComponent = getLeafComponentIdFromPath(
         nextProps.directPathToChild,
@@ -195,6 +193,30 @@ export class Tabs extends React.PureComponent {
       }
     }
   }
+
+  getTabInfo = props => {
+    let tabIndex = Math.max(
+      0,
+      findTabIndexByComponentId({
+        currentComponent: props.component,
+        directPathToChild: props.directPathToChild,
+      }),
+    );
+    if (tabIndex === 0 && props.activeTabs?.length) {
+      props.component.children.forEach((tabId, index) => {
+        if (tabIndex === 0 && props.activeTabs.includes(tabId)) {
+          tabIndex = index;
+        }
+      });
+    }
+    const { children: tabIds } = props.component;
+    const activeKey = tabIds[tabIndex];
+
+    return {
+      tabIndex,
+      activeKey,
+    };
+  };
 
   showDeleteConfirmModal = key => {
     const { component, deleteComponent } = this.props;
@@ -370,6 +392,7 @@ export class Tabs extends React.PureComponent {
                       availableColumnCount={availableColumnCount}
                       columnWidth={columnWidth}
                       onDropOnTab={this.handleDropOnTab}
+                      onHoverTab={() => this.handleClickTab(tabIndex)}
                       isFocused={activeKey === tabId}
                       isHighlighted={
                         activeKey !== tabId && tabsToHighlight?.includes(tabId)

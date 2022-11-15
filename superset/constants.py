@@ -30,6 +30,10 @@ CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"
 # UUID for the examples database
 EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
 
+PASSWORD_MASK = "X" * 10
+
+NO_TIME_RANGE = "No filter"
+
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """

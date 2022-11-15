@@ -26,7 +26,6 @@ from superset.commands.base import UpdateMixin
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.exceptions import SupersetSecurityException
-from superset.models.reports import ReportSchedule, ReportScheduleType, ReportState
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -37,6 +36,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.reports.dao import ReportScheduleDAO
+from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
 
 logger = logging.getLogger(__name__)
 

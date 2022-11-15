@@ -16,94 +16,84 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { parsePostForm } from 'cypress/utils';
 import {
-  TABBED_DASHBOARD,
+  parsePostForm,
   waitForChartLoad,
   getChartAliasBySpec,
-} from './dashboard.helper';
+} from 'cypress/utils';
+import { TABBED_DASHBOARD } from 'cypress/utils/urls';
 
 const TREEMAP = { name: 'Treemap', viz: 'treemap' };
 const FILTER_BOX = { name: 'Region Filter', viz: 'filter_box' };
 const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
 const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
+const BIG_NUMBER = { name: 'Number of Girls', viz: 'big_number_total' };
+const TABLE = { name: 'Names Sorted by Num in California', viz: 'table' };
+
+function topLevelTabs() {
+  cy.getBySel('dashboard-component-tabs')
+    .first()
+    .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
+    .as('top-level-tabs');
+}
+
+function resetTabs() {
+  topLevelTabs();
+  cy.get('@top-level-tabs').first().click();
+  waitForChartLoad(FILTER_BOX);
+  waitForChartLoad(TREEMAP);
+  waitForChartLoad(BIG_NUMBER);
+  waitForChartLoad(TABLE);
+}
 
 describe('Dashboard tabs', () => {
-  // cypress can not handle window.scrollTo
-  // https://github.com/cypress-io/cypress/issues/2761
-  // add this exception handler to pass test
-  const handleException = () => {
-    // return false to prevent the error from
-    // failing this test
-    cy.on('uncaught:exception', () => false);
-  };
-
-  beforeEach(() => {
-    cy.login();
-
+  before(() => {
     cy.visit(TABBED_DASHBOARD);
   });
 
-  it('should switch active tab on click', () => {
-    waitForChartLoad(FILTER_BOX);
-    waitForChartLoad(TREEMAP);
-
-    cy.get('[data-test="dashboard-component-tabs"]')
-      .first()
-      .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
-      .as('top-level-tabs');
-
-    cy.get('@top-level-tabs')
-      .first()
-      .click()
-      .should('have.class', 'ant-tabs-tab-active');
-    cy.get('@top-level-tabs')
-      .last()
-      .should('not.have.class', 'ant-tabs-tab-active');
-
-    cy.get('@top-level-tabs')
-      .last()
-      .click()
-      .should('have.class', 'ant-tabs-tab-active');
-    cy.get('@top-level-tabs')
-      .first()
-      .should('not.have.class', 'ant-tabs-tab-active');
+  beforeEach(() => {
+    cy.preserveLogin();
+    resetTabs();
   });
 
-  it('should load charts when tab is visible', () => {
-    // landing in first tab, should see 2 charts
-    waitForChartLoad(FILTER_BOX);
-    waitForChartLoad(TREEMAP);
-    cy.get('[data-test="grid-container"]')
-      .find('.box_plot')
-      .should('not.exist');
-    cy.get('[data-test="grid-container"]').find('.line').should('not.exist');
+  it('should switch tabs', () => {
+    topLevelTabs();
+
+    cy.get('@top-level-tabs')
+      .first()
+      .click()
+      .should('have.class', 'ant-tabs-tab-active');
+    cy.get('@top-level-tabs')
+      .last()
+      .should('not.have.class', 'ant-tabs-tab-active');
+
+    cy.getBySel('grid-container').find('.box_plot').should('not.exist');
+    cy.getBySel('grid-container').find('.line').should('not.exist');
+
+    cy.get('@top-level-tabs')
+      .last()
+      .click()
+      .should('have.class', 'ant-tabs-tab-active');
+    cy.get('@top-level-tabs')
+      .first()
+      .should('not.have.class', 'ant-tabs-tab-active');
+    waitForChartLoad(BOX_PLOT);
+    cy.getBySel('grid-container').find('.box_plot').should('be.visible');
+
+    resetTabs();
 
     // click row level tab, see 1 more chart
-    cy.get('[data-test="dashboard-component-tabs"]')
-      .last()
+    cy.getBySel('dashboard-component-tabs')
+      .eq(2)
       .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
       .as('row-level-tabs');
 
     cy.get('@row-level-tabs').last().click();
-
     waitForChartLoad(LINE_CHART);
-    cy.get('[data-test="grid-container"]').find('.line').should('be.visible');
-
-    // click top level tab, see 1 more chart
-    handleException();
-    cy.get('[data-test="dashboard-component-tabs"]')
-      .first()
-      .find('[data-test="nav-list"] .ant-tabs-nav-list > .ant-tabs-tab')
-      .as('top-level-tabs');
-
-    cy.get('@top-level-tabs').last().click();
-
-    // should exist a visible box_plot element
-    cy.get('[data-test="grid-container"]').find('.box_plot');
+    cy.getBySel('grid-container').find('.line').should('be.visible');
   });
 
-  xit('should send new queries when tab becomes visible', () => {
+  it.skip('should send new queries when tab becomes visible', () => {
     // landing in first tab
     waitForChartLoad(FILTER_BOX);
     waitForChartLoad(TREEMAP);

@@ -25,7 +25,7 @@ from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
@@ -44,8 +44,8 @@ def load_multiformat_time_series(  # pylint: disable=too-many-locals
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        data = get_example_data("multiformat_time_series.json.gz")
-        pdf = pd.read_json(data)
+        url = get_example_url("multiformat_time_series.json.gz")
+        pdf = pd.read_json(url, compression="gzip")
         # TODO(bkyryliuk): move load examples data into the pytest fixture
         if database.backend == "presto":
             pdf.ds = pd.to_datetime(pdf.ds, unit="s")

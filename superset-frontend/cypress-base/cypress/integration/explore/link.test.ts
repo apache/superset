@@ -28,7 +28,7 @@ import { HEALTH_POP_FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
 const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
   `${endpoint}?q=${rison.encode(queryObject)}`;
 
-describe.skip('Test explore links', () => {
+describe('Test explore links', () => {
   beforeEach(() => {
     cy.login();
     interceptChart({ legacy: true }).as('chartData');
@@ -101,8 +101,8 @@ describe.skip('Test explore links', () => {
 
       cy.request(apiURL('/api/v1/chart/', query)).then(response => {
         expect(response.body.count).equals(1);
-        cy.request('DELETE', `/api/v1/chart/${response.body.ids[0]}`);
       });
+      cy.deleteChartByName(newChartName, true);
     });
   });
 
@@ -183,5 +183,6 @@ describe.skip('Test explore links', () => {
     cy.request(apiURL('/api/v1/dashboard/', query)).then(response => {
       expect(response.body.count).equals(1);
     });
+    cy.deleteDashboardByName(dashboardTitle, true);
   });
 });

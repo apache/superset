@@ -19,7 +19,6 @@
 import {
   CategoricalColorNamespace,
   DataRecord,
-  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -109,10 +108,18 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreemapChartProps,
 ): TreemapTransformedProps {
-  const { formData, height, queriesData, width, hooks, filterState, theme } =
-    chartProps;
+  const {
+    formData,
+    height,
+    queriesData,
+    width,
+    hooks,
+    filterState,
+    theme,
+    inContextMenu,
+  } = chartProps;
   const { data = [] } = queriesData[0];
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
 
   const {
@@ -142,7 +149,7 @@ export default function transformProps(
       labelType,
     });
 
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+  const columnsLabelMap = new Map<string, string[]>();
 
   const transformer = (
     data: DataRecord[],
@@ -303,6 +310,7 @@ export default function transformProps(
   const echartOptions: EChartsCoreOption = {
     tooltip: {
       ...defaultTooltip,
+      show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
         formatTooltip({
@@ -323,5 +331,6 @@ export default function transformProps(
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],
+    onContextMenu,
   };
 }

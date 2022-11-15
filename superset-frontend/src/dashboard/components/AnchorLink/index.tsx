@@ -26,9 +26,10 @@ import getLocationHash from 'src/dashboard/util/getLocationHash';
 
 export type AnchorLinkProps = {
   id: string;
+  dashboardId?: number;
   scrollIntoView?: boolean;
   showShortLinkButton?: boolean;
-} & Pick<URLShortLinkButtonProps, 'dashboardId' | 'placement'>;
+} & Pick<URLShortLinkButtonProps, 'placement'>;
 
 export default function AnchorLink({
   id,

@@ -24,7 +24,7 @@ from superset.dataframe import df_to_records
 from superset.superset_typing import DbapiDescription
 
 
-def test_df_to_records(app_context: None) -> None:
+def test_df_to_records() -> None:
     from superset.db_engine_specs import BaseEngineSpec
     from superset.result_set import SupersetResultSet
 
@@ -41,7 +41,7 @@ def test_df_to_records(app_context: None) -> None:
     ]
 
 
-def test_js_max_int(app_context: None) -> None:
+def test_js_max_int() -> None:
     from superset.db_engine_specs import BaseEngineSpec
     from superset.result_set import SupersetResultSet
 

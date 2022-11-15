@@ -19,7 +19,7 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, isDefined } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
@@ -139,6 +139,7 @@ const legacyChartDataRequest = async (
     ...requestParams,
     url,
     postPayload: { form_data: formData },
+    parseMethod: 'json-bigint',
   };
 
   const clientMethod =
@@ -196,6 +197,7 @@ const v1ChartDataRequest = async (
     url,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    parseMethod: 'json-bigint',
   };
 
   return SupersetClient.post(querySettings);
@@ -603,10 +605,27 @@ export const getDatasourceSamples = async (
   datasourceId,
   force,
   jsonPayload,
+  perPage,
+  page,
 ) => {
-  const endpoint = `/datasource/samples?force=${force}&datasource_type=${datasourceType}&datasource_id=${datasourceId}`;
   try {
-    const response = await SupersetClient.post({ endpoint, jsonPayload });
+    const searchParams = {
+      force,
+      datasource_type: datasourceType,
+      datasource_id: datasourceId,
+    };
+
+    if (isDefined(perPage) && isDefined(page)) {
+      searchParams.per_page = perPage;
+      searchParams.page = page;
+    }
+
+    const response = await SupersetClient.post({
+      endpoint: '/datasource/samples',
+      jsonPayload,
+      searchParams,
+    });
+
     return response.json.result;
   } catch (err) {
     const clientError = await getClientErrorObject(err);

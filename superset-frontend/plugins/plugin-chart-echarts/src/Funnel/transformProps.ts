@@ -18,7 +18,6 @@
  */
 import {
   CategoricalColorNamespace,
-  DataRecordValue,
   DataRecord,
   getMetricLabel,
   getNumberFormatter,
@@ -82,8 +81,16 @@ export function formatFunnelLabel({
 export default function transformProps(
   chartProps: EchartsFunnelChartProps,
 ): FunnelChartTransformedProps {
-  const { formData, height, hooks, filterState, queriesData, width, theme } =
-    chartProps;
+  const {
+    formData,
+    height,
+    hooks,
+    filterState,
+    queriesData,
+    width,
+    theme,
+    inContextMenu,
+  } = chartProps;
   const data: DataRecord[] = queriesData[0].data || [];
 
   const {
@@ -113,22 +120,19 @@ export default function transformProps(
   const keys = data.map(datum =>
     extractGroupbyLabel({ datum, groupby: groupbyLabels, coltypeMapping: {} }),
   );
-  const labelMap = data.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const label = extractGroupbyLabel({
-        datum,
-        groupby: groupbyLabels,
-        coltypeMapping: {},
-      });
-      return {
-        ...acc,
-        [label]: groupbyLabels.map(col => datum[col]),
-      };
-    },
-    {},
-  );
+  const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
+    const label = extractGroupbyLabel({
+      datum,
+      groupby: groupbyLabels,
+      coltypeMapping: {},
+    });
+    return {
+      ...acc,
+      [label]: groupbyLabels.map(col => datum[col] as string),
+    };
+  }, {});
 
-  const { setDataMask = () => {} } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -209,6 +213,7 @@ export default function transformProps(
     },
     tooltip: {
       ...defaultTooltip,
+      show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
         formatFunnelLabel({
@@ -234,5 +239,6 @@ export default function transformProps(
     labelMap,
     groupby,
     selectedValues,
+    onContextMenu,
   };
 }

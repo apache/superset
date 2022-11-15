@@ -27,7 +27,7 @@ from superset.models.slice import Slice
 from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
@@ -44,10 +44,8 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
     table_exists = database.has_table_by_name(tbl_name)
 
     if not only_metadata and (not table_exists or force):
-        csv_bytes = get_example_data(
-            "birth_france_data_for_country_map.csv", is_gzip=False, make_bytes=True
-        )
-        data = pd.read_csv(csv_bytes, encoding="utf-8")
+        url = get_example_url("birth_france_data_for_country_map.csv")
+        data = pd.read_csv(url, encoding="utf-8")
         data["dttm"] = datetime.datetime.now().date()
         data.to_sql(
             tbl_name,

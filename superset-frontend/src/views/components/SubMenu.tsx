@@ -302,7 +302,7 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                         <Tooltip
                           placement="top"
                           title={t(
-                            "Enable 'Allow data upload' in any database's settings",
+                            "Enable 'Allow file uploads to database' in any database's settings",
                           )}
                         >
                           {item.label}

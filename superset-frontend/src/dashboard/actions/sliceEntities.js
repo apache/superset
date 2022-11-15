@@ -72,6 +72,7 @@ export function fetchSlices(
         'id',
         'params',
         'slice_name',
+        'thumbnail_url',
         'url',
         'viz_type',
       ],
@@ -114,6 +115,7 @@ export function fetchSlices(
           viz_type: slice.viz_type,
           modified: slice.changed_on_delta_humanized,
           changed_on_humanized: slice.changed_on_delta_humanized,
+          thumbnail_url: slice.thumbnail_url,
         };
       });
 

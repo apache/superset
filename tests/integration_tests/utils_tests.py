@@ -39,6 +39,7 @@ from sqlalchemy.exc import ArgumentError
 
 import tests.integration_tests.test_app
 from superset import app, db, security_manager
+from superset.constants import NO_TIME_RANGE
 from superset.exceptions import CertificateException, SupersetException
 from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard
@@ -62,7 +63,6 @@ from superset.utils.core import (
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
-    NO_TIME_RANGE,
     normalize_dttm_col,
     parse_ssl_cert,
     parse_js_uri_path_item,
@@ -70,6 +70,7 @@ from superset.utils.core import (
     validate_json,
     zlib_compress,
     zlib_decompress,
+    DateColumn,
 )
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
@@ -93,9 +94,10 @@ class TestUtils(SupersetTestCase):
         assert json_int_dttm_ser(datetime(1970, 1, 1)) == 0
         assert json_int_dttm_ser(date(1970, 1, 1)) == 0
         assert json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
+        assert json_int_dttm_ser(np.int64(1)) == 1
 
         with self.assertRaises(TypeError):
-            json_int_dttm_ser("this is not a date")
+            json_int_dttm_ser(np.datetime64())
 
     def test_json_iso_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
@@ -104,19 +106,31 @@ class TestUtils(SupersetTestCase):
         assert json_iso_dttm_ser(dttm) == dttm.isoformat()
         assert json_iso_dttm_ser(dt) == dt.isoformat()
         assert json_iso_dttm_ser(t) == t.isoformat()
+        assert json_iso_dttm_ser(np.int64(1)) == 1
+
+        assert (
+            json_iso_dttm_ser(np.datetime64(), pessimistic=True)
+            == "Unserializable [<class 'numpy.datetime64'>]"
+        )
 
         with self.assertRaises(TypeError):
-            json_iso_dttm_ser("this is not a date")
+            json_iso_dttm_ser(np.datetime64())
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(np.bool_(1)), bool) is True
-        assert isinstance(base_json_conv(np.int64(1)), int) is True
-        assert isinstance(base_json_conv(np.array([1, 2, 3])), list) is True
-        assert isinstance(base_json_conv(set([1])), list) is True
-        assert isinstance(base_json_conv(Decimal("1.0")), float) is True
-        assert isinstance(base_json_conv(uuid.uuid4()), str) is True
-        assert isinstance(base_json_conv(time()), str) is True
-        assert isinstance(base_json_conv(timedelta(0)), str) is True
+        assert isinstance(base_json_conv(np.bool_(1)), bool)
+        assert isinstance(base_json_conv(np.int64(1)), int)
+        assert isinstance(base_json_conv(np.array([1, 2, 3])), list)
+        assert base_json_conv(np.array(None)) is None
+        assert isinstance(base_json_conv(set([1])), list)
+        assert isinstance(base_json_conv(Decimal("1.0")), float)
+        assert isinstance(base_json_conv(uuid.uuid4()), str)
+        assert isinstance(base_json_conv(time()), str)
+        assert isinstance(base_json_conv(timedelta(0)), str)
+        assert isinstance(base_json_conv(bytes()), str)
+        assert base_json_conv(bytes("", encoding="utf-16")) == "[bytes]"
+
+        with pytest.raises(TypeError):
+            base_json_conv(np.datetime64())
 
     def test_zlib_compression(self):
         json_str = '{"test": 1}'
@@ -1059,10 +1073,21 @@ class TestUtils(SupersetTestCase):
             df: pd.DataFrame,
             timestamp_format: Optional[str],
             offset: int,
-            time_shift: Optional[timedelta],
+            time_shift: Optional[str],
         ) -> pd.DataFrame:
             df = df.copy()
-            normalize_dttm_col(df, timestamp_format, offset, time_shift)
+            normalize_dttm_col(
+                df,
+                tuple(
+                    [
+                        DateColumn.get_legacy_time_column(
+                            timestamp_format=timestamp_format,
+                            offset=offset,
+                            time_shift=time_shift,
+                        )
+                    ]
+                ),
+            )
             return df
 
         ts = pd.Timestamp(2021, 2, 15, 19, 0, 0, 0)
@@ -1079,9 +1104,9 @@ class TestUtils(SupersetTestCase):
         )
 
         # test offset and timedelta
-        assert normalize_col(df, None, 1, timedelta(minutes=30))[DTTM_ALIAS][
-            0
-        ] == pd.Timestamp(2021, 2, 15, 20, 30, 0, 0)
+        assert normalize_col(df, None, 1, "30 minutes")[DTTM_ALIAS][0] == pd.Timestamp(
+            2021, 2, 15, 20, 30, 0, 0
+        )
 
         # test numeric epoch_s format
         df = pd.DataFrame([{"__timestamp": ts.timestamp(), "a": 1}])

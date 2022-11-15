@@ -63,8 +63,13 @@ def stringify(obj: Any) -> str:
 
 
 def stringify_values(array: np.ndarray) -> np.ndarray:
-    vstringify = np.vectorize(stringify)
-    return vstringify(array)
+    result = np.copy(array)
+
+    with np.nditer(result, flags=["refs_ok"], op_flags=["readwrite"]) as it:
+        for obj in it:
+            obj[...] = stringify(obj)
+
+    return result
 
 
 def destringify(obj: str) -> Any:
@@ -160,6 +165,9 @@ class SupersetResultSet:
                                 )
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)
+
+        if not pa_data:
+            column_names = []
 
         self.table = pa.Table.from_arrays(pa_data, names=column_names)
         self._type_dict: Dict[str, Any] = {}

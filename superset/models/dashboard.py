@@ -53,7 +53,6 @@ from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
-from superset.models.tags import DashboardUpdater
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
@@ -438,25 +437,21 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         )
 
     @classmethod
-    def get(cls, id_or_slug: str) -> Dashboard:
+    def get(cls, id_or_slug: Union[str, int]) -> Dashboard:
         session = db.session()
         qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
 
-def id_or_slug_filter(id_or_slug: str) -> BinaryExpression:
+def id_or_slug_filter(id_or_slug: Union[int, str]) -> BinaryExpression:
+    if isinstance(id_or_slug, int):
+        return Dashboard.id == id_or_slug
     if id_or_slug.isdigit():
         return Dashboard.id == int(id_or_slug)
     return Dashboard.slug == id_or_slug
 
 
 OnDashboardChange = Callable[[Mapper, Connection, Dashboard], Any]
-
-# events for updating tags
-if is_feature_enabled("TAGGING_SYSTEM"):
-    sqla.event.listen(Dashboard, "after_insert", DashboardUpdater.after_insert)
-    sqla.event.listen(Dashboard, "after_update", DashboardUpdater.after_update)
-    sqla.event.listen(Dashboard, "after_delete", DashboardUpdater.after_delete)
 
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     update_thumbnail: OnDashboardChange = lambda _, __, dash: dash.update_thumbnail()

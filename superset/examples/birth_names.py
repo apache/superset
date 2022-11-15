@@ -33,7 +33,7 @@ from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
@@ -66,7 +66,8 @@ def gen_filter(
 
 
 def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
-    pdf = pd.read_json(get_example_data("birth_names2.json.gz"))
+    url = get_example_url("birth_names2.json.gz")
+    pdf = pd.read_json(url, compression="gzip")
     # TODO(bkyryliuk): move load examples data into the pytest fixture
     if database.backend == "presto":
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")

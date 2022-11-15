@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, QueryFormData, SupersetClient } from '@superset-ui/core';
+import {
+  isDefined,
+  JsonObject,
+  QueryFormData,
+  SupersetClient,
+} from '@superset-ui/core';
 import rison from 'rison';
 import { isEmpty } from 'lodash';
 import {
@@ -174,4 +179,30 @@ export function getDashboardPermalink({
     activeTabs,
     anchor,
   });
+}
+
+const externalUrlRegex =
+  /^([^:/?#]+:)?(?:(\/\/)?([^/?#]*))?([^?#]+)?(\?[^#]*)?(#.*)?/;
+
+// group 1 matches protocol
+// group 2 matches '//'
+// group 3 matches hostname
+export function isUrlExternal(url: string) {
+  const match = url.match(externalUrlRegex) || [];
+  return (
+    (typeof match[1] === 'string' && match[1].length > 0) ||
+    match[2] === '//' ||
+    (typeof match[3] === 'string' && match[3].length > 0)
+  );
+}
+
+export function parseUrl(url: string) {
+  const match = url.match(externalUrlRegex) || [];
+  // if url is external but start with protocol or '//',
+  // it can't be used correctly with <a> element
+  // in such case, add '//' prefix
+  if (isUrlExternal(url) && !isDefined(match[1]) && !url.startsWith('//')) {
+    return `//${url}`;
+  }
+  return url;
 }

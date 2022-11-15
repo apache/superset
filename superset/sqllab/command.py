@@ -26,7 +26,11 @@ from superset.commands.base import BaseCommand
 from superset.common.db_query_status import QueryStatus
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetErrorsException, SupersetGenericErrorException
+from superset.exceptions import (
+    SupersetErrorException,
+    SupersetErrorsException,
+    SupersetGenericErrorException,
+)
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sqllab.command_status import SqlJsonExecutionStatus
@@ -110,7 +114,9 @@ class ExecuteSqlCommand(BaseCommand):
                 "status": status,
                 "payload": self._execution_context_convertor.serialize_payload(),
             }
-        except (SqlLabException, SupersetErrorsException) as ex:
+        except (SupersetErrorException, SupersetErrorsException) as ex:
+            # to make sure we raising the original
+            # SupersetErrorsException || SupersetErrorsException
             raise ex
         except Exception as ex:
             raise SqlLabException(self._execution_context, exception=ex) from ex

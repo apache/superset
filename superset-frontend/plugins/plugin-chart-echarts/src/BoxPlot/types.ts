@@ -19,13 +19,9 @@
 import {
   ChartDataResponseResult,
   ChartProps,
-  DataRecordValue,
-  QueryFormColumn,
   QueryFormData,
-  SetDataMaskHook,
 } from '@superset-ui/core';
-import { EChartsCoreOption } from 'echarts';
-import { EchartsTitleFormData } from '../types';
+import { EchartsTitleFormData, EChartTransformedProps } from '../types';
 import { DEFAULT_TITLE_FORM_DATA } from '../constants';
 
 export type BoxPlotQueryFormData = QueryFormData & {
@@ -60,14 +56,5 @@ export interface EchartsBoxPlotChartProps
   queriesData: ChartDataResponseResult[];
 }
 
-export interface BoxPlotChartTransformedProps {
-  formData: BoxPlotQueryFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-}
+export type BoxPlotChartTransformedProps =
+  EChartTransformedProps<BoxPlotQueryFormData>;

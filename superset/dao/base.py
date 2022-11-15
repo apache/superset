@@ -50,14 +50,17 @@ class BaseDAO:
 
     @classmethod
     def find_by_id(
-        cls, model_id: Union[str, int], session: Session = None
+        cls,
+        model_id: Union[str, int],
+        session: Session = None,
+        skip_base_filter: bool = False,
     ) -> Optional[Model]:
         """
         Find a model by id, if defined applies `base_filter`
         """
         session = session or db.session
         query = session.query(cls.model_cls)
-        if cls.base_filter:
+        if cls.base_filter and not skip_base_filter:
             data_model = SQLAInterface(cls.model_cls, session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model

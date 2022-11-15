@@ -24,6 +24,8 @@ import {
   QueryFormData,
   TimeGranularity,
   ContributionType,
+  TimeFormatter,
+  AxisType,
 } from '@superset-ui/core';
 import {
   EchartsLegendFormData,
@@ -93,4 +95,10 @@ export interface EchartsTimeseriesChartProps
 }
 
 export type TimeseriesChartTransformedProps =
-  EChartTransformedProps<EchartsTimeseriesFormData>;
+  EChartTransformedProps<EchartsTimeseriesFormData> & {
+    xValueFormatter: TimeFormatter | StringConstructor;
+    xAxis: {
+      label: string;
+      type: AxisType;
+    };
+  };

@@ -17,35 +17,12 @@
  * under the License.
  */
 import React from 'react';
-import {
-  ISaveableDatasource,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
-import { render, screen } from 'spec/helpers/testing-library';
-import { DatasourceType } from '@superset-ui/core';
-
-const testQuery: ISaveableDatasource = {
-  name: 'unimportant',
-  dbId: 1,
-  sql: 'SELECT *',
-  columns: [
-    {
-      name: 'Column 1',
-      type: DatasourceType.Query,
-      is_dttm: false,
-    },
-    {
-      name: 'Column 3',
-      type: DatasourceType.Query,
-      is_dttm: false,
-    },
-    {
-      name: 'Column 2',
-      type: DatasourceType.Query,
-      is_dttm: true,
-    },
-  ],
-};
+import * as reactRedux from 'react-redux';
+import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import fetchMock from 'fetch-mock';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { user, testQuery, mockdatasets } from 'src/SqlLab/fixtures';
 
 const mockedProps = {
   visible: true,
@@ -55,7 +32,21 @@ const mockedProps = {
   datasource: testQuery,
 };
 
-describe('SaveDatasetModal RTL', () => {
+fetchMock.get('glob:*/api/v1/dataset?*', {
+  result: mockdatasets,
+  dataset_count: 3,
+});
+
+jest.useFakeTimers();
+
+// Mock the user
+const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
+beforeEach(() => {
+  useSelectorMock.mockClear();
+  cleanup();
+});
+
+describe('SaveDatasetModal', () => {
   it('renders a "Save as new" field', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
@@ -89,15 +80,99 @@ describe('SaveDatasetModal RTL', () => {
     expect(placeholderText).toBeVisible();
   });
 
-  it('renders a save button', () => {
-    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
-
-    expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
-  });
-
   it('renders a close button', () => {
     render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
 
     expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
+  });
+
+  it('renders a save button when "Save as new" is selected', () => {
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    // "Save as new" is selected when the modal opens by default
+    expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
+  });
+
+  it('renders an overwrite button when "Overwrite existing" is selected', () => {
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    // Click the overwrite radio button to reveal the overwrite confirmation and back buttons
+    const overwriteRadioBtn = screen.getByRole('radio', {
+      name: /overwrite existing/i,
+    });
+    userEvent.click(overwriteRadioBtn);
+
+    expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
+  });
+
+  it('renders the overwrite button as disabled until an existing dataset is selected', async () => {
+    useSelectorMock.mockReturnValue({ ...user });
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    // Click the overwrite radio button
+    const overwriteRadioBtn = screen.getByRole('radio', {
+      name: /overwrite existing/i,
+    });
+    userEvent.click(overwriteRadioBtn);
+
+    // Overwrite confirmation button should be disabled at this point
+    const overwriteConfirmationBtn = screen.getByRole('button', {
+      name: /overwrite/i,
+    });
+    expect(overwriteConfirmationBtn).toBeDisabled();
+
+    // Click the overwrite select component
+    const select = screen.getByRole('combobox', { name: /existing dataset/i })!;
+    userEvent.click(select);
+
+    await waitFor(() =>
+      expect(screen.queryByText('Loading...')).not.toBeVisible(),
+    );
+
+    // Select the first "existing dataset" from the listbox
+    const option = screen.getAllByText('coolest table 0')[1];
+    userEvent.click(option);
+
+    // Overwrite button should now be enabled
+    expect(overwriteConfirmationBtn).toBeEnabled();
+  });
+
+  it('renders a confirm overwrite screen when overwrite is clicked', async () => {
+    useSelectorMock.mockReturnValue({ ...user });
+    render(<SaveDatasetModal {...mockedProps} />, { useRedux: true });
+
+    // Click the overwrite radio button
+    const overwriteRadioBtn = screen.getByRole('radio', {
+      name: /overwrite existing/i,
+    });
+    userEvent.click(overwriteRadioBtn);
+
+    // Click the overwrite select component
+    const select = screen.getByRole('combobox', { name: /existing dataset/i });
+    userEvent.click(select);
+
+    await waitFor(() =>
+      expect(screen.queryByText('Loading...')).not.toBeVisible(),
+    );
+
+    // Select the first "existing dataset" from the listbox
+    const option = screen.getAllByText('coolest table 0')[1];
+    userEvent.click(option);
+
+    // Click the overwrite button to access the confirmation screen
+    const overwriteConfirmationBtn = screen.getByRole('button', {
+      name: /overwrite/i,
+    });
+    userEvent.click(overwriteConfirmationBtn);
+
+    // Overwrite screen text
+    expect(screen.getByText(/save or overwrite dataset/i)).toBeVisible();
+    expect(
+      screen.getByText(/are you sure you want to overwrite this dataset\?/i),
+    ).toBeVisible();
+    // Overwrite screen buttons
+    expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /back/i })).toBeVisible();
+    expect(screen.getByRole('button', { name: /overwrite/i })).toBeVisible();
   });
 });

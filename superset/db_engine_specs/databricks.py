@@ -47,18 +47,23 @@ time_grain_expressions = {
 
 
 class DatabricksHiveEngineSpec(HiveEngineSpec):
-    engine = "databricks"
     engine_name = "Databricks Interactive Cluster"
-    driver = "pyhive"
+
+    engine = "databricks"
+    drivers = {"pyhive": "Hive driver for Interactive Cluster"}
+    default_driver = "pyhive"
+
     _show_functions_column = "function"
 
     _time_grain_expressions = time_grain_expressions
 
 
 class DatabricksODBCEngineSpec(BaseEngineSpec):
-    engine = "databricks"
     engine_name = "Databricks SQL Endpoint"
-    driver = "pyodbc"
+
+    engine = "databricks"
+    drivers = {"pyodbc": "ODBC driver for SQL endpoint"}
+    default_driver = "pyodbc"
 
     _time_grain_expressions = time_grain_expressions
 
@@ -74,9 +79,11 @@ class DatabricksODBCEngineSpec(BaseEngineSpec):
 
 
 class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec):
-    engine = "databricks"
     engine_name = "Databricks Native Connector"
-    driver = "connector"
+
+    engine = "databricks"
+    drivers = {"connector": "Native all-purpose driver"}
+    default_driver = "connector"
 
     @staticmethod
     def get_extra_params(database: "Database") -> Dict[str, Any]:

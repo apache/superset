@@ -21,6 +21,7 @@ import { ControlState, Dataset, Metric } from '@superset-ui/chart-controls';
 import {
   Column,
   isAdhocMetricSimple,
+  isAdhocMetricSQL,
   isSavedMetric,
   isSimpleAdhocFilter,
   JsonValue,
@@ -35,11 +36,12 @@ const isControlValueCompatibleWithDatasource = (
 ) => {
   if (controlState.options && typeof value === 'string') {
     if (
-      (Array.isArray(controlState.options) &&
-        controlState.options.some(
-          (option: [string | number, string]) => option[0] === value,
-        )) ||
-      value in controlState.options
+      controlState.options.some(
+        (option: [string | number, string] | { column_name: string }) =>
+          Array.isArray(option)
+            ? option[0] === value
+            : option.column_name === value,
+      )
     ) {
       return datasource.columns.some(column => column.column_name === value);
     }
@@ -69,6 +71,10 @@ const isControlValueCompatibleWithDatasource = (
         column.column_name === (value as AdhocMetric).column?.column_name ||
         column.column_name === (value as SimpleAdhocFilter).subject,
     );
+  }
+  if (isAdhocMetricSQL(value)) {
+    Object.assign(value, { datasourceWarning: true });
+    return true;
   }
   return false;
 };

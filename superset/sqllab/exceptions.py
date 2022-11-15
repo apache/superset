@@ -25,7 +25,7 @@ from superset.exceptions import SupersetException
 MSG_FORMAT = "Failed to execute {}"
 
 if TYPE_CHECKING:
-    from superset.utils.sqllab_execution_context import SqlJsonExecutionContext
+    from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 
 
 class SqlLabException(SupersetException):

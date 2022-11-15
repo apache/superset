@@ -19,18 +19,19 @@
 import React, { useCallback } from 'react';
 import { FunnelChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { EventHandlers } from '../types';
+import { allEventHandlers } from '../utils/eventHandlers';
 
-export default function EchartsFunnel({
-  height,
-  width,
-  echartOptions,
-  setDataMask,
-  labelMap,
-  groupby,
-  selectedValues,
-  formData,
-}: FunnelChartTransformedProps) {
+export default function EchartsFunnel(props: FunnelChartTransformedProps) {
+  const {
+    height,
+    width,
+    echartOptions,
+    setDataMask,
+    labelMap,
+    groupby,
+    selectedValues,
+    formData,
+  } = props;
   const handleChange = useCallback(
     (values: string[]) => {
       if (!formData.emitFilter) {
@@ -67,17 +68,7 @@ export default function EchartsFunnel({
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers: EventHandlers = {
-    click: props => {
-      const { name } = props;
-      const values = Object.values(selectedValues);
-      if (values.includes(name)) {
-        handleChange(values.filter(v => v !== name));
-      } else {
-        handleChange([name]);
-      }
-    },
-  };
+  const eventHandlers = allEventHandlers(props, handleChange);
 
   return (
     <Echart

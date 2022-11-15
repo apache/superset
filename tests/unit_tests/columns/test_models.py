@@ -20,7 +20,7 @@
 from sqlalchemy.orm.session import Session
 
 
-def test_column_model(app_context: None, session: Session) -> None:
+def test_column_model(session: Session) -> None:
     """
     Test basic attributes of a ``Column``.
     """

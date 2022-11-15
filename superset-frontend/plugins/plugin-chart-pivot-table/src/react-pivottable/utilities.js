@@ -231,7 +231,7 @@ const baseAggregatorTemplates = {
         return {
           sum: 0,
           push(record) {
-            if (Number.isNaN(parseFloat(record[attr]))) {
+            if (Number.isNaN(Number(record[attr]))) {
               this.sum = record[attr];
             } else {
               this.sum += parseFloat(record[attr]);
@@ -259,7 +259,7 @@ const baseAggregatorTemplates = {
           push(record) {
             const x = record[attr];
             if (['min', 'max'].includes(mode)) {
-              const coercedValue = parseFloat(x);
+              const coercedValue = Number(x);
               if (Number.isNaN(coercedValue)) {
                 this.val =
                   !this.val ||
@@ -308,7 +308,7 @@ const baseAggregatorTemplates = {
           strMap: {},
           push(record) {
             const val = record[attr];
-            const x = parseFloat(val);
+            const x = Number(val);
 
             if (Number.isNaN(x)) {
               this.strMap[val] = (this.strMap[val] || 0) + 1;
@@ -354,7 +354,7 @@ const baseAggregatorTemplates = {
           s: 0.0,
           strValue: null,
           push(record) {
-            const x = parseFloat(record[attr]);
+            const x = Number(record[attr]);
             if (Number.isNaN(x)) {
               this.strValue =
                 typeof record[attr] === 'string' ? record[attr] : this.strValue;
@@ -405,10 +405,10 @@ const baseAggregatorTemplates = {
           sumNum: 0,
           sumDenom: 0,
           push(record) {
-            if (!Number.isNaN(parseFloat(record[num]))) {
+            if (!Number.isNaN(Number(record[num]))) {
               this.sumNum += parseFloat(record[num]);
             }
-            if (!Number.isNaN(parseFloat(record[denom]))) {
+            if (!Number.isNaN(Number(record[denom]))) {
               this.sumDenom += parseFloat(record[denom]);
             }
           },

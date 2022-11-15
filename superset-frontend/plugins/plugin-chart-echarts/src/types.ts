@@ -17,9 +17,9 @@
  * under the License.
  */
 import {
-  DataRecordValue,
   HandlerFunction,
   QueryFormColumn,
+  BinaryQueryObjectFilterClause,
   SetDataMaskHook,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
@@ -111,10 +111,15 @@ export interface EChartTransformedProps<F> {
   emitFilter: boolean;
   setDataMask: SetDataMaskHook;
   setControlValue?: HandlerFunction;
-  labelMap: Record<string, DataRecordValue[]>;
+  labelMap: Record<string, string[]>;
   groupby: QueryFormColumn[];
   selectedValues: Record<number, string>;
   legendData?: OptionName[];
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
+  ) => void;
 }
 
 export interface EchartsTitleFormData {
@@ -126,7 +131,5 @@ export interface EchartsTitleFormData {
 }
 
 export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
-
-export type AxisType = 'time' | 'value' | 'category';
 
 export * from './Timeseries/types';

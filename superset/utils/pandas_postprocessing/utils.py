@@ -198,3 +198,13 @@ def _append_columns(
         return _base_df
     append_df = append_df.rename(columns=columns)
     return pd.concat([base_df, append_df], axis="columns")
+
+
+def escape_separator(plain_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:
+    char = sep.strip()
+    return plain_str.replace(char, "\\" + char)
+
+
+def unescape_separator(escaped_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:
+    char = sep.strip()
+    return escaped_str.replace("\\" + char, char)

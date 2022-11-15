@@ -41,6 +41,7 @@ export enum LocalStorageKeys {
   homepage_dashboard_filter = 'homepage_dashboard_filter',
   homepage_collapse_state = 'homepage_collapse_state',
   homepage_activity_filter = 'homepage_activity_filter',
+  datasetname_set_successful = 'datasetname_set_successful',
   /** END LEGACY LOCAL STORAGE KEYS */
 
   /**
@@ -54,6 +55,7 @@ export enum LocalStorageKeys {
   explore__data_table_original_formatted_time_columns = 'explore__data_table_original_formatted_time_columns',
   dashboard__custom_filter_bar_widths = 'dashboard__custom_filter_bar_widths',
   dashboard__explore_context = 'dashboard__explore_context',
+  common__resizable_sidebar_widths = 'common__resizable_sidebar_widths',
 }
 
 export type LocalStorageValues = {
@@ -66,11 +68,13 @@ export type LocalStorageValues = {
   homepage_chart_filter: TableTabTypes;
   homepage_dashboard_filter: TableTabTypes;
   homepage_collapse_state: string[];
+  datasetname_set_successful: boolean;
   homepage_activity_filter: SetTabType | null;
   sqllab__is_autocomplete_enabled: boolean;
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;
   dashboard__explore_context: Record<string, DashboardContextForExplore>;
+  common__resizable_sidebar_widths: Record<string, number>;
 };
 
 /*

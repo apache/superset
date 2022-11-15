@@ -28,8 +28,8 @@ import { TAB_TYPE } from '../util/componentTypes';
 
 const propTypes = {
   depth: PropTypes.number.isRequired,
-  editMode: PropTypes.bool.isRequired,
-  gridComponent: componentShape.isRequired,
+  editMode: PropTypes.bool,
+  gridComponent: componentShape,
   handleComponentDrop: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool.isRequired,
   resizeComponent: PropTypes.func.isRequired,

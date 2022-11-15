@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import example1 from './images/WorldMap1.jpg';
@@ -45,6 +45,7 @@ const metadata = new ChartMetadata({
   ],
   thumbnail,
   useLegacyApi: true,
+  behaviors: [Behavior.DRILL_TO_DETAIL],
 });
 
 export default class WorldMapChartPlugin extends ChartPlugin {

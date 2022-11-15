@@ -31,6 +31,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
+from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 
 logger = logging.getLogger(__name__)
@@ -46,12 +47,25 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # Test connection before starting create transaction
             TestConnectionDatabaseCommand(self._properties).run()
+        except SupersetErrorsException as ex:
+            event_logger.log_with_context(
+                action=f"db_creation_failed.{ex.__class__.__name__}",
+                engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+            )
+            # So we can show the original message
+            raise ex
         except Exception as ex:
             event_logger.log_with_context(
                 action=f"db_creation_failed.{ex.__class__.__name__}",
                 engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
             )
             raise DatabaseConnectionFailedError() from ex
+
+        # when creating a new database we don't need to unmask encrypted extra
+        self._properties["encrypted_extra"] = self._properties.pop(
+            "masked_encrypted_extra",
+            "{}",
+        )
 
         try:
             database = DatabaseDAO.create(self._properties, commit=False)
@@ -63,7 +77,6 @@ class CreateDatabaseCommand(BaseCommand):
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
-            security_manager.add_permission_view_menu("database_access", database.perm)
             db.session.commit()
         except DAOCreateFailedError as ex:
             db.session.rollback()
