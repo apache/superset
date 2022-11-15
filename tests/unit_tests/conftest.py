@@ -70,6 +70,7 @@ def app() -> Iterator[SupersetApp]:
 
     app.config.from_object("superset.config")
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite://"
+    app.config["WTF_CSRF_ENABLED"] = False
     app.config["TESTING"] = True
 
     # ``superset.extensions.appbuilder`` is a singleton, and won't rebuild the
