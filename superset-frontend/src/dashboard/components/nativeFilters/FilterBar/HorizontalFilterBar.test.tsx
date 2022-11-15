@@ -39,7 +39,7 @@ const renderWrapper = (overrideProps?: Record<string, any>) =>
     }),
   );
 
-it('should render', async () => {
+test('should render', async () => {
   const { container } = await renderWrapper();
   expect(container).toBeInTheDocument();
 });
