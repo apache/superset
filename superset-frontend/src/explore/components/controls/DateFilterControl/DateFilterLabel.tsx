@@ -20,7 +20,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Label, { Type } from 'src/components/Label';
+import Label from 'src/components/Label';
 import Modal from 'src/components/Modal';
 import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -36,7 +36,6 @@ import {
   DATE_FILTER_TEST_KEY,
   fetchTimeRange,
   FRAME_OPTIONS,
-  getDateFilterControlTestId,
   guessFrame,
   useDefaultTimeFilter,
 } from './utils';
@@ -124,7 +123,6 @@ const IconWrapper = styled.span`
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
     onChange,
-    type,
     onOpenPopover = noOp,
     onClosePopover = noOp,
     overlayStyle = 'Popover',
@@ -174,11 +172,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           guessedFrame === 'No filter'
         ) {
           setActualTimeRange(value);
-          setTooltipTitle(
-            type === ('error' as Type)
-              ? t('Default value is required')
-              : actualRange || '',
-          );
         } else {
           setActualTimeRange(actualRange || '');
           setTooltipTitle(value || '');
@@ -302,7 +295,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           disabled={!validTimeRange}
           key="apply"
           onClick={onSave}
-          {...getDateFilterControlTestId('apply-button')}
+          data-test={DATE_FILTER_TEST_KEY.applyButton}
         >
           {t('APPLY')}
         </Button>

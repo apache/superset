@@ -23,12 +23,27 @@ from typing import Sequence, Union
 import backoff
 from flask_babel import gettext as __
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError, SlackClientError
+from slack_sdk.errors import (
+    BotUserAccessError,
+    SlackApiError,
+    SlackClientConfigurationError,
+    SlackClientError,
+    SlackClientNotConnectedError,
+    SlackObjectFormationError,
+    SlackRequestError,
+    SlackTokenRotationError,
+)
 
 from superset import app
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
-from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.notifications.exceptions import (
+    NotificationAuthorizationException,
+    NotificationError,
+    NotificationMalformedException,
+    NotificationParamException,
+    NotificationUnprocessableException,
+)
 from superset.utils.decorators import statsd_gauge
 from superset.utils.urls import modify_url_query
 
@@ -173,5 +188,18 @@ Error: %(text)s
             else:
                 client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")
-        except SlackClientError as ex:
+        except (
+            BotUserAccessError,
+            SlackRequestError,
+            SlackClientConfigurationError,
+        ) as ex:
+            raise NotificationParamException from ex
+        except SlackObjectFormationError as ex:
+            raise NotificationMalformedException from ex
+        except SlackTokenRotationError as ex:
+            raise NotificationAuthorizationException from ex
+        except SlackClientNotConnectedError as ex:
+            raise NotificationUnprocessableException from ex
+        except (SlackClientError, SlackApiError) as ex:
+            # any other slack errors not caught above
             raise NotificationError(ex) from ex
