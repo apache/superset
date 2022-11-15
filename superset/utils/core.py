@@ -1284,8 +1284,8 @@ def get_example_default_schema() -> Optional[str]:
     Return the default schema of the examples database, if any.
     """
     database = get_example_database()
-    engine = database.get_sqla_engine()
-    return inspect(engine).default_schema_name
+    with database.get_sqla_engine_with_context() as engine:
+        return inspect(engine).default_schema_name
 
 
 def backend() -> str:

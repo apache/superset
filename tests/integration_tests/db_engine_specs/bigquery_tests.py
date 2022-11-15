@@ -227,8 +227,10 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             return_value="account_info"
         )
 
-        mock_get_engine.return_value.url.host = "google-host"
-        mock_get_engine.return_value.dialect.credentials_info = "secrets"
+        mock_get_engine.return_value.__enter__.return_value.url.host = "google-host"
+        mock_get_engine.return_value.__enter__.return_value.dialect.credentials_info = (
+            "secrets"
+        )
 
         BigQueryEngineSpec.df_to_sql(
             database=database,

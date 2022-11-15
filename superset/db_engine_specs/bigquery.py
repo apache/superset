@@ -340,8 +340,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         if not table.schema:
             raise Exception("The table schema must be defined")
 
-        engine = cls.get_engine(database)
-        to_gbq_kwargs = {"destination_table": str(table), "project_id": engine.url.host}
+        to_gbq_kwargs = {}
+        with cls.get_engine(database) as engine:
+            to_gbq_kwargs = {
+                "destination_table": str(table),
+                "project_id": engine.url.host,
+            }
 
         # Add credentials if they are set on the SQLAlchemy dialect.
         creds = engine.dialect.credentials_info
