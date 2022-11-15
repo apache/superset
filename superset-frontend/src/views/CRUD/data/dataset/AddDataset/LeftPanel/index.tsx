@@ -42,7 +42,7 @@ interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
   schema?: string | null | undefined;
   dbId?: number;
-  linkedDatasets?: string | undefined;
+  linkedDatasets?: (string | null | undefined)[] | undefined;
 }
 
 const SearchIcon = styled(Icons.Search)`
@@ -283,7 +283,7 @@ export default function LeftPanel({
                   onClick={() => setTable(option.value, i)}
                 >
                   {option.label}
-                  {linkedDatasets && option.value.includes(linkedDatasets) && (
+                  {linkedDatasets?.includes(option.value) && (
                     <Icons.Warning
                       iconColor={
                         selectedTable === i

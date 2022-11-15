@@ -75,8 +75,8 @@ export default function AddDataset() {
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
-  const [linkedDatasets, setLinkedDatasets] = useState<string>();
-
+  const [linkedDatasets, setLinkedDatasets] = useState<DatasetObject[]>([]);
+  const linkedDatasetNames = linkedDatasets.map(dataset => dataset.table_name);
   const encodedSchema = dataset?.schema
     ? encodeURIComponent(dataset?.schema)
     : undefined;
@@ -96,7 +96,7 @@ export default function AddDataset() {
     })
       .then(({ json }) => {
         json.result.map((dataset: any) =>
-          setLinkedDatasets(dataset.table_name),
+          setLinkedDatasets(linkedDatasets => [...linkedDatasets, dataset]),
         );
       })
       .catch(error =>
@@ -117,7 +117,7 @@ export default function AddDataset() {
       setDataset={setDataset}
       schema={dataset?.schema}
       dbId={dataset?.db?.id}
-      linkedDatasets={linkedDatasets}
+      linkedDatasets={linkedDatasetNames}
     />
   );
 
