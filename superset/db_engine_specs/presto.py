@@ -462,12 +462,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             ).strip()
             params = {}
 
-        engine = cls.get_engine(database, schema=schema)
-
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
+        with cls.get_engine(database, schema=schema) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
 
         return sorted([row[0] for row in results])
 
@@ -989,17 +988,17 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
-        engine = cls.get_engine(database, schema)
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            sql = f"SHOW CREATE VIEW {schema}.{table}"
-            try:
-                cls.execute(cursor, sql)
+        with cls.get_engine(database, schema=schema) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                sql = f"SHOW CREATE VIEW {schema}.{table}"
+                try:
+                    cls.execute(cursor, sql)
 
-            except DatabaseError:  # not a VIEW
-                return None
-            rows = cls.fetch_data(cursor, 1)
-        return rows[0][0]
+                except DatabaseError:  # not a VIEW
+                    return None
+                rows = cls.fetch_data(cursor, 1)
+            return rows[0][0]
 
     @classmethod
     def get_tracking_url(cls, cursor: "Cursor") -> Optional[str]:

@@ -1379,11 +1379,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
-            engine = database.get_sqla_engine()
 
-            with closing(engine.raw_connection()) as conn:
-                if engine.dialect.do_ping(conn):
-                    return json_success('"OK"')
+            with database.get_sqla_engine_with_context() as engine:
+                with closing(engine.raw_connection()) as conn:
+                    if engine.dialect.do_ping(conn):
+                        return json_success('"OK"')
 
                 raise DBAPIError(None, None, None)
         except CertificateException as ex:
