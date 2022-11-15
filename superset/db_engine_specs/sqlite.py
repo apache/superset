@@ -82,7 +82,7 @@ class SqliteEngineSpec(BaseEngineSpec):
             utils.TemporalType.DATETIME,
             utils.TemporalType.TIMESTAMP,
         ):
-            return f"""'{dttm.isoformat(sep=" ", timespec="seconds")}'"""
+            return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
         return None
 
     @classmethod
