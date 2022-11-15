@@ -85,7 +85,7 @@ it('should not render the loading icon', async () => {
   ).not.toBeInTheDocument();
 });
 
-it('should render the loading icon', async () => {
+test('should render the loading icon', async () => {
   await renderWrapper({
     isInitialized: false,
   });
