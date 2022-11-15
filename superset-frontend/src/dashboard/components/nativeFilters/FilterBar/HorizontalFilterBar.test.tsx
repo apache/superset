@@ -70,7 +70,7 @@ it('should render the gear icon', async () => {
   expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
 });
 
-it('should not render the gear icon', async () => {
+test('should not render the gear icon', async () => {
   await renderWrapper({
     canEdit: false,
   });
