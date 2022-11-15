@@ -16,24 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryState } from '@superset-ui/core';
 import React from 'react';
-import sinon from 'sinon';
-import { shallow } from 'enzyme';
 
+import { render } from 'spec/helpers/testing-library';
 import TabStatusIcon from 'src/SqlLab/components/TabStatusIcon';
 
 function setup() {
-  const onClose = sinon.spy();
-  const wrapper = shallow(
-    <TabStatusIcon onClose={onClose} tabState="running" />,
-  );
-  return { wrapper, onClose };
+  return render(<TabStatusIcon tabState={'running' as QueryState} />);
 }
 
 describe('TabStatusIcon', () => {
   it('renders a circle without an x when hovered', () => {
-    const { wrapper } = setup();
-    expect(wrapper.find('div.circle')).toExist();
-    expect(wrapper.text()).toBe('');
+    const { container } = setup();
+    expect(container.getElementsByClassName('circle')[0]).toBeInTheDocument();
+    expect(
+      container.getElementsByClassName('circle')[0]?.textContent ?? 'undefined',
+    ).toBe('');
   });
 });
