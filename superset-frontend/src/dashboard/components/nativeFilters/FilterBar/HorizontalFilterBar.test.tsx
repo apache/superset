@@ -78,7 +78,7 @@ test('should not render the gear icon', async () => {
   expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
 });
 
-it('should not render the loading icon', async () => {
+test('should not render the loading icon', async () => {
   await renderWrapper();
   expect(
     screen.queryByRole('status', { name: 'Loading' }),
