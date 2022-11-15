@@ -53,7 +53,7 @@ def test_convert_dashboard_link() -> None:
         ("xpto://localhost:[3/1/", False),
     ],
 )
-def test_is_safe_url(url: str, is_safe: bool) -> None:
+def test_is_safe_url(app_context: None, url: str, is_safe: bool) -> None:
     from superset import app
     from superset.utils.urls import is_safe_url
 
