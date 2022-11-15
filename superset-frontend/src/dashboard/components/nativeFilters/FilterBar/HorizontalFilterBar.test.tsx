@@ -97,7 +97,7 @@ test('should render Add/Edit Filters', async () => {
   expect(screen.getByText('Add/Edit Filters')).toBeInTheDocument();
 });
 
-it('should not render Add/Edit Filters', async () => {
+test('should not render Add/Edit Filters', async () => {
   await renderWrapper({
     canEdit: false,
   });
