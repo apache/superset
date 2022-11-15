@@ -194,7 +194,7 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         default=config["CSV_DEFAULT_NA_NAMES"],
         description=_(
             "Json list of the values that should be treated as null. "
-            'Examples: [""], ["None", "N/A"], ["nan", "null"]. '
+            'Examples: [""] for empty strings, ["None", "N/A"], ["nan", "null"]. '
             "Warning: Hive database supports only a single value"
         ),
     )
