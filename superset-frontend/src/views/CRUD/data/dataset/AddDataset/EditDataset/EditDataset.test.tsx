@@ -29,11 +29,11 @@ const mockedProps = {
 
 fetchMock.get(DATASET_ENDPOINT, { charts: { results: [], count: 2 } });
 
-test('should render edit dataset view with tabs', () => {
+test('should render edit dataset view with tabs', async () => {
   fetchMock.calls(DATASET_ENDPOINT);
   render(<EditDataset {...mockedProps} />);
 
-  const columnTab = screen.getByRole('tab', { name: /columns/i });
+  const columnTab = await screen.findByRole('tab', { name: /columns/i });
   const metricsTab = screen.getByRole('tab', { name: /metrics/i });
   const UsagesTab = screen.getByText(/usage/i);
 
