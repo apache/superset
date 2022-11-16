@@ -25,8 +25,10 @@ import {
   Filter,
   isFilterDivider,
 } from '@superset-ui/core';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterControl from './FilterControls/FilterControl';
 import { useFilters } from './state';
+import FilterDivider from './FilterControls/FilterDivider';
 
 export const useFilterControlFactory = (
   dataMaskSelected: DataMaskStateWithId,
@@ -45,14 +47,20 @@ export const useFilterControlFactory = (
   );
 
   const filterControlFactory = useCallback(
-    index => {
+    (
+      index: number,
+      filterBarOrientation: FilterBarOrientation,
+      overflowIndex: number,
+    ) => {
       const filter = filtersWithValues[index];
       if (isFilterDivider(filter)) {
         return (
-          <div>
-            <h3>{filter.title}</h3>
-            <p>{filter.description}</p>
-          </div>
+          <FilterDivider
+            title={filter.title}
+            description={filter.description}
+            orientation={filterBarOrientation}
+            overflow={index >= overflowIndex}
+          />
         );
       }
       return (
@@ -62,6 +70,8 @@ export const useFilterControlFactory = (
           directPathToChild={directPathToChild}
           onFilterSelectionChange={onFilterSelectionChange}
           inView={false}
+          orientation={filterBarOrientation}
+          overflow={index >= overflowIndex}
         />
       );
     },

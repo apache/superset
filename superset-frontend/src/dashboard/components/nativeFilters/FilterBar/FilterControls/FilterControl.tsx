@@ -22,9 +22,9 @@ import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
-import { FilterProps } from './types';
 import { FilterCard } from '../../FilterCard';
 import { FilterBarScrollContext } from '../Vertical';
+import { FilterControlProps } from './types';
 
 const StyledIcon = styled.div`
   position: absolute;
@@ -109,7 +109,7 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
   </ToolTipContainer>
 );
 
-const FilterControl: React.FC<FilterProps> = ({
+const FilterControl = ({
   dataMaskSelected,
   filter,
   icon,
@@ -118,7 +118,7 @@ const FilterControl: React.FC<FilterProps> = ({
   inView,
   showOverflow,
   parentRef,
-}) => {
+}: FilterControlProps) => {
   const [isFilterActive, setIsFilterActive] = useState(false);
 
   const { name = '<undefined>' } = filter;

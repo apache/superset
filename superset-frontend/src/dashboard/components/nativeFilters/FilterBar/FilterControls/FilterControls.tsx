@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useCallback, useMemo } from 'react';
+import React, { FC, useCallback, useMemo, useState } from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -53,6 +53,8 @@ const FilterControls: FC<FilterControlsProps> = ({
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     state => state.dashboardInfo.filterBarOrientation,
   );
+
+  const [overflowIndex, setOverflowIndex] = useState(0);
 
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
@@ -119,6 +121,9 @@ const FilterControls: FC<FilterControlsProps> = ({
             />
           );
         }}
+        onOverflowingStateChange={overflowingState =>
+          setOverflowIndex(overflowingState.notOverflowed.length)
+        }
       />
     );
   };
@@ -128,7 +133,9 @@ const FilterControls: FC<FilterControlsProps> = ({
       {portalNodes
         .filter((node, index) => filterIds.has(filtersWithValues[index].id))
         .map((node, index) => (
-          <InPortal node={node}>{filterControlFactory(index)}</InPortal>
+          <InPortal node={node}>
+            {filterControlFactory(index, filterBarOrientation, overflowIndex)}
+          </InPortal>
         ))}
       {filterBarOrientation === FilterBarOrientation.VERTICAL &&
         renderVerticalContent()}
