@@ -1436,6 +1436,18 @@ ENVIRONMENT_TAG_CONFIG = {
     },
 }
 
+# ------------------------------
+# SSH Tunnel
+# ------------------------------
+# Allow users to enable ssh tunneling when creating a DB.
+# Users must check whether the DB engine supports SSH Tunnels
+# otherwise enabling this flag won't have any effect on the DB.
+SSH_TUNNEL_ENABLE = False
+
+# Allow users to set the host used when connecting to the SSH Tunnel
+# as localhost and any other alias (0.0.0.0)
+SSH_TUNNEL_ALLOWED_ALIASES_FOR_HOST: List[str] = []
+
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
 # -------------------------------------------------------------------
