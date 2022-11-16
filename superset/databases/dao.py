@@ -19,7 +19,7 @@ from typing import Any, Dict, Optional
 
 from superset.dao.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
-from superset.databases.models import SSHTunnel
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
