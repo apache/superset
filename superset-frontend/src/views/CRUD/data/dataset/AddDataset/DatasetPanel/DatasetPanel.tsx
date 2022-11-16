@@ -208,7 +208,11 @@ const renderExistingDatasetAlert = (linkedDataset: any) => (
         <span
           role="button"
           onClick={() => {
-            window.location.href = linkedDataset.explore_url;
+            window.open(
+              linkedDataset.explore_url,
+              '_blank',
+              'noreferer noopener popup=false',
+            );
           }}
           tabIndex={0}
           className="view-dataset-button"
