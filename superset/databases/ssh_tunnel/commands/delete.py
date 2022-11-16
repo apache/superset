@@ -21,12 +21,12 @@ from flask_appbuilder.models.sqla import Model
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
-from superset.databases.commands.exceptions import (
+from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelDeleteFailedError,
     SSHTunnelNotFoundError,
 )
-from superset.databases.models import SSHTunnel
-from superset.databases.ssh_tunnel_dao import SSHTunnelDAO
+from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+from superset.databases.ssh_tunnel.models import SSHTunnel
 
 logger = logging.getLogger(__name__)
 

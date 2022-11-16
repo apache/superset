@@ -50,8 +50,9 @@ def session_with_data(session: Session) -> Iterator[Session]:
     session.rollback()
 
 
-def test_database_get_shh_tunnel(session_with_data: Session) -> None:
+def test_delete_shh_tunnel_command(session_with_data: Session) -> None:
     from superset.databases.dao import DatabaseDAO
+    from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
     result = DatabaseDAO.get_ssh_tunnel(1)
@@ -60,11 +61,9 @@ def test_database_get_shh_tunnel(session_with_data: Session) -> None:
     assert isinstance(result["ssh_tunnel"], SSHTunnel)
     assert 1 == result["ssh_tunnel"].database_id
 
+    DeleteSSHTunnelCommand(1).run()
 
-def test_database_get_shh_tunnel_not_found(session_with_data: Session) -> None:
-    from superset.databases.dao import DatabaseDAO
-
-    result = DatabaseDAO.get_ssh_tunnel(2)
+    result = DatabaseDAO.get_ssh_tunnel(1)
 
     assert result
     assert result["ssh_tunnel"] is None
