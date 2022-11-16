@@ -158,6 +158,7 @@
     "polished": "^3.7.2",
     "prop-types": "^15.7.2",
     "query-string": "^6.13.7",
+    "rc-resize-observer": "^1.2.0",
     "re-resizable": "^6.6.1",
     "react": "^16.13.1",
     "react-ace": "^9.4.4",

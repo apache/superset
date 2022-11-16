@@ -183,11 +183,24 @@ The table displays a set number of rows at a time, the user navigates the table 
 The default page size and page size options for the menu are configurable via the `pageSizeOptions` and `defaultPageSize` props.
 NOTE: Pagination controls will only display when the data for the table has more records than the default page size.
 
-<Story id="design-system-components-table-examples--many-columns" />
+<Story id="design-system-components-table-examples--pagination" />
 
 ```
 <Table pageSizeOptions={[5, 10, 15, 20, 25] defaultPageSize={10} />
 ```
+
+---
+
+### Virtualization for Performance
+
+The Table virtualization can be used to enable viewing data with many columns and or rows without paging.
+Virtualization can be enabled via the `virtualize` prop. Pagination is shown in this example but can be truned off by setting `pagination={false}`
+if desired as the virtualization can handle scrolling through large numbers of rows.
+
+NOTE: Custom cell renderers and event handlers will be ignored when table is running with `virtualize={true}`.
+Support for custom cell renderers and event handlers may be added in future versions of the Table.
+
+<Story id="design-system-components-table-examples--virtualized-performance" />
 
 ---
 

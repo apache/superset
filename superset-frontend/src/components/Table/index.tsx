@@ -27,6 +27,7 @@ import { t, useTheme, logging } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import styled, { StyledComponent } from '@emotion/styled';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
+import VirtualTable from './VirtualTable';
 
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 export interface TableDataType {
@@ -109,6 +110,10 @@ export interface TableProps extends AntTableProps<TableProps> {
    */
   reorderable?: boolean;
   /**
+   * Controls if pagination is active or disabled.
+   */
+  usePagination?: boolean;
+  /**
    * Default number of rows table will display per page of data.
    */
   defaultPageSize?: number;
@@ -134,6 +139,11 @@ export interface TableProps extends AntTableProps<TableProps> {
    * when the number of rows exceeds the visible space.
    */
   height?: number;
+  /**
+   * Sets the table to use react-window for scroll virtualization in cases where
+   * there are unknowm amount of columns, or many, many rows
+   */
+  virtualize?: boolean;
 }
 
 export enum TableSize {
@@ -165,6 +175,20 @@ const StyledTable: StyledComponent<any> = styled(AntTable)<any>`
       border-color: ${theme.colors.primary.base};
     }
   `}
+`;
+
+const StyledVirtualTable: StyledComponent<any> = styled(VirtualTable)<any>`
+  .virtual-table .ant-table-container:before,
+  .virtual-table .ant-table-container:after {
+    display: none;
+  }
+  .virtual-table-cell {
+    box-sizing: border-box;
+    padding: 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 const defaultLocale = {
@@ -204,11 +228,14 @@ export function Table(props: TableProps) {
     loading = false,
     resizable = false,
     reorderable = false,
+    usePagination = true,
     defaultPageSize = 15,
     pageSizeOptions = ['5', '15', '25', '50', '100'],
     hideData = false,
     emptyComponent,
     locale,
+    height,
+    virtualize = false,
     ...rest
   } = props;
 
@@ -292,32 +319,51 @@ export function Table(props: TableProps) {
      * The exclusion from the effect dependencies is intentional and should not be modified
      */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wrapperRef, reorderable, resizable, interactiveTableUtils]);
+  }, [wrapperRef, reorderable, resizable, virtualize, interactiveTableUtils]);
 
   const theme = useTheme();
+  const paginationSettings = usePagination
+    ? {
+        hideOnSinglePage: true,
+        pageSize,
+        pageSizeOptions,
+        onShowSizeChange: (page: number, size: number) => setPageSize(size),
+      }
+    : false;
 
   return (
     <ConfigProvider renderEmpty={renderEmpty}>
       <div ref={wrapperRef}>
-        <StyledTable
-          {...rest}
-          loading={{ spinning: loading ?? false, indicator: <Loading /> }}
-          hasData={hideData ? false : data}
-          rowSelection={selectionTypeValue ? rowSelection : undefined}
-          columns={derivedColumns}
-          dataSource={hideData ? [undefined] : data}
-          size={size}
-          sticky={sticky}
-          pagination={{
-            hideOnSinglePage: true,
-            pageSize,
-            pageSizeOptions,
-            onShowSizeChange: (page: number, size: number) => setPageSize(size),
-          }}
-          showSorterTooltip={false}
-          locale={mergedLocale}
-          theme={theme}
-        />
+        {!virtualize && (
+          <StyledTable
+            {...rest}
+            loading={{ spinning: loading ?? false, indicator: <Loading /> }}
+            hasData={hideData ? false : data}
+            rowSelection={selectionTypeValue ? rowSelection : undefined}
+            columns={derivedColumns}
+            dataSource={hideData ? [undefined] : data}
+            size={size}
+            sticky={sticky}
+            pagination={paginationSettings}
+            showSorterTooltip={false}
+            locale={mergedLocale}
+            theme={theme}
+          />
+        )}
+        {virtualize && (
+          <StyledVirtualTable
+            loading={{ spinning: loading ?? false, indicator: <Loading /> }}
+            hasData={hideData ? false : data}
+            columns={derivedColumns}
+            dataSource={hideData ? [undefined] : data}
+            size={size}
+            scroll={{ y: 300, x: '100vw' }}
+            theme={theme}
+            height={height}
+            pagination={paginationSettings}
+            locale={mergedLocale}
+          />
+        )}
       </div>
     </ConfigProvider>
   );
