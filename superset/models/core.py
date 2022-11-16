@@ -73,7 +73,7 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset.databases.models import SSHTunnel
+    from superset.databases.ssh_tunnel.models import SSHTunnel
 
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 

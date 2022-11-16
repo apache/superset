@@ -14,13 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
-
-from superset.dao.base import BaseDAO
-from superset.databases.models import SSHTunnel
-
-logger = logging.getLogger(__name__)
-
-
-class SSHTunnelDAO(BaseDAO):
-    model_cls = SSHTunnel
