@@ -233,7 +233,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         base_result = BaseEngineSpec.get_table_names(
             database=mock.ANY, schema="schema", inspector=inspector
         )
-        self.assertSetEqual(base_result_expected, base_result)
+        assert base_result_expected == base_result
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
