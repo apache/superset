@@ -556,7 +556,7 @@ class Database(
         :param cache: whether cache is enabled for the function
         :param cache_timeout: timeout in seconds for the cache
         :param force: whether to force refresh the cache
-        :return: set of tables
+        :return: The table/schema pairs
         """
         try:
             return {
