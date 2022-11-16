@@ -140,7 +140,7 @@ const StyledAlert = styled(Alert)`
     font-weight: ${supersetTheme.typography.weights.normal};
 
     &:hover {
-      color: ${supersetTheme.colors.secondary.dark1};
+      color: ${supersetTheme.colors.secondary.dark3};
       text-decoration: underline;
     }
   }
