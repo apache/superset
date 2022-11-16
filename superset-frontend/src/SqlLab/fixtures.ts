@@ -203,6 +203,7 @@ export const extraQueryEditor1 = {
   id: 'diekd23',
   sql: 'SELECT *\nFROM\nWHERE\nLIMIT',
   name: 'Untitled Query 2',
+  selectedText: 'SELECT',
 };
 
 export const extraQueryEditor2 = {
