@@ -185,8 +185,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
 
-        engine = cls.get_engine(database)
-
         if to_sql_kwargs["if_exists"] == "append":
             raise SupersetException("Append operation not currently supported")
 
@@ -205,7 +203,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             if table_exists:
                 raise SupersetException("Table already exists")
         elif to_sql_kwargs["if_exists"] == "replace":
-            engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+            with cls.get_engine(database) as engine:
+                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
 
         def _get_hive_type(dtype: np.dtype) -> str:
             hive_type_by_dtype = {

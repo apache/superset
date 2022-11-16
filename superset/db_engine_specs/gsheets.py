@@ -109,11 +109,11 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         table_name: str,
         schema_name: Optional[str],
     ) -> Dict[str, Any]:
-        engine = cls.get_engine(database, schema=schema_name)
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table_name}")')
-            results = cursor.fetchone()[0]
+        with cls.get_engine(database, schema=schema_name) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                cursor.execute(f'SELECT GET_METADATA("{table_name}")')
+                results = cursor.fetchone()[0]
 
         try:
             metadata = json.loads(results)
