@@ -19,6 +19,7 @@
 import React from 'react';
 import { useDispatch } from 'react-redux';
 import { styled, useTheme } from '@superset-ui/core';
+
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
@@ -83,12 +84,13 @@ const QueryLimitSelect = ({
   maxRow,
   defaultQueryLimit,
 }: QueryLimitSelectProps) => {
+  const theme = useTheme();
+  const dispatch = useDispatch();
+
   const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
   const queryLimit = queryEditor.queryLimit || defaultQueryLimit;
-  const dispatch = useDispatch();
   const setQueryLimit = (updatedQueryLimit: number) =>
     dispatch(queryEditorSetQueryLimit(queryEditor, updatedQueryLimit));
-  const theme = useTheme();
 
   return (
     <LimitSelectStyled>

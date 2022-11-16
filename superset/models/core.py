@@ -377,7 +377,6 @@ class Database(
         ssh_params = {}
         if ssh_tunnel:
             # build with override
-            print("building with params")
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
             ssh_tunnel.bind_host = url.host
             ssh_tunnel.bind_port = url.port
@@ -395,7 +394,6 @@ class Database(
 
         else:
             # do look up in table for using database_id
-            print("doing look up on table")
             try:
                 yield self._get_sqla_engine(
                     schema=schema, nullpool=nullpool, source=source

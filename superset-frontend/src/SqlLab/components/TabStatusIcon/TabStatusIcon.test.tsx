@@ -16,39 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { rgb } from 'd3-color';
+import { QueryState } from '@superset-ui/core';
+import React from 'react';
 
-export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData, hooks, inContextMenu } =
-    chartProps;
-  const { onContextMenu } = hooks;
-  const {
-    countryFieldtype,
-    entity,
-    maxBubbleSize,
-    showBubbles,
-    linearColorScheme,
-    colorPicker,
-    colorBy,
-    colorScheme,
-    sliceId,
-  } = formData;
-  const { r, g, b } = colorPicker;
+import { render } from 'spec/helpers/testing-library';
+import TabStatusIcon from 'src/SqlLab/components/TabStatusIcon';
 
-  return {
-    countryFieldtype,
-    entity,
-    data: queriesData[0].data,
-    width,
-    height,
-    maxBubbleSize: parseInt(maxBubbleSize, 10),
-    showBubbles,
-    linearColorScheme,
-    color: rgb(r, g, b).hex(),
-    colorBy,
-    colorScheme,
-    sliceId,
-    onContextMenu,
-    inContextMenu,
-  };
+function setup() {
+  return render(<TabStatusIcon tabState={'running' as QueryState} />);
 }
+
+describe('TabStatusIcon', () => {
+  it('renders a circle without an x when hovered', () => {
+    const { container } = setup();
+    expect(container.getElementsByClassName('circle')[0]).toBeInTheDocument();
+    expect(
+      container.getElementsByClassName('circle')[0]?.textContent ?? 'undefined',
+    ).toBe('');
+  });
+});

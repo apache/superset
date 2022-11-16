@@ -101,6 +101,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)
 
+        alive = False
         with database.get_sqla_engine_with_context() as engine:
             try:
                 with closing(engine.raw_connection()) as conn:

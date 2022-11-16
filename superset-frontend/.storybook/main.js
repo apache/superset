@@ -24,8 +24,8 @@ module.exports = {
     builder: 'webpack5',
   },
   stories: [
-    '../src/@(components|common|filters|explore)/**/*.stories.@(tsx|jsx)',
-    '../src/@(components|common|filters|explore)/**/*.*.@(mdx)',
+    '../src/@(components|common|filters|explore|views)/**/*.stories.@(tsx|jsx)',
+    '../src/@(components|common|filters|explore|views)/**/*.*.@(mdx)',
   ],
   addons: [
     '@storybook/addon-essentials',

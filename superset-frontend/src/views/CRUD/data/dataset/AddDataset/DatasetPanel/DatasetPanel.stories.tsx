@@ -16,39 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { rgb } from 'd3-color';
 
-export default function transformProps(chartProps) {
-  const { width, height, formData, queriesData, hooks, inContextMenu } =
-    chartProps;
-  const { onContextMenu } = hooks;
-  const {
-    countryFieldtype,
-    entity,
-    maxBubbleSize,
-    showBubbles,
-    linearColorScheme,
-    colorPicker,
-    colorBy,
-    colorScheme,
-    sliceId,
-  } = formData;
-  const { r, g, b } = colorPicker;
+import React from 'react';
+import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import DatasetPanel from './DatasetPanel';
+import { exampleColumns } from './fixtures';
 
-  return {
-    countryFieldtype,
-    entity,
-    data: queriesData[0].data,
-    width,
-    height,
-    maxBubbleSize: parseInt(maxBubbleSize, 10),
-    showBubbles,
-    linearColorScheme,
-    color: rgb(r, g, b).hex(),
-    colorBy,
-    colorScheme,
-    sliceId,
-    onContextMenu,
-    inContextMenu,
-  };
-}
+export default {
+  title: 'Superset App/views/CRUD/data/dataset/DatasetPanel',
+  component: DatasetPanel,
+} as ComponentMeta<typeof DatasetPanel>;
+
+export const Basic: ComponentStory<typeof DatasetPanel> = args => (
+  <ThemeProvider theme={supersetTheme}>
+    <div style={{ height: '350px' }}>
+      <DatasetPanel {...args} />
+    </div>
+  </ThemeProvider>
+);
+
+Basic.args = {
+  tableName: 'example_table',
+  loading: false,
+  hasError: false,
+  columnList: exampleColumns,
+};

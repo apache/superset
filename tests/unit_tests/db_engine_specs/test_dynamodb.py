@@ -14,33 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.exceptions import SupersetException
+from datetime import datetime
+
+from tests.unit_tests.fixtures.common import dttm
 
 
-class NotificationError(SupersetException):
-    """
-    Generic unknown exception - only used when
-    bubbling up unknown exceptions from lower levels
-    """
+def test_convert_dttm(dttm: datetime) -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    assert DynamoDBEngineSpec.convert_dttm("TEXT", dttm) == "'2019-01-02 03:04:05'"
 
 
-class NotificationParamException(SupersetException):
-    status = 422
+def test_convert_dttm_lower(dttm: datetime) -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+
+    assert DynamoDBEngineSpec.convert_dttm("text", dttm) == "'2019-01-02 03:04:05'"
 
 
-class NotificationAuthorizationException(SupersetException):
-    status = 401
+def test_convert_dttm_invalid_type(dttm: datetime) -> None:
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
 
-
-class NotificationUnprocessableException(SupersetException):
-    """
-    When a third party client service is down.
-    The request should be retried. There is no further
-    action required on our part or the user's other than to retry
-    """
-
-    status = 400
-
-
-class NotificationMalformedException(SupersetException):
-    status = 400
+    assert DynamoDBEngineSpec.convert_dttm("other", dttm) is None
