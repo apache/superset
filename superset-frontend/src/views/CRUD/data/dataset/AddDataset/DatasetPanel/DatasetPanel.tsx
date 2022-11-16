@@ -138,6 +138,11 @@ const StyledAlert = styled(Alert)`
     top: ${supersetTheme.gridUnit * 4}px;
     right: ${supersetTheme.gridUnit * 4}px;
     font-weight: ${supersetTheme.typography.weights.normal};
+
+    &:hover {
+      color: ${supersetTheme.colors.secondary.dark1};
+      text-decoration: underline;
+    }
   }
 `;
 
