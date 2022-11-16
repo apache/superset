@@ -24,9 +24,7 @@ from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.commands.exceptions import SSHTunnelCreateFailedError
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
-from superset.databases.ssh_tunnel_dao import SSHTunnelDAO
-from superset.exceptions import SupersetErrorsException
-from superset.extensions import db, event_logger, security_manager
+from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 
 logger = logging.getLogger(__name__)
 
@@ -47,4 +45,5 @@ class CreateSSHTunnelCommand(BaseCommand):
         return tunnel
 
     def validate(self) -> None:
+        # check to make sure the server port is not localhost
         pass

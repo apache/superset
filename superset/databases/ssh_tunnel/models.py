@@ -38,7 +38,7 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     A ssh tunnel configuration in a database.
     """
 
-    __tablename__ = "ssh_tunnel"
+    __tablename__ = "ssh_tunnels"
 
     id = sa.Column(sa.Integer, primary_key=True)
     database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)

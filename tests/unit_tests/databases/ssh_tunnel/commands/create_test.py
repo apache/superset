@@ -15,59 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Iterator
-
-import pytest
 from sqlalchemy.orm.session import Session
 
-# @pytest.fixture
-# def session_with_data(session: Session) -> Iterator[Session]:
-#     from superset.connectors.sqla.models import SqlaTable
-#     from superset.databases.ssh_tunnel.models import SSHTunnel
-#     from superset.models.core import Database
 
-#     engine = session.get_bind()
-#     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+def test_create_ssh_tunnel_command() -> None:
+    from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
 
-#     db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-#     sqla_table = SqlaTable(
-#         table_name="my_sqla_table",
-#         columns=[],
-#         metrics=[],
-#         database=db,
-#     )
-#     ssh_tunnel = SSHTunnel(
-#         database_id=db.id,
-#         database=db,
-#     )
+    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
 
-#     session.add(db)
-#     session.add(sqla_table)
-#     session.add(ssh_tunnel)
-#     session.flush()
-#     yield session
-#     session.rollback()
+    properties = {
+        "database_id": db.id,
+        "server_address": "123.132.123.1",
+        "server_port": "3005",
+        "username": "foo",
+        "password": "bar",
+    }
 
+    result = CreateSSHTunnelCommand(db.id, properties).run()
 
-# def test_create_ssh_tunnel_command(session_with_data: Session) -> None:
-#     from superset.connectors.sqla.models import SqlaTable
-#     from superset.databases.dao import DatabaseDAO
-#     from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
-#     from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
-#     from superset.databases.ssh_tunnel.models import SSHTunnel
-#     from superset.models.core import Database
-
-#     db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-
-#     result = SSHTunnelDAO.create()
-
-#     assert result
-#     assert isinstance(result["ssh_tunnel"], SSHTunnel)
-#     assert 1 == result["ssh_tunnel"].database_id
-
-#     DeleteSSHTunnelCommand(1).run()
-
-#     result = DatabaseDAO.get_ssh_tunnel(1)
-
-#     assert result
-#     assert result["ssh_tunnel"] is None
+    assert result is not None
+    assert isinstance(result, SSHTunnel)
