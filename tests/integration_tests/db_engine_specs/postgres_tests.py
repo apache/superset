@@ -49,7 +49,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         pg_result = PostgresEngineSpec.get_table_names(
             database=mock.ANY, schema="schema", inspector=inspector
         )
-        self.assertSetEqual(pg_result_expected, pg_result)
+        assert pg_result_expected == pg_result
 
     def test_time_exp_literal_no_grain(self):
         """
