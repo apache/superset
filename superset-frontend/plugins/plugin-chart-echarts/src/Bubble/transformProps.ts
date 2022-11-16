@@ -1,87 +1,158 @@
-import { EChartsCoreOption } from 'echarts';
+import { EChartsCoreOption, ScatterSeriesOption } from 'echarts';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { extent } from 'd3-array';
-import { sanitizeHtml } from '../utils/series';
-import { CategoricalColorNamespace } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  getNumberFormatter,
+} from '@superset-ui/core';
+import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
+import { defaultGrid, defaultTooltip } from '../defaults';
+import { getLegendProps } from '../utils/series';
+import { LegendOrientation, LegendType } from '../types';
+import { parseYAxisBound } from '../utils/controls';
+import { AxisType } from '../Timeseries/types';
 
-function normalizeSymbolSize(nodes, maxBubbleValue, minBubbleValue = 10) {
-  const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data[0][2]);
+function normalizeSymbolSize(
+  nodes: ScatterSeriesOption[],
+  maxBubbleValue: number,
+) {
+  const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data![0][2]);
   const nodeSpread = bubbleMaxValue - bubbleMinValue;
   nodes.forEach(node => {
     node.symbolSize =
-      ((node.data[0][2] - bubbleMinValue) / nodeSpread) * maxBubbleValue +
-      minBubbleValue;
+      (((node.data![0][2] - bubbleMinValue) / nodeSpread) *
+        (maxBubbleValue * 2) || 0) + MINIMUM_BUBBLE_SIZE;
   });
 }
 
+function formatBubbleLabel(
+  params: any,
+  xAxisLabel: string,
+  yAxisLabel: string,
+  sizeLabel: string,
+) {
+  const title = params.data[4]
+    ? `${params.data[3]} <sub>(${params.data[4]})</sub>`
+    : params.data[3];
+
+  return `<p>${title}</p>
+        ${xAxisLabel}: ${params.data[0]} <br/>
+        ${yAxisLabel}: ${params.data[1]} <br/>
+        ${sizeLabel}: ${params.data[2]}`;
+}
+
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  const { height, width, hooks, filterState, queriesData, theme, formData } =
+  console.log('tp cp ', chartProps);
+
+  const { height, width, hooks, queriesData, formData, inContextMenu } =
     chartProps;
 
   const { data = [] } = queriesData[0];
   const {
     x,
     y,
-    yAxis,
     size,
     entity,
     maxBubbleSize,
     colorScheme,
     series: bubbleSeries,
-  }: EchartsBubbleFormData = formData;
+    xAxisTitle: bubbleXAxisTitle,
+    yAxisTitle: bubbleYAxisTitle,
+    xAxisFormat,
+    yAxisFormat,
+    yAxisBounds,
+    logXAxis,
+    logYAxis,
+    xAxisTitleMargin,
+    yAxisTitleMargin,
+    truncateYAxis,
+  }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
-  const legends = [];
-  const series = [];
+  const legends: string[] = [];
+  const series: ScatterSeriesOption[] = [];
 
-  data.forEach(d => {
+  const xAxisLabel: string = x.label || x;
+  const yAxisLabel: string = y.label || y;
+  const sizeLabel: string = size.label || size;
+
+  data.forEach(datum => {
+    const name = (bubbleSeries ? datum[bubbleSeries] : datum[entity]) as string;
+    const bubbleSeriesValue = bubbleSeries ? datum[bubbleSeries] : null;
+
     series.push({
-      name: bubbleSeries ? d[bubbleSeries] : d[entity],
-      data: [[d[x], d[y.label], d[size.label], d[entity], d[bubbleSeries]]],
+      name,
+      data: [
+        [
+          datum[xAxisLabel] as string,
+          datum[yAxisLabel] as string,
+          datum[size.label] as string,
+          datum[entity] as string,
+          bubbleSeriesValue as any,
+        ],
+      ],
       type: 'scatter',
-      itemStyle: { color: colorFn(d[bubbleSeries] || d[entity]) },
+      itemStyle: { color: colorFn(name) },
     });
-    legends.push(bubbleSeries ? d[bubbleSeries] : d[entity]);
+    legends.push(name);
   });
 
   normalizeSymbolSize(series, maxBubbleSize);
+  console.log('series ', series);
+
+  const xAxisFormatter = getNumberFormatter(xAxisFormat);
+  const yAxisFormatter = getNumberFormatter(yAxisFormat);
+
+  const [min, max] = yAxisBounds.map(parseYAxisBound);
 
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
+      axisLabel: { formatter: xAxisFormatter },
       splitLine: {
         lineStyle: {
           type: 'dashed',
         },
       },
       scale: true,
+      name: bubbleXAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontWight: 'bolder',
+      },
+      nameGap: xAxisTitleMargin || 30,
+      type: logXAxis ? AxisType.log : AxisType.value,
     },
     yAxis: {
+      axisLabel: { formatter: yAxisFormatter },
       splitLine: {
         lineStyle: {
           type: 'dashed',
         },
       },
-      scale: true,
+      scale: truncateYAxis,
+      name: bubbleYAxisTitle,
+      nameLocation: 'middle',
+      nameTextStyle: {
+        fontWight: 'bolder',
+      },
+      nameGap: yAxisTitleMargin || 50,
+      min,
+      max,
+      type: logYAxis ? AxisType.log : AxisType.value,
     },
     legend: {
-      right: '10%',
-      top: '3%',
+      ...getLegendProps(LegendType.Scroll, LegendOrientation.Top, true),
       data: legends,
     },
     tooltip: {
-      formatter: (params: any): string => {
-        const title = params.data[4]
-          ? `${params.data[3]} (${params.data[4]})`
-          : params.data[3];
-        return `${title} <br/>
-                ${x}: ${params.data[0]} <br/>
-                ${y.label}: ${params.data[1]} <br/>
-                ${size.label}: ${params.data[2]}
-                `;
-      },
+      show: !inContextMenu,
+      ...defaultTooltip,
+      formatter: (params: any): string =>
+        formatBubbleLabel(params, xAxisLabel, yAxisLabel, sizeLabel),
     },
+    grid: { ...defaultGrid },
   };
 
   const { onContextMenu } = hooks;

@@ -8,13 +8,16 @@ import { EchartsLegendFormData, EChartTransformedProps } from '../types';
 
 export type EchartsBubbleFormData = QueryFormData &
   EchartsLegendFormData & {
+    series?: string;
+    entity: string;
+
     xAxisFormat: string;
     yAXisFormat: string;
     logXAxis: boolean;
     logYAxis: boolean;
     xAxisBounds: [number | undefined | null, number | undefined | null];
     yAxisBounds: [number | undefined | null, number | undefined | null];
-
+    xAxisLabel?: string;
     colorScheme?: string;
     defaultValue?: string[] | null;
     groupby: QueryFormColumn[];
