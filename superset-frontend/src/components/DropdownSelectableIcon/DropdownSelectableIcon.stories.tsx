@@ -17,23 +17,49 @@
  * under the License.
  */
 import React from 'react';
-import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import Icons from 'src/components/Icons';
+import DropdownSelectableIcon, { DropDownSelectableProps } from '.';
 
-import TabStatusIcon from 'src/SqlLab/components/TabStatusIcon';
+export default {
+  title: 'DropdownSelectableIcon',
+  component: DropdownSelectableIcon,
+};
 
-function setup() {
-  const onClose = sinon.spy();
-  const wrapper = shallow(
-    <TabStatusIcon onClose={onClose} tabState="running" />,
-  );
-  return { wrapper, onClose };
-}
+export const Component = (props: DropDownSelectableProps) => (
+  <DropdownSelectableIcon
+    {...props}
+    icon={<Icons.Gear name="gear" iconColor="#000000" />}
+  />
+);
 
-describe('TabStatusIcon', () => {
-  it('renders a circle without an x when hovered', () => {
-    const { wrapper } = setup();
-    expect(wrapper.find('div.circle')).toExist();
-    expect(wrapper.text()).toBe('');
-  });
-});
+Component.story = {
+  parameters: {
+    knobs: {
+      disable: true,
+    },
+  },
+};
+
+Component.args = {
+  info: 'Info go here',
+  selectedKeys: ['vertical'],
+  menuItems: [
+    {
+      key: 'vertical',
+      label: 'Vertical',
+    },
+    {
+      key: 'horizontal',
+      label: 'Horizontal',
+    },
+  ],
+};
+
+Component.argTypes = {
+  onSelect: {
+    action: 'onSelect',
+    table: {
+      disable: true,
+    },
+  },
+};

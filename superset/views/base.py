@@ -103,6 +103,7 @@ FRONTEND_CONF_KEYS = (
     "SQLALCHEMY_DISPLAY_TEXT",
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
+    "DASHBOARD_AUTO_REFRESH_INTERVALS",
     "DASHBOARD_VIRTUALIZATION",
     "SCHEDULED_QUERIES",
     "EXCEL_EXTENSIONS",
@@ -111,6 +112,8 @@ FRONTEND_CONF_KEYS = (
     "ALLOWED_EXTENSIONS",
     "SAMPLES_ROW_LIMIT",
     "DEFAULT_TIME_FILTER",
+    "HTML_SANITIZATION",
+    "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
 )
 
 logger = logging.getLogger(__name__)
@@ -179,6 +182,30 @@ def generate_download_headers(
     content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
     return headers
+
+
+def deprecated(
+    eol_version: str = "3.0.0",
+) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
+    """
+    A decorator to set an API endpoint from SupersetView has deprecated.
+    Issues a log warning
+    """
+
+    def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+        def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+            logger.warning(
+                "%s.%s "
+                "This API endpoint is deprecated and will be removed in version %s",
+                self.__class__.__name__,
+                f.__name__,
+                eol_version,
+            )
+            return f(self, *args, **kwargs)
+
+        return functools.update_wrapper(wraps, f)
+
+    return _deprecated
 
 
 def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:

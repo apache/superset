@@ -19,10 +19,15 @@
 import React, { ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
-import { styled, t, SupersetClient, JsonResponse } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  SupersetClient,
+  JsonResponse,
+  isDefined,
+} from '@superset-ui/core';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { isNullish } from 'src/utils/common';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { AsyncSelect, Steps } from 'src/components';
@@ -247,7 +252,7 @@ export class AddSliceContainer extends React.PureComponent<
   exploreUrl() {
     const dashboardId = getUrlParam(URL_PARAMS.dashboardId);
     let url = `/explore/?viz_type=${this.state.vizType}&datasource=${this.state.datasource?.value}`;
-    if (!isNullish(dashboardId)) {
+    if (isDefined(dashboardId)) {
       url += `&dashboard_id=${dashboardId}`;
     }
     return url;

@@ -24,6 +24,10 @@ import Label from 'src/components/Label';
 import { FormLabel } from 'src/components/Form';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import {
+  getClientErrorMessage,
+  getClientErrorObject,
+} from 'src/utils/getClientErrorObject';
 
 const DatabaseSelectorWrapper = styled.div`
   ${({ theme }) => `
@@ -88,7 +92,7 @@ export interface DatabaseSelectorProps {
   db?: DatabaseObject | null;
   emptyState?: ReactNode;
   formMode?: boolean;
-  getDbList?: (arg0: any) => {};
+  getDbList?: (arg0: any) => void;
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
@@ -238,9 +242,16 @@ export default function DatabaseSelector({
           setLoadingSchemas(false);
           if (refresh > 0) addSuccessToast('List refreshed');
         })
-        .catch(() => {
+        .catch(err => {
           setLoadingSchemas(false);
-          handleError(t('There was an error loading the schemas'));
+          getClientErrorObject(err).then(clientError => {
+            handleError(
+              getClientErrorMessage(
+                t('There was an error loading the schemas'),
+                clientError,
+              ),
+            );
+          });
         });
     }
   }, [currentDb, onSchemasLoad, refresh]);
@@ -295,7 +306,7 @@ export default function DatabaseSelector({
   }
 
   function renderSchemaSelect() {
-    const refreshIcon = !formMode && !readOnly && (
+    const refreshIcon = !readOnly && (
       <RefreshLabel
         onClick={() => setRefresh(refresh + 1)}
         tooltipContent={t('Force refresh schema list')}

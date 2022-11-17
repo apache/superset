@@ -24,5 +24,5 @@ export { default as mainMetric } from './mainMetric';
 export { default as columnChoices } from './columnChoices';
 export * from './defineSavedMetrics';
 export * from './getStandardizedControls';
-export { getTemporalColumns } from './getTemporalColumns';
 export * from './visibility';
+export * from './getTemporalColumns';

@@ -38,9 +38,13 @@ export const FILTER_SUPPORTED_TYPES = {
   filter_range: [GenericDataType.NUMERIC],
 };
 
-export const useForceUpdate = () => {
+export const useForceUpdate = (isActive = true) => {
   const [, updateState] = React.useState({});
-  return React.useCallback(() => updateState({}), []);
+  return React.useCallback(() => {
+    if (isActive) {
+      updateState({});
+    }
+  }, [isActive]);
 };
 
 export const setNativeFilterFieldValues = (

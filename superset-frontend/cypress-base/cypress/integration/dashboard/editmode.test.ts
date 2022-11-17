@@ -62,6 +62,7 @@ function dragComponent(
     cy.getBySel('dashboard-charts-filter-search-input').type(component);
     cy.wait('@filtering');
   }
+  cy.wait(500);
   drag(`[data-test="${target}"]`, component).to(
     '[data-test="grid-content"] [data-test="dragdroppable-object"]',
   );
@@ -148,16 +149,21 @@ function assertMetadata(text: string) {
     });
 }
 function clearMetadata() {
-  cy.wait(500);
   cy.get('#json_metadata').then($jsonmetadata => {
-    cy.wrap($jsonmetadata).type('{selectall} {backspace}');
+    cy.wrap($jsonmetadata).find('.ace_content').click();
+    cy.wrap($jsonmetadata)
+      .find('.ace_text-input')
+      .type('{selectall} {backspace}');
   });
 }
 
 function writeMetadata(metadata: string) {
-  cy.get('#json_metadata').then($jsonmetadata => {
-    cy.wrap($jsonmetadata).type(metadata, { parseSpecialCharSequences: false });
-  });
+  cy.get('#json_metadata').then($jsonmetadata =>
+    cy
+      .wrap($jsonmetadata)
+      .find('.ace_text-input')
+      .type(metadata, { parseSpecialCharSequences: false }),
+  );
 }
 
 function openExplore(chartName: string) {
@@ -767,7 +773,7 @@ describe('Dashboard edit', () => {
       cy.getBySel('dashboard-markdown-editor')
         .should(
           'have.text',
-          '✨Header 1✨Header 2✨Header 3Click here to learn more about markdown formatting',
+          '✨Header 1\n✨Header 2\n✨Header 3\n\nClick here to learn more about markdown formatting',
         )
         .click(10, 10);
 

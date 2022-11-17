@@ -45,7 +45,6 @@ import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -54,10 +53,10 @@ import {
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
-import { options as PeriodicRefreshOptions } from 'src/dashboard/components/RefreshIntervalModal';
 import { FILTER_BOX_MIGRATION_STATES } from 'src/explore/constants';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { DashboardEmbedModal } from '../DashboardEmbedControls';
+import OverwriteConfirm from '../OverwriteConfirm';
 
 const uiOverrideRegistry = getUiOverrideRegistry();
 
@@ -65,14 +64,14 @@ const propTypes = {
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
   addWarningToast: PropTypes.func.isRequired,
-  user: UserWithPermissionsAndRoles,
+  user: PropTypes.object, // UserWithPermissionsAndRoles,
   dashboardInfo: PropTypes.object.isRequired,
-  dashboardTitle: PropTypes.string.isRequired,
+  dashboardTitle: PropTypes.string,
   dataMask: PropTypes.object.isRequired,
   charts: PropTypes.objectOf(chartPropShape).isRequired,
   layout: PropTypes.object.isRequired,
-  expandedSlices: PropTypes.object.isRequired,
-  customCss: PropTypes.string.isRequired,
+  expandedSlices: PropTypes.object,
+  customCss: PropTypes.string,
   colorNamespace: PropTypes.string,
   colorScheme: PropTypes.string,
   setColorScheme: PropTypes.func.isRequired,
@@ -104,7 +103,7 @@ const propTypes = {
   redoLength: PropTypes.number.isRequired,
   setMaxUndoHistoryExceeded: PropTypes.func.isRequired,
   maxUndoHistoryToast: PropTypes.func.isRequired,
-  refreshFrequency: PropTypes.number.isRequired,
+  refreshFrequency: PropTypes.number,
   shouldPersistRefreshFrequency: PropTypes.bool.isRequired,
   setRefreshFrequency: PropTypes.func.isRequired,
   dashboardInfoChanged: PropTypes.func.isRequired,
@@ -289,12 +288,17 @@ class Header extends React.PureComponent {
 
   startPeriodicRender(interval) {
     let intervalMessage;
+
     if (interval) {
-      const predefinedValue = PeriodicRefreshOptions.find(
-        option => option.value === interval / 1000,
+      const { dashboardInfo } = this.props;
+      const periodicRefreshOptions =
+        dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
+      const predefinedValue = periodicRefreshOptions.find(
+        option => Number(option[0]) === interval / 1000,
       );
+
       if (predefinedValue) {
-        intervalMessage = predefinedValue.label;
+        intervalMessage = t(predefinedValue[1]);
       } else {
         intervalMessage = moment.duration(interval, 'millisecond').humanize();
       }
@@ -692,6 +696,8 @@ class Header extends React.PureComponent {
             onlyApply
           />
         )}
+
+        <OverwriteConfirm />
 
         {userCanCurate && (
           <DashboardEmbedModal

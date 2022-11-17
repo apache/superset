@@ -66,6 +66,12 @@ export interface ISimpleColumn {
   is_dttm?: boolean | null;
 }
 
+export type Database = {
+  backend: string;
+  id: number;
+  parameter: object;
+};
+
 export interface ISaveableDatasource {
   columns: ISimpleColumn[];
   name: string;
@@ -73,6 +79,7 @@ export interface ISaveableDatasource {
   sql: string;
   templateParams?: string | object | null;
   schema?: string | null;
+  database?: Database;
 }
 
 interface SaveDatasetModalProps {
@@ -283,7 +290,7 @@ export const SaveDatasetModal = ({
       createDatasource({
         schema: datasource.schema,
         sql: datasource.sql,
-        dbId: datasource.dbId,
+        dbId: datasource.dbId || datasource?.database?.id,
         templateParams,
         datasourceName: datasetName,
         columns: selectedColumns,

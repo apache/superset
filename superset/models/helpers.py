@@ -1281,13 +1281,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if limit:
             qry = qry.limit(limit)
 
-        engine = self.database.get_sqla_engine()  # type: ignore
-        sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
-        sql = self._apply_cte(sql, cte)
-        sql = self.mutate_query_from_config(sql)
+        with self.database.get_sqla_engine_with_context() as engine:  # type: ignore
+            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
+            sql = self._apply_cte(sql, cte)
+            sql = self.mutate_query_from_config(sql)
 
-        df = pd.read_sql_query(sql=sql, con=engine)
-        return df[column_name].to_list()
+            df = pd.read_sql_query(sql=sql, con=engine)
+            return df[column_name].to_list()
 
     def get_timestamp_expression(
         self,
@@ -1322,7 +1322,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = sa.column(label, type_=col_type)
         return self.make_sqla_column_compatible(col, label)
 
-    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements,unused-argument
         self,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[List[Column]] = None,
@@ -1348,6 +1348,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         row_offset: Optional[int] = None,
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
+        time_shift: Optional[str] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
