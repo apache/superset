@@ -17,7 +17,10 @@
  * under the License.
  */
 
-import { interceptGet as interceptDashboardGet, interceptDashboardasync } from '../dashboard/utils';
+import {
+  interceptGet as interceptDashboardGet,
+  interceptDashboardasync,
+} from '../dashboard/utils';
 
 export function interceptFiltering() {
   cy.intercept('GET', `/api/v1/chart/?q=*`).as('filtering');

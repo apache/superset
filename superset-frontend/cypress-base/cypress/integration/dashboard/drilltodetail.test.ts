@@ -65,7 +65,7 @@ function openModalFromChartContext(targetMenuItem: string) {
       .first()
       .click();
   }
-
+  cy.getBySel('metadata-bar').should('be.visible');
   cy.wait('@samples');
 }
 
