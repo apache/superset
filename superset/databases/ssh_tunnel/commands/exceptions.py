@@ -16,7 +16,12 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CommandException, DeleteFailedError
+from superset.commands.exceptions import (
+    CommandException,
+    CommandInvalidError,
+    DeleteFailedError,
+    UpdateFailedError,
+)
 
 
 class SSHTunnelDeleteFailedError(DeleteFailedError):
@@ -26,3 +31,11 @@ class SSHTunnelDeleteFailedError(DeleteFailedError):
 class SSHTunnelNotFoundError(CommandException):
     status = 404
     message = _("SSH Tunnel not found.")
+
+
+class SSHTunnelInvalidError(CommandInvalidError):
+    message = _("SSH Tunnel parameters are invalid.")
+
+
+class SSHTunnelUpdateFailedError(UpdateFailedError):
+    message = _("SSH Tunnel could not be updated.")

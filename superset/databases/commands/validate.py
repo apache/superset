@@ -118,14 +118,14 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 errors = database.db_engine_spec.extract_errors(ex, context)
                 raise DatabaseTestConnectionFailedError(errors) from ex
 
-            if not alive:
-                raise DatabaseOfflineError(
-                    SupersetError(
-                        message=__("Database is offline."),
-                        error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        level=ErrorLevel.ERROR,
-                    ),
-                )
+        if not alive:
+            raise DatabaseOfflineError(
+                SupersetError(
+                    message=__("Database is offline."),
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+            )
 
     def validate(self) -> None:
         database_id = self._properties.get("id")
