@@ -41,7 +41,6 @@ class DeleteSSHTunnelCommand(BaseCommand):
         try:
             ssh_tunnel = SSHTunnelDAO.delete(self._model)
         except DAODeleteFailedError as ex:
-            logger.exception(ex.exception)
             raise SSHTunnelDeleteFailedError() from ex
         return ssh_tunnel
 

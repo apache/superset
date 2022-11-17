@@ -48,7 +48,6 @@ class UpdateSSHTunnelCommand(BaseCommand):
         try:
             tunnel = SSHTunnelDAO.update(self._model, self._properties, commit=True)
         except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
             raise SSHTunnelUpdateFailedError() from ex
         return tunnel
 
