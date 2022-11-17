@@ -204,14 +204,17 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
   visibility: ({ exploreState }) => {
     if (exploreState?.datasource && exploreState?.form_data) {
       const { datasource, form_data } = exploreState;
-      const column = ensureIsArray(datasource.columns).find(
-        (col: { column_name: string }) =>
-          col?.column_name === form_data?.x_axis,
-      );
-      if (column?.type_generic === GenericDataType.TEMPORAL) {
-        return true;
+
+      if (form_data?.x_axis) {
+        const column = ensureIsArray(datasource.columns).find(
+          (col: { column_name: string }) =>
+            col?.column_name === form_data.x_axis,
+        );
+        if (column?.type_generic !== GenericDataType.TEMPORAL) {
+          return false;
+        }
       }
     }
-    return false;
+    return true;
   },
 };
