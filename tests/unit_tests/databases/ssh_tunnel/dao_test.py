@@ -22,6 +22,7 @@ import pytest
 
 def test_create_ssh_tunnel():
     from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+    from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
     db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
@@ -37,3 +38,4 @@ def test_create_ssh_tunnel():
     result = SSHTunnelDAO.create(properties, commit=True)
 
     assert result is not None
+    assert isinstance(result, SSHTunnel)
