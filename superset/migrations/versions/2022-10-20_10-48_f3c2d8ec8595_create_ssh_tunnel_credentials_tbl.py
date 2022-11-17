@@ -40,7 +40,7 @@ app_config = app.config
 
 def upgrade():
     op.create_table(
-        "ssh_tunnel_credentials",
+        "ssh_tunnels",
         # AuditMixinNullable
         sa.Column("created_on", sa.DateTime(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
@@ -72,4 +72,4 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_table("ssh_tunnel")
+    op.drop_table("ssh_tunnels")
