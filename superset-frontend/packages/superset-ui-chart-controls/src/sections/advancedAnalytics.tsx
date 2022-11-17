@@ -22,6 +22,7 @@ import {
   RollingType,
   ComparisionType,
   GenericDataType,
+  ensureIsArray,
 } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
@@ -201,10 +202,10 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
     ],
   ],
   visibility: ({ exploreState }) => {
-    if (exploreState) {
+    if (exploreState?.datasource && exploreState?.form_data) {
       const { datasource, form_data } = exploreState;
-      const column = datasource.columns.find(
-        (col: { column_name: string }) => col.column_name === form_data.x_axis,
+      const column = ensureIsArray(datasource.columns).find(
+        (col: { column_name: string }) => col?.column_name === form_data?.x_axis,
       );
       if (column?.type_generic === GenericDataType.TEMPORAL) {
         return true;

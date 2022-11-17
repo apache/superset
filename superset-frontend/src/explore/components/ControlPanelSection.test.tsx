@@ -83,10 +83,12 @@ describe('test controlPanelSection', () => {
   });
 
   it('should call setControlValue if isVisible is false', () => {
-    const wrapper = mount(setup());
-    wrapper.setProps({
-      isVisible: false,
-    });
+    render(
+      setup({
+        isVisible: false,
+      }),
+    );
+
     promiseTimeout(() => {
       expect(defaultProps.actions.setControlValue).toBeCalled();
     }, 100);
