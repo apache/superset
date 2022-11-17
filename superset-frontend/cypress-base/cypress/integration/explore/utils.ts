@@ -67,7 +67,7 @@ export function saveChartToDashboard(dashboardName: string) {
 
   cy.getBySel('query-save-button').click();
   cy.wait('@getDashboardasync');
-  cy.getBySelLike('chart-moda').should('be.visible');
+  cy.getBySelLike('chart-modal').should('be.visible');
   cy.get(
     '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
   )
