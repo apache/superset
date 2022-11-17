@@ -64,6 +64,7 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import { bootstrapData } from 'src/preamble';
 import Owner from 'src/types/Owner';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ChartCard from './ChartCard';
 
 const FlexRowContainer = styled.div`
@@ -147,6 +148,25 @@ interface ChartListProps {
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+
+  .disabled {
+    svg,
+    i {
+      &:hover {
+        path {
+          fill: ${({ theme }) => theme.colors.grayscale.light1};
+        }
+      }
+    }
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+    .ant-menu-item:hover {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+      cursor: default;
+    }
+    &::after {
+      color: ${({ theme }) => theme.colors.grayscale.light1};
+    }
+  }
 `;
 
 function ChartList(props: ChartListProps) {
@@ -375,6 +395,9 @@ function ChartList(props: ChartListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
+          const allowActions =
+            original.owners.map((o: Owner) => o.id).includes(userId) ||
+            isUserAdmin(props.user);
           const handleDelete = () =>
             handleChartDelete(
               original,
@@ -404,15 +427,21 @@ function ChartList(props: ChartListProps) {
                   {confirmDelete => (
                     <Tooltip
                       id="delete-action-tooltip"
-                      title={t('Delete')}
+                      title={
+                        allowActions
+                          ? t('Delete')
+                          : t(
+                              'You must be a chart owner in order to delete. Please reach out to a chart owner to request modifications or delete access.',
+                            )
+                      }
                       placement="bottom"
                     >
                       <span
                         data-test="trash"
                         role="button"
                         tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
+                        className={allowActions ? 'action-button' : 'disabled'}
+                        onClick={allowActions ? confirmDelete : undefined}
                       >
                         <Icons.Trash />
                       </span>
@@ -439,14 +468,20 @@ function ChartList(props: ChartListProps) {
               {canEdit && (
                 <Tooltip
                   id="edit-action-tooltip"
-                  title={t('Edit')}
+                  title={
+                    allowActions
+                      ? t('Edit')
+                      : t(
+                          'You must be a chart owner in order to edit. Please reach out to a chart owner to request modifications or edit access.',
+                        )
+                  }
                   placement="bottom"
                 >
                   <span
                     role="button"
                     tabIndex={0}
-                    className="action-button"
-                    onClick={openEditModal}
+                    className={allowActions ? 'action-button' : 'disabled'}
+                    onClick={allowActions ? openEditModal : undefined}
                   >
                     <Icons.EditAlt data-test="edit-alt" />
                   </span>
