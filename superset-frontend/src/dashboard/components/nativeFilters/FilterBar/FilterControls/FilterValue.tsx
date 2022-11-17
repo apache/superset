@@ -42,7 +42,7 @@ import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import { RootState } from 'src/dashboard/types';
+import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { onFiltersRefreshSuccess } from 'src/dashboard/actions/dashboardState';
 import { dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
@@ -84,6 +84,8 @@ const FilterValue: React.FC<FilterControlProps> = ({
   showOverflow,
   parentRef,
   setFilterActive,
+  orientation = FilterBarOrientation.VERTICAL,
+  overflow = false,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -251,6 +253,11 @@ const FilterValue: React.FC<FilterControlProps> = ({
     [filter.dataMask?.filterState, isMissingRequiredValue],
   );
 
+  const formDataWithDisplayParams = useMemo(
+    () => ({ ...formData, orientation, overflow }),
+    [formData, orientation, overflow],
+  );
+
   if (error) {
     return (
       <BasicErrorAlert
@@ -270,7 +277,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
           height={HEIGHT}
           width="100%"
           showOverflow={showOverflow}
-          formData={formData}
+          formData={formDataWithDisplayParams}
           parentRef={parentRef}
           inputRef={inputRef}
           // For charts that don't have datasource we need workaround for empty placeholder

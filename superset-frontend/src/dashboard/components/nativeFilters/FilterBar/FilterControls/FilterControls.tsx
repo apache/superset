@@ -22,6 +22,8 @@ import {
   DataMaskStateWithId,
   Filter,
   Divider,
+  css,
+  SupersetTheme,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -104,27 +106,36 @@ const FilterControls: FC<FilterControlsProps> = ({
       element: renderer(filter),
     }));
     return (
-      <DropdownContainer
-        items={items}
-        dropdownContent={overflowedItems => {
-          const overflowedItemIds = new Set(
-            overflowedItems.map(({ id }) => id),
-          );
-          return (
-            <FiltersDropdownContent
-              filtersInScope={filtersInScope.filter(({ id }) =>
-                overflowedItemIds.has(id),
-              )}
-              filtersOutOfScope={filtersOutOfScope}
-              renderer={renderer}
-              showCollapsePanel={showCollapsePanel}
-            />
-          );
-        }}
-        onOverflowingStateChange={overflowingState =>
-          setOverflowIndex(overflowingState.notOverflowed.length)
+      <div
+        css={(theme: SupersetTheme) =>
+          css`
+            padding-left: ${theme.gridUnit * 4}px;
+            min-width: 0;
+          `
         }
-      />
+      >
+        <DropdownContainer
+          items={items}
+          dropdownContent={overflowedItems => {
+            const overflowedItemIds = new Set(
+              overflowedItems.map(({ id }) => id),
+            );
+            return (
+              <FiltersDropdownContent
+                filtersInScope={filtersInScope.filter(({ id }) =>
+                  overflowedItemIds.has(id),
+                )}
+                filtersOutOfScope={filtersOutOfScope}
+                renderer={renderer}
+                showCollapsePanel={showCollapsePanel}
+              />
+            );
+          }}
+          onOverflowingStateChange={overflowingState =>
+            setOverflowIndex(overflowingState.notOverflowed.length)
+          }
+        />
+      </div>
     );
   };
 

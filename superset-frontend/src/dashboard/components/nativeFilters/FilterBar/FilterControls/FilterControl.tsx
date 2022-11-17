@@ -20,11 +20,13 @@ import React, { useContext, useMemo, useState } from 'react';
 import { styled, SupersetTheme } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
 import { FilterBarScrollContext } from '../Vertical';
 import { FilterControlProps } from './types';
+import { FilterCardPlacement } from '../../FilterCard/types';
 
 const StyledIcon = styled.div`
   position: absolute;
@@ -118,6 +120,8 @@ const FilterControl = ({
   inView,
   showOverflow,
   parentRef,
+  orientation = FilterBarOrientation.VERTICAL,
+  overflow = false,
 }: FilterControlProps) => {
   const [isFilterActive, setIsFilterActive] = useState(false);
 
@@ -146,10 +150,23 @@ const FilterControl = ({
   );
 
   const isScrolling = useContext(FilterBarScrollContext);
+  const filterCardPlacement = useMemo(() => {
+    if (orientation === FilterBarOrientation.HORIZONTAL) {
+      if (overflow) {
+        return FilterCardPlacement.Left;
+      }
+      return FilterCardPlacement.Bottom;
+    }
+    return FilterCardPlacement.Right;
+  }, [orientation, overflow]);
 
   return (
     <StyledFilterControlContainer layout="vertical">
-      <FilterCard filter={filter} isVisible={!isFilterActive && !isScrolling}>
+      <FilterCard
+        filter={filter}
+        isVisible={!isFilterActive && !isScrolling}
+        placement={filterCardPlacement}
+      >
         <div>
           <FormItem
             label={label}
@@ -165,6 +182,8 @@ const FilterControl = ({
               inView={inView}
               parentRef={parentRef}
               setFilterActive={setIsFilterActive}
+              orientation={orientation}
+              overflow={overflow}
             />
           </FormItem>
         </div>
