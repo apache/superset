@@ -35,13 +35,6 @@ export default {
   title: 'Design System/Components/Table/Examples',
   component: Table,
   argTypes: { onClick: { action: 'clicked' } },
-  decorators: [
-    Story => (
-      <ThemeProvider theme={supersetTheme}>
-        <Story />
-      </ThemeProvider>
-    ),
-  ],
 } as ComponentMeta<typeof Table>;
 
 export interface BasicData {
@@ -348,6 +341,7 @@ VirtualizedPerformance.args = {
   reorderable: true,
   height: 350,
   virtualize: true,
+  usePagination: false,
 };
 
 export const Loading: ComponentStory<typeof Table> = args => (

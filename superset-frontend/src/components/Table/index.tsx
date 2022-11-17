@@ -330,6 +330,16 @@ export function Table(props: TableProps) {
         onShowSizeChange: (page: number, size: number) => setPageSize(size),
       }
     : false;
+    
+  const sharedProps = {
+    loading: { spinning: loading ?? false, indicator: <Loading /> },
+    hasData: hideData ? false : data,
+    columns: derivedColumns,
+    dataSource: hideData ? [undefined] : data,
+    size,
+    pagination: paginationSettings,
+    locale: mergedLocale,
+  };
 
   return (
     <ConfigProvider renderEmpty={renderEmpty}>
@@ -337,31 +347,19 @@ export function Table(props: TableProps) {
         {!virtualize && (
           <StyledTable
             {...rest}
-            loading={{ spinning: loading ?? false, indicator: <Loading /> }}
-            hasData={hideData ? false : data}
+            {...sharedProps}
             rowSelection={selectionTypeValue ? rowSelection : undefined}
-            columns={derivedColumns}
-            dataSource={hideData ? [undefined] : data}
-            size={size}
             sticky={sticky}
-            pagination={paginationSettings}
             showSorterTooltip={false}
-            locale={mergedLocale}
             theme={theme}
           />
         )}
         {virtualize && (
           <StyledVirtualTable
-            loading={{ spinning: loading ?? false, indicator: <Loading /> }}
-            hasData={hideData ? false : data}
-            columns={derivedColumns}
-            dataSource={hideData ? [undefined] : data}
-            size={size}
+            {...sharedProps}
             scroll={{ y: 300, x: '100vw' }}
             theme={theme}
             height={height}
-            pagination={paginationSettings}
-            locale={mergedLocale}
           />
         )}
       </div>
