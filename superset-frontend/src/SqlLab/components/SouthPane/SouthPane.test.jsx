@@ -19,16 +19,12 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { styledShallow as shallow } from 'spec/helpers/theming';
-import { render, screen, act } from 'spec/helpers/testing-library';
-import SouthPaneContainer from 'src/SqlLab/components/SouthPane/state';
-import ResultSet from 'src/SqlLab/components/ResultSet';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import SouthPane from 'src/SqlLab/components/SouthPane';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-
-const NOOP = () => {};
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -44,14 +40,6 @@ const mockedProps = {
 const mockedEmptyProps = {
   queryEditorId: 'random_id',
   latestQueryId: '',
-  actions: {
-    queryEditorSetAndSaveSql: NOOP,
-    cloneQueryToNewTab: NOOP,
-    fetchQueryResults: NOOP,
-    clearQueryResults: NOOP,
-    removeQuery: NOOP,
-    setActiveSouthPaneTab: NOOP,
-  },
   activeSouthPaneTab: '',
   height: 100,
   databases: '',
@@ -115,48 +103,50 @@ const store = mockStore({
     },
   },
 });
-const setup = (overrides = {}) => (
-  <SouthPaneContainer store={store} {...mockedProps} {...overrides} />
-);
-
-describe('SouthPane - Enzyme', () => {
-  const getWrapper = () => shallow(setup()).dive();
-
-  let wrapper;
-
-  it('should render offline when the state is offline', () => {
-    wrapper = getWrapper().dive();
-    wrapper.setProps({ offline: true });
-    expect(wrapper.childAt(0).text()).toBe(STATUS_OPTIONS.offline);
+const setup = (props, store) =>
+  render(<SouthPane {...props} />, {
+    useRedux: true,
+    ...(store && { store }),
   });
 
-  it('should pass latest query down to ResultSet component', () => {
-    wrapper = getWrapper().dive();
-    expect(wrapper.find(ResultSet)).toExist();
-    // for editorQueries
-    expect(wrapper.find(ResultSet).first().props().query.id).toEqual(
-      mockedProps.latestQueryId,
-    );
-    // for dataPreviewQueries
-    expect(wrapper.find(ResultSet).last().props().query.id).toEqual(
-      '2g2_iRFMl',
-    );
-  });
-});
+describe('SouthPane', () => {
+  const renderAndWait = (props, store) =>
+    waitFor(async () => setup(props, store));
 
-describe('SouthPane - RTL', () => {
-  const renderAndWait = overrides => {
-    const mounted = act(async () => {
-      render(setup(overrides));
+  it('Renders an empty state for results', async () => {
+    await renderAndWait(mockedEmptyProps, store);
+    const emptyStateText = screen.getByText(/run a query to display results/i);
+    expect(emptyStateText).toBeVisible();
+  });
+
+  it('should render offline when the state is offline', async () => {
+    await renderAndWait(mockedEmptyProps, {
+      ...store,
+      sqlLab: {
+        ...initialState.sqlLab,
+        offline: true,
+      },
     });
 
-    return mounted;
-  };
-  it('Renders an empty state for results', async () => {
-    await renderAndWait(mockedEmptyProps);
+    expect(screen.getByText(STATUS_OPTIONS.offline)).toBeVisible();
+  });
 
-    const emptyStateText = screen.getByText(/run a query to display results/i);
+  it('should pass latest query down to ResultSet component', async () => {
+    const alertMessage = 'LATEST QUERY MESSAGE';
+    const [latestQuery, ...restQueries] = mockedProps.editorQueries;
+    const latestQueryWithAlertMsg = {
+      ...latestQuery,
+      extra: { progress: alertMessage },
+    };
 
-    expect(emptyStateText).toBeVisible();
+    await renderAndWait(
+      {
+        ...mockedProps,
+        editorQueries: [latestQueryWithAlertMsg, ...restQueries],
+      },
+      store,
+    );
+
+    expect(screen.getByText(alertMessage)).toBeVisible();
   });
 });
