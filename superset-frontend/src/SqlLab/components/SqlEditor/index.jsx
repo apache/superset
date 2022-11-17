@@ -620,7 +620,6 @@ const SqlEditor = ({
         <ConnectedSouthPane
           queryEditorId={queryEditor.id}
           latestQueryId={latestQuery?.id}
-          actions={actions}
           height={southPaneHeight}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}

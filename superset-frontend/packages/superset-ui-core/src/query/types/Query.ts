@@ -302,11 +302,13 @@ export type Query = {
   errorMessage: string | null;
   extra: {
     progress: string | null;
+    errors?: SupersetError[];
   };
   id: string;
   isDataPreview: boolean;
   link?: string;
   progress: number;
+  results?: QueryResults[];
   resultsKey: string | null;
   schema?: string;
   sql: string;

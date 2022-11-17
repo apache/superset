@@ -29,7 +29,6 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import Label from 'src/components/Label';
 import { SqlLabRootState } from 'src/SqlLab/types';
-import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import QueryHistory from '../QueryHistory';
 import ResultSet from '../ResultSet';
 import {
@@ -46,9 +45,7 @@ const TAB_HEIGHT = 140;
 */
 export interface SouthPaneProps {
   queryEditorId: string;
-  editorQueries: any[];
   latestQueryId?: string;
-  dataPreviewQueries: any[];
   activeSouthPaneTab?: string;
   height: number;
   displayLimit: number;
@@ -104,26 +101,44 @@ const StyledEmptyStateWrapper = styled.div`
 `;
 
 const SouthPane = ({
-  editorQueries,
+  queryEditorId,
   latestQueryId,
-  dataPreviewQueries,
   height,
   displayLimit,
   defaultQueryLimit,
 }: SouthPaneProps) => {
   const dispatch = useDispatch();
 
+  const { editorQueries, dataPreviewQueries, databases, offline, user } =
+    useSelector(({ sqlLab }: SqlLabRootState) => {
+      const { databases, offline, user, queries, tables } = sqlLab;
+      const dataPreviewQueries = tables
+        .filter(
+          ({ dataPreviewQueryId, queryEditorId: qeId }) =>
+            dataPreviewQueryId &&
+            queryEditorId === qeId &&
+            queries[dataPreviewQueryId],
+        )
+        .map(({ name, dataPreviewQueryId }) => ({
+          ...queries[dataPreviewQueryId],
+          tableName: name,
+        }));
+      const editorQueries = Object.values(queries).filter(
+        ({ sqlEditorId }) => sqlEditorId === queryEditorId,
+      );
+      return {
+        editorQueries,
+        dataPreviewQueries,
+        databases,
+        offline: offline ?? false,
+        user,
+      };
+    });
+
   const activeSouthPaneTab =
     useSelector<SqlLabRootState, string>(
       state => state.sqlLab.activeSouthPaneTab as string,
     ) ?? 'Results';
-  const databases = useSelector<SqlLabRootState, Record<string, any>>(
-    state => state.sqlLab.databases,
-  );
-  const offline =
-    useSelector<SqlLabRootState, boolean>(state => state.sqlLab.offline) ??
-    false;
-  const user = useSelector<SqlLabRootState, User>(state => state.sqlLab.user);
   const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
@@ -166,6 +181,7 @@ const SouthPane = ({
         results = (
           <ResultSet
             search
+            // @ts-ignore
             query={latestQuery}
             user={user}
             height={innerTabContentHeight + EXTRA_HEIGHT_RESULTS}
@@ -195,6 +211,7 @@ const SouthPane = ({
         key={query.id}
       >
         <ResultSet
+          // @ts-ignore
           query={query}
           visualize={false}
           csv={false}
@@ -228,6 +245,7 @@ const SouthPane = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={t('Query history')} key="History">
           <QueryHistory
+            // @ts-ignore
             queries={editorQueries}
             displayLimit={displayLimit}
             latestQueryId={latestQueryId}
