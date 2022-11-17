@@ -1030,6 +1030,7 @@ def test_data_cache_default_timeout(
     assert rv.json["result"][0]["cache_timeout"] == 3456
 
 
+@pytest.mark.usefixtures("load_energy_table_with_slice")
 def test_chart_cache_timeout(
     test_client,
     login_as_admin,
