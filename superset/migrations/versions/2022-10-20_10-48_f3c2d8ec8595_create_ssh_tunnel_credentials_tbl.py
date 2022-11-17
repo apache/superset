@@ -69,6 +69,8 @@ def upgrade():
             encrypted_field_factory.create(sa.String(1024)),
             nullable=True,
         ),
+        sa.Column("bind_host", encrypted_field_factory.create(sa.String(1024))),
+        sa.Column("port_port", encrypted_field_factory.create(sa.INTEGER())),
     )
 
 
