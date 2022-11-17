@@ -26,6 +26,7 @@ import bleach
 from flask_babel import gettext as __
 
 from superset import app
+from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
@@ -210,5 +211,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             logger.info(
                 "Report sent to email, notification content is %s", content.header_data
             )
+        except SupersetErrorsException as ex:
+            raise NotificationError(
+                ";".join([error.message for error in ex.errors])
+            ) from ex
         except Exception as ex:
-            raise NotificationError(ex) from ex
+            raise NotificationError(str(ex)) from ex

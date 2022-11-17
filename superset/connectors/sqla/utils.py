@@ -112,7 +112,6 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> List[ResultSetColumnType]:
         )
 
     db_engine_spec = dataset.database.db_engine_spec
-    engine = dataset.database.get_sqla_engine(schema=dataset.schema)
     sql = dataset.get_template_processor().process_template(
         dataset.sql, **dataset.template_params_dict
     )
@@ -137,13 +136,18 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> List[ResultSetColumnType]:
     # TODO(villebro): refactor to use same code that's used by
     #  sql_lab.py:execute_sql_statements
     try:
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            query = dataset.database.apply_limit_to_sql(statements[0], limit=1)
-            db_engine_spec.execute(cursor, query)
-            result = db_engine_spec.fetch_data(cursor, limit=1)
-            result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
-            cols = result_set.columns
+        with dataset.database.get_sqla_engine_with_context(
+            schema=dataset.schema
+        ) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                query = dataset.database.apply_limit_to_sql(statements[0], limit=1)
+                db_engine_spec.execute(cursor, query)
+                result = db_engine_spec.fetch_data(cursor, limit=1)
+                result_set = SupersetResultSet(
+                    result, cursor.description, db_engine_spec
+                )
+                cols = result_set.columns
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
     return cols
@@ -155,14 +159,17 @@ def get_columns_description(
 ) -> List[ResultSetColumnType]:
     db_engine_spec = database.db_engine_spec
     try:
-        with closing(database.get_sqla_engine().raw_connection()) as conn:
-            cursor = conn.cursor()
-            query = database.apply_limit_to_sql(query, limit=1)
-            cursor.execute(query)
-            db_engine_spec.execute(cursor, query)
-            result = db_engine_spec.fetch_data(cursor, limit=1)
-            result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
-            return result_set.columns
+        with database.get_sqla_engine_with_context() as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                query = database.apply_limit_to_sql(query, limit=1)
+                cursor.execute(query)
+                db_engine_spec.execute(cursor, query)
+                result = db_engine_spec.fetch_data(cursor, limit=1)
+                result_set = SupersetResultSet(
+                    result, cursor.description, db_engine_spec
+                )
+                return result_set.columns
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
 

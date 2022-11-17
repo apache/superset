@@ -18,7 +18,7 @@ import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import call, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -29,6 +29,7 @@ from freezegun import freeze_time
 from sqlalchemy.sql import func
 
 from superset import db
+from superset.exceptions import SupersetException
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -37,16 +38,22 @@ from superset.reports.commands.exceptions import (
     AlertQueryInvalidTypeError,
     AlertQueryMultipleColumnsError,
     AlertQueryMultipleRowsError,
+    ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
     ReportScheduleCsvTimeout,
+    ReportScheduleForbiddenError,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
+    ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
-from superset.reports.commands.execute import AsyncExecuteReportScheduleCommand
+from superset.reports.commands.execute import (
+    AsyncExecuteReportScheduleCommand,
+    BaseReportState,
+)
 from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.reports.models import (
     ReportDataFormat,
@@ -55,6 +62,10 @@ from superset.reports.models import (
     ReportScheduleType,
     ReportScheduleValidatorType,
     ReportState,
+)
+from superset.reports.notifications.exceptions import (
+    NotificationError,
+    NotificationParamException,
 )
 from superset.reports.types import ReportScheduleExecutor
 from superset.utils.database import get_example_database
@@ -115,7 +126,6 @@ def assert_log(state: str, error_message: Optional[str] = None):
 
     if state == ReportState.ERROR:
         # On error we send an email
-        print(logs)
         assert len(logs) == 3
     else:
         assert len(logs) == 2
@@ -1392,7 +1402,7 @@ def test_email_dashboard_report_fails(
     screenshot_mock.return_value = SCREENSHOT_FILE
     email_mock.side_effect = SMTPException("Could not connect to SMTP XPTO")
 
-    with pytest.raises(ReportScheduleUnexpectedError):
+    with pytest.raises(ReportScheduleSystemErrorsException):
         AsyncExecuteReportScheduleCommand(
             TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
         ).run()
@@ -1886,3 +1896,66 @@ def test_prune_log_soft_time_out(bulk_delete_logs, create_report_email_dashboard
     with pytest.raises(SoftTimeLimitExceeded) as excinfo:
         AsyncPruneReportScheduleLogCommand().run()
     assert str(excinfo.value) == "SoftTimeLimitExceeded()"
+
+
+@patch("superset.reports.commands.execute.logger")
+@patch("superset.reports.commands.execute.create_notification")
+def test__send_with_client_errors(notification_mock, logger_mock):
+    notification_content = "I am some content"
+    recipients = ["test@foo.com"]
+    notification_mock.return_value.send.side_effect = NotificationParamException()
+    with pytest.raises(ReportScheduleClientErrorsException) as excinfo:
+        BaseReportState._send(BaseReportState, notification_content, recipients)
+
+    assert excinfo.errisinstance(SupersetException)
+    logger_mock.warning.assert_called_with(
+        (
+            "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"
+        )
+    )
+
+
+@patch("superset.reports.commands.execute.logger")
+@patch("superset.reports.commands.execute.create_notification")
+def test__send_with_multiple_errors(notification_mock, logger_mock):
+    notification_content = "I am some content"
+    recipients = ["test@foo.com", "test2@bar.com"]
+    notification_mock.return_value.send.side_effect = [
+        NotificationParamException(),
+        NotificationError(),
+    ]
+    # it raises the error with a 500 status if present
+    with pytest.raises(ReportScheduleSystemErrorsException) as excinfo:
+        BaseReportState._send(BaseReportState, notification_content, recipients)
+
+    assert excinfo.errisinstance(SupersetException)
+    # it logs both errors as warnings
+    logger_mock.warning.assert_has_calls(
+        [
+            call(
+                "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"
+            ),
+            call(
+                "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"
+            ),
+        ]
+    )
+
+
+@patch("superset.reports.commands.execute.logger")
+@patch("superset.reports.commands.execute.create_notification")
+def test__send_with_server_errors(notification_mock, logger_mock):
+
+    notification_content = "I am some content"
+    recipients = ["test@foo.com"]
+    notification_mock.return_value.send.side_effect = NotificationError()
+    with pytest.raises(ReportScheduleSystemErrorsException) as excinfo:
+        BaseReportState._send(BaseReportState, notification_content, recipients)
+
+    assert excinfo.errisinstance(SupersetException)
+    # it logs the error
+    logger_mock.warning.assert_called_with(
+        (
+            "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"
+        )
+    )

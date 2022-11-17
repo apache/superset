@@ -102,11 +102,11 @@ export default function transformProps(
   const { r, g, b } = colorPicker;
   const mainColor = `rgb(${r}, ${g}, ${b})`;
 
-  const timeColumn = getXAxisLabel(rawFormData) as string;
+  const xAxisLabel = getXAxisLabel(rawFormData) as string;
   let trendLineData;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let timestamp = data.length === 0 ? null : data[0][timeColumn];
+  let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
   let bigNumberFallback;
 
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
@@ -115,7 +115,7 @@ export default function transformProps(
 
   if (data.length > 0) {
     const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[timeColumn], parseMetricValue(d[metricName])])
+      .map(d => [d[xAxisLabel], parseMetricValue(d[metricName])])
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
