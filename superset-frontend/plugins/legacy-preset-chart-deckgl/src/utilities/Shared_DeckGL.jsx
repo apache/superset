@@ -270,7 +270,7 @@ export const extruded = {
     label: t('Extruded'),
     renderTrigger: true,
     default: true,
-    description: 'Whether to make the grid 3D',
+    description: t('Whether to make the grid 3D'),
   },
 };
 

@@ -207,7 +207,7 @@ const ExtraOptions = ({
       <Collapse.Panel
         header={
           <div>
-            <h4>Performance</h4>
+            <h4>{t('Performance')}</h4>
             <p className="helper">
               Adjust performance settings of this database.
             </p>
@@ -317,7 +317,7 @@ const ExtraOptions = ({
       <Collapse.Panel
         header={
           <div>
-            <h4>Security</h4>
+            <h4>{t('Security')}</h4>
             <p className="helper">Add extra connection information.</p>
           </div>
         }
@@ -431,7 +431,7 @@ const ExtraOptions = ({
       <Collapse.Panel
         header={
           <div>
-            <h4>Other</h4>
+            <h4>{t('Other')}</h4>
             <p className="helper">Additional settings.</p>
           </div>
         }

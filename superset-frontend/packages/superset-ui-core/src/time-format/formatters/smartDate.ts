@@ -17,11 +17,12 @@
  * under the License.
  */
 
+import { t } from '@superset-ui/core';
 import createMultiFormatter from '../factories/createMultiFormatter';
 
 const smartDateFormatter = createMultiFormatter({
   id: 'smart_date',
-  label: 'Adaptative Formatting',
+  label: t('Adaptative Formatting'),
   formats: {
     millisecond: '.%Lms',
     second: ':%Ss',

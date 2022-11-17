@@ -36,14 +36,11 @@ function setTooltipContent(formData, verboseMap) {
     return (
       <div className="deckgl-tooltip">
         <TooltipRow
-          label={`${t('Longitude and Latitude')}: `}
+          label={t('Longitude and Latitude: ')}
           value={`${o.object.position[0]}, ${o.object.position[1]}`}
         />
         {o.object.cat_color && (
-          <TooltipRow
-            label={`${t('Category')}: `}
-            value={`${o.object.cat_color}`}
-          />
+          <TooltipRow label={t('Category: ')} value={`${o.object.cat_color}`} />
         )}
         {o.object.metric && (
           <TooltipRow label={`${label}: `} value={`${o.object.metric}`} />

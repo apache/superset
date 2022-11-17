@@ -1285,7 +1285,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   placeholder={t('Time in seconds')}
                   onChange={onTimeoutVerifyChange}
                 />
-                <span className="input-label">seconds</span>
+                <span className="input-label">{t('seconds')}</span>
               </div>
             </StyledInputContainer>
             {!isReport && (
@@ -1300,7 +1300,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     placeholder={t('Time in seconds')}
                     onChange={onTimeoutVerifyChange}
                   />
-                  <span className="input-label">seconds</span>
+                  <span className="input-label">{t('seconds')}</span>
                 </div>
               </StyledInputContainer>
             )}
