@@ -19,7 +19,6 @@
 import React, { useState } from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { Table, TableSize, SUPERSET_TABLE_COLUMN, ColumnsType } from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';

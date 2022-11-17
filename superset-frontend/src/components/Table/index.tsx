@@ -155,8 +155,8 @@ const defaultRowSelection: React.Key[] = [];
 // This accounts for the tables header and pagination if user gives table instance a height. this is a temp solution
 const HEIGHT_OFFSET = 108;
 
-const StyledTable: StyledComponent<any> = styled(AntTable)<any>`
-  ${({ theme, height }) => `
+const StyledTable: StyledComponent<any> = styled(AntTable)<any>(
+  ({ theme, height }) => `
     .ant-table-body {
       overflow: scroll;
       height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
@@ -174,22 +174,25 @@ const StyledTable: StyledComponent<any> = styled(AntTable)<any>`
     .ant-pagination-item-active {
       border-color: ${theme.colors.primary.base};
     }
-  `}
-`;
+  }
+`,
+);
 
-const StyledVirtualTable: StyledComponent<any> = styled(VirtualTable)<any>`
+const StyledVirtualTable: StyledComponent<any> = styled(VirtualTable)<any>(
+  ({ theme }) => `
   .virtual-table .ant-table-container:before,
   .virtual-table .ant-table-container:after {
     display: none;
   }
   .virtual-table-cell {
     box-sizing: border-box;
-    padding: 16px;
+    padding: ${theme.gridUnit * 4}px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-`;
+`,
+);
 
 const defaultLocale = {
   filterTitle: t('Filter menu'),
@@ -330,7 +333,7 @@ export function Table(props: TableProps) {
         onShowSizeChange: (page: number, size: number) => setPageSize(size),
       }
     : false;
-    
+
   const sharedProps = {
     loading: { spinning: loading ?? false, indicator: <Loading /> },
     hasData: hideData ? false : data,

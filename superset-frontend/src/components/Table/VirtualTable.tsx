@@ -19,28 +19,35 @@
 import { Table } from 'antd';
 import type { TableProps } from 'antd/es/table';
 import classNames from 'classnames';
-import ResizeObserver from 'rc-resize-observer';
-import React, { useEffect, useRef, useState } from 'react';
+import { useResizeDetector } from 'react-resize-detector';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { VariableSizeGrid as Grid } from 'react-window';
-import styled from '@emotion/styled';
+import { useTheme, styled } from '@superset-ui/core';
 
-// If a column definition has no width, react-window will use this as the default column width
-const DEFAULT_COL_WIDTH = 150;
-
-const StyledCell = styled.div`
+const StyledCell = styled('div')(
+  ({ theme }) => `
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: 8px;
-  padding-right: 4px;
-`;
+  padding-left: ${theme.gridUnit * 2}px;
+  padding-right: ${theme.gridUnit}px;
+`,
+);
 
 const VirtualTable = <RecordType extends object>(
   props: TableProps<RecordType>,
 ) => {
   const { columns, scroll, pagination } = props;
-  const [tableWidth, setTableWidth] = useState(0);
+  const [tableWidth, setTableWidth] = useState<number>(0);
+  const onResize = useCallback((width: number) => {
+    setTableWidth(width);
+  }, []);
+  const theme = useTheme();
 
+  // If a column definition has no width, react-window will use this as the default column width
+  const DEFAULT_COL_WIDTH = theme?.gridUnit * 37 || 150;
+
+  const { ref } = useResizeDetector({ onResize });
   const mergedColumns =
     columns?.map?.(column => {
       if (column.width) {
@@ -122,6 +129,7 @@ const VirtualTable = <RecordType extends object>(
               })}
               style={style}
               title={content}
+              theme={theme}
             >
               {content}
             </StyledCell>
@@ -132,11 +140,7 @@ const VirtualTable = <RecordType extends object>(
   };
 
   return (
-    <ResizeObserver
-      onResize={({ width }) => {
-        setTableWidth(width);
-      }}
-    >
+    <div ref={ref}>
       <Table
         {...props}
         sticky={false}
@@ -147,7 +151,7 @@ const VirtualTable = <RecordType extends object>(
         }}
         pagination={pagination}
       />
-    </ResizeObserver>
+    </div>
   );
 };
 
