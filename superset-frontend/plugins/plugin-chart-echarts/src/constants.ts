@@ -107,3 +107,10 @@ export const DEFAULT_TITLE_FORM_DATA: EchartsTitleFormData = {
 };
 
 export { DEFAULT_FORM_DATA } from './Timeseries/constants';
+
+// How far away from the mouse should the tooltip be
+export const TOOLTIP_POINTER_MARGIN = 10;
+
+// If no satisfactory position can be found, how far away
+// from the edge of the window should the tooltip be kept
+export const TOOLTIP_OVERFLOW_MARGIN = 5;
