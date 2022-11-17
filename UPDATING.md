@@ -39,6 +39,8 @@ assists people when migrating to a new version.
 
 ### Potential Downtime
 
+- [21284](https://github.com/apache/superset/pull/21284): A change which drops the unused `dbs.allow_multi_schema_metadata_fetch` column via a (potentially locking) DDL operation.
+
 ### Other
 
 ## 2.0.0

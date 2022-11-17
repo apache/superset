@@ -467,7 +467,7 @@ const SqlEditor = ({
               onChange={params => {
                 dispatch(queryEditorSetTemplateParams(qe, params));
               }}
-              queryEditor={qe}
+              queryEditorId={qe.id}
             />
           </Menu.Item>
         )}
@@ -543,7 +543,7 @@ const SqlEditor = ({
               <span>
                 <EstimateQueryCostButton
                   getEstimate={getQueryCostEstimate}
-                  queryEditor={queryEditor}
+                  queryEditorId={queryEditor.id}
                   tooltip={t('Estimate the cost before running a query')}
                 />
               </span>
@@ -657,9 +657,8 @@ const SqlEditor = ({
             >
               <SqlEditorLeftBar
                 database={database}
-                queryEditor={queryEditor}
+                queryEditorId={queryEditor.id}
                 tables={tables}
-                actions={actions}
                 setEmptyState={bool => setShowEmptyState(bool)}
               />
             </StyledSidebar>
