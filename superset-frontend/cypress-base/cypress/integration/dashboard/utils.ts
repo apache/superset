@@ -158,6 +158,10 @@ export function interceptDatasets() {
   cy.intercept('GET', `/api/v1/dashboard/*/datasets`).as('getDatasets');
 }
 
+export function interceptDashboardasync() {
+  cy.intercept('GET', `/dashboardasync/api/read*`).as('getDashboardasync');
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
