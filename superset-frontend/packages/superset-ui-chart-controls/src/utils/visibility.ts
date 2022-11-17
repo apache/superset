@@ -16,13 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export { getTemporalColumns } from './getTemporalColumns';
-export * from './visibility';
+
+import { ensureIsArray, GenericDataType } from '@superset-ui/core';
+
+export enum VisibilityRuleType {
+  XTEMPORAL = 'XAxisTemporal',
+}
+
+export function isSectionVisible(rule: VisibilityRuleType, exploreState: any) {
+  switch (rule) {
+    case VisibilityRuleType.XTEMPORAL: {
+      if (exploreState?.datasource && exploreState?.form_data) {
+        const { datasource, form_data } = exploreState;
+
+        if (form_data?.x_axis) {
+          const column = ensureIsArray(datasource.columns).find(
+            (col: { column_name: string }) =>
+              col?.column_name === form_data.x_axis,
+          );
+          if (column?.type_generic !== GenericDataType.TEMPORAL) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+    default:
+      return true;
+  }
+}

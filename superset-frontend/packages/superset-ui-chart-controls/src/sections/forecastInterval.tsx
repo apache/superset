@@ -22,6 +22,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
+import { isSectionVisible, VisibilityRuleType } from '../utils';
 
 export const FORECAST_DEFAULT_DATA = {
   forecastEnabled: false,
@@ -134,4 +135,6 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
       },
     ],
   ],
+  visibility: ({ exploreState }) =>
+    isSectionVisible(VisibilityRuleType.XTEMPORAL, exploreState),
 };
