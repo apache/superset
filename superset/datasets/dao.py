@@ -14,12 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -29,7 +26,6 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import DatasourceType
-from superset.utils.database import get_main_database
 from superset.views.base import DatasourceFilter
 
 logger = logging.getLogger(__name__)
@@ -370,59 +366,6 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
             if commit:
                 db.session.rollback()
             raise ex
-
-    @classmethod
-    def find_with_advanced_data_type(
-        cls, advanced_data_type: str
-    ) -> Dict[str, Dict[str, str]]:
-        query = None
-        if get_main_database().backend == "mysql":
-            query = (
-                db.session.query(
-                    SqlaTable.id,
-                    func.json_arrayagg(TableColumn.id),
-                    func.json_arrayagg(TableColumn.verbose_name),
-                    func.json_arrayagg(TableColumn.column_name),
-                )
-                .join(TableColumn, TableColumn.table_id == SqlaTable.id)
-                .filter(TableColumn.advanced_data_type == advanced_data_type)
-                .group_by(SqlaTable.id)
-            )
-        else:
-            query = (
-                db.session.query(
-                    SqlaTable.id,
-                    func.array_agg(TableColumn.id),
-                    func.array_agg(TableColumn.verbose_name),
-                    func.array_agg(TableColumn.column_name),
-                )
-                .join(TableColumn, TableColumn.table_id == SqlaTable.id)
-                .filter(TableColumn.advanced_data_type == advanced_data_type)
-                .group_by(SqlaTable.id)
-            )
-        query = cls.base_filter(
-            cls.id_column_name, SQLAInterface(cls.model_cls, db.session)
-        ).apply(query, None)
-        datasets = query.all()
-        print(datasets)
-        result = {}
-        for dataset in datasets:
-            column_id = dataset[1]
-            if isinstance(column_id, str):
-                column_id = json.loads(dataset[1])
-            verbose_name = dataset[2]
-            if isinstance(verbose_name, str):
-                verbose_name = json.loads(dataset[2])
-            name = dataset[3]
-            if isinstance(name, str):
-                name = json.loads(dataset[3])
-            result[dataset[0]] = dict(
-                zip(
-                    column_id,
-                    map(lambda verbose, name: verbose or name, verbose_name, name),
-                )
-            )
-        return result
 
 
 class DatasetColumnDAO(BaseDAO):
