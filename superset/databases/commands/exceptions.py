@@ -176,8 +176,3 @@ class DatabaseOfflineError(SupersetErrorException):
 
 class InvalidParametersError(SupersetErrorsException):
     status = 422
-
-
-class SSHTunnelCreateFailedError(CommandException):
-    status = 500
-    message = _("Creating SSH Tunnel failed for an unknown reason")

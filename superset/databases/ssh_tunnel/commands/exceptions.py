@@ -39,3 +39,7 @@ class SSHTunnelInvalidError(CommandInvalidError):
 
 class SSHTunnelUpdateFailedError(UpdateFailedError):
     message = _("SSH Tunnel could not be updated.")
+
+
+class SSHTunnelCreateFailedError(CommandException):
+    message = _("Creating SSH Tunnel failed for an unknown reason")
