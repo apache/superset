@@ -16,28 +16,53 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Table } from 'antd';
-import type { TableProps } from 'antd/es/table';
+import { Table as AntTable } from 'antd';
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { VariableSizeGrid as Grid } from 'react-window';
+import { StyledComponent } from '@emotion/styled';
 import { useTheme, styled } from '@superset-ui/core';
+import { TablePaginationConfig } from 'antd/lib/table';
+import { TableCurrentDataSource } from 'antd/es/table/interface';
+import { TableProps, TableSize, HEIGHT_OFFSET } from './index';
 
-const StyledCell = styled('div')(
-  ({ theme }) => `
+const StyledCell: StyledComponent<any> = styled('div')<any>(
+  ({ theme, height }) => `
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   padding-left: ${theme.gridUnit * 2}px;
   padding-right: ${theme.gridUnit}px;
+  border-bottom: 1px solid ${theme.colors.grayscale.light3};
+  transition: background 0.3s;
+  line-height: ${height}px;
 `,
 );
 
-const VirtualTable = <RecordType extends object>(
-  props: TableProps<RecordType>,
-) => {
-  const { columns, scroll, pagination } = props;
+const StyledTable: StyledComponent<any> = styled(AntTable)<any>(
+  ({ theme }) => `
+    th.ant-table-cell {
+      font-weight: ${theme.typography.weights.bold};
+      color: ${theme.colors.grayscale.dark1};
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ant-pagination-item-active {
+      border-color: ${theme.colors.primary.base};
+    }
+  }
+`,
+);
+
+const SMALL = 39;
+const MIDDLE = 47;
+
+const VirtualTable = (props: TableProps) => {
+  const { columns, pagination, onChange, height, scroll, size } = props;
   const [tableWidth, setTableWidth] = useState<number>(0);
   const onResize = useCallback((width: number) => {
     setTableWidth(width);
@@ -48,18 +73,36 @@ const VirtualTable = <RecordType extends object>(
   const DEFAULT_COL_WIDTH = theme?.gridUnit * 37 || 150;
 
   const { ref } = useResizeDetector({ onResize });
+  const widthColumnCount = columns!.filter(({ width }) => !width).length;
+  let staticColWidthTotal = 0;
+  columns?.forEach(column => {
+    if (column.width) {
+      staticColWidthTotal += column.width as number;
+    }
+  });
+  let totalWidth = 0;
+  const defaultWidth = Math.max(
+    (tableWidth - staticColWidthTotal) / widthColumnCount,
+    50,
+  );
   const mergedColumns =
     columns?.map?.(column => {
-      if (column.width) {
-        return { ...column };
+      const modifiedColumn = { ...column };
+      if (!column.width) {
+        modifiedColumn.width = defaultWidth;
       }
-
-      return {
-        ...column,
-        width: DEFAULT_COL_WIDTH,
-      };
+      totalWidth += modifiedColumn.width as number;
+      return modifiedColumn;
     }) ?? [];
 
+  /*
+   * There are cases where a user could set the width of each column and the total width is less than width of
+   * the table.  In this case we will stretch the last column to use the extra space
+   */
+  if (totalWidth < tableWidth) {
+    const lastColumn = mergedColumns[mergedColumns.length - 1];
+    lastColumn.width = (lastColumn.width as number) + (tableWidth - totalWidth);
+  }
   const gridRef = useRef<any>();
   const [connectObject] = useState<any>(() => {
     const obj = {};
@@ -87,11 +130,30 @@ const VirtualTable = <RecordType extends object>(
     });
   };
 
-  useEffect(() => resetVirtualGrid, [tableWidth, columns]);
+  useEffect(() => resetVirtualGrid, [tableWidth, columns, size]);
+
+  /*
+   * antd Table has a runtime error when it tries to fire the onChange event triggered from a pageChange
+   * when the table body is overridden with the virtualized table.  This function capture the page change event
+   * from within the pagination controls and proxies the onChange event payload
+   */
+  const onPageChange = (page: number, size: number) => {
+    onChange?.(
+      {
+        ...pagination,
+        current: page,
+        pageSize: size,
+      } as TablePaginationConfig,
+      {},
+      {},
+      {} as TableCurrentDataSource<TableProps>,
+    );
+  };
 
   const renderVirtualList = (rawData: object[], { ref, onScroll }: any) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
+    const cellSize = size === TableSize.MIDDLE ? MIDDLE : SMALL;
     return (
       <Grid
         ref={gridRef}
@@ -101,9 +163,9 @@ const VirtualTable = <RecordType extends object>(
           const { width = DEFAULT_COL_WIDTH } = mergedColumns[index];
           return width as number;
         }}
-        height={scroll!.y as number}
+        height={height ? height - HEIGHT_OFFSET : (scroll!.y as number)}
         rowCount={rawData.length}
-        rowHeight={() => 54}
+        rowHeight={() => cellSize}
         width={tableWidth}
         onScroll={({ scrollLeft }: { scrollLeft: number }) => {
           onScroll({ scrollLeft });
@@ -130,6 +192,7 @@ const VirtualTable = <RecordType extends object>(
               style={style}
               title={content}
               theme={theme}
+              height={cellSize}
             >
               {content}
             </StyledCell>
@@ -139,9 +202,14 @@ const VirtualTable = <RecordType extends object>(
     );
   };
 
+  const modifiedPagination = {
+    ...pagination,
+    onChange: onPageChange,
+  };
+
   return (
     <div ref={ref}>
-      <Table
+      <StyledTable
         {...props}
         sticky={false}
         className="virtual-table"
@@ -149,7 +217,7 @@ const VirtualTable = <RecordType extends object>(
         components={{
           body: renderVirtualList,
         }}
-        pagination={pagination}
+        pagination={modifiedPagination}
       />
     </div>
   );

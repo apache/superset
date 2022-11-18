@@ -19,7 +19,13 @@
 import React, { useState } from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
-import { Table, TableSize, SUPERSET_TABLE_COLUMN, ColumnsType } from './index';
+import {
+  Table,
+  TableSize,
+  SUPERSET_TABLE_COLUMN,
+  ColumnsType,
+  TablePaginationConfig,
+} from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
 import ActionCell from './cell-renderers/ActionCell';
@@ -157,7 +163,6 @@ const basicColumns: ColumnsType<BasicData> = [
     dataIndex: 'category',
     key: 'category',
     sorter: (a: BasicData, b: BasicData) => alphabeticalSort('category', a, b),
-    width: 100,
   },
   {
     title: 'Price',
@@ -170,7 +175,6 @@ const basicColumns: ColumnsType<BasicData> = [
     title: 'Description',
     dataIndex: 'description',
     key: 'description',
-    width: 100,
   },
 ];
 
@@ -326,6 +330,55 @@ Pagination.args = {
   size: TableSize.SMALL,
   pageSizeOptions: ['5', '10', '15', '20', '25'],
   defaultPageSize: 5,
+};
+
+const generateData = (startIndex: number, pageSize: number): BasicData[] => {
+  const data: BasicData[] = [];
+  for (let i = 0; i < pageSize; i += 1) {
+    const recordIndex = startIndex + i;
+    data.push({
+      key: recordIndex,
+      name: `Dynamic Record ${recordIndex}`,
+      category: 'Disk Storage',
+      price: recordIndex * 2.59,
+      description: 'A random description',
+    });
+  }
+  return data;
+};
+
+export const ServerPagination: ComponentStory<typeof Table> = args => {
+  const [data, setData] = useState(generateData(0, 5));
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (pagination: TablePaginationConfig) => {
+    const pageSize = pagination?.pageSize ?? 5;
+    const current = pagination?.current ?? 0;
+    setLoading(true);
+    // simulate a fetch
+    setTimeout(() => {
+      setData(generateData(current * pageSize, pageSize));
+      setLoading(false);
+    }, 1000);
+  };
+
+  return (
+    <Table
+      {...args}
+      data={data}
+      recordCount={5000}
+      onChange={handleChange}
+      loading={loading}
+    />
+  );
+};
+
+ServerPagination.args = {
+  columns: basicColumns,
+  size: TableSize.SMALL,
+  pageSizeOptions: ['5', '10', '15', '20', '25'],
+  defaultPageSize: 5,
+  virtualize: false,
 };
 
 export const VirtualizedPerformance: ComponentStory<typeof Table> = args => (

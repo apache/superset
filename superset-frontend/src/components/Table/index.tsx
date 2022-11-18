@@ -18,11 +18,14 @@
  */
 import React, { useState, useEffect, useRef, ReactElement } from 'react';
 import { Table as AntTable, ConfigProvider } from 'antd';
-import type {
+import {
   ColumnType,
   ColumnGroupType,
   TableProps as AntTableProps,
 } from 'antd/es/table';
+import { PaginationProps } from 'antd/es/pagination';
+import { Key } from 'antd/lib/table/interface';
+import { SorterResult, TableCurrentDataSource } from 'antd/es/table/interface';
 import { t, useTheme, logging } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import styled, { StyledComponent } from '@emotion/styled';
@@ -32,6 +35,10 @@ import VirtualTable from './VirtualTable';
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 export interface TableDataType {
   key: React.Key;
+}
+
+export interface TablePaginationConfig extends PaginationProps {
+  extra?: object;
 }
 
 export declare type ColumnsType<RecordType = unknown> = (
@@ -141,9 +148,30 @@ export interface TableProps extends AntTableProps<TableProps> {
   height?: number;
   /**
    * Sets the table to use react-window for scroll virtualization in cases where
-   * there are unknowm amount of columns, or many, many rows
+   * there are unknown amount of columns, or many, many rows
    */
   virtualize?: boolean;
+  /**
+   * Used to override page controls total record count when using server-side paging.
+   */
+  recordCount?: number;
+  /**
+   * Invoked when the tables sorting, paging, or filtering is changed.
+   */
+  onChange?: (
+    pagination: TablePaginationConfig,
+    filters: Record<string, (Key | boolean)[] | null>,
+    sorter: SorterResult<any> | SorterResult<any>[],
+    extra: TableCurrentDataSource<any>,
+  ) => void;
+}
+
+interface IPaginationOptions {
+  hideOnSinglePage: boolean;
+  pageSize: number;
+  pageSizeOptions: string[];
+  onShowSizeChange: Function;
+  total?: number;
 }
 
 export enum TableSize {
@@ -153,7 +181,7 @@ export enum TableSize {
 
 const defaultRowSelection: React.Key[] = [];
 // This accounts for the tables header and pagination if user gives table instance a height. this is a temp solution
-const HEIGHT_OFFSET = 108;
+export const HEIGHT_OFFSET = 108;
 
 const StyledTable: StyledComponent<any> = styled(AntTable)<any>(
   ({ theme, height }) => `
@@ -169,6 +197,14 @@ const StyledTable: StyledComponent<any> = styled(AntTable)<any>(
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .ant-table-tbody > tr > td {
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      border-bottom: 1px solid ${theme.colors.grayscale.light3};
     }
 
     .ant-pagination-item-active {
@@ -215,6 +251,7 @@ const defaultLocale = {
 };
 
 const selectionMap = {};
+const noop = () => {};
 selectionMap[SelectionType.MULTI] = 'checkbox';
 selectionMap[SelectionType.SINGLE] = 'radio';
 selectionMap[SelectionType.DISABLED] = null;
@@ -225,7 +262,7 @@ export function Table(props: TableProps) {
     columns,
     selectedRows = defaultRowSelection,
     handleRowSelection,
-    size,
+    size = TableSize.SMALL,
     selectionType = SelectionType.DISABLED,
     sticky = true,
     loading = false,
@@ -239,7 +276,8 @@ export function Table(props: TableProps) {
     locale,
     height,
     virtualize = false,
-    ...rest
+    onChange = noop,
+    recordCount,
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -325,7 +363,8 @@ export function Table(props: TableProps) {
   }, [wrapperRef, reorderable, resizable, virtualize, interactiveTableUtils]);
 
   const theme = useTheme();
-  const paginationSettings = usePagination
+
+  const paginationSettings: IPaginationOptions | false = usePagination
     ? {
         hideOnSinglePage: true,
         pageSize,
@@ -333,6 +372,16 @@ export function Table(props: TableProps) {
         onShowSizeChange: (page: number, size: number) => setPageSize(size),
       }
     : false;
+
+  /**
+   * When recordCount is provided it lets the user of Table control total number of pages
+   * independent from data.length.  This allows the parent component do things like server side paging
+   * where the user can be shown the total mount of data they can page through, but the component can provide
+   * data one page at a time, and respond to the onPageChange event to fetch and set new data
+   */
+  if (paginationSettings && recordCount) {
+    paginationSettings.total = recordCount;
+  }
 
   const sharedProps = {
     loading: { spinning: loading ?? false, indicator: <Loading /> },
@@ -342,6 +391,10 @@ export function Table(props: TableProps) {
     size,
     pagination: paginationSettings,
     locale: mergedLocale,
+    showSorterTooltip: false,
+    onChange,
+    theme,
+    height,
   };
 
   return (
@@ -349,20 +402,15 @@ export function Table(props: TableProps) {
       <div ref={wrapperRef}>
         {!virtualize && (
           <StyledTable
-            {...rest}
             {...sharedProps}
             rowSelection={selectionTypeValue ? rowSelection : undefined}
             sticky={sticky}
-            showSorterTooltip={false}
-            theme={theme}
           />
         )}
         {virtualize && (
           <StyledVirtualTable
             {...sharedProps}
             scroll={{ y: 300, x: '100vw' }}
-            theme={theme}
-            height={height}
           />
         )}
       </div>
