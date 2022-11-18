@@ -1539,6 +1539,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             parsed_query.is_select()
             or parsed_query.is_explain()
             or parsed_query.is_show()
+            or parsed_query.is_with()
         )
 
     @classmethod

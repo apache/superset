@@ -257,6 +257,15 @@ class ParsedQuery:
         # Explain statements will only be the first statement
         return statements_without_comments.upper().startswith("EXPLAIN")
 
+    def is_with(self) -> bool:
+        # Remove comments
+        statements_without_comments = sqlparse.format(
+            self.stripped(), strip_comments=True
+        )
+
+        # With statements will only be the first statement
+        return statements_without_comments.upper().startswith("WITH")
+
     def is_show(self) -> bool:
         # Remove comments
         statements_without_comments = sqlparse.format(
