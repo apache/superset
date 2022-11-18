@@ -121,7 +121,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> List[ResultSetColumnType]:
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only `SELECT` statements are allowed"),
+                message=_("Only `SELECT` and `WITH` statements are allowed"),
                 level=ErrorLevel.ERROR,
             )
         )

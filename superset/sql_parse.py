@@ -263,8 +263,10 @@ class ParsedQuery:
             self.stripped(), strip_comments=True
         )
 
+        isInsertStatements = statements_without_comments.upper().__contains__("INSERT INTO") or statements_without_comments.upper().__contains__("INSERT OVERWRITE")
+
         # With statements will only be the first statement
-        return statements_without_comments.upper().startswith("WITH")
+        return statements_without_comments.upper().startswith("WITH") and not isInsertStatements
 
     def is_show(self) -> bool:
         # Remove comments
