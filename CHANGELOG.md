@@ -19,12 +19,23 @@ under the License.
 
 ## Change Log
 
-### 2.0.1 (Mon Oct 10 09:38:33 2022 +0530)
+### 2.0.1 (Thu Sep 29 19:56:19 2022 +0530)
 **Database Migrations**
 
 **Features**
 
 **Fixes**
+- [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina) (security improvement)
+- [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina) (security improvement)
+- [#21637](https://github.com/apache/superset/pull/21637) fix: respect chart cache timeout setting (@mayurnewase)
+- [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
+- [#21441](https://github.com/apache/superset/pull/21441) fix(cache): respect default cache timeout on v1 chart data requests (@villebro)
+- [#22038](https://github.com/apache/superset/pull/22038) fix: datasource save, improve data validation (@dpgaspar)
+- [#22022](https://github.com/apache/superset/pull/22022) fix: deprecate approve and request_access endpoint (@dpgaspar)
+- [#21964](https://github.com/apache/superset/pull/21964) fix: dashboard api cache decorator (@dpgaspar)
+- [#21875](https://github.com/apache/superset/pull/21875) fix: check that imports are ZIPs (@betodealmeida)
+- [#21761](https://github.com/apache/superset/pull/21761) fix: flash message on database data upload forms (@dpgaspar)
+- [#21759](https://github.com/apache/superset/pull/21759) fix: database schema selector on import data (@dpgaspar)
 - [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
 - [#21576](https://github.com/apache/superset/pull/21576) fix(dashboard): dashboard doesn't load properly if it has tabs (@stephenLYZ)
 - [#21549](https://github.com/apache/superset/pull/21549) fix(dashboard): show correct roles for dashboard access dropdown (@mayurnewase)
@@ -59,10 +70,12 @@ under the License.
 - [#20714](https://github.com/apache/superset/pull/20714) fix: logger message (@betodealmeida)
 
 **Others**
+- [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
+- [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
+- [#20644](https://github.com/apache/superset/pull/20644) chore(deps): bump moment from 2.29.2 to 2.29.4 in /superset-frontend (@dependabot[bot])
 - [#21721](https://github.com/apache/superset/pull/21721) build: changelog for 2.0.1 (@AAfghahi)
 - [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
 - [#21091](https://github.com/apache/superset/pull/21091) chore(deps): unpin holidays dependency version (@ecederstrand)
-
 ### 2.0 (Tue Jun 28 08:53:02 2022 -0400)
 
 **Database Migrations**
