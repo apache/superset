@@ -92,6 +92,10 @@ export interface BaseSelectProps extends AntdExposedProps {
    */
   header?: ReactNode;
   /**
+   * It changes the position of the header.
+   */
+  headerPosition?: 'top' | 'left';
+  /**
    * It adds a helper text on top of the Select options
    * with additional context to help with the interaction.
    */

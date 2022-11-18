@@ -45,7 +45,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.utils.core import NO_TIME_RANGE
+from superset.constants import NO_TIME_RANGE
 from superset.utils.memoized import memoized
 
 ParserElement.enablePackrat()

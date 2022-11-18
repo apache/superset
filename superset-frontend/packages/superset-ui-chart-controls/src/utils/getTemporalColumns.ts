@@ -29,9 +29,9 @@ import {
   isQueryResponse,
 } from '@superset-ui/chart-controls';
 
-export const getTemporalColumns = (
+export function getTemporalColumns(
   datasource: ValueOf<Pick<ControlPanelState, 'datasource'>>,
-) => {
+) {
   const rv: {
     temporalColumns: ColumnMeta[] | QueryColumn[];
     defaultTemporalColumn: string | null | undefined;
@@ -61,4 +61,17 @@ export const getTemporalColumns = (
   }
 
   return rv;
-};
+}
+
+export function isTemporalColumn(
+  columnName: string,
+  datasource: ValueOf<Pick<ControlPanelState, 'datasource'>>,
+): boolean {
+  const columns = getTemporalColumns(datasource).temporalColumns;
+  for (let i = 0; i < columns.length; i += 1) {
+    if (columns[i].column_name === columnName) {
+      return true;
+    }
+  }
+  return false;
+}

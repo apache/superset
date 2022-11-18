@@ -20,9 +20,9 @@ import { Provider } from 'react-redux';
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
-import ReactMarkdown from 'react-markdown';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { SafeMarkdown } from '@superset-ui/core';
 
 import { act } from 'react-dom/test-utils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
@@ -112,26 +112,26 @@ describe('Markdown', () => {
   it('should render an Markdown when NOT focused', () => {
     const wrapper = setup();
     expect(wrapper.find(MarkdownEditor)).not.toExist();
-    expect(wrapper.find(ReactMarkdown)).toExist();
+    expect(wrapper.find(SafeMarkdown)).toExist();
   });
 
   it('should render an AceEditor when focused and editMode=true and editorMode=edit', async () => {
     const wrapper = setup({ editMode: true });
     expect(wrapper.find(MarkdownEditor)).not.toExist();
-    expect(wrapper.find(ReactMarkdown)).toExist();
+    expect(wrapper.find(SafeMarkdown)).toExist();
     act(() => {
       wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
     });
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find(MarkdownEditor)).toExist();
-    expect(wrapper.find(ReactMarkdown)).not.toExist();
+    expect(wrapper.find(SafeMarkdown)).not.toExist();
   });
 
   it('should render a ReactMarkdown when focused and editMode=true and editorMode=preview', () => {
     const wrapper = setup({ editMode: true });
     wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
     expect(wrapper.find(MarkdownEditor)).toExist();
-    expect(wrapper.find(ReactMarkdown)).not.toExist();
+    expect(wrapper.find(SafeMarkdown)).not.toExist();
 
     // we can't call setState on Markdown bc it's not the root component, so call
     // the mode dropdown onchange instead
@@ -139,7 +139,7 @@ describe('Markdown', () => {
     dropdown.prop('onChange')('preview');
     wrapper.update();
 
-    expect(wrapper.find(ReactMarkdown)).toExist();
+    expect(wrapper.find(SafeMarkdown)).toExist();
     expect(wrapper.find(MarkdownEditor)).not.toExist();
   });
 

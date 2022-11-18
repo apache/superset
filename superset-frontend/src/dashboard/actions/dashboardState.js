@@ -284,7 +284,7 @@ export function saveDashboardRequest(data, id, saveType) {
     const onUpdateSuccess = response => {
       const updatedDashboard = response.json.result;
       const lastModifiedTime = response.json.last_modified_time;
-      // synching with the backend transformations of the metadata
+      // syncing with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
         dispatch(

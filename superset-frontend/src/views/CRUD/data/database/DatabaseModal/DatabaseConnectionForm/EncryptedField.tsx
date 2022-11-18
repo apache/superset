@@ -168,6 +168,7 @@ export const EncryptedField = ({
 
             <input
               id="selectedFile"
+              accept=".json"
               className="input-upload"
               type="file"
               onChange={async event => {

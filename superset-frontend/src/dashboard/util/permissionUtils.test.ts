@@ -20,7 +20,7 @@ import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
-import Dashboard from 'src/types/Dashboard';
+import { Dashboard } from 'src/types/Dashboard';
 import Owner from 'src/types/Owner';
 import { canUserEditDashboard, isUserAdmin } from './permissionUtils';
 

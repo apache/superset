@@ -136,6 +136,7 @@ export const hydrateExplore =
       force: getUrlParam(URL_PARAMS.force),
       metadata,
       saveAction,
+      common,
     };
 
     // apply initial mapStateToProps for all controls, must execute AFTER
