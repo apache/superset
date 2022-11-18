@@ -21,60 +21,62 @@ import React, { useCallback, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t, useTheme } from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
-import { FilterBarLocation, RootState } from 'src/dashboard/types';
-import { saveFilterBarLocation } from 'src/dashboard/actions/dashboardInfo';
+import { FilterBarOrientation, RootState } from 'src/dashboard/types';
+import { saveFilterBarOrientation } from 'src/dashboard/actions/dashboardInfo';
 import Icons from 'src/components/Icons';
 import DropdownSelectableIcon from 'src/components/DropdownSelectableIcon';
 
-export const FilterBarLocationSelect = () => {
+const FilterBarOrientationSelect = () => {
   const dispatch = useDispatch();
   const theme = useTheme();
-  const filterBarLocation = useSelector<RootState, FilterBarLocation>(
-    ({ dashboardInfo }) => dashboardInfo.filterBarLocation,
+  const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
+    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
-  const [selectedFilterBarLocation, setSelectedFilterBarLocation] =
-    useState(filterBarLocation);
+  const [selectedFilterBarOrientation, setSelectedFilterBarOrientation] =
+    useState(filterBarOrientation);
 
-  const toggleFilterBarLocation = useCallback(
+  const toggleFilterBarOrientation = useCallback(
     async (
       selection: Parameters<
         Required<Pick<MenuProps, 'onSelect'>>['onSelect']
       >[0],
     ) => {
-      const selectedKey = selection.key as FilterBarLocation;
-      if (selectedKey !== filterBarLocation) {
+      const selectedKey = selection.key as FilterBarOrientation;
+      if (selectedKey !== filterBarOrientation) {
         // set displayed selection in local state for immediate visual response after clicking
-        setSelectedFilterBarLocation(selectedKey);
+        setSelectedFilterBarOrientation(selectedKey);
         try {
           // save selection in Redux and backend
           await dispatch(
-            saveFilterBarLocation(selection.key as FilterBarLocation),
+            saveFilterBarOrientation(selection.key as FilterBarOrientation),
           );
         } catch {
           // revert local state in case of error when saving
-          setSelectedFilterBarLocation(filterBarLocation);
+          setSelectedFilterBarOrientation(filterBarOrientation);
         }
       }
     },
-    [dispatch, filterBarLocation],
+    [dispatch, filterBarOrientation],
   );
 
   return (
     <DropdownSelectableIcon
-      onSelect={toggleFilterBarLocation}
-      info={t('Placement of filter bar')}
+      onSelect={toggleFilterBarOrientation}
+      info={t('Orientation of filter bar')}
       icon={<Icons.Gear name="gear" iconColor={theme.colors.grayscale.base} />}
       menuItems={[
         {
-          key: FilterBarLocation.VERTICAL,
+          key: FilterBarOrientation.VERTICAL,
           label: t('Vertical (Left)'),
         },
         {
-          key: FilterBarLocation.HORIZONTAL,
+          key: FilterBarOrientation.HORIZONTAL,
           label: t('Horizontal (Top)'),
         },
       ]}
-      selectedKeys={[selectedFilterBarLocation]}
+      selectedKeys={[selectedFilterBarOrientation]}
     />
   );
 };
+
+export default FilterBarOrientationSelect;

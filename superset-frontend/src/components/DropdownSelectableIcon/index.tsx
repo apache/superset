@@ -43,6 +43,7 @@ const StyledDropdownButton = styled(
     height: unset;
     padding: 0;
     border: none;
+    width: auto !important;
 
     .anticon {
       line-height: 0;
