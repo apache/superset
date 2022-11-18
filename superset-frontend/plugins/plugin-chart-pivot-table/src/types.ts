@@ -79,7 +79,7 @@ interface PivotTableCustomizeProps {
     clientY: number,
     filters?: BinaryQueryObjectFilterClause[],
   ) => void;
-  timeGrainSqla: TimeGranularity;
+  timeGrainSqla?: TimeGranularity;
 }
 
 export type PivotTableQueryFormData = QueryFormData &
