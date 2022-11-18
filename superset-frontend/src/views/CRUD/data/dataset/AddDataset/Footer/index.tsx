@@ -36,6 +36,7 @@ interface FooterProps {
   addDangerToast: () => void;
   datasetObject?: Partial<DatasetObject> | null;
   onDatasetAdd?: (dataset: DatasetObject) => void;
+  hasColumns?: boolean;
 }
 
 const INPUT_FIELDS = ['db', 'schema', 'table_name'];
@@ -46,7 +47,12 @@ const LOG_ACTIONS = [
   LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION,
 ];
 
-function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
+function Footer({
+  url,
+  datasetObject,
+  addDangerToast,
+  hasColumns = false,
+}: FooterProps) {
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
     t('dataset'),
@@ -107,7 +113,7 @@ function Footer({ url, datasetObject, addDangerToast }: FooterProps) {
       <Button onClick={cancelButtonOnClick}>Cancel</Button>
       <Button
         buttonStyle="primary"
-        disabled={!datasetObject?.table_name}
+        disabled={!datasetObject?.table_name || !hasColumns}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={onSave}
       >

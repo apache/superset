@@ -17,12 +17,14 @@
  * under the License.
  */
 import React, { useState, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
+import { removeDataPreview, removeTables } from 'src/SqlLab/actions/sqlLab';
 import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { IconTooltip } from 'src/components/IconTooltip';
@@ -55,10 +57,6 @@ export interface Table {
 
 export interface TableElementProps {
   table: Table;
-  actions: {
-    removeDataPreview: (table: Table) => void;
-    removeTables: (tables: Table[]) => void;
-  };
 }
 
 const StyledSpan = styled.span`
@@ -74,7 +72,9 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-const TableElement = ({ table, actions, ...props }: TableElementProps) => {
+const TableElement = ({ table, ...props }: TableElementProps) => {
+  const dispatch = useDispatch();
+
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
   const tableNameRef = useRef<HTMLInputElement>(null);
@@ -84,8 +84,8 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   };
 
   const removeTable = () => {
-    actions.removeDataPreview(table);
-    actions.removeTables([table]);
+    dispatch(removeDataPreview(table));
+    dispatch(removeTables([table]));
   };
 
   const toggleSortColumns = () => {

@@ -733,7 +733,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -786,7 +786,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = True
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -836,7 +836,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False

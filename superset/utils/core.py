@@ -190,6 +190,12 @@ class DatasourceType(str, Enum):
     VIEW = "view"
 
 
+class LoggerLevel(str, Enum):
+    INFO = "info"
+    WARNING = "warning"
+    EXCEPTION = "exception"
+
+
 class HeaderDataType(TypedDict):
     notification_format: str
     owners: List[int]
@@ -1176,8 +1182,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
     # that are external to the slice definition. We use those for dynamic
     # interactive filters like the ones emitted by the "Filter Box" visualization.
     # Note extra_filters only support simple filters.
-    applied_time_extras: Dict[str, str] = {}
-    form_data["applied_time_extras"] = applied_time_extras
+    form_data.setdefault("applied_time_extras", {})
     adhoc_filters = form_data.get("adhoc_filters", [])
     form_data["adhoc_filters"] = adhoc_filters
     merge_extra_form_data(form_data)
@@ -1220,7 +1225,7 @@ def merge_extra_filters(form_data: Dict[str, Any]) -> None:
                 time_extra_value = filtr.get("val")
                 if time_extra_value and time_extra_value != NO_TIME_RANGE:
                     form_data[time_extra] = time_extra_value
-                    applied_time_extras[filter_column] = time_extra_value
+                    form_data["applied_time_extras"][filter_column] = time_extra_value
             elif filtr["val"]:
                 # Merge column filters
                 filter_key = get_filter_key(filtr)
@@ -1278,8 +1283,8 @@ def get_example_default_schema() -> Optional[str]:
     Return the default schema of the examples database, if any.
     """
     database = get_example_database()
-    engine = database.get_sqla_engine()
-    return inspect(engine).default_schema_name
+    with database.get_sqla_engine_with_context() as engine:
+        return inspect(engine).default_schema_name
 
 
 def backend() -> str:

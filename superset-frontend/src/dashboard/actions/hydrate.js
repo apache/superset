@@ -57,7 +57,7 @@ import getNativeFilterConfig from '../util/filterboxMigrationHelper';
 import { updateColorSchema } from './dashboardInfo';
 import { getChartIdsInFilterScope } from '../util/getChartIdsInFilterScope';
 import updateComponentParentsList from '../util/updateComponentParentsList';
-import { FilterBarLocation } from '../types';
+import { FilterBarOrientation } from '../types';
 
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
@@ -429,8 +429,8 @@ export const hydrateDashboard =
             flash_messages: common?.flash_messages,
             conf: common?.conf,
           },
-          filterBarLocation:
-            metadata.filter_bar_location ?? FilterBarLocation.VERTICAL,
+          filterBarOrientation:
+            metadata.filter_bar_orientation ?? FilterBarOrientation.VERTICAL,
         },
         dataMask,
         dashboardFilters,

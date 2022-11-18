@@ -19,7 +19,6 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
-from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
@@ -131,16 +130,11 @@ class DruidEngineSpec(BaseEngineSpec):
         """
         Update the Druid type map.
         """
-        # pylint: disable=import-outside-toplevel
-        from pydruid.db.sqlalchemy import type_map
-
-        type_map["complex<hllsketch>"] = types.BLOB
-
         return super().get_columns(inspector, table_name, schema)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
-        # pylint: disable=import-error,import-outside-toplevel
+        # pylint: disable=import-outside-toplevel
         from requests import exceptions as requests_exceptions
 
         return {

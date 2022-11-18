@@ -42,6 +42,7 @@ import {
   ON_FILTERS_REFRESH,
   ON_FILTERS_REFRESH_SUCCESS,
   SET_DATASETS_STATUS,
+  SET_OVERRIDE_CONFIRM,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -171,6 +172,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         activeTabs: Array.from(newActiveTabs),
+      };
+    },
+    [SET_OVERRIDE_CONFIRM]() {
+      return {
+        ...state,
+        overwriteConfirmMetadata: action.overwriteConfirmMetadata,
       };
     },
     [SET_FOCUSED_FILTER_FIELD]() {

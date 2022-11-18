@@ -27,6 +27,7 @@ metadata:
   annotations:
     {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
 {{- end }}
+  namespace: {{ .Release.Namespace }}
 spec:
   replicas: {{ .Values.supersetNode.replicaCount }}
   {{- if .Values.supersetNode.strategy }}

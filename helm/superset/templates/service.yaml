@@ -27,6 +27,7 @@ metadata:
   annotations:
 {{- toYaml . | nindent 4 }}
 {{- end }}
+  namespace: {{ .Release.Namespace }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -55,6 +56,7 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  namespace: {{ .Release.Namespace }}
 spec:
   type: {{ .Values.supersetCeleryFlower.service.type }}
   ports:
@@ -84,6 +86,7 @@ metadata:
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  namespace: {{ .Release.Namespace }}
 spec:
   type: {{ .Values.supersetWebsockets.service.type }}
   ports:

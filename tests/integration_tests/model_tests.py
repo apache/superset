@@ -164,7 +164,7 @@ class TestDatabaseModel(SupersetTestCase):
                 database_name="test_database", sqlalchemy_uri=uri, extra=extra
             )
             model.impersonate_user = True
-            model.get_sqla_engine()
+            model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "presto://gamma@localhost"
@@ -177,7 +177,7 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
             model.impersonate_user = False
-            model.get_sqla_engine()
+            model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "presto://localhost"
@@ -197,7 +197,7 @@ class TestDatabaseModel(SupersetTestCase):
                 database_name="test_database", sqlalchemy_uri="trino://localhost"
             )
             model.impersonate_user = True
-            model.get_sqla_engine()
+            model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "trino://localhost"
@@ -209,7 +209,7 @@ class TestDatabaseModel(SupersetTestCase):
             )
 
             model.impersonate_user = True
-            model.get_sqla_engine()
+            model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
             assert (
@@ -242,7 +242,7 @@ class TestDatabaseModel(SupersetTestCase):
                 database_name="test_database", sqlalchemy_uri=uri, extra=extra
             )
             model.impersonate_user = True
-            model.get_sqla_engine()
+            model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "hive://localhost"
@@ -255,7 +255,7 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
             model.impersonate_user = False
-            model.get_sqla_engine()
+            model._get_sqla_engine()
             call_args = mocked_create_engine.call_args
 
             assert str(call_args[0][0]) == "hive://localhost"
@@ -380,21 +380,7 @@ class TestDatabaseModel(SupersetTestCase):
         )
         mocked_create_engine.side_effect = Exception()
         with self.assertRaises(SupersetException):
-            model.get_sqla_engine()
-
-    # todo(hughhh): update this test
-    # @mock.patch("superset.models.core.create_engine")
-    # def test_get_sqla_engine_with_context(self, mocked_create_engine):
-    #     model = Database(
-    #         database_name="test_database",
-    #         sqlalchemy_uri="mysql://root@localhost",
-    #     )
-    #     model.db_engine_spec.get_dbapi_exception_mapping = mock.Mock(
-    #         return_value={Exception: SupersetException}
-    #     )
-    #     mocked_create_engine.side_effect = Exception()
-    #     with self.assertRaises(SupersetException):
-    #         model.get_sqla_engine()
+            model._get_sqla_engine()
 
 
 class TestSqlaTableModel(SupersetTestCase):

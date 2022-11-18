@@ -28,29 +28,29 @@ from .helpers import get_example_url, get_table_connector_registry
 def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) -> None:
     tbl_name = "paris_iris_mapping"
     database = database_utils.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata and (not table_exists or force):
-        url = get_example_url("paris_iris.json.gz")
-        df = pd.read_json(url, compression="gzip")
-        df["features"] = df.features.map(json.dumps)
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("paris_iris.json.gz")
+            df = pd.read_json(url, compression="gzip")
+            df["features"] = df.features.map(json.dumps)
 
-        df.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=500,
-            dtype={
-                "color": String(255),
-                "name": String(255),
-                "features": Text,
-                "type": Text,
-            },
-            index=False,
-        )
+            df.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=500,
+                dtype={
+                    "color": String(255),
+                    "name": String(255),
+                    "features": Text,
+                    "type": Text,
+                },
+                index=False,
+            )
 
     print("Creating table {} reference".format(tbl_name))
     table = get_table_connector_registry()

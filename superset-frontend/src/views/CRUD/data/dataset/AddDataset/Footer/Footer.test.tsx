@@ -36,6 +36,7 @@ const mockPropsWithDataset = {
     dataset_name: 'Untitled',
     table_name: 'real_info',
   },
+  hasColumns: true,
 };
 
 describe('Footer', () => {

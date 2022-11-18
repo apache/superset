@@ -27,7 +27,7 @@ import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-export interface Props {
+export interface RunQueryActionButtonProps {
   queryEditorId: string;
   allowAsync: boolean;
   queryState?: string;
@@ -81,14 +81,14 @@ const StyledButton = styled.span`
   }
 `;
 
-const RunQueryActionButton: React.FC<Props> = ({
+const RunQueryActionButton = ({
   allowAsync = false,
   queryEditorId,
   queryState,
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
-}) => {
+}: RunQueryActionButtonProps) => {
   const theme = useTheme();
   const userOS = detectOS();
 

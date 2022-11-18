@@ -17,18 +17,16 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import Badge from 'src/components/Badge';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 
+import Badge from 'src/components/Badge';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
-import { useSelector } from 'react-redux';
-import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
@@ -36,24 +34,22 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-export type Props = {
-  queryEditor: QueryEditor;
+export type TemplateParamsEditorProps = {
+  queryEditorId: string;
   language: 'yaml' | 'json';
   onChange: () => void;
 };
 
-function TemplateParamsEditor({
-  queryEditor,
+const TemplateParamsEditor = ({
+  queryEditorId,
   language,
   onChange = () => {},
-}: Props) {
+}: TemplateParamsEditorProps) => {
   const [parsedJSON, setParsedJSON] = useState({});
   const [isValid, setIsValid] = useState(true);
-  const code = useSelector<SqlLabRootState, string>(
-    rootState =>
-      (getUpToDateQuery(rootState, queryEditor) as unknown as QueryEditor)
-        .templateParams || '{}',
-  );
+
+  const { templateParams } = useQueryEditor(queryEditorId, ['templateParams']);
+  const code = templateParams ?? '{}';
 
   useEffect(() => {
     try {
@@ -125,6 +121,6 @@ function TemplateParamsEditor({
       modalBody={modalBody}
     />
   );
-}
+};
 
 export default TemplateParamsEditor;

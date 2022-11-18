@@ -28,6 +28,7 @@ metadata:
   annotations:
     {{- toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
 {{- end }}
+  namespace: {{ .Release.Namespace }}
 spec:
   # This must be a singleton
   replicas: 1

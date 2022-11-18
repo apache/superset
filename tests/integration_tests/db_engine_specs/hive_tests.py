@@ -150,10 +150,6 @@ def test_hive_error_msg():
     )
 
 
-def test_hive_get_view_names_return_empty_list():  # pylint: disable=invalid-name
-    assert HiveEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY) == []
-
-
 def test_convert_dttm():
     dttm = datetime.strptime("2019-01-02 03:04:05.678900", "%Y-%m-%d %H:%M:%S.%f")
     assert HiveEngineSpec.convert_dttm("DATE", dttm) == "CAST('2019-01-02' AS DATE)"
@@ -208,7 +204,9 @@ def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.execute = mock_execute
+    mock_database.get_sqla_engine_with_context.return_value.__enter__.return_value.execute = (
+        mock_execute
+    )
     table_name = "foobar"
 
     with app.app_context():
@@ -233,7 +231,9 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     mock_database = mock.MagicMock()
     mock_database.get_df.return_value.empty = False
     mock_execute = mock.MagicMock(return_value=True)
-    mock_database.get_sqla_engine.return_value.execute = mock_execute
+    mock_database.get_sqla_engine_with_context.return_value.__enter__.return_value.execute = (
+        mock_execute
+    )
     table_name = "foobar"
     schema = "schema"
 

@@ -27,7 +27,7 @@ import { ActionButtons } from './Footer';
 import { useNativeFiltersDataMask, useFilters, useFilterSets } from '../state';
 import { APPLY_FILTERS_HINT, findExistingFilterSet } from './utils';
 import { useFilterSetNameDuplicated } from './state';
-import { getFilterBarTestId } from '../index';
+import { getFilterBarTestId } from '../utils';
 
 const Wrapper = styled.div`
   display: grid;

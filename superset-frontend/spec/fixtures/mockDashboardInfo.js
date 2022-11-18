@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FilterBarOrientation } from 'src/dashboard/types';
+
 export default {
   id: 1234,
   slug: 'dashboardSlug',
@@ -36,4 +38,5 @@ export default {
     flash_messages: [],
     conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 },
   },
+  filterBarOrientation: FilterBarOrientation.VERTICAL,
 };

@@ -18,24 +18,124 @@
  */
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
-import DatasetPanel from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel';
+import DatasetPanel, {
+  REFRESHING,
+  ALT_LOADING,
+  tableColumnDefinition,
+  COLUMN_TITLE,
+} from './DatasetPanel';
+import { exampleColumns } from './fixtures';
+import {
+  SELECT_MESSAGE,
+  CREATE_MESSAGE,
+  VIEW_DATASET_MESSAGE,
+  SELECT_TABLE_TITLE,
+  NO_COLUMNS_TITLE,
+  NO_COLUMNS_DESCRIPTION,
+  ERROR_TITLE,
+  ERROR_DESCRIPTION,
+} from './MessageContent';
+
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) =>
+      <span role="img" aria-label={fileName.replace('_', '-')} />,
+);
 
 describe('DatasetPanel', () => {
   it('renders a blank state DatasetPanel', () => {
-    render(<DatasetPanel />);
+    render(<DatasetPanel hasError={false} columnList={[]} loading={false} />);
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
-    const blankDatasetTitle = screen.getByText(/select dataset source/i);
-    const blankDatasetDescription = screen.getByText(
-      /datasets can be created from database tables or sql queries\. select a database table to the left or to open sql lab\. from there you can save the query as a dataset\./i,
-    );
-    const sqlLabLink = screen.getByRole('button', {
-      name: /create dataset from sql query/i,
-    });
-
     expect(blankDatasetImg).toBeVisible();
+    const blankDatasetTitle = screen.getByText(SELECT_TABLE_TITLE);
     expect(blankDatasetTitle).toBeVisible();
-    expect(blankDatasetDescription).toBeVisible();
+    const blankDatasetDescription1 = screen.getByText(SELECT_MESSAGE, {
+      exact: false,
+    });
+    expect(blankDatasetDescription1).toBeVisible();
+    const blankDatasetDescription2 = screen.getByText(VIEW_DATASET_MESSAGE, {
+      exact: false,
+    });
+    expect(blankDatasetDescription2).toBeVisible();
+    const sqlLabLink = screen.getByRole('button', {
+      name: CREATE_MESSAGE,
+    });
     expect(sqlLabLink).toBeVisible();
+  });
+
+  it('renders a no columns screen', () => {
+    render(
+      <DatasetPanel
+        tableName="Name"
+        hasError={false}
+        columnList={[]}
+        loading={false}
+      />,
+    );
+
+    const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
+    expect(blankDatasetImg).toBeVisible();
+    const noColumnsTitle = screen.getByText(NO_COLUMNS_TITLE);
+    expect(noColumnsTitle).toBeVisible();
+    const noColumnsDescription = screen.getByText(NO_COLUMNS_DESCRIPTION);
+    expect(noColumnsDescription).toBeVisible();
+  });
+
+  it('renders a loading screen', () => {
+    render(
+      <DatasetPanel
+        tableName="Name"
+        hasError={false}
+        columnList={[]}
+        loading
+      />,
+    );
+
+    const blankDatasetImg = screen.getByAltText(ALT_LOADING);
+    expect(blankDatasetImg).toBeVisible();
+    const blankDatasetTitle = screen.getByText(REFRESHING);
+    expect(blankDatasetTitle).toBeVisible();
+  });
+
+  it('renders an error screen', () => {
+    render(
+      <DatasetPanel
+        tableName="Name"
+        hasError
+        columnList={[]}
+        loading={false}
+      />,
+    );
+
+    const errorTitle = screen.getByText(ERROR_TITLE);
+    expect(errorTitle).toBeVisible();
+    const errorDescription = screen.getByText(ERROR_DESCRIPTION);
+    expect(errorDescription).toBeVisible();
+  });
+
+  it('renders a table with columns displayed', async () => {
+    const tableName = 'example_name';
+    render(
+      <DatasetPanel
+        tableName={tableName}
+        hasError={false}
+        columnList={exampleColumns}
+        loading={false}
+      />,
+    );
+    expect(await screen.findByText(tableName)).toBeVisible();
+    expect(screen.getByText(COLUMN_TITLE)).toBeVisible();
+    expect(
+      screen.getByText(tableColumnDefinition[0].title as string),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(tableColumnDefinition[1].title as string),
+    ).toBeInTheDocument();
+    exampleColumns.forEach(row => {
+      expect(screen.getByText(row.name)).toBeInTheDocument();
+      expect(screen.getByText(row.type)).toBeInTheDocument();
+    });
   });
 });

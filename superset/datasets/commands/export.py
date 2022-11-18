@@ -21,13 +21,13 @@ import logging
 from typing import Iterator, Tuple
 
 import yaml
-from werkzeug.utils import secure_filename
 
 from superset.commands.export.models import ExportModelsCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.datasets.dao import DatasetDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils.file import get_filename
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +43,11 @@ class ExportDatasetsCommand(ExportModelsCommand):
     def _export(
         model: SqlaTable, export_related: bool = True
     ) -> Iterator[Tuple[str, str]]:
-        database_slug = secure_filename(model.database.database_name)
-        dataset_slug = secure_filename(model.table_name)
-        file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"
+        db_file_name = get_filename(
+            model.database.database_name, model.database.id, skip_id=True
+        )
+        ds_file_name = get_filename(model.table_name, model.id, skip_id=True)
+        file_path = f"datasets/{db_file_name}/{ds_file_name}.yaml"
 
         payload = model.export_to_dict(
             recursive=True,
@@ -75,11 +77,11 @@ class ExportDatasetsCommand(ExportModelsCommand):
         payload["database_uuid"] = str(model.database.uuid)
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_name, file_content
+        yield file_path, file_content
 
         # include database as well
         if export_related:
-            file_name = f"databases/{database_slug}.yaml"
+            file_path = f"databases/{db_file_name}.yaml"
 
             payload = model.database.export_to_dict(
                 recursive=False,
@@ -98,4 +100,4 @@ class ExportDatasetsCommand(ExportModelsCommand):
             payload["version"] = EXPORT_VERSION
 
             file_content = yaml.safe_dump(payload, sort_keys=False)
-            yield file_name, file_content
+            yield file_path, file_content

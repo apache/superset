@@ -457,6 +457,7 @@ describe('Native filters', () => {
         search.split('').slice(1, search.length).join('');
 
       cy.location().then(loc => {
+        cy.url().should('contain', 'native_filters_key');
         const queryParams = qs.parse(removeFirstChar(loc.search));
         filterKey = queryParams.native_filters_key as string;
         expect(typeof filterKey).eq('string');
@@ -465,6 +466,7 @@ describe('Native filters', () => {
       addCountryNameFilter();
       saveNativeFilterSettings([SAMPLE_CHART]);
       cy.location().then(loc => {
+        cy.url().should('contain', 'native_filters_key');
         const queryParams = qs.parse(removeFirstChar(loc.search));
         const newfilterKey = queryParams.native_filters_key;
         expect(newfilterKey).eq(filterKey);

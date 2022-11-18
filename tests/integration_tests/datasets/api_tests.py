@@ -25,6 +25,7 @@ from zipfile import is_zipfile, ZipFile
 import prison
 import pytest
 import yaml
+from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -95,6 +96,7 @@ class TestDatasetApi(SupersetTestCase):
     def get_fixture_datasets(self) -> List[SqlaTable]:
         return (
             db.session.query(SqlaTable)
+            .options(joinedload(SqlaTable.database))
             .filter(SqlaTable.table_name.in_(self.fixture_tables_names))
             .all()
         )
@@ -1973,21 +1975,17 @@ class TestDatasetApi(SupersetTestCase):
         database = (
             db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
         )
-        shadow_dataset = (
-            db.session.query(Dataset).filter_by(uuid=dataset_config["uuid"]).one()
-        )
+
         assert database.database_name == "imported_database"
 
         assert len(database.tables) == 1
         dataset = database.tables[0]
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
-        assert str(shadow_dataset.uuid) == dataset_config["uuid"]
 
         dataset.owners = []
         database.owners = []
         db.session.delete(dataset)
-        db.session.delete(shadow_dataset)
         db.session.delete(database)
         db.session.commit()
 

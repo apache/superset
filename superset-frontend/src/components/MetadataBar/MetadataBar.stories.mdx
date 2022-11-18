@@ -1,17 +1,25 @@
-import { Meta, Source } from '@storybook/addon-docs';
+import { Meta, Source, Story } from '@storybook/addon-docs';
 
-<Meta title="MetadataBar/Overview" />
+<Meta title="Design System/Components/MetadataBar/Overview" />
 
-# Usage
+# Metadata bar
 
-The metadata bar component is used to display additional information about an entity. Some of the common applications in Superset are:
+The metadata bar component is used to display additional information about an entity.
+
+## Usage
+
+Some of the common applications in Superset are:
 
 - Display the chart's metadata in Explore to help the user understand what dashboards this chart is added to and get
   to know the details of the chart
 - Display the database's metadata in a drill to detail modal to help the user understand what data they are looking
   at while accessing the feature in the dashboard
 
-# Variations
+## Basic example
+
+<Story id="design-system-components-metadatabar-examples--basic" />
+
+## Variations
 
 The metadata bar is by default a static component (besides the links in text).
 The variations in this component are related to content and entity type as all of the details are predefined
@@ -25,7 +33,7 @@ have the same icon and when hovered it will present who created the entity, its 
 To extend the list of content types, a developer needs to request the inclusion of the new type in the design system.
 This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
 
-To check each content type in detail and its interactions, check the [MetadataBar](/story/metadatabar--component) page.
+To check each content type in detail and its interactions, check the [MetadataBar](/story/design-system-components-metadatabar-examples--basic) page.
 Below you can find the configurations for each content type:
 
 <Source

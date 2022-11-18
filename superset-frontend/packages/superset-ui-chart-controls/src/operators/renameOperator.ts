@@ -34,7 +34,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   const metrics = ensureIsArray(queryObject.metrics);
   const columns = ensureIsArray(queryObject.columns);
   const { truncate_metric } = formData;
-  const xAxis = getXAxisLabel(formData);
+  const xAxisLabel = getXAxisLabel(formData);
   // remove or rename top level of column name(metric name) in the MultiIndex when
   // 1) only 1 metric
   // 2) exist dimentsion
@@ -44,7 +44,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   if (
     metrics.length === 1 &&
     columns.length > 0 &&
-    xAxis &&
+    xAxisLabel &&
     !(
       // todo: we should provide an approach to handle derived metrics
       (
