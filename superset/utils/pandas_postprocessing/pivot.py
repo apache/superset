@@ -89,6 +89,7 @@ def pivot(  # pylint: disable=too-many-arguments,too-many-locals
             for metric in aggfunc.keys():
                 series_set.add(str(tuple([metric]) + tuple(row[1:])))
 
+    cur_df=df
     df = df.pivot_table(
         values=aggfunc.keys(),
         index=index,
@@ -99,6 +100,7 @@ def pivot(  # pylint: disable=too-many-arguments,too-many-locals
         margins=marginal_distributions,
         margins_name=marginal_distribution_name,
     )
+    df = df[[x for x in cur_df.columns.values.tolist() if x in df.columns.values.tolist()]]
 
     if not drop_missing_columns and len(series_set) > 0 and not df.empty:
         for col in df.columns:
