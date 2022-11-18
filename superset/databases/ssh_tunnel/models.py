@@ -49,7 +49,7 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     )
 
     server_address = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
-    server_port = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
+    server_port = sa.Column(EncryptedType(sa.Integer, app_config["SECRET_KEY"]))
     username = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
 
     # basic authentication

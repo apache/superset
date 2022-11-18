@@ -54,6 +54,7 @@ def upgrade():
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id")),
         sa.Column("server_address", encrypted_field_factory.create(sa.String(1024))),
+        sa.Column("server_port", encrypted_field_factory.create(sa.INTEGER())),
         sa.Column("username", encrypted_field_factory.create(sa.String(1024))),
         sa.Column(
             "password", encrypted_field_factory.create(sa.String(1024)), nullable=True
@@ -68,6 +69,8 @@ def upgrade():
             encrypted_field_factory.create(sa.String(1024)),
             nullable=True,
         ),
+        sa.Column("bind_host", encrypted_field_factory.create(sa.String(1024))),
+        sa.Column("bind_port", encrypted_field_factory.create(sa.INTEGER())),
     )
 
 
