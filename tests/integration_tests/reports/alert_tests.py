@@ -30,7 +30,7 @@ from tests.integration_tests.test_app import app
 
 
 @pytest.mark.parametrize(
-    "owner_names,creator_name,config,executor",
+    "owner_names,creator_name,config,expected_result",
     [
         (["gamma"], None, [ReportScheduleExecutor.SELENIUM], "admin"),
         (["gamma"], None, [ReportScheduleExecutor.OWNER], "gamma"),
@@ -48,7 +48,7 @@ def test_execute_query_as_report_executor(
     owner_names: List[str],
     creator_name: Optional[str],
     config: List[ReportScheduleExecutor],
-    executor: Union[str, Exception],
+    expected_result: Union[str, Exception],
     mocker: MockFixture,
     app_context: None,
     get_user,
@@ -79,13 +79,13 @@ def test_execute_query_as_report_executor(
             "superset.reports.commands.alert.override_user"
         )
         cm = (
-            pytest.raises(type(executor))
-            if isinstance(executor, Exception)
+            pytest.raises(type(expected_result))
+            if isinstance(expected_result, Exception)
             else nullcontext()
         )
         with cm:
             command.run()
-            assert override_user_mock.call_args[0][0].username == executor
+            assert override_user_mock.call_args[0][0].username == expected_result
 
         app.config["ALERT_REPORTS_EXECUTE_AS"] = original_config
 
