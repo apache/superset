@@ -34,6 +34,9 @@ from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
 from tests.integration_tests.fixtures.datasource import get_datasource_post
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 
 
 @contextmanager
