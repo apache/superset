@@ -232,7 +232,9 @@ class TestDatasource(SupersetTestCase):
         with db_insert_temp_object(table):
             url = f"/datasource/external_metadata/table/{table.id}/"
             resp = self.get_json_resp(url)
-            self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
+            self.assertEqual(
+                resp["error"], "Only `SELECT` or `WITH` statements are allowed"
+            )
 
     def test_external_metadata_for_mutistatement_virtual_table(self):
         self.login(username="admin")
