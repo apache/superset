@@ -16,14 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  SetStateAction,
-  Dispatch,
-} from 'react';
-import { SupersetClient, t, styled, FAST_DEBOUNCE } from '@superset-ui/core';
+import React, { useEffect, useState, SetStateAction, Dispatch } from 'react';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form } from 'src/components/Form';
 import Icons from 'src/components/Icons';
@@ -34,7 +28,6 @@ import Loading from 'src/components/Loading';
 import DatabaseSelector, {
   DatabaseObject,
 } from 'src/components/DatabaseSelector';
-import { debounce } from 'lodash';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DatasetActionType } from '../types';
@@ -208,17 +201,6 @@ export default function LeftPanel({
     }
   }, [resetTables]);
 
-  const search = useMemo(
-    () =>
-      debounce((value: string) => {
-        const endpoint = encodeURI(
-          `/superset/tables/${dbId}/${encodedSchema}/`,
-        );
-        getTablesList(endpoint);
-      }, FAST_DEBOUNCE),
-    [dbId, encodedSchema],
-  );
-
   const filteredOptions = tableOptions.filter(option =>
     option?.value?.toLowerCase().includes(searchVal.toLowerCase()),
   );
@@ -266,7 +248,6 @@ export default function LeftPanel({
                 value={searchVal}
                 prefix={<SearchIcon iconSize="l" />}
                 onChange={evt => {
-                  search(evt.target.value);
                   setSearchVal(evt.target.value);
                 }}
                 className="table-form"

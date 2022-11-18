@@ -20,7 +20,7 @@ import React from 'react';
 import { OPEN_FILTER_BAR_WIDTH } from 'src/dashboard/constants';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { ActionButtons } from './index';
+import ActionButtons from './index';
 
 const createProps = () => ({
   onApply: jest.fn(),

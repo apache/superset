@@ -40,7 +40,7 @@ export const RightColumn = styled(Column)`
   height: auto;
   display: flex;
   flex: 1 0 auto;
-  width: auto;
+  width: calc(100% - ${({ theme }) => theme.gridUnit * 80}px);
 `;
 
 const Row = styled.div`

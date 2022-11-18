@@ -52,7 +52,7 @@ export type Chart = ChartState & {
   };
 };
 
-export enum FilterBarLocation {
+export enum FilterBarOrientation {
   VERTICAL = 'VERTICAL',
   HORIZONTAL = 'HORIZONTAL',
 }
@@ -77,6 +77,17 @@ export type DashboardState = {
     chartId: number;
     column: string;
   };
+  overwriteConfirmMetadata?: {
+    updatedAt: string;
+    updatedBy: string;
+    overwriteConfirmItems: {
+      keyPath: string;
+      oldValue: string;
+      newValue: string;
+    }[];
+    dashboardId: number;
+    data: JsonObject;
+  };
 };
 export type DashboardInfo = {
   id: number;
@@ -97,7 +108,7 @@ export type DashboardInfo = {
     label_colors: JsonObject;
     shared_label_colors: JsonObject;
   };
-  filterBarLocation: FilterBarLocation;
+  filterBarOrientation: FilterBarOrientation;
 };
 
 export type ChartsState = { [key: string]: Chart };

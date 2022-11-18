@@ -24,7 +24,7 @@ import { Store } from 'redux';
 import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import RunQueryActionButton, {
-  Props,
+  RunQueryActionButtonProps,
 } from 'src/SqlLab/components/RunQueryActionButton';
 
 const middlewares = [thunk];
@@ -51,7 +51,7 @@ const defaultProps = {
   overlayCreateAsMenu: null,
 };
 
-const setup = (props?: Partial<Props>, store?: Store) =>
+const setup = (props?: Partial<RunQueryActionButtonProps>, store?: Store) =>
   render(<RunQueryActionButton {...defaultProps} {...props} />, {
     useRedux: true,
     ...(store && { store }),

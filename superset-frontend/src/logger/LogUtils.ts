@@ -45,6 +45,8 @@ export const LOG_ACTIONS_DATASET_CREATION_TABLE_CANCELLATION =
   'dataset_creation_table_cancellation';
 export const LOG_ACTIONS_DATASET_CREATION_SUCCESS = 'dataset_creation_success';
 export const LOG_ACTIONS_SPA_NAVIGATION = 'spa_navigation';
+export const LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA =
+  'confirm_overwrite_dashboard_metadata';
 
 // Log event types --------------------------------------------------------------
 export const LOG_EVENT_TYPE_TIMING = new Set([
@@ -64,6 +66,7 @@ export const LOG_EVENT_TYPE_USER = new Set([
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
   LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
   LOG_ACTIONS_MOUNT_EXPLORER,
+  LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA,
 ]);
 
 export const LOG_EVENT_DATASET_TYPE_DATASET_CREATION = [

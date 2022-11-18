@@ -21,47 +21,53 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import Option from 'src/explore/components/controls/DndColumnSelectControl/Option';
 
-test('renders with default props', () => {
+test('renders with default props', async () => {
   const { container } = render(
     <Option index={1} clickClose={jest.fn()}>
       Option
     </Option>,
   );
   expect(container).toBeInTheDocument();
-  expect(screen.getByRole('img', { name: 'x-small' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('img', { name: 'x-small' }),
+  ).toBeInTheDocument();
   expect(
     screen.queryByRole('img', { name: 'caret-right' }),
   ).not.toBeInTheDocument();
 });
 
-test('renders with caret', () => {
+test('renders with caret', async () => {
   render(
     <Option index={1} clickClose={jest.fn()} withCaret>
       Option
     </Option>,
   );
-  expect(screen.getByRole('img', { name: 'x-small' })).toBeInTheDocument();
-  expect(screen.getByRole('img', { name: 'caret-right' })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('img', { name: 'x-small' }),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByRole('img', { name: 'caret-right' }),
+  ).toBeInTheDocument();
 });
 
-test('renders with extra triangle', () => {
+test('renders with extra triangle', async () => {
   render(
     <Option index={1} clickClose={jest.fn()} isExtra>
       Option
     </Option>,
   );
   expect(
-    screen.getByRole('button', { name: 'Show info tooltip' }),
+    await screen.findByRole('button', { name: 'Show info tooltip' }),
   ).toBeInTheDocument();
 });
 
-test('triggers onClose', () => {
+test('triggers onClose', async () => {
   const clickClose = jest.fn();
   render(
     <Option index={1} clickClose={clickClose}>
       Option
     </Option>,
   );
-  userEvent.click(screen.getByRole('img', { name: 'x-small' }));
+  userEvent.click(await screen.findByRole('img', { name: 'x-small' }));
   expect(clickClose).toHaveBeenCalled();
 });

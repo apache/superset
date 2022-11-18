@@ -216,12 +216,8 @@ test('table multi select retain all the values selected', async () => {
 
   userEvent.click(tableSelect);
 
-  expect(
-    await screen.findByRole('option', { name: 'table_a' }),
-  ).toBeInTheDocument();
-
   act(() => {
-    const item = screen.getAllByText('table_a');
+    const item = screen.getAllByText('table_b');
     userEvent.click(item[item.length - 1]);
   });
 
@@ -230,17 +226,13 @@ test('table multi select retain all the values selected', async () => {
     userEvent.click(item[item.length - 1]);
   });
 
-  const selectedValueContainer = getSelectItemContainer(tableSelect);
+  expect(screen.getByRole('option', { name: 'table_b' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
 
-  expect(selectedValueContainer).toHaveLength(2);
-  expect(
-    await within(selectedValueContainer?.[0] as HTMLElement).findByText(
-      'table_a',
-    ),
-  ).toBeInTheDocument();
-  expect(
-    await within(selectedValueContainer?.[1] as HTMLElement).findByText(
-      'table_c',
-    ),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'table_c' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
 });

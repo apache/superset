@@ -39,7 +39,7 @@
     "@testing-library/react-hooks": "^5.0.3",
     "@testing-library/user-event": "^12.7.0",
     "ace-builds": "^1.4.14",
-    "antd": "^4.9.4",
+    "antd": "4.10.3",
     "brace": "^0.11.1",
     "memoize-one": "^5.1.1",
     "react": "^16.13.1",

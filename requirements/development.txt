@@ -78,7 +78,7 @@ pure-eval==0.2.2
     # via stack-data
 pure-sasl==0.6.2
     # via thrift-sasl
-pydruid==0.6.2
+pydruid==0.6.5
     # via apache-superset
 pygments==2.12.0
     # via ipython

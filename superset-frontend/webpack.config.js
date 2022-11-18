@@ -387,6 +387,9 @@ const config = {
               sourceMap: true,
               lessOptions: {
                 javascriptEnabled: true,
+                modifyVars: {
+                  'root-entry-name': 'default',
+                },
               },
             },
           },
@@ -447,7 +450,7 @@ const config = {
         type: 'asset/resource',
       },
       {
-        test: /\.(stories|story)\.mdx$/,
+        test: /\.mdx$/,
         use: [
           {
             loader: 'babel-loader',

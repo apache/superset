@@ -174,7 +174,9 @@ class TestPrestoValidator(SupersetTestCase):
     def setUp(self):
         self.validator = PrestoDBSQLValidator
         self.database = MagicMock()
-        self.database_engine = self.database.get_sqla_engine.return_value
+        self.database_engine = (
+            self.database.get_sqla_engine_with_context.return_value.__enter__.return_value
+        )
         self.database_conn = self.database_engine.raw_connection.return_value
         self.database_cursor = self.database_conn.cursor.return_value
         self.database_cursor.poll.return_value = None

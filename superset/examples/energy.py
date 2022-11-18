@@ -41,24 +41,25 @@ def load_energy(
     """Loads an energy related dataset to use with sankey and graphs"""
     tbl_name = "energy_usage"
     database = database_utils.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata and (not table_exists or force):
-        url = get_example_url("energy.json.gz")
-        pdf = pd.read_json(url, compression="gzip")
-        pdf = pdf.head(100) if sample else pdf
-        pdf.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=500,
-            dtype={"source": String(255), "target": String(255), "value": Float()},
-            index=False,
-            method="multi",
-        )
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table_by_name(tbl_name)
+
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("energy.json.gz")
+            pdf = pd.read_json(url, compression="gzip")
+            pdf = pdf.head(100) if sample else pdf
+            pdf.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=500,
+                dtype={"source": String(255), "target": String(255), "value": Float()},
+                index=False,
+                method="multi",
+            )
 
     print("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()

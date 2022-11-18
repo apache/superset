@@ -158,6 +158,10 @@ export function interceptDatasets() {
   cy.intercept('GET', `/api/v1/dashboard/*/datasets`).as('getDatasets');
 }
 
+export function interceptDashboardasync() {
+  cy.intercept('GET', `/dashboardasync/api/read*`).as('getDashboardasync');
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
@@ -346,8 +350,8 @@ export function cancelNativeFilterSettings() {
     .should('be.visible')
     .click();
   cy.get(nativeFilters.modal.alertXUnsavedFilters)
-    .should('have.text', 'There are unsaved changes.')
-    .should('be.visible');
+    .should('be.visible')
+    .should('have.text', 'There are unsaved changes.');
   cy.get(nativeFilters.modal.footer)
     .find(nativeFilters.modal.yesCancelButton)
     .contains('cancel')
@@ -455,13 +459,17 @@ export function inputNativeFilterDefaultValue(defaultValue: string) {
   cy.contains('Filter has default value').click();
   cy.contains('Default value is required').should('be.visible');
   cy.get(nativeFilters.modal.container).within(() => {
-    cy.get(nativeFilters.filterConfigurationSections.filterPlaceholder)
-      .contains('options')
-      .should('be.visible');
+    cy.get(
+      nativeFilters.filterConfigurationSections.filterPlaceholder,
+    ).contains('options');
     cy.get(nativeFilters.filterConfigurationSections.collapsedSectionContainer)
-      .first()
-      .get(nativeFilters.filtersPanel.columnEmptyInput)
-      .type(`${defaultValue}{enter}`);
+      .eq(1)
+      .within(() => {
+        cy.get('.ant-select-selection-search-input').type(
+          `${defaultValue}{enter}`,
+          { force: true },
+        );
+      });
   });
 }
 

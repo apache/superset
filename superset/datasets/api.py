@@ -142,6 +142,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
+        "select_star",
         "owners.id",
         "owners.username",
         "owners.first_name",
