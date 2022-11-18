@@ -71,10 +71,6 @@ class CreateDatabaseCommand(BaseCommand):
             database = DatabaseDAO.create(self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
 
-            # create ssh tunnel
-            # if self._properties.get("ssh_tunnel"):
-            #     ssh_tunnel = SSHTunnelDAO.create(self._properties["ssh_tunnel"], commit=False)
-
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False)
             for schema in schemas:
