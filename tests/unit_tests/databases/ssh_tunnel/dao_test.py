@@ -28,6 +28,7 @@ def test_create_ssh_tunnel():
     db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
 
     properties = {
+        "database_id": db.id,
         "server_address": "123.132.123.1",
         "server_port": "3005",
         "username": "foo",
