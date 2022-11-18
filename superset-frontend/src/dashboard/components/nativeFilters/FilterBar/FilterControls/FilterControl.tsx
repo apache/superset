@@ -33,14 +33,24 @@ const StyledIcon = styled.div`
   right: 0;
 `;
 
-const StyledFilterControlTitle = styled.h4`
+const VerticalFilterControlTitle = styled.h4`
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.dark1};
   margin: 0;
   overflow-wrap: break-word;
 `;
 
-const StyledFilterControlTitleBox = styled.div`
+const HorizontalFilterControlTitle = styled.h4`
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-weight: ${({ theme }) => theme.typography.weights.normal};
+  color: ${({ theme }) => theme.colors.grayscale.base};
+  margin: 0;
+  overflow-wrap: break-word;
+`;
+
+const HorizontalOverflowFilterControlTitle = VerticalFilterControlTitle;
+
+const VerticalFilterControlTitleBox = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -48,7 +58,16 @@ const StyledFilterControlTitleBox = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
-const StyledFilterControlContainer = styled(Form)`
+const HorizontalFilterControlTitleBox = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const HorizontalOverflowFilterControlTitleBox = VerticalFilterControlTitleBox;
+
+const VerticalFilterControlContainer = styled(Form)`
   width: 100%;
   && .ant-form-item-label > label {
     text-transform: none;
@@ -60,7 +79,21 @@ const StyledFilterControlContainer = styled(Form)`
   }
 `;
 
-const FormItem = styled(StyledFormItem)`
+const HorizontalFilterControlContainer = styled(Form)`
+  width: 220px;
+  && .ant-form-item-label > label {
+    margin-bottom: 0;
+    text-transform: none;
+    max-width: 60px;
+  }
+  .ant-form-item-tooltip {
+    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+const HorizontalOverflowFilterControlContainer = VerticalFilterControlContainer;
+
+const VerticalFormItem = styled(StyledFormItem)`
   .ant-form-item-label {
     label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
       &::after {
@@ -69,6 +102,58 @@ const FormItem = styled(StyledFormItem)`
     }
   }
 `;
+
+const HorizontalFormItem = styled(StyledFormItem)`
+  && {
+    margin-bottom: 0;
+    align-items: center;
+  }
+
+  .ant-form-item-label {
+    padding-bottom: 0;
+    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    label.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+      &::after {
+        display: none;
+      }
+    }
+
+    & > label::after {
+      display: none;
+    }
+  }
+`;
+
+const HorizontalOverflowFormItem = VerticalFormItem;
+
+const useFilterControlDisplay = (
+  orientation: FilterBarOrientation,
+  overflow: boolean,
+) =>
+  useMemo(() => {
+    if (orientation === FilterBarOrientation.HORIZONTAL) {
+      if (overflow) {
+        return {
+          FilterControlContainer: HorizontalOverflowFilterControlContainer,
+          FormItem: HorizontalOverflowFormItem,
+          FilterControlTitleBox: HorizontalOverflowFilterControlTitleBox,
+          FilterControlTitle: HorizontalOverflowFilterControlTitle,
+        };
+      }
+      return {
+        FilterControlContainer: HorizontalFilterControlContainer,
+        FormItem: HorizontalFormItem,
+        FilterControlTitleBox: HorizontalFilterControlTitleBox,
+        FilterControlTitle: HorizontalFilterControlTitle,
+      };
+    }
+    return {
+      FilterControlContainer: VerticalFilterControlContainer,
+      FormItem: VerticalFormItem,
+      FilterControlTitleBox: VerticalFilterControlTitleBox,
+      FilterControlTitle: VerticalFilterControlTitle,
+    };
+  }, [orientation, overflow]);
 
 const ToolTipContainer = styled.div`
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
@@ -133,20 +218,34 @@ const FilterControl = ({
   );
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
 
+  const {
+    FilterControlContainer,
+    FormItem,
+    FilterControlTitleBox,
+    FilterControlTitle,
+  } = useFilterControlDisplay(orientation, overflow);
+
   const label = useMemo(
     () => (
-      <StyledFilterControlTitleBox>
-        <StyledFilterControlTitle data-test="filter-control-name">
+      <FilterControlTitleBox>
+        <FilterControlTitle data-test="filter-control-name">
           {name}
-        </StyledFilterControlTitle>
+        </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
         <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
-      </StyledFilterControlTitleBox>
+      </FilterControlTitleBox>
     ),
-    [name, isRequired, filter.description, icon],
+    [
+      FilterControlTitleBox,
+      FilterControlTitle,
+      name,
+      isRequired,
+      filter.description,
+      icon,
+    ],
   );
 
   const isScrolling = useContext(FilterBarScrollContext);
@@ -161,7 +260,13 @@ const FilterControl = ({
   }, [orientation, overflow]);
 
   return (
-    <StyledFilterControlContainer layout="vertical">
+    <FilterControlContainer
+      layout={
+        orientation === FilterBarOrientation.HORIZONTAL && !overflow
+          ? 'horizontal'
+          : 'vertical'
+      }
+    >
       <FilterCard
         filter={filter}
         isVisible={!isFilterActive && !isScrolling}
@@ -188,7 +293,7 @@ const FilterControl = ({
           </FormItem>
         </div>
       </FilterCard>
-    </StyledFilterControlContainer>
+    </FilterControlContainer>
   );
 };
 

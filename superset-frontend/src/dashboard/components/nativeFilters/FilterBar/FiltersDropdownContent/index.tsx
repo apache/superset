@@ -18,7 +18,7 @@
  */
 
 import React, { ReactNode } from 'react';
-import { Divider, Filter } from '@superset-ui/core';
+import { css, Divider, Filter, SupersetTheme } from '@superset-ui/core';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 
 export interface FiltersDropdownContentProps {
@@ -34,7 +34,13 @@ export const FiltersDropdownContent = ({
   renderer,
   showCollapsePanel,
 }: FiltersDropdownContentProps) => (
-  <div>
+  <div
+    css={(theme: SupersetTheme) =>
+      css`
+        width: ${theme.gridUnit * 56}px;
+      `
+    }
+  >
     {filtersInScope.map(renderer)}
     {showCollapsePanel && (
       <FiltersOutOfScopeCollapsible
