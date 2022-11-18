@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Dataset } from '@superset-ui/chart-controls';
 import { DatasourceType } from '@superset-ui/core';
+import { Dataset } from './types';
 
 export const TestDataset: Dataset = {
   column_format: {},

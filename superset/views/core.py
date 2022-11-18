@@ -277,8 +277,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/request_access/")
+    @expose("/request_access/", methods=["POST"])
     def request_access(self) -> FlaskResponse:
+        logger.warning(
+            "%s.approve "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
+
         datasources = set()
         dashboard_id = request.args.get("dashboard_id")
         if dashboard_id:
@@ -320,7 +326,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/approve")
+    @expose("/approve", methods=["POST"])
     def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
@@ -331,6 +337,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     # Dataset does not exist anymore
                     session.delete(dar)
             session.commit()
+
+        logger.warning(
+            "%s.approve "
+            "This API endpoint is deprecated and will be removed in version 3.0.0",
+            self.__class__.__name__,
+        )
 
         datasource_type = request.args["datasource_type"]
         datasource_id = request.args["datasource_id"]

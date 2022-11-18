@@ -306,7 +306,7 @@ export default function DatabaseSelector({
   }
 
   function renderSchemaSelect() {
-    const refreshIcon = !formMode && !readOnly && (
+    const refreshIcon = !readOnly && (
       <RefreshLabel
         onClick={() => setRefresh(refresh + 1)}
         tooltipContent={t('Force refresh schema list')}

@@ -17,7 +17,9 @@
  * under the License.
  */
 import {
+  ensureIsArray,
   hasGenericChartAxes,
+  NO_TIME_RANGE,
   QueryFormData,
   t,
   validateNonEmpty,
@@ -61,5 +63,59 @@ export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
       default: payload.defaultTemporalColumn,
       isTemporal: true,
     };
+  },
+};
+
+export const datePickerInAdhocFilterMixin: Pick<
+  BaseControlConfig,
+  'initialValue'
+> = {
+  initialValue: (control: ControlState, state: ControlPanelState | null) => {
+    // skip initialValue if
+    // 1) GENERIC_CHART_AXES is disabled
+    // 2) there was a time filter in adhoc filters
+    if (
+      !hasGenericChartAxes ||
+      ensureIsArray(control.value).findIndex(
+        (flt: any) => flt?.operator === 'TEMPORAL_RANGE',
+      ) > -1
+    ) {
+      return undefined;
+    }
+
+    // should migrate original granularity_sqla and time_range into adhoc filter
+    // 1) granularity_sqla and time_range are existed
+    if (state?.form_data?.granularity_sqla && state?.form_data?.time_range) {
+      return [
+        ...ensureIsArray(control.value),
+        {
+          clause: 'WHERE',
+          subject: state.form_data.granularity_sqla,
+          operator: 'TEMPORAL_RANGE',
+          comparator: state.form_data.time_range,
+          expressionType: 'SIMPLE',
+        },
+      ];
+    }
+
+    // should apply the default time filter into adhoc filter
+    // 1) temporal column is existed in current datasource
+    const temporalColumn =
+      state?.datasource &&
+      getTemporalColumns(state.datasource).defaultTemporalColumn;
+    if (hasGenericChartAxes && temporalColumn) {
+      return [
+        ...ensureIsArray(control.value),
+        {
+          clause: 'WHERE',
+          subject: temporalColumn,
+          operator: 'TEMPORAL_RANGE',
+          comparator: state?.common?.conf?.DEFAULT_TIME_FILTER || NO_TIME_RANGE,
+          expressionType: 'SIMPLE',
+        },
+      ];
+    }
+
+    return undefined;
   },
 };

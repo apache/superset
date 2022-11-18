@@ -21,7 +21,6 @@ import React from 'react';
 import { Dispatch } from 'redux';
 import { SelectValue } from 'antd/lib/select';
 import { connect } from 'react-redux';
-import ReactMarkdown from 'react-markdown';
 import { withRouter, RouteComponentProps } from 'react-router-dom';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import {
@@ -45,7 +44,6 @@ import { SaveActionType } from 'src/explore/types';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
-const SELECT_PLACEHOLDER = t('**Select** a dashboard OR **create** a new one');
 
 interface SaveModalProps extends RouteComponentProps {
   addDangerToast: (msg: string) => void;
@@ -351,11 +349,12 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
             onChange={this.onDashboardSelectChange}
             value={dashboardSelectValue || undefined}
             placeholder={
-              // Using markdown to allow for good i18n
-              <ReactMarkdown
-                source={SELECT_PLACEHOLDER}
-                renderers={{ paragraph: 'span' }}
-              />
+              <div>
+                <b>{t('Select')}</b>
+                {t(' a dashboard OR ')}
+                <b>{t('create')}</b>
+                {t(' a new one')}
+              </div>
             }
           />
         </FormItem>

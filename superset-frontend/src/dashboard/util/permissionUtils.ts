@@ -21,7 +21,7 @@ import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
-import Dashboard from 'src/types/Dashboard';
+import { Dashboard } from 'src/types/Dashboard';
 import { findPermission } from 'src/utils/findPermission';
 
 // this should really be a config value,
