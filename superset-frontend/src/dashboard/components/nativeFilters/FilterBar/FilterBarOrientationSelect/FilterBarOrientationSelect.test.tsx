@@ -22,9 +22,9 @@ import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
-import { DashboardInfo, FilterBarLocation } from 'src/dashboard/types';
+import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
-import { FilterBarLocationSelect } from './index';
+import FilterBarOrientationSelect from '.';
 
 const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {
@@ -42,7 +42,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
     },
     json_metadata: '',
     dash_edit_perm: true,
-    filterBarLocation: FilterBarLocation.VERTICAL,
+    filterBarOrientation: FilterBarOrientation.VERTICAL,
     common: {
       conf: {},
       flash_messages: [],
@@ -51,7 +51,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
 };
 
 const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
-  render(<FilterBarLocationSelect />, {
+  render(<FilterBarOrientationSelect />, {
     useRedux: true,
     initialState: {
       ...initialState,
@@ -78,7 +78,7 @@ test('Popover opens with "Vertical" selected', async () => {
 });
 
 test('Popover opens with "Horizontal" selected', async () => {
-  setup({ filterBarLocation: FilterBarLocation.HORIZONTAL });
+  setup({ filterBarOrientation: FilterBarOrientation.HORIZONTAL });
   userEvent.click(screen.getByLabelText('gear'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
@@ -93,7 +93,7 @@ test('On selection change, send request and update checked value', async () => {
     result: {
       json_metadata: JSON.stringify({
         ...initialState.dashboardInfo.metadata,
-        filter_bar_location: 'HORIZONTAL',
+        filter_bar_orientation: 'HORIZONTAL',
       }),
     },
   });
@@ -124,7 +124,7 @@ test('On selection change, send request and update checked value', async () => {
       JSON.stringify({
         json_metadata: JSON.stringify({
           ...initialState.dashboardInfo.metadata,
-          filter_bar_location: 'HORIZONTAL',
+          filter_bar_orientation: 'HORIZONTAL',
         }),
       }),
     ),

@@ -71,60 +71,64 @@ export const mockStoreWithChartsInTabsAndRoot =
 export const sliceIdWithAppliedFilter = sliceId + 1;
 export const sliceIdWithRejectedFilter = sliceId + 2;
 
+export const stateWithFilters = {
+  ...mockState,
+  dashboardFilters,
+  dataMask: dataMaskWith2Filters,
+  charts: {
+    ...mockState.charts,
+    [sliceIdWithAppliedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [{ column: 'region' }],
+        rejected_filters: [],
+      },
+    },
+    [sliceIdWithRejectedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [],
+        rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
+      },
+    },
+  },
+};
+
 // has one chart with a filter that has been applied,
 // one chart with a filter that has been rejected,
 // and one chart with no filters set.
 export const getMockStoreWithFilters = () =>
-  createStore(rootReducer, {
-    ...mockState,
-    dashboardFilters,
-    dataMask: dataMaskWith2Filters,
-    charts: {
-      ...mockState.charts,
-      [sliceIdWithAppliedFilter]: {
-        ...mockState.charts[sliceId],
-        queryResponse: {
-          status: 'success',
-          applied_filters: [{ column: 'region' }],
-          rejected_filters: [],
-        },
-      },
-      [sliceIdWithRejectedFilter]: {
-        ...mockState.charts[sliceId],
-        queryResponse: {
-          status: 'success',
-          applied_filters: [],
-          rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
-        },
+  createStore(rootReducer, stateWithFilters);
+
+export const stateWithNativeFilters = {
+  ...mockState,
+  nativeFilters,
+  dataMask: dataMaskWith2Filters,
+  charts: {
+    ...mockState.charts,
+    [sliceIdWithAppliedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [{ column: 'region' }],
+        rejected_filters: [],
       },
     },
-  });
+    [sliceIdWithRejectedFilter]: {
+      ...mockState.charts[sliceId],
+      queryResponse: {
+        status: 'success',
+        applied_filters: [],
+        rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
+      },
+    },
+  },
+};
 
 export const getMockStoreWithNativeFilters = () =>
-  createStore(rootReducer, {
-    ...mockState,
-    nativeFilters,
-    dataMask: dataMaskWith2Filters,
-    charts: {
-      ...mockState.charts,
-      [sliceIdWithAppliedFilter]: {
-        ...mockState.charts[sliceId],
-        queryResponse: {
-          status: 'success',
-          applied_filters: [{ column: 'region' }],
-          rejected_filters: [],
-        },
-      },
-      [sliceIdWithRejectedFilter]: {
-        ...mockState.charts[sliceId],
-        queryResponse: {
-          status: 'success',
-          applied_filters: [],
-          rejected_filters: [{ column: 'region', reason: 'not_in_datasource' }],
-        },
-      },
-    },
-  });
+  createStore(rootReducer, stateWithNativeFilters);
 
 export const stateWithoutNativeFilters = {
   ...mockState,
