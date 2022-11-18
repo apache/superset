@@ -1034,7 +1034,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         inspector: Inspector,
         schema: Optional[str],
-    ) -> List[str]:
+    ) -> Set[str]:
         """
         Get all the real table names within the specified schema.
 
@@ -1048,13 +1048,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         try:
-            tables = inspector.get_table_names(schema)
+            tables = set(inspector.get_table_names(schema))
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            tables = [re.sub(f"^{schema}\\.", "", table) for table in tables]
-        return sorted(tables)
+            tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
+        return tables
 
     @classmethod
     def get_view_names(  # pylint: disable=unused-argument
@@ -1062,7 +1062,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         inspector: Inspector,
         schema: Optional[str],
-    ) -> List[str]:
+    ) -> Set[str]:
         """
         Get all the view names within the specified schema.
 
@@ -1076,13 +1076,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
 
         try:
-            views = inspector.get_view_names(schema)
+            views = set(inspector.get_view_names(schema))
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            views = [re.sub(f"^{schema}\\.", "", view) for view in views]
-        return sorted(views)
+            views = {re.sub(f"^{schema}\\.", "", view) for view in views}
+        return views
 
     @classmethod
     def get_table_comment(
