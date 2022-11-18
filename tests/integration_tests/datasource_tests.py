@@ -24,19 +24,15 @@ import pytest
 
 from superset import app, db
 from superset.common.utils.query_cache_manager import QueryCacheManager
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.constants import CacheRegion
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.models.core import Database
-from superset.utils.core import backend, get_example_default_schema
-from superset.utils.database import get_example_database, get_main_database
+from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import db_insert_temp_object, SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
-)
 from tests.integration_tests.fixtures.datasource import get_datasource_post
 
 
@@ -232,7 +228,7 @@ class TestDatasource(SupersetTestCase):
         with db_insert_temp_object(table):
             url = f"/datasource/external_metadata/table/{table.id}/"
             resp = self.get_json_resp(url)
-            self.assertEqual(resp["error"], "Only `SELECT` statements are allowed")
+            self.assertEqual(resp["error"], "Only `SELECT` and `WITH` statements are allowed")
 
     def test_external_metadata_for_mutistatement_virtual_table(self):
         self.login(username="admin")
