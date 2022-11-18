@@ -543,7 +543,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
-    ) -> List[Tuple[str, str]]:
+    ) -> Set[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -553,13 +553,17 @@ class Database(
         :param cache: whether cache is enabled for the function
         :param cache_timeout: timeout in seconds for the cache
         :param force: whether to force refresh the cache
-        :return: list of tables
+        :return: The table/schema pairs
         """
         try:
-            tables = self.db_engine_spec.get_table_names(
-                database=self, inspector=self.inspector, schema=schema
-            )
-            return [(table, schema) for table in tables]
+            return {
+                (table, schema)
+                for table in self.db_engine_spec.get_table_names(
+                    database=self,
+                    inspector=self.inspector,
+                    schema=schema,
+                )
+            }
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
@@ -573,7 +577,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
-    ) -> List[Tuple[str, str]]:
+    ) -> Set[Tuple[str, str]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -583,13 +587,17 @@ class Database(
         :param cache: whether cache is enabled for the function
         :param cache_timeout: timeout in seconds for the cache
         :param force: whether to force refresh the cache
-        :return: list of views
+        :return: set of views
         """
         try:
-            views = self.db_engine_spec.get_view_names(
-                database=self, inspector=self.inspector, schema=schema
-            )
-            return [(view, schema) for view in views]
+            return {
+                (view, schema)
+                for view in self.db_engine_spec.get_view_names(
+                    database=self,
+                    inspector=self.inspector,
+                    schema=schema,
+                )
+            }
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
