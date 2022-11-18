@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { isSectionVisible, VisibilityRuleType } from '../../src';
 import { GenericDataType } from '@superset-ui/core';
+import { isSectionVisible, VisibilityRuleType } from '../../src';
 
 const nonTemporal = {
   datasource: {

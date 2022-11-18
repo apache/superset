@@ -30,9 +30,9 @@ export function isSectionVisible(rule: VisibilityRuleType, exploreState: any) {
         const { datasource, form_data } = exploreState;
 
         if (form_data?.x_axis) {
+          const xAxis = ensureIsArray(form_data?.x_axis)[0];
           const column = ensureIsArray(datasource.columns).find(
-            (col: { column_name: string }) =>
-              col?.column_name === form_data.x_axis,
+            (col: { column_name: string }) => col?.column_name === xAxis,
           );
           if (column?.type_generic !== GenericDataType.TEMPORAL) {
             return false;
