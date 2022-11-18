@@ -22,8 +22,7 @@ from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.databases.commands.exceptions import SSHTunnelCreateFailedError
-from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
+from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelCreateFailedError
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 
 logger = logging.getLogger(__name__)
