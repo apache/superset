@@ -196,6 +196,23 @@ describe('Drill to detail modal', () => {
           .then($rows => {
             expect($rows).to.contain('Victoria');
           });
+
+        // verify scroll top on pagination
+        cy.getBySelLike('Number-modal')
+          .find('.table-condensed')
+          .scrollTo(0, 100);
+
+        cy.get("[role='rowgroup'] [role='row']")
+          .contains('Miguel')
+          .should('not.be.visible');
+
+        cy.get(".pagination-container [role='navigation'] [role='button']")
+          .eq(1)
+          .click();
+
+        cy.get("[role='rowgroup'] [role='row']")
+          .contains('Aaron')
+          .should('be.visible');
       });
     });
 

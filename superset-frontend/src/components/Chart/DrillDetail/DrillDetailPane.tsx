@@ -243,6 +243,7 @@ export default function DrillDetailPane({
             margin-bottom: 0;
           }
         `}
+        scrollTopOnPagination
       />
     );
   }
