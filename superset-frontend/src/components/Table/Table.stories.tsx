@@ -347,6 +347,31 @@ const generateData = (startIndex: number, pageSize: number): BasicData[] => {
   return data;
 };
 
+const paginationColumns: ColumnsType<BasicData> = [
+  {
+    title: 'Name',
+    dataIndex: 'name',
+    key: 'name',
+    width: 100,
+  },
+  {
+    title: 'Category',
+    dataIndex: 'category',
+    key: 'category',
+  },
+  {
+    title: 'Price',
+    dataIndex: 'price',
+    key: 'price',
+    width: 100,
+  },
+  {
+    title: 'Description',
+    dataIndex: 'description',
+    key: 'description',
+  },
+];
+
 export const ServerPagination: ComponentStory<typeof Table> = args => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
@@ -374,11 +399,10 @@ export const ServerPagination: ComponentStory<typeof Table> = args => {
 };
 
 ServerPagination.args = {
-  columns: basicColumns,
+  columns: paginationColumns,
   size: TableSize.SMALL,
-  pageSizeOptions: ['5', '10', '15', '20', '25'],
+  pageSizeOptions: ['5', '20', '50'],
   defaultPageSize: 5,
-  virtualize: false,
 };
 
 export const VirtualizedPerformance: ComponentStory<typeof Table> = args => (

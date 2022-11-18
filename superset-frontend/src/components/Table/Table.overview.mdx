@@ -193,12 +193,37 @@ NOTE: Pagination controls will only display when the data for the table has more
 
 ### Server Pagination
 
-The table displays allows for using async data fetching to get partial data sets while showng pagination controls that let the user navigate through data
-and invoke the `onChange` callback function enableing data fetching to occur when the user changes page.
+The table be configured for async data fetching to get partial data sets while showng pagination controls that let the user navigate through data.
+To override the default pagin, which uses data.length to determine the record count, populate the `recordCount` prop with the total number for records
+contained in the dataset on the server that is being paged through. When the User navigates through the paged data it will invoke the `onChange` callback
+function enableing data fetching to occur when the user changes page.
 
 <Story id="design-system-components-table-examples--server-pagination" />
 
 ```
+interface BasicData {
+  name: string;
+  category: string;
+  price: number;
+  description?: string;
+  key: number;
+}
+
+const generateData = (startIndex: number, pageSize: number): BasicData[] => {
+  const data: BasicData[] = [];
+  for (let i = 0; i < pageSize; i += 1) {
+    const recordIndex = startIndex + i;
+    data.push({
+      key: recordIndex,
+      name: `Dynamic Record ${recordIndex}`,
+      category: 'Disk Storage',
+      price: recordIndex * 2.59,
+      description: 'A random description',
+    });
+  }
+  return data;
+};
+
 const ServerPaginationTable = () => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
@@ -218,10 +243,10 @@ const ServerPaginationTable = () => {
 
   return (
     <Table
-      columns: basicColumns,
+      columns: paginationColumns,
       size: TableSize.SMALL,
-      pageSizeOptions: ['5', '10', '15', '20', '25'],
-      defaultPageSize: 5,
+      pageSizeOptions: ['10', '20', '50'],
+      defaultPageSize: 10,
       data={data}
       recordCount={5000}
       onChange={handleChange}
@@ -236,8 +261,7 @@ const ServerPaginationTable = () => {
 ### Virtualization for Performance
 
 Table virtualization can enable viewing data with many columns and/or rows.
-Virtualization can be enabled via the `virtualize` prop. Pagination is shown in this example but can be turned off by setting `pagination={false}`
-if desired as the virtualization can handle scrolling through large numbers of rows.
+Virtualization can be enabled via the `virtualize` prop.
 
 NOTE: Custom cell renderers and event handlers will be ignored when table is running with `virtualize={true}`.
 Support for custom cell renderers and event handlers may be added in future versions of the Table.
