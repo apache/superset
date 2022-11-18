@@ -25,30 +25,37 @@ import React, {
   useState,
   useCallback,
 } from 'react';
-import { ensureIsArray, t } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import {
+  ensureIsArray,
+  formatNumber,
+  NumberFormats,
+  styled,
+  t,
+} from '@superset-ui/core';
+import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { isEqual } from 'lodash';
 import {
   getValue,
   hasOption,
   isLabeledValue,
   renderSelectOptions,
-  hasCustomLabels,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   handleFilterOptionHelper,
   dropDownRenderHelper,
   getSuffixIcon,
-  labeledSelectAllOption,
   SELECT_ALL_VALUE,
+  selectAllOption,
 } from './utils';
 import { SelectOptionsType, SelectProps } from './types';
 import {
+  NoElement,
   StyledCheckOutlined,
   StyledContainer,
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
+  StyledTag,
 } from './styles';
 import {
   EMPTY_OPTIONS,
@@ -94,7 +101,6 @@ const Select = forwardRef(
       options,
       placeholder = t('Select ...'),
       showSearch = true,
-      selectAllEnabled = false,
       onSelectAll,
       sortComparator = DEFAULT_SORT_COMPARATOR,
       tokenSeparators,
@@ -105,8 +111,8 @@ const Select = forwardRef(
     ref: RefObject<HTMLInputElement>,
   ) => {
     const isSingleMode = mode === 'single';
-    const isSelectAllMode = selectAllEnabled && !isSingleMode;
     const shouldShowSearch = allowNewOptions ? true : showSearch;
+    const [selectAllMode, setSelectAllMode] = useState(false);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
@@ -116,6 +122,8 @@ const Select = forwardRef(
       : allowNewOptions
       ? 'tags'
       : 'multiple';
+
+    const { Option } = AntdSelect;
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
@@ -154,19 +162,17 @@ const Select = forwardRef(
         .map(opt =>
           isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
         );
-      const fullOptions =
+      const result =
         missingValues.length > 0
           ? missingValues.concat(selectOptions)
           : selectOptions;
+      return result.filter(opt => opt.value !== SELECT_ALL_VALUE);
+    }, [selectOptions, selectValue]);
 
-      const fullOptionsWithSelectAll =
-        isSelectAllMode && !hasOption(getValue(SELECT_ALL_VALUE), missingValues)
-          ? isLabeledValue(fullOptions[0])
-            ? [labeledSelectAllOption, ...fullOptions]
-            : [labeledSelectAllOption.value, ...fullOptions]
-          : fullOptions;
-      return fullOptionsWithSelectAll;
-    }, [selectOptions, selectValue, isSelectAllMode]);
+    const selectAllEnabled = useMemo(
+      () => !isSingleMode && fullSelectOptions.length > 0 && !inputValue,
+      [fullSelectOptions, isSingleMode, inputValue],
+    );
 
     const handleOnSelect = (
       selectedItem: string | number | AntdLabeledValue | undefined,
@@ -179,27 +185,19 @@ const Select = forwardRef(
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
           if (value === getValue(SELECT_ALL_VALUE)) {
-            if (onSelectAll) {
-              onSelectAll();
-            }
-            const result = isLabeledValue(selectedItem)
-              ? ([
-                  labeledSelectAllOption,
-                  ...selectOptions,
-                ] as AntdLabeledValue[])
-              : ([SELECT_ALL_VALUE, ...selectOptions] as (string | number)[]);
-            return result;
+            setSelectAllMode(true);
+            return [selectAllOption, ...selectOptions] as AntdLabeledValue[];
           }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
-            return result.length === fullSelectOptions.length - 1 &&
-              isSelectAllMode
-              ? isLabeledValue(selectedItem)
-                ? ([labeledSelectAllOption, ...result] as AntdLabeledValue[])
-                : ([SELECT_ALL_VALUE, ...result] as (string | number)[])
-              : isLabeledValue(selectedItem)
-              ? (result as AntdLabeledValue[])
-              : (result as (string | number)[]);
+            if (
+              result.length === fullSelectOptions.length &&
+              selectAllEnabled
+            ) {
+              setSelectAllMode(true);
+              return [selectAllOption, ...result] as AntdLabeledValue[];
+            }
+            return result as AntdLabeledValue[];
           }
           return previousState;
         });
@@ -211,20 +209,18 @@ const Select = forwardRef(
       value: string | number | AntdLabeledValue | undefined,
     ) => {
       if (Array.isArray(selectValue)) {
+        setSelectAllMode(false);
         if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
           setSelectValue([]);
-        } else if (isLabeledValue(value)) {
+        } else {
           const array = selectValue as AntdLabeledValue[];
           setSelectValue(
             array.filter(
               element =>
-                element.value !== value.value &&
-                element.value !== getValue(SELECT_ALL_VALUE),
+                element.value !== getValue(value) &&
+                element.value !== SELECT_ALL_VALUE,
             ),
           );
-        } else {
-          const array = selectValue as (string | number)[];
-          setSelectValue(array.filter(element => element !== value));
         }
       }
       setInputValue('');
@@ -239,7 +235,7 @@ const Select = forwardRef(
             value: searchValue,
             isNewOption: true,
           };
-        const cleanSelectOptions = fullSelectOptions.filter(
+        const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
           opt => !opt.isNewOption || hasOption(opt.value, selectValue),
         );
         const newOptions = newOption
@@ -301,6 +297,29 @@ const Select = forwardRef(
       setSelectValue(value);
     }, [value]);
 
+    const selectAllLabel = useMemo(
+      () => () =>
+        `${SELECT_ALL_VALUE} (${formatNumber(
+          NumberFormats.INTEGER,
+          fullSelectOptions.length,
+        )})`,
+      [fullSelectOptions],
+    );
+
+    const SelectAllModeTagRenderer = (props: any) => {
+      const { value } = props;
+      // skip plus elements placeholder
+      if (!value) {
+        return <NoElement />; // doesn't accept null
+      }
+      return (
+        <StyledTag {...props}>{`${formatNumber(
+          NumberFormats.INTEGER,
+          ensureIsArray(selectValue).length - 1,
+        )} ${t('selected')}`}</StyledTag>
+      );
+    };
+
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -317,7 +336,7 @@ const Select = forwardRef(
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
-          maxTagCount={MAX_TAG_COUNT}
+          maxTagCount={selectAllMode ? 1 : MAX_TAG_COUNT}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onDeselect={handleOnDeselect}
@@ -327,10 +346,11 @@ const Select = forwardRef(
           onSelect={handleOnSelect}
           onClear={handleClear}
           onChange={onChange}
-          options={hasCustomLabels(options) ? undefined : fullSelectOptions}
+          options={undefined}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           showArrow
+          tagRender={selectAllMode ? SelectAllModeTagRenderer : undefined}
           tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
           value={selectValue}
           suffixIcon={getSuffixIcon(
@@ -348,7 +368,16 @@ const Select = forwardRef(
           {...props}
           ref={ref}
         >
-          {hasCustomLabels(options) && renderSelectOptions(fullSelectOptions)}
+          {selectAllEnabled && (
+            <Option
+              id="select-all"
+              key={SELECT_ALL_VALUE}
+              value={SELECT_ALL_VALUE}
+            >
+              {selectAllLabel()}
+            </Option>
+          )}
+          {renderSelectOptions(fullSelectOptions)}
         </StyledSelect>
       </StyledContainer>
     );

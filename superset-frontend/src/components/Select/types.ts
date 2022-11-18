@@ -150,16 +150,8 @@ export interface SelectProps extends BaseSelectProps {
   /**
    * It defines the options of the Select.
    * The options can be static, an array of options.
-   * The options can also be async, a promise that returns
-   * an array of options.
    */
   options: SelectOptionsType;
-  /**
-   * It defines whether select all is an option.
-   * When selected all options are added to the selected
-   * values. Only available in sync select currently.
-   */
-  selectAllEnabled: boolean;
   /**
    * Called when select all option is selected
    */

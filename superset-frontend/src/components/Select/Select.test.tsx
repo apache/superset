@@ -65,6 +65,11 @@ const defaultProps = {
   showSearch: true,
 };
 
+const selectAllTagLabel = (numOptions: number) => `${numOptions} selected`;
+
+const selectAllOptionLabel = (numOptions: number) =>
+  `${String(SELECT_ALL_VALUE)} (${numOptions})`;
+
 const getElementByClassName = (className: string) =>
   document.querySelector(className)! as HTMLElement;
 
@@ -90,7 +95,10 @@ const findSelectValue = () =>
   waitFor(() => getElementByClassName('.ant-select-selection-item'));
 
 const findAllSelectValues = () =>
-  waitFor(() => getElementsByClassName('.ant-select-selection-item'));
+  waitFor(() => [
+    ...getElementsByClassName('.ant-select-selection-item'),
+    ...getElementsByClassName('.ant-tag'),
+  ]);
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
@@ -210,26 +218,37 @@ test('should sort selected to the top when in multi mode', async () => {
   let labels = originalLabels.slice();
 
   await open();
-  userEvent.click(await findSelectOption(labels[1]));
-  expect(await matchOrder(labels)).toBe(true);
+  userEvent.click(await findSelectOption(labels[2]));
+  expect(
+    await matchOrder([selectAllOptionLabel(originalLabels.length), ...labels]),
+  ).toBe(true);
 
   await type('{esc}');
   await open();
-  labels = labels.splice(1, 1).concat(labels);
-  expect(await matchOrder(labels)).toBe(true);
+  labels = labels.splice(2, 1).concat(labels);
+  expect(
+    await matchOrder([selectAllOptionLabel(originalLabels.length), ...labels]),
+  ).toBe(true);
 
   await open();
   userEvent.click(await findSelectOption(labels[5]));
   await type('{esc}');
   await open();
   labels = [labels.splice(0, 1)[0], labels.splice(4, 1)[0]].concat(labels);
-  expect(await matchOrder(labels)).toBe(true);
+  expect(
+    await matchOrder([selectAllOptionLabel(originalLabels.length), ...labels]),
+  ).toBe(true);
 
   // should revert to original order
   clearAll();
   await type('{esc}');
   await open();
-  expect(await matchOrder(originalLabels)).toBe(true);
+  expect(
+    await matchOrder([
+      selectAllOptionLabel(originalLabels.length),
+      ...originalLabels,
+    ]),
+  ).toBe(true);
 });
 
 test('searches for label or value', async () => {
@@ -441,7 +460,7 @@ test('changes the selected item in single mode', async () => {
       label: firstOption.label,
       value: firstOption.value,
     }),
-    firstOption,
+    expect.objectContaining(firstOption),
   );
   userEvent.click(await findSelectOption(secondOption.label));
   expect(onChange).toHaveBeenCalledWith(
@@ -449,7 +468,7 @@ test('changes the selected item in single mode', async () => {
       label: secondOption.label,
       value: secondOption.value,
     }),
-    secondOption,
+    expect.objectContaining(secondOption),
   );
   expect(await findSelectValue()).toHaveTextContent(secondOption.label);
 });
@@ -567,11 +586,111 @@ test('finds an element with a numeric value and does not duplicate the options',
   expect(await querySelectOption('11')).not.toBeInTheDocument();
 });
 
-test('select all appears in options when multi select is true and selectAllEnabled is true', async () => {
-  render(<Select {...defaultProps} mode="multiple" selectAllEnabled />);
+test('render "Select all" for multi select', async () => {
+  render(<Select {...defaultProps} mode="multiple" options={OPTIONS} />);
   await open();
   const options = await findAllSelectOptions();
-  expect(options[0]).toHaveTextContent(SELECT_ALL_VALUE);
+  expect(options[0]).toHaveTextContent(selectAllOptionLabel(OPTIONS.length));
+});
+
+test('does not render "Select all" for single select', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="single" />);
+  await open();
+  expect(
+    screen.queryByText(selectAllOptionLabel(OPTIONS.length)),
+  ).not.toBeInTheDocument();
+});
+
+test('does not render "Select all" for an empty multiple select', async () => {
+  render(<Select {...defaultProps} options={[]} mode="multiple" />);
+  await open();
+  expect(
+    screen.queryByText(selectAllOptionLabel(OPTIONS.length)),
+  ).not.toBeInTheDocument();
+});
+
+test('does not render "Select all" when searching', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  await type('Select');
+  expect(
+    screen.queryByText(selectAllOptionLabel(OPTIONS.length)),
+  ).not.toBeInTheDocument();
+});
+
+test('does not render "Select all" as one of the tags after selection', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
+  const values = await findAllSelectValues();
+  expect(values[0]).not.toHaveTextContent(selectAllOptionLabel(OPTIONS.length));
+});
+
+test('keeps "Select all" at the top after a selection', async () => {
+  const selected = OPTIONS[2];
+  render(
+    <Select
+      {...defaultProps}
+      options={OPTIONS.slice(0, 10)}
+      mode="multiple"
+      value={[selected]}
+    />,
+  );
+  await open();
+  const options = await findAllSelectOptions();
+  expect(options[0]).toHaveTextContent(selectAllOptionLabel(10));
+  expect(options[1]).toHaveTextContent(selected.label);
+});
+
+test('selects all values', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(selectAllTagLabel(OPTIONS.length));
+});
+
+test('unselects all values', async () => {
+  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  await open();
+  userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
+  let values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(selectAllTagLabel(OPTIONS.length));
+  // const options = await findAllSelectOptions();
+  userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
+  values = await findAllSelectValues();
+  expect(values.length).toBe(0);
+});
+
+test('deselecting a value also deselects "Select all"', async () => {
+  render(
+    <Select {...defaultProps} options={OPTIONS.slice(0, 10)} mode="multiple" />,
+  );
+  await open();
+  userEvent.click(await findSelectOption(selectAllOptionLabel(10)));
+  let values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(selectAllTagLabel(10));
+  userEvent.click(await findSelectOption(OPTIONS[0].label));
+  values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(OPTIONS[1].label);
+});
+
+test('selecting all values also selects "Select all"', async () => {
+  render(
+    <Select {...defaultProps} options={OPTIONS.slice(0, 10)} mode="multiple" />,
+  );
+  await open();
+  const options = await findAllSelectOptions();
+  options.forEach((option, index) => {
+    // skip select all
+    if (index > 0) {
+      userEvent.click(option);
+    }
+  });
+  const values = await findAllSelectValues();
+  expect(values[0]).toHaveTextContent(selectAllTagLabel(10));
 });
 
 /*
