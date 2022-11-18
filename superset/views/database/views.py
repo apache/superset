@@ -164,7 +164,7 @@ class CsvToDatabaseView(SimpleFormView):
 
             database = (
                 db.session.query(models.Database)
-                .filter_by(id=form.data.get("con").data.get("id"))
+                .filter_by(id=form.data.get("database").data.get("id"))
                 .one()
             )
 
