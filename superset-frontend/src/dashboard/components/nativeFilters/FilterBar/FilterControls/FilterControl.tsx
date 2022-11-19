@@ -21,6 +21,7 @@ import { styled, SupersetTheme } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { truncationCSS } from 'src/hooks/useTruncation';
 import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterCard } from '../../FilterCard';
@@ -40,15 +41,17 @@ const VerticalFilterControlTitle = styled.h4`
   overflow-wrap: break-word;
 `;
 
-const HorizontalFilterControlTitle = styled.h4`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+const HorizontalFilterControlTitle = styled(VerticalFilterControlTitle)`
   font-weight: ${({ theme }) => theme.typography.weights.normal};
   color: ${({ theme }) => theme.colors.grayscale.base};
-  margin: 0;
-  overflow-wrap: break-word;
+  ${truncationCSS}
 `;
 
-const HorizontalOverflowFilterControlTitle = HorizontalFilterControlTitle;
+const HorizontalOverflowFilterControlTitle = styled(
+  HorizontalFilterControlTitle,
+)`
+  max-width: none;
+`;
 
 const VerticalFilterControlTitleBox = styled.div`
   display: flex;
@@ -58,14 +61,16 @@ const VerticalFilterControlTitleBox = styled.div`
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
 `;
 
-const HorizontalFilterControlTitleBox = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+const HorizontalFilterControlTitleBox = styled(VerticalFilterControlTitleBox)`
+  margin-bottom: unset;
+  max-width: ${({ theme }) => theme.gridUnit * 15}px;
 `;
 
-const HorizontalOverflowFilterControlTitleBox = VerticalFilterControlTitleBox;
+const HorizontalOverflowFilterControlTitleBox = styled(
+  VerticalFilterControlTitleBox,
+)`
+  width: 100%;
+`;
 
 const VerticalFilterControlContainer = styled(Form)`
   width: 100%;
@@ -80,18 +85,22 @@ const VerticalFilterControlContainer = styled(Form)`
 `;
 
 const HorizontalFilterControlContainer = styled(Form)`
-  width: 220px;
   && .ant-form-item-label > label {
     margin-bottom: 0;
     text-transform: none;
-    max-width: 60px;
   }
   .ant-form-item-tooltip {
     margin-bottom: ${({ theme }) => theme.gridUnit}px;
   }
 `;
 
-const HorizontalOverflowFilterControlContainer = VerticalFilterControlContainer;
+const HorizontalOverflowFilterControlContainer = styled(
+  VerticalFilterControlContainer,
+)`
+  && .ant-form-item-label > label {
+    padding-right: unset;
+  }
+`;
 
 const VerticalFormItem = styled(StyledFormItem)`
   .ant-form-item-label {
@@ -121,6 +130,10 @@ const HorizontalFormItem = styled(StyledFormItem)`
     & > label::after {
       display: none;
     }
+  }
+
+  .ant-form-item-control {
+    width: ${({ theme }) => theme.gridUnit * 40}px;
   }
 `;
 

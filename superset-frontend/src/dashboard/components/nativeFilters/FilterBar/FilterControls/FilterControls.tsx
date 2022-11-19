@@ -103,7 +103,15 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderHorizontalContent = () => {
     const items = filtersInScope.map(filter => ({
       id: filter.id,
-      element: renderer(filter),
+      element: (
+        <div
+          css={css`
+            flex-shrink: 0;
+          `}
+        >
+          {renderer(filter)}
+        </div>
+      ),
     }));
     return (
       <div
