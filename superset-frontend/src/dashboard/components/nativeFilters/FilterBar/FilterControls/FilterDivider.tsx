@@ -105,9 +105,7 @@ const HorizontalOverflowDivider = ({
       css={css`
         border-top: 1px solid ${theme.colors.grayscale.light2};
         padding-top: ${theme.gridUnit * 4}px;
-        &:not(&:last-child) {
-          margin-bottom: ${theme.gridUnit * 4}px;
-        }
+        margin-bottom: ${theme.gridUnit * 4}px;
       `}
     >
       <Tooltip overlay={titleIsTruncated ? <strong>{title}</strong> : null}>

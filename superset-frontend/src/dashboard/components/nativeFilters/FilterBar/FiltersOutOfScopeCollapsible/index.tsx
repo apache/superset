@@ -39,7 +39,9 @@ export const FiltersOutOfScopeCollapsible = ({
     collapsible={filtersOutOfScope.length === 0 ? 'disabled' : undefined}
     css={theme => css`
       &.ant-collapse {
-        margin-top: ${hasTopMargin ? theme.gridUnit * 6 : 0}px;
+        margin-top: ${hasTopMargin
+          ? theme.gridUnit * 6
+          : theme.gridUnit * -3}px;
         & > .ant-collapse-item {
           & > .ant-collapse-header {
             padding-left: 0;

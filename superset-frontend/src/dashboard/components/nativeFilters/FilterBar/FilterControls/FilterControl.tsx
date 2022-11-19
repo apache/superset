@@ -48,7 +48,7 @@ const HorizontalFilterControlTitle = styled.h4`
   overflow-wrap: break-word;
 `;
 
-const HorizontalOverflowFilterControlTitle = VerticalFilterControlTitle;
+const HorizontalOverflowFilterControlTitle = HorizontalFilterControlTitle;
 
 const VerticalFilterControlTitleBox = styled.div`
   display: flex;

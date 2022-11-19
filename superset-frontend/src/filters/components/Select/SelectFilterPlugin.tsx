@@ -293,10 +293,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [formData.sortAscending],
   );
 
-  useEffect(() => {
-    console.log(formData.orientation, formData.overflow);
-  }, [formData.orientation, formData.overflow]);
-
   return (
     <FilterPluginStyle height={height} width={width}>
       <StyledFormItem
