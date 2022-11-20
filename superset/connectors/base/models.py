@@ -313,7 +313,7 @@ class BaseDatasource(
                     metric_names.add(utils.get_metric_name(metric))
                     if utils.is_adhoc_metric(metric):
                         column = metric.get("column") or {}
-                        if hasattr(column, "get") and column.get("column_name"):
+                        if hasattr(column, "get") and "column_name" in column:
                             column_names.add(column.get("column_name"))
 
             # Columns used in query filters
