@@ -53,7 +53,7 @@ def test_create_ssh_tunnel(session_with_data: Session):
         "password": "bar",
     }
 
-    result = SSHTunnelDAO.create(properties, commit=True)
+    result = SSHTunnelDAO.create(properties)
 
     assert result is not None
     assert isinstance(result, SSHTunnel)
