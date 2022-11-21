@@ -1224,7 +1224,7 @@ msgid "An error occurred while creating the value."
 msgstr "创建数据源时发生错误"
 
 #: superset/key_value/commands/exceptions.py:37
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while deleting the value."
 msgstr "获取结构信息时出错：%s"
 
@@ -1659,7 +1659,7 @@ msgstr "所有"
 #: superset-frontend/src/dashboard/components/PropertiesModal/index.jsx:563
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:269
 msgid "Any additional detail to show in the certification tooltip."
-msgstr ""
+msgstr "展示所有认证细节"
 
 #: superset-frontend/src/dashboard/components/ColorSchemeControlWrapper.jsx:56
 msgid ""
@@ -4712,7 +4712,7 @@ msgid "Drop columns here"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/DndFilterSelect.tsx:389
-#, fuzzy, python-format
+#, fuzzy
 msgid "Drop columns or metrics here"
 msgstr "%s 列与计量指标"
 
@@ -5781,7 +5781,7 @@ msgid "Filter results"
 msgstr "过滤结果"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterSets/EditSection.tsx:144
-#, fuzzy, python-format
+#, fuzzy
 msgid "Filter set already exists"
 msgstr "数据集 %(name)s 已存在"
 
@@ -7227,7 +7227,7 @@ msgid "Marker Size"
 msgstr ""
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:68
-#, fuzzy, python-format
+#, fuzzy
 msgid "Marker labels"
 msgstr "[警报] %(label)s"
 
@@ -7875,7 +7875,7 @@ msgid "No columns"
 msgstr "列"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:134
-#, fuzzy, python-format
+#, fuzzy
 msgid "No compatible columns found"
 msgstr "不兼容的条件 (%d)"
 
@@ -8315,7 +8315,7 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:125
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:130
-#, fuzzy, python-format
+#, fuzzy
 msgid "Operator"
 msgstr "%s 运算符"
 
@@ -10454,7 +10454,7 @@ msgid "Select a visualization type"
 msgstr "选择一个可视化类型"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:310
-#, fuzzy, python-format
+#, fuzzy
 msgid "Select aggregate options"
 msgstr "%s 聚合"
 
@@ -10511,7 +10511,7 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:303
-#, fuzzy, python-format
+#, fuzzy
 msgid "Select operator"
 msgstr "%s 运算符"
 
@@ -10530,7 +10530,7 @@ msgid "Select parent filters"
 msgstr "选择父级过滤"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:319
-#, fuzzy, python-format
+#, fuzzy
 msgid "Select saved metrics"
 msgstr "%s 列与计量指标"
 
@@ -10541,7 +10541,7 @@ msgid "Select schema or type schema name"
 msgstr "选择表或输入表名"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.jsx:194
-#, fuzzy, python-format
+#, fuzzy
 msgid "Select scheme"
 msgstr "选择一个schema（%s）"
 
@@ -13665,7 +13665,7 @@ msgid "Use Area Proportions"
 msgstr "桶断点"
 
 #: superset/views/database/forms.py:175 superset/views/database/forms.py:433
-#, fuzzy, python-format
+#, fuzzy
 msgid "Use Columns"
 msgstr "%s 列"
 
@@ -13714,7 +13714,8 @@ msgid ""
 msgstr ""
 
 #: superset/templates/superset/fab_overrides/list_with_checkboxes.html:82
-msgid "Use the edit buttom to change this field"
+#, fuzzy
+msgid "Use the edit button to change this field"
 msgstr "使用编辑按钮更改此字段"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:176
@@ -14935,7 +14936,7 @@ msgid "[To]-"
 msgstr "[至]-"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:94
-#, fuzzy, python-format
+#, fuzzy
 msgid "[Untitled]"
 msgstr "%s  - 无标题"
 
@@ -15573,3 +15574,4 @@ msgstr "年"
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 msgid "yellow"
 msgstr ""
+

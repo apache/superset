@@ -65,8 +65,8 @@ SQLALCHEMY_DATABASE_URI = "%s://%s:%s@%s:%s/%s" % (
 BABEL_DEFAULT_LOCALE = "zh"
 
 LANGUAGES = {
-    'zh': {'flag': 'cn', 'name': 'Chinese'},
-    'en': {'flag': 'us', 'name': 'English'},
+    'zh': {'flag': 'cn', 'name': '中文'},
+    # 'en': {'flag': 'us', 'name': 'English'},
 }
 
 REDIS_HOST = get_env_variable("REDIS_HOST")
@@ -75,6 +75,8 @@ REDIS_CELERY_DB = get_env_variable("REDIS_CELERY_DB", "0")
 REDIS_RESULTS_DB = get_env_variable("REDIS_RESULTS_DB", "1")
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
+
+SECRET_KEY = "1CHPNk/gHXVuVz9iKlTcxI6c1fNIq0avLPibcM9P6sfLUyokwYtbhhvn"
 
 CACHE_CONFIG = {
     "CACHE_TYPE": "redis",
