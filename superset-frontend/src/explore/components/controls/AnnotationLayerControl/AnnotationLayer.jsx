@@ -300,7 +300,7 @@ class AnnotationLayer extends React.PureComponent {
     if (isLoadingOptions) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
         SupersetClient.get({
-          endpoint: '/annotationlayermodelview/api/read?',
+          endpoint: '/api/v1/annotation_layer/',
         }).then(({ json }) => {
           const layers = json
             ? json.result.map(layer => ({
