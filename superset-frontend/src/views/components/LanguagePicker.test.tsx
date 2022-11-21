@@ -23,8 +23,13 @@ import { MainNav as Menu } from 'src/components/Menu';
 import LanguagePicker from './LanguagePicker';
 
 const mockedProps = {
-  locale: 'en',
+  locale: 'zh',
   languages: {
+    zh: {
+      flag: 'zh',
+      name: '中文',
+      url: '/lang/zh',
+    },
     en: {
       flag: 'us',
       name: 'English',
