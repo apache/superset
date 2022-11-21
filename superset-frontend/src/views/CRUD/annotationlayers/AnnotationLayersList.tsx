@@ -143,9 +143,7 @@ function AnnotationLayersList({
           }
 
           if (hasHistory) {
-            return (
-              <Link to={`/annotationlayer/${id}/annotation`}>{name}</Link>
-            );
+            return <Link to={`/annotationlayer/${id}/annotation`}>{name}</Link>;
           }
 
           return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
