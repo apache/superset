@@ -113,3 +113,4 @@ cache/
 
 # Added
 docker/pythonpath_dev/superset_config.py
+docker/.env
