@@ -357,6 +357,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="SQL Lab",
             category_label=__("SQL"),
         )
+        appbuilder.add_link(
+            "Annotation Layers",
+            label=_("Annotation Layers"),
+            href="/annotationlayermodelview/list/",
+            icon="fa-comment",
+            category_icon="",
+            category="Manage",
+            category_label=__("Manage"),
+        )
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
