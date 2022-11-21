@@ -24,7 +24,8 @@ import {
   TableSize,
   SUPERSET_TABLE_COLUMN,
   ColumnsType,
-  TablePaginationConfig,
+  OnChangeFunction,
+  ETableAction,
 } from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
@@ -70,7 +71,7 @@ export interface ExampleData {
 function generateValues(amount: number, row = 0): object {
   const cells = {};
   for (let i = 0; i < amount; i += 1) {
-    cells[`col-${i}`] = `Text ${i}-${row}`;
+    cells[`col-${i}`] = i * row * 0.75;
   }
   return cells;
 }
@@ -83,6 +84,14 @@ function generateColumns(amount: number): ColumnsType<ExampleData>[] {
       dataIndex: `col-${i}`,
       key: `col-${i}`,
       width: 90,
+      render: (value: number) => (
+        <NumericCell
+          options={{ style: Style.CURRENCY, currency: CurrencyCode.EUR }}
+          value={value}
+          locale={LocaleCode.en_US}
+        />
+      ),
+      sorter: (a: BasicData, b: BasicData) => numericalSort(`col-${i}`, a, b),
     });
   }
   return newCols as ColumnsType<ExampleData>[];
@@ -364,11 +373,28 @@ const paginationColumns: ColumnsType<BasicData> = [
     dataIndex: 'price',
     key: 'price',
     width: 100,
+    render: (value: number) => (
+      <NumericCell
+        options={{ style: Style.CURRENCY, currency: CurrencyCode.EUR }}
+        value={value}
+        locale={LocaleCode.en_US}
+      />
+    ),
+    sorter: (a: BasicData, b: BasicData) => numericalSort('price', a, b),
   },
   {
     title: 'Description',
     dataIndex: 'description',
     key: 'description',
+  },
+  {
+    dataIndex: 'actions',
+    key: 'actions',
+    render: (text: string, row: object) => (
+      <ActionCell row={row} menuOptions={exampleMenuOptions} />
+    ),
+    width: 32,
+    fixed: 'right',
   },
 ];
 
@@ -376,15 +402,37 @@ export const ServerPagination: ComponentStory<typeof Table> = args => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (pagination: TablePaginationConfig) => {
+  const handleChange: OnChangeFunction = (
+    pagination,
+    filters,
+    sorter,
+    extra,
+  ) => {
     const pageSize = pagination?.pageSize ?? 5;
     const current = pagination?.current ?? 0;
-    setLoading(true);
-    // simulate a fetch
-    setTimeout(() => {
-      setData(generateData(current * pageSize, pageSize));
-      setLoading(false);
-    }, 1000);
+    switch (extra?.action) {
+      case ETableAction.PAGINATE: {
+        setLoading(true);
+        // simulate a fetch
+        setTimeout(() => {
+          setData(generateData(current * pageSize, pageSize));
+          setLoading(false);
+        }, 1000);
+        break;
+      }
+      case ETableAction.SORT: {
+        action(`table-sort-change: ${JSON.stringify(sorter)}`);
+        break;
+      }
+      case ETableAction.FILTER: {
+        action(`table-sort-change: ${JSON.stringify(filters)}`);
+        break;
+      }
+      default: {
+        action('table action unknown');
+        break;
+      }
+    }
   };
 
   return (

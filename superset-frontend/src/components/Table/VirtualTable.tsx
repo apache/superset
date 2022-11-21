@@ -24,8 +24,7 @@ import { VariableSizeGrid as Grid } from 'react-window';
 import { StyledComponent } from '@emotion/styled';
 import { useTheme, styled } from '@superset-ui/core';
 import { TablePaginationConfig } from 'antd/lib/table';
-import { TableCurrentDataSource } from 'antd/es/table/interface';
-import { TableProps, TableSize, HEIGHT_OFFSET } from './index';
+import { TableProps, TableSize, HEIGHT_OFFSET, ETableAction } from './index';
 
 const StyledCell: StyledComponent<any> = styled('div')<any>(
   ({ theme, height }) => `
@@ -37,6 +36,7 @@ const StyledCell: StyledComponent<any> = styled('div')<any>(
   border-bottom: 1px solid ${theme.colors.grayscale.light3};
   transition: background 0.3s;
   line-height: ${height}px;
+  box-sizing: border-box;
 `,
 );
 
@@ -67,12 +67,11 @@ const VirtualTable = (props: TableProps) => {
   const onResize = useCallback((width: number) => {
     setTableWidth(width);
   }, []);
+  const { ref } = useResizeDetector({ onResize });
   const theme = useTheme();
 
   // If a column definition has no width, react-window will use this as the default column width
   const DEFAULT_COL_WIDTH = theme?.gridUnit * 37 || 150;
-
-  const { ref } = useResizeDetector({ onResize });
   const widthColumnCount = columns!.filter(({ width }) => !width).length;
   let staticColWidthTotal = 0;
   columns?.forEach(column => {
@@ -80,11 +79,13 @@ const VirtualTable = (props: TableProps) => {
       staticColWidthTotal += column.width as number;
     }
   });
+
   let totalWidth = 0;
   const defaultWidth = Math.max(
-    (tableWidth - staticColWidthTotal) / widthColumnCount,
+    Math.floor((tableWidth - staticColWidthTotal) / widthColumnCount),
     50,
   );
+
   const mergedColumns =
     columns?.map?.(column => {
       const modifiedColumn = { ...column };
@@ -101,8 +102,10 @@ const VirtualTable = (props: TableProps) => {
    */
   if (totalWidth < tableWidth) {
     const lastColumn = mergedColumns[mergedColumns.length - 1];
-    lastColumn.width = (lastColumn.width as number) + (tableWidth - totalWidth);
+    lastColumn.width =
+      (lastColumn.width as number) + Math.floor(tableWidth - totalWidth);
   }
+
   const gridRef = useRef<any>();
   const [connectObject] = useState<any>(() => {
     const obj = {};
@@ -146,7 +149,10 @@ const VirtualTable = (props: TableProps) => {
       } as TablePaginationConfig,
       {},
       {},
-      {} as TableCurrentDataSource<TableProps>,
+      {
+        action: ETableAction.PAGINATE,
+        currentDataSource: [],
+      },
     );
   };
 
@@ -180,9 +186,17 @@ const VirtualTable = (props: TableProps) => {
           rowIndex: number;
           style: React.CSSProperties;
         }) => {
-          const content = (rawData[rowIndex] as any)[
-            (mergedColumns as any)[columnIndex].dataIndex
-          ];
+          const data: any = rawData?.[rowIndex];
+          // Set default content
+          let content =
+            data?.[(mergedColumns as any)?.[columnIndex]?.dataIndex];
+          // Check if the column has a render function
+          const render = mergedColumns[columnIndex]?.render;
+          if (typeof render === 'function') {
+            // Use render function to generate formatted content using column's render function
+            content = render(content, data, rowIndex);
+          }
+
           return (
             <StyledCell
               className={classNames('virtual-table-cell', {
@@ -190,7 +204,7 @@ const VirtualTable = (props: TableProps) => {
                   columnIndex === mergedColumns.length - 1,
               })}
               style={style}
-              title={content}
+              title={typeof content === 'string' ? content : undefined}
               theme={theme}
               height={cellSize}
             >

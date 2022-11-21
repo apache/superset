@@ -25,7 +25,6 @@ import {
 } from 'antd/es/table';
 import { PaginationProps } from 'antd/es/pagination';
 import { Key } from 'antd/lib/table/interface';
-import { SorterResult, TableCurrentDataSource } from 'antd/es/table/interface';
 import { t, useTheme, logging } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import styled, { StyledComponent } from '@emotion/styled';
@@ -41,7 +40,7 @@ export interface TablePaginationConfig extends PaginationProps {
   extra?: object;
 }
 
-export declare type ColumnsType<RecordType = unknown> = (
+export type ColumnsType<RecordType = unknown> = (
   | ColumnGroupType<RecordType>
   | ColumnType<RecordType>
 )[];
@@ -74,6 +73,32 @@ export interface Locale {
   triggerAsc: string;
   cancelSort: string;
 }
+
+export type SortOrder = 'descend' | 'ascend' | null;
+export interface SorterResult<RecordType> {
+  column?: ColumnType<RecordType>;
+  order?: SortOrder;
+  field?: Key | Key[];
+  columnKey?: Key;
+}
+
+export enum ETableAction {
+  PAGINATE = 'paginate',
+  SORT = 'sort',
+  FILTER = 'filter',
+}
+
+export interface TableCurrentDataSource<RecordType> {
+  currentDataSource: RecordType[];
+  action: ETableAction;
+}
+
+export type OnChangeFunction = (
+  pagination: TablePaginationConfig,
+  filters: Record<string, (Key | boolean)[] | null>,
+  sorter: SorterResult<any> | SorterResult<any>[],
+  extra: TableCurrentDataSource<any>,
+) => void;
 
 export interface TableProps extends AntTableProps<TableProps> {
   /**
@@ -158,12 +183,7 @@ export interface TableProps extends AntTableProps<TableProps> {
   /**
    * Invoked when the tables sorting, paging, or filtering is changed.
    */
-  onChange?: (
-    pagination: TablePaginationConfig,
-    filters: Record<string, (Key | boolean)[] | null>,
-    sorter: SorterResult<any> | SorterResult<any>[],
-    extra: TableCurrentDataSource<any>,
-  ) => void;
+  onChange?: OnChangeFunction;
 }
 
 interface IPaginationOptions {
@@ -186,7 +206,7 @@ export const HEIGHT_OFFSET = 108;
 const StyledTable: StyledComponent<any> = styled(AntTable)<any>(
   ({ theme, height }) => `
     .ant-table-body {
-      overflow: scroll;
+      overflow: auto;
       height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
     }
 
