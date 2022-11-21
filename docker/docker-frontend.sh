@@ -29,7 +29,10 @@ npm install -f --no-optional
 
 echo "Running liq viz dev"
 cd ./liq_viz_plugins/superset-plugin-chart-hello-world
-npm run dev &
+# Comment below before merging master for prod
+npm run dev & # Dev
+# Uncomment below before merging master for prod
+#npm run build # Prod
 
 cd ../../
 
