@@ -104,7 +104,7 @@ const DropdownContainer = forwardRef(
     {
       items,
       onOverflowingStateChange,
-      dropdownContent: popoverContent,
+      dropdownContent: getPopoverContent,
       dropdownRef: popoverRef,
       dropdownStyle: popoverStyle = {},
       dropdownTriggerCount: popoverTriggerCount,
@@ -209,26 +209,31 @@ const DropdownContainer = forwardRef(
       }
     }, [notOverflowedIds, onOverflowingStateChange, overflowedIds]);
 
-    const content = useMemo(
-      () => (
-        <div
-          css={css`
-            display: flex;
-            flex-direction: column;
-            gap: ${theme.gridUnit * 4}px;
-          `}
-          data-test="dropdown-content"
-          style={popoverStyle}
-          ref={popoverRef}
-        >
-          {popoverContent
-            ? popoverContent(overflowedItems)
-            : overflowedItems.map(item => item.element)}
-        </div>
-      ),
+    const overflowingCount =
+      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
+
+    const popoverContent = useMemo(
+      () =>
+        getPopoverContent || overflowingCount ? (
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+              gap: ${theme.gridUnit * 4}px;
+            `}
+            data-test="dropdown-content"
+            style={popoverStyle}
+            ref={popoverRef}
+          >
+            {getPopoverContent
+              ? getPopoverContent(overflowedItems)
+              : overflowedItems.map(item => item.element)}
+          </div>
+        ) : null,
       [
+        getPopoverContent,
         overflowedItems,
-        popoverContent,
+        overflowingCount,
         popoverRef,
         popoverStyle,
         theme.gridUnit,
@@ -243,9 +248,6 @@ const DropdownContainer = forwardRef(
       }),
       [ref],
     );
-
-    const overflowingCount =
-      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
 
     return (
       <div
@@ -268,9 +270,9 @@ const DropdownContainer = forwardRef(
         >
           {notOverflowedItems.map(item => item.element)}
         </div>
-        {overflowingCount > 0 && (
+        {popoverContent && (
           <Popover
-            content={content}
+            content={popoverContent}
             trigger="click"
             visible={popoverVisible}
             onVisibleChange={visible => setPopoverVisible(visible)}
