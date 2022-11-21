@@ -636,30 +636,37 @@ def postprocess_columns(session: Session) -> None:
         return
 
     def get_joined_tables(offset, limit):
+
         # Import aliased from sqlalchemy
         from sqlalchemy.orm import aliased
+
         # Create alias of NewColumn
         new_column_alias = aliased(NewColumn)
         # Get subquery and give it the alias "sl_colums_2"
-        subquery = session.query(new_column_alias).offset(offset).limit(limit).subquery(
-            "sl_columns_2")
+        subquery = (
+            session.query(new_column_alias)
+            .offset(offset)
+            .limit(limit)
+            .subquery("sl_columns_2")
+        )
 
         return (
             sa.join(
                 subquery,
                 NewColumn,
                 # Use column id from subquery
-                subquery.c.id == NewColumn.id
-            )  .join(
+                subquery.c.id == NewColumn.id,
+            )
+            .join(
                 dataset_column_association_table,
                 # Use column id from subquery
                 dataset_column_association_table.c.column_id == subquery.c.id,
-                )
-                .join(
+            )
+            .join(
                 NewDataset,
                 NewDataset.id == dataset_column_association_table.c.dataset_id,
             )
-                .join(
+            .join(
                 dataset_table_association_table,
                 # Join tables with physical datasets
                 and_(
@@ -668,14 +675,14 @@ def postprocess_columns(session: Session) -> None:
                 ),
                 isouter=True,
             )
-                .join(Database, Database.id == NewDataset.database_id)
-                .join(
+            .join(Database, Database.id == NewDataset.database_id)
+            .join(
                 TableColumn,
                 # Use column uuid from subquery
                 TableColumn.uuid == subquery.c.uuid,
                 isouter=True,
             )
-                .join(
+            .join(
                 SqlMetric,
                 # Use column uuid from subquery
                 SqlMetric.uuid == subquery.c.uuid,
