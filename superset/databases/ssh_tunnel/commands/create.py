@@ -22,6 +22,7 @@ from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
+from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelCreateFailedError
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 
@@ -45,4 +46,6 @@ class CreateSSHTunnelCommand(BaseCommand):
 
     def validate(self) -> None:
         # check to make sure the server port is not localhost
+        db_id = self._properties["database_id"]
+        db = DatabaseDAO.find_by_id(db_id)
         pass
