@@ -20,9 +20,6 @@ from typing import Iterator
 import pytest
 from sqlalchemy.orm.session import Session
 
-from superset.databases.dao import DatabaseDAO
-from superset.databases.ssh_tunnel.models import SSHTunnel
-
 
 @pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
