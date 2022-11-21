@@ -115,7 +115,7 @@ const NotFoundContent = () => (
         <span>
           {t('Add an annotation layer')}{' '}
           <a
-            href="/annotationlayermodelview/list"
+            href="/annotationlayer/list"
             target="_blank"
             rel="noopener noreferrer"
           >

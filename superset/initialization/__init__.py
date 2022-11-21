@@ -149,6 +149,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
+        from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
         from superset.views.core import Superset
@@ -357,15 +358,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="SQL Lab",
             category_label=__("SQL"),
         )
-        appbuilder.add_link(
-            "Annotation Layers",
-            label=_("Annotation Layers"),
-            href="/annotationlayermodelview/list/",
-            icon="fa-comment",
-            category_icon="",
-            category="Manage",
-            category_label=__("Manage"),
-        )
+        # appbuilder.add_link(
+        #     "Annotation Layers",
+        #     label=_("Annotation Layers"),
+        #     href="/annotationlayermodelview/list/",
+        #     icon="fa-comment",
+        #     category_icon="",
+        #     category="Manage",
+        #     category_label=__("Manage"),
+        # )
 
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(
@@ -393,6 +394,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Manage"),
             icon="fa-exclamation-triangle",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
+        )
+
+        appbuilder.add_view(
+            AnnotationLayerView,
+            "Annotation Layers",
+            label=_("Annotation Layers"),
+            href="/annotationlayer/list/",
+            icon="fa-comment",
+            category_icon="",
+            category="Manage",
+            category_label=__("Manage"),
         )
 
         appbuilder.add_view(
