@@ -81,7 +81,6 @@ export default function SupersetPluginChartHelloWorld(props: SupersetPluginChart
       height={height}
       width={width}
     >
-      <h1>This is a small title</h1>
       <h3>{props.headerText}</h3>
       <pre>${JSON.stringify(data, null, 2)}</pre>
     </Styles>
