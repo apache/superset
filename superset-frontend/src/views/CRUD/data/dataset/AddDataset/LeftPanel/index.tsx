@@ -22,7 +22,8 @@ import {
   t,
   styled,
   css,
-  supersetTheme,
+  useTheme,
+  logging,
 } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form } from 'src/components/Form';
@@ -141,6 +142,8 @@ export default function LeftPanel({
   dbId,
   linkedDatasets,
 }: LeftPanelProps) {
+  const theme = useTheme();
+
   const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
   const [resetTables, setResetTables] = useState(false);
   const [loadTables, setLoadTables] = useState(false);
@@ -182,7 +185,9 @@ export default function LeftPanel({
         setResetTables(false);
         setRefresh(false);
       })
-      .catch(error => console.log('There was an error fetching tables', error));
+      .catch(error =>
+        logging.error('There was an error fetching tables', error),
+      );
   };
 
   const setSchema = (schema: string) => {
@@ -226,21 +231,32 @@ export default function LeftPanel({
     </div>
   );
 
+  const SELECT_DATABASE_AND_SCHEMA_TEXT = t('Select database & schema');
+  const TABLE_LOADING_TEXT = t('Table loading');
+  const NO_TABLES_FOUND_TITLE = t('No database tables found');
+  const NO_TABLES_FOUND_DESCRIPTION = t('Try selecting a different schema');
+  const SELECT_DATABASE_TABLE_TEXT = t('Select database table');
+  const REFRESH_TABLE_LIST_TOOLTIP = t('Refresh table list');
+  const REFRESH_TABLES_TEXT = t('Refresh tables');
+  const SEARCH_TABLES_PLACEHOLDER_TEXT = t('Search tables');
+
   return (
     <LeftPanelStyle>
-      <p className="section-title db-schema">{t('Select database & schema')}</p>
+      <p className="section-title db-schema">
+        {SELECT_DATABASE_AND_SCHEMA_TEXT}
+      </p>
       <DatabaseSelector
         handleError={addDangerToast}
         onDbChange={setDatabase}
         onSchemaChange={setSchema}
       />
-      {loadTables && !refresh && Loader('Table loading')}
+      {loadTables && !refresh && Loader(TABLE_LOADING_TEXT)}
       {schema && !loadTables && !tableOptions.length && !searchVal && (
         <div className="emptystate">
           <EmptyStateMedium
             image="empty-table.svg"
-            title={t('No database tables found')}
-            description={t('Try selecting a different schema')}
+            title={NO_TABLES_FOUND_TITLE}
+            description={NO_TABLES_FOUND_DESCRIPTION}
           />
         </div>
       )}
@@ -248,15 +264,15 @@ export default function LeftPanel({
       {schema && (tableOptions.length > 0 || searchVal.length > 0) && (
         <>
           <Form>
-            <p className="table-title">{t('Select database table')}</p>
+            <p className="table-title">{SELECT_DATABASE_TABLE_TEXT}</p>
             <RefreshLabel
               onClick={() => {
                 setLoadTables(true);
                 setRefresh(true);
               }}
-              tooltipContent={t('Refresh table list')}
+              tooltipContent={REFRESH_TABLE_LIST_TOOLTIP}
             />
-            {refresh && Loader(t('Refresh tables'))}
+            {refresh && Loader(REFRESH_TABLES_TEXT)}
             {!refresh && (
               <Input
                 value={searchVal}
@@ -265,7 +281,7 @@ export default function LeftPanel({
                   setSearchVal(evt.target.value);
                 }}
                 className="table-form"
-                placeholder={t('Search tables')}
+                placeholder={SEARCH_TABLES_PLACEHOLDER_TEXT}
                 allowClear
               />
             )}
@@ -287,12 +303,12 @@ export default function LeftPanel({
                     <Icons.Warning
                       iconColor={
                         selectedTable === i
-                          ? supersetTheme.colors.grayscale.light5
-                          : supersetTheme.colors.info.base
+                          ? theme.colors.grayscale.light5
+                          : theme.colors.info.base
                       }
                       iconSize="m"
                       css={css`
-                        margin-right: ${supersetTheme.gridUnit * 6}px;
+                        margin-right: ${theme.gridUnit * 6}px;
                       `}
                     />
                   )}

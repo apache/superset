@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useReducer, Reducer, useEffect, useState } from 'react';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, logging } from '@superset-ui/core';
 import rison from 'rison';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
@@ -100,12 +100,14 @@ export default function AddDataset() {
         );
       })
       .catch(error =>
-        console.log('There was an error fetching dataset', error),
+        logging.error('There was an error fetching dataset', error),
       );
   };
 
   useEffect(() => {
-    if (dataset?.schema) getDatasetsList();
+    if (dataset?.schema) {
+      getDatasetsList();
+    }
   }, [dataset?.schema]);
 
   const HeaderComponent = () => (

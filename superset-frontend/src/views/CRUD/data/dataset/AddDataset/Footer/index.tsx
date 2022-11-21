@@ -110,20 +110,22 @@ function Footer({
     }
   };
 
+  const CREATE_DATASET_TEXT = t('Create Dataset');
+  const disabledCheck =
+    !datasetObject?.table_name ||
+    !hasColumns ||
+    linkedDatasets?.includes(datasetObject?.table_name);
+
   return (
     <>
       <Button onClick={cancelButtonOnClick}>Cancel</Button>
       <Button
         buttonStyle="primary"
-        disabled={
-          !datasetObject?.table_name ||
-          !hasColumns ||
-          linkedDatasets?.includes(datasetObject?.table_name)
-        }
+        disabled={disabledCheck}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={onSave}
       >
-        {t('Create Dataset')}
+        {CREATE_DATASET_TEXT}
       </Button>
     </>
   );

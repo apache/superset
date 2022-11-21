@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { supersetTheme, t, styled } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Alert from 'src/components/Alert';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
@@ -55,45 +55,51 @@ const HALF = 0.5;
 const MARGIN_MULTIPLIER = 3;
 
 const StyledHeader = styled.div<StyledHeaderProps>`
+  ${({ theme }) => `
   position: ${(props: StyledHeaderProps) => props.position};
-  margin: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px
-    ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px
-    ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px
-    ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  font-size: ${({ theme }) => theme.gridUnit * 6}px;
-  font-weight: ${({ theme }) => theme.typography.weights.medium};
-  padding-bottom: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px
+    ${theme.gridUnit * MARGIN_MULTIPLIER}px
+    ${theme.gridUnit * MARGIN_MULTIPLIER}px
+    ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
+  font-size: ${theme.gridUnit * 6}px;
+  font-weight: ${theme.typography.weights.medium};
+  padding-bottom: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
 
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 
   .anticon:first-of-type {
-    margin-right: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
+    margin-right: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
   }
 
   .anticon:nth-of-type(2) {
-    margin-left: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
-  }
+    margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px;
+  `}
 `;
 
 const StyledTitle = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  ${({ theme }) => `
+  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
+  margin-bottom: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
+  font-weight: ${theme.typography.weights.bold};
+  `}
 `;
 
 const LoaderContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 8}px
-    ${({ theme }) => theme.gridUnit * 6}px;
+  ${({ theme }) => `
+  padding: ${theme.gridUnit * 8}px
+    ${theme.gridUnit * 6}px;
 
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
+  `}
 `;
 
 const StyledLoader = styled.div`
+  ${({ theme }) => `
   max-width: 50%;
   width: ${LOADER_WIDTH}px;
 
@@ -104,20 +110,23 @@ const StyledLoader = styled.div`
 
   div {
     width: 100%;
-    margin-top: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
+    margin-top: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
     text-align: center;
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    font-size: ${({ theme }) => theme.typography.sizes.l}px;
-    color: ${({ theme }) => theme.colors.grayscale.light1};
+    font-weight: ${theme.typography.weights.normal};
+    font-size: ${theme.typography.sizes.l}px;
+    color: ${theme.colors.grayscale.light1};
   }
+  `}
 `;
 
 const TableContainer = styled.div`
+  ${({ theme }) => `
   position: relative;
-  margin: ${({ theme }) => theme.gridUnit * MARGIN_MULTIPLIER}px;
-  margin-left: ${({ theme }) => theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
+  margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
+  margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
   overflow: scroll;
-  height: calc(100% - ${({ theme }) => theme.gridUnit * 36}px);
+  height: calc(100% - ${theme.gridUnit * 36}px);
+  `}
 `;
 
 const StyledTable = styled(Table)`
@@ -129,21 +138,23 @@ const StyledTable = styled(Table)`
 `;
 
 const StyledAlert = styled(Alert)`
-  border: 1px solid ${supersetTheme.colors.info.base};
-  padding: ${supersetTheme.gridUnit * 4}px;
-  margin: ${supersetTheme.gridUnit * 6}px ${supersetTheme.gridUnit * 6}px
-    ${supersetTheme.gridUnit * 8}px;
+  ${({ theme }) => `
+  border: 1px solid ${theme.colors.info.base};
+  padding: ${theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit * 6}px ${theme.gridUnit * 6}px
+    ${theme.gridUnit * 8}px;
   .view-dataset-button {
     position: absolute;
-    top: ${supersetTheme.gridUnit * 4}px;
-    right: ${supersetTheme.gridUnit * 4}px;
-    font-weight: ${supersetTheme.typography.weights.normal};
+    top: ${theme.gridUnit * 4}px;
+    right: ${theme.gridUnit * 4}px;
+    font-weight: ${theme.typography.weights.normal};
 
     &:hover {
-      color: ${supersetTheme.colors.secondary.dark3};
+      color: ${theme.colors.secondary.dark3};
       text-decoration: underline;
     }
   }
+  `}
 `;
 
 export const REFRESHING = t('Refreshing columns');
@@ -194,7 +205,12 @@ export interface IDatasetPanelProps {
   linkedDatasets?: DatasetObject[] | undefined;
 }
 
-const renderExistingDatasetAlert = (linkedDataset: any) => (
+const EXISTING_DATASET_DESCRIPTION = t(
+  'You can only associate one dataset with one table. This table already has a dataset associated with it in Preset.\n',
+);
+const VIEW_DATASET = t('View Dataset');
+
+const renderExistingDatasetAlert = (linkedDataset?: DatasetObject) => (
   <StyledAlert
     closable={false}
     type="info"
@@ -202,14 +218,12 @@ const renderExistingDatasetAlert = (linkedDataset: any) => (
     message={t('This table already has a dataset')}
     description={
       <>
-        {t(
-          'You can only associate one dataset with one table. This table already has a dataset associated with it in Preset.\n',
-        )}
+        {EXISTING_DATASET_DESCRIPTION}
         <span
           role="button"
           onClick={() => {
             window.open(
-              linkedDataset.explore_url,
+              linkedDataset?.explore_url,
               '_blank',
               'noreferer noopener popup=false',
             );
@@ -217,7 +231,7 @@ const renderExistingDatasetAlert = (linkedDataset: any) => (
           tabIndex={0}
           className="view-dataset-button"
         >
-          {t('View Dataset')}
+          {VIEW_DATASET}
         </span>
       </>
     }
@@ -231,6 +245,7 @@ const DatasetPanel = ({
   hasError,
   linkedDatasets,
 }: IDatasetPanelProps) => {
+  const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
   const linkedDatasetNames = linkedDatasets?.map(dataset => dataset.table_name);
 
@@ -285,7 +300,7 @@ const DatasetPanel = ({
             title={tableName || ''}
           >
             {tableName && (
-              <Icons.Table iconColor={supersetTheme.colors.grayscale.base} />
+              <Icons.Table iconColor={theme.colors.grayscale.base} />
             )}
             {tableName}
           </StyledHeader>
