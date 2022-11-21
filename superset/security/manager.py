@@ -54,6 +54,7 @@ from flask_appbuilder.security.views import (
     ViewMenuModelView,
 )
 from flask_appbuilder.widgets import ListWidget
+from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, inspect, or_
@@ -2191,7 +2192,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             raise SupersetSecurityException(
                 SupersetError(
                     error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
-                    message=f"You don't have the rights to alter [{resource}]",
+                    message=_(
+                        "You don't have the rights to alter %(resource)s",
+                        resource=resource,
+                    ),
                     level=ErrorLevel.ERROR,
                 )
             )

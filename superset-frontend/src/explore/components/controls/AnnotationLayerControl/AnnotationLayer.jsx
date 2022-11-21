@@ -543,7 +543,7 @@ class AnnotationLayer extends React.PureComponent {
               name="annotation-layer-title"
               label={t('Title Column')}
               description={t('Pick a title for you annotation.')}
-              options={[{ value: '', label: 'None' }].concat(columns)}
+              options={[{ value: '', label: t('None') }].concat(columns)}
               value={titleColumn}
               onChange={value => this.setState({ titleColumn: value })}
             />

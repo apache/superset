@@ -72,7 +72,7 @@ const config: ControlPanelConfig = {
             name: 'all_columns_x',
             config: {
               ...columnsConfig,
-              label: 'X Axis',
+              label: t('X Axis'),
             },
           },
         ],
@@ -81,7 +81,7 @@ const config: ControlPanelConfig = {
             name: 'all_columns_y',
             config: {
               ...columnsConfig,
-              label: 'Y Axis',
+              label: t('Y Axis'),
             },
           },
         ],
