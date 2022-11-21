@@ -33,8 +33,8 @@ class AnnotationLayerView(BaseSupersetView):
     def list(self) -> FlaskResponse:
         return super().render_app_template()
 
-    @expose("/<int:pk>/annotation")  # pylint: disable=unused-argument
+    @expose("/<int:pk>/annotation")
     @has_access
     @permission_name("read")
-    def get(self, pk: int) -> FlaskResponse:
+    def get(self, pk: int) -> FlaskResponse:  # pylint: disable=unused-argument
         return super().render_app_template()
