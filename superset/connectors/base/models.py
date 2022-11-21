@@ -312,9 +312,9 @@ class BaseDatasource(
                 for metric in utils.get_iterable(form_data.get(metric_param) or []):
                     metric_names.add(utils.get_metric_name(metric))
                     if utils.is_adhoc_metric(metric):
-                        column_names.add(
-                            (metric.get("column") or {}).get("column_name")
-                        )
+                        column = metric.get("column") or {}
+                        if column_name := column.get("column_name"):
+                            column_names.add(column_name)
 
             # Columns used in query filters
             column_names.update(
