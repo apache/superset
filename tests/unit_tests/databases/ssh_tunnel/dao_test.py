@@ -21,15 +21,29 @@ import pytest
 from sqlalchemy.orm.session import Session
 
 
-def test_create_ssh_tunnel(session: Session):
+@pytest.fixture
+def session_with_data(session: Session) -> Iterator[Session]:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
+
+    engine = session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+
+    session.add(db)
+    yield session
+    session.rollback()
+
+
+def test_create_ssh_tunnel(session_with_data: Session):
     from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-
     properties = {
-        "database_id": db.id,
+        "database_id": 1,
         "server_address": "123.132.123.1",
         "server_port": "3005",
         "username": "foo",
