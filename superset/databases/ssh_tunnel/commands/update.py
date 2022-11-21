@@ -42,22 +42,14 @@ class UpdateSSHTunnelCommand(BaseCommand):
 
     def run(self) -> Model:
         self.validate()
-        if not self._model:
-            raise SSHTunnelNotFoundError()
-
         try:
-            tunnel = SSHTunnelDAO.update(self._model, self._properties, commit=True)
+            tunnel = SSHTunnelDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             raise SSHTunnelUpdateFailedError() from ex
         return tunnel
 
     def validate(self) -> None:
-        exceptions: List[ValidationError] = []
         # Validate/populate model exists
         self._model = SSHTunnelDAO.find_by_id(self._model_id)
         if not self._model:
             raise SSHTunnelNotFoundError()
-        if exceptions:
-            exception = SSHTunnelInvalidError()
-            exception.add_list(exceptions)
-            raise exception

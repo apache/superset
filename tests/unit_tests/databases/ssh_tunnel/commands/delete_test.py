@@ -58,12 +58,11 @@ def test_delete_ssh_tunnel_command(session_with_data: Session) -> None:
     result = DatabaseDAO.get_ssh_tunnel(1)
 
     assert result
-    assert isinstance(result["ssh_tunnel"], SSHTunnel)
-    assert 1 == result["ssh_tunnel"].database_id
+    assert isinstance(result, SSHTunnel)
+    assert 1 == result.database_id
 
     DeleteSSHTunnelCommand(1).run()
 
     result = DatabaseDAO.get_ssh_tunnel(1)
 
-    assert result
-    assert result["ssh_tunnel"] is None
+    assert result is None
