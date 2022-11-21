@@ -149,10 +149,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
-        from superset.views.annotations import (
-            AnnotationLayerModelView,
-            AnnotationModelView,
-        )
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
         from superset.views.core import Superset
@@ -236,16 +232,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Data",
             category_label=__("Data"),
         )
-
-        appbuilder.add_view(
-            AnnotationLayerModelView,
-            "Annotation Layers",
-            label=__("Annotation Layers"),
-            icon="fa-comment",
-            category="Manage",
-            category_label=__("Manage"),
-            category_icon="",
-        )
         appbuilder.add_view(
             DashboardModelView,
             "Dashboards",
@@ -323,7 +309,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqlLab)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
-        appbuilder.add_view_no_menu(AnnotationModelView)
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableColumnInlineView)
         appbuilder.add_view_no_menu(TableModelView)
