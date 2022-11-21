@@ -18,9 +18,10 @@
 from typing import Iterator
 
 import pytest
+from sqlalchemy.orm.session import Session
 
 
-def test_create_ssh_tunnel():
+def test_create_ssh_tunnel(session: Session):
     from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
