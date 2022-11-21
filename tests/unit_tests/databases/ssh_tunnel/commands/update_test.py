@@ -55,9 +55,9 @@ def test_update_shh_tunnel_command(session_with_data: Session) -> None:
     result = DatabaseDAO.get_ssh_tunnel(1)
 
     assert result
-    assert isinstance(result["ssh_tunnel"], SSHTunnel)
-    assert 1 == result["ssh_tunnel"].database_id
-    assert "Test" == result["ssh_tunnel"].server_address
+    assert isinstance(result, SSHTunnel)
+    assert 1 == result.database_id
+    assert "Test" == result.server_address
 
     update_payload = {"server_address": "Test2"}
     UpdateSSHTunnelCommand(1, update_payload).run()
@@ -65,5 +65,5 @@ def test_update_shh_tunnel_command(session_with_data: Session) -> None:
     result = DatabaseDAO.get_ssh_tunnel(1)
 
     assert result
-    assert isinstance(result["ssh_tunnel"], SSHTunnel)
-    assert "Test2" == result["ssh_tunnel"].server_address
+    assert isinstance(result, SSHTunnel)
+    assert "Test2" == result.server_address

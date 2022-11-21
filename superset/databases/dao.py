@@ -134,4 +134,4 @@ class DatabaseDAO(BaseDAO):
             .one_or_none()
         )
 
-        return dict(ssh_tunnel=ssh_tunnel)
+        return ssh_tunnel
