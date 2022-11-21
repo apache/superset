@@ -15,7 +15,27 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Iterator
+
+import pytest
 from sqlalchemy.orm.session import Session
+
+
+@pytest.fixture
+def session_with_data(session: Session) -> Iterator[Session]:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
+
+    engine = session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+
+    session.add(db)
+    session.flush()
+    yield session
+    session.rollback()
 
 
 def test_create_ssh_tunnel_command() -> None:
@@ -23,9 +43,10 @@ def test_create_ssh_tunnel_command() -> None:
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
 
     properties = {
+        "database_id": db.id,
         "server_address": "123.132.123.1",
         "server_port": "3005",
         "username": "foo",

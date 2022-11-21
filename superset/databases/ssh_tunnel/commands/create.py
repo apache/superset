@@ -46,6 +46,6 @@ class CreateSSHTunnelCommand(BaseCommand):
 
     def validate(self) -> None:
         # check to make sure the server port is not localhost
-        db_id = self._properties["database_id"]
-        db = DatabaseDAO.find_by_id(db_id)
+        # db_id = self._properties["database_id"]
+        # db = DatabaseDAO.find_by_id(db_id)
         pass

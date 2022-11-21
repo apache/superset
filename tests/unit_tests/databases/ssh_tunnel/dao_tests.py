@@ -39,11 +39,12 @@ def session_with_data(session: Session) -> Iterator[Session]:
 
 
 def test_create_ssh_tunnel(session_with_data: Session):
+    from superset.databases.dao import DatabaseDAO
     from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    db = session_with_data.query(Database).filter(id=1)
+    db = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
 
     properties = {
         "database_id": db.id,
