@@ -21,7 +21,7 @@ set -e
 apt update
 apt install -y chromium
 
-export NODE_OPTIONS=--max_old_space_size=2048
+export NODE_OPTIONS=--max_old_space_size=4096
 
 cd /app/superset-frontend
 npm install -f --no-optional --global webpack webpack-cli
