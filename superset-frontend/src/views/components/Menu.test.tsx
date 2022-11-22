@@ -135,21 +135,21 @@ const mockedProps = {
       {
         name: 'Charts',
         icon: 'fa-bar-chart',
-        label: 'Charts',
+        label: '图表',
         url: '/chart/list/',
         index: 3,
       },
       {
         name: 'Dashboards',
         icon: 'fa-dashboard',
-        label: 'Dashboards',
+        label: '看板',
         url: '/dashboard/list/',
         index: 4,
       },
       {
         name: 'Data',
         icon: 'fa-database',
-        label: 'Data',
+        label: '数据',
         childs: [
           {
             name: 'Databases',
