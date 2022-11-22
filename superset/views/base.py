@@ -342,7 +342,7 @@ def menu_data(user: User) -> Dict[str, Any]:
             "user_profile_url": None
             if user.is_anonymous or appbuilder.app.config["MENU_HIDE_USER_INFO"]
             else f"/superset/profile/{user.username}",
-            "locale": session.get("locale", "en"),
+            "locale": session.get("locale", "zh"),
         },
     }
 

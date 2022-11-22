@@ -171,7 +171,7 @@ msgstr "%(rows)行被检索到"
 #, fuzzy, python-format
 msgid ""
 "%(subtitle)s\n"
-"This may be triggered by: %(subtitle)s\n "
+"This may be triggered by:\n"
 " %(issue)s"
 msgstr "这可能由以下因素触发：  %(issue)s"
 
@@ -3078,9 +3078,7 @@ msgstr "列"
 msgid ""
 "Columnar file \"%(columnar_filename)s\" uploaded to table "
 "\"%(table_name)s\" in database \"%(db_name)s\""
-msgstr ""
-"文件 \"%(columnar_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 "
-"\"%(table_name)s\""
+msgstr "文件 \"%(columnar_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 \"%(table_name)s\""
 
 #: superset/views/database/views.py:414
 #, fuzzy

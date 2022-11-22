@@ -152,7 +152,7 @@ class TestDruidFunc(SupersetTestCase):
                 "type": "timeFormat",
                 "format": "d",
                 "timeZone": "Asia/Kolkata",
-                "locale": "en",
+                "locale": "zh",
             },
         }
         spec_json = json.dumps(dimension_spec)
