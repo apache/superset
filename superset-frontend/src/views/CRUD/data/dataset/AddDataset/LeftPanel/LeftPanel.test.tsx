@@ -247,7 +247,7 @@ test('renders a warning icon when a table name has a pre-existing dataset', asyn
       setDataset={mockFun}
       schema="schema_a"
       dbId={1}
-      linkedDatasets={['Sheet2']}
+      datasets={['Sheet2']}
     />,
     {
       useRedux: true,

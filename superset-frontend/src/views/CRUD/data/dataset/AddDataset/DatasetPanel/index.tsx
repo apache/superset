@@ -54,7 +54,7 @@ export interface IDatasetPanelWrapperProps {
    */
   schema?: string | null;
   setHasColumns?: Function;
-  linkedDatasets?: DatasetObject[] | undefined;
+  datasets?: DatasetObject[] | undefined;
 }
 
 const DatasetPanelWrapper = ({
@@ -62,7 +62,7 @@ const DatasetPanelWrapper = ({
   dbId,
   schema,
   setHasColumns,
-  linkedDatasets,
+  datasets,
 }: IDatasetPanelWrapperProps) => {
   const [columnList, setColumnList] = useState<ITableColumn[]>([]);
   const [loading, setLoading] = useState(false);
@@ -123,7 +123,7 @@ const DatasetPanelWrapper = ({
       hasError={hasError}
       loading={loading}
       tableName={tableName}
-      linkedDatasets={linkedDatasets}
+      datasets={datasets}
     />
   );
 };

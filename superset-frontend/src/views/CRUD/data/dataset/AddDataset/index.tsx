@@ -17,7 +17,8 @@
  * under the License.
  */
 import React, { useReducer, Reducer, useEffect, useState } from 'react';
-import { SupersetClient, logging } from '@superset-ui/core';
+import { logging } from '@superset-ui/core';
+import { UseGetDatasetsList } from 'src/views/CRUD/data/hooks';
 import rison from 'rison';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
@@ -75,8 +76,8 @@ export default function AddDataset() {
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
-  const [linkedDatasets, setLinkedDatasets] = useState<DatasetObject[]>([]);
-  const linkedDatasetNames = linkedDatasets.map(dataset => dataset.table_name);
+  const [datasets, setDatasets] = useState<DatasetObject[]>([]);
+  const datasetNames = datasets.map(dataset => dataset.table_name);
   const encodedSchema = dataset?.schema
     ? encodeURIComponent(dataset?.schema)
     : undefined;
@@ -90,13 +91,11 @@ export default function AddDataset() {
       })
     : undefined;
 
-  const getDatasetsList = () => {
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/?q=${queryParams}`,
-    })
-      .then(({ json }) => {
-        json.result.map((dataset: any) =>
-          setLinkedDatasets(linkedDatasets => [...linkedDatasets, dataset]),
+  const getDatasetsList = async () => {
+    await UseGetDatasetsList(queryParams)
+      .then(json => {
+        json?.result.map((dataset: DatasetObject) =>
+          setDatasets(datasets => [...datasets, dataset]),
         );
       })
       .catch(error =>
@@ -119,7 +118,7 @@ export default function AddDataset() {
       setDataset={setDataset}
       schema={dataset?.schema}
       dbId={dataset?.db?.id}
-      linkedDatasets={linkedDatasetNames}
+      datasets={datasetNames}
     />
   );
 
@@ -129,7 +128,7 @@ export default function AddDataset() {
       dbId={dataset?.db?.id}
       schema={dataset?.schema}
       setHasColumns={setHasColumns}
-      linkedDatasets={linkedDatasets}
+      datasets={datasets}
     />
   );
 
@@ -138,7 +137,7 @@ export default function AddDataset() {
       url={prevUrl}
       datasetObject={dataset}
       hasColumns={hasColumns}
-      linkedDatasets={linkedDatasetNames}
+      datasets={datasetNames}
     />
   );
 

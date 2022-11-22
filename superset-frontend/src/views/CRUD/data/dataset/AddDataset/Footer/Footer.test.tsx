@@ -66,10 +66,9 @@ describe('Footer', () => {
   });
 
   test('create button becomes disabled when table already has a dataset', () => {
-    render(
-      <Footer linkedDatasets={['real_info']} {...mockPropsWithDataset} />,
-      { useRedux: true },
-    );
+    render(<Footer datasets={['real_info']} {...mockPropsWithDataset} />, {
+      useRedux: true,
+    });
 
     const createButton = screen.getByRole('button', {
       name: /Create/i,

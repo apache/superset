@@ -37,7 +37,7 @@ interface FooterProps {
   datasetObject?: Partial<DatasetObject> | null;
   onDatasetAdd?: (dataset: DatasetObject) => void;
   hasColumns?: boolean;
-  linkedDatasets?: (string | null | undefined)[] | undefined;
+  datasets?: (string | null | undefined)[] | undefined;
 }
 
 const INPUT_FIELDS = ['db', 'schema', 'table_name'];
@@ -53,7 +53,7 @@ function Footer({
   datasetObject,
   addDangerToast,
   hasColumns = false,
-  linkedDatasets,
+  datasets,
 }: FooterProps) {
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
@@ -114,7 +114,7 @@ function Footer({
   const disabledCheck =
     !datasetObject?.table_name ||
     !hasColumns ||
-    linkedDatasets?.includes(datasetObject?.table_name);
+    datasets?.includes(datasetObject?.table_name);
 
   return (
     <>

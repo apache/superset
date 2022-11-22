@@ -146,7 +146,7 @@ describe('DatasetPanel', () => {
         hasError={false}
         columnList={exampleColumns}
         loading={false}
-        linkedDatasets={exampleDataset}
+        datasets={exampleDataset}
       />,
     );
 

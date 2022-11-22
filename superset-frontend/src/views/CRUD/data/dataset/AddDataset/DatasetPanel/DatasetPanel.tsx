@@ -202,7 +202,7 @@ export interface IDatasetPanelProps {
    * Boolean indicating if the component is in a loading state
    */
   loading: boolean;
-  linkedDatasets?: DatasetObject[] | undefined;
+  datasets?: DatasetObject[] | undefined;
 }
 
 const EXISTING_DATASET_DESCRIPTION = t(
@@ -210,7 +210,7 @@ const EXISTING_DATASET_DESCRIPTION = t(
 );
 const VIEW_DATASET = t('View Dataset');
 
-const renderExistingDatasetAlert = (linkedDataset?: DatasetObject) => (
+const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
   <StyledAlert
     closable={false}
     type="info"
@@ -223,7 +223,7 @@ const renderExistingDatasetAlert = (linkedDataset?: DatasetObject) => (
           role="button"
           onClick={() => {
             window.open(
-              linkedDataset?.explore_url,
+              dataset?.explore_url,
               '_blank',
               'noreferer noopener popup=false',
             );
@@ -243,11 +243,11 @@ const DatasetPanel = ({
   columnList,
   loading,
   hasError,
-  linkedDatasets,
+  datasets,
 }: IDatasetPanelProps) => {
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
-  const linkedDatasetNames = linkedDatasets?.map(dataset => dataset.table_name);
+  const datasetNames = datasets?.map(dataset => dataset.table_name);
 
   let component;
   if (loading) {
@@ -289,9 +289,9 @@ const DatasetPanel = ({
     <>
       {tableName && (
         <>
-          {linkedDatasetNames?.includes(tableName) &&
+          {datasetNames?.includes(tableName) &&
             renderExistingDatasetAlert(
-              linkedDatasets?.find(dataset => dataset.table_name === tableName),
+              datasets?.find(dataset => dataset.table_name === tableName),
             )}
           <StyledHeader
             position={
