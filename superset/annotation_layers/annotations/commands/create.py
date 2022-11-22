@@ -70,7 +70,7 @@ class CreateAnnotationCommand(BaseCommand):
 
         # validate date time sanity
         if start_dttm and end_dttm and end_dttm < start_dttm:
-            exceptions.append(AnnotationDatesValidationError)
+            exceptions.append(AnnotationDatesValidationError())
 
         if exceptions:
             exception = AnnotationInvalidError()
