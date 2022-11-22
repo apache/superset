@@ -280,10 +280,20 @@ const DropdownContainer = forwardRef(
             <Button buttonStyle="secondary">
               {popoverTriggerIcon}
               {popoverTriggerText}
-              <Badge count={popoverTriggerCount || overflowingCount} />
+              <Badge
+                count={popoverTriggerCount || overflowingCount}
+                css={css`
+                  margin-left: 8px;
+                `}
+              />
               <Icons.DownOutlined
                 iconSize="m"
-                iconColor={theme.colors.grayscale.base}
+                iconColor={theme.colors.grayscale.light1}
+                css={css`
+                  .anticon {
+                    display: flex;
+                  }
+                `}
               />
             </Button>
           </Popover>

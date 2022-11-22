@@ -24,6 +24,7 @@ import {
   Divider,
   css,
   SupersetTheme,
+  t,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -37,6 +38,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import DropdownContainer from 'src/components/DropdownContainer';
+import Icons from 'src/components/Icons';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
@@ -124,6 +126,17 @@ const FilterControls: FC<FilterControlsProps> = ({
       >
         <DropdownContainer
           items={items}
+          dropdownTriggerIcon={
+            <Icons.FilterSmall
+              css={css`
+                && {
+                  margin-right: -4px;
+                  display: flex;
+                }
+              `}
+            />
+          }
+          dropdownTriggerText={t('More filters')}
           dropdownContent={overflowedItems => {
             const overflowedItemIds = new Set(
               overflowedItems.map(({ id }) => id),
