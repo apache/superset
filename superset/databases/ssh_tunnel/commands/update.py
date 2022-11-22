@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (
@@ -33,6 +34,8 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 
 logger = logging.getLogger(__name__)
 
+config = app.config
+ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
 
 class UpdateSSHTunnelCommand(BaseCommand):
     def __init__(self, model_id: int, data: Dict[str, Any]):
@@ -53,3 +56,8 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._model = SSHTunnelDAO.find_by_id(self._model_id)
         if not self._model:
             raise SSHTunnelNotFoundError()
+        
+        # TODO(hughhh): check to make sure the server port is not localhost
+        # using the config.SSH_TUNNEL_MANAGER
+        if ssh_tunnel_manager:
+            ssh_tunnel_manager.validate()

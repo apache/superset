@@ -20,11 +20,15 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+from superset import app
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelCreateFailedError
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+
+config = app.config
+ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
 
 logger = logging.getLogger(__name__)
 
@@ -47,4 +51,6 @@ class CreateSSHTunnelCommand(BaseCommand):
     def validate(self) -> None:
         # TODO(hughhh): check to make sure the server port is not localhost
         # using the config.SSH_TUNNEL_MANAGER
+        if ssh_tunnel_manager:
+            ssh_tunnel_manager.validate()
         return
