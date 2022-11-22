@@ -18,15 +18,15 @@ under the License.
 -->
 
 ## Change Log
+### 2.0.1 (Thu Oct 13 09:52:35 2022 -0700)
+**Database Migrations** 
 
-### 2.0.1 (Thu Sep 29 19:56:19 2022 +0530)
-**Database Migrations**
+**Features** 
 
-**Features**
-
-**Fixes**
+**Fixes** 
 - [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina) (security improvement)
 - [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina) (security improvement)
+- [#21776](https://github.com/apache/superset/pull/21776) fix(CustomFrame): Resolves issue #21731 where date range in explore throws runtime error (@eric-briscoe)
 - [#21637](https://github.com/apache/superset/pull/21637) fix: respect chart cache timeout setting (@mayurnewase)
 - [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
 - [#21441](https://github.com/apache/superset/pull/21441) fix(cache): respect default cache timeout on v1 chart data requests (@villebro)
@@ -37,7 +37,6 @@ under the License.
 - [#21761](https://github.com/apache/superset/pull/21761) fix: flash message on database data upload forms (@dpgaspar)
 - [#21759](https://github.com/apache/superset/pull/21759) fix: database schema selector on import data (@dpgaspar)
 - [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
-- [#21576](https://github.com/apache/superset/pull/21576) fix(dashboard): dashboard doesn't load properly if it has tabs (@stephenLYZ)
 - [#21549](https://github.com/apache/superset/pull/21549) fix(dashboard): show correct roles for dashboard access dropdown (@mayurnewase)
 - [#21773](https://github.com/apache/superset/pull/21773) fix: remove deprecated ETagResponseMixin (@eschutho)
 - [#21561](https://github.com/apache/superset/pull/21561) fix(report): Fix permission check for set up email report on charts/dashboards. Fixes #21559 (@zhaorui2022)
@@ -69,7 +68,7 @@ under the License.
 - [#20733](https://github.com/apache/superset/pull/20733) fix(docker): Make Gunicorn max_requests and max_requests_jitter adjustable  (@mdeshmu)
 - [#20714](https://github.com/apache/superset/pull/20714) fix: logger message (@betodealmeida)
 
-**Others**
+**Others** 
 - [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 - [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 - [#20644](https://github.com/apache/superset/pull/20644) chore(deps): bump moment from 2.29.2 to 2.29.4 in /superset-frontend (@dependabot[bot])
