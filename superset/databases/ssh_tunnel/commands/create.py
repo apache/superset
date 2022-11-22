@@ -45,7 +45,6 @@ class CreateSSHTunnelCommand(BaseCommand):
         return tunnel
 
     def validate(self) -> None:
-        # check to make sure the server port is not localhost
-        # db_id = self._properties["database_id"]
-        # db = DatabaseDAO.find_by_id(db_id)
-        pass
+        # TODO(hughhh): check to make sure the server port is not localhost
+        # using the config.SSH_TUNNEL_MANAGER
+        return
