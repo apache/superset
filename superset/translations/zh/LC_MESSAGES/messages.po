@@ -134,7 +134,7 @@ msgstr ""
 #: superset/security/analytics_db_safety.py:44
 #, fuzzy, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
-msgstr "出于安全原因，SQLite数据库不能用作数据源。"
+msgstr "%(dialect)s 出于安全原因，SQLite数据库不能用作数据源。"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:84
 #, fuzzy, python-format
@@ -165,15 +165,15 @@ msgstr ""
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:656
 #, fuzzy, python-format
 msgid "%(rows)d rows returned"
-msgstr "行被检索到"
+msgstr "%(rows)行被检索到"
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:93
 #, fuzzy, python-format
 msgid ""
 "%(subtitle)s\n"
-"This may be triggered by:\n"
+"This may be triggered by: %(subtitle)s\n "
 " %(issue)s"
-msgstr "这可能由以下因素触发："
+msgstr "这可能由以下因素触发：  %(issue)s"
 
 #: superset-frontend/src/components/ErrorMessage/ParameterErrorMessage.tsx:88
 #, python-format
@@ -1211,7 +1211,7 @@ msgstr "收起表结构时出错。请与管理员联系。"
 #: superset-frontend/src/views/CRUD/hooks.ts:301
 #, fuzzy, python-format
 msgid "An error occurred while creating %ss: %s"
-msgstr "获取数据集时出错：%s"
+msgstr "获取数据集时出错%ss: %s"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1313
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1335
@@ -1247,14 +1247,14 @@ msgstr "展开表结构时出错。请与管理员联系。"
 #: superset-frontend/src/views/CRUD/hooks.ts:103
 #, fuzzy, python-format
 msgid "An error occurred while fetching %s info: %s"
-msgstr "获取仪表板时出错：%s"
+msgstr "获取仪表板 %s 时出错：%s"
 
 #: superset-frontend/src/views/CRUD/hooks.ts:171
 #: superset-frontend/src/views/CRUD/hooks.ts:258
 #: superset-frontend/src/views/CRUD/hooks.ts:344
 #, fuzzy, python-format
 msgid "An error occurred while fetching %ss: %s"
-msgstr "获取数据集时出错：%s"
+msgstr "获取数据集时出错%ss：%s"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:132
 msgid "An error occurred while fetching available CSS templates"
@@ -1374,7 +1374,7 @@ msgstr "展开表结构时出错。请与管理员联系。"
 #: superset-frontend/src/views/CRUD/hooks.ts:451
 #, fuzzy, python-format
 msgid "An error occurred while importing %s: %s"
-msgstr "精简日志时出错 "
+msgstr "精简日志时出错%s: %s "
 
 #: superset-frontend/src/chart/chartAction.js:569
 msgid "An error occurred while loading the SQL"
@@ -3079,7 +3079,7 @@ msgid ""
 "Columnar file \"%(columnar_filename)s\" uploaded to table "
 "\"%(table_name)s\" in database \"%(db_name)s\""
 msgstr ""
-"Excel 文件 \"%(excel_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 "
+"文件 \"%(columnar_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 "
 "\"%(table_name)s\""
 
 #: superset/views/database/views.py:414
@@ -4115,7 +4115,7 @@ msgstr "天"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:66
 #, fuzzy, python-format
 msgid "Days %s"
-msgstr "天"
+msgstr "%s 天"
 
 #: superset/connectors/sqla/models.py:1593
 msgid "Db engine did not return all queried columns"
@@ -5329,12 +5329,12 @@ msgstr "获取数据时出错"
 #: superset-frontend/src/explore/components/controls/SelectAsyncControl/index.tsx:89
 #, fuzzy, python-format
 msgid "Error while fetching data: %s"
-msgstr "获取数据时出错"
+msgstr "获取数据时出错: %s"
 
 #: superset/connectors/sqla/models.py:842
 #, fuzzy, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
-msgstr "保存数据集时出错：%s"
+msgstr "保存数据集时出错：%(msg)s"
 
 #: superset-frontend/src/SqlLab/components/EstimateQueryCostButton/index.tsx:91
 msgid "Estimate cost"
@@ -5652,7 +5652,7 @@ msgstr "检索结果失败"
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:409
 #, fuzzy, python-format
 msgid "Failed at stopping query. %s"
-msgstr "停止查询时候出错。 "
+msgstr "停止查询时候出错。%s "
 
 #: superset/errors.py:137 superset/sqllab/sql_json_executer.py:194
 msgid "Failed to start remote query on a worker."
@@ -6177,7 +6177,7 @@ msgstr "小时"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:65
 #, fuzzy, python-format
 msgid "Hours %s"
-msgstr "小时"
+msgstr "%s 小时"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:779
 msgid "Hours offset"
@@ -6569,7 +6569,7 @@ msgstr "%(rolling_type)s 的选项无效：%(options)s"
 #: superset/common/query_actions.py:192
 #, fuzzy, python-format
 msgid "Invalid result type: %(result_type)s"
-msgstr "无效的滚动类型：%(type)s"
+msgstr "无效的类型：%(result_type)s"
 
 #: superset/utils/pandas_postprocessing.py:408
 #, python-format
@@ -7542,7 +7542,7 @@ msgstr "分"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:64
 #, fuzzy, python-format
 msgid "Minutes %s"
-msgstr "分钟"
+msgstr "%s 分钟"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:93
 #, fuzzy
@@ -7600,7 +7600,7 @@ msgstr "月"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:68
 #, fuzzy, python-format
 msgid "Months %s"
-msgstr "月"
+msgstr "%s 月"
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:238
 msgid "More dataset related options"
@@ -9147,7 +9147,7 @@ msgstr "季度"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:69
 #, fuzzy, python-format
 msgid "Quarters %s"
-msgstr "季度"
+msgstr "%s 季度"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:32
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/controlPanel.ts:26
@@ -10365,7 +10365,7 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:63
 #, fuzzy, python-format
 msgid "Seconds %s"
-msgstr "秒"
+msgstr "%s 秒"
 
 #: superset/views/database/mixins.py:197
 msgid "Secure Extra"
@@ -10389,7 +10389,7 @@ msgstr "安全 & 访问"
 #: superset-frontend/src/views/CRUD/welcome/EmptyState.tsx:157
 #, fuzzy, python-format
 msgid "See all %(tableName)s"
-msgstr "查看 - %(table)s"
+msgstr "查看 - %(tableName)s"
 
 #: superset-frontend/src/components/ErrorMessage/ErrorAlert.tsx:155
 msgid "See less"
@@ -11140,7 +11140,7 @@ msgstr ""
 #: superset-frontend/src/dashboard/actions/dashboardState.js:238
 #, fuzzy, python-format
 msgid "Sorry, there was an error saving this dashboard: %s"
-msgstr "抱歉，这个看板在获取图表时发生错误："
+msgstr "抱歉，这个看板在获取图表时发生错误：%s"
 
 #: superset-frontend/src/dashboard/components/menu/ShareMenuItems/index.tsx:55
 #: superset-frontend/src/explore/components/ExploreActionButtons.tsx:115
@@ -11857,7 +11857,7 @@ msgid ""
 "The database %s is linked to %s charts that appear on %s dashboards and "
 "users have %s SQL Lab tabs using this database open. Are you sure you "
 "want to continue? Deleting the database will break those objects."
-msgstr "数据库 %s 已经关联了 %s 图表和 %s 看板。确定要继续吗？删除数据库将破坏这些对象。"
+msgstr "数据库 %s 已经关联了 %s 图表和 %s 看板。确定要继续吗？删除数据库将破坏这些对象。 %s"
 
 #: superset/errors.py:126
 msgid "The database is currently running too many queries."
@@ -12324,14 +12324,14 @@ msgstr "详细提示显示了该时间点的所有序列的列表。"
 msgid ""
 "The schema \"%(schema)s\" does not exist. A valid schema must be used to "
 "run this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "语法 \"%(schema)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/db_engine_specs/presto.py:187
 #, fuzzy, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "语法 \"%(schema_name)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/errors.py:111
 #, fuzzy
@@ -12355,7 +12355,7 @@ msgstr ""
 msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "表 \"%(table)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/db_engine_specs/presto.py:179
 #, python-format
@@ -12440,7 +12440,7 @@ msgstr "用户已经被删除"
 #: superset/db_engine_specs/postgres.py:112
 #, fuzzy, python-format
 msgid "The username \"%(username)s\" does not exist."
-msgstr "指标 '%(metric)s' 不存在"
+msgstr "用户名 '%(username)s' 不存在"
 
 #: superset/errors.py:107
 msgid "The username provided when connecting to a database is not valid."
@@ -12500,7 +12500,7 @@ msgstr "此组件没有足够的空间。请尝试减小其宽度，或增加目
 #: superset-frontend/src/views/CRUD/hooks.ts:522
 #, fuzzy, python-format
 msgid "There was an error fetching the favorite status: %s"
-msgstr "获取此看板的收藏夹状态时出现问题。"
+msgstr "获取此看板的收藏夹状态时出现问题: %s"
 
 #: superset-frontend/src/views/CRUD/utils.tsx:181
 msgid "There was an error fetching your recent activity:"
@@ -12519,7 +12519,7 @@ msgstr "您的请求有错误"
 #: superset-frontend/src/views/CRUD/hooks.ts:543
 #, fuzzy, python-format
 msgid "There was an error saving the favorite status: %s"
-msgstr "获取此看板的收藏夹状态时出现问题。"
+msgstr "获取此看板的收藏夹状态时出现问题: %s"
 
 #: superset-frontend/src/SqlLab/components/ShareSqlLabQuery/index.tsx:61
 msgid "There was an error with your request"
@@ -12598,7 +12598,7 @@ msgstr "获取此看板的收藏夹状态时出现问题。"
 #: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:195
 #, fuzzy, python-format
 msgid "There was an issue fetching your recent activity: %s"
-msgstr "获取您最近的活动时出错："
+msgstr "获取您最近的活动时出错：%s"
 
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:152
 #, python-format
@@ -12618,7 +12618,7 @@ msgstr "删除时出现问题：%s"
 #: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:211
 #, fuzzy, python-format
 msgid "There was an issues fetching your dashboards: %s"
-msgstr "删除所选仪表板时出现问题："
+msgstr "删除所选仪表板时出现问题：%s"
 
 #: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:233
 #, fuzzy, python-format
@@ -13917,7 +13917,7 @@ msgstr "已查看"
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:124
 #, fuzzy, python-format
 msgid "Viewed %s"
-msgstr "已查看"
+msgstr "%s 已查看"
 
 #: superset-frontend/plugins/legacy-plugin-chart-map-box/src/controlPanel.ts:268
 msgid "Viewport"
@@ -14089,12 +14089,12 @@ msgstr "警告！如果元数据不存在，更改数据集可能会破坏图表
 #: superset/db_engine_specs/bigquery.py:166
 #, fuzzy, python-format
 msgid "We can't seem to resolve column \"%(column)s\" at line %(location)s."
-msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
+msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column)s\" 。"
 
 #: superset/db_engine_specs/sqlite.py:63
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\""
-msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\" 。"
+msgstr "我们似乎无法解析行列 \"%(column_name)s\" 。"
 
 #: superset/db_engine_specs/postgres.py:150
 #: superset/db_engine_specs/presto.py:171
@@ -14160,7 +14160,7 @@ msgstr "周日为一周结束"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:67
 #, fuzzy, python-format
 msgid "Weeks %s"
-msgstr "周"
+msgstr "%s 周"
 
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:52
 #, python-format
@@ -14698,7 +14698,7 @@ msgstr "年"
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:70
 #, fuzzy, python-format
 msgid "Years %s"
-msgstr "年"
+msgstr "年 %s"
 
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:443
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:537
