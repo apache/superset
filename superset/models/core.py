@@ -66,6 +66,8 @@ from superset.utils.core import get_username
 from superset.utils.memoized import memoized
 
 config = app.config
+
+ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 stats_logger = config["STATS_LOGGER"]
 log_query = config["QUERY_LOGGER"]
@@ -381,6 +383,8 @@ class Database(
             ssh_tunnel.bind_host = url.host
             ssh_tunnel.bind_port = url.port
             ssh_params = ssh_tunnel.parameters()
+            if ssh_tunnel_manager:
+                ssh_params = ssh_tunnel_manager.mutate(ssh_params)
             try:
                 with sshtunnel.open_tunnel(**ssh_params) as server:
                     yield self._get_sqla_engine(
