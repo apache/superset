@@ -24,7 +24,7 @@ import { checkIsMissingRequiredValue } from '../utils';
 import FilterValue from './FilterValue';
 import { FilterProps } from './types';
 import { FilterCard } from '../../FilterCard';
-import { FilterBarScrollContext } from '../index';
+import { FilterBarScrollContext } from '../Vertical';
 
 const StyledIcon = styled.div`
   position: absolute;
