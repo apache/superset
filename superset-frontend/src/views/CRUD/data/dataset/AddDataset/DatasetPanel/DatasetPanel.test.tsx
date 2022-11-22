@@ -153,7 +153,7 @@ describe('DatasetPanel', () => {
     // This is text in the info banner
     expect(
       await screen.findByText(
-        /you can only associate one dataset with one table. this table already has a dataset associated with it in preset./i,
+        /this table already has a dataset associated with it. you can only associate one dataset with a table./i,
       ),
     ).toBeVisible();
   });
