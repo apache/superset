@@ -35,6 +35,7 @@ from sqlalchemy.sql import func
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.db_engine_specs.redshift import RedshiftEngineSpec
@@ -276,6 +277,36 @@ class TestDatabaseApi(SupersetTestCase):
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
         assert model.configuration_method == ConfigurationMethod.SQLALCHEMY_FORM
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_create_database_with_ssh_tunnel(self):
+        """
+        Database API: Test create with SSH Tunnel
+        """
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "bind_host": "localhost",
+            "bind_port": "5432",
+            "username": "foo",
+            "password": "bar",
+        }
+        database_data = {
+            "database_name": "test-create-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+        # Cleanup
+        model = db.session.query(Database).get(response.get("id"))
         db.session.delete(model)
         db.session.commit()
 
