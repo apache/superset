@@ -206,7 +206,7 @@ export interface IDatasetPanelProps {
 }
 
 const EXISTING_DATASET_DESCRIPTION = t(
-  'You can only associate one dataset with one table. This table already has a dataset associated with it in Preset.\n',
+  'This table already has a dataset associated with it. You can only associate one dataset with a table.\n',
 );
 const VIEW_DATASET = t('View Dataset');
 
