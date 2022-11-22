@@ -7078,11 +7078,11 @@ msgstr "日志保留"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:383
 msgid "Logarithmic scale on primary y-axis"
-msgstr ""
+msgstr "第一y坐标"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:416
 msgid "Logarithmic scale on secondary y-axis"
-msgstr ""
+msgstr "第二y坐标"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:380
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:404
@@ -7222,29 +7222,29 @@ msgstr "季度"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:179
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/controlPanel.tsx:182
 msgid "Marker Size"
-msgstr ""
+msgstr "季度大小"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:68
 #, fuzzy
 msgid "Marker labels"
-msgstr "[警报] %(label)s"
+msgstr "Marker 名称"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:88
 msgid "Marker line labels"
-msgstr ""
+msgstr "Marker线名称"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:79
 msgid "Marker lines"
-msgstr ""
+msgstr "Marker线名称"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:225
 msgid "Marker size"
-msgstr ""
+msgstr "Marker大小"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bullet/controlPanel.ts:59
 #, fuzzy
 msgid "Markers"
-msgstr "季度"
+msgstr "Markers"
 
 #: superset-frontend/src/explore/controlPanels/Separator.js:32
 msgid "Markup type"
@@ -7263,7 +7263,7 @@ msgstr "最大气泡的尺寸"
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:129
 msgid "Max Events"
-msgstr ""
+msgstr "最大时间"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:257
 msgid "Maximize chart"
@@ -7271,7 +7271,7 @@ msgstr "最大化图表"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1266
 msgid "Maximum"
-msgstr ""
+msgstr "最大值"
 
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/controlPanel.ts:68
 msgid "Maximum Font Size"
@@ -7279,7 +7279,7 @@ msgstr "最大字体大小"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:101
 msgid "Maximum value on the gauge axis"
-msgstr ""
+msgstr "最大值"
 
 #: superset-frontend/src/components/CronPicker/CronPicker.tsx:70
 msgid "May"
