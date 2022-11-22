@@ -14,32 +14,29 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import (
-    CommandException,
-    CommandInvalidError,
-    DeleteFailedError,
-    UpdateFailedError,
-)
+from typing import Iterator
+
+import pytest
+from sqlalchemy.orm.session import Session
 
 
-class SSHTunnelDeleteFailedError(DeleteFailedError):
-    message = _("SSH Tunnel could not be deleted.")
+def test_create_ssh_tunnel_command() -> None:
+    from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+    from superset.models.core import Database
 
+    db = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
 
-class SSHTunnelNotFoundError(CommandException):
-    status = 404
-    message = _("SSH Tunnel not found.")
+    properties = {
+        "database_id": db.id,
+        "server_address": "123.132.123.1",
+        "server_port": "3005",
+        "username": "foo",
+        "password": "bar",
+    }
 
+    result = CreateSSHTunnelCommand(db.id, properties).run()
 
-class SSHTunnelInvalidError(CommandInvalidError):
-    message = _("SSH Tunnel parameters are invalid.")
-
-
-class SSHTunnelUpdateFailedError(UpdateFailedError):
-    message = _("SSH Tunnel could not be updated.")
-
-
-class SSHTunnelCreateFailedError(CommandException):
-    message = _("Creating SSH Tunnel failed for an unknown reason")
+    assert result is not None
+    assert isinstance(result, SSHTunnel)

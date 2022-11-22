@@ -50,7 +50,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
     session.rollback()
 
 
-def test_database_get_shh_tunnel(session_with_data: Session) -> None:
+def test_database_get_ssh_tunnel(session_with_data: Session) -> None:
     from superset.databases.dao import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel
 
@@ -61,7 +61,7 @@ def test_database_get_shh_tunnel(session_with_data: Session) -> None:
     assert 1 == result.database_id
 
 
-def test_database_get_shh_tunnel_not_found(session_with_data: Session) -> None:
+def test_database_get_ssh_tunnel_not_found(session_with_data: Session) -> None:
     from superset.databases.dao import DatabaseDAO
 
     result = DatabaseDAO.get_ssh_tunnel(2)
