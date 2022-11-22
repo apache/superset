@@ -77,6 +77,7 @@ export default function AddDataset() {
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
+  console.log(datasets);
   const datasetNames = datasets.map(dataset => dataset.table_name);
   const encodedSchema = dataset?.schema
     ? encodeURIComponent(dataset?.schema)
