@@ -31,6 +31,9 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
+from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelInvalidError
+from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 
@@ -77,6 +80,16 @@ class CreateDatabaseCommand(BaseCommand):
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
+
+            if self._properties.get("ssh_tunnel"):
+                SSHTunnelDAO.create(
+                    {
+                        **self._properties.get("ssh_tunnel"),
+                        "database_id": database.id,
+                    },
+                    commit=False,
+                )
+
             db.session.commit()
         except DAOCreateFailedError as ex:
             db.session.rollback()
