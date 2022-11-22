@@ -1164,15 +1164,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             ]
           : [];
     }
-
     if (alertErrors.length) {
       return (
-        <ErrorMessageWithStackTrace
-          title={t('Database Creation Error')}
-          description={alertErrors[0]}
-          subtitle={validationErrors?.description}
-          copyText={validationErrors?.description}
-        />
+        <ErrorAlertContainer>
+          <ErrorMessageWithStackTrace
+            title={t('Database Creation Error')}
+            description={alertErrors[0]}
+            subtitle={validationErrors?.description}
+            copyText={validationErrors?.description}
+          />
+        </ErrorAlertContainer>
       );
     }
     return <></>;
@@ -1479,6 +1480,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               />
             </StyledAlertMargin>
           )}
+          {showDBError && errorAlert()}
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
@@ -1512,9 +1514,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {showDBError && (
-            <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
-          )}
         </Tabs.TabPane>
       </TabsStyled>
     </Modal>
@@ -1676,9 +1675,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
                 {/* Step 2 */}
-                {showDBError && (
-                  <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
-                )}
+                {showDBError && errorAlert()}
               </>
             ))}
         </>
