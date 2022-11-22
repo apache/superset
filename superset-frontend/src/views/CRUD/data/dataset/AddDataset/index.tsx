@@ -77,6 +77,7 @@ export default function AddDataset() {
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
+  console.log(datasets);
   const datasetNames = datasets.map(dataset => dataset.table_name);
   const encodedSchema = dataset?.schema
     ? encodeURIComponent(dataset?.schema)
@@ -94,9 +95,7 @@ export default function AddDataset() {
   const getDatasetsList = async () => {
     await UseGetDatasetsList(queryParams)
       .then(json => {
-        json?.result.map((dataset: DatasetObject) =>
-          setDatasets(datasets => [...datasets, dataset]),
-        );
+        setDatasets(json?.result);
       })
       .catch(error =>
         logging.error('There was an error fetching dataset', error),
