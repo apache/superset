@@ -2579,6 +2579,79 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         return response
 
+
+    # @has_access
+    @event_logger.log_this
+    @expose("/excel/<client_id>")
+    def excel(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
+        """Download the query results as csv."""
+        logger.info("Exporting Excel file [%s]", client_id)
+        query = db.session.query(Query).filter_by(client_id=client_id).one()
+
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
+            flash(ex.error.message)
+            return redirect("/")
+
+        blob = None
+        if results_backend and query.results_key:
+            logger.info("Fetching Excel from results backend [%s]", query.results_key)
+            blob = results_backend.get(query.results_key)
+        if blob:
+            logger.info("Decompressing")
+            payload = utils.zlib_decompress(
+                blob, decode=not results_backend_use_msgpack
+            )
+            obj = _deserialize_results_payload(
+                payload, query, cast(bool, results_backend_use_msgpack)
+            )
+
+            df = pd.DataFrame(
+                data=obj["data"],
+                dtype=object,
+                columns=[c["name"] for c in obj["columns"]],
+            )
+
+            logger.info("Using pandas to convert to Excel")
+        else:
+            logger.info("Running a query to turn into Excel")
+            if query.select_sql:
+                sql = query.select_sql
+                limit = None
+            else:
+                sql = query.executed_sql
+                limit = ParsedQuery(sql).limit
+            if limit is not None and query.limiting_factor in {
+                LimitingFactor.QUERY,
+                LimitingFactor.DROPDOWN,
+                LimitingFactor.QUERY_AND_DROPDOWN,
+            }:
+                # remove extra row from `increased_limit`
+                limit -= 1
+            df = query.database.get_df(sql, query.schema)[:limit]
+
+        logger.info("Excel DF", df)
+        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
+        quoted_csv_name = parse.quote(query.name)
+        response = CsvResponse(
+            csv_data, headers=generate_download_headers("csv", quoted_csv_name)
+        )
+        event_info = {
+            "event_type": "data_export",
+            "client_id": client_id,
+            "row_count": len(df.index),
+            "database": query.database.name,
+            "schema": query.schema,
+            "sql": query.sql,
+            "exported_format": "csv",
+        }
+        event_rep = repr(event_info)
+        logger.debug(
+            "Excel exported: %s", event_rep, extra={"superset_event": event_info}
+        )
+        return response
+
     @api
     @handle_api_exception
     @has_access

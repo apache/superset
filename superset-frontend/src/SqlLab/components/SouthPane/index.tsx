@@ -197,6 +197,7 @@ export default function SouthPane({
           query={query}
           visualize={false}
           csv={false}
+          excel={false}
           cache
           user={user}
           height={innerTabContentHeight}
