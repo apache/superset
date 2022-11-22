@@ -48,14 +48,28 @@ const temporal = {
   },
 };
 
-it('hides the section when X axis is not temporal', () => {
+test('hides the section when X axis is not temporal', () => {
   expect(isSectionVisible(VisibilityRuleType.XTEMPORAL, nonTemporal)).toEqual(
     false,
   );
 });
 
-it('shows the section when X axis is not temporal', () => {
+test('shows the section when X axis is not temporal', () => {
   expect(isSectionVisible(VisibilityRuleType.XTEMPORAL, temporal)).toEqual(
     true,
   );
+});
+
+test('shows the section when X axis is not available', () => {
+  expect(
+    isSectionVisible(VisibilityRuleType.XTEMPORAL, {
+      ...nonTemporal,
+      form_data: {},
+    }),
+  ).toEqual(true);
+});
+
+test('shows by default', () => {
+  // @ts-ignore
+  expect(isSectionVisible(undefined, temporal)).toEqual(true);
 });
