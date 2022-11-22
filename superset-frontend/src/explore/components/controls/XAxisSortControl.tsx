@@ -21,14 +21,14 @@ import SelectControl from './SelectControl';
 
 export default function XAxisSortControl(props: {
   onChange: (val: string | undefined) => void;
-  value: string | undefined;
+  value: string | null;
   shouldReset: boolean;
 }) {
   const [value, setValue] = useState(props.value);
   useEffect(() => {
     if (props.shouldReset) {
       props.onChange(undefined);
-      setValue(undefined);
+      setValue(null);
     }
   }, [props.shouldReset, props.value]);
 
