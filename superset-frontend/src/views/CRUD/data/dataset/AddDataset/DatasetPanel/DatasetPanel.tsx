@@ -225,7 +225,7 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
             window.open(
               dataset?.explore_url,
               '_blank',
-              'noreferer noopener popup=false',
+              'noreferrer noopener popup=false',
             );
           }}
           tabIndex={0}
