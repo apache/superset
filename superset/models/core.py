@@ -385,25 +385,18 @@ class Database(
             ssh_params = ssh_tunnel.parameters()
             if ssh_tunnel_manager:
                 ssh_params = ssh_tunnel_manager.mutate(ssh_params)
-            try:
-                with sshtunnel.open_tunnel(**ssh_params) as server:
-                    yield self._get_sqla_engine(
-                        schema=schema,
-                        nullpool=nullpool,
-                        source=source,
-                        ssh_tunnel_server=server,
-                    )
-            except Exception as ex:
-                raise ex
-
+            with sshtunnel.open_tunnel(**ssh_params) as server:
+                yield self._get_sqla_engine(
+                    schema=schema,
+                    nullpool=nullpool,
+                    source=source,
+                    ssh_tunnel_server=server,
+                )
         else:
             # do look up in table for using database_id
-            try:
-                yield self._get_sqla_engine(
-                    schema=schema, nullpool=nullpool, source=source
-                )
-            except Exception as ex:
-                raise ex
+            yield self._get_sqla_engine(
+                schema=schema, nullpool=nullpool, source=source
+            )
 
     def _get_sqla_engine(
         self,
