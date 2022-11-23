@@ -16,98 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  ChartDataResponseResult,
-  DatasourceType,
-  GenericDataType,
-  supersetTheme,
-} from '@superset-ui/core';
-import { LegendOrientation, LegendType } from '../../src/types';
+import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
-import {
-  EchartsGraphChartProps,
-  EchartsGraphFormData,
-} from '../../src/Graph/types';
+import { EchartsGraphChartProps } from '../../src/Graph/types';
 
 describe('EchartsGraph transformProps', () => {
-  const baseFormData: EchartsGraphFormData = {
-    baseEdgeWidth: 0,
-    baseNodeSize: 0,
-    draggable: false,
-    edgeLength: 0,
-    edgeSymbol: '',
-    friction: 0,
-    gravity: 0,
-    legendMargin: 0,
-    legendOrientation: LegendOrientation.Left,
-    legendType: LegendType.Scroll,
-    repulsion: 0,
-    roam: 'scale',
-    showLegend: false,
-    showSymbolThreshold: 0,
-    viz_type: 'echarts_graph',
-    colorScheme: 'bnbColors',
-    datasource: '3__table',
-    granularity_sqla: 'ds',
-    metric: 'count',
-    source: 'source_column',
-    target: 'target_column',
-    category: null,
-  };
-  const baseResponseResult: ChartDataResponseResult = {
-    error: null,
-    is_cached: false,
-    query: '',
-    rowcount: 2,
-    stacktrace: null,
-    status: 'success',
-    from_dttm: null,
-    to_dttm: null,
-    coltypes: [
-      GenericDataType.STRING,
-      GenericDataType.STRING,
-      GenericDataType.NUMERIC,
-    ],
-    cached_dttm: null,
-    annotation_data: {},
-    cache_key: '',
-    cache_timeout: 0,
-    colnames: ['source_column', 'target_column', 'count'],
-    data: [],
-  };
-  const baseChartProps: EchartsGraphChartProps = {
-    annotationData: {},
-    appSection: undefined,
-    behaviors: [],
-    datasource: {
-      id: 1,
-      name: 'foo',
-      type: DatasourceType.Table,
-      columns: [],
-      metrics: [],
-    },
-    filterState: {},
-    hooks: {},
-    inContextMenu: false,
-    initialValues: {},
-    inputRef: undefined,
-    isRefreshing: false,
-    ownState: {},
-    rawDatasource: {},
-    rawFormData: baseFormData,
-    formData: baseFormData,
-    width: 800,
-    height: 600,
-    queriesData: [baseResponseResult],
-    theme: supersetTheme,
-  };
-
   it('should transform chart props for viz without category', () => {
-    const queriesData: ChartDataResponseResult[] = [
+    const formData: SqlaFormData = {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'count',
+      source: 'source_column',
+      target: 'target_column',
+      category: null,
+      viz_type: 'graph',
+    };
+    const queriesData = [
       {
-        ...baseResponseResult,
+        colnames: ['source_column', 'target_column', 'count'],
         data: [
           {
             source_column: 'source_value_1',
@@ -122,10 +50,15 @@ describe('EchartsGraph transformProps', () => {
         ],
       },
     ];
-    const chartProps = new ChartProps({
-      ...baseChartProps,
+    const chartPropsConfig = {
+      formData,
+      width: 800,
+      height: 600,
       queriesData,
-    });
+      theme: supersetTheme,
+    };
+
+    const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -220,14 +153,19 @@ describe('EchartsGraph transformProps', () => {
   });
 
   it('should transform chart props for viz with category and falsey normalization', () => {
-    const formData: EchartsGraphFormData = {
-      ...baseFormData,
+    const formData: SqlaFormData = {
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metric: 'count',
+      source: 'source_column',
+      target: 'target_column',
       sourceCategory: 'source_category_column',
       targetCategory: 'target_category_column',
+      viz_type: 'graph',
     };
     const queriesData = [
       {
-        ...baseResponseResult,
         colnames: [
           'source_column',
           'target_column',
@@ -253,12 +191,15 @@ describe('EchartsGraph transformProps', () => {
         ],
       },
     ];
-    const chartProps = new ChartProps({
-      ...baseChartProps,
+    const chartPropsConfig = {
       formData,
+      width: 800,
+      height: 600,
       queriesData,
-    });
+      theme: supersetTheme,
+    };
 
+    const chartProps = new ChartProps(chartPropsConfig);
     expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
