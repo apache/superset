@@ -111,6 +111,7 @@ function Echart(
   // did mount
   useEffect(() => {
     handleSizeChange({ width, height });
+    return () => chartRef.current?.dispose();
   }, []);
 
   useLayoutEffect(() => {
