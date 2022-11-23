@@ -24,8 +24,8 @@ import { formatSelectOptions } from '../utils';
 export const TITLE_MARGIN_OPTIONS: number[] = [
   15, 30, 50, 75, 100, 125, 150, 200,
 ];
-export const TITLE_POSITION_OPTIONS: string[][] = [
-  ['Left', t('Left')], 
+export const TITLE_POSITION_OPTIONS: [string, string][] = [
+  ['Left', t('Left')],
   ['Top', t('Top')],
 ];
 export const titleControls: ControlPanelSectionConfig = {

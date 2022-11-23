@@ -124,9 +124,7 @@ const config: ControlPanelConfig = {
               ),
               mapStateToProps: state => {
                 const datasourceChoices = columnChoices(state.datasource);
-                const choices: [string, string][] = [
-                  ['Auto', t('Auto')],
-                ];
+                const choices: [string, string][] = [['Auto', t('Auto')]];
                 return {
                   choices: choices.concat(datasourceChoices),
                 };
@@ -142,8 +140,8 @@ const config: ControlPanelConfig = {
               label: t('Point Radius Unit'),
               default: 'Pixels',
               choices: [
-                ['Pixels', t('Pixels')], 
-                ['Miles', t('Miles')], 
+                ['Pixels', t('Pixels')],
+                ['Miles', t('Miles')],
                 ['Kilometers', t('Kilometers')],
               ],
               description: t(

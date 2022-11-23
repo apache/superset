@@ -21,7 +21,6 @@ import {
   ControlPanelConfig,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
-  formatSelectOptions,
   getStandardizedControls,
   sections,
   temporalColumnMixin,

@@ -30,7 +30,6 @@ import {
 import {
   ControlPanelConfig,
   D3_TIME_FORMAT_OPTIONS,
-  formatSelectOptions,
   sections,
   sharedControls,
   emitFilterControl,
@@ -196,7 +195,10 @@ const config: ControlPanelConfig = {
                 ['Sum as Fraction of Columns', t('Sum as Fraction of Columns')],
                 ['Count as Fraction of Total', t('Count as Fraction of Total')],
                 ['Count as Fraction of Rows', t('Count as Fraction of Rows')],
-                ['Count as Fraction of Columns', t('Count as Fraction of Columns')],
+                [
+                  'Count as Fraction of Columns',
+                  t('Count as Fraction of Columns'),
+                ],
               ],
               default: 'Sum',
               description: t(

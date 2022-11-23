@@ -27,7 +27,6 @@ import {
   columnChoices,
   ControlPanelConfig,
   ControlPanelState,
-  formatSelectOptions,
   formatSelectOptionsForRange,
   sections,
   sharedControls,
