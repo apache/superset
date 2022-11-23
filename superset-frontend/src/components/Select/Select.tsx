@@ -32,7 +32,7 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import AntdSelect, { LabeledValue as AntdLabeledValue, SelectValue } from 'antd/lib/select';
 import { isEqual } from 'lodash';
 import {
   getValue,
@@ -112,7 +112,6 @@ const Select = forwardRef(
   ) => {
     const isSingleMode = mode === 'single';
     const shouldShowSearch = allowNewOptions ? true : showSearch;
-    const [selectAllMode, setSelectAllMode] = useState(false);
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
@@ -185,7 +184,6 @@ const Select = forwardRef(
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
           if (value === getValue(SELECT_ALL_VALUE)) {
-            setSelectAllMode(true);
             return [selectAllOption, ...selectOptions] as AntdLabeledValue[];
           }
           if (!hasOption(value, array)) {
@@ -194,7 +192,6 @@ const Select = forwardRef(
               result.length === fullSelectOptions.length &&
               selectAllEnabled
             ) {
-              setSelectAllMode(true);
               return [selectAllOption, ...result] as AntdLabeledValue[];
             }
             return result as AntdLabeledValue[];
@@ -209,7 +206,6 @@ const Select = forwardRef(
       value: string | number | AntdLabeledValue | undefined,
     ) => {
       if (Array.isArray(selectValue)) {
-        setSelectAllMode(false);
         if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
           setSelectValue([]);
         } else {
@@ -292,10 +288,29 @@ const Select = forwardRef(
         setIsLoading(loading);
       }
     }, [isLoading, loading]);
+    
+    
+    const selectAllMode = useMemo(
+      () => {
+        return ensureIsArray(selectValue).length === fullSelectOptions.length + 1 
+      }, [selectValue, fullSelectOptions]
+    )
 
     useEffect(() => {
-      setSelectValue(value);
+      console.log(value);
+      ensureIsArray(value).length === fullSelectOptions.length
+        ? setSelectValue([SELECT_ALL_VALUE, ...ensureIsArray(value)] as AntdLabeledValue[]) 
+        : setSelectValue(value);
     }, [value]);
+
+    useEffect(() => {
+      console.log(selectValue);
+      const checkSelectAll = ensureIsArray(selectValue).some(v => getValue(v) === SELECT_ALL_VALUE) 
+      checkSelectAll && !selectAllMode 
+        ? setSelectValue([SELECT_ALL_VALUE, ...fullSelectOptions] as AntdLabeledValue[]) 
+        : null;
+    },
+    [selectValue, selectAllMode])
 
     const selectAllLabel = useMemo(
       () => () =>
@@ -320,6 +335,23 @@ const Select = forwardRef(
       );
     };
 
+    const handleOnChange = (values: any, options: any) => {
+      // intercept onChange call to handle the select all case
+      // if select all is selected, we want to send all options to the onChange, 
+      // otherwise we want to remove
+      if(ensureIsArray(values).some(val => getValue(val) === SELECT_ALL_VALUE)){
+        // send all options ot onchange
+        if (!selectAllMode) {
+          values = [selectAllOption, ...fullSelectOptions];
+          options = [selectAllOption, ...fullSelectOptions];
+        }
+      }else if(values.length === fullSelectOptions.length && selectAllMode){
+        values = [];
+        options = [];
+      }
+      onChange?.(values, options)
+    }
+  
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -345,7 +377,7 @@ const Select = forwardRef(
           onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
-          onChange={onChange}
+          onChange={handleOnChange}
           options={undefined}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
