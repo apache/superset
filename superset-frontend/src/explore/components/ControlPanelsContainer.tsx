@@ -37,6 +37,7 @@ import {
   SupersetTheme,
   useTheme,
   isDefined,
+  JsonValue,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -276,21 +277,36 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   >(state => state.explore.controlsTransferred);
 
   useEffect(() => {
+    const removeDatasourceWarningFromControl = (
+      value: JsonValue | undefined,
+    ) => {
+      if (
+        typeof value === 'object' &&
+        isDefined(value) &&
+        'datasourceWarning' in value
+      ) {
+        return { ...value, datasourceWarning: false };
+      }
+      return value;
+    };
     if (props.chart.chartStatus === 'success') {
       controlsTransferred?.forEach(controlName => {
-        const alteredControls = ensureIsArray(
-          props.controls[controlName].value,
-        ).map(value => {
-          if (
-            typeof value === 'object' &&
-            isDefined(value) &&
-            'datasourceWarning' in value
-          ) {
-            return { ...value, datasourceWarning: false };
-          }
-          return value;
-        });
-        props.actions.setControlValue(controlName, alteredControls);
+        if (!isDefined(props.controls[controlName])) {
+          return;
+        }
+        if (Array.isArray(props.controls[controlName].value)) {
+          const alteredControls = ensureIsArray(
+            props.controls[controlName].value,
+          )?.map(removeDatasourceWarningFromControl);
+          props.actions.setControlValue(controlName, alteredControls);
+        } else {
+          props.actions.setControlValue(
+            controlName,
+            removeDatasourceWarningFromControl(
+              props.controls[controlName].value,
+            ),
+          );
+        }
       });
     }
   }, [
