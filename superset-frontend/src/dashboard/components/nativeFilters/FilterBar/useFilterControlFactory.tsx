@@ -21,7 +21,6 @@ import React, { useCallback, useMemo } from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
-  DataMaskWithId,
   Divider,
   Filter,
   FilterWithDataMask,
