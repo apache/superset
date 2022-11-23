@@ -19,7 +19,6 @@
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  formatSelectOptions,
   sections,
 } from '@superset-ui/chart-controls';
 
@@ -47,12 +46,12 @@ const config: ControlPanelConfig = {
               description: t(
                 'Determines how whiskers and outliers are calculated.',
               ),
-              choices: formatSelectOptions([
-                'Tukey',
-                'Min/max (no outliers)',
-                '2/98 percentiles',
-                '9/91 percentiles',
-              ]),
+              choices: [
+                ['Tukey', t('Tukey')],
+                ['Min/max (no outliers)', t('Min/max (no outliers)')],
+                ['2/98 percentiles', t('2/98 percentiles')],
+                ['9/91 percentiles', t('9/91 percentiles')],
+              ],
             },
           },
           {
@@ -60,12 +59,12 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('X Tick Layout'),
-              choices: formatSelectOptions([
-                'auto',
-                'flat',
-                '45°',
-                'staggered',
-              ]),
+              choices: [
+                ['auto', t('auto')],
+                ['flat', t('flat')],
+                ['45°', '45°'],
+                ['staggered', t('staggered')],
+              ],
               default: 'auto',
               clearable: false,
               renderTrigger: true,

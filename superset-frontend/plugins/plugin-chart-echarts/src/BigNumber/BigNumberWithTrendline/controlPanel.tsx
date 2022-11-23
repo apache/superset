@@ -179,13 +179,13 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Rolling Function'),
               default: 'None',
-              choices: formatSelectOptions([
-                'None',
-                'mean',
-                'sum',
-                'std',
-                'cumsum',
-              ]),
+              choices: [
+                ['None', t('None')],
+                ['mean', t('mean')],
+                ['sum', t('sum')],
+                ['std', t('std')],
+                ['cumsum', t('cumsum')],
+              ],
               description: t(
                 'Defines a rolling window function to apply, works along ' +
                   'with the [Periods] text box',
