@@ -258,7 +258,6 @@ const StyledSwitchContainer = styled.div`
 
 export const StyledInputContainer = styled.div`
   flex: 1;
-  margin: ${({ theme }) => theme.gridUnit * 2}px;
   margin-top: 0;
 
   .helper {
@@ -361,6 +360,11 @@ const StyledNotificationAddButton = styled.div`
 const timezoneHeaderStyle = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 3}px 0;
 `;
+
+const inputSpacer = (theme: SupersetTheme) =>
+  css`
+    margin-right: ${theme.gridUnit * 3}px;
+  `;
 
 type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
 
@@ -1087,6 +1091,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 value={currentAlert ? currentAlert.name : ''}
                 placeholder={isReport ? t('Report name') : t('Alert name')}
                 onChange={onTextChange}
+                css={inputSpacer}
               />
             </div>
           </StyledInputContainer>
@@ -1109,6 +1114,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 }
                 options={loadOwnerOptions}
                 onChange={onOwnersChange}
+                css={inputSpacer}
               />
             </div>
           </StyledInputContainer>
@@ -1121,6 +1127,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 value={currentAlert ? currentAlert.description || '' : ''}
                 placeholder={t('Description')}
                 onChange={onTextChange}
+                css={inputSpacer}
               />
             </div>
           </StyledInputContainer>
@@ -1193,6 +1200,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         currentAlert?.validator_config_json?.op || undefined
                       }
                       options={CONDITIONS}
+                      css={inputSpacer}
                     />
                   </div>
                 </StyledInputContainer>
@@ -1391,6 +1399,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 key={`NotificationMethod-${i}`}
                 onUpdate={updateNotificationSetting}
                 onRemove={removeNotificationSetting}
+                css={css`
+                  .input-container {
+                    margin-left: 0;
+                  }
+                `}
               />
             ))}
             <NotificationMethodAdd
