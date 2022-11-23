@@ -25,6 +25,34 @@ export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
   width: ${({ width }) => width}px;
 `;
 
+export const ControlContainer = styled.div<{
+  validateStatus?: 'error' | 'warning' | 'info';
+}>`
+  padding: 2px;
+  & > span,
+  & > span:hover {
+    border: 2px solid transparent;
+    display: inline-block;
+    border: ${({ theme, validateStatus }) =>
+      validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`};
+  }
+  &:focus {
+    & > span {
+      border: 2px solid
+        ${({ theme, validateStatus }) =>
+          validateStatus
+            ? theme.colors[validateStatus]?.base
+            : theme.colors.primary.base};
+      outline: 0;
+      box-shadow: 0 0 0 2px
+        ${({ validateStatus }) =>
+          validateStatus
+            ? 'rgba(224, 67, 85, 12%)'
+            : 'rgba(32, 167, 201, 0.2)'};
+    }
+  }
+`;
+
 export const StyledFormItem = styled(FormItem)`
   &.ant-row.ant-form-item {
     margin: 0;
