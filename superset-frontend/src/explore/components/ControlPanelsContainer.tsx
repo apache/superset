@@ -291,6 +291,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     };
     if (props.chart.chartStatus === 'success') {
       controlsTransferred?.forEach(controlName => {
+        if (!isDefined(props.controls[controlName])) {
+          return;
+        }
         if (Array.isArray(props.controls[controlName].value)) {
           const alteredControls = ensureIsArray(
             props.controls[controlName].value,
