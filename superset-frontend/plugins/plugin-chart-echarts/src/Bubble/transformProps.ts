@@ -25,7 +25,7 @@ function normalizeSymbolSize(
   });
 }
 
-function formatBubbleLabel(
+export function formatBubbleLabel(
   params: any,
   xAxisLabel: string,
   yAxisLabel: string,
@@ -42,8 +42,6 @@ function formatBubbleLabel(
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
-  console.log('tp cp ', chartProps);
-
   const { height, width, hooks, queriesData, formData, inContextMenu } =
     chartProps;
 
@@ -99,7 +97,6 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   });
 
   normalizeSymbolSize(series, maxBubbleSize);
-  console.log('series ', series);
 
   const xAxisFormatter = getNumberFormatter(xAxisFormat);
   const yAxisFormatter = getNumberFormatter(yAxisFormat);

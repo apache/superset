@@ -344,6 +344,7 @@ export default function transformProps(
     series,
   };
 
+  console.log(JSON.stringify(echartOptions));
   return {
     formData,
     width,
