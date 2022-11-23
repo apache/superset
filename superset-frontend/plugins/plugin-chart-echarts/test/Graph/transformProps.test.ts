@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/Graph/transformProps';
 import { DEFAULT_GRAPH_SERIES_OPTION } from '../../src/Graph/constants';
+import { EchartsGraphChartProps } from '../../src/Graph/types';
 
 describe('EchartsGraph transformProps', () => {
   it('should transform chart props for viz without category', () => {
-    const formData = {
+    const formData: SqlaFormData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
       granularity_sqla: 'ds',
@@ -30,6 +31,7 @@ describe('EchartsGraph transformProps', () => {
       source: 'source_column',
       target: 'target_column',
       category: null,
+      viz_type: 'graph',
     };
     const queriesData = [
       {
@@ -57,7 +59,7 @@ describe('EchartsGraph transformProps', () => {
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,
@@ -151,7 +153,7 @@ describe('EchartsGraph transformProps', () => {
   });
 
   it('should transform chart props for viz with category and falsey normalization', () => {
-    const formData = {
+    const formData: SqlaFormData = {
       colorScheme: 'bnbColors',
       datasource: '3__table',
       granularity_sqla: 'ds',
@@ -160,6 +162,7 @@ describe('EchartsGraph transformProps', () => {
       target: 'target_column',
       sourceCategory: 'source_category_column',
       targetCategory: 'target_category_column',
+      viz_type: 'graph',
     };
     const queriesData = [
       {
@@ -197,7 +200,7 @@ describe('EchartsGraph transformProps', () => {
     };
 
     const chartProps = new ChartProps(chartPropsConfig);
-    expect(transformProps(chartProps)).toEqual(
+    expect(transformProps(chartProps as EchartsGraphChartProps)).toEqual(
       expect.objectContaining({
         width: 800,
         height: 600,

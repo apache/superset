@@ -31,6 +31,7 @@ export default function EchartsPie(props: PieChartTransformedProps) {
     groupby,
     selectedValues,
     formData,
+    refs,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
@@ -72,6 +73,7 @@ export default function EchartsPie(props: PieChartTransformedProps) {
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

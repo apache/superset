@@ -16,21 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormData } from '@superset-ui/core';
 import {
-  ChartDataResponseResult,
-  ChartProps,
-  QueryFormData,
-} from '@superset-ui/core';
-import {
-  EchartsLegendFormData,
-  EChartTransformedProps,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
   LegendOrientation,
   LegendType,
 } from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsFunnelFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     colorScheme?: string;
     groupby: QueryFormData[];
     labelLine: boolean;
@@ -54,9 +53,8 @@ export enum EchartsFunnelLabelTypeType {
 }
 
 export interface EchartsFunnelChartProps
-  extends ChartProps<EchartsFunnelFormData> {
+  extends BaseChartProps<EchartsFunnelFormData> {
   formData: EchartsFunnelFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 // @ts-ignore
@@ -76,4 +74,6 @@ export const DEFAULT_FORM_DATA: EchartsFunnelFormData = {
 };
 
 export type FunnelChartTransformedProps =
-  EChartTransformedProps<EchartsFunnelFormData>;
+  BaseTransformedProps<EchartsFunnelFormData> &
+    CrossFilterTransformedProps &
+    ContextMenuTransformedProps;
