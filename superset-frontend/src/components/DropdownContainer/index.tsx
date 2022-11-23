@@ -276,14 +276,17 @@ const DropdownContainer = forwardRef(
             trigger="click"
             visible={popoverVisible}
             onVisibleChange={visible => setPopoverVisible(visible)}
+            placement="bottom"
           >
             <Button buttonStyle="secondary">
               {popoverTriggerIcon}
               {popoverTriggerText}
               <Badge
-                count={popoverTriggerCount || overflowingCount}
+                count={popoverTriggerCount ?? overflowingCount}
                 css={css`
-                  margin-left: 8px;
+                  margin-left: ${popoverTriggerCount ?? overflowingCount
+                    ? '8px'
+                    : '0'};
                 `}
               />
               <Icons.DownOutlined

@@ -21,8 +21,10 @@ import React, { useCallback, useMemo } from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
+  DataMaskWithId,
   Divider,
   Filter,
+  FilterWithDataMask,
   isFilterDivider,
 } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -37,7 +39,7 @@ export const useFilterControlFactory = (
 ) => {
   const filters = useFilters();
   const filterValues = useMemo(() => Object.values(filters), [filters]);
-  const filtersWithValues: (Filter | Divider)[] = useMemo(
+  const filtersWithValues: (FilterWithDataMask | Divider)[] = useMemo(
     () =>
       filterValues.map(filter => ({
         ...filter,
@@ -50,7 +52,7 @@ export const useFilterControlFactory = (
     (
       index: number,
       filterBarOrientation: FilterBarOrientation,
-      overflowIndex: number,
+      overflow: boolean,
     ) => {
       const filter = filtersWithValues[index];
       if (isFilterDivider(filter)) {
@@ -59,7 +61,7 @@ export const useFilterControlFactory = (
             title={filter.title}
             description={filter.description}
             orientation={filterBarOrientation}
-            overflow={index >= overflowIndex}
+            overflow={overflow}
           />
         );
       }
@@ -71,7 +73,7 @@ export const useFilterControlFactory = (
           onFilterSelectionChange={onFilterSelectionChange}
           inView={false}
           orientation={filterBarOrientation}
-          overflow={index >= overflowIndex}
+          overflow={overflow}
         />
       );
     },
