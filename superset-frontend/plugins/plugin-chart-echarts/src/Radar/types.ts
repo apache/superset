@@ -17,15 +17,16 @@
  * under the License.
  */
 import {
-  ChartDataResponseResult,
-  ChartProps,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
 import {
-  EchartsLegendFormData,
-  EChartTransformedProps,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
   LabelPositionEnum,
   LegendOrientation,
   LegendType,
@@ -35,7 +36,7 @@ import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 type RadarColumnConfig = Record<string, { radarMetricMaxValue?: number }>;
 
 export type EchartsRadarFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     colorScheme?: string;
     columnConfig?: RadarColumnConfig;
     currentOwnValue?: string[] | null;
@@ -57,9 +58,9 @@ export enum EchartsRadarLabelType {
   KeyValue = 'key_value',
 }
 
-export interface EchartsRadarChartProps extends ChartProps {
+export interface EchartsRadarChartProps
+  extends BaseChartProps<EchartsRadarFormData> {
   formData: EchartsRadarFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 // @ts-ignore
@@ -78,4 +79,6 @@ export const DEFAULT_FORM_DATA: EchartsRadarFormData = {
 };
 
 export type RadarChartTransformedProps =
-  EChartTransformedProps<EchartsRadarFormData>;
+  BaseTransformedProps<EchartsRadarFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;
