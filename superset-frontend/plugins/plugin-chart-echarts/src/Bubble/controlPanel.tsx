@@ -21,25 +21,14 @@ import {
   ControlPanelConfig,
   formatSelectOptions,
   sections,
-  getStandardizedControls,
   ControlPanelsContainerProps,
   sharedControls,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from 'plugins/plugin-chart-echarts/src/Timeseries/constants';
-import { legendSection } from '../controls';
 
-const {
-  logAxis,
-  markerEnabled,
-  markerSize,
-  minorSplitLine,
-  rowLimit,
-  truncateYAxis,
-  yAxisBounds,
-  zoomable,
-  xAxisLabelRotation,
-} = DEFAULT_FORM_DATA;
+const { logAxis, truncateYAxis, yAxisBounds, xAxisLabelRotation } =
+  DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [

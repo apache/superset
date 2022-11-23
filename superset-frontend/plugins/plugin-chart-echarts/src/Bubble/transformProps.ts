@@ -17,18 +17,18 @@
  * under the License.
  */
 import { EChartsCoreOption, ScatterSeriesOption } from 'echarts';
-import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
   getNumberFormatter,
+  AxisType,
 } from '@superset-ui/core';
+import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid, defaultTooltip } from '../defaults';
 import { getLegendProps } from '../utils/series';
 import { LegendOrientation, LegendType } from '../types';
 import { parseYAxisBound } from '../utils/controls';
-import { AxisType } from '../Timeseries/types';
 
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
@@ -37,6 +37,7 @@ function normalizeSymbolSize(
   const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data![0][2]);
   const nodeSpread = bubbleMaxValue - bubbleMinValue;
   nodes.forEach(node => {
+    // eslint-disable-next-line no-param-reassign
     node.symbolSize =
       (((node.data![0][2] - bubbleMinValue) / nodeSpread) *
         (maxBubbleValue * 2) || 0) + MINIMUM_BUBBLE_SIZE;
@@ -101,10 +102,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       name,
       data: [
         [
-          datum[xAxisLabel] as string,
-          datum[yAxisLabel] as string,
-          datum[size.label] as string,
-          datum[entity] as string,
+          datum[xAxisLabel],
+          datum[yAxisLabel],
+          datum[size.label],
+          datum[entity],
           bubbleSeriesValue as any,
         ],
       ],
@@ -175,7 +176,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   return {
     height,
     width,
-    echartOptions: echartOptions,
+    echartOptions,
     onContextMenu,
     formData,
   };
