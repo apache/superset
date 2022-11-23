@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartDataResponseResult } from '@superset-ui/core';
+import { OptionName } from 'echarts/types/src/util/types';
+import { ChartDataResponseResult, QueryFormData } from '@superset-ui/core';
 import { TreeSeriesNodeItemOption } from 'echarts/types/src/chart/tree/TreeSeries';
 import { BaseChartProps, BaseTransformedProps } from '../types';
 
-export type EchartsTreeFormData = {
+export type EchartsTreeFormData = QueryFormData & {
   id: string;
   parent: string;
   name: string;
@@ -37,22 +38,7 @@ export type EchartsTreeFormData = {
   emphasis: 'none' | 'ancestor' | 'descendant';
 };
 
-export const DEFAULT_FORM_DATA: EchartsTreeFormData = {
-  id: '',
-  parent: '',
-  name: '',
-  rootNodeId: '',
-  layout: 'orthogonal',
-  orient: 'LR',
-  symbol: 'emptyCircle',
-  symbolSize: 7,
-  roam: true,
-  nodeLabelPosition: 'left',
-  childLabelPosition: 'bottom',
-  emphasis: 'descendant',
-};
-
-interface TreeChartDataResponseResult extends ChartDataResponseResult {
+export interface TreeChartDataResponseResult extends ChartDataResponseResult {
   data: TreeDataRecord[];
 }
 
@@ -62,8 +48,8 @@ export interface EchartsTreeChartProps
   queriesData: TreeChartDataResponseResult[];
 }
 
-export type TreeDataRecord = Record<string, string | number> & {
-  children: TreeSeriesNodeItemOption[];
+export type TreeDataRecord = Record<string, OptionName> & {
+  children?: TreeSeriesNodeItemOption[];
 };
 
 export type TreeTransformedProps = BaseTransformedProps<EchartsTreeFormData>;

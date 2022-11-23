@@ -16,11 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { DatasourceType, supersetTheme } from '@superset-ui/core';
 import transformProps from '../../src/Tree/transformProps';
+import {
+  EchartsTreeFormData,
+  EchartsTreeChartProps,
+  TreeChartDataResponseResult,
+} from '../../src/Tree/types';
 
 describe('EchartsTree transformProps', () => {
-  const formData = {
+  const baseFormData: EchartsTreeFormData = {
+    childLabelPosition: 'top',
+    emphasis: 'ancestor',
+    layout: 'radial',
+    nodeLabelPosition: 'top',
+    orient: 'LR',
+    roam: 'scale',
+    symbol: '',
+    symbolSize: 0,
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
@@ -29,20 +42,38 @@ describe('EchartsTree transformProps', () => {
     parent: 'relation_column',
     name: 'name_column',
     rootNodeId: '1',
+    viz_type: 'tree',
   };
-  const chartPropsConfig = {
-    formData,
-    width: 800,
+  const baseChartProps: EchartsTreeChartProps = {
+    annotationData: {},
+    behaviors: [],
+    datasource: {
+      id: 1,
+      name: 'foo',
+      type: DatasourceType.Table,
+      columns: [],
+      metrics: [],
+    },
+    filterState: {},
+    formData: baseFormData,
     height: 600,
+    hooks: {},
+    initialValues: {},
+    ownState: {},
+    rawDatasource: {},
+    rawFormData: baseFormData,
     theme: supersetTheme,
+    width: 800,
+    queriesData: [],
   };
   it('should transform when parent present before child', () => {
-    const queriesData = [
+    const queriesData: TreeChartDataResponseResult[] = [
       {
         colnames: ['id_column', 'relation_column', 'name_column', 'count'],
         data: [
           {
             id_column: '1',
+            // @ts-ignore
             relation_column: null,
             name_column: 'root',
             count: 10,
@@ -69,7 +100,10 @@ describe('EchartsTree transformProps', () => {
       },
     ];
 
-    const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
+    const chartProps: EchartsTreeChartProps = {
+      ...baseChartProps,
+      queriesData,
+    };
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -104,12 +138,13 @@ describe('EchartsTree transformProps', () => {
     );
   });
   it('should transform when child is present before parent', () => {
-    const queriesData = [
+    const queriesData: TreeChartDataResponseResult[] = [
       {
         colnames: ['id_column', 'relation_column', 'name_column', 'count'],
         data: [
           {
             id_column: '1',
+            // @ts-ignore
             relation_column: null,
             name_column: 'root',
             count: 10,
@@ -136,7 +171,10 @@ describe('EchartsTree transformProps', () => {
       },
     ];
 
-    const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
+    const chartProps: EchartsTreeChartProps = {
+      ...baseChartProps,
+      queriesData,
+    };
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -175,27 +213,16 @@ describe('EchartsTree transformProps', () => {
   });
   it('ignore node if not attached to root', () => {
     const formData = {
-      colorScheme: 'bnbColors',
-      datasource: '3__table',
-      granularity_sqla: 'ds',
-      metric: 'count',
-      id: 'id_column',
-      parent: 'relation_column',
-      name: 'name_column',
+      ...baseFormData,
       rootNodeId: '2',
     };
-    const chartPropsConfig = {
-      formData,
-      width: 800,
-      height: 600,
-      theme: supersetTheme,
-    };
-    const queriesData = [
+    const queriesData: TreeChartDataResponseResult[] = [
       {
         colnames: ['id_column', 'relation_column', 'name_column', 'count'],
         data: [
           {
             id_column: '1',
+            // @ts-ignore
             relation_column: null,
             name_column: 'root',
             count: 10,
@@ -222,7 +249,12 @@ describe('EchartsTree transformProps', () => {
       },
     ];
 
-    const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
+    const chartProps: EchartsTreeChartProps = {
+      ...baseChartProps,
+      formData,
+      rawFormData: formData,
+      queriesData,
+    };
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -255,27 +287,17 @@ describe('EchartsTree transformProps', () => {
     );
   });
   it('should transform props if name column is not specified', () => {
-    const formData = {
-      colorScheme: 'bnbColors',
-      datasource: '3__table',
-      granularity_sqla: 'ds',
-      metric: 'count',
-      id: 'id_column',
-      parent: 'relation_column',
+    const formData: EchartsTreeFormData = {
+      ...baseFormData,
       rootNodeId: '1',
     };
-    const chartPropsConfig = {
-      formData,
-      width: 800,
-      height: 600,
-      theme: supersetTheme,
-    };
-    const queriesData = [
+    const queriesData: TreeChartDataResponseResult[] = [
       {
         colnames: ['id_column', 'relation_column', 'count'],
         data: [
           {
             id_column: '1',
+            // @ts-ignore
             relation_column: null,
             count: 10,
           },
@@ -298,7 +320,12 @@ describe('EchartsTree transformProps', () => {
       },
     ];
 
-    const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
+    const chartProps: EchartsTreeChartProps = {
+      ...baseChartProps,
+      formData,
+      rawFormData: formData,
+      queriesData,
+    };
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,
@@ -337,22 +364,7 @@ describe('EchartsTree transformProps', () => {
     );
   });
   it('should find root node with null parent when root node name is not provided', () => {
-    const formData = {
-      colorScheme: 'bnbColors',
-      datasource: '3__table',
-      granularity_sqla: 'ds',
-      metric: 'count',
-      id: 'id_column',
-      parent: 'relation_column',
-      name: 'name_column',
-    };
-    const chartPropsConfig = {
-      formData,
-      width: 800,
-      height: 600,
-      theme: supersetTheme,
-    };
-    const queriesData = [
+    const queriesData: TreeChartDataResponseResult[] = [
       {
         colnames: ['id_column', 'relation_column', 'name_column', 'count'],
         data: [
@@ -376,6 +388,7 @@ describe('EchartsTree transformProps', () => {
           },
           {
             id_column: '1',
+            // @ts-ignore
             relation_column: null,
             name_column: 'root',
             count: 10,
@@ -384,7 +397,10 @@ describe('EchartsTree transformProps', () => {
       },
     ];
 
-    const chartProps = new ChartProps({ ...chartPropsConfig, queriesData });
+    const chartProps: EchartsTreeChartProps = {
+      ...baseChartProps,
+      queriesData,
+    };
     expect(transformProps(chartProps)).toEqual(
       expect.objectContaining({
         width: 800,

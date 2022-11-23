@@ -30,6 +30,7 @@ import {
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
+  BigNumberVizProps,
   BigNumberDatum,
   BigNumberWithTrendlineChartProps,
   TimeSeriesDatum,
@@ -60,7 +61,7 @@ const formatPercentChange = getNumberFormatter(
 
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
-) {
+): BigNumberVizProps {
   const {
     width,
     height,
@@ -103,7 +104,7 @@ export default function transformProps(
   const mainColor = `rgb(${r}, ${g}, ${b})`;
 
   const xAxisLabel = getXAxisLabel(rawFormData) as string;
-  let trendLineData;
+  let trendLineData: TimeSeriesDatum[] | undefined;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
@@ -144,6 +145,7 @@ export default function transformProps(
       }
     }
     sortedData.reverse();
+    // @ts-ignore
     trendLineData = showTrendLine ? sortedData : undefined;
   }
 
@@ -249,6 +251,7 @@ export default function transformProps(
     width,
     height,
     bigNumber,
+    // @ts-ignore
     bigNumberFallback,
     className,
     headerFormatter,

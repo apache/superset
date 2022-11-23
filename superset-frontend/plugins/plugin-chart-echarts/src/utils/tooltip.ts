@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import ZRText from 'zrender/src/graphic/Text';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { TOOLTIP_OVERFLOW_MARGIN, TOOLTIP_POINTER_MARGIN } from '../constants';
 import { Refs } from '../types';
@@ -26,7 +25,7 @@ export function getDefaultPosition(refs: Refs) {
   return (
     canvasMousePos: [number, number],
     params: CallbackDataParams,
-    tooltipDom: ZRText | HTMLDivElement | null,
+    tooltipDom: HTMLDivElement | null,
     rect: any,
     sizes: { contentSize: [number, number]; viewSize: [number, number] },
   ) => {

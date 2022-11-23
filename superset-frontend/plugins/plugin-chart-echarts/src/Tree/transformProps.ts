@@ -24,13 +24,12 @@ import {
 } from 'echarts/types/src/chart/tree/TreeSeries';
 import { OptionName } from 'echarts/types/src/util/types';
 import {
-  DEFAULT_FORM_DATA as DEFAULT_GRAPH_FORM_DATA,
   EchartsTreeChartProps,
   EchartsTreeFormData,
   TreeDataRecord,
   TreeTransformedProps,
 } from './types';
-import { DEFAULT_TREE_SERIES_OPTION } from './constants';
+import { DEFAULT_FORM_DATA, DEFAULT_TREE_SERIES_OPTION } from './constants';
 import { Refs } from '../types';
 
 export function formatTooltip({
@@ -72,7 +71,7 @@ export default function transformProps(
     nodeLabelPosition,
     childLabelPosition,
     emphasis,
-  }: EchartsTreeFormData = { ...DEFAULT_GRAPH_FORM_DATA, ...formData };
+  }: EchartsTreeFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const metricLabel = getMetricLabel(metric);
 
   const nameColumn = name || id;

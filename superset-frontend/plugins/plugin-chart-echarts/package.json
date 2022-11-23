@@ -34,7 +34,6 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "zrender": "*",
     "react": "^16.13.1"
   }
 }
