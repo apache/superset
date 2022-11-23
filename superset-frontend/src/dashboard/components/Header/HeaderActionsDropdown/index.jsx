@@ -377,7 +377,7 @@ class HeaderActionsDropdown extends React.PureComponent {
               />
             </Menu.Item>
           )}
-
+        {/*
         <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
           <RefreshIntervalModal
             addSuccessToast={this.props.addSuccessToast}
@@ -388,7 +388,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             editMode={editMode}
             triggerNode={<span>{t('Set auto-refresh interval')}</span>}
           />
-        </Menu.Item>
+        </Menu.Item> */}
       </Menu>
     );
   }
