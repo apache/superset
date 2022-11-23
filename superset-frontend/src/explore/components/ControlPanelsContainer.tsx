@@ -278,6 +278,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   useEffect(() => {
     if (props.chart.chartStatus === 'success') {
       controlsTransferred?.forEach(controlName => {
+        if (!props.controls[controlName]) {
+          return;
+        }
         const alteredControls = ensureIsArray(
           props.controls[controlName].value,
         ).map(value => {
