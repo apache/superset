@@ -24,9 +24,8 @@ gunicorn \
     --access-logfile "${ACCESS_LOG_FILE:-$HYPHEN_SYMBOL}" \
     --error-logfile "${ERROR_LOG_FILE:-$HYPHEN_SYMBOL}" \
     --workers ${SERVER_WORKER_AMOUNT:-10} \
-    -k gevent \
     --worker-connections 1000 \
-    --worker-class ${SERVER_WORKER_CLASS:-gthread} \
+    --worker-class ${SERVER_WORKER_CLASS:-gevent} \
     --threads ${SERVER_THREADS_AMOUNT:-20} \
     --timeout ${GUNICORN_TIMEOUT:-120} \
     --keep-alive ${GUNICORN_KEEPALIVE:-2} \
