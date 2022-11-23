@@ -36,6 +36,8 @@ import {
   TimeSeriesDatum,
 } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
+import { getDefaultPosition } from '../../utils/tooltip';
+import { Refs } from '../../types';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(
@@ -96,6 +98,7 @@ export default function transformProps(
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
   } = queriesData[0];
+  const refs: Refs = {};
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
@@ -231,6 +234,7 @@ export default function transformProps(
           bottom: 0,
         },
         tooltip: {
+          position: getDefaultPosition(refs),
           appendToBody: true,
           show: !inContextMenu,
           trigger: 'axis',
@@ -269,5 +273,6 @@ export default function transformProps(
     echartOptions,
     onContextMenu,
     xValueFormatter: formatTime,
+    refs,
   };
 }
