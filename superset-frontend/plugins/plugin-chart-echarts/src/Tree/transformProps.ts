@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getMetricLabel, DataRecordValue } from '@superset-ui/core';
+import { getMetricLabel, DataRecordValue } from '@superset-ui/core';
 import { EChartsCoreOption, TreeSeriesOption } from 'echarts';
 import {
   TreeSeriesCallbackDataParams,
@@ -24,12 +24,14 @@ import {
 } from 'echarts/types/src/chart/tree/TreeSeries';
 import { OptionName } from 'echarts/types/src/util/types';
 import {
-  EchartsTreeFormData,
   DEFAULT_FORM_DATA as DEFAULT_GRAPH_FORM_DATA,
+  EchartsTreeChartProps,
+  EchartsTreeFormData,
   TreeDataRecord,
+  TreeTransformedProps,
 } from './types';
 import { DEFAULT_TREE_SERIES_OPTION } from './constants';
-import { EchartsProps } from '../types';
+import { Refs } from '../types';
 
 export function formatTooltip({
   params,
@@ -49,8 +51,11 @@ export function formatTooltip({
   ].join('');
 }
 
-export default function transformProps(chartProps: ChartProps): EchartsProps {
+export default function transformProps(
+  chartProps: EchartsTreeChartProps,
+): TreeTransformedProps {
   const { width, height, formData, queriesData } = chartProps;
+  const refs: Refs = {};
   const data: TreeDataRecord[] = queriesData[0].data || [];
 
   const {
@@ -212,8 +217,10 @@ export default function transformProps(chartProps: ChartProps): EchartsProps {
   };
 
   return {
+    formData,
     width,
     height,
     echartOptions,
+    refs,
   };
 }

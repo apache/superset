@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ChartDataResponseResult } from '@superset-ui/core';
 import { TreeSeriesNodeItemOption } from 'echarts/types/src/chart/tree/TreeSeries';
+import { BaseChartProps, BaseTransformedProps } from '../types';
 
 export type EchartsTreeFormData = {
   id: string;
@@ -50,6 +52,18 @@ export const DEFAULT_FORM_DATA: EchartsTreeFormData = {
   emphasis: 'descendant',
 };
 
+interface TreeChartDataResponseResult extends ChartDataResponseResult {
+  data: TreeDataRecord[];
+}
+
+export interface EchartsTreeChartProps
+  extends BaseChartProps<EchartsTreeFormData> {
+  formData: EchartsTreeFormData;
+  queriesData: TreeChartDataResponseResult[];
+}
+
 export type TreeDataRecord = Record<string, string | number> & {
   children: TreeSeriesNodeItemOption[];
 };
+
+export type TreeTransformedProps = BaseTransformedProps<EchartsTreeFormData>;
