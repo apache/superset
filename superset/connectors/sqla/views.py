@@ -144,7 +144,7 @@ class TableColumnInlineView(
         "extra": utils.markdown(
             "Extra data to specify column metadata. Currently supports "
             'certification data of the format: `{ "certification": "certified_by": '
-            '"Taylor Swift", "details": "This column is the source of truth." '
+            '["Taylor Swift", "Harry Styles"], "details": "This column is the source of truth." '
             "} }`. This should be modified from the edit datasource model in "
             "Explore to ensure correct formatting.",
             True,
@@ -236,7 +236,7 @@ class SqlMetricInlineView(
         "extra": utils.markdown(
             "Extra data to specify metric metadata. Currently supports "
             'metadata of the format: `{ "certification": { "certified_by": '
-            '"Data Platform Team", "details": "This metric is the source of truth." '
+            '["Data Platform Team", "Engineering Team"], "details": "This metric is the source of truth." '
             '}, "warning_markdown": "This is a warning." }`. This should be modified '
             "from the edit datasource model in Explore to ensure correct formatting.",
             True,
@@ -443,7 +443,7 @@ class TableModelView(  # pylint: disable=too-many-ancestors
         "extra": utils.markdown(
             "Extra data to specify table metadata. Currently supports "
             'metadata of the format: `{ "certification": { "certified_by": '
-            '"Data Platform Team", "details": "This table is the source of truth." '
+            '["Data Platform Team", "Engineering Team"], "details": "This table is the source of truth." '
             '}, "warning_markdown": "This is a warning." }`.',
             True,
         ),
