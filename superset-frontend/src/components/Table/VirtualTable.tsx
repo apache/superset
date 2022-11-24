@@ -141,6 +141,13 @@ const VirtualTable = (props: TableProps) => {
    * from within the pagination controls and proxies the onChange event payload
    */
   const onPageChange = (page: number, size: number) => {
+    /**
+     * This resets vertical scroll position to 0 (top) when page changes
+     * We intentionally leave horizontal scroll where it was so user can focus on
+     * specific range of columns as they page through data
+     */
+    gridRef.current?.scrollTo?.({ scrollTop: 0 });
+
     onChange?.(
       {
         ...pagination,
