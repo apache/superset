@@ -35,7 +35,7 @@ import {
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
 import { getChartPadding, getLegendProps, sanitizeHtml } from '../utils/series';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
 type EdgeWithStyles = GraphEdgeItemOption & {
@@ -192,6 +192,7 @@ export default function transformProps(
     sliceId,
   }: EchartsGraphFormData = { ...DEFAULT_GRAPH_FORM_DATA, ...formData };
 
+  const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const nodes: { [name: string]: number } = {};
@@ -212,7 +213,10 @@ export default function transformProps(
         value: 0,
         category,
         select: DEFAULT_GRAPH_SERIES_OPTION.select,
-        tooltip: DEFAULT_GRAPH_SERIES_OPTION.tooltip,
+        tooltip: {
+          ...getDefaultTooltip(refs),
+          ...DEFAULT_GRAPH_SERIES_OPTION.tooltip,
+        },
       });
     }
     const node = echartNodes[nodes[name]];
@@ -296,13 +300,12 @@ export default function transformProps(
     },
   ];
 
-  const refs: Refs = {};
   const echartOptions: EChartsCoreOption = {
     animationDuration: DEFAULT_GRAPH_SERIES_OPTION.animationDuration,
     animationEasing: DEFAULT_GRAPH_SERIES_OPTION.animationEasing,
     tooltip: {
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      position: getDefaultPosition(refs),
       formatter: (params: any): string =>
         edgeFormatter(
           params.data.source,
