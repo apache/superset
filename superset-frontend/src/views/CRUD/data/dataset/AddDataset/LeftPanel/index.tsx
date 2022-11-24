@@ -214,7 +214,7 @@ export default function LeftPanel({
 
   return (
     <LeftPanelStyle>
-      <p className="section-title db-schema">Select database & schema</p>
+      <p className="section-title db-schema">{t('Select database & schema')}</p>
       <DatabaseSelector
         handleError={addDangerToast}
         onDbChange={setDatabase}
@@ -234,7 +234,7 @@ export default function LeftPanel({
       {schema && (tableOptions.length > 0 || searchVal.length > 0) && (
         <>
           <Form>
-            <p className="table-title">Select database table</p>
+            <p className="table-title">{t('Select database table')}</p>
             <RefreshLabel
               onClick={() => {
                 setLoadTables(true);

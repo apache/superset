@@ -61,9 +61,9 @@ const ExtraOptions = ({
       <Collapse.Panel
         header={
           <div>
-            <h4>SQL Lab</h4>
+            <h4>{t('SQL Lab')}</h4>
             <p className="helper">
-              Adjust how this database will interact with SQL Lab.
+              {t('Adjust how this database will interact with SQL Lab.')}
             </p>
           </div>
         }
@@ -318,7 +318,7 @@ const ExtraOptions = ({
         header={
           <div>
             <h4>{t('Security')}</h4>
-            <p className="helper">Add extra connection information.</p>
+            <p className="helper">{t('Add extra connection information.')}</p>
           </div>
         }
         key="3"
@@ -432,7 +432,7 @@ const ExtraOptions = ({
         header={
           <div>
             <h4>{t('Other')}</h4>
-            <p className="helper">Additional settings.</p>
+            <p className="helper">{t('Additional settings.')}</p>
           </div>
         }
         key="4"

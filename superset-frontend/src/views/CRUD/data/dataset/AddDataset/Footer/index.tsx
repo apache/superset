@@ -110,7 +110,7 @@ function Footer({
 
   return (
     <>
-      <Button onClick={cancelButtonOnClick}>Cancel</Button>
+      <Button onClick={cancelButtonOnClick}>{t('Cancel')}</Button>
       <Button
         buttonStyle="primary"
         disabled={!datasetObject?.table_name || !hasColumns}

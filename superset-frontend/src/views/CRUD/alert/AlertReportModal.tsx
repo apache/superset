@@ -1128,7 +1128,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={onActiveSwitch}
               checked={currentAlert ? currentAlert.active : true}
             />
-            <div className="switch-label">Active</div>
+            <div className="switch-label">{t('Active')}</div>
           </StyledSwitchContainer>
         </div>
         <div className="column-section">
