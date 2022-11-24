@@ -51,5 +51,5 @@ class CreateSSHTunnelCommand(BaseCommand):
 
     def validate(self) -> None:
         if is_feature_enabled("SSH_TUNNELING") and ssh_tunnel_manager:
-            ssh_tunnel_manager.validate()
+            ssh_tunnel_manager.validate(self._properties)
         return
