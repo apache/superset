@@ -90,7 +90,7 @@ const ModalHeader = ({
   const useSqlAlchemyFormHeader = (
     <StyledFormHeader>
       <p className="helper-top">
-      {t('STEP %(stepCurr)s OF %(stepLast)s', {
+        {t('STEP %(stepCurr)s OF %(stepLast)s', {
           stepCurr: 2,
           stepLast: 2,
         })}
@@ -114,10 +114,10 @@ const ModalHeader = ({
     <StyledStickyHeader>
       <StyledFormHeader>
         <p className="helper-top">
-        {t('STEP %(stepCurr)s OF %(stepLast)s', {
-          stepCurr: 3,
-          stepLast: 3,
-        })}
+          {t('STEP %(stepCurr)s OF %(stepLast)s', {
+            stepCurr: 3,
+            stepLast: 3,
+          })}
         </p>
         <h4 className="step-3-text">{t('Database connected')}</h4>
         <p className="subheader-text">
@@ -132,15 +132,15 @@ const ModalHeader = ({
     <StyledStickyHeader>
       <StyledFormHeader>
         <p className="helper-top">
-        {t('STEP %(stepCurr)s OF %(stepLast)s', {
-          stepCurr: 2,
-          stepLast: 3,
-        })}
+          {t('STEP %(stepCurr)s OF %(stepLast)s', {
+            stepCurr: 2,
+            stepLast: 3,
+          })}
         </p>
         <h4>
           {t('Enter the required %(dbModelName)s credentials', {
-              dbModelName: dbModel.name,
-              })}
+            dbModelName: dbModel.name,
+          })}
         </h4>
         <p className="helper-bottom">
           {t('Need help? Learn more about')}{' '}
@@ -149,7 +149,8 @@ const ModalHeader = ({
             target="_blank"
             rel="noopener noreferrer"
           >
-          {t('connecting to %(dbModelName)s.', { dbModelName: dbModel.name })}.
+            {t('connecting to %(dbModelName)s.', { dbModelName: dbModel.name })}
+            .
           </a>
         </p>
       </StyledFormHeader>
@@ -160,10 +161,10 @@ const ModalHeader = ({
     <StyledFormHeader>
       <div className="select-db">
         <p className="helper-top">
-        {t('STEP %(stepCurr)s OF %(stepLast)s', {
-          stepCurr: 1,
-          stepLast: 3,
-        })}
+          {t('STEP %(stepCurr)s OF %(stepLast)s', {
+            stepCurr: 1,
+            stepLast: 3,
+          })}
         </p>
         <h4>{t('Select a database to connect')}</h4>
       </div>
@@ -174,15 +175,15 @@ const ModalHeader = ({
     <StyledStickyHeader>
       <StyledFormHeader>
         <p className="helper-top">
-        {t('STEP %(stepCurr)s OF %(stepLast)s', {
-          stepCurr: 2,
-          stepLast: 2,
-        })}
+          {t('STEP %(stepCurr)s OF %(stepLast)s', {
+            stepCurr: 2,
+            stepLast: 2,
+          })}
         </p>
         <h4>
           {t('Enter the required %(dbModelName)s credentials', {
-              dbModelName: dbModel.name,
-            })}
+            dbModelName: dbModel.name,
+          })}
         </h4>
         <p className="helper-bottom">{fileCheck ? fileList[0].name : ''}</p>
       </StyledFormHeader>
