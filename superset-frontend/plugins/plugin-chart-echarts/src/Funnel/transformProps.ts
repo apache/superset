@@ -42,7 +42,7 @@ import {
 } from '../utils/series';
 import { defaultGrid } from '../defaults';
 import { OpacityEnum, DEFAULT_LEGEND_FORM_DATA } from '../constants';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
@@ -215,7 +215,7 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      position: getDefaultPosition(refs),
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>

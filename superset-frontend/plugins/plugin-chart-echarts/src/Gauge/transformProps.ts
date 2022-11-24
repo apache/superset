@@ -44,7 +44,7 @@ import {
   FONT_SIZE_MULTIPLIERS,
 } from './constants';
 import { OpacityEnum } from '../constants';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
 const setIntervalBoundsAndColors = (
@@ -261,7 +261,7 @@ export default function transformProps(
     color: gaugeSeriesOptions.detail?.color,
   };
   const tooltip = {
-    position: getDefaultPosition(refs),
+    ...getDefaultTooltip(refs),
     formatter: (params: CallbackDataParams) => {
       const { name, value } = params;
       return `${name} : ${formatValue(value as number)}`;
@@ -315,7 +315,7 @@ export default function transformProps(
 
   const echartOptions: EChartsCoreOption = {
     tooltip: {
-      appendToBody: true,
+      ...getDefaultTooltip(refs),
       trigger: 'item',
     },
     series,

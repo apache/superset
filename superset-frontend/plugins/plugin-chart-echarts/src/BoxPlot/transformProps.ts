@@ -39,7 +39,7 @@ import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { OpacityEnum } from '../constants';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
 export default function transformProps(
@@ -139,6 +139,7 @@ export default function transformProps(
           type: 'scatter',
           data: outlierDatum.map(val => [name, val]),
           tooltip: {
+            ...getDefaultTooltip(refs),
             formatter: (param: { data: [string, number] }) => {
               const [outlierName, stats] = param.data;
               const headline = groupbyLabels.length
@@ -197,6 +198,7 @@ export default function transformProps(
       type: 'boxplot',
       data: transformedData,
       tooltip: {
+        ...getDefaultTooltip(refs),
         formatter: (param: CallbackDataParams) => {
           // @ts-ignore
           const {
@@ -273,7 +275,7 @@ export default function transformProps(
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
-      position: getDefaultPosition(refs),
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       axisPointer: {

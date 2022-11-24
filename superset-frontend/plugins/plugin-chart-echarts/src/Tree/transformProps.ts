@@ -31,6 +31,7 @@ import {
 } from './types';
 import { DEFAULT_FORM_DATA, DEFAULT_TREE_SERIES_OPTION } from './constants';
 import { Refs } from '../types';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export function formatTooltip({
   params,
@@ -205,6 +206,7 @@ export default function transformProps(
     animationEasing: DEFAULT_TREE_SERIES_OPTION.animationEasing,
     series,
     tooltip: {
+      ...getDefaultTooltip(refs),
       trigger: 'item',
       triggerOn: 'mousemove',
       formatter: (params: any) =>
