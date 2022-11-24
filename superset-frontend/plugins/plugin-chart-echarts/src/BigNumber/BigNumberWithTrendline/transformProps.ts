@@ -36,7 +36,7 @@ import {
   TimeSeriesDatum,
 } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
-import { getDefaultPosition } from '../../utils/tooltip';
+import { getDefaultTooltip } from '../../utils/tooltip';
 import { Refs } from '../../types';
 
 const defaultNumberFormatter = getNumberFormatter();
@@ -234,8 +234,7 @@ export default function transformProps(
           bottom: 0,
         },
         tooltip: {
-          position: getDefaultPosition(refs),
-          appendToBody: true,
+          ...getDefaultTooltip(refs),
           show: !inContextMenu,
           trigger: 'axis',
           formatter: renderTooltipFactory(formatTime, headerFormatter),

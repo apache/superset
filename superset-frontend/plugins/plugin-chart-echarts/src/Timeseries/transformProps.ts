@@ -84,7 +84,7 @@ import {
   TIMESERIES_CONSTANTS,
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -381,9 +381,8 @@ export default function transformProps(
     xAxis,
     yAxis,
     tooltip: {
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      position: getDefaultPosition(refs),
-      appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
