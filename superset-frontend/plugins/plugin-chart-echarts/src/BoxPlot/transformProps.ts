@@ -36,9 +36,11 @@ import {
   sanitizeHtml,
 } from '../utils/series';
 import { convertInteger } from '../utils/convertInteger';
-import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { defaultGrid, defaultYAxis } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { OpacityEnum } from '../constants';
+import { getDefaultPosition } from '../utils/tooltip';
+import { Refs } from '../types';
 
 export default function transformProps(
   chartProps: EchartsBoxPlotChartProps,
@@ -71,6 +73,7 @@ export default function transformProps(
     yAxisTitlePosition,
     sliceId,
   } = formData as BoxPlotQueryFormData;
+  const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = metrics.map(getMetricLabel);
@@ -270,7 +273,7 @@ export default function transformProps(
       nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
     },
     tooltip: {
-      ...defaultTooltip,
+      position: getDefaultPosition(refs),
       show: !inContextMenu,
       trigger: 'item',
       axisPointer: {
@@ -291,5 +294,6 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    refs,
   };
 }

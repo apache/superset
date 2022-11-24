@@ -44,7 +44,7 @@ import {
   OrientationType,
 } from './types';
 import { DEFAULT_FORM_DATA } from './constants';
-import { ForecastSeriesEnum, ForecastValue } from '../types';
+import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
@@ -68,7 +68,7 @@ import {
   rebaseForecastDatum,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
-import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getPadding,
   getTooltipTimeFormatter,
@@ -84,6 +84,7 @@ import {
   TIMESERIES_CONSTANTS,
   TIMEGRAIN_TO_TIMESTAMP,
 } from '../constants';
+import { getDefaultPosition } from '../utils/tooltip';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -147,6 +148,7 @@ export default function transformProps(
     timeGrainSqla,
     orientation,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  const refs: Refs = {};
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
@@ -380,7 +382,7 @@ export default function transformProps(
     yAxis,
     tooltip: {
       show: !inContextMenu,
-      ...defaultTooltip,
+      position: getDefaultPosition(refs),
       appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
@@ -463,5 +465,6 @@ export default function transformProps(
       label: xAxisLabel,
       type: xAxisType,
     },
+    refs,
   };
 }

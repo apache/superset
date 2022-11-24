@@ -30,11 +30,14 @@ import {
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts';
 import {
+  BigNumberVizProps,
   BigNumberDatum,
   BigNumberWithTrendlineChartProps,
   TimeSeriesDatum,
 } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
+import { getDefaultPosition } from '../../utils/tooltip';
+import { Refs } from '../../types';
 
 const defaultNumberFormatter = getNumberFormatter();
 export function renderTooltipFactory(
@@ -60,7 +63,7 @@ const formatPercentChange = getNumberFormatter(
 
 export default function transformProps(
   chartProps: BigNumberWithTrendlineChartProps,
-) {
+): BigNumberVizProps {
   const {
     width,
     height,
@@ -95,6 +98,7 @@ export default function transformProps(
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
   } = queriesData[0];
+  const refs: Refs = {};
   const metricName = getMetricLabel(metric);
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
@@ -103,7 +107,7 @@ export default function transformProps(
   const mainColor = `rgb(${r}, ${g}, ${b})`;
 
   const xAxisLabel = getXAxisLabel(rawFormData) as string;
-  let trendLineData;
+  let trendLineData: TimeSeriesDatum[] | undefined;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
@@ -144,6 +148,7 @@ export default function transformProps(
       }
     }
     sortedData.reverse();
+    // @ts-ignore
     trendLineData = showTrendLine ? sortedData : undefined;
   }
 
@@ -229,10 +234,10 @@ export default function transformProps(
           bottom: 0,
         },
         tooltip: {
+          position: getDefaultPosition(refs),
           appendToBody: true,
           show: !inContextMenu,
           trigger: 'axis',
-          confine: true,
           formatter: renderTooltipFactory(formatTime, headerFormatter),
         },
         aria: {
@@ -250,6 +255,7 @@ export default function transformProps(
     width,
     height,
     bigNumber,
+    // @ts-ignore
     bigNumberFallback,
     className,
     headerFormatter,
@@ -267,5 +273,6 @@ export default function transformProps(
     echartOptions,
     onContextMenu,
     xValueFormatter: formatTime,
+    refs,
   };
 }

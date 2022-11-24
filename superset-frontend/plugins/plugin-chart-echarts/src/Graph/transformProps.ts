@@ -18,7 +18,6 @@
  */
 import {
   CategoricalColorNamespace,
-  ChartProps,
   getMetricLabel,
   DataRecord,
   DataRecordValue,
@@ -32,9 +31,12 @@ import {
   DEFAULT_FORM_DATA as DEFAULT_GRAPH_FORM_DATA,
   EdgeSymbol,
   GraphChartTransformedProps,
+  EchartsGraphChartProps,
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
 import { getChartPadding, getLegendProps, sanitizeHtml } from '../utils/series';
+import { getDefaultPosition } from '../utils/tooltip';
+import { Refs } from '../types';
 
 type EdgeWithStyles = GraphEdgeItemOption & {
   lineStyle: Exclude<GraphEdgeItemOption['lineStyle'], undefined>;
@@ -158,7 +160,7 @@ function getCategoryName(columnName: string, name?: DataRecordValue) {
 }
 
 export default function transformProps(
-  chartProps: ChartProps,
+  chartProps: EchartsGraphChartProps,
 ): GraphChartTransformedProps {
   const { width, height, formData, queriesData, hooks, inContextMenu } =
     chartProps;
@@ -294,11 +296,13 @@ export default function transformProps(
     },
   ];
 
+  const refs: Refs = {};
   const echartOptions: EChartsCoreOption = {
     animationDuration: DEFAULT_GRAPH_SERIES_OPTION.animationDuration,
     animationEasing: DEFAULT_GRAPH_SERIES_OPTION.animationEasing,
     tooltip: {
       show: !inContextMenu,
+      position: getDefaultPosition(refs),
       formatter: (params: any): string =>
         edgeFormatter(
           params.data.source,
@@ -322,5 +326,6 @@ export default function transformProps(
     formData,
     echartOptions,
     onContextMenu,
+    refs,
   };
 }

@@ -471,7 +471,7 @@ const ExtraOptions = ({
               value={
                 !Object.keys(extraJson?.engine_params || {}).length
                   ? ''
-                  : JSON.stringify(extraJson?.engine_params)
+                  : extraJson?.engine_params
               }
               placeholder={t('Engine Parameters')}
               onChange={(json: string) =>
