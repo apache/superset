@@ -905,7 +905,7 @@ class DatasourceEditor extends React.PureComponent {
             description={t(
               'Extra data to specify table metadata. Currently supports ' +
                 'metadata of the format: `{ "certification": { "certified_by": ' +
-                '"Data Platform Team", "details": "This table is the source of truth." ' +
+                '["Data Platform Team", "Engineering Team"], "details": "This table is the source of truth." ' +
                 '}, "warning_markdown": "This is a warning." }`.',
             )}
             control={
