@@ -45,7 +45,7 @@ import {
 } from '../utils/series';
 import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
@@ -303,8 +303,8 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      position: getDefaultPosition(refs),
       trigger: 'item',
       formatter: (params: any) =>
         formatPieLabel({
