@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { ControlSetRow } from '../types';
 
-export const legacySortBy: ControlSetRow[] = [
-  ['legacy_order_by'],
-  [
-    {
-      name: 'order_desc',
-      config: {
-        type: 'CheckboxControl',
-        label: t('Sort descending'),
-        default: true,
-        description: t(
-          'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
-        ),
+import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+
+export const emitFilterControl = isFeatureEnabled(
+  FeatureFlag.DASHBOARD_CROSS_FILTERS,
+)
+  ? [
+      {
+        name: 'emit_filter',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Enable dashboard cross filters'),
+          default: false,
+          renderTrigger: true,
+          description: t('Enable dashboard cross filters'),
+        },
       },
-    },
-  ],
-];
+    ]
+  : [];
