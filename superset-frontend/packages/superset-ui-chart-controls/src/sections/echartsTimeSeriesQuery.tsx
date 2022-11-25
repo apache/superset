@@ -18,7 +18,7 @@
  */
 import { ContributionType, hasGenericChartAxes, t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
-import { emitFilterControl } from '../shared-controls/emitFilterControl';
+import { emitFilterControl } from '../shared-controls';
 
 export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
