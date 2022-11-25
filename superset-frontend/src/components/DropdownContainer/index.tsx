@@ -215,7 +215,7 @@ const DropdownContainer = forwardRef(
           css={css`
             display: flex;
             flex-direction: column;
-            gap: ${theme.gridUnit * 3}px;
+            gap: ${theme.gridUnit * 4}px;
           `}
           data-test="dropdown-content"
           style={popoverStyle}
@@ -252,14 +252,14 @@ const DropdownContainer = forwardRef(
         ref={ref}
         css={css`
           display: flex;
-          align-items: flex-end;
+          align-items: center;
         `}
       >
         <div
           css={css`
             display: flex;
             align-items: center;
-            gap: ${theme.gridUnit * 3}px;
+            gap: ${theme.gridUnit * 4}px;
             margin-right: ${theme.gridUnit * 3}px;
             min-width: 100px;
           `}

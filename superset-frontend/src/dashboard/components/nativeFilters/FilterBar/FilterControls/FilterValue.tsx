@@ -42,10 +42,10 @@ import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import { RootState } from 'src/dashboard/types';
+import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { onFiltersRefreshSuccess } from 'src/dashboard/actions/dashboardState';
 import { dispatchFocusAction } from './utils';
-import { FilterProps } from './types';
+import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
@@ -75,7 +75,7 @@ const useShouldFilterRefresh = () => {
   return !isDashboardRefreshing && isFilterRefreshing;
 };
 
-const FilterValue: React.FC<FilterProps> = ({
+const FilterValue: React.FC<FilterControlProps> = ({
   dataMaskSelected,
   filter,
   directPathToChild,
@@ -84,6 +84,8 @@ const FilterValue: React.FC<FilterProps> = ({
   showOverflow,
   parentRef,
   setFilterActive,
+  orientation = FilterBarOrientation.VERTICAL,
+  overflow = false,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -251,6 +253,11 @@ const FilterValue: React.FC<FilterProps> = ({
     [filter.dataMask?.filterState, isMissingRequiredValue],
   );
 
+  const formDataWithDisplayParams = useMemo(
+    () => ({ ...formData, orientation, overflow }),
+    [formData, orientation, overflow],
+  );
+
   if (error) {
     return (
       <BasicErrorAlert
@@ -270,7 +277,7 @@ const FilterValue: React.FC<FilterProps> = ({
           height={HEIGHT}
           width="100%"
           showOverflow={showOverflow}
-          formData={formData}
+          formData={formDataWithDisplayParams}
           parentRef={parentRef}
           inputRef={inputRef}
           // For charts that don't have datasource we need workaround for empty placeholder
