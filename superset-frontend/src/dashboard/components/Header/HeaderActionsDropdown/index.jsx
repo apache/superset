@@ -25,7 +25,7 @@ import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
-import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
+// import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import SaveModal from 'src/dashboard/components/SaveModal';
 import HeaderReportDropdown from 'src/components/ReportModal/HeaderReportDropdown';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
@@ -378,7 +378,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             </Menu.Item>
           )}
 
-        <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
+        {/* <Menu.Item key={MENU_KEYS.AUTOREFRESH_MODAL}>
           <RefreshIntervalModal
             addSuccessToast={this.props.addSuccessToast}
             refreshFrequency={refreshFrequency}
@@ -388,7 +388,7 @@ class HeaderActionsDropdown extends React.PureComponent {
             editMode={editMode}
             triggerNode={<span>{t('Set auto-refresh interval')}</span>}
           />
-        </Menu.Item>
+        </Menu.Item> */}
       </Menu>
     );
   }
