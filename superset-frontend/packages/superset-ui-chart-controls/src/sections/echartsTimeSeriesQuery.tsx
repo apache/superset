@@ -35,7 +35,7 @@ import {
   isTemporalColumn,
 } from '@superset-ui/chart-controls';
 import { ControlPanelSectionConfig, ControlSetRow } from '../types';
-import { emitFilterControl } from '../shared-controls/emitFilterControl';
+import { emitFilterControl } from '../shared-controls';
 
 const controlsWithoutXAxis: ControlSetRow[] = [
   ['metrics'],
