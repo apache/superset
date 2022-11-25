@@ -19,8 +19,14 @@
 import React, { useState } from 'react';
 import { ComponentStory, ComponentMeta } from '@storybook/react';
 import { action } from '@storybook/addon-actions';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { Table, TableSize, SUPERSET_TABLE_COLUMN, ColumnsType } from './index';
+import {
+  Table,
+  TableSize,
+  SUPERSET_TABLE_COLUMN,
+  ColumnsType,
+  OnChangeFunction,
+  ETableAction,
+} from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
 import ActionCell from './cell-renderers/ActionCell';
@@ -62,10 +68,10 @@ export interface ExampleData {
   key: number;
 }
 
-function generateValues(amount: number): object {
+function generateValues(amount: number, row = 0): object {
   const cells = {};
   for (let i = 0; i < amount; i += 1) {
-    cells[`col-${i}`] = `Text ${i}`;
+    cells[`col-${i}`] = i * row * 0.75;
   }
   return cells;
 }
@@ -74,15 +80,24 @@ function generateColumns(amount: number): ColumnsType<ExampleData>[] {
   const newCols: any[] = [];
   for (let i = 0; i < amount; i += 1) {
     newCols.push({
-      title: `Column Header ${i}`,
+      title: `C${i}`,
       dataIndex: `col-${i}`,
       key: `col-${i}`,
+      width: 90,
+      render: (value: number) => (
+        <NumericCell
+          options={{ style: Style.CURRENCY, currency: CurrencyCode.EUR }}
+          value={value}
+          locale={LocaleCode.en_US}
+        />
+      ),
+      sorter: (a: BasicData, b: BasicData) => numericalSort(`col-${i}`, a, b),
     });
   }
   return newCols as ColumnsType<ExampleData>[];
 }
-const recordCount = 200;
-const columnCount = 12;
+const recordCount = 500;
+const columnCount = 500;
 const randomCols: ColumnsType<ExampleData>[] = generateColumns(columnCount);
 
 const basicData: BasicData[] = [
@@ -107,6 +122,41 @@ const basicData: BasicData[] = [
     price: 49.99,
     description: 'Reliable and fast data storage',
   },
+  {
+    key: 4,
+    name: '128 GB SSD',
+    category: 'Hardrive',
+    price: 49.99,
+    description: 'Reliable and fast data storage',
+  },
+  {
+    key: 5,
+    name: '4GB 144mhz',
+    category: 'Memory',
+    price: 19.99,
+    description: 'Laptop memory',
+  },
+  {
+    key: 6,
+    name: '1GB USB Flash Drive',
+    category: 'Portable Storage',
+    price: 9.99,
+    description: 'USB Flash Drive portal data storage',
+  },
+  {
+    key: 7,
+    name: '256 GB SSD',
+    category: 'Hardrive',
+    price: 175,
+    description: 'Reliable and fast data storage',
+  },
+  {
+    key: 8,
+    name: '1 TB SSD',
+    category: 'Hardrive',
+    price: 349.99,
+    description: 'Reliable and fast data storage',
+  },
 ];
 
 const basicColumns: ColumnsType<BasicData> = [
@@ -114,7 +164,7 @@ const basicColumns: ColumnsType<BasicData> = [
     title: 'Name',
     dataIndex: 'name',
     key: 'name',
-    width: 150,
+    width: 100,
     sorter: (a: BasicData, b: BasicData) => alphabeticalSort('name', a, b),
   },
   {
@@ -128,6 +178,7 @@ const basicColumns: ColumnsType<BasicData> = [
     dataIndex: 'price',
     key: 'price',
     sorter: (a: BasicData, b: BasicData) => numericalSort('price', a, b),
+    width: 100,
   },
   {
     title: 'Description',
@@ -141,25 +192,20 @@ const bigColumns: ColumnsType<ExampleData> = [
     title: 'Name',
     dataIndex: 'name',
     key: 'name',
-    render: (text: string, row: object, index: number) => (
-      <ButtonCell
-        label={text}
-        onClick={action('button-cell-click')}
-        row={row}
-        index={index}
-      />
-    ),
     width: 150,
   },
   {
     title: 'Age',
     dataIndex: 'age',
     key: 'age',
+    sorter: (a: ExampleData, b: ExampleData) => numericalSort('age', a, b),
+    width: 75,
   },
   {
     title: 'Address',
     dataIndex: 'address',
     key: 'address',
+    width: 100,
   },
   ...(randomCols as ColumnsType<ExampleData>),
 ];
@@ -253,17 +299,11 @@ for (let i = 0; i < recordCount; i += 1) {
     name: `Dynamic record ${i}`,
     age: 32 + i,
     address: `DynamoCity, Dynamic Lane no. ${i}`,
-    ...generateValues(columnCount),
+    ...generateValues(columnCount, i),
   });
 }
 
-export const Basic: ComponentStory<typeof Table> = args => (
-  <ThemeProvider theme={supersetTheme}>
-    <div>
-      <Table {...args} />
-    </div>
-  </ThemeProvider>
-);
+export const Basic: ComponentStory<typeof Table> = args => <Table {...args} />;
 
 function handlers(record: object, rowIndex: number) {
   return {
@@ -286,31 +326,150 @@ Basic.args = {
   columns: basicColumns,
   size: TableSize.SMALL,
   onRow: handlers,
-  pageSizeOptions: ['5', '10', '15', '20', '25'],
-  defaultPageSize: 10,
+  usePagination: false,
 };
 
-export const ManyColumns: ComponentStory<typeof Table> = args => (
-  <ThemeProvider theme={supersetTheme}>
-    <div style={{ height: '350px' }}>
-      <Table {...args} />
-    </div>
-  </ThemeProvider>
+export const Pagination: ComponentStory<typeof Table> = args => (
+  <Table {...args} />
 );
 
-ManyColumns.args = {
+Pagination.args = {
+  data: basicData,
+  columns: basicColumns,
+  size: TableSize.SMALL,
+  pageSizeOptions: ['5', '10', '15', '20', '25'],
+  defaultPageSize: 5,
+};
+
+const generateData = (startIndex: number, pageSize: number): BasicData[] => {
+  const data: BasicData[] = [];
+  for (let i = 0; i < pageSize; i += 1) {
+    const recordIndex = startIndex + i;
+    data.push({
+      key: recordIndex,
+      name: `Dynamic Record ${recordIndex}`,
+      category: 'Disk Storage',
+      price: recordIndex * 2.59,
+      description: 'A random description',
+    });
+  }
+  return data;
+};
+
+const paginationColumns: ColumnsType<BasicData> = [
+  {
+    title: 'Name',
+    dataIndex: 'name',
+    key: 'name',
+    width: 100,
+  },
+  {
+    title: 'Category',
+    dataIndex: 'category',
+    key: 'category',
+  },
+  {
+    title: 'Price',
+    dataIndex: 'price',
+    key: 'price',
+    width: 100,
+    render: (value: number) => (
+      <NumericCell
+        options={{ style: Style.CURRENCY, currency: CurrencyCode.EUR }}
+        value={value}
+        locale={LocaleCode.en_US}
+      />
+    ),
+    sorter: (a: BasicData, b: BasicData) => numericalSort('price', a, b),
+  },
+  {
+    title: 'Description',
+    dataIndex: 'description',
+    key: 'description',
+  },
+  {
+    dataIndex: 'actions',
+    key: 'actions',
+    render: (text: string, row: object) => (
+      <ActionCell row={row} menuOptions={exampleMenuOptions} />
+    ),
+    width: 32,
+    fixed: 'right',
+  },
+];
+
+export const ServerPagination: ComponentStory<typeof Table> = args => {
+  const [data, setData] = useState(generateData(0, 5));
+  const [loading, setLoading] = useState(false);
+
+  const handleChange: OnChangeFunction = (
+    pagination,
+    filters,
+    sorter,
+    extra,
+  ) => {
+    const pageSize = pagination?.pageSize ?? 5;
+    const current = pagination?.current ?? 0;
+    switch (extra?.action) {
+      case ETableAction.PAGINATE: {
+        setLoading(true);
+        // simulate a fetch
+        setTimeout(() => {
+          setData(generateData(current * pageSize, pageSize));
+          setLoading(false);
+        }, 1000);
+        break;
+      }
+      case ETableAction.SORT: {
+        action(`table-sort-change: ${JSON.stringify(sorter)}`);
+        break;
+      }
+      case ETableAction.FILTER: {
+        action(`table-sort-change: ${JSON.stringify(filters)}`);
+        break;
+      }
+      default: {
+        action('table action unknown');
+        break;
+      }
+    }
+  };
+
+  return (
+    <Table
+      {...args}
+      data={data}
+      recordCount={5000}
+      onChange={handleChange}
+      loading={loading}
+    />
+  );
+};
+
+ServerPagination.args = {
+  columns: paginationColumns,
+  size: TableSize.SMALL,
+  pageSizeOptions: ['5', '20', '50'],
+  defaultPageSize: 5,
+};
+
+export const VirtualizedPerformance: ComponentStory<typeof Table> = args => (
+  <Table {...args} />
+);
+
+VirtualizedPerformance.args = {
   data: bigdata,
   columns: bigColumns,
   size: TableSize.SMALL,
   resizable: true,
   reorderable: true,
   height: 350,
+  virtualize: true,
+  usePagination: false,
 };
 
 export const Loading: ComponentStory<typeof Table> = args => (
-  <ThemeProvider theme={supersetTheme}>
-    <Table {...args} />
-  </ThemeProvider>
+  <Table {...args} />
 );
 
 Loading.args = {
@@ -321,11 +480,7 @@ Loading.args = {
 };
 
 export const ResizableColumns: ComponentStory<typeof Table> = args => (
-  <ThemeProvider theme={supersetTheme}>
-    <div>
-      <Table {...args} />
-    </div>
-  </ThemeProvider>
+  <Table {...args} />
 );
 
 ResizableColumns.args = {
@@ -362,26 +517,24 @@ export const ReorderableColumns: ComponentStory<typeof Table> = args => {
     setDroppedItem(data);
   };
   return (
-    <ThemeProvider theme={supersetTheme}>
-      <div>
-        <div
-          onDragOver={(ev: React.DragEvent<HTMLDivElement>) => dragOver(ev)}
-          onDragLeave={(ev: React.DragEvent<HTMLDivElement>) => dragOut(ev)}
-          onDrop={(ev: React.DragEvent<HTMLDivElement>) => dragDrop(ev)}
-          style={{
-            width: '100%',
-            height: '40px',
-            border: '1px solid grey',
-            marginBottom: '8px',
-            padding: '8px',
-            borderRadius: '4px',
-          }}
-        >
-          {droppedItem ?? 'Drop column here...'}
-        </div>
-        <Table {...args} />
+    <div>
+      <div
+        onDragOver={(ev: React.DragEvent<HTMLDivElement>) => dragOver(ev)}
+        onDragLeave={(ev: React.DragEvent<HTMLDivElement>) => dragOut(ev)}
+        onDrop={(ev: React.DragEvent<HTMLDivElement>) => dragDrop(ev)}
+        style={{
+          width: '100%',
+          height: '40px',
+          border: '1px solid grey',
+          marginBottom: '8px',
+          padding: '8px',
+          borderRadius: '4px',
+        }}
+      >
+        {droppedItem ?? 'Drop column here...'}
       </div>
-    </ThemeProvider>
+      <Table {...args} />
+    </div>
   );
 };
 
@@ -417,11 +570,7 @@ const rendererData: RendererData[] = [
 ];
 
 export const CellRenderers: ComponentStory<typeof Table> = args => (
-  <ThemeProvider theme={supersetTheme}>
-    <div>
-      <Table {...args} />
-    </div>
-  </ThemeProvider>
+  <Table {...args} />
 );
 
 CellRenderers.args = {
