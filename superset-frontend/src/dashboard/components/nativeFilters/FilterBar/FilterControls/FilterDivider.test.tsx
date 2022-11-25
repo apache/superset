@@ -59,6 +59,7 @@ test('horizontal mode, title', () => {
       orientation={FilterBarOrientation.HORIZONTAL}
       title={SAMPLE_TITLE}
       description=""
+      overflow
     />,
   );
 
@@ -88,9 +89,7 @@ test('horizontal mode, title and description', async () => {
   const descriptionIcon = screen.getByTestId('divider-description-icon');
   expect(descriptionIcon).toBeVisible();
   userEvent.hover(descriptionIcon);
-  const tooltip = await screen.findByRole('tooltip', {
-    name: SAMPLE_DESCRIPTION,
-  });
+  const tooltip = await screen.findByRole('tooltip');
 
   expect(tooltip).toBeInTheDocument();
   expect(tooltip).toHaveTextContent(SAMPLE_DESCRIPTION);
