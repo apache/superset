@@ -35,6 +35,9 @@ logger = logging.getLogger(__name__)
 
 
 class CreateSSHTunnelCommand(BaseCommand):
+    def __str__(self) -> str:
+        return super().__str__()
+    
     def __init__(self, database_id: int, data: Dict[str, Any]):
         self._properties = data.copy()
         self._properties["database_id"] = database_id
@@ -52,4 +55,4 @@ class CreateSSHTunnelCommand(BaseCommand):
     def validate(self) -> None:
         if is_feature_enabled("SSH_TUNNELING") and ssh_tunnel_manager:
             ssh_tunnel_manager.validate(self._properties)
-        return
+        return 
