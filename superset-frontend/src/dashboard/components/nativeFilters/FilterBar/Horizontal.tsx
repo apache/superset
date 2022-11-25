@@ -63,7 +63,10 @@ const FilterBarEmptyStateContainer = styled.div`
 
 const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
   ${({ theme, hasFilters }) => `
-    padding: 0 ${theme.gridUnit * 2}px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 ${theme.gridUnit * 4}px 0 ${theme.gridUnit * 4}px;
     border-right: ${
       hasFilters ? `1px solid ${theme.colors.grayscale.light2}` : 0
     };
@@ -76,7 +79,7 @@ const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
       color: ${theme.colors.primary.base};
       > .anticon {
         height: 24px;
-        padding-right: ${theme.gridUnit * 2}px;
+        padding-right: ${theme.gridUnit}px;
       }
       > .anticon + span, > .anticon {
           margin-right: 0;
