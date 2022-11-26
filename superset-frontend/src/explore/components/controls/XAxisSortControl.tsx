@@ -16,15 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React, { useEffect, useState } from 'react';
+import SelectControl from './SelectControl';
 
-import { isPhysicalColumn, QueryFormColumn } from './types';
+export default function XAxisSortControl(props: {
+  onChange: (val: string | undefined) => void;
+  value: string | null;
+  shouldReset: boolean;
+}) {
+  const [value, setValue] = useState(props.value);
+  useEffect(() => {
+    if (props.shouldReset) {
+      props.onChange(undefined);
+      setValue(null);
+    }
+  }, [props.shouldReset, props.value]);
 
-export default function getColumnLabel(column: QueryFormColumn): string {
-  if (isPhysicalColumn(column)) {
-    return column;
-  }
-  if (column?.label) {
-    return column.label;
-  }
-  return column?.sqlExpression;
+  return <SelectControl {...props} value={value} />;
 }

@@ -73,7 +73,7 @@ const config: ControlPanelConfig = {
               },
             },
           },
-          'datetime_columns_lookup',
+          'temporal_columns_lookup',
         ],
         ['groupby'],
         ['metrics'],
