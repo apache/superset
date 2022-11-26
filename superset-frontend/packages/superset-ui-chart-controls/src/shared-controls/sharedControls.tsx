@@ -354,7 +354,7 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
   description: t('Show empty columns'),
 };
 
-const datetime_columns_lookup: SharedControlConfig<'HiddenControl'> = {
+const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
   type: 'HiddenControl',
   initialValue: (control: ControlState, state: ControlPanelState | null) =>
     Object.fromEntries(
@@ -400,5 +400,5 @@ export default {
   truncate_metric,
   x_axis: dndXAxisControl,
   show_empty_columns,
-  datetime_columns_lookup,
+  temporal_columns_lookup,
 };
