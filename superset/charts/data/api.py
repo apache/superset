@@ -135,7 +135,8 @@ class ChartDataRestApi(ChartRestApi):
             "format", ChartDataResultFormat.JSON
         )
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
-        json_body["force"] = request.args.get("force")
+        if request.args.get("force"):
+            json_body["force"] = request.args.get("force")
 
         try:
             query_context = self._create_query_context_from_form(json_body)
