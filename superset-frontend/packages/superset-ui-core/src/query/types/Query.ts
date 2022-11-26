@@ -308,7 +308,6 @@ export type Query = {
   isDataPreview: boolean;
   link?: string;
   progress: number;
-  results?: QueryResults[];
   resultsKey: string | null;
   schema?: string;
   sql: string;

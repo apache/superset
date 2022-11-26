@@ -46,7 +46,6 @@ const TAB_HEIGHT = 140;
 export interface SouthPaneProps {
   queryEditorId: string;
   latestQueryId?: string;
-  activeSouthPaneTab?: string;
   height: number;
   displayLimit: number;
   defaultQueryLimit: number;
@@ -181,7 +180,6 @@ const SouthPane = ({
         results = (
           <ResultSet
             search
-            // @ts-ignore
             query={latestQuery}
             user={user}
             height={innerTabContentHeight + EXTRA_HEIGHT_RESULTS}
@@ -211,7 +209,6 @@ const SouthPane = ({
         key={query.id}
       >
         <ResultSet
-          // @ts-ignore
           query={query}
           visualize={false}
           csv={false}
@@ -245,7 +242,6 @@ const SouthPane = ({
         </Tabs.TabPane>
         <Tabs.TabPane tab={t('Query history')} key="History">
           <QueryHistory
-            // @ts-ignore
             queries={editorQueries}
             displayLimit={displayLimit}
             latestQueryId={latestQueryId}
