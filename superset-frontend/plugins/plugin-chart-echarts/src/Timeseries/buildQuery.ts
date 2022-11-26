@@ -36,6 +36,7 @@ import {
   prophetOperator,
   timeComparePivotOperator,
   flattenOperator,
+  sortOperator,
 } from '@superset-ui/chart-controls';
 
 export default function buildQuery(formData: QueryFormData) {
@@ -95,6 +96,7 @@ export default function buildQuery(formData: QueryFormData) {
           resampleOperator(formData, baseQueryObject),
           renameOperator(formData, baseQueryObject),
           contributionOperator(formData, baseQueryObject),
+          sortOperator(formData, baseQueryObject),
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten
           prophetOperator(formData, baseQueryObject),
