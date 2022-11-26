@@ -16,26 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ContributionType,
-  ensureIsArray,
-  getColumnLabel,
-  getMetricLabel,
-  hasGenericChartAxes,
-  isDefined,
-  isEqualArray,
-  QueryFormColumn,
-  QueryFormMetric,
-  t,
-} from '@superset-ui/core';
-import {
-  ControlPanelState,
-  ControlState,
-  ControlStateMapping,
-  isTemporalColumn,
-} from '@superset-ui/chart-controls';
+import { ContributionType, hasGenericChartAxes, t } from '@superset-ui/core';
 import { ControlPanelSectionConfig, ControlSetRow } from '../types';
-import { emitFilterControl } from '../shared-controls';
+import { emitFilterControl, xAxisSort, xAxisSortAsc } from '../shared-controls';
 
 const controlsWithoutXAxis: ControlSetRow[] = [
   ['metrics'],
@@ -65,86 +48,6 @@ const controlsWithoutXAxis: ControlSetRow[] = [
   ['truncate_metric'],
   ['show_empty_columns'],
 ];
-
-const xAxisSort = {
-  name: 'x_axis_sort',
-  config: {
-    type: 'XAxisSortControl',
-    label: t('X-Axis Sort By'),
-    description: t('Whether to sort descending or ascending on the X-Axis.'),
-    shouldMapStateToProps: (
-      prevState: ControlPanelState,
-      state: ControlPanelState,
-    ) => {
-      const prevOptions = [
-        getColumnLabel(prevState?.controls?.x_axis?.value as QueryFormColumn),
-        ...ensureIsArray(prevState?.controls?.metrics?.value).map(metric =>
-          getMetricLabel(metric as QueryFormMetric),
-        ),
-      ];
-      const currOptions = [
-        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
-        ...ensureIsArray(state?.controls?.metrics?.value).map(metric =>
-          getMetricLabel(metric as QueryFormMetric),
-        ),
-      ];
-      return !isEqualArray(prevOptions, currOptions);
-    },
-    mapStateToProps: (
-      { controls }: { controls: ControlStateMapping },
-      controlState: ControlState,
-    ) => {
-      const choices = [
-        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-        ...ensureIsArray(controls?.metrics?.value).map(metric =>
-          getMetricLabel(metric as QueryFormMetric),
-        ),
-      ].filter(Boolean);
-      const shouldReset = !(
-        typeof controlState.value === 'string' &&
-        choices.includes(controlState.value) &&
-        !isTemporalColumn(
-          getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-          controls?.datasource?.datasource,
-        )
-      );
-
-      return {
-        shouldReset,
-        options: choices.map(entry => ({
-          value: entry,
-          label: entry,
-        })),
-      };
-    },
-    visibility: ({ controls }: { controls: ControlStateMapping }) =>
-      isDefined(controls?.x_axis?.value) &&
-      !isTemporalColumn(
-        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-        controls?.datasource?.datasource,
-      ) &&
-      Array.isArray(controls?.groupby?.value) &&
-      controls.groupby.value.length === 0,
-  },
-};
-
-const xAxisSortAsc = {
-  name: 'x_axis_sort_asc',
-  config: {
-    type: 'CheckboxControl',
-    label: t('X-Axis Sort Ascending'),
-    default: true,
-    description: t('Whether to sort descending or ascending on the X-Axis.'),
-    visibility: ({ controls }: { controls: ControlStateMapping }) =>
-      isDefined(controls?.x_axis?.value) &&
-      !isTemporalColumn(
-        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
-        controls?.datasource?.datasource,
-      ) &&
-      Array.isArray(controls?.groupby?.value) &&
-      controls.groupby.value.length === 0,
-  },
-};
 
 export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
