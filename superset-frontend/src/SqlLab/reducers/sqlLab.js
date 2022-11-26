@@ -321,7 +321,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: false,
             cost: null,
             error: null,
@@ -334,7 +334,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: true,
             cost: action.json,
             error: null,
@@ -347,7 +347,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: false,
             cost: null,
             error: action.error,
@@ -463,14 +463,14 @@ export default function sqlLabReducer(state = {}, action) {
         return {
           ...(action.queryEditor.id === state.unsavedQueryEditor.id
             ? alterInArr(
-                mergeUnsavedState,
-                'queryEditors',
-                action.queryEditor,
-                {
-                  ...action.queryEditor,
-                  ...state.unsavedQueryEditor,
-                },
-              )
+              mergeUnsavedState,
+              'queryEditors',
+              action.queryEditor,
+              {
+                ...action.queryEditor,
+                ...state.unsavedQueryEditor,
+              },
+            )
             : mergeUnsavedState),
           tabHistory: [...state.tabHistory, action.queryEditor.id],
         };
@@ -739,7 +739,7 @@ export default function sqlLabReducer(state = {}, action) {
             // when it started fetching or finished rendering results
             state:
               currentState === 'success' &&
-              ['fetching', 'success'].includes(prevState)
+                ['fetching', 'success'].includes(prevState)
                 ? prevState
                 : currentState,
           };

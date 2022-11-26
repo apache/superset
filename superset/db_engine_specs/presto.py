@@ -230,11 +230,14 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return uri
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
+    def estimate_statement_cost(
+        cls, statement: str, cursor: Any, database: "Database"
+    ) -> Dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
         :param statement: A single SQL statement
         :param cursor: Cursor instance
+        :param database: Database instance
         :return: JSON response from Trino
         """
         sql = f"EXPLAIN (TYPE IO, FORMAT JSON) {statement}"
