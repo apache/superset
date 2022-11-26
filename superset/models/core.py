@@ -54,7 +54,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
-from superset import app, db_engine_specs
+from superset import app, db_engine_specs, is_feature_enabled
 from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
@@ -383,8 +383,9 @@ class Database(
             ssh_tunnel.bind_host = url.host
             ssh_tunnel.bind_port = url.port
             ssh_params = ssh_tunnel.parameters()
-            if ssh_tunnel_manager:
+            if ssh_tunnel_manager and is_feature_enabled("SSH_TUNNELING"):
                 ssh_params = ssh_tunnel_manager.mutate(ssh_params)
+
             with sshtunnel.open_tunnel(**ssh_params) as server:
                 yield self._get_sqla_engine(
                     schema=schema,
