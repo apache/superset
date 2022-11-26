@@ -39,7 +39,7 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
         description: t(
           'Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.',
         ),
-        name: t('Bubble Chart V2'),
+        name: t('Bubble Chart'),
         tags: [
           t('Multi-Dimensions'),
           t('Aesthetic'),
