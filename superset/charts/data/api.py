@@ -89,6 +89,11 @@ class ChartDataRestApi(ChartRestApi):
             description: The type in which the data should be returned
             schema:
               type: string
+          - in: query
+            name: force
+            description: Should the queries be forced to load from the source
+            schema:
+                type: boolean
           responses:
             200:
               description: Query result
@@ -130,6 +135,7 @@ class ChartDataRestApi(ChartRestApi):
             "format", ChartDataResultFormat.JSON
         )
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
+        json_body["force"] = request.args.get("force")
 
         try:
             query_context = self._create_query_context_from_form(json_body)
