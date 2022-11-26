@@ -106,6 +106,7 @@ test('should sort by metric', () => {
       {
         ...formData,
         ...{
+          metrics: ['a metric label'],
           x_axis_sort: 'a metric label',
           x_axis_sort_asc: true,
         },
