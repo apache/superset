@@ -900,8 +900,6 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             }
         )
 
-        # wrapping original class, so we can test output too.
-
         self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
 
         rv = self.get_assert_metric(
