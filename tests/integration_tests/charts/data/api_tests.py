@@ -900,24 +900,17 @@ class TestGetChartDataApi(BaseTestChartDataApi):
             }
         )
 
-        self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        self.get_assert_metric(f"api/v1/chart/{chart.id}/data/?force=true", "get_data")
 
+        # should burst cache
         rv = self.get_assert_metric(
             f"api/v1/chart/{chart.id}/data/?force=true", "get_data"
         )
-
-        data = json.loads(rv.data.decode("utf-8"))
         assert rv.json["result"][0]["is_cached"] is None
-        assert rv.mimetype == "application/json"
-        assert data["result"][0]["status"] == "success"
-        assert data["result"][0]["rowcount"] == 2
 
+        # should get response from the cache
         rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
-        data = json.loads(rv.data.decode("utf-8"))
-        assert rv.json["result"][0]["is_cached"] is not None
-        assert rv.mimetype == "application/json"
-        assert data["result"][0]["status"] == "success"
-        assert data["result"][0]["rowcount"] == 2
+        assert rv.json["result"][0]["is_cached"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
