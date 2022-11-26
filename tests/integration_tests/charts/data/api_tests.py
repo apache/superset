@@ -901,19 +901,25 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         )
 
         # wrapping original class, so we can test output too.
-        with mock.patch(
-            "superset.charts.data.api.ChartDataCommand", wraps=ChartDataCommand
-        ) as command:
-            rv = self.get_assert_metric(
-                f"api/v1/chart/{chart.id}/data/?force=true", "get_data"
-            )
-            data = json.loads(rv.data.decode("utf-8"))
-            query_context = command.call_args.args[0]
 
-            assert query_context.force == True
-            assert rv.mimetype == "application/json"
-            assert data["result"][0]["status"] == "success"
-            assert data["result"][0]["rowcount"] == 2
+        self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+
+        rv = self.get_assert_metric(
+            f"api/v1/chart/{chart.id}/data/?force=true", "get_data"
+        )
+
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.json["result"][0]["is_cached"] is None
+        assert rv.mimetype == "application/json"
+        assert data["result"][0]["status"] == "success"
+        assert data["result"][0]["rowcount"] == 2
+
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.json["result"][0]["is_cached"] is not None
+        assert rv.mimetype == "application/json"
+        assert data["result"][0]["status"] == "success"
+        assert data["result"][0]["rowcount"] == 2
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
