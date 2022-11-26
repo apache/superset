@@ -16,29 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ContributionType, hasGenericChartAxes, t } from '@superset-ui/core';
+import { hasGenericChartAxes, t } from '@superset-ui/core';
 import { ControlPanelSectionConfig, ControlSetRow } from '../types';
-import { emitFilterControl, xAxisSort, xAxisSortAsc } from '../shared-controls';
+import {
+  contributionModeControl,
+  emitFilterControl,
+  xAxisSortControl,
+  xAxisSortAscControl,
+} from '../shared-controls';
 
 const controlsWithoutXAxis: ControlSetRow[] = [
   ['metrics'],
   ['groupby'],
-  [
-    {
-      name: 'contributionMode',
-      config: {
-        type: 'SelectControl',
-        label: t('Contribution Mode'),
-        default: null,
-        choices: [
-          [null, t('None')],
-          [ContributionType.Row, t('Row')],
-          [ContributionType.Column, t('Series')],
-        ],
-        description: t('Calculate contribution per series or row'),
-      },
-    },
-  ],
+  [contributionModeControl],
   ['adhoc_filters'],
   emitFilterControl,
   ['limit'],
@@ -65,8 +55,8 @@ export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
   controlSetRows: [
     [hasGenericChartAxes ? 'x_axis' : null],
     [hasGenericChartAxes ? 'time_grain_sqla' : null],
-    [hasGenericChartAxes ? xAxisSort : null],
-    [hasGenericChartAxes ? xAxisSortAsc : null],
+    [hasGenericChartAxes ? xAxisSortControl : null],
+    [hasGenericChartAxes ? xAxisSortAscControl : null],
     ...controlsWithoutXAxis,
   ],
 };

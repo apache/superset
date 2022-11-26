@@ -18,6 +18,7 @@
  */
 
 import {
+  ContributionType,
   ensureIsArray,
   FeatureFlag,
   getColumnLabel,
@@ -49,6 +50,21 @@ export const emitFilterControl = isFeatureEnabled(
     ]
   : [];
 
+export const contributionModeControl = {
+  name: 'contributionMode',
+  config: {
+    type: 'SelectControl',
+    label: t('Contribution Mode'),
+    default: null,
+    choices: [
+      [null, t('None')],
+      [ContributionType.Row, t('Row')],
+      [ContributionType.Column, t('Series')],
+    ],
+    description: t('Calculate contribution per series or row'),
+  },
+};
+
 const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
   isDefined(controls?.x_axis?.value) &&
   !isTemporalColumn(
@@ -58,7 +74,7 @@ const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
   Array.isArray(controls?.groupby?.value) &&
   controls.groupby.value.length === 0;
 
-export const xAxisSort = {
+export const xAxisSortControl = {
   name: 'x_axis_sort',
   config: {
     type: 'XAxisSortControl',
@@ -113,7 +129,7 @@ export const xAxisSort = {
   },
 };
 
-export const xAxisSortAsc = {
+export const xAxisSortAscControl = {
   name: 'x_axis_sort_asc',
   config: {
     type: 'CheckboxControl',

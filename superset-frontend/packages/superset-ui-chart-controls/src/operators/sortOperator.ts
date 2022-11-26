@@ -18,6 +18,8 @@
  */
 import { isEmpty } from 'lodash';
 import {
+  ensureIsArray,
+  getMetricLabel,
   getXAxisLabel,
   hasGenericChartAxes,
   isDefined,
@@ -29,10 +31,17 @@ export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
   formData,
   queryObject,
 ) => {
+  // the sortOperator only used in the barchart v2
+  const labelsInMetricsAndXAxis = [
+    getXAxisLabel(formData),
+    ...ensureIsArray(formData.metrics).map(metric => getMetricLabel(metric)),
+  ].filter(Boolean);
+
   if (
     hasGenericChartAxes &&
     isDefined(formData?.x_axis_sort) &&
     isDefined(formData?.x_axis_sort_asc) &&
+    labelsInMetricsAndXAxis.includes(formData.x_axis_sort) &&
     // the sort operator doesn't support sort-by multiple series.
     isEmpty(formData.groupby)
   ) {
