@@ -101,7 +101,7 @@ def _is_multi_index_on_columns(df: DataFrame) -> bool:
     return isinstance(df.columns, pd.MultiIndex)
 
 
-def scalar_to_list(val: Any) -> Sequence[str]:
+def scalar_to_sequence(val: Any) -> Sequence[str]:
     if val is None:
         return []
     if isinstance(val, str):
@@ -119,7 +119,7 @@ def validate_column_args(*argnames: str) -> Callable[..., Any]:
                 columns = df.columns.tolist()
             for name in argnames:
                 if name in options and not all(
-                    elem in columns for elem in scalar_to_list(options.get(name))
+                    elem in columns for elem in scalar_to_sequence(options.get(name))
                 ):
                     raise InvalidPostProcessingError(
                         _("Referenced columns not available in DataFrame.")

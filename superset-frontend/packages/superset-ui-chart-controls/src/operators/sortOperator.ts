@@ -32,7 +32,7 @@ export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
   queryObject,
 ) => {
   // the sortOperator only used in the barchart v2
-  const labelsInMetricsAndXAxis = [
+  const sortableLabels = [
     getXAxisLabel(formData),
     ...ensureIsArray(formData.metrics).map(metric => getMetricLabel(metric)),
   ].filter(Boolean);
@@ -41,7 +41,7 @@ export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
     hasGenericChartAxes &&
     isDefined(formData?.x_axis_sort) &&
     isDefined(formData?.x_axis_sort_asc) &&
-    labelsInMetricsAndXAxis.includes(formData.x_axis_sort) &&
+    sortableLabels.includes(formData.x_axis_sort) &&
     // the sort operator doesn't support sort-by multiple series.
     isEmpty(formData.groupby)
   ) {
