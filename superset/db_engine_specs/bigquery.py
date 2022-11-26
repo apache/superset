@@ -470,7 +470,6 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
-        engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
         for statement in statements:
             processed_statement = cls.process_statement(statement, database)
@@ -482,9 +481,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         return True
 
     @classmethod
-    def estimate_statement_cost(
-        cls, statement: str, database: "Database"
-    ) -> Dict[str, Any]:
+    def estimate_statement_cost(cls, statement: str, cursor: Any) -> Dict[str, Any]:
         try:
             # pylint: disable=import-outside-toplevel
             # It's the only way to perfom a dry-run estimate cost
@@ -496,7 +493,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
                 "required to be installed in your environment in order "
                 "to upload data to BigQuery"
             ) from ex
-        engine = cls.get_engine(database)
+        engine = cls.get_engine(cursor)
 
         creds = engine.dialect.credentials_info
         creds = service_account.Credentials.from_service_account_info(creds)
@@ -509,24 +506,26 @@ class BigQueryEngineSpec(BaseEngineSpec):
         )  # Make an API request.
 
         # Format Bytes.
-        if query_job.total_bytes_processed // 1000 == 0:
-            byte_type = "B"
-            total_bytes_processed = query_job.total_bytes_processed
-        elif query_job.total_bytes_processed // (1000**2) == 0:
-            byte_type = "KB"
-            total_bytes_processed = round(query_job.total_bytes_processed / 1000, 2)
-        elif query_job.total_bytes_processed // (1000**3) == 0:
-            byte_type = "MB"
-            total_bytes_processed = round(
-                query_job.total_bytes_processed / (1000**2), 2
-            )
-        else:
-            byte_type = "GB"
-            total_bytes_processed = round(
-                query_job.total_bytes_processed / (1000**3), 2
-            )
+        if query_job.total_bytes_processed:
+            if query_job.total_bytes_processed // 1000 == 0:
+                byte_type = "B"
+                total_bytes_processed = query_job.total_bytes_processed
+            elif query_job.total_bytes_processed // (1000**2) == 0:
+                byte_type = "KB"
+                total_bytes_processed = round(query_job.total_bytes_processed / 1000, 2)
+            elif query_job.total_bytes_processed // (1000**3) == 0:
+                byte_type = "MB"
+                total_bytes_processed = round(
+                    query_job.total_bytes_processed / (1000**2), 2
+                )
+            else:
+                byte_type = "GB"
+                total_bytes_processed = round(
+                    query_job.total_bytes_processed / (1000**3), 2
+                )
 
-        return {f"{byte_type} Processed": total_bytes_processed}
+            return {f"{byte_type} Processed": total_bytes_processed}
+        return {}
 
     @classmethod
     def query_cost_formatter(
