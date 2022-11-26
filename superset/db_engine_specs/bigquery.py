@@ -498,31 +498,28 @@ class BigQueryEngineSpec(BaseEngineSpec):
         creds = engine.dialect.credentials_info
         creds = service_account.Credentials.from_service_account_info(creds)
         client = bigquery.Client(credentials=creds)
-        job_config = bigquery.QueryJobConfig(dry_run=True, use_query_cache=True)
+        job_config = bigquery.QueryJobConfig(dry_run=True)
 
         query_job = client.query(
-            (statement),
+            statement,
             job_config=job_config,
         )  # Make an API request.
 
         # Format Bytes.
-        if query_job.total_bytes_processed:
-            if query_job.total_bytes_processed // 1000 == 0:
+        if hasattr(query_job, "total_bytes_processed"):
+            query_bytes_processed = query_job.total_bytes_processed
+            if query_bytes_processed // 1000 == 0:
                 byte_type = "B"
-                total_bytes_processed = query_job.total_bytes_processed
-            elif query_job.total_bytes_processed // (1000**2) == 0:
+                total_bytes_processed = query_bytes_processed
+            elif query_bytes_processed // (1000**2) == 0:
                 byte_type = "KB"
-                total_bytes_processed = round(query_job.total_bytes_processed / 1000, 2)
-            elif query_job.total_bytes_processed // (1000**3) == 0:
+                total_bytes_processed = round(query_bytes_processed / 1000, 2)
+            elif query_bytes_processed // (1000**3) == 0:
                 byte_type = "MB"
-                total_bytes_processed = round(
-                    query_job.total_bytes_processed / (1000**2), 2
-                )
+                total_bytes_processed = round(query_bytes_processed / (1000**2), 2)
             else:
                 byte_type = "GB"
-                total_bytes_processed = round(
-                    query_job.total_bytes_processed / (1000**3), 2
-                )
+                total_bytes_processed = round(query_bytes_processed / (1000**3), 2)
 
             return {f"{byte_type} Processed": total_bytes_processed}
         return {}
