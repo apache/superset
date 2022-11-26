@@ -152,6 +152,7 @@ Join our growing community!
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
 
 ### Others
+- [AI inside](https://inside.ai/en/)
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]
