@@ -873,7 +873,8 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = int(timedelta(hours=6).total_seconds())
 # query costs before they run. These EXPLAIN queries should have a small
 # timeout.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
-# The feature is off by default, and currently only supported in Presto and Postgres.
+# The feature is off by default, and currently only supported in Presto and Postgres,
+# and Bigquery.
 # It also need to be enabled on a per-database basis, by adding the key/value pair
 # `cost_estimate_enabled: true` to the database `extra` attribute.
 ESTIMATE_QUERY_COST = False
