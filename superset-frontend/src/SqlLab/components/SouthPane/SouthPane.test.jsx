@@ -24,27 +24,20 @@ import SouthPane from 'src/SqlLab/components/SouthPane';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
   latestQueryId: 'LCly_kkIN',
-  actions: {},
-  activeSouthPaneTab: '',
   height: 1,
   displayLimit: 1,
-  databases: {},
   defaultQueryLimit: 100,
 };
 
 const mockedEmptyProps = {
   queryEditorId: 'random_id',
   latestQueryId: '',
-  activeSouthPaneTab: '',
   height: 100,
-  databases: '',
   displayLimit: 100,
-  user: UserWithPermissionsAndRoles,
   defaultQueryLimit: 100,
 };
 
@@ -120,13 +113,16 @@ describe('SouthPane', () => {
   });
 
   it('should render offline when the state is offline', async () => {
-    await renderAndWait(mockedEmptyProps, {
-      ...store,
-      sqlLab: {
-        ...initialState.sqlLab,
-        offline: true,
-      },
-    });
+    await renderAndWait(
+      mockedEmptyProps,
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          offline: true,
+        },
+      }),
+    );
 
     expect(screen.getByText(STATUS_OPTIONS.offline)).toBeVisible();
   });
