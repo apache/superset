@@ -395,10 +395,7 @@ class TestDatabaseApi(SupersetTestCase):
             "password": "bar",
         }
         updated_ssh_tunnel_properties = {
-            "server_address": "123.132.123.2",
-            "server_port": 8081,
             "username": "Test",
-            "password": "bar",
         }
         database_data_with_ssh_tunnel = {
             "database_name": "test-db-with-ssh-tunnel",
@@ -437,10 +434,56 @@ class TestDatabaseApi(SupersetTestCase):
             )
             self.assertEqual(model_ssh_tunnel.database_id, response_update.get("id"))
             self.assertEqual(model_ssh_tunnel.username, "Test")
+            self.assertEqual(model_ssh_tunnel.server_address, "123.132.123.1")
+            self.assertEqual(model_ssh_tunnel.server_port, 8080)
             # Cleanup
             model = db.session.query(Database).get(response.get("id"))
             db.session.delete(model)
             db.session.commit()
+
+    @mock.patch(
+        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    def test_cascade_delete_ssh_tunnel(self, mock_test_connection_database_command_run):
+        """
+        Database API: Test create with SSH Tunnel
+        """
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
+            "username": "foo",
+            "password": "bar",
+        }
+        database_data = {
+            "database_name": "test-db-with-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 201)
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == response.get("id"))
+            .one()
+        )
+        self.assertEqual(model_ssh_tunnel.database_id, response.get("id"))
+        # Cleanup
+        model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == response.get("id"))
+            .one_or_none()
+        )
+        assert model_ssh_tunnel is None
 
     def test_create_database_invalid_configuration_method(self):
         """
