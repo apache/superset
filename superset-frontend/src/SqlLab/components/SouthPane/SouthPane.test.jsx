@@ -41,6 +41,8 @@ const mockedEmptyProps = {
   defaultQueryLimit: 100,
 };
 
+const latestQueryProgressMsg = 'LATEST QUERY MESSAGE - LCly_kkIN';
+
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const store = mockStore({
@@ -65,6 +67,7 @@ const store = mockStore({
         id: 'LCly_kkIN',
         startDttm: Date.now(),
         sqlEditorId: defaultQueryEditor.id,
+        extra: { progress: latestQueryProgressMsg },
       },
       lXJa7F9_r: {
         cached: false,
@@ -128,21 +131,8 @@ describe('SouthPane', () => {
   });
 
   it('should pass latest query down to ResultSet component', async () => {
-    const alertMessage = 'LATEST QUERY MESSAGE';
-    const [latestQuery, ...restQueries] = mockedProps.editorQueries;
-    const latestQueryWithAlertMsg = {
-      ...latestQuery,
-      extra: { progress: alertMessage },
-    };
+    await renderAndWait(mockedProps, store);
 
-    await renderAndWait(
-      {
-        ...mockedProps,
-        editorQueries: [latestQueryWithAlertMsg, ...restQueries],
-      },
-      store,
-    );
-
-    expect(screen.getByText(alertMessage)).toBeVisible();
+    expect(screen.getByText(latestQueryProgressMsg)).toBeVisible();
   });
 });
