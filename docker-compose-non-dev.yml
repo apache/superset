@@ -26,6 +26,7 @@ x-superset-volumes: &superset-volumes
 version: "3.7"
 services:
   redis:
+    platform: linux/amd64
     image: redis:latest
     container_name: superset_cache
     restart: unless-stopped
@@ -33,6 +34,7 @@ services:
       - redis:/data
 
   db:
+    platform: linux/amd64
     env_file: docker/.env-non-dev
     image: postgres:10
     container_name: superset_db
@@ -41,6 +43,7 @@ services:
       - db_home:/var/lib/postgresql/data
 
   superset:
+    platform: linux/amd64
     env_file: docker/.env-non-dev
     image: *superset-image
     container_name: superset_app
@@ -53,6 +56,7 @@ services:
     volumes: *superset-volumes
 
   superset-init:
+    platform: linux/amd64
     image: *superset-image
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
@@ -64,6 +68,7 @@ services:
       disable: true
 
   superset-worker:
+    platform: linux/amd64
     image: *superset-image
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
@@ -76,6 +81,7 @@ services:
       test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
 
   superset-worker-beat:
+    platform: linux/amd64
     image: *superset-image
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
