@@ -22,10 +22,10 @@ import {
   QueryFormColumn,
   QueryFormData,
 } from '@superset-ui/core';
-import { EchartsLegendFormData, EChartTransformedProps } from '../types';
+import { LegendFormData, BaseTransformedProps } from '../types';
 
 export type EchartsBubbleFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     series?: string;
     entity: string;
     xAxisFormat: string;
@@ -51,4 +51,4 @@ export interface EchartsBubbleChartProps
 }
 
 export type BubbleChartTransformedProps =
-  EChartTransformedProps<EchartsBubbleFormData>;
+  BaseTransformedProps<EchartsBubbleFormData>;
