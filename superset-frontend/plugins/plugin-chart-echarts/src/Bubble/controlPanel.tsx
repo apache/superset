@@ -74,11 +74,23 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
-    sections.titleControls,
+    // sections.titleControls,
     {
       label: t('X Axis'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'x_axis_label',
+            config: {
+              type: 'TextControl',
+              label: t('X Axis Title'),
+              renderTrigger: true,
+              default: '',
+              description: t('Changing this control takes effect instantly'),
+            },
+          },
+        ],
         [
           {
             name: 'xAxisLabelRotation',
@@ -96,6 +108,21 @@ const config: ControlPanelConfig = {
               description: t(
                 'Input field supports custom rotation. e.g. 30 for 30°',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_axis_title_margin',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              clearable: true,
+              label: t('X AXIS TITLE MARGIN'),
+              renderTrigger: true,
+              default: sections.TITLE_MARGIN_OPTIONS[1],
+              choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
+              description: t('Changing this control takes effect instantly'),
             },
           },
         ],
@@ -128,6 +155,18 @@ const config: ControlPanelConfig = {
       controlSetRows: [
         [
           {
+            name: 'y_axis_label',
+            config: {
+              type: 'TextControl',
+              label: t('Y Axis Title'),
+              renderTrigger: true,
+              default: '',
+              description: t('Changing this control takes effect instantly'),
+            },
+          },
+        ],
+        [
+          {
             name: 'yAxisLabelRotation',
             config: {
               type: 'SelectControl',
@@ -143,6 +182,21 @@ const config: ControlPanelConfig = {
               description: t(
                 'Input field supports custom rotation. e.g. 30 for 30°',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_title_margin',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              clearable: true,
+              label: t('Y AXIS TITLE MARGIN'),
+              renderTrigger: true,
+              default: sections.TITLE_MARGIN_OPTIONS[2],
+              choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
+              description: t('Changing this control takes effect instantly'),
             },
           },
         ],

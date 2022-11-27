@@ -73,8 +73,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     maxBubbleSize,
     colorScheme,
     series: bubbleSeries,
-    xAxisTitle: bubbleXAxisTitle,
-    yAxisTitle: bubbleYAxisTitle,
+    xAxisLabel: bubbleXAxisTitle,
+    yAxisLabel: bubbleYAxisTitle,
     xAxisFormat,
     yAxisFormat,
     yAxisBounds,
@@ -83,6 +83,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     xAxisTitleMargin,
     yAxisTitleMargin,
     truncateYAxis,
+    xAxisLabelRotation,
+    yAxisLabelRotation,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -131,6 +133,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
           type: 'dashed',
         },
       },
+      nameRotate: xAxisLabelRotation,
       scale: true,
       name: bubbleXAxisTitle,
       nameLocation: 'middle',
@@ -147,6 +150,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
           type: 'dashed',
         },
       },
+      nameRotate: yAxisLabelRotation,
       scale: truncateYAxis,
       name: bubbleYAxisTitle,
       nameLocation: 'middle',
@@ -171,13 +175,14 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     grid: { ...defaultGrid },
   };
 
-  const { onContextMenu } = hooks;
+  const { onContextMenu, setDataMask = () => {} } = hooks;
 
   return {
     height,
     width,
     echartOptions,
     onContextMenu,
+    setDataMask,
     formData,
   };
 }
