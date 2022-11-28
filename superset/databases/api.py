@@ -72,7 +72,6 @@ from superset.databases.schemas import (
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
-from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelDeleteFailedError,
