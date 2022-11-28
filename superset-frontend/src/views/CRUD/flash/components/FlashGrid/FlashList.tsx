@@ -188,6 +188,11 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         disableSortBy: true,
       },
       {
+        accessor: 'lastRefreshTime',
+        Header: t('Last Refresh Time'),
+        disableSortBy: true,
+      },
+      {
         accessor: 'scheduleType',
         Header: t('Schedule Type'),
         size: 'l',
