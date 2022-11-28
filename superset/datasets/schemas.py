@@ -106,6 +106,7 @@ class DatasetPutSchema(Schema):
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+    tags = fields.List(fields.String(), allow_none=True)
 
 
 class DatasetDuplicateSchema(Schema):
@@ -226,6 +227,7 @@ class ImportV1DatasetSchema(Schema):
     data = fields.URL()
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+    tags = fields.List(fields.String(), allow_none=True)
 
 
 class DatasetSchema(SQLAlchemyAutoSchema):

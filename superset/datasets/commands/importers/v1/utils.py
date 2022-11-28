@@ -30,6 +30,9 @@ from sqlalchemy.sql.visitors import VisitableType
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
+from superset.tags.models import ObjectTypes
+from superset.tags.utils import add_custom_object_tags, update_custom_object_tags
+from superset.extensions import feature_flag_manager
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +97,12 @@ def import_dataset(
             try:
                 config[key] = json.dumps(config[key])
             except TypeError:
-                logger.info("Unable to encode `%s` field: %s", key, config[key])
+                logger.info("Unable to encode `%s` field: %s",
+                            key, config[key])
+    # extract tags from config
+    tags = None
+    if "tags" in config.keys() and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+        tags = config.pop("tags")
     for key in ("metrics", "columns"):
         for attributes in config.get(key, []):
             if attributes.get("extra") is not None:
@@ -114,7 +122,14 @@ def import_dataset(
 
     # import recursively to include columns and metrics
     try:
-        dataset = SqlaTable.import_from_dict(session, config, recursive=True, sync=sync)
+        dataset = SqlaTable.import_from_dict(
+            session, config, recursive=True, sync=sync)
+        if tags:
+            if existing:
+                add_custom_object_tags(tags, ObjectTypes.dataset, dataset.id)
+            else:
+                update_custom_object_tags(
+                    tags, ObjectTypes.dataset, dataset.id, overwrite=True)
     except MultipleResultsFound:
         # Finding multiple results when importing a dataset only happens because initially
         # datasets were imported without schemas (eg, `examples.NULL.users`), and later

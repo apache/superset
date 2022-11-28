@@ -188,6 +188,13 @@ class ObjectUpdater:
             synchronize_session=False
         )
 
+        # delete orphaned owner tags
+        for tag_id in ids:
+            if session.query(TaggedObject).filter(TaggedObject.tag_id == tag_id).count() == 0:
+                session.query(Tag).filter(
+                    Tag.id == tag_id
+                ).delete()
+
         # add `owner:` tags
         cls._add_owners(session, target)
 
@@ -203,10 +210,18 @@ class ObjectUpdater:
         session = Session(bind=connection)
 
         # delete row from `tagged_objects`
-        session.query(TaggedObject).filter(
+        tagged_objs = session.query(TaggedObject).filter(
             TaggedObject.object_type == cls.object_type,
             TaggedObject.object_id == target.id,
-        ).delete()
+        )
+        tag_ids = [t.tag_id for t in tagged_objs]
+        tagged_objs.delete()
+        # delete orphaned tags
+        for tag_id in tag_ids:
+            if session.query(TaggedObject).filter(TaggedObject.tag_id == tag_id).count() == 0:
+                session.query(Tag).filter(
+                    Tag.id == tag_id
+                ).delete()
 
         session.commit()
 
