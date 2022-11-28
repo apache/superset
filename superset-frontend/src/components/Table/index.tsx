@@ -348,6 +348,8 @@ export function Table(props: TableProps) {
     setMergedLocale(updatedLocale);
   }, [locale]);
 
+  useEffect(() => setDerivedColumns(columns), [columns]);
+
   useEffect(() => {
     if (interactiveTableUtils.current) {
       interactiveTableUtils.current?.clearListeners();

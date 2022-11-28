@@ -32,23 +32,35 @@ import {
   useTheme,
   QueryFormData,
   JsonObject,
+  GenericDataType,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
+import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
+import NullCell from 'src/components/Table/cell-renderers/NullCell';
+import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { useTableColumns } from 'src/explore/components/DataTableControl';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
+import Table, {
+  ColumnsType,
+  TablePaginationConfig,
+  TableSize,
+} from 'src/components/Table';
 import MetadataBar, {
   ContentType,
   MetadataType,
 } from 'src/components/MetadataBar';
 import Alert from 'src/components/Alert';
 import { useApiV1Resource } from 'src/hooks/apiResources';
+import HeaderWithRadioGroup from 'src/components/Table/header-renderers/HeaderWithRadioGroup';
 import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { Dataset, ResultsPage } from './types';
 
 const PAGE_SIZE = 50;
+
+interface DataType {
+  [key: string]: any;
+}
 
 export default function DrillDetailPane({
   formData,
@@ -66,6 +78,7 @@ export default function DrillDetailPane({
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
     new Map(),
   );
+  const [timeFormatting, setTimeFormatting] = useState({});
 
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
@@ -89,29 +102,63 @@ export default function DrillDetailPane({
     return resultsPages.get(lastPageIndex.current);
   }, [pageIndex, resultsPages]);
 
-  // this is to preserve the order of the columns, even if there are integer values,
-  // while also only grabbing the first column's keys
-  const columns = useTableColumns(
-    resultsPage?.colNames,
-    resultsPage?.colTypes,
-    resultsPage?.data,
-    formData.datasource,
-  );
-
-  // Disable sorting on columns
-  const sortDisabledColumns = useMemo(
+  const mappedColumns: ColumnsType<DataType> = useMemo(
     () =>
-      columns.map(column => ({
-        ...column,
-        disableSortBy: true,
-      })),
-    [columns],
+      resultsPage?.colNames.map((column, index) => ({
+        key: column,
+        dataIndex: column,
+        title:
+          resultsPage?.colTypes[index] === GenericDataType.TEMPORAL ? (
+            <HeaderWithRadioGroup
+              headerTitle={column}
+              groupTitle={t('Formatting')}
+              groupOptions={[
+                { label: t('Original value'), value: 'original' },
+                { label: t('Formatted value'), value: 'formatted' },
+              ]}
+              value={
+                timeFormatting[column] === 'original' ? 'original' : 'formatted'
+              }
+              onChange={value =>
+                setTimeFormatting(state => ({ ...state, [column]: value }))
+              }
+            />
+          ) : (
+            column
+          ),
+        render: value => {
+          if (value === true || value === false) {
+            return <BooleanCell value={value} />;
+          }
+          if (value === null) {
+            return <NullCell />;
+          }
+          if (
+            resultsPage?.colTypes[index] === GenericDataType.TEMPORAL &&
+            timeFormatting[column] !== 'original' &&
+            (typeof value === 'number' || value instanceof Date)
+          ) {
+            return <TimeCell value={value} />;
+          }
+          return String(value);
+        },
+        width: 150,
+      })) || [],
+    [resultsPage?.colNames, resultsPage?.colTypes, timeFormatting],
   );
 
-  // Update page index on pagination click
-  const onServerPagination = useCallback(({ pageIndex }) => {
-    setPageIndex(pageIndex);
-  }, []);
+  const data: DataType[] = useMemo(
+    () =>
+      resultsPage?.data.map((row, index) =>
+        resultsPage?.colNames.reduce(
+          (acc, curr) => ({ ...acc, [curr]: row[curr] }),
+          {
+            key: index,
+          },
+        ),
+      ) || [],
+    [resultsPage?.colNames, resultsPage?.data],
+  );
 
   // Clear cache on reload button click
   const handleReload = useCallback(() => {
@@ -222,28 +269,19 @@ export default function DrillDetailPane({
   } else {
     // Render table if at least one page has successfully loaded
     tableContent = (
-      <TableView
-        columns={sortDisabledColumns}
-        data={resultsPage?.data || []}
-        pageSize={PAGE_SIZE}
-        totalCount={resultsPage?.total}
-        serverPagination
-        initialPageIndex={pageIndex}
-        onServerPagination={onServerPagination}
+      <Table
+        data={data}
+        columns={mappedColumns}
+        size={TableSize.SMALL}
+        defaultPageSize={PAGE_SIZE}
+        recordCount={resultsPage?.total}
+        usePagination
         loading={isLoading}
-        noDataText={t('No results')}
-        emptyWrapperType={EmptyWrapperType.Small}
-        className="table-condensed"
-        isPaginationSticky
-        showRowCount={false}
-        small
-        css={css`
-          overflow: auto;
-          .table {
-            margin-bottom: 0;
-          }
-        `}
-        scrollTopOnPagination
+        onChange={(pagination: TablePaginationConfig) =>
+          setPageIndex(pagination.current ? pagination.current - 1 : 0)
+        }
+        height={470}
+        virtualize
       />
     );
   }
