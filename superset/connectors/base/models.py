@@ -395,7 +395,7 @@ class BaseDatasource(
     @staticmethod
     def filter_values_handler(  # pylint: disable=too-many-arguments
         values: Optional[FilterValues],
-        op: str,
+        operator: str,
         target_generic_type: GenericDataType,
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
@@ -406,7 +406,7 @@ class BaseDatasource(
             return None
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
-            if op == utils.FilterOperator.TEMPORAL_RANGE:
+            if operator == utils.FilterOperator.TEMPORAL_RANGE:
                 return value
             if (
                 isinstance(value, (float, int))
