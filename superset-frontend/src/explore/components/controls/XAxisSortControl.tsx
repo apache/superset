@@ -16,41 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, SupersetTheme } from '@superset-ui/core';
+import React, { useEffect, useState } from 'react';
+import SelectControl from './SelectControl';
 
-export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
-  .filter-card-popover {
-    width: 240px;
-    padding: 0;
-    border-radius: 4px;
-
-    &.ant-popover-placement-bottom {
-      padding-top: ${theme.gridUnit}px;
+export default function XAxisSortControl(props: {
+  onChange: (val: string | undefined) => void;
+  value: string | null;
+  shouldReset: boolean;
+}) {
+  const [value, setValue] = useState(props.value);
+  useEffect(() => {
+    if (props.shouldReset) {
+      props.onChange(undefined);
+      setValue(null);
     }
+  }, [props.shouldReset, props.value]);
 
-    &.ant-popover-placement-left {
-      padding-right: ${theme.gridUnit * 3}px;
-    }
-
-    .ant-popover-inner {
-      box-shadow: 0 0 8px rgb(0 0 0 / 10%);
-    }
-
-    .ant-popover-inner-content {
-      padding: ${theme.gridUnit * 4}px;
-    }
-
-    .ant-popover-arrow {
-      display: none;
-    }
-  }
-
-  .filter-card-tooltip {
-    &.ant-tooltip-placement-bottom {
-      padding-top: 0;
-      & .ant-tooltip-arrow {
-        top: -13px;
-      }
-    }
-  }
-`;
+  return <SelectControl {...props} value={value} />;
+}

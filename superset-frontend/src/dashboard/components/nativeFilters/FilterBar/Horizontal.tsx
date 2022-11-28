@@ -74,9 +74,6 @@ const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
     button {
       display: flex;
       align-items: center;
-      text-transform: capitalize;
-      font-weight: ${theme.typography.weights.normal};
-      color: ${theme.colors.primary.base};
       > .anticon {
         height: 24px;
         padding-right: ${theme.gridUnit}px;

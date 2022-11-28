@@ -218,7 +218,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          hasGenericChartAxes && isAggMode ? 'datetime_columns_lookup' : null,
+          hasGenericChartAxes && isAggMode ? 'temporal_columns_lookup' : null,
         ],
         [
           {
