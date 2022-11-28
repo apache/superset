@@ -127,7 +127,7 @@ from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
-from superset.utils import core as utils, csv
+from superset.utils import core as utils, csv, excel
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
@@ -139,6 +139,7 @@ from superset.utils.core import (
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
+    ExcelResponse,
     api,
     BaseSupersetView,
     common_bootstrap_payload,
@@ -2579,7 +2580,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         return response
 
-
     # @has_access
     @event_logger.log_this
     @expose("/excel/<client_id>")
@@ -2632,10 +2632,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             df = query.database.get_df(sql, query.schema)[:limit]
 
         logger.info("Excel DF", df)
-        csv_data = csv.df_to_escaped_csv(df, index=False, **config["CSV_EXPORT"])
+        excel_data = excel.df_to_escaped_excel(df, index=False, **config["CSV_EXPORT"])
         quoted_csv_name = parse.quote(query.name)
-        response = CsvResponse(
-            csv_data, headers=generate_download_headers("csv", quoted_csv_name)
+        response = ExcelResponse(
+            excel_data, headers=generate_download_headers("xlsx", quoted_csv_name)
         )
         event_info = {
             "event_type": "data_export",
@@ -2644,7 +2644,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "database": query.database.name,
             "schema": query.schema,
             "sql": query.sql,
-            "exported_format": "csv",
+            "exported_format": "xlsx",
         }
         event_rep = repr(event_info)
         logger.debug(

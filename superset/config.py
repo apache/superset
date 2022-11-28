@@ -956,6 +956,8 @@ CSV_MIN_ROWS = 1
 # method.
 # note: index option should not be overridden
 CSV_EXPORT = {"encoding": "utf-8"}
+EXCEL_EXPORT = {"encoding": "utf-8"}
+
 
 # ---------------------------------------------------
 # Time grain configurations

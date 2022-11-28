@@ -303,6 +303,8 @@ wtforms-json==0.3.3
     # via apache-superset
 yarl==1.6.3
     # via aiohttp
+xlsxwriter==3.0.3
+    #excel writer
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
