@@ -25,7 +25,7 @@ import {
   sharedControls,
 } from '@superset-ui/chart-controls';
 
-import { DEFAULT_FORM_DATA } from 'plugins/plugin-chart-echarts/src/Timeseries/constants';
+import { DEFAULT_FORM_DATA } from './constants';
 
 const { logAxis, truncateYAxis, yAxisBounds, xAxisLabelRotation } =
   DEFAULT_FORM_DATA;
@@ -74,7 +74,6 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
-    // sections.titleControls,
     {
       label: t('X Axis'),
       expanded: true,

@@ -27,6 +27,9 @@ export const DEFAULT_FORM_DATA: EchartsBubbleFormData = {
   logYAxis: false,
   xAxisTitleMargin: 30,
   yAxisTitleMargin: 30,
+  truncateYAxis: false,
+  yAxisBounds: [null, null],
+  xAxisLabelRotation: 0,
 };
 
 export const MINIMUM_BUBBLE_SIZE = 5;
