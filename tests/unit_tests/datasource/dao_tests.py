@@ -144,15 +144,13 @@ def test_get_datasource_sl_table(session_with_data: Session) -> None:
     from superset.datasource.dao import DatasourceDAO
     from superset.tables.models import Table
 
-    # todo(hugh): This will break once we remove the dual write
-    # update the datsource_id=1 and this will pass again
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.SLTABLE,
-        datasource_id=2,
+        datasource_id=1,
         session=session_with_data,
     )
 
-    assert result.id == 2
+    assert result.id == 1
     assert isinstance(result, Table)
 
 
@@ -160,15 +158,13 @@ def test_get_datasource_sl_dataset(session_with_data: Session) -> None:
     from superset.datasets.models import Dataset
     from superset.datasource.dao import DatasourceDAO
 
-    # todo(hugh): This will break once we remove the dual write
-    # update the datsource_id=1 and this will pass again
     result = DatasourceDAO.get_datasource(
         datasource_type=DatasourceType.DATASET,
-        datasource_id=2,
+        datasource_id=1,
         session=session_with_data,
     )
 
-    assert result.id == 2
+    assert result.id == 1
     assert isinstance(result, Dataset)
 
 

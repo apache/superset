@@ -90,6 +90,9 @@ class SupersetErrorType(str, Enum):
     INVALID_PAYLOAD_FORMAT_ERROR = "INVALID_PAYLOAD_FORMAT_ERROR"
     INVALID_PAYLOAD_SCHEMA_ERROR = "INVALID_PAYLOAD_SCHEMA_ERROR"
 
+    # Report errors
+    REPORT_NOTIFICATION_ERROR = "REPORT_NOTIFICATION_ERROR"
+
 
 ISSUE_CODES = {
     1000: _("The datasource is too large to query."),

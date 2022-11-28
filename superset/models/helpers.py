@@ -1281,13 +1281,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if limit:
             qry = qry.limit(limit)
 
-        engine = self.database.get_sqla_engine()  # type: ignore
-        sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
-        sql = self._apply_cte(sql, cte)
-        sql = self.mutate_query_from_config(sql)
+        with self.database.get_sqla_engine_with_context() as engine:  # type: ignore
+            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
+            sql = self._apply_cte(sql, cte)
+            sql = self.mutate_query_from_config(sql)
 
-        df = pd.read_sql_query(sql=sql, con=engine)
-        return df[column_name].to_list()
+            df = pd.read_sql_query(sql=sql, con=engine)
+            return df[column_name].to_list()
 
     def get_timestamp_expression(
         self,
