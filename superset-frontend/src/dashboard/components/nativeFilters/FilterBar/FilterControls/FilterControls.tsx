@@ -156,14 +156,19 @@ const FilterControls: FC<FilterControlsProps> = ({
         }
         dropdownTriggerText={t('More filters')}
         dropdownTriggerCount={activeOverflowedFiltersInScope}
-        dropdownContent={() => (
-          <FiltersDropdownContent
-            filtersInScope={overflowedFiltersInScope}
-            filtersOutOfScope={filtersOutOfScope}
-            renderer={renderer}
-            showCollapsePanel={showCollapsePanel}
-          />
-        )}
+        dropdownContent={
+          overflowedFiltersInScope.length ||
+          (filtersOutOfScope.length && showCollapsePanel)
+            ? () => (
+                <FiltersDropdownContent
+                  filtersInScope={overflowedFiltersInScope}
+                  filtersOutOfScope={filtersOutOfScope}
+                  renderer={renderer}
+                  showCollapsePanel={showCollapsePanel}
+                />
+              )
+            : undefined
+        }
         onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
           if (
             nextOverflowedIds.length !== overflowedIds.length ||
