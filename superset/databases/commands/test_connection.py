@@ -32,6 +32,7 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
@@ -90,10 +91,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
-            # TODO: (hughhh) uncomment in API enablement PR
+            # Generate tunnel if present in the properties
             ssh_tunnel = None
-            # if self._properties.get("ssh_tunnel"):
-            #     ssh_tunnel = SSHTunnel(**self._properties["ssh_tunnel"])
+            if ssh_tunnel := self._properties.get("ssh_tunnel"):
+                url = make_url_safe(database.sqlalchemy_uri_decrypted)
+                ssh_tunnel["bind_host"] = url.host
+                ssh_tunnel["bind_port"] = url.port
+                ssh_tunnel = SSHTunnel(**ssh_tunnel)
 
             event_logger.log_with_context(
                 action="test_connection_attempt",
