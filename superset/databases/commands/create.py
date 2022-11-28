@@ -79,10 +79,10 @@ class CreateDatabaseCommand(BaseCommand):
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
 
-            if self._properties.get("ssh_tunnel"):
+            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
                 SSHTunnelDAO.create(
                     {
-                        **self._properties.get("ssh_tunnel"),
+                        **ssh_tunnel_properties,
                         "database_id": database.id,
                     },
                     commit=False,

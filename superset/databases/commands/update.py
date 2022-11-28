@@ -96,13 +96,13 @@ class UpdateDatabaseCommand(BaseCommand):
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
 
-            if self._properties.get("ssh_tunnel"):
+            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
                 existing_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
                 if existing_ssh_tunnel is None:
                     # We couldn't found an existing tunnel so we need to create one
                     SSHTunnelDAO.create(
                         {
-                            **self._properties.get("ssh_tunnel"),
+                            **ssh_tunnel_properties,
                             "database_id": database.id,
                         },
                         commit=False,
@@ -112,7 +112,7 @@ class UpdateDatabaseCommand(BaseCommand):
                     ssh_tunnel_model = SSHTunnelDAO.find_by_id(existing_ssh_tunnel.id)
                     SSHTunnelDAO.update(
                         ssh_tunnel_model,
-                        self._properties.get("ssh_tunnel"),
+                        ssh_tunnel_properties,
                         commit=False,
                     )
 
