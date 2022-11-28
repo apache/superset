@@ -183,16 +183,6 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         size: 'l',
       },
       {
-        accessor: 'ttl',
-        Header: t('TTL'),
-        disableSortBy: true,
-      },
-      {
-        accessor: 'lastRefreshTime',
-        Header: t('Last Refresh Time'),
-        disableSortBy: true,
-      },
-      {
         accessor: 'scheduleType',
         Header: t('Schedule Type'),
         size: 'l',
@@ -206,6 +196,16 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         Header: t('Slack Handle'),
         accessor: 'teamSlackHandle',
         size: 'xl',
+      },
+      {
+        accessor: 'ttl',
+        Header: t('TTL'),
+        disableSortBy: true,
+      },
+      {
+        accessor: 'lastRefreshTime',
+        Header: t('Last Refresh Time'),
+        disableSortBy: true,
       },
       {
         Header: t('Owner'),
