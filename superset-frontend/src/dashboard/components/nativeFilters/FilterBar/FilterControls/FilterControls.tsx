@@ -24,6 +24,8 @@ import {
   Divider,
   css,
   SupersetTheme,
+  t,
+  isNativeFilter,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -37,6 +39,7 @@ import {
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import DropdownContainer from 'src/components/DropdownContainer';
+import Icons from 'src/components/Icons';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
@@ -56,7 +59,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     state => state.dashboardInfo.filterBarOrientation,
   );
 
-  const [overflowIndex, setOverflowIndex] = useState(0);
+  const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
 
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
@@ -100,52 +103,99 @@ const FilterControls: FC<FilterControlsProps> = ({
     </>
   );
 
-  const renderHorizontalContent = () => {
-    const items = filtersInScope.map(filter => ({
-      id: filter.id,
-      element: (
-        <div
-          css={css`
-            flex-shrink: 0;
-          `}
-        >
-          {renderer(filter)}
-        </div>
-      ),
-    }));
-    return (
-      <div
-        css={(theme: SupersetTheme) =>
-          css`
-            padding-left: ${theme.gridUnit * 4}px;
-            min-width: 0;
-          `
+  const items = useMemo(
+    () =>
+      filtersInScope.map(filter => ({
+        id: filter.id,
+        element: (
+          <div
+            css={css`
+              flex-shrink: 0;
+            `}
+          >
+            {renderer(filter)}
+          </div>
+        ),
+      })),
+    [filtersInScope, renderer],
+  );
+
+  const overflowedFiltersInScope = useMemo(
+    () => filtersInScope.filter(({ id }) => overflowedIds?.includes(id)),
+    [filtersInScope, overflowedIds],
+  );
+
+  const activeOverflowedFiltersInScope = useMemo(
+    () =>
+      overflowedFiltersInScope.filter(
+        filter => isNativeFilter(filter) && filter.dataMask.filterState?.value,
+      ).length,
+    [overflowedFiltersInScope],
+  );
+
+  const renderHorizontalContent = () => (
+    <div
+      css={(theme: SupersetTheme) =>
+        css`
+          padding-left: ${theme.gridUnit * 4}px;
+          min-width: 0;
+        `
+      }
+    >
+      <DropdownContainer
+        items={items}
+        dropdownTriggerIcon={
+          <Icons.FilterSmall
+            css={css`
+              && {
+                margin-right: -4px;
+                display: flex;
+              }
+            `}
+          />
         }
-      >
-        <DropdownContainer
-          items={items}
-          dropdownContent={overflowedItems => {
-            const overflowedItemIds = new Set(
-              overflowedItems.map(({ id }) => id),
-            );
-            return (
-              <FiltersDropdownContent
-                filtersInScope={filtersInScope.filter(({ id }) =>
-                  overflowedItemIds.has(id),
-                )}
-                filtersOutOfScope={filtersOutOfScope}
-                renderer={renderer}
-                showCollapsePanel={showCollapsePanel}
-              />
-            );
-          }}
-          onOverflowingStateChange={overflowingState =>
-            setOverflowIndex(overflowingState.notOverflowed.length)
+        dropdownTriggerText={t('More filters')}
+        dropdownTriggerCount={activeOverflowedFiltersInScope}
+        dropdownContent={
+          overflowedFiltersInScope.length ||
+          (filtersOutOfScope.length && showCollapsePanel)
+            ? () => (
+                <FiltersDropdownContent
+                  filtersInScope={overflowedFiltersInScope}
+                  filtersOutOfScope={filtersOutOfScope}
+                  renderer={renderer}
+                  showCollapsePanel={showCollapsePanel}
+                />
+              )
+            : undefined
+        }
+        onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
+          if (
+            nextOverflowedIds.length !== overflowedIds.length ||
+            overflowedIds.reduce(
+              (a, b, i) => a || b !== nextOverflowedIds[i],
+              false,
+            )
+          ) {
+            setOverflowedIds(nextOverflowedIds);
           }
-        />
-      </div>
+        }}
+      />
+    </div>
+  );
+
+  const overflowedByIndex = useMemo(() => {
+    const filtersOutOfScopeIds = new Set(filtersOutOfScope.map(({ id }) => id));
+    const overflowedFiltersInScopeIds = new Set(
+      overflowedFiltersInScope.map(({ id }) => id),
     );
-  };
+
+    return filtersWithValues.map(
+      filter =>
+        filtersOutOfScopeIds.has(filter.id) ||
+        overflowedFiltersInScopeIds.has(filter.id),
+    );
+  }, [filtersOutOfScope, filtersWithValues, overflowedFiltersInScope]);
 
   return (
     <>
@@ -153,7 +203,11 @@ const FilterControls: FC<FilterControlsProps> = ({
         .filter((node, index) => filterIds.has(filtersWithValues[index].id))
         .map((node, index) => (
           <InPortal node={node}>
-            {filterControlFactory(index, filterBarOrientation, overflowIndex)}
+            {filterControlFactory(
+              index,
+              filterBarOrientation,
+              overflowedByIndex[index],
+            )}
           </InPortal>
         ))}
       {filterBarOrientation === FilterBarOrientation.VERTICAL &&

@@ -91,6 +91,8 @@ export type Filter = {
   description: string;
 };
 
+export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
+
 export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
   id: string;
   title: string;
