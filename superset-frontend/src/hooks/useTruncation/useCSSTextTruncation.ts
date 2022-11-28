@@ -36,16 +36,27 @@ export const truncationCSS = css`
  * to be displayed, this hook returns a ref to attach to the text
  * element and a boolean for whether that element is currently truncated.
  */
-const useCSSTextTruncation = <T extends HTMLElement>(
-  text: string,
-): [React.RefObject<T>, boolean] => {
-  const ref = useRef<T>(null);
+const useCSSTextTruncation = <T extends HTMLElement>(): [
+  React.RefObject<T>,
+  boolean,
+] => {
   const [isTruncated, setIsTruncated] = useState(true);
+  const ref = useRef<T>(null);
+  const { offsetWidth, scrollWidth } = ref.current ?? {};
+  const prevWidths = useRef({ offsetWidth, scrollWidth });
+  const { offsetWidth: prevOffsetWidth, scrollWidth: prevScrollWidth } =
+    prevWidths.current;
+
   useEffect(() => {
-    if (ref.current) {
-      setIsTruncated(ref.current.offsetWidth < ref.current.scrollWidth);
+    if (
+      offsetWidth &&
+      scrollWidth &&
+      (offsetWidth !== prevOffsetWidth || scrollWidth !== prevScrollWidth)
+    ) {
+      prevWidths.current = { offsetWidth, scrollWidth };
+      setIsTruncated(offsetWidth < scrollWidth);
     }
-  }, [text]);
+  }, [offsetWidth, prevOffsetWidth, prevScrollWidth, scrollWidth]);
 
   return [ref, isTruncated];
 };
