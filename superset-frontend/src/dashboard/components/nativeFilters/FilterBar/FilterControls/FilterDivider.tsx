@@ -35,7 +35,7 @@ const VerticalDivider = ({ title, description }: FilterDividerProps) => (
 const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
   const theme = useTheme();
   const [titleRef, titleIsTruncated] =
-    useCSSTextTruncation<HTMLHeadingElement>(title);
+    useCSSTextTruncation<HTMLHeadingElement>();
 
   const tooltipOverlay = (
     <>
@@ -95,10 +95,10 @@ const HorizontalOverflowDivider = ({
 }: FilterDividerProps) => {
   const theme = useTheme();
   const [titleRef, titleIsTruncated] =
-    useCSSTextTruncation<HTMLHeadingElement>(title);
+    useCSSTextTruncation<HTMLHeadingElement>();
 
   const [descriptionRef, descriptionIsTruncated] =
-    useCSSTextTruncation<HTMLHeadingElement>(description);
+    useCSSTextTruncation<HTMLHeadingElement>();
 
   return (
     <div
