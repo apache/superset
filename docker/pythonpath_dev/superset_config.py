@@ -102,10 +102,21 @@ class CeleryConfig(object):
 CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
-ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = False # making it true will only run alert but will not sent to email
+
+# Email configuration
+SMTP_HOST = "smtp.gmail.com" #change to your host
+SMTP_STARTTLS = True
+SMTP_SSL_SERVER_AUTH = False # If your using an SMTP server with a valid certificate
+SMTP_SSL = False
+SMTP_USER = "your_user_name"
+SMTP_PORT = 587 # your port eg. 587
+SMTP_PASSWORD = "your_smtp_password"
+SMTP_MAIL_FROM = "your mail id given in smtp server"
+
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
-WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL # change to the public url of the dashboard
 
 SQLLAB_CTAS_NO_LIMIT = True
 
