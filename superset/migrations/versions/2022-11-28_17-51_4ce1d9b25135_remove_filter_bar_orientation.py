@@ -57,11 +57,9 @@ def downgrade():
         .all()
     )
     for dashboard in dashboards:
-        try:
-            json_meta = json.loads(dashboard.json_metadata)
-            json_meta.pop("filter_bar_orientation", None)
+        json_meta = json.loads(dashboard.json_metadata)
+        filter_bar_orientation = json_meta.pop("filter_bar_orientation", None)
+        if filter_bar_orientation:
             dashboard.json_metadata = json.dumps(json_meta)
-        except:
-            pass
     session.commit()
     session.close()
