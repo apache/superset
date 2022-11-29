@@ -17,14 +17,14 @@
 """truncate bubble chart y axis
 
 Revision ID: 91a5a62147cf
-Revises: deb4c9d4a4ef
+Revises: 4ce1d9b25135
 Create Date: 2022-11-29 18:58:23.646893
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "91a5a62147cf"
-down_revision = "deb4c9d4a4ef"
+down_revision = "4ce1d9b25135"
 
 import json
 import logging
