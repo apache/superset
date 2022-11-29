@@ -18,6 +18,7 @@
  */
 import {
   createDurationFormatter,
+  createD3NumberFormatter,
   getNumberFormatter,
   getNumberFormatterRegistry,
   NumberFormats,
@@ -66,6 +67,45 @@ export default function setupFormatters() {
     .registerValue(
       'DURATION_SUB',
       createDurationFormatter({ formatSubMilliseconds: true }),
+    )
+    .registerValue(
+      'CURRENCY_INDIA',
+      createD3NumberFormatter({
+        description: 'Indian Currency',
+        formatString: '$,.2f',
+        locale: {
+          decimal: '.',
+          thousands: ',',
+          grouping: [3, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+          currency: ['₹', ''],
+        },
+      }),
+    )
+    .registerValue(
+      'CURRENCY_EURO',
+      createD3NumberFormatter({
+        description: 'EU Currency',
+        formatString: '$.2f',
+        locale: {
+          decimal: '.',
+          thousands: ',',
+          grouping: [3],
+          currency: ['€', ''],
+        },
+      }),
+    )
+    .registerValue(
+      'CURRENCY_GBP',
+      createD3NumberFormatter({
+        description: 'UK Currency',
+        formatString: '$.2f',
+        locale: {
+          decimal: '.',
+          thousands: ',',
+          grouping: [3],
+          currency: ['£', ''],
+        },
+      }),
     );
 
   getTimeFormatterRegistry()
