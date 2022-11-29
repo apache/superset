@@ -74,10 +74,10 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'tooltipFormat',
+            name: 'tooltipSizeFormat',
             config: {
               ...sharedControls.y_axis_format,
-              label: t('Tooltip Number Format'),
+              label: t('Bubble size number format'),
             },
           },
         ],

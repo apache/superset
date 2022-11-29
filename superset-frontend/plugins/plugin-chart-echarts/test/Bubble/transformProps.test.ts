@@ -117,7 +117,7 @@ describe('Bubble formatBubbleLabel', () => {
     const params = {
       data: [1, 2, 3, 'bubble title', 'bubble dimension'],
     };
-    const tooltipFormatter = getNumberFormatter();
+    const formatter = getNumberFormatter();
 
     expect(
       formatBubbleLabel(
@@ -125,7 +125,9 @@ describe('Bubble formatBubbleLabel', () => {
         'x-axis-label',
         'y-axis-label',
         'size-label',
-        tooltipFormatter,
+        formatter,
+        formatter,
+        formatter,
       ),
     ).toEqual(
       `<p>bubble title <sub>(bubble dimension)</sub></p>
@@ -138,7 +140,7 @@ describe('Bubble formatBubbleLabel', () => {
     const params = {
       data: [1, 2, 3, 'bubble title', null],
     };
-    const tooltipFormatter = getNumberFormatter();
+    const formatter = getNumberFormatter();
 
     expect(
       formatBubbleLabel(
@@ -146,7 +148,9 @@ describe('Bubble formatBubbleLabel', () => {
         'x-axis-label',
         'y-axis-label',
         'size-label',
-        tooltipFormatter,
+        formatter,
+        formatter,
+        formatter,
       ),
     ).toEqual(
       `<p>bubble title</p>

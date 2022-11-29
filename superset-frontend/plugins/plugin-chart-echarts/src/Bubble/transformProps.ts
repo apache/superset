@@ -52,16 +52,18 @@ export function formatBubbleLabel(
   xAxisLabel: string,
   yAxisLabel: string,
   sizeLabel: string,
-  tooltipFormatter: NumberFormatter,
+  xAxisFormatter: NumberFormatter,
+  yAxisFormatter: NumberFormatter,
+  tooltipSizeFormatter: NumberFormatter,
 ) {
   const title = params.data[4]
     ? `${params.data[3]} <sub>(${params.data[4]})</sub>`
     : params.data[3];
 
   return `<p>${title}</p>
-        ${xAxisLabel}: ${tooltipFormatter(params.data[0])} <br/>
-        ${yAxisLabel}: ${tooltipFormatter(params.data[1])} <br/>
-        ${sizeLabel}: ${tooltipFormatter(params.data[2])}`;
+        ${xAxisLabel}: ${xAxisFormatter(params.data[0])} <br/>
+        ${yAxisLabel}: ${yAxisFormatter(params.data[1])} <br/>
+        ${sizeLabel}: ${tooltipSizeFormatter(params.data[2])}`;
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
@@ -89,7 +91,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     truncateYAxis,
     xAxisLabelRotation,
     yAxisLabelRotation,
-    tooltipFormat,
+    tooltipSizeFormat,
     opacity,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
@@ -129,7 +131,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   const xAxisFormatter = getNumberFormatter(xAxisFormat);
   const yAxisFormatter = getNumberFormatter(yAxisFormat);
-  const tooltipFormatter = getNumberFormatter(tooltipFormat);
+  const tooltipSizeFormatter = getNumberFormatter(tooltipSizeFormat);
 
   const [min, max] = yAxisBounds.map(parseYAxisBound);
 
@@ -184,7 +186,9 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
           xAxisLabel,
           yAxisLabel,
           sizeLabel,
-          tooltipFormatter,
+          xAxisFormatter,
+          yAxisFormatter,
+          tooltipSizeFormatter,
         ),
     },
     grid: { ...defaultGrid },
