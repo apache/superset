@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import delete, insert, select
+from sqlalchemy.sql import delete, insert
 
 from superset import db
 from superset.charts.commands.importers.v1.utils import import_chart
@@ -134,9 +134,9 @@ class ImportAssetsCommand(BaseCommand):
                         insert(dashboard_slices).values(dashboard_chart_ids)
                     )
                     session.commit()
-                except Exception:
+                except Exception as error:
                     session.rollback()
-                    raise Exception
+                    raise Exception from error
 
     def run(self) -> None:
         self.validate()
