@@ -16,22 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
-
-const enableCrossFilter = isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
-
-export const emitFilterControl = enableCrossFilter
-  ? [
-      {
-        name: 'emit_filter',
-        config: {
-          type: 'CheckboxControl',
-          label: t('Enable dashboard cross filters'),
-          default: false,
-          renderTrigger: true,
-          description: t('Enable dashboard cross filters'),
-        },
-      },
-    ]
-  : [];
+export { default as sharedControls } from './sharedControls';
+export { withDndFallback } from './dndControls';
+// React control components
+export { default as sharedControlComponents } from './components';
+export * from './components';
+export * from './customControls';
+export * from './mixins';

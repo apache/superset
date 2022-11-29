@@ -24,7 +24,7 @@ import {
   sections,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA } from './constants';
 
 const requiredEntity = {
   ...sharedControls.entity,

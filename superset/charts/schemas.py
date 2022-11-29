@@ -71,6 +71,7 @@ get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
 #
 # Column schema descriptions
 #
+id_description = "The id of the chart."
 slice_name_description = "The name of the chart."
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
@@ -153,7 +154,7 @@ class ChartEntityResponseSchema(Schema):
     Schema for a chart object
     """
 
-    slice_id = fields.Integer()
+    id = fields.Integer(description=id_description)
     slice_name = fields.String(description=slice_name_description)
     cache_timeout = fields.Integer(description=cache_timeout_description)
     changed_on = fields.String(description=changed_on_description)
@@ -1204,6 +1205,7 @@ class ChartDataQueryContextSchema(Schema):
     force = fields.Boolean(
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
+        allow_none=True,
     )
 
     result_type = EnumField(ChartDataResultType, by_value=True)

@@ -343,13 +343,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           {actualTimeRange}
         </Label>
       </Tooltip>
+      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter when GENERIC_CHART_AXES is enabled */}
       <Modal
         title={title}
         show={show}
         onHide={toggleOverlay}
         width="600px"
         hideFooter
-        zIndex={Number.MAX_SAFE_INTEGER}
+        zIndex={1030}
       >
         {overlayContent}
       </Modal>
