@@ -85,7 +85,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderer = useCallback(
     ({ id }: Filter | Divider) => {
       const index = filtersWithValues.findIndex(f => f.id === id);
-      return <OutPortal node={portalNodes[index]} inView />;
+      return <OutPortal key={id} node={portalNodes[index]} inView />;
     },
     [filtersWithValues, portalNodes],
   );
@@ -202,7 +202,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {portalNodes
         .filter((node, index) => filterIds.has(filtersWithValues[index].id))
         .map((node, index) => (
-          <InPortal node={node}>
+          <InPortal node={node} key={filtersWithValues[index].id}>
             {filterControlFactory(
               index,
               filterBarOrientation,
