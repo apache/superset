@@ -26,6 +26,8 @@ import {
   SupersetTheme,
   t,
   isNativeFilter,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -56,7 +58,10 @@ const FilterControls: FC<FilterControlsProps> = ({
   onFilterSelectionChange,
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    state => state.dashboardInfo.filterBarOrientation,
+    ({ dashboardInfo }) =>
+      isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
+        ? dashboardInfo.filterBarOrientation
+        : FilterBarOrientation.VERTICAL,
   );
 
   const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
