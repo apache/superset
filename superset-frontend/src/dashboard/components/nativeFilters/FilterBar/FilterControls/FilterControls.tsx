@@ -128,7 +128,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const activeOverflowedFiltersInScope = useMemo(
     () =>
       overflowedFiltersInScope.filter(
-        filter => isNativeFilter(filter) && filter.dataMask.filterState?.value,
+        filter => isNativeFilter(filter) && filter.dataMask?.filterState?.value,
       ).length,
     [overflowedFiltersInScope],
   );
