@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 config = app.config
 ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
 
+
 class UpdateSSHTunnelCommand(BaseCommand):
     def __init__(self, model_id: int, data: Dict[str, Any]):
         self._properties = data.copy()
@@ -56,6 +57,6 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._model = SSHTunnelDAO.find_by_id(self._model_id)
         if not self._model:
             raise SSHTunnelNotFoundError()
-        
+
         if is_feature_enabled("SSH_TUNNELING") and ssh_tunnel_manager:
             ssh_tunnel_manager.validate(self._properties)

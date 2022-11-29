@@ -131,6 +131,7 @@ def test_main_dttm_col(mocker: MockerFixture, test_table: "SqlaTable") -> None:
     test_table.fetch_metadata()
     assert test_table.main_dttm_col == "event_time"
 
+
 def test_ssh_manager_create(mocker: MockerFixture):
     from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
 
@@ -139,7 +140,6 @@ def test_ssh_manager_create(mocker: MockerFixture):
             # validation on CREATE + UPDATE on SSHTunnel Model
             # to block a request this function most raise an exception
             return ssh_tunnel_params
-            
 
     ssh_tunnel_properties = {
         "server_address": "123.132.123.1",
@@ -162,6 +162,7 @@ def test_ssh_manager_create(mocker: MockerFixture):
     CreateSSHTunnelCommand(1, ssh_tunnel_properties).run()
     mock_ssh_manager.validate.assert_called_once()
 
+
 def test_ssh_manager_update(mocker: MockerFixture):
     from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
     from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -171,7 +172,6 @@ def test_ssh_manager_update(mocker: MockerFixture):
             # validation on CREATE + UPDATE on SSHTunnel Model
             # to block a request this function most raise an exception
             return ssh_tunnel_params
-            
 
     ssh_tunnel_properties = {
         "server_address": "123.132.123.1",
@@ -199,12 +199,15 @@ def test_ssh_manager_update(mocker: MockerFixture):
     UpdateSSHTunnelCommand(1, ssh_tunnel_properties).run()
     mock_ssh_manager.validate.assert_called_once()
 
+
 def test_ssh_manager_mutate_before_engine(mocker: MockerFixture):
     from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
     from superset.databases.ssh_tunnel.models import SSHTunnel
     from superset.models.core import Database
 
-    db = Database(database_name="test_database", sqlalchemy_uri="sqlite://locahost:3000")
+    db = Database(
+        database_name="test_database", sqlalchemy_uri="sqlite://locahost:3000"
+    )
 
     class TestSSHManager:
         def validate(self, ssh_tunnel_params: Dict[str, Any]) -> None:
@@ -214,7 +217,7 @@ def test_ssh_manager_mutate_before_engine(mocker: MockerFixture):
 
         def mutate(self, ssh_tunnel_params: Dict[str, Any]) -> None:
             return ssh_tunnel_params
-            
+
     ssh_tunnel_properties = {
         "server_address": "123.132.123.1",
         "bind_host": "localhost",
@@ -244,19 +247,16 @@ def test_ssh_manager_mutate_before_engine(mocker: MockerFixture):
     )
 
     # todo: figure out how to mock tunnel so we dnt try and establish a connection
-    mocker.patch(
-        "superset.models.core.sshtunnel.open_tunnel"
-    )
+    mocker.patch("superset.models.core.sshtunnel.open_tunnel")
 
-    mocker.patch(
-        "superset.models.core.Database._get_sqla_engine"
-    )
+    mocker.patch("superset.models.core.Database._get_sqla_engine")
 
-
-    with db.get_sqla_engine_with_context(ssh_tunnel=SSHTunnel(**ssh_tunnel_properties)) as engine:
+    with db.get_sqla_engine_with_context(
+        ssh_tunnel=SSHTunnel(**ssh_tunnel_properties)
+    ) as engine:
         mock_ssh_manager.mutate.assert_called_once()
-    
-    
+
+
 def test_main_dttm_col_nonexistent(
     mocker: MockerFixture,
     test_table: "SqlaTable",

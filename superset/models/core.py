@@ -395,9 +395,7 @@ class Database(
                 )
         else:
             # do look up in table for using database_id
-            yield self._get_sqla_engine(
-                schema=schema, nullpool=nullpool, source=source
-            )
+            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
 
     def _get_sqla_engine(
         self,
