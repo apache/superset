@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, SqlaFormData, supersetTheme } from '@superset-ui/core';
+import {
+  ChartProps,
+  getNumberFormatter,
+  SqlaFormData,
+  supersetTheme,
+} from '@superset-ui/core';
 import { EchartsBubbleChartProps } from 'plugins/plugin-chart-echarts/src/Bubble/types';
 
 import transformProps, {
@@ -112,8 +117,16 @@ describe('Bubble formatBubbleLabel', () => {
     const params = {
       data: [1, 2, 3, 'bubble title', 'bubble dimension'],
     };
+    const tooltipFormatter = getNumberFormatter();
+
     expect(
-      formatBubbleLabel(params, 'x-axis-label', 'y-axis-label', 'size-label'),
+      formatBubbleLabel(
+        params,
+        'x-axis-label',
+        'y-axis-label',
+        'size-label',
+        tooltipFormatter,
+      ),
     ).toEqual(
       `<p>bubble title <sub>(bubble dimension)</sub></p>
         x-axis-label: 1 <br/>
@@ -125,8 +138,16 @@ describe('Bubble formatBubbleLabel', () => {
     const params = {
       data: [1, 2, 3, 'bubble title', null],
     };
+    const tooltipFormatter = getNumberFormatter();
+
     expect(
-      formatBubbleLabel(params, 'x-axis-label', 'y-axis-label', 'size-label'),
+      formatBubbleLabel(
+        params,
+        'x-axis-label',
+        'y-axis-label',
+        'size-label',
+        tooltipFormatter,
+      ),
     ).toEqual(
       `<p>bubble title</p>
         x-axis-label: 1 <br/>

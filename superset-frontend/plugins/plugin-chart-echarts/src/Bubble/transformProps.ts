@@ -22,13 +22,16 @@ import {
   CategoricalColorNamespace,
   getNumberFormatter,
   AxisType,
+  getMetricLabel,
+  NumberFormatter,
 } from '@superset-ui/core';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { defaultGrid } from '../defaults';
 import { getLegendProps } from '../utils/series';
-import { LegendOrientation, LegendType } from '../types';
+import { LegendOrientation, LegendType, Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
@@ -49,15 +52,16 @@ export function formatBubbleLabel(
   xAxisLabel: string,
   yAxisLabel: string,
   sizeLabel: string,
+  tooltipFormatter: NumberFormatter,
 ) {
   const title = params.data[4]
     ? `${params.data[3]} <sub>(${params.data[4]})</sub>`
     : params.data[3];
 
   return `<p>${title}</p>
-        ${xAxisLabel}: ${params.data[0]} <br/>
-        ${yAxisLabel}: ${params.data[1]} <br/>
-        ${sizeLabel}: ${params.data[2]}`;
+        ${xAxisLabel}: ${tooltipFormatter(params.data[0])} <br/>
+        ${yAxisLabel}: ${tooltipFormatter(params.data[1])} <br/>
+        ${sizeLabel}: ${tooltipFormatter(params.data[2])}`;
 }
 
 export default function transformProps(chartProps: EchartsBubbleChartProps) {
@@ -85,6 +89,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     truncateYAxis,
     xAxisLabelRotation,
     yAxisLabelRotation,
+    tooltipFormat,
+    opacity,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -92,9 +98,11 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
   const legends: string[] = [];
   const series: ScatterSeriesOption[] = [];
 
-  const xAxisLabel: string = x.label || x;
-  const yAxisLabel: string = y.label || y;
-  const sizeLabel: string = size.label || size;
+  const xAxisLabel: string = getMetricLabel(x);
+  const yAxisLabel: string = getMetricLabel(y);
+  const sizeLabel: string = getMetricLabel(size);
+
+  const refs: Refs = {};
 
   data.forEach(datum => {
     const name = (bubbleSeries ? datum[bubbleSeries] : datum[entity]) as string;
@@ -106,13 +114,13 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         [
           datum[xAxisLabel],
           datum[yAxisLabel],
-          datum[size.label],
+          datum[sizeLabel],
           datum[entity],
           bubbleSeriesValue as any,
         ],
       ],
       type: 'scatter',
-      itemStyle: { color: colorFn(name) },
+      itemStyle: { color: colorFn(name), opacity },
     });
     legends.push(name);
   });
@@ -121,6 +129,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   const xAxisFormatter = getNumberFormatter(xAxisFormat);
   const yAxisFormatter = getNumberFormatter(yAxisFormat);
+  const tooltipFormatter = getNumberFormatter(tooltipFormat);
 
   const [min, max] = yAxisBounds.map(parseYAxisBound);
 
@@ -168,9 +177,15 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     },
     tooltip: {
       show: !inContextMenu,
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       formatter: (params: any): string =>
-        formatBubbleLabel(params, xAxisLabel, yAxisLabel, sizeLabel),
+        formatBubbleLabel(
+          params,
+          xAxisLabel,
+          yAxisLabel,
+          sizeLabel,
+          tooltipFormatter,
+        ),
     },
     grid: { ...defaultGrid },
   };

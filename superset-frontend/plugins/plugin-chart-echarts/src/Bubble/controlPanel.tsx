@@ -27,7 +27,7 @@ import {
 
 import { DEFAULT_FORM_DATA } from './constants';
 
-const { logAxis, truncateYAxis, yAxisBounds, xAxisLabelRotation } =
+const { logAxis, truncateYAxis, yAxisBounds, xAxisLabelRotation, opacity } =
   DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
@@ -69,6 +69,32 @@ const config: ControlPanelConfig = {
                 '75',
                 '100',
               ]),
+            },
+          },
+        ],
+        [
+          {
+            name: 'tooltipFormat',
+            config: {
+              ...sharedControls.y_axis_format,
+              label: t('Tooltip Number Format'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'opacity',
+            config: {
+              type: 'SliderControl',
+              label: t('Bubble Opacity'),
+              renderTrigger: true,
+              min: 0,
+              max: 1,
+              step: 0.1,
+              default: opacity,
+              description: t(
+                'Opacity of bubbles, 0 means completely transparent, 1 means opaque',
+              ),
             },
           },
         ],

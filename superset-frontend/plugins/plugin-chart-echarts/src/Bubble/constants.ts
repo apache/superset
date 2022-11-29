@@ -30,6 +30,7 @@ export const DEFAULT_FORM_DATA: EchartsBubbleFormData = {
   truncateYAxis: false,
   yAxisBounds: [null, null],
   xAxisLabelRotation: 0,
+  opacity: 0.8,
 };
 
 export const MINIMUM_BUBBLE_SIZE = 5;
