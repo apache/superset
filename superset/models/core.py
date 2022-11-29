@@ -375,9 +375,9 @@ class Database(
         override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
         ssh_params = {}
-        from superset.databases.dao import (
+        from superset.databases.dao import ( # pylint: disable=import-outside-toplevel
             DatabaseDAO,
-        )  # pylint: disable=import-outside-toplevel
+        )  
 
         if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
             database_id=self.id
