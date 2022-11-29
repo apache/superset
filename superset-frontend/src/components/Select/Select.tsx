@@ -342,8 +342,8 @@ const Select = forwardRef(
       if(ensureIsArray(values).some(val => getValue(val) === SELECT_ALL_VALUE)){
         // send all options ot onchange
         if (!selectAllMode) {
-          values = [selectAllOption, ...fullSelectOptions];
-          options = [selectAllOption, ...fullSelectOptions];
+          values = [SELECT_ALL_VALUE, ...(fullSelectOptions.map(opt => opt.value))];
+          options = [selectAllOption, ...fullSelectOptions] as AntdLabeledValue[];
         }
       }else if(values.length === fullSelectOptions.length && selectAllMode){
         values = [];
