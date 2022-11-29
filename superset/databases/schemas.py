@@ -369,9 +369,9 @@ class DatabaseSSHTunnel(Schema):
     id = fields.Integer()
     database_id = fields.Integer()
 
-    server_address = fields.String()
-    server_port = fields.Integer()
-    username = fields.String()
+    server_address = fields.String(required=True)
+    server_port = fields.Integer(required=True)
+    username = fields.String(required=True)
 
     # Basic Authentication
     password = fields.String(required=False)
