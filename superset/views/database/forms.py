@@ -293,7 +293,7 @@ class ExcelToDatabaseForm(UploadToDatabaseForm):
         widget=BS3TextFieldWidget(),
     )
 
-    con = QuerySelectField(
+    database = QuerySelectField(
         _("Database"),
         query_factory=UploadToDatabaseForm.file_allowed_dbs,
         get_pk=lambda a: a.id,
@@ -424,7 +424,7 @@ class ColumnarToDatabaseForm(UploadToDatabaseForm):
         ],
     )
 
-    con = QuerySelectField(
+    database = QuerySelectField(
         _("Database"),
         query_factory=UploadToDatabaseForm.file_allowed_dbs,
         get_pk=lambda a: a.id,
