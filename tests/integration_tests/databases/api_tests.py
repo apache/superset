@@ -507,7 +507,14 @@ class TestDatabaseApi(SupersetTestCase):
             "ssh_tunnel": ssh_tunnel_properties,
         }
         fail_message = {
-            "message": {"ssh_tunnel": {"server_address_failure": ["Unknown field."]}}
+            "message": {
+                "ssh_tunnel": {
+                    "server_address_failure": ["Unknown field."],
+                    "server_address": ["Missing data for required field."],
+                    "server_port": ["Missing data for required field."],
+                    "username": ["Missing data for required field."],
+                }
+            }
         }
 
         uri = "api/v1/database/"
