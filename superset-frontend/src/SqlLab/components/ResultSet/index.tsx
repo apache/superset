@@ -66,7 +66,7 @@ enum LIMITING_FACTOR {
 export interface ResultSetProps {
   cache?: boolean;
   csv?: boolean;
-  excel?:boolean
+  excel?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
