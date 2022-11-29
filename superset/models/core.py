@@ -375,28 +375,28 @@ class Database(
         override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
         ssh_params = {}
-        from superset.databases.dao import DatabaseDAO
-        if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(database_id=self.id):
+        from superset.databases.dao import (
+            DatabaseDAO,
+        )  # pylint: disable=import-outside-toplevel
+
+        if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
+            database_id=self.id
+        ):
             # if ssh_tunnel is available build engine with information
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
             ssh_tunnel.bind_host = url.host
             ssh_tunnel.bind_port = url.port
             ssh_params = ssh_tunnel.parameters()
-            try:
-                with sshtunnel.open_tunnel(**ssh_params) as server:
-                    yield self._get_sqla_engine(
-                        schema=schema,
-                        nullpool=nullpool,
-                        source=source,
-                        ssh_tunnel_server=server,
-                    )
-            except Exception as ex:
-                raise ex
+            with sshtunnel.open_tunnel(**ssh_params) as server:
+                yield self._get_sqla_engine(
+                    schema=schema,
+                    nullpool=nullpool,
+                    source=source,
+                    ssh_tunnel_server=server,
+                )
 
         else:
-            yield self._get_sqla_engine(
-                schema=schema, nullpool=nullpool, source=source
-            )
+            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
 
     def _get_sqla_engine(
         self,
@@ -645,7 +645,6 @@ class Database(
     def get_inspector_with_context(self):
         with self.get_sqla_engine_with_context() as engine:
             yield sqla.inspect(engine)
-            
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
