@@ -2580,11 +2580,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         return response
 
-    # @has_access
+    @has_access
     @event_logger.log_this
     @expose("/excel/<client_id>")
     def excel(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
-        """Download the query results as csv."""
+        """Download the query results as excel."""
         logger.info("Exporting Excel file [%s]", client_id)
         query = db.session.query(Query).filter_by(client_id=client_id).one()
 
@@ -2632,7 +2632,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             df = query.database.get_df(sql, query.schema)[:limit]
 
         logger.info("Excel DF", df)
-        excel_data = excel.df_to_escaped_excel(df, index=False, **config["CSV_EXPORT"])
+        excel_data = excel.df_to_escaped_excel(
+            df, index=False, **config["EXCEL_EXPORT"]
+        )
         quoted_csv_name = parse.quote(query.name)
         response = ExcelResponse(
             excel_data, headers=generate_download_headers("xlsx", quoted_csv_name)
