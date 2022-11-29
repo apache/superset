@@ -18,7 +18,7 @@
  */
 describe('Visualization > Bubble', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    cy.intercept('POST', '/api/v1/chart/data*').as('getJson');
   });
 
   const BUBBLE_FORM_DATA = {
@@ -52,7 +52,7 @@ describe('Visualization > Bubble', () => {
 
   function verify(formData) {
     cy.visitChartByParams(formData);
-    cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
+    cy.verifySliceSuccess({ waitAlias: '@getJson' });
   }
 
   it('should work with filter', () => {
@@ -70,24 +70,13 @@ describe('Visualization > Bubble', () => {
         },
       ],
     });
-    cy.get('[data-test="chart-container"]')
-      .should('be.visible')
-      .within(() => {
-        cy.get('svg').find('.nv-point-clips circle').should('have.length', 8);
-      })
-      .then(nodeList => {
-        // Check that all circles have same color.
-        const color = nodeList[0].getAttribute('fill');
-        const circles = Array.prototype.slice.call(nodeList);
-        expect(circles.every(c => c.getAttribute('fill') === color)).to.equal(
-          true,
-        );
-      });
+    cy.get('.chart-container .bubble canvas').should('have.length', 1);
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
     cy.visitChartByParams(BUBBLE_FORM_DATA);
 
+    cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]')
       .focus()
@@ -95,11 +84,5 @@ describe('Visualization > Bubble', () => {
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
     ).should('exist');
-    cy.get('[data-test=run-query-button]').click();
-    cy.get('.bubble .nv-legend .nv-legend-symbol').should(
-      'have.css',
-      'fill',
-      'rgb(31, 168, 201)',
-    );
   });
 });
