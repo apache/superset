@@ -485,6 +485,51 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert model_ssh_tunnel is None
 
+    @mock.patch(
+        "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
+    )
+    def test_do_not_create_database_if_ssh_tunnel_creation_fails(
+        self, mock_test_connection_database_command_run
+    ):
+        """
+        Database API: Test create with SSH Tunnel
+        """
+        self.login(username="admin")
+        example_db = get_example_database()
+        if example_db.backend == "sqlite":
+            return
+        ssh_tunnel_properties = {
+            "server_address_failure": "123.132.123.1",
+        }
+        database_data = {
+            "database_name": "test-db-failure-ssh-tunnel",
+            "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
+            "ssh_tunnel": ssh_tunnel_properties,
+        }
+        fail_message = {
+            "message": {"ssh_tunnel": {"server_address_failure": ["Unknown field."]}}
+        }
+
+        uri = "api/v1/database/"
+        rv = self.client.post(uri, json=database_data)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 400)
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == response.get("id"))
+            .one_or_none()
+        )
+        assert model_ssh_tunnel is None
+        self.assertEqual(response, fail_message)
+        # Cleanup
+        model = (
+            db.session.query(Database)
+            .filter(Database.database_name == "test-db-failure-ssh-tunnel")
+            .one_or_none()
+        )
+        # the DB should not be created
+        assert model is None
+
     def test_create_database_invalid_configuration_method(self):
         """
         Database API: Test create with an invalid configuration method.
