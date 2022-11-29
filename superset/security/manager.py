@@ -223,6 +223,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     SQLLAB_PERMISSION_VIEWS = {
         ("can_csv", "Superset"),
+        ("can_excel", "Superset"),
         ("can_read", "SavedQuery"),
         ("can_read", "Database"),
         ("can_sql_json", "Superset"),
