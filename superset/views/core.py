@@ -2405,6 +2405,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             }
             execution_context = SqlJsonExecutionContext(request.json)
             command = self._create_sql_json_command(execution_context, log_params)
+            # breakpoint()
             command_result: CommandResult = command.run()
             return self._create_response_from_execution_context(command_result)
         except SqlLabException as ex:

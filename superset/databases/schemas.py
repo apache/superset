@@ -504,7 +504,7 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
 
-    ssh_tunnel_credentials = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class TableMetadataOptionsResponseSchema(Schema):

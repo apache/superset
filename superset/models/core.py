@@ -374,11 +374,12 @@ class Database(
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
-        ssh_tunnel: Optional["SSHTunnel"] = None,
+        override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
         ssh_params = {}
-        if ssh_tunnel:
-            # build with override
+        from superset.databases.dao import DatabaseDAO
+        if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(database_id=self.id):
+            # if ssh_tunnel is available build engine with information
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
             ssh_tunnel.bind_host = url.host
             ssh_tunnel.bind_port = url.port
@@ -394,7 +395,6 @@ class Database(
                     ssh_tunnel_server=server,
                 )
         else:
-            # do look up in table for using database_id
             yield self._get_sqla_engine(
                 schema=schema, nullpool=nullpool, source=source
             )
@@ -566,8 +566,8 @@ class Database(
 
     @property
     def inspector(self) -> Inspector:
-        engine = self._get_sqla_engine()
-        return sqla.inspect(engine)
+        with self.get_sqla_engine_with_context() as engine:
+            return sqla.inspect(engine)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
@@ -592,14 +592,17 @@ class Database(
         :return: The table/schema pairs
         """
         try:
-            return {
-                (table, schema)
-                for table in self.db_engine_spec.get_table_names(
-                    database=self,
-                    inspector=self.inspector,
-                    schema=schema,
-                )
-            }
+            with self.get_sqla_engine_with_context() as engine:
+                inspector = sqla.inspect(engine)
+                tables = {
+                    (table, schema)
+                    for table in self.db_engine_spec.get_table_names(
+                        database=self,
+                        inspector=inspector,
+                        schema=schema,
+                    )
+                }
+                return tables
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
@@ -626,16 +629,24 @@ class Database(
         :return: set of views
         """
         try:
-            return {
-                (view, schema)
-                for view in self.db_engine_spec.get_view_names(
-                    database=self,
-                    inspector=self.inspector,
-                    schema=schema,
-                )
-            }
+            with self.get_sqla_engine_with_context() as engine:
+                inspector = sqla.inspect(engine)
+                return {
+                    (view, schema)
+                    for view in self.db_engine_spec.get_view_names(
+                        database=self,
+                        inspector=inspector,
+                        schema=schema,
+                    )
+                }
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
+
+    @contextmanager
+    def get_inspector_with_context(self):
+        with self.get_sqla_engine_with_context() as engine:
+            yield sqla.inspect(engine)
+            
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
@@ -658,7 +669,9 @@ class Database(
         :return: schema list
         """
         try:
-            return self.db_engine_spec.get_schema_names(self.inspector)
+            with self.get_sqla_engine_with_context() as engine:
+                inspector = sqla.inspect(engine)
+                return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
@@ -726,7 +739,8 @@ class Database(
     def get_columns(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        return self.db_engine_spec.get_columns(self.inspector, table_name, schema)
+        with self.get_inspector_with_context() as inspector:
+            return self.db_engine_spec.get_columns(inspector, table_name, schema)
 
     def get_metrics(
         self,
@@ -738,26 +752,29 @@ class Database(
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        indexes = self.inspector.get_indexes(table_name, schema)
-        return self.db_engine_spec.normalize_indexes(indexes)
+        with self.get_inspector_with_context() as inspector:
+            indexes = inspector.get_indexes(table_name, schema)
+            return self.db_engine_spec.normalize_indexes(indexes)
 
     def get_pk_constraint(
         self, table_name: str, schema: Optional[str] = None
     ) -> Dict[str, Any]:
-        pk_constraint = self.inspector.get_pk_constraint(table_name, schema) or {}
+        with self.get_inspector_with_context() as inspector:
+            pk_constraint = inspector.get_pk_constraint(table_name, schema) or {}
 
-        def _convert(value: Any) -> Any:
-            try:
-                return utils.base_json_conv(value)
-            except TypeError:
-                return None
+            def _convert(value: Any) -> Any:
+                try:
+                    return utils.base_json_conv(value)
+                except TypeError:
+                    return None
 
-        return {key: _convert(value) for key, value in pk_constraint.items()}
+            return {key: _convert(value) for key, value in pk_constraint.items()}
 
     def get_foreign_keys(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        return self.inspector.get_foreign_keys(table_name, schema)
+        with self.get_inspector_with_context() as inspector:
+            return inspector.get_foreign_keys(table_name, schema)
 
     def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,
