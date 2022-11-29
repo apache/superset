@@ -37,3 +37,13 @@ test('renders with number', async () => {
   render(<TimeCell value={DATE.valueOf()} />);
   expect(screen.getByText('2022-01-01 00:00:00')).toBeInTheDocument();
 });
+
+test('renders with no value', async () => {
+  render(<TimeCell />);
+  expect(screen.getByText('N/A')).toBeInTheDocument();
+});
+
+test('renders with invalid date format', async () => {
+  render(<TimeCell format="aaa-bbb-ccc" value={DATE} />);
+  expect(screen.getByText('aaa-bbb-ccc')).toBeInTheDocument();
+});

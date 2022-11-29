@@ -18,18 +18,21 @@
  */
 import React from 'react';
 import { getTimeFormatter, TimeFormats } from '@superset-ui/core';
+import NullCell from '../NullCell';
 
 export interface TimeCellProps {
   format?: string;
-  value: number | Date;
+  value?: number | Date;
 }
 
 function TimeCell({
   format = TimeFormats.DATABASE_DATETIME,
   value,
 }: TimeCellProps) {
-  const timeFormatter = getTimeFormatter(format);
-  return <span>{timeFormatter.format(value)}</span>;
+  if (value) {
+    return <span>{getTimeFormatter(format).format(value)}</span>;
+  }
+  return <NullCell />;
 }
 
 export default TimeCell;

@@ -281,6 +281,7 @@ export default function DrillDetailPane({
           setPageIndex(pagination.current ? pagination.current - 1 : 0)
         }
         height={470}
+        resizable
         virtualize
       />
     );
