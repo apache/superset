@@ -113,11 +113,13 @@ describe('Bubble transformProps', () => {
 });
 
 describe('Bubble formatBubbleLabel', () => {
+  const dollerFormatter = getNumberFormatter('$,.2f');
+  const percentFormatter = getNumberFormatter(',.1%');
+
   it('Should generate correct bubble label content with dimension', () => {
     const params = {
-      data: [1, 2, 3, 'bubble title', 'bubble dimension'],
+      data: [10000, 20000, 3, 'bubble title', 'bubble dimension'],
     };
-    const formatter = getNumberFormatter();
 
     expect(
       formatBubbleLabel(
@@ -125,38 +127,36 @@ describe('Bubble formatBubbleLabel', () => {
         'x-axis-label',
         'y-axis-label',
         'size-label',
-        formatter,
-        formatter,
-        formatter,
+        dollerFormatter,
+        dollerFormatter,
+        percentFormatter,
       ),
     ).toEqual(
       `<p>bubble title <sub>(bubble dimension)</sub></p>
-        x-axis-label: 1 <br/>
-        y-axis-label: 2 <br/>
-        size-label: 3`,
+        x-axis-label: $10,000.00 <br/>
+        y-axis-label: $20,000.00 <br/>
+        size-label: 300.0%`,
     );
   });
   it('Should generate correct bubble label content without dimension', () => {
     const params = {
-      data: [1, 2, 3, 'bubble title', null],
+      data: [10000, 25000, 3, 'bubble title', null],
     };
-    const formatter = getNumberFormatter();
-
     expect(
       formatBubbleLabel(
         params,
         'x-axis-label',
         'y-axis-label',
         'size-label',
-        formatter,
-        formatter,
-        formatter,
+        dollerFormatter,
+        dollerFormatter,
+        percentFormatter,
       ),
     ).toEqual(
       `<p>bubble title</p>
-        x-axis-label: 1 <br/>
-        y-axis-label: 2 <br/>
-        size-label: 3`,
+        x-axis-label: $10,000.00 <br/>
+        y-axis-label: $25,000.00 <br/>
+        size-label: 300.0%`,
     );
   });
 });

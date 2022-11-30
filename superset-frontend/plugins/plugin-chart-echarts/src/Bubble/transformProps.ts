@@ -29,9 +29,11 @@ import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 import { DEFAULT_FORM_DATA, MINIMUM_BUBBLE_SIZE } from './constants';
 import { defaultGrid } from '../defaults';
 import { getLegendProps } from '../utils/series';
-import { LegendOrientation, LegendType, Refs } from '../types';
+import { Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { getPadding } from '../Timeseries/transformers';
+import { convertInteger } from '../utils/convertInteger';
 
 function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
@@ -93,7 +95,12 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     yAxisLabelRotation,
     tooltipSizeFormat,
     opacity,
-  }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
+    showLegend,
+    legendOrientation,
+    legendMargin,
+    legendType,
+  }: // emitFilter,
+  EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
@@ -135,6 +142,18 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   const [min, max] = yAxisBounds.map(parseYAxisBound);
 
+  const padding = getPadding(
+    showLegend,
+    legendOrientation,
+    true,
+    false,
+    legendMargin,
+    true,
+    'Left',
+    convertInteger(yAxisTitleMargin),
+    convertInteger(xAxisTitleMargin),
+  );
+
   const echartOptions: EChartsCoreOption = {
     series,
     xAxis: {
@@ -174,7 +193,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       type: logYAxis ? AxisType.log : AxisType.value,
     },
     legend: {
-      ...getLegendProps(LegendType.Scroll, LegendOrientation.Top, true),
+      ...getLegendProps(legendType, legendOrientation, showLegend),
       data: legends,
     },
     tooltip: {
@@ -191,17 +210,21 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
           tooltipSizeFormatter,
         ),
     },
-    grid: { ...defaultGrid },
+    grid: { ...defaultGrid, ...padding },
   };
 
   const { onContextMenu, setDataMask = () => {} } = hooks;
 
   return {
+    refs,
     height,
     width,
     echartOptions,
     onContextMenu,
     setDataMask,
+    // emitFilter,
+    // entity,
+    // bubbleSeries,
     formData,
   };
 }

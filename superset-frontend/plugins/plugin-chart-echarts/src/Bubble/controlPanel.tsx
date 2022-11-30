@@ -23,9 +23,11 @@ import {
   sections,
   ControlPanelsContainerProps,
   sharedControls,
+  // emitFilterControl,
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './constants';
+import { legendSection } from '../controls';
 
 const { logAxis, truncateYAxis, yAxisBounds, xAxisLabelRotation, opacity } =
   DEFAULT_FORM_DATA;
@@ -43,6 +45,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         ['size'],
         ['limit', null],
+        // emitFilterControl,
       ],
     },
     {
@@ -51,6 +54,7 @@ const config: ControlPanelConfig = {
       tabOverride: 'customize',
       controlSetRows: [
         ['color_scheme'],
+        ...legendSection,
         [
           {
             name: 'max_bubble_size',
