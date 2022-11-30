@@ -565,8 +565,8 @@ class Database(
 
     @property
     def inspector(self) -> Inspector:
-        with self.get_sqla_engine_with_context() as engine:
-            return sqla.inspect(engine)
+        engine = self._get_sqla_engine()
+        return sqla.inspect(engine)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema:{schema}:table_list",
@@ -591,8 +591,7 @@ class Database(
         :return: The table/schema pairs
         """
         try:
-            with self.get_sqla_engine_with_context() as engine:
-                inspector = sqla.inspect(engine)
+            with self.get_inspector_with_context() as inspector:
                 tables = {
                     (table, schema)
                     for table in self.db_engine_spec.get_table_names(
@@ -628,8 +627,7 @@ class Database(
         :return: set of views
         """
         try:
-            with self.get_sqla_engine_with_context() as engine:
-                inspector = sqla.inspect(engine)
+            with self.get_inspector_with_context() as inspector:
                 return {
                     (view, schema)
                     for view in self.db_engine_spec.get_view_names(
@@ -667,8 +665,7 @@ class Database(
         :return: schema list
         """
         try:
-            with self.get_sqla_engine_with_context() as engine:
-                inspector = sqla.inspect(engine)
+            with self.get_inspector_with_context() as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
