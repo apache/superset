@@ -97,8 +97,8 @@ class UpdateDatabaseCommand(BaseCommand):
                 )
 
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
-                existing_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
-                if existing_ssh_tunnel is None:
+                existing_ssh_tunnel_model = DatabaseDAO.get_ssh_tunnel(database.id)
+                if existing_ssh_tunnel_model is None:
                     # We couldn't found an existing tunnel so we need to create one
                     SSHTunnelDAO.create(
                         {
@@ -109,20 +109,15 @@ class UpdateDatabaseCommand(BaseCommand):
                     )
                 else:
                     # We found an existing tunnel so we need to update it
-                    ssh_tunnel_model = SSHTunnelDAO.find_by_id(existing_ssh_tunnel.id)
                     SSHTunnelDAO.update(
-                        ssh_tunnel_model,
+                        existing_ssh_tunnel_model,
                         ssh_tunnel_properties,
                         commit=False,
                     )
 
             db.session.commit()
 
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise DatabaseUpdateFailedError() from ex
-        except DAOCreateFailedError as ex:
-            logger.exception(ex.exception)
+        except (DAOUpdateFailedError, DAOCreateFailedError) as ex:
             raise DatabaseUpdateFailedError() from ex
         return database
 
