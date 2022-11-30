@@ -184,10 +184,9 @@ const Select = forwardRef(
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
           if (value === getValue(SELECT_ALL_VALUE)) {
-            const ret_val = labelInValue 
+            return labelInValue 
               ? [selectAllOption, ...selectOptions] as AntdLabeledValue[] 
               : [SELECT_ALL_VALUE, ...selectOptions.map(opt => opt.value)] as AntdLabeledValue[];
-            return ret_val;
           }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
@@ -195,7 +194,9 @@ const Select = forwardRef(
               result.length === fullSelectOptions.length &&
               selectAllEnabled
             ) {
-              return [SELECT_ALL_VALUE, ...result] as AntdLabeledValue[];
+              return labelInValue 
+                ? [selectAllOption, ...result] as AntdLabeledValue[] 
+                : [SELECT_ALL_VALUE, ...result] as AntdLabeledValue[];
             }
             return result as AntdLabeledValue[];
           }
@@ -300,15 +301,20 @@ const Select = forwardRef(
 
     useEffect(() => {
       // if all values are selected, add select all to value
-      ensureIsArray(value).length === fullSelectOptions.length && fullSelectOptions.length > 0
-        ? setSelectValue([SELECT_ALL_VALUE, ...ensureIsArray(value)] as AntdLabeledValue[]) 
+      !isSingleMode && ensureIsArray(value).length === fullSelectOptions.length && fullSelectOptions.length > 0
+        ? setSelectValue(labelInValue 
+            ? [selectAllOption, ...ensureIsArray(value)] as AntdLabeledValue[] 
+            : [SELECT_ALL_VALUE, ...ensureIsArray(value)] as AntdLabeledValue[]
+          ) 
         : setSelectValue(value);
     }, [value]);
 
     useEffect(() => {
       const checkSelectAll = ensureIsArray(selectValue).some(v => getValue(v) === SELECT_ALL_VALUE) 
       checkSelectAll && !selectAllMode 
-        ? setSelectValue([SELECT_ALL_VALUE, ...fullSelectOptions] as AntdLabeledValue[]) 
+        ? setSelectValue(labelInValue 
+          ? [selectAllOption, ...fullSelectOptions] as AntdLabeledValue[] 
+          : [SELECT_ALL_VALUE, ...fullSelectOptions] as AntdLabeledValue[]) 
         : null;
     },
     [selectValue, selectAllMode])
@@ -344,9 +350,15 @@ const Select = forwardRef(
         if(ensureIsArray(values).some(val => getValue(val) === SELECT_ALL_VALUE)){
           // send all options to onchange if all are not currently there
           if (!selectAllMode) {
-            values = fullSelectOptions.map(opt => opt.value);
+            values = labelInValue
+              ? fullSelectOptions.map(opt => ({
+                key: opt.value,
+                value: opt.value,
+                label: opt.label,
+              }))
+              : fullSelectOptions.map(opt => opt.value);
             options = fullSelectOptions.map(opt => ({
-              children: opt.value,
+              children: opt.label,
               key: opt.value,
               value: opt.value,
               label: opt.label,

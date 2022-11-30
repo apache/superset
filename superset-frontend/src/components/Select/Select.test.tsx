@@ -96,8 +96,8 @@ const findSelectValue = () =>
 
 const findAllSelectValues = () =>
   waitFor(() => [
-    ...getElementsByClassName('.ant-select-selection-item'),
     ...getElementsByClassName('.ant-tag'),
+    ...getElementsByClassName('.ant-select-selection-item'),
   ]);
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
@@ -647,7 +647,7 @@ test('selects all values', async () => {
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
   const values = await findAllSelectValues();
-  expect(values.length).toBe(1);
+  expect(values.length).toBe(2);
   expect(values[0]).toHaveTextContent(selectAllTagLabel(OPTIONS.length));
 });
 
@@ -656,7 +656,7 @@ test('unselects all values', async () => {
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
   let values = await findAllSelectValues();
-  expect(values.length).toBe(1);
+  expect(values.length).toBe(2);
   expect(values[0]).toHaveTextContent(selectAllTagLabel(OPTIONS.length));
   // const options = await findAllSelectOptions();
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
