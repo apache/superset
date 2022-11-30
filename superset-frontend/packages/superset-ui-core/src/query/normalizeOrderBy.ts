@@ -39,20 +39,20 @@ export default function normalizeOrderBy(
 
   // ensure that remove invalid orderby clause
   const cloneQueryObject = { ...queryObject };
-  delete cloneQueryObject.timeseries_limit_metric;
+  delete cloneQueryObject.series_limit_metric;
   delete cloneQueryObject.legacy_order_by;
   delete cloneQueryObject.order_desc;
   delete cloneQueryObject.orderby;
 
   const isAsc = !queryObject.order_desc;
   if (
-    queryObject.timeseries_limit_metric !== undefined &&
-    queryObject.timeseries_limit_metric !== null &&
-    !isEmpty(queryObject.timeseries_limit_metric)
+    queryObject.series_limit_metric !== undefined &&
+    queryObject.series_limit_metric !== null &&
+    !isEmpty(queryObject.series_limit_metric)
   ) {
     return {
       ...cloneQueryObject,
-      orderby: [[queryObject.timeseries_limit_metric, isAsc]],
+      orderby: [[queryObject.series_limit_metric, isAsc]],
     };
   }
 
