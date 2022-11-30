@@ -374,10 +374,10 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
-        ssh_params = {}
-        from superset.databases.dao import ( # pylint: disable=import-outside-toplevel
+        ssh_params: Dict[str, Any] = {}
+        from superset.databases.dao import (  # pylint: disable=import-outside-toplevel
             DatabaseDAO,
-        )  
+        )
 
         if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
             database_id=self.id
@@ -640,7 +640,7 @@ class Database(
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @contextmanager
-    def get_inspector_with_context(self):
+    def get_inspector_with_context(self) -> Inspector:
         with self.get_sqla_engine_with_context() as engine:
             yield sqla.inspect(engine)
 
