@@ -36,6 +36,8 @@ import NumericCell, {
   LocaleCode,
   Style,
 } from './cell-renderers/NumericCell';
+import HeaderWithRadioGroup from './header-renderers/HeaderWithRadioGroup';
+import TimeCell from './cell-renderers/TimeCell';
 
 export default {
   title: 'Design System/Components/Table/Examples',
@@ -578,4 +580,103 @@ CellRenderers.args = {
   columns: rendererColumns,
   size: TableSize.SMALL,
   reorderable: true,
+};
+
+export interface ShoppingData {
+  key: number;
+  item: string;
+  orderDate: number;
+  price: number;
+}
+
+const shoppingData: ShoppingData[] = [
+  {
+    key: 1,
+    item: 'Floppy Disk 10 pack',
+    orderDate: Date.now(),
+    price: 9.99,
+  },
+  {
+    key: 2,
+    item: 'DVD 100 pack',
+    orderDate: Date.now(),
+    price: 7.99,
+  },
+  {
+    key: 3,
+    item: '128 GB SSD',
+    orderDate: Date.now(),
+    price: 3.99,
+  },
+];
+
+export const HeaderRenderers: ComponentStory<typeof Table> = args => {
+  const [orderDateFormatting, setOrderDateFormatting] = useState('formatted');
+  const [priceLocale, setPriceLocale] = useState(LocaleCode.en_US);
+  const shoppingColumns: ColumnsType<ShoppingData> = [
+    {
+      title: 'Item',
+      dataIndex: 'item',
+      key: 'item',
+      width: 200,
+    },
+    {
+      title: () => (
+        <HeaderWithRadioGroup
+          headerTitle="Order date"
+          groupTitle="Formatting"
+          groupOptions={[
+            { label: 'Original value', value: 'original' },
+            { label: 'Formatted value', value: 'formatted' },
+          ]}
+          value={orderDateFormatting}
+          onChange={value => setOrderDateFormatting(value)}
+        />
+      ),
+      dataIndex: 'orderDate',
+      key: 'orderDate',
+      width: 200,
+      render: value =>
+        orderDateFormatting === 'original' ? value : <TimeCell value={value} />,
+    },
+    {
+      title: () => (
+        <HeaderWithRadioGroup
+          headerTitle="Price"
+          groupTitle="Currency"
+          groupOptions={[
+            { label: 'US Dollar', value: LocaleCode.en_US },
+            { label: 'Brazilian Real', value: LocaleCode.pt_BR },
+          ]}
+          value={priceLocale}
+          onChange={value => setPriceLocale(value as LocaleCode)}
+        />
+      ),
+      dataIndex: 'price',
+      key: 'price',
+      width: 200,
+      render: value => (
+        <NumericCell
+          value={value}
+          options={{
+            style: Style.CURRENCY,
+            currency:
+              priceLocale === LocaleCode.en_US
+                ? CurrencyCode.USD
+                : CurrencyCode.BRL,
+          }}
+          locale={priceLocale}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <Table
+      data={shoppingData}
+      columns={shoppingColumns}
+      size={TableSize.SMALL}
+      resizable
+    />
+  );
 };
