@@ -1260,7 +1260,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*l)
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(
+        self,
+        column_name: str,
+        limit: int = 10000,
+    ) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """

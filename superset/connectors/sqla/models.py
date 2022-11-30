@@ -211,7 +211,11 @@ class AnnotationDatasource(BaseDatasource):
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         raise NotImplementedError()
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(
+        self,
+        column_name: str,
+        limit: int = 10000,
+    ) -> List[Any]:
         raise NotImplementedError()
 
 
@@ -301,14 +305,18 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         )
         return column_spec.generic_type if column_spec else None
 
-    def get_sqla_col(self, label: Optional[str] = None) -> Column:
+    def get_sqla_col(
+        self,
+        label: Optional[str] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> Column:
         label = label or self.column_name
         db_engine_spec = self.db_engine_spec
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else None
-        if self.expression:
-            tp = self.table.get_template_processor()
-            expression = tp.process_template(self.expression)
+        if expression := self.expression:
+            if template_processor:
+                template_processor.process_template(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -458,10 +466,17 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     def __repr__(self) -> str:
         return str(self.metric_name)
 
-    def get_sqla_col(self, label: Optional[str] = None) -> Column:
+    def get_sqla_col(
+        self,
+        label: Optional[str] = None,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> Column:
         label = label or self.metric_name
-        tp = self.table.get_template_processor()
-        sqla_col: ColumnClause = literal_column(tp.process_template(self.expression))
+        expression = self.expression
+        if template_processor:
+            expression = template_processor.process_template(expression)
+
+        sqla_col: ColumnClause = literal_column(expression)
         return self.table.make_sqla_column_compatible(sqla_col, label)
 
     @property
@@ -778,10 +793,17 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         except (TypeError, json.JSONDecodeError):
             return {}
 
-    def get_fetch_values_predicate(self) -> TextClause:
-        tp = self.get_template_processor()
+    def get_fetch_values_predicate(
+        self,
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> TextClause:
+        fetch_values_predicate = self.fetch_values_predicate
+        if template_processor:
+            fetch_values_predicate = template_processor.process_template(
+                fetch_values_predicate
+            )
         try:
-            return self.text(tp.process_template(self.fetch_values_predicate))
+            return self.text(fetch_values_predicate)
         except TemplateError as ex:
             raise QueryObjectValidationError(
                 _(
@@ -790,7 +812,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
             ) from ex
 
-    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
+    def values_for_column(
+        self,
+        column_name: str,
+        limit: int = 10000,
+    ) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
@@ -799,12 +825,16 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         tp = self.get_template_processor()
         tbl, cte = self.get_from_clause(tp)
 
-        qry = select([target_col.get_sqla_col()]).select_from(tbl).distinct()
+        qry = (
+            select([target_col.get_sqla_col(template_processor=tp)])
+            .select_from(tbl)
+            .distinct()
+        )
         if limit:
             qry = qry.limit(limit)
 
         if self.fetch_values_predicate:
-            qry = qry.where(self.get_fetch_values_predicate())
+            qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
 
         with self.database.get_sqla_engine_with_context() as engine:
             sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
@@ -1190,7 +1220,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     )
                 )
             elif isinstance(metric, str) and metric in metrics_by_name:
-                metrics_exprs.append(metrics_by_name[metric].get_sqla_col())
+                metrics_exprs.append(
+                    metrics_by_name[metric].get_sqla_col(
+                        template_processor=template_processor
+                    )
+                )
             else:
                 raise QueryObjectValidationError(
                     _("Metric '%(metric)s' does not exist", metric=metric)
@@ -1229,12 +1263,16 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
             elif col in columns_by_name:
-                col = columns_by_name[col].get_sqla_col()
+                col = columns_by_name[col].get_sqla_col(
+                    template_processor=template_processor
+                )
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
                 need_groupby = True
             elif col in metrics_by_name:
-                col = metrics_by_name[col].get_sqla_col()
+                col = metrics_by_name[col].get_sqla_col(
+                    template_processor=template_processor
+                )
                 need_groupby = True
 
             if isinstance(col, ColumnElement):
@@ -1565,7 +1603,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 having_clause_and += [self.text(having)]
 
         if apply_fetch_values_predicate and self.fetch_values_predicate:
-            qry = qry.where(self.get_fetch_values_predicate())
+            qry = qry.where(
+                self.get_fetch_values_predicate(template_processor=template_processor)
+            )
         if granularity:
             qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:
