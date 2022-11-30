@@ -45,6 +45,11 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
         height: ${8 * theme.gridUnit}px;
         border-left: 1px solid ${theme.colors.grayscale.light2};
         padding-left: ${4 * theme.gridUnit}px;
+
+        .filter-item-wrapper:first-child & {
+          border-left: none;
+          padding-left: 0;
+        }
       `}
     >
       <Tooltip overlay={titleIsTruncated ? title : null}>
