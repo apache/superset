@@ -211,11 +211,7 @@ class AnnotationDatasource(BaseDatasource):
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
         raise NotImplementedError()
 
-    def values_for_column(
-        self,
-        column_name: str,
-        limit: int = 10000,
-    ) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         raise NotImplementedError()
 
 
@@ -332,8 +328,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         start_dttm: Optional[DateTime] = None,
         end_dttm: Optional[DateTime] = None,
         label: Optional[str] = "__time",
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
-        col = self.get_sqla_col(label=label)
+        col = self.get_sqla_col(label=label, template_processor=template_processor)
         l = []
         if start_dttm:
             l.append(col >= self.table.text(self.dttm_sql_literal(start_dttm)))
@@ -812,11 +809,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 )
             ) from ex
 
-    def values_for_column(
-        self,
-        column_name: str,
-        limit: int = 10000,
-    ) -> List[Any]:
+    def values_for_column(self, column_name: str, limit: int = 10000) -> List[Any]:
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
@@ -966,7 +959,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             column_name = cast(str, metric_column.get("column_name"))
             table_column: Optional[TableColumn] = columns_by_name.get(column_name)
             if table_column:
-                sqla_column = table_column.get_sqla_col()
+                sqla_column = table_column.get_sqla_col(
+                    template_processor=template_processor
+                )
             else:
                 sqla_column = column(column_name)
             sqla_metric = self.sqla_aggregations[metric["aggregate"]](sqla_column)
@@ -1003,9 +998,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             schema=self.schema,
             template_processor=template_processor,
         )
-        col_in_metadata = self.get_column(expression)
+        col_in_metadata = cast(TableColumn, self.get_column(expression))
         if col_in_metadata:
-            sqla_column = col_in_metadata.get_sqla_col()
+            sqla_column = col_in_metadata.get_sqla_col(
+                template_processor=template_processor
+            )
             is_dttm = col_in_metadata.is_temporal
         else:
             sqla_column = literal_column(expression)
@@ -1306,7 +1303,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         )
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
-                        outer = columns_by_name[selected].get_sqla_col()
+                        outer = columns_by_name[selected].get_sqla_col(
+                            template_processor=template_processor
+                        )
                     else:
                         selected = validate_adhoc_subquery(
                             selected,
@@ -1340,7 +1339,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     self.schema,
                 )
                 select_exprs.append(
-                    columns_by_name[selected].get_sqla_col()
+                    columns_by_name[selected].get_sqla_col(
+                        template_processor=template_processor
+                    )
                     if isinstance(selected, str) and selected in columns_by_name
                     else self.make_sqla_column_compatible(
                         literal_column(selected), _column_label
@@ -1374,11 +1375,18 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             ):
                 time_filters.append(
                     columns_by_name[self.main_dttm_col].get_time_filter(
-                        from_dttm,
-                        to_dttm,
+                        start_dttm=from_dttm,
+                        end_dttm=to_dttm,
+                        template_processor=template_processor,
                     )
                 )
-            time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
+            time_filters.append(
+                dttm_col.get_time_filter(
+                    start_dttm=from_dttm,
+                    end_dttm=to_dttm,
+                    template_processor=template_processor,
+                )
+            )
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
@@ -1434,7 +1442,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                         time_grain=filter_grain, template_processor=template_processor
                     )
                 elif col_obj:
-                    sqla_col = col_obj.get_sqla_col()
+                    sqla_col = col_obj.get_sqla_col(
+                        template_processor=template_processor
+                    )
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(
                     native_type=col_type,
@@ -1559,6 +1569,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                                 start_dttm=_since,
                                 end_dttm=_until,
                                 label=sqla_col.key,
+                                template_processor=template_processor,
                             )
                         )
                     else:
@@ -1657,8 +1668,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 if dttm_col and not db_engine_spec.time_groupby_inline:
                     inner_time_filter = [
                         dttm_col.get_time_filter(
-                            inner_from_dttm or from_dttm,
-                            inner_to_dttm or to_dttm,
+                            start_dttm=inner_from_dttm or from_dttm,
+                            end_dttm=inner_to_dttm or to_dttm,
+                            template_processor=template_processor,
                         )
                     ]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
@@ -1667,7 +1679,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 ob = inner_main_metric_expr
                 if series_limit_metric:
                     ob = self._get_series_orderby(
-                        series_limit_metric, metrics_by_name, columns_by_name
+                        series_limit_metric=series_limit_metric,
+                        metrics_by_name=metrics_by_name,
+                        columns_by_name=columns_by_name,
+                        template_processor=template_processor,
                     )
                 direction = desc if order_desc else asc
                 subq = subq.order_by(direction(ob))
@@ -1687,9 +1702,10 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     orderby = [
                         (
                             self._get_series_orderby(
-                                series_limit_metric,
-                                metrics_by_name,
-                                columns_by_name,
+                                series_limit_metric=series_limit_metric,
+                                metrics_by_name=metrics_by_name,
+                                columns_by_name=columns_by_name,
+                                template_processor=template_processor,
                             ),
                             not order_desc,
                         )
@@ -1749,6 +1765,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         series_limit_metric: Metric,
         metrics_by_name: Dict[str, SqlMetric],
         columns_by_name: Dict[str, TableColumn],
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
@@ -1757,7 +1774,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             isinstance(series_limit_metric, str)
             and series_limit_metric in metrics_by_name
         ):
-            ob = metrics_by_name[series_limit_metric].get_sqla_col()
+            ob = metrics_by_name[series_limit_metric].get_sqla_col(
+                template_processor=template_processor
+            )
         else:
             raise QueryObjectValidationError(
                 _("Metric '%(metric)s' does not exist", metric=series_limit_metric)
