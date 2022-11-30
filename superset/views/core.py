@@ -127,7 +127,7 @@ from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
-from superset.utils import core as utils, csv
+from superset.utils import core as utils, csv, excel
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
 from superset.utils.core import (
@@ -139,6 +139,7 @@ from superset.utils.core import (
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
+    ExcelResponse,
     api,
     BaseSupersetView,
     common_bootstrap_payload,
@@ -2576,6 +2577,80 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         event_rep = repr(event_info)
         logger.debug(
             "CSV exported: %s", event_rep, extra={"superset_event": event_info}
+        )
+        return response
+
+    @has_access
+    @event_logger.log_this
+    @expose("/excel/<client_id>")
+    def excel(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
+        """Download the query results as excel."""
+        logger.info("Exporting Excel file [%s]", client_id)
+        query = db.session.query(Query).filter_by(client_id=client_id).one()
+
+        try:
+            query.raise_for_access()
+        except SupersetSecurityException as ex:
+            flash(ex.error.message)
+            return redirect("/")
+
+        blob = None
+        if results_backend and query.results_key:
+            logger.info("Fetching Excel from results backend [%s]", query.results_key)
+            blob = results_backend.get(query.results_key)
+        if blob:
+            logger.info("Decompressing")
+            payload = utils.zlib_decompress(
+                blob, decode=not results_backend_use_msgpack
+            )
+            obj = _deserialize_results_payload(
+                payload, query, cast(bool, results_backend_use_msgpack)
+            )
+
+            df = pd.DataFrame(
+                data=obj["data"],
+                dtype=object,
+                columns=[c["name"] for c in obj["columns"]],
+            )
+
+            logger.info("Using pandas to convert to Excel")
+        else:
+            logger.info("Running a query to turn into Excel")
+            if query.select_sql:
+                sql = query.select_sql
+                limit = None
+            else:
+                sql = query.executed_sql
+                limit = ParsedQuery(sql).limit
+            if limit is not None and query.limiting_factor in {
+                LimitingFactor.QUERY,
+                LimitingFactor.DROPDOWN,
+                LimitingFactor.QUERY_AND_DROPDOWN,
+            }:
+                # remove extra row from `increased_limit`
+                limit -= 1
+            df = query.database.get_df(sql, query.schema)[:limit]
+
+        logger.info("Excel DF", df)
+        excel_data = excel.df_to_escaped_excel(
+            df, index=False, **config["EXCEL_EXPORT"]
+        )
+        quoted_csv_name = parse.quote(query.name)
+        response = ExcelResponse(
+            excel_data, headers=generate_download_headers("xlsx", quoted_csv_name)
+        )
+        event_info = {
+            "event_type": "data_export",
+            "client_id": client_id,
+            "row_count": len(df.index),
+            "database": query.database.name,
+            "schema": query.schema,
+            "sql": query.sql,
+            "exported_format": "xlsx",
+        }
+        event_rep = repr(event_info)
+        logger.debug(
+            "Excel exported: %s", event_rep, extra={"superset_event": event_info}
         )
         return response
 

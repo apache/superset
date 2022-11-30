@@ -66,6 +66,7 @@ enum LIMITING_FACTOR {
 export interface ResultSetProps {
   cache?: boolean;
   csv?: boolean;
+  excel?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
@@ -123,6 +124,7 @@ const LimitMessage = styled.span`
 const ResultSet = ({
   cache = false,
   csv = true,
+  excel = true,
   database = {},
   displayLimit,
   height,
@@ -256,6 +258,12 @@ const ResultSet = ({
             {csv && (
               <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
+              </Button>
+            )}
+
+            {csv && (
+              <Button buttonSize="small" href={`/superset/excel/${query.id}`}>
+                <i className="fa fa-file-text-o" /> {t('Download to EXCEL')}
               </Button>
             )}
 
