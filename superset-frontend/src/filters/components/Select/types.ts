@@ -62,8 +62,8 @@ export type PluginFilterSelectProps = PluginFilterStylesProps & {
   showOverflow: boolean;
   parentRef?: RefObject<any>;
   inputRef?: RefObject<any>;
-  orientation?: FilterBarOrientation;
-  isOverflowing?: boolean;
+  filterBarOrientation?: FilterBarOrientation;
+  isOverflowingFilterBar?: boolean;
 } & PluginFilterHooks;
 
 export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {

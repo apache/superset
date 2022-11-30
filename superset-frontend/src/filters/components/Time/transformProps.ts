@@ -55,6 +55,6 @@ export default function transformProps(chartProps: ChartProps) {
     setFilterActive,
     width,
     inputRef,
-    orientation: displaySettings?.orientation,
+    filterBarOrientation: displaySettings?.filterBarOrientation,
   };
 }

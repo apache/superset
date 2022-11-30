@@ -254,7 +254,10 @@ const FilterValue: React.FC<FilterControlProps> = ({
   );
 
   const displaySettings = useMemo(
-    () => ({ orientation, overflow }),
+    () => ({
+      filterBarOrientation: orientation,
+      isOverflowingFilterBar: overflow,
+    }),
     [orientation, overflow],
   );
 

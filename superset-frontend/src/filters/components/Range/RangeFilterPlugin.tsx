@@ -163,7 +163,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setFilterActive,
     filterState,
     inputRef,
-    orientation,
+    filterBarOrientation,
   } = props;
   const [row] = data;
   // @ts-ignore
@@ -296,7 +296,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             tabIndex={-1}
             ref={inputRef}
             validateStatus={filterState.validateStatus}
-            orientation={orientation}
+            orientation={filterBarOrientation}
             onFocus={setFocusedFilter}
             onBlur={unsetFocusedFilter}
             onMouseEnter={setFocusedFilter}

@@ -51,7 +51,7 @@ export default function transformProps(chartProps: ChartProps) {
     unsetFocusedFilter,
     setFilterActive,
     inputRef,
-    isOverflowing: displaySettings?.overflow,
-    orientation: displaySettings?.orientation,
+    isOverflowingFilterBar: displaySettings?.isOverflowingFilterBar,
+    filterBarOrientation: displaySettings?.filterBarOrientation,
   };
 }

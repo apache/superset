@@ -65,7 +65,7 @@ export default function transformProps(
     unsetFocusedFilter,
     setFilterActive,
     inputRef,
-    orientation: displaySettings?.orientation,
-    isOverflowing: displaySettings?.overflow,
+    filterBarOrientation: displaySettings?.filterBarOrientation,
+    isOverflowingFilterBar: displaySettings?.isOverflowingFilterBar,
   };
 }

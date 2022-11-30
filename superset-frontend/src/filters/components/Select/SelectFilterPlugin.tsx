@@ -90,7 +90,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     showOverflow,
     parentRef,
     inputRef,
-    orientation,
+    filterBarOrientation,
   } = props;
   const {
     enableEmptyFilter,
@@ -326,14 +326,18 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           ref={inputRef}
           loading={isRefreshing}
           maxTagCount={
-            orientation === FilterBarOrientation.HORIZONTAL ? 'responsive' : 5
+            filterBarOrientation === FilterBarOrientation.HORIZONTAL
+              ? 'responsive'
+              : 5
           }
           invertSelection={inverseSelection}
           // @ts-ignore
           options={options}
           sortComparator={sortComparator}
           maxTagTextLength={
-            orientation === FilterBarOrientation.HORIZONTAL ? 5 : undefined
+            filterBarOrientation === FilterBarOrientation.HORIZONTAL
+              ? 5
+              : undefined
           }
           maxTagPlaceholder={(val: AntdLabeledValue[]) => (
             <span>+{val.length}</span>

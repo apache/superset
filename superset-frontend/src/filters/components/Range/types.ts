@@ -41,6 +41,6 @@ export type PluginFilterRangeProps = PluginFilterStylesProps & {
   filterState: FilterState;
   behaviors: Behavior[];
   inputRef: RefObject<any>;
-  orientation?: FilterBarOrientation;
-  isOverflowing?: boolean;
+  filterBarOrientation?: FilterBarOrientation;
+  isOverflowingFilterBar?: boolean;
 } & PluginFilterHooks;
