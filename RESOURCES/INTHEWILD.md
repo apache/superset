@@ -90,6 +90,7 @@ Join our growing community!
 - [Myra Labs](http://www.myralabs.com/) [@viksit]
 - [Nielsen](http://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
+- [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [Preset, Inc.](https://preset.io)
