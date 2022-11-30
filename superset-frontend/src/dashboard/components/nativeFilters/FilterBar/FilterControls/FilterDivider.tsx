@@ -37,17 +37,6 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
   const [titleRef, titleIsTruncated] =
     useCSSTextTruncation<HTMLHeadingElement>();
 
-  const tooltipOverlay = (
-    <>
-      {titleIsTruncated ? (
-        <div>
-          <strong>{title}</strong>
-        </div>
-      ) : null}
-      {description ? <div>{description}</div> : null}
-    </>
-  );
-
   return (
     <div
       css={css`
@@ -58,21 +47,23 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
         padding-left: ${4 * theme.gridUnit}px;
       `}
     >
-      <h3
-        ref={titleRef}
-        css={css`
-          ${truncationCSS}
-          max-width: ${theme.gridUnit * 32.5}px;
-          font-size: ${theme.typography.sizes.m}px;
-          font-weight: ${theme.typography.weights.normal};
-          margin: 0;
-          color: ${theme.colors.grayscale.dark1};
-        `}
-      >
-        {title}
-      </h3>
-      {titleIsTruncated || description ? (
-        <Tooltip overlay={tooltipOverlay}>
+      <Tooltip overlay={titleIsTruncated ? title : null}>
+        <h3
+          ref={titleRef}
+          css={css`
+            ${truncationCSS}
+            max-width: ${theme.gridUnit * 32.5}px;
+            font-size: ${theme.typography.sizes.m}px;
+            font-weight: ${theme.typography.weights.normal};
+            margin: 0;
+            color: ${theme.colors.grayscale.dark1};
+          `}
+        >
+          {title}
+        </h3>
+      </Tooltip>
+      {description ? (
+        <Tooltip overlay={description}>
           <Icons.BookOutlined
             data-test="divider-description-icon"
             iconSize="l"
