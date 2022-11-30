@@ -28,6 +28,7 @@ import React, {
   useState,
   useRef,
 } from 'react';
+import { Global } from '@emotion/react';
 import { css, t, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { usePrevious } from 'src/hooks/usePrevious';
@@ -245,7 +246,6 @@ const DropdownContainer = forwardRef(
         overflowingCount,
         theme.gridUnit,
         dropdownStyle,
-        targetRef,
         overflowedItems,
       ],
     );
@@ -294,39 +294,63 @@ const DropdownContainer = forwardRef(
           {notOverflowedItems.map(item => item.element)}
         </div>
         {popoverContent && (
-          <Popover
-            content={popoverContent}
-            trigger="click"
-            visible={popoverVisible}
-            onVisibleChange={visible => setPopoverVisible(visible)}
-            placement="bottom"
-            overlayInnerStyle={{
-              maxHeight: MAX_HEIGHT,
-              overflow: showOverflow ? 'auto' : 'visible',
-            }}
-          >
-            <Button buttonStyle="secondary">
-              {dropdownTriggerIcon}
-              {dropdownTriggerText}
-              <Badge
-                count={dropdownTriggerCount ?? overflowingCount}
-                css={css`
-                  margin-left: ${dropdownTriggerCount ?? overflowingCount
-                    ? `${theme.gridUnit * 2}px`
-                    : '0'};
-                `}
-              />
-              <Icons.DownOutlined
-                iconSize="m"
-                iconColor={theme.colors.grayscale.light1}
-                css={css`
-                  .anticon {
-                    display: flex;
+          <>
+            <Global
+              styles={css`
+                .ant-popover-inner-content {
+                  max-height: ${MAX_HEIGHT}px;
+                  overflow: ${showOverflow ? 'auto' : 'visible'};
+                  padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px;
+
+                  // Some OS versions only show the scroll when hovering.
+                  // These settings will make the scroll always visible.
+                  ::-webkit-scrollbar {
+                    -webkit-appearance: none;
+                    width: 14px;
                   }
-                `}
-              />
-            </Button>
-          </Popover>
+                  ::-webkit-scrollbar-thumb {
+                    border-radius: 9px;
+                    background-color: ${theme.colors.grayscale.light1};
+                    border: 3px solid transparent;
+                    background-clip: content-box;
+                  }
+                  ::-webkit-scrollbar-track {
+                    background-color: ${theme.colors.grayscale.light4};
+                    border-left: 1px solid ${theme.colors.grayscale.light2};
+                  }
+                }
+              `}
+            />
+            <Popover
+              content={popoverContent}
+              trigger="click"
+              visible={popoverVisible}
+              onVisibleChange={visible => setPopoverVisible(visible)}
+              placement="bottom"
+            >
+              <Button buttonStyle="secondary">
+                {dropdownTriggerIcon}
+                {dropdownTriggerText}
+                <Badge
+                  count={dropdownTriggerCount ?? overflowingCount}
+                  css={css`
+                    margin-left: ${dropdownTriggerCount ?? overflowingCount
+                      ? `${theme.gridUnit * 2}px`
+                      : '0'};
+                  `}
+                />
+                <Icons.DownOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.grayscale.light1}
+                  css={css`
+                    .anticon {
+                      display: flex;
+                    }
+                  `}
+                />
+              </Button>
+            </Popover>
+          </>
         )}
       </div>
     );
