@@ -18,7 +18,7 @@ import io
 import os
 import tempfile
 import zipfile
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 import pandas as pd
 from flask import flash, g, redirect
@@ -109,7 +109,52 @@ class DatabaseView(
         return super().render_app_template()
 
 
-class CsvToDatabaseView(SimpleFormView):
+class CustomFormView(SimpleFormView):
+    """
+    View for presenting your own forms
+    Inherit from this view to provide some base
+    processing for your customized form views.
+
+    Notice that this class inherits from BaseView
+    so all properties from the parent class can be overridden also.
+
+    Implement form_get and form_post to implement
+    your form pre-processing and post-processing
+    """
+
+    @expose("/form", methods=["GET"])
+    @has_access
+    def this_form_get(self) -> Any:
+        self._init_vars()
+        form = self.form.refresh()
+        self.form_get(form)
+        self.update_redirect()
+        return self.render_template(
+            self.form_template,
+            title=self.form_title,
+            form=form,
+            appbuilder=self.appbuilder,
+        )
+
+    @expose("/form", methods=["POST"])
+    @has_access
+    def this_form_post(self) -> Any:
+        self._init_vars()
+        form = self.form.refresh()
+        if form.validate_on_submit():
+            response = self.form_post(form)  # pylint: disable=assignment-from-no-return
+            if not response:
+                return redirect(self.get_redirect())
+            return response
+        return self.render_template(
+            self.form_template,
+            title=self.form_title,
+            form=form,
+            appbuilder=self.appbuilder,
+        )
+
+
+class CsvToDatabaseView(CustomFormView):
     form = CsvToDatabaseForm
     form_template = "superset/form_view/csv_to_database_view/edit.html"
     form_title = _("CSV to Database configuration")
@@ -128,6 +173,7 @@ class CsvToDatabaseView(SimpleFormView):
     def form_post(self, form: CsvToDatabaseForm) -> Response:
         database = form.database.data
         csv_table = Table(table=form.table_name.data, schema=form.schema.data)
+        delimiter_input = form.delimiter.data
 
         if not schema_allows_file_upload(database, csv_table.schema):
             message = __(
@@ -138,6 +184,9 @@ class CsvToDatabaseView(SimpleFormView):
             )
             flash(message, "danger")
             return redirect("/csvtodatabaseview/form")
+
+        if form.delimiter.data == "other":
+            delimiter_input = form.otherInput.data
 
         try:
             df = pd.concat(
@@ -155,7 +204,7 @@ class CsvToDatabaseView(SimpleFormView):
                     na_values=form.null_values.data if form.null_values.data else None,
                     nrows=form.nrows.data,
                     parse_dates=form.parse_dates.data,
-                    sep=form.delimiter.data,
+                    sep=delimiter_input,
                     skip_blank_lines=form.skip_blank_lines.data,
                     skipinitialspace=form.skip_initial_space.data,
                     skiprows=form.skiprows.data,
