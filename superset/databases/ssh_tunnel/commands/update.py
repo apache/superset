@@ -17,15 +17,13 @@
 import logging
 from typing import Any, Dict, List, Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
-from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (
-    SSHTunnelDeleteFailedError,
-    SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
     SSHTunnelUpdateFailedError,
 )
@@ -34,15 +32,13 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 
 logger = logging.getLogger(__name__)
 
-config = app.config
-ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
-
 
 class UpdateSSHTunnelCommand(BaseCommand):
     def __init__(self, model_id: int, data: Dict[str, Any]):
         self._properties = data.copy()
         self._model_id = model_id
         self._model: Optional[SSHTunnel] = None
+        self.ssh_tunnel_manager = current_app.config["SSH_TUNNEL_MANAGER"]
 
     def run(self) -> Model:
         self.validate()
@@ -58,5 +54,5 @@ class UpdateSSHTunnelCommand(BaseCommand):
         if not self._model:
             raise SSHTunnelNotFoundError()
 
-        if is_feature_enabled("SSH_TUNNELING") and ssh_tunnel_manager:
-            ssh_tunnel_manager.validate(self._properties)
+        if is_feature_enabled("SSH_TUNNELING") and self.ssh_tunnel_manager:
+            self.ssh_tunnel_manager.validate(self._properties)
