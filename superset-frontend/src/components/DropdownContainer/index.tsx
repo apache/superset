@@ -272,6 +272,14 @@ const DropdownContainer = forwardRef(
       [ref],
     );
 
+    // Closes the popover when scrolling on the document
+    useEffect(() => {
+      document.onscroll = () => setPopoverVisible(false);
+      return () => {
+        document.onscroll = null;
+      };
+    }, []);
+
     return (
       <div
         ref={ref}
