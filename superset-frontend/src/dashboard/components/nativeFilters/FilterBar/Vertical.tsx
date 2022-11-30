@@ -130,6 +130,12 @@ const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 8}px;
 `;
 
+const FilterControlsWrapper = styled.div`
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  // 108px padding to make room for buttons with position: absolute
+  padding-bottom: ${({ theme }) => theme.gridUnit * 27}px;
+`;
+
 export const FilterBarScrollContext = createContext(false);
 const VerticalFilterBar: React.FC<VerticalBarProps> = ({
   actions,
@@ -249,11 +255,13 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
                     />
                   </FilterBarEmptyStateContainer>
                 ) : (
-                  <FilterControls
-                    dataMaskSelected={dataMaskSelected}
-                    directPathToChild={directPathToChild}
-                    onFilterSelectionChange={onSelectionChange}
-                  />
+                  <FilterControlsWrapper>
+                    <FilterControls
+                      dataMaskSelected={dataMaskSelected}
+                      directPathToChild={directPathToChild}
+                      onFilterSelectionChange={onSelectionChange}
+                    />
+                  </FilterControlsWrapper>
                 )}
               </AntdTabs.TabPane>
               <AntdTabs.TabPane
@@ -289,11 +297,13 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
                   />
                 </FilterBarEmptyStateContainer>
               ) : (
-                <FilterControls
-                  dataMaskSelected={dataMaskSelected}
-                  directPathToChild={directPathToChild}
-                  onFilterSelectionChange={onSelectionChange}
-                />
+                <FilterControlsWrapper>
+                  <FilterControls
+                    dataMaskSelected={dataMaskSelected}
+                    directPathToChild={directPathToChild}
+                    onFilterSelectionChange={onSelectionChange}
+                  />
+                </FilterControlsWrapper>
               )}
             </div>
           )}

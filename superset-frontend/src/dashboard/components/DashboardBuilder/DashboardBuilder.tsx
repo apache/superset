@@ -246,7 +246,10 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     state => state.dashboardState.fullSizeChartId,
   );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
+    ({ dashboardInfo }) =>
+      isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
+        ? dashboardInfo.filterBarOrientation
+        : FilterBarOrientation.VERTICAL,
   );
 
   const handleChangeTab = useCallback(

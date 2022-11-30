@@ -1415,6 +1415,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_generic_type = GenericDataType.STRING
                 eq = self.filter_values_handler(
                     values=val,
+                    operator=op,
                     target_generic_type=target_generic_type,
                     target_native_type=col_type,
                     is_list_target=is_list_target,
