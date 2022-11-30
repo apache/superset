@@ -17,14 +17,14 @@
 """create_ssh_tunnel_credentials_tbl
 
 Revision ID: f3c2d8ec8595
-Revises: deb4c9d4a4ef
+Revises: 4ce1d9b25135
 Create Date: 2022-10-20 10:48:08.722861
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "f3c2d8ec8595"
-down_revision = "deb4c9d4a4ef"
+down_revision = "4ce1d9b25135"
 
 from uuid import uuid4
 
