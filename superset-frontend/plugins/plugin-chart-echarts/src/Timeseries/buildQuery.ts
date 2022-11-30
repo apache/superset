@@ -69,7 +69,7 @@ export default function buildQuery(formData: QueryFormData) {
       ? timeComparePivotOperator(formData, baseQueryObject)
       : pivotOperator(formData, baseQueryObject);
 
-    return [
+    const ret = [
       {
         ...baseQueryObject,
         columns: [
@@ -103,5 +103,7 @@ export default function buildQuery(formData: QueryFormData) {
         ],
       },
     ];
+    console.log('!', baseQueryObject, ret);
+    return ret;
   });
 }

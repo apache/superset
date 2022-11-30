@@ -136,12 +136,6 @@ export interface QueryObject
   /** The size of bucket by which to group timeseries data (forthcoming) */
   time_grain?: string;
 
-  /** Maximum number of timeseries */
-  timeseries_limit?: number;
-
-  /** The metric used to sort the returned result. */
-  timeseries_limit_metric?: Maybe<QueryFormMetric>;
-
   /** Direction to ordered by */
   order_desc?: boolean;
 
