@@ -302,6 +302,26 @@ describe('buildQueryObject', () => {
     ).toBeUndefined();
   });
 
+  it('should populate granularity', () => {
+    const granularity = 'ds';
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity,
+      viz_type: 'table',
+    });
+    expect(query.granularity).toEqual(granularity);
+  });
+
+  it('should populate granularity from legacy field', () => {
+    const granularity = 'ds';
+    query = buildQueryObject({
+      datasource: '5__table',
+      granularity_sqla: granularity,
+      viz_type: 'table',
+    });
+    expect(query.granularity).toEqual(granularity);
+  });
+
   it('should populate custom_params', () => {
     const customParams: JsonObject = {
       customObject: { id: 137, name: 'C-137' },
