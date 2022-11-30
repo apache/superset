@@ -130,7 +130,7 @@ setup(
             "pybigquery>=0.4.10",
             "google-cloud-bigquery>=2.4.0",
         ],
-        "clickhouse": ["clickhouse-connect>=0.4.1, <0.5"],
+        "clickhouse": ["clickhouse-connect>=0.4.6, <0.5"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
         "cors": ["flask-cors>=2.0.0"],
         "crate": ["crate[sqlalchemy]>=0.26.0, <0.27"],
