@@ -47,7 +47,7 @@ import {
   SELECT_ALL_VALUE,
   selectAllOption,
 } from './utils';
-import { SelectOptionsType, SelectProps } from './types';
+import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
   NoElement,
   StyledCheckOutlined,
@@ -184,7 +184,10 @@ const Select = forwardRef(
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
           if (value === getValue(SELECT_ALL_VALUE)) {
-            return [selectAllOption, ...selectOptions] as AntdLabeledValue[];
+            const ret_val = labelInValue 
+              ? [selectAllOption, ...selectOptions] as AntdLabeledValue[] 
+              : [SELECT_ALL_VALUE, ...selectOptions.map(opt => opt.value)] as AntdLabeledValue[];
+            return ret_val;
           }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
@@ -192,7 +195,7 @@ const Select = forwardRef(
               result.length === fullSelectOptions.length &&
               selectAllEnabled
             ) {
-              return [selectAllOption, ...result] as AntdLabeledValue[];
+              return [SELECT_ALL_VALUE, ...result] as AntdLabeledValue[];
             }
             return result as AntdLabeledValue[];
           }
@@ -207,16 +210,15 @@ const Select = forwardRef(
     ) => {
       if (Array.isArray(selectValue)) {
         if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
-          setSelectValue([]);
+          setSelectValue(undefined);
         } else {
-          const array = selectValue as AntdLabeledValue[];
-          setSelectValue(
-            array.filter(
-              element =>
-                element.value !== getValue(value) &&
-                element.value !== SELECT_ALL_VALUE,
-            ),
-          );
+          let array = selectValue as AntdLabeledValue[];
+          array = array.filter(
+            element =>
+              getValue(element) !== getValue(value) &&
+              getValue(element) !== SELECT_ALL_VALUE,
+          )
+          setSelectValue(array);
         }
       }
       setInputValue('');
@@ -297,14 +299,13 @@ const Select = forwardRef(
     )
 
     useEffect(() => {
-      console.log(value);
-      ensureIsArray(value).length === fullSelectOptions.length
+      // if all values are selected, add select all to value
+      ensureIsArray(value).length === fullSelectOptions.length && fullSelectOptions.length > 0
         ? setSelectValue([SELECT_ALL_VALUE, ...ensureIsArray(value)] as AntdLabeledValue[]) 
         : setSelectValue(value);
     }, [value]);
 
     useEffect(() => {
-      console.log(selectValue);
       const checkSelectAll = ensureIsArray(selectValue).some(v => getValue(v) === SELECT_ALL_VALUE) 
       checkSelectAll && !selectAllMode 
         ? setSelectValue([SELECT_ALL_VALUE, ...fullSelectOptions] as AntdLabeledValue[]) 
@@ -337,17 +338,26 @@ const Select = forwardRef(
 
     const handleOnChange = (values: any, options: any) => {
       // intercept onChange call to handle the select all case
-      // if select all is selected, we want to send all options to the onChange, 
+      // if the "select all" option is selected, we want to send all options to the onChange, 
       // otherwise we want to remove
-      if(ensureIsArray(values).some(val => getValue(val) === SELECT_ALL_VALUE)){
-        // send all options ot onchange
-        if (!selectAllMode) {
-          values = [SELECT_ALL_VALUE, ...(fullSelectOptions.map(opt => opt.value))];
-          options = [selectAllOption, ...fullSelectOptions] as AntdLabeledValue[];
+      if(!isSingleMode) {
+        if(ensureIsArray(values).some(val => getValue(val) === SELECT_ALL_VALUE)){
+          // send all options to onchange if all are not currently there
+          if (!selectAllMode) {
+            values = fullSelectOptions.map(opt => opt.value);
+            options = fullSelectOptions.map(opt => ({
+              children: opt.value,
+              key: opt.value,
+              value: opt.value,
+              label: opt.label,
+            }));
+          }else{
+            values = ensureIsArray(values).filter((val: any) => getValue(val) !== SELECT_ALL_VALUE);
+          }
+        }else if(ensureIsArray(values).length === fullSelectOptions.length && selectAllMode){
+          values = [];
+          options = [];
         }
-      }else if(values.length === fullSelectOptions.length && selectAllMode){
-        values = [];
-        options = [];
       }
       onChange?.(values, options)
     }
