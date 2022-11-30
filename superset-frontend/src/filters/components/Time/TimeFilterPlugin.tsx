@@ -26,6 +26,10 @@ const TimeFilterStyles = styled(FilterPluginStyle)`
   display: flex;
   align-items: center;
   overflow-x: auto;
+
+  & .ant-tag {
+    margin-right: 0;
+  }
 `;
 
 const ControlContainer = styled.div<{
@@ -33,6 +37,7 @@ const ControlContainer = styled.div<{
 }>`
   display: flex;
   height: 100%;
+  max-width: 100%;
   padding: 2px;
   & > span,
   & > span:hover {

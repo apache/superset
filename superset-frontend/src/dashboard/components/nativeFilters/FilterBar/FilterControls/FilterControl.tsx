@@ -136,8 +136,7 @@ const HorizontalFormItem = styled(StyledFormItem)`
   }
 
   .ant-form-item-control {
-    width: 100%;
-    max-width: ${({ theme }) => theme.gridUnit * 41}px;
+    width: ${({ theme }) => theme.gridUnit * 41}px;
   }
 `;
 
