@@ -16,24 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import React, { useEffect, useState } from 'react';
+import SelectControl from './SelectControl';
 
-import TabStatusIcon from 'src/SqlLab/components/TabStatusIcon';
+export default function XAxisSortControl(props: {
+  onChange: (val: string | undefined) => void;
+  value: string | null;
+  shouldReset: boolean;
+}) {
+  const [value, setValue] = useState(props.value);
+  useEffect(() => {
+    if (props.shouldReset) {
+      props.onChange(undefined);
+      setValue(null);
+    }
+  }, [props.shouldReset, props.value]);
 
-function setup() {
-  const onClose = sinon.spy();
-  const wrapper = shallow(
-    <TabStatusIcon onClose={onClose} tabState="running" />,
-  );
-  return { wrapper, onClose };
+  return <SelectControl {...props} value={value} />;
 }
-
-describe('TabStatusIcon', () => {
-  it('renders a circle without an x when hovered', () => {
-    const { wrapper } = setup();
-    expect(wrapper.find('div.circle')).toExist();
-    expect(wrapper.text()).toBe('');
-  });
-});

@@ -1095,6 +1095,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     @staticmethod
     def filter_values_handler(  # pylint: disable=too-many-arguments
         values: Optional[FilterValues],
+        operator: str,
         target_generic_type: utils.GenericDataType,
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
@@ -1107,6 +1108,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return None
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
+            if operator == utils.FilterOperator.TEMPORAL_RANGE:
+                return value
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL
@@ -1281,13 +1284,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if limit:
             qry = qry.limit(limit)
 
-        engine = self.database.get_sqla_engine()  # type: ignore
-        sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
-        sql = self._apply_cte(sql, cte)
-        sql = self.mutate_query_from_config(sql)
+        with self.database.get_sqla_engine_with_context() as engine:  # type: ignore
+            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
+            sql = self._apply_cte(sql, cte)
+            sql = self.mutate_query_from_config(sql)
 
-        df = pd.read_sql_query(sql=sql, con=engine)
-        return df[column_name].to_list()
+            df = pd.read_sql_query(sql=sql, con=engine)
+            return df[column_name].to_list()
 
     def get_timestamp_expression(
         self,
@@ -1692,6 +1695,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_generic_type = utils.GenericDataType.STRING
                 eq = self.filter_values_handler(
                     values=val,
+                    operator=op,
                     target_generic_type=target_generic_type,
                     target_native_type=col_type,
                     is_list_target=is_list_target,

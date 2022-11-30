@@ -767,7 +767,7 @@ class TestDatasetApi(SupersetTestCase):
             with patch.object(
                 dialect, "get_view_names", wraps=dialect.get_view_names
             ) as patch_get_view_names:
-                patch_get_view_names.return_value = ["test_case_view"]
+                patch_get_view_names.return_value = {"test_case_view"}
 
             self.login(username="admin")
             table_data = {

@@ -16,22 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { ControlSetRow } from '../types';
-
-export const legacySortBy: ControlSetRow[] = [
-  ['legacy_order_by'],
-  [
-    {
-      name: 'order_desc',
-      config: {
-        type: 'CheckboxControl',
-        label: t('Sort descending'),
-        default: true,
-        description: t(
-          'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
-        ),
-      },
-    },
-  ],
-];
+export { default as sharedControls } from './sharedControls';
+export { withDndFallback } from './dndControls';
+// React control components
+export { default as sharedControlComponents } from './components';
+export * from './components';
+export * from './customControls';
+export * from './mixins';

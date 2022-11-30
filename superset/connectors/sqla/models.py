@@ -80,11 +80,13 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
+    find_cached_objects_in_session,
     get_columns_description,
     get_physical_table_metadata,
     get_virtual_table_metadata,
     validate_adhoc_subquery,
 )
+from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
@@ -804,13 +806,13 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate())
 
-        engine = self.database.get_sqla_engine()
-        sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
-        sql = self._apply_cte(sql, cte)
-        sql = self.mutate_query_from_config(sql)
+        with self.database.get_sqla_engine_with_context() as engine:
+            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
+            sql = self._apply_cte(sql, cte)
+            sql = self.mutate_query_from_config(sql)
 
-        df = pd.read_sql_query(sql=sql, con=engine)
-        return df[column_name].to_list()
+            df = pd.read_sql_query(sql=sql, con=engine)
+            return df[column_name].to_list()
 
     def mutate_query_from_config(self, sql: str) -> str:
         """Apply config's SQL_QUERY_MUTATOR
@@ -1413,6 +1415,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                     target_generic_type = GenericDataType.STRING
                 eq = self.filter_values_handler(
                     values=val,
+                    operator=op,
                     target_generic_type=target_generic_type,
                     target_native_type=col_type,
                     is_list_target=is_list_target,
@@ -2088,6 +2091,21 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         # table is updated. This busts the cache key for all charts that use the table.
         session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
 
+        # TODO: This shadow writing is deprecated
+        # if table itself has changed, shadow-writing will happen in `after_update` anyway
+        if target.table not in session.dirty:
+            dataset: NewDataset = (
+                session.query(NewDataset)
+                .filter_by(uuid=target.table.uuid)
+                .one_or_none()
+            )
+            # Update shadow dataset and columns
+            # did we find the dataset?
+            if not dataset:
+                # if dataset is not found create a new copy
+                target.table.write_shadow_dataset()
+                return
+
     @staticmethod
     def after_insert(
         mapper: Mapper,
@@ -2098,6 +2116,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         Update dataset permissions after insert
         """
         security_manager.dataset_after_insert(mapper, connection, sqla_table)
+
+        # TODO: deprecated
+        sqla_table.write_shadow_dataset()
 
     @staticmethod
     def after_delete(
@@ -2117,10 +2138,52 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sqla_table: "SqlaTable",
     ) -> None:
         """
-        Update dataset permissions after update
+        Update dataset permissions
         """
         # set permissions
         security_manager.dataset_after_update(mapper, connection, sqla_table)
+
+        # TODO: the shadow writing is deprecated
+        inspector = inspect(sqla_table)
+        session = inspector.session
+
+        # double-check that ``UPDATE``s are actually pending (this method is called even
+        # for instances that have no net changes to their column-based attributes)
+        if not session.is_modified(sqla_table, include_collections=True):
+            return
+
+        # find the dataset from the known instance list first
+        # (it could be either from a previous query or newly created)
+        dataset = next(
+            find_cached_objects_in_session(
+                session, NewDataset, uuids=[sqla_table.uuid]
+            ),
+            None,
+        )
+        # if not found, pull from database
+        if not dataset:
+            dataset = (
+                session.query(NewDataset).filter_by(uuid=sqla_table.uuid).one_or_none()
+            )
+        if not dataset:
+            sqla_table.write_shadow_dataset()
+            return
+
+    def write_shadow_dataset(
+        self: "SqlaTable",
+    ) -> None:
+        """
+        This method is deprecated
+        """
+        session = inspect(self).session
+        # most of the write_shadow_dataset functionality has been removed
+        # but leaving this portion in
+        # to remove later because it is adding a Database relationship to the session
+        # and there is some functionality that depends on this
+        if self.database_id and (
+            not self.database or self.database.id != self.database_id
+        ):
+            self.database = session.query(Database).filter_by(id=self.database_id).one()
 
 
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)

@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryState } from '@superset-ui/core';
+import React from 'react';
 
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { render } from 'spec/helpers/testing-library';
+import TabStatusIcon from 'src/SqlLab/components/TabStatusIcon';
 
-const enableCrossFilter = isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
+function setup() {
+  return render(<TabStatusIcon tabState={'running' as QueryState} />);
+}
 
-export const emitFilterControl = enableCrossFilter
-  ? [
-      {
-        name: 'emit_filter',
-        config: {
-          type: 'CheckboxControl',
-          label: t('Enable dashboard cross filters'),
-          default: false,
-          renderTrigger: true,
-          description: t('Enable dashboard cross filters'),
-        },
-      },
-    ]
-  : [];
+describe('TabStatusIcon', () => {
+  it('renders a circle without an x when hovered', () => {
+    const { container } = setup();
+    expect(container.getElementsByClassName('circle')[0]).toBeInTheDocument();
+    expect(
+      container.getElementsByClassName('circle')[0]?.textContent ?? 'undefined',
+    ).toBe('');
+  });
+});

@@ -40,7 +40,11 @@ import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import getDirectPathToTabIndex from 'src/dashboard/util/getDirectPathToTabIndex';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { DashboardLayout, RootState } from 'src/dashboard/types';
+import {
+  DashboardLayout,
+  FilterBarOrientation,
+  RootState,
+} from 'src/dashboard/types';
 import {
   setDirectPathToChild,
   setEditMode,
@@ -241,6 +245,12 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const fullSizeChartId = useSelector<RootState, number | null>(
     state => state.dashboardState.fullSizeChartId,
   );
+  const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
+    ({ dashboardInfo }) =>
+      isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
+        ? dashboardInfo.filterBarOrientation
+        : FilterBarOrientation.VERTICAL,
+  );
 
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
@@ -277,6 +287,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     uiConfig.hideTitle ||
     standaloneMode === DashboardStandaloneMode.HIDE_NAV_AND_TITLE ||
     isReport;
+
   const [barTopOffset, setBarTopOffset] = useState(0);
 
   useEffect(() => {
@@ -312,6 +323,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const filterSetEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_NATIVE_FILTERS_SET,
   );
+  const showFilterBar = nativeFiltersEnabled && !editMode;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
@@ -354,6 +366,13 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
       <div>
         {!hideDashboardHeader && <DashboardHeader />}
+        {showFilterBar &&
+          filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
+            <FilterBar
+              directPathToChild={directPathToChild}
+              orientation={FilterBarOrientation.HORIZONTAL}
+            />
+          )}
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
         {!isReport && topLevelTabs && !uiConfig.hideNav && (
           <WithPopoverMenu
@@ -382,6 +401,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       </div>
     ),
     [
+      directPathToChild,
+      nativeFiltersEnabled,
+      filterBarOrientation,
       editMode,
       handleChangeTab,
       handleDeleteTopLevelTabs,
@@ -394,7 +416,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
 
   return (
     <StyledDiv>
-      {nativeFiltersEnabled && !editMode && (
+      {showFilterBar && filterBarOrientation === FilterBarOrientation.VERTICAL && (
         <>
           <ResizableSidebar
             id={`dashboard:${dashboardId}`}
@@ -415,12 +437,15 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   <StickyPanel ref={containerRef} width={filterBarWidth}>
                     <ErrorBoundary>
                       <FilterBar
-                        filtersOpen={dashboardFiltersOpen}
-                        toggleFiltersBar={toggleDashboardFiltersOpen}
                         directPathToChild={directPathToChild}
-                        width={filterBarWidth}
-                        height={filterBarHeight}
-                        offset={filterBarOffset}
+                        orientation={FilterBarOrientation.VERTICAL}
+                        verticalConfig={{
+                          filtersOpen: dashboardFiltersOpen,
+                          toggleFiltersBar: toggleDashboardFiltersOpen,
+                          width: filterBarWidth,
+                          height: filterBarHeight,
+                          offset: filterBarOffset,
+                        }}
                       />
                     </ErrorBoundary>
                   </StickyPanel>
