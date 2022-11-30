@@ -132,7 +132,7 @@ describe('Bubble formatBubbleLabel', () => {
         percentFormatter,
       ),
     ).toEqual(
-      `<p>bubble title <sub>(bubble dimension)</sub></p>
+      `<p>bubble title </br> bubble dimension</p>
         x-axis-label: $10,000.00 <br/>
         y-axis-label: $20,000.00 <br/>
         size-label: 300.0%`,

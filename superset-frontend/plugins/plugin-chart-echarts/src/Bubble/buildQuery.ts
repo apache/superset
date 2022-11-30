@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+import {
+  buildQueryContext,
+  ensureIsArray,
+  QueryFormData,
+} from '@superset-ui/core';
 
 export default function buildQuery(formData: QueryFormData) {
-  const columns = [formData.entity];
-  if (formData.series) columns.push(formData.series);
+  const columns = [
+    ...ensureIsArray(formData.entity),
+    ...ensureIsArray(formData.series),
+  ];
 
   return buildQueryContext(formData, baseQueryObject => [
     {

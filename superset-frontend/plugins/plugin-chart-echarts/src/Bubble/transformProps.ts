@@ -59,7 +59,7 @@ export function formatBubbleLabel(
   tooltipSizeFormatter: NumberFormatter,
 ) {
   const title = params.data[4]
-    ? `${params.data[3]} <sub>(${params.data[4]})</sub>`
+    ? `${params.data[3]} </br> ${params.data[4]}`
     : params.data[3];
 
   return `<p>${title}</p>
@@ -170,7 +170,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       nameTextStyle: {
         fontWight: 'bolder',
       },
-      nameGap: xAxisTitleMargin || 30,
+      nameGap: convertInteger(xAxisTitleMargin),
       type: logXAxis ? AxisType.log : AxisType.value,
     },
     yAxis: {
@@ -187,7 +187,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
       nameTextStyle: {
         fontWight: 'bolder',
       },
-      nameGap: yAxisTitleMargin || 50,
+      nameGap: convertInteger(yAxisTitleMargin),
       min,
       max,
       type: logYAxis ? AxisType.log : AxisType.value,
