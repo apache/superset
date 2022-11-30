@@ -1205,6 +1205,7 @@ class ChartDataQueryContextSchema(Schema):
     force = fields.Boolean(
         description="Should the queries be forced to load from the source. "
         "Default: `false`",
+        allow_none=True,
     )
 
     result_type = EnumField(ChartDataResultType, by_value=True)

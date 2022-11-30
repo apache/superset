@@ -104,7 +104,7 @@ const DropdownContainer = forwardRef(
     {
       items,
       onOverflowingStateChange,
-      dropdownContent: popoverContent,
+      dropdownContent: getPopoverContent,
       dropdownRef: popoverRef,
       dropdownStyle: popoverStyle = {},
       dropdownTriggerCount: popoverTriggerCount,
@@ -209,26 +209,31 @@ const DropdownContainer = forwardRef(
       }
     }, [notOverflowedIds, onOverflowingStateChange, overflowedIds]);
 
-    const content = useMemo(
-      () => (
-        <div
-          css={css`
-            display: flex;
-            flex-direction: column;
-            gap: ${theme.gridUnit * 3}px;
-          `}
-          data-test="dropdown-content"
-          style={popoverStyle}
-          ref={popoverRef}
-        >
-          {popoverContent
-            ? popoverContent(overflowedItems)
-            : overflowedItems.map(item => item.element)}
-        </div>
-      ),
+    const overflowingCount =
+      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
+
+    const popoverContent = useMemo(
+      () =>
+        getPopoverContent || overflowingCount ? (
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+              gap: ${theme.gridUnit * 4}px;
+            `}
+            data-test="dropdown-content"
+            style={popoverStyle}
+            ref={popoverRef}
+          >
+            {getPopoverContent
+              ? getPopoverContent(overflowedItems)
+              : overflowedItems.map(item => item.element)}
+          </div>
+        ) : null,
       [
+        getPopoverContent,
         overflowedItems,
-        popoverContent,
+        overflowingCount,
         popoverRef,
         popoverStyle,
         theme.gridUnit,
@@ -244,22 +249,19 @@ const DropdownContainer = forwardRef(
       [ref],
     );
 
-    const overflowingCount =
-      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
-
     return (
       <div
         ref={ref}
         css={css`
           display: flex;
-          align-items: flex-end;
+          align-items: center;
         `}
       >
         <div
           css={css`
             display: flex;
             align-items: center;
-            gap: ${theme.gridUnit * 3}px;
+            gap: ${theme.gridUnit * 4}px;
             margin-right: ${theme.gridUnit * 3}px;
             min-width: 100px;
           `}
@@ -268,20 +270,33 @@ const DropdownContainer = forwardRef(
         >
           {notOverflowedItems.map(item => item.element)}
         </div>
-        {overflowingCount > 0 && (
+        {popoverContent && (
           <Popover
-            content={content}
+            content={popoverContent}
             trigger="click"
             visible={popoverVisible}
             onVisibleChange={visible => setPopoverVisible(visible)}
+            placement="bottom"
           >
             <Button buttonStyle="secondary">
               {popoverTriggerIcon}
               {popoverTriggerText}
-              <Badge count={popoverTriggerCount || overflowingCount} />
+              <Badge
+                count={popoverTriggerCount ?? overflowingCount}
+                css={css`
+                  margin-left: ${popoverTriggerCount ?? overflowingCount
+                    ? '8px'
+                    : '0'};
+                `}
+              />
               <Icons.DownOutlined
                 iconSize="m"
-                iconColor={theme.colors.grayscale.base}
+                iconColor={theme.colors.grayscale.light1}
+                css={css`
+                  .anticon {
+                    display: flex;
+                  }
+                `}
               />
             </Button>
           </Popover>

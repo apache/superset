@@ -37,6 +37,7 @@ import {
   SupersetTheme,
   useTheme,
   isDefined,
+  JsonValue,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -265,6 +266,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
+  const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
 
@@ -276,25 +278,45 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   >(state => state.explore.controlsTransferred);
 
   useEffect(() => {
-    if (props.chart.chartStatus === 'success') {
+    let shouldUpdateControls = false;
+    const removeDatasourceWarningFromControl = (
+      value: JsonValue | undefined,
+    ) => {
+      if (
+        typeof value === 'object' &&
+        isDefined(value) &&
+        'datasourceWarning' in value &&
+        value.datasourceWarning === true
+      ) {
+        shouldUpdateControls = true;
+        return { ...value, datasourceWarning: false };
+      }
+      return value;
+    };
+    if (
+      props.chart.chartStatus === 'success' &&
+      prevChartStatus !== 'success'
+    ) {
       controlsTransferred?.forEach(controlName => {
-        const alteredControls = ensureIsArray(
-          props.controls[controlName].value,
-        ).map(value => {
-          if (
-            typeof value === 'object' &&
-            isDefined(value) &&
-            'datasourceWarning' in value
-          ) {
-            return { ...value, datasourceWarning: false };
-          }
-          return value;
-        });
-        props.actions.setControlValue(controlName, alteredControls);
+        shouldUpdateControls = false;
+        if (!isDefined(props.controls[controlName])) {
+          return;
+        }
+        const alteredControls = Array.isArray(props.controls[controlName].value)
+          ? ensureIsArray(props.controls[controlName].value)?.map(
+              removeDatasourceWarningFromControl,
+            )
+          : removeDatasourceWarningFromControl(
+              props.controls[controlName].value,
+            );
+        if (shouldUpdateControls) {
+          props.actions.setControlValue(controlName, alteredControls);
+        }
       });
     }
   }, [
     controlsTransferred,
+    prevChartStatus,
     props.actions,
     props.chart.chartStatus,
     props.controls,
