@@ -42,7 +42,7 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
       css={css`
         display: flex;
         align-items: center;
-        height: ${8 * theme.gridUnit}px;
+        height: ${6 * theme.gridUnit}px;
         border-left: 1px solid ${theme.colors.grayscale.light2};
         padding-left: ${4 * theme.gridUnit}px;
 
