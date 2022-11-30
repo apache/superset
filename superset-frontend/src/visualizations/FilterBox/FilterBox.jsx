@@ -53,6 +53,7 @@ import {
   TIME_FILTER_LABELS,
   TIME_FILTER_MAP,
 } from 'src/explore/constants';
+import CalendarDatePicker from './DatePicker';
 
 // a shortcut to a map key, used by many components
 export const TIME_RANGE = TIME_FILTER_MAP.time_range;
@@ -82,6 +83,7 @@ const propTypes = {
   onFilterMenuOpen: PropTypes.func,
   onFilterMenuClose: PropTypes.func,
   showDateFilter: PropTypes.bool,
+  showCalenderDateRange: PropTypes.bool,
   showSqlaTimeGrain: PropTypes.bool,
   showSqlaTimeColumn: PropTypes.bool,
 };
@@ -91,6 +93,7 @@ const defaultProps = {
   onFilterMenuOpen: () => {},
   onFilterMenuClose: () => {},
   showDateFilter: false,
+  showCalenderDateRange: false,
   showSqlaTimeGrain: false,
   showSqlaTimeColumn: false,
   instantFiltering: false,
@@ -317,6 +320,20 @@ class FilterBox extends React.PureComponent {
     return null;
   }
 
+  renderCalendar() {
+    const { showCalenderDateRange } = this.props;
+    if (showCalenderDateRange) {
+      return (
+        <div style={{ overflow: 'auto' }} className="row space-1">
+          <div className="col-lg-12 col-xs-12">
+            <CalendarDatePicker changeFilter={this.changeFilter} />
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
   renderDatasourceFilters() {
     const { showSqlaTimeGrain, showSqlaTimeColumn } = this.props;
     const datasourceFilters = [];
@@ -464,6 +481,7 @@ class FilterBox extends React.PureComponent {
         />
         <div style={{ width, height, overflow: 'auto' }}>
           {this.renderDateFilter()}
+          {this.renderCalendar()}
           {this.renderDatasourceFilters()}
           {this.renderFilters()}
           {!instantFiltering && (

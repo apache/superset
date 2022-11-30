@@ -40,6 +40,7 @@ export default function transformProps(chartProps: FilterBoxChartProps) {
   const {
     sliceId,
     dateFilter,
+    calenderDateRange,
     instantFiltering,
     showDruidTimeGranularity,
     showDruidTimeOrigin,
@@ -68,6 +69,7 @@ export default function transformProps(chartProps: FilterBoxChartProps) {
     onFilterMenuClose,
     origSelectedValues: initialValues || {},
     showDateFilter: dateFilter,
+    showCalenderDateRange: calenderDateRange,
     showDruidTimeGrain: showDruidTimeGranularity,
     showDruidTimeOrigin,
     showSqlaTimeColumn,

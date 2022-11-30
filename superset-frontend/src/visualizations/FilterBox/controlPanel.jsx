@@ -88,6 +88,19 @@ export default {
             },
           },
         ],
+        [<hr />],
+        [
+          {
+            name: 'Calender_Date_Range',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Calender Date Range'),
+              default: false,
+              description: t('Check to include time column Calender'),
+            },
+          },
+        ],
+        [<hr />],
         ['adhoc_filters'],
       ],
     },

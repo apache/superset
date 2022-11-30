@@ -176,6 +176,7 @@ isEqualColumns);
 /**
  * Automatically set page size based on number of cells.
  */
+
 const getPageSize = (
   pageSize: number | string | null | undefined,
   numRecords: number,
