@@ -31,6 +31,7 @@ import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
+import { FilterBarOrientation } from '../../../dashboard/types';
 
 const LIGHT_BLUE = '#99e7f0';
 const DARK_BLUE = '#6dd3e3';
@@ -65,8 +66,11 @@ const StyledMinSlider = styled(AntdSlider)<{
   `}
 `;
 
-const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
-  ${({ theme, validateStatus }) => `
+const Wrapper = styled.div<{
+  validateStatus?: 'error' | 'warning' | 'info';
+  orientation?: FilterBarOrientation;
+}>`
+  ${({ theme, validateStatus, orientation }) => `
     border: 1px solid transparent;
     &:focus {
       border: 1px solid
@@ -76,8 +80,12 @@ const Wrapper = styled.div<{ validateStatus?: 'error' | 'warning' | 'info' }>`
         ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
     }
     & .ant-slider {
-      margin-top: ${theme.gridUnit}px;
-      margin-bottom: ${theme.gridUnit * 5}px;
+      margin-top: ${
+        orientation === FilterBarOrientation.HORIZONTAL ? 0 : theme.gridUnit
+      }px;
+      margin-bottom: ${
+        orientation === FilterBarOrientation.HORIZONTAL ? 0 : theme.gridUnit * 5
+      }px;
 
       & .ant-slider-track {
         background-color: ${
@@ -155,6 +163,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setFilterActive,
     filterState,
     inputRef,
+    orientation,
   } = props;
   const [row] = data;
   // @ts-ignore
@@ -287,6 +296,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             tabIndex={-1}
             ref={inputRef}
             validateStatus={filterState.validateStatus}
+            orientation={orientation}
             onFocus={setFocusedFilter}
             onBlur={unsetFocusedFilter}
             onMouseEnter={setFocusedFilter}

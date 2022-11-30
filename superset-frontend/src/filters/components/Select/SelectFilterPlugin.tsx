@@ -31,14 +31,15 @@ import {
   tn,
 } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
 import { propertyComparator } from 'src/components/Select/utils';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterSelectProps, SelectValue } from './types';
-import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
+import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
 
 type DataMaskAction =
@@ -89,6 +90,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     showOverflow,
     parentRef,
     inputRef,
+    orientation,
   } = props;
   const {
     enableEmptyFilter,
@@ -323,11 +325,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onChange={handleChange}
           ref={inputRef}
           loading={isRefreshing}
-          maxTagCount={5}
+          maxTagCount={
+            orientation === FilterBarOrientation.HORIZONTAL ? 'responsive' : 5
+          }
           invertSelection={inverseSelection}
           // @ts-ignore
           options={options}
           sortComparator={sortComparator}
+          maxTagTextLength={
+            orientation === FilterBarOrientation.HORIZONTAL ? 5 : undefined
+          }
+          maxTagPlaceholder={(val: AntdLabeledValue[]) => (
+            <span>+{val.length}</span>
+          )}
           onDropdownVisibleChange={setFilterActive}
         />
       </StyledFormItem>
