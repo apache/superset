@@ -72,6 +72,11 @@ from superset.databases.schemas import (
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
+from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
+from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelDeleteFailedError,
+    SSHTunnelNotFoundError,
+)
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -107,6 +112,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "available",
         "validate_parameters",
         "validate_sql",
+        "delete_ssh_tunnel",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -1204,3 +1210,58 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ValidateDatabaseParametersCommand(payload)
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<int:pk>/ssh_tunnel/", methods=["DELETE"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".delete_ssh_tunnel",
+        log_to_statsd=False,
+    )
+    def delete_ssh_tunnel(self, pk: int) -> Response:
+        """Deletes a SSH Tunnel
+        ---
+        delete:
+          description: >-
+            Deletes a SSH Tunnel.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: SSH Tunnel deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            DeleteSSHTunnelCommand(pk).run()
+            return self.response(200, message="OK")
+        except SSHTunnelNotFoundError:
+            return self.response_404()
+        except SSHTunnelDeleteFailedError as ex:
+            logger.error(
+                "Error deleting SSH Tunnel %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
