@@ -127,7 +127,7 @@ class DatabaseDAO(BaseDAO):
         )
 
     @classmethod
-    def get_ssh_tunnel(cls, database_id: int) -> Dict[str, Any]:
+    def get_ssh_tunnel(cls, database_id: int) -> SSHTunnel:
         ssh_tunnel = (
             db.session.query(SSHTunnel)
             .filter(SSHTunnel.database_id == database_id)

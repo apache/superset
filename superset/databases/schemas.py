@@ -471,10 +471,6 @@ class DatabaseSSHTunnel(Schema):
     private_key = fields.String(required=False)
     private_key_password = fields.String(required=False)
 
-    # remote binding port
-    bind_host = fields.String()
-    bind_port = fields.Integer()
-
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
 
@@ -502,7 +498,7 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
 
-    ssh_tunnel_credentials = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class TableMetadataOptionsResponseSchema(Schema):

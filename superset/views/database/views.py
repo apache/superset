@@ -262,7 +262,7 @@ class ExcelToDatabaseView(SimpleFormView):
         form.sheet_name.data = ""
 
     def form_post(self, form: ExcelToDatabaseForm) -> Response:
-        database = form.con.data
+        database = form.database.data
         excel_table = Table(table=form.name.data, schema=form.schema.data)
 
         if not schema_allows_file_upload(database, excel_table.schema):
@@ -301,7 +301,7 @@ class ExcelToDatabaseView(SimpleFormView):
 
             database = (
                 db.session.query(models.Database)
-                .filter_by(id=form.data.get("con").data.get("id"))
+                .filter_by(id=form.data.get("database").data.get("id"))
                 .one()
             )
 
@@ -378,7 +378,7 @@ class ExcelToDatabaseView(SimpleFormView):
         flash(message, "info")
         event_logger.log_with_context(
             action="successful_excel_upload",
-            database=form.con.data.name,
+            database=form.database.data.name,
             schema=form.schema.data,
             table=form.name.data,
         )
@@ -397,7 +397,7 @@ class ColumnarToDatabaseView(SimpleFormView):
     def form_post(  # pylint: disable=too-many-locals
         self, form: ColumnarToDatabaseForm
     ) -> Response:
-        database = form.con.data
+        database = form.database.data
         columnar_table = Table(table=form.name.data, schema=form.schema.data)
         files = form.columnar_file.data
         file_type = {file.filename.split(".")[-1] for file in files}
@@ -442,7 +442,7 @@ class ColumnarToDatabaseView(SimpleFormView):
 
             database = (
                 db.session.query(models.Database)
-                .filter_by(id=form.data.get("con").data.get("id"))
+                .filter_by(id=form.data.get("database").data.get("id"))
                 .one()
             )
 
@@ -519,7 +519,7 @@ class ColumnarToDatabaseView(SimpleFormView):
         flash(message, "info")
         event_logger.log_with_context(
             action="successful_columnar_upload",
-            database=form.con.data.name,
+            database=form.database.data.name,
             schema=form.schema.data,
             table=form.name.data,
         )
