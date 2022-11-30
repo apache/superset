@@ -69,8 +69,9 @@ const StyledMinSlider = styled(AntdSlider)<{
 const Wrapper = styled.div<{
   validateStatus?: 'error' | 'warning' | 'info';
   orientation?: FilterBarOrientation;
+  isOverflowing?: boolean;
 }>`
-  ${({ theme, validateStatus, orientation }) => `
+  ${({ theme, validateStatus, orientation, isOverflowing }) => `
     border: 1px solid transparent;
     &:focus {
       border: 1px solid
@@ -87,6 +88,12 @@ const Wrapper = styled.div<{
         orientation === FilterBarOrientation.HORIZONTAL ? 0 : theme.gridUnit * 5
       }px;
 
+      ${
+        orientation === FilterBarOrientation.HORIZONTAL &&
+        !isOverflowing &&
+        `line-height: 1.2;`
+      }
+
       & .ant-slider-track {
         background-color: ${
           validateStatus && theme.colors[validateStatus]?.light1
@@ -101,6 +108,10 @@ const Wrapper = styled.div<{
             ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
         }
       }
+      & .ant-slider-mark {
+        font-size: ${theme.typography.sizes.s}px;
+      }
+
       &:hover {
         & .ant-slider-track {
           background-color: ${
@@ -164,6 +175,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     filterState,
     inputRef,
     filterBarOrientation,
+    isOverflowingFilterBar,
   } = props;
   const [row] = data;
   // @ts-ignore
@@ -297,6 +309,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             ref={inputRef}
             validateStatus={filterState.validateStatus}
             orientation={filterBarOrientation}
+            isOverflowing={isOverflowingFilterBar}
             onFocus={setFocusedFilter}
             onBlur={unsetFocusedFilter}
             onMouseEnter={setFocusedFilter}
