@@ -20,16 +20,24 @@ from typing import Any, Dict, List, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
+
+from superset import app, is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelCreateFailedError
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 
+config = app.config
+ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
+
 logger = logging.getLogger(__name__)
 
 
 class CreateSSHTunnelCommand(BaseCommand):
+    def __str__(self) -> str:
+        return super().__str__()
+    
     def __init__(self, database_id: int, data: Dict[str, Any]):
         self._properties = data.copy()
         self._properties["database_id"] = database_id
@@ -45,6 +53,6 @@ class CreateSSHTunnelCommand(BaseCommand):
         return tunnel
 
     def validate(self) -> None:
-        # TODO(hughhh): check to make sure the server port is not localhost
-        # using the config.SSH_TUNNEL_MANAGER
-        return
+        if is_feature_enabled("SSH_TUNNELING") and ssh_tunnel_manager:
+            ssh_tunnel_manager.validate(self._properties)
+        return 

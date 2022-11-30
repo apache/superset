@@ -54,7 +54,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
-from superset import app, db_engine_specs
+from superset import app, db_engine_specs, is_feature_enabled
 from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
@@ -66,6 +66,8 @@ from superset.utils.core import get_username
 from superset.utils.memoized import memoized
 
 config = app.config
+
+ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 stats_logger = config["STATS_LOGGER"]
 log_query = config["QUERY_LOGGER"]
@@ -394,7 +396,6 @@ class Database(
                     source=source,
                     ssh_tunnel_server=server,
                 )
-
         else:
             yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
 
