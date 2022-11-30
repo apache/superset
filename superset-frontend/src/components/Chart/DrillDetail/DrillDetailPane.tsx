@@ -22,6 +22,7 @@ import React, {
   useMemo,
   useCallback,
   useRef,
+  ReactElement,
 } from 'react';
 import { useSelector } from 'react-redux';
 import {
@@ -34,6 +35,7 @@ import {
   JsonObject,
   GenericDataType,
 } from '@superset-ui/core';
+import { useResizeDetector } from 'react-resize-detector';
 import Loading from 'src/components/Loading';
 import BooleanCell from 'src/components/Table/cell-renderers/BooleanCell';
 import NullCell from 'src/components/Table/cell-renderers/NullCell';
@@ -60,6 +62,23 @@ const PAGE_SIZE = 50;
 
 interface DataType {
   [key: string]: any;
+}
+
+// Must be outside of the main component due to problems in
+// react-resize-detector with conditional rendering
+// https://github.com/maslianok/react-resize-detector/issues/178
+function Resizable({ children }: { children: ReactElement }) {
+  const { ref, height } = useResizeDetector();
+  return (
+    <div ref={ref} css={{ flex: 1 }}>
+      {React.cloneElement(children, { height })}
+    </div>
+  );
+}
+
+enum TimeFormatting {
+  Original,
+  Formatted,
 }
 
 export default function DrillDetailPane({
@@ -113,11 +132,16 @@ export default function DrillDetailPane({
               headerTitle={column}
               groupTitle={t('Formatting')}
               groupOptions={[
-                { label: t('Original value'), value: 'original' },
-                { label: t('Formatted value'), value: 'formatted' },
+                { label: t('Original value'), value: TimeFormatting.Original },
+                {
+                  label: t('Formatted value'),
+                  value: TimeFormatting.Formatted,
+                },
               ]}
               value={
-                timeFormatting[column] === 'original' ? 'original' : 'formatted'
+                timeFormatting[column] === TimeFormatting.Original
+                  ? TimeFormatting.Original
+                  : TimeFormatting.Formatted
               }
               onChange={value =>
                 setTimeFormatting(state => ({ ...state, [column]: value }))
@@ -135,7 +159,7 @@ export default function DrillDetailPane({
           }
           if (
             resultsPage?.colTypes[index] === GenericDataType.TEMPORAL &&
-            timeFormatting[column] !== 'original' &&
+            timeFormatting[column] !== TimeFormatting.Original &&
             (typeof value === 'number' || value instanceof Date)
           ) {
             return <TimeCell value={value} />;
@@ -269,21 +293,22 @@ export default function DrillDetailPane({
   } else {
     // Render table if at least one page has successfully loaded
     tableContent = (
-      <Table
-        data={data}
-        columns={mappedColumns}
-        size={TableSize.SMALL}
-        defaultPageSize={PAGE_SIZE}
-        recordCount={resultsPage?.total}
-        usePagination
-        loading={isLoading}
-        onChange={(pagination: TablePaginationConfig) =>
-          setPageIndex(pagination.current ? pagination.current - 1 : 0)
-        }
-        height={470}
-        resizable
-        virtualize
-      />
+      <Resizable>
+        <Table
+          data={data}
+          columns={mappedColumns}
+          size={TableSize.SMALL}
+          defaultPageSize={PAGE_SIZE}
+          recordCount={resultsPage?.total}
+          usePagination
+          loading={isLoading}
+          onChange={(pagination: TablePaginationConfig) =>
+            setPageIndex(pagination.current ? pagination.current - 1 : 0)
+          }
+          resizable
+          virtualize
+        />
+      </Resizable>
     );
   }
 

@@ -26,8 +26,8 @@ import Popover from 'src/components/Popover';
 export interface HeaderWithRadioGroupProps {
   headerTitle: string;
   groupTitle: string;
-  groupOptions: { label: string; value: string }[];
-  value?: string;
+  groupOptions: { label: string; value: string | number }[];
+  value?: string | number;
   onChange: (value: string) => void;
 }
 

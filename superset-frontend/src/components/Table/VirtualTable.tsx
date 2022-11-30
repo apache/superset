@@ -24,7 +24,7 @@ import { VariableSizeGrid as Grid } from 'react-window';
 import { StyledComponent } from '@emotion/styled';
 import { useTheme, styled } from '@superset-ui/core';
 import { TablePaginationConfig } from 'antd/lib/table';
-import { TableProps, TableSize, HEIGHT_OFFSET, ETableAction } from './index';
+import { TableProps, TableSize, ETableAction } from './index';
 
 const StyledCell: StyledComponent<any> = styled('div')<any>(
   ({ theme, height }) => `
@@ -176,7 +176,7 @@ const VirtualTable = (props: TableProps) => {
           const { width = DEFAULT_COL_WIDTH } = mergedColumns[index];
           return width as number;
         }}
-        height={height ? height - HEIGHT_OFFSET : (scroll!.y as number)}
+        height={height || (scroll!.y as number)}
         rowCount={rawData.length}
         rowHeight={() => cellSize}
         width={tableWidth}
