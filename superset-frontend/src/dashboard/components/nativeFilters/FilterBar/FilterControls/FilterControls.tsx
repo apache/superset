@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useCallback, useMemo, useState } from 'react';
+import React, {
+  FC,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -38,20 +45,22 @@ import {
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import DropdownContainer from 'src/components/DropdownContainer';
+import DropdownContainer, {
+  Ref as DropdownContainerRef,
+} from 'src/components/DropdownContainer';
 import Icons from 'src/components/Icons';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
 
 type FilterControlsProps = {
-  directPathToChild?: string[];
+  focusedFilterId?: string;
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
 
 const FilterControls: FC<FilterControlsProps> = ({
-  directPathToChild,
+  focusedFilterId,
   dataMaskSelected,
   onFilterSelectionChange,
 }) => {
@@ -60,10 +69,11 @@ const FilterControls: FC<FilterControlsProps> = ({
   );
 
   const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
+  const popoverRef = useRef<DropdownContainerRef>(null);
 
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
-    directPathToChild,
+    focusedFilterId,
     onFilterSelectionChange,
   );
   const portalNodes = useMemo(() => {
@@ -169,6 +179,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               )
             : undefined
         }
+        ref={popoverRef}
         onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
           if (
             nextOverflowedIds.length !== overflowedIds.length ||
@@ -196,6 +207,12 @@ const FilterControls: FC<FilterControlsProps> = ({
         overflowedFiltersInScopeIds.has(filter.id),
     );
   }, [filtersOutOfScope, filtersWithValues, overflowedFiltersInScope]);
+
+  useEffect(() => {
+    if (focusedFilterId && overflowedIds.includes(focusedFilterId)) {
+      popoverRef?.current?.open();
+    }
+  }, [focusedFilterId, popoverRef, overflowedIds]);
 
   return (
     <>

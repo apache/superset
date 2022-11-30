@@ -57,6 +57,8 @@ const ControlContainer = styled.div<{
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const {
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -95,8 +97,8 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         validateStatus={filterState.validateStatus}
         onFocus={setFocusedFilter}
         onBlur={unsetFocusedFilter}
-        onMouseEnter={setFocusedFilter}
-        onMouseLeave={unsetFocusedFilter}
+        onMouseEnter={setHoveredFilter}
+        onMouseLeave={unsetHoveredFilter}
       >
         <DateFilterControl
           value={filterState.value || NO_TIME_RANGE}

@@ -21,7 +21,20 @@ import { Dispatch } from 'react';
 import {
   setFocusedNativeFilter,
   unsetFocusedNativeFilter,
+  setHoveredNativeFilter,
+  unsetHoveredNativeFilter,
 } from 'src/dashboard/actions/nativeFilters';
+
+export const dispatchHoverAction = debounce(
+  (dispatch: Dispatch<any>, id?: string) => {
+    if (id) {
+      dispatch(setHoveredNativeFilter(id));
+    } else {
+      dispatch(unsetHoveredNativeFilter());
+    }
+  },
+  300,
+);
 
 export const dispatchFocusAction = debounce(
   (dispatch: Dispatch<any>, id?: string) => {
