@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import dataclasses
 import json
 import logging
@@ -222,7 +224,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
     table_id = Column(Integer, ForeignKey("tables.id"))
-    table: "SqlaTable" = relationship(
+    table: SqlaTable = relationship(
         "SqlaTable",
         backref=backref("columns", cascade="all, delete-orphan"),
         foreign_keys=[table_id],
@@ -606,6 +608,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name
 
+    def get_column(self, column_name: Optional[str]) -> Optional[TableColumn]:
+        return super().get_column(column_name)
+
     @staticmethod
     def _apply_cte(sql: str, cte: Optional[str]) -> str:
         """
@@ -662,7 +667,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         datasource_name: str,
         schema: Optional[str],
         database_name: str,
-    ) -> Optional["SqlaTable"]:
+    ) -> Optional[SqlaTable]:
         schema = schema or None
         query = (
             session.query(cls)
@@ -998,7 +1003,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             schema=self.schema,
             template_processor=template_processor,
         )
-        col_in_metadata = cast(TableColumn, self.get_column(expression))
+        col_in_metadata = self.get_column(expression)
         if col_in_metadata:
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
@@ -1989,7 +1994,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         database: Database,
         datasource_name: str,
         schema: Optional[str] = None,
-    ) -> List["SqlaTable"]:
+    ) -> List[SqlaTable]:
         query = (
             session.query(cls)
             .filter_by(database_id=database.id)
@@ -2006,7 +2011,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         database: Database,
         permissions: Set[str],
         schema_perms: Set[str],
-    ) -> List["SqlaTable"]:
+    ) -> List[SqlaTable]:
         # TODO(hughhhh): add unit test
         return (
             session.query(cls)
@@ -2023,7 +2028,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     @classmethod
     def get_eager_sqlatable_datasource(
         cls, session: Session, datasource_id: int
-    ) -> "SqlaTable":
+    ) -> SqlaTable:
         """Returns SqlaTable with columns and metrics."""
         return (
             session.query(cls)
@@ -2036,7 +2041,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         )
 
     @classmethod
-    def get_all_datasources(cls, session: Session) -> List["SqlaTable"]:
+    def get_all_datasources(cls, session: Session) -> List[SqlaTable]:
         qry = session.query(cls)
         qry = cls.default_query(qry)
         return qry.all()
@@ -2097,7 +2102,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def before_update(
         mapper: Mapper,  # pylint: disable=unused-argument
         connection: Connection,  # pylint: disable=unused-argument
-        target: "SqlaTable",
+        target: SqlaTable,
     ) -> None:
         """
         Check before update if the target table already exists.
@@ -2169,7 +2174,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def after_insert(
         mapper: Mapper,
         connection: Connection,
-        sqla_table: "SqlaTable",
+        sqla_table: SqlaTable,
     ) -> None:
         """
         Update dataset permissions after insert
@@ -2183,7 +2188,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def after_delete(
         mapper: Mapper,
         connection: Connection,
-        sqla_table: "SqlaTable",
+        sqla_table: SqlaTable,
     ) -> None:
         """
         Update dataset permissions after delete
@@ -2194,7 +2199,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def after_update(
         mapper: Mapper,
         connection: Connection,
-        sqla_table: "SqlaTable",
+        sqla_table: SqlaTable,
     ) -> None:
         """
         Update dataset permissions
@@ -2229,7 +2234,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             return
 
     def write_shadow_dataset(
-        self: "SqlaTable",
+        self: SqlaTable,
     ) -> None:
         """
         This method is deprecated
