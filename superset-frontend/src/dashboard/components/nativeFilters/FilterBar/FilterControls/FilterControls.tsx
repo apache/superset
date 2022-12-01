@@ -152,6 +152,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         css`
           padding-left: ${theme.gridUnit * 4}px;
           min-width: 0;
+          flex: 1;
         `
       }
     >
