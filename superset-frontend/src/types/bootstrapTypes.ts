@@ -1,5 +1,13 @@
-import { JsonObject, Locale } from '@superset-ui/core';
+import {
+  ColorSchemeConfig,
+  FeatureFlagMap,
+  JsonObject,
+  LanguagePack,
+  Locale,
+  SequentialSchemeConfig,
+} from '@superset-ui/core';
 import { isPlainObject } from 'lodash';
+import { FlashMessage } from '../components/FlashProvider';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -75,10 +83,15 @@ export type ChartResponse = {
 };
 
 export interface CommonBootstrapData {
-  flash_messages: string[][];
+  flash_messages: FlashMessage[];
   conf: JsonObject;
   locale: Locale;
-  feature_flags: Record<string, boolean>;
+  feature_flags: FeatureFlagMap;
+  language_pack: LanguagePack;
+  extra_categorical_color_schemes: ColorSchemeConfig[];
+  extra_sequential_color_schemes: SequentialSchemeConfig[];
+  theme_overrides: JsonObject;
+  menu_data: JsonObject;
 }
 
 export interface BootstrapData {
