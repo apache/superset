@@ -76,7 +76,9 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
             ? Object.values(scope)
                 .flat()
                 .map((element, index) => (
-                  <span>{index === 0 ? element : `, ${element}`}</span>
+                  <span key={element}>
+                    {index === 0 ? element : `, ${element}`}
+                  </span>
                 ))
             : t('None')}
         </RowValue>
