@@ -231,41 +231,6 @@ class TestCore(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 422)
 
-    def test_annotation_json_endpoint(self):
-        # Set up an annotation layer and annotation
-        layer = AnnotationLayer(name="foo", descr="bar")
-        db.session.add(layer)
-        db.session.commit()
-
-        annotation = Annotation(
-            layer_id=layer.id,
-            short_descr="my_annotation",
-            start_dttm=datetime.datetime(2020, 5, 20, 18, 21, 51),
-            end_dttm=datetime.datetime(2020, 5, 20, 18, 31, 51),
-        )
-
-        db.session.add(annotation)
-        db.session.commit()
-
-        self.login()
-        resp_annotations = json.loads(
-            self.get_resp("annotationlayermodelview/api/read")
-        )
-        # the UI needs id and name to function
-        self.assertIn("id", resp_annotations["result"][0])
-        self.assertIn("name", resp_annotations["result"][0])
-
-        response = self.get_resp(
-            f"/superset/annotation_json/{layer.id}?form_data="
-            + quote(json.dumps({"time_range": "100 years ago : now"}))
-        )
-        assert "my_annotation" in response
-
-        # Rollback changes
-        db.session.delete(annotation)
-        db.session.delete(layer)
-        db.session.commit()
-
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
             role = security_manager.find_role(role_name)
@@ -1693,6 +1658,20 @@ class TestCore(SupersetTestCase):
         )
 
         assert rv.status_code == 422
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch("superset.explore.form_data.commands.create.CreateFormDataCommand.run")
+    def test_explore_redirect(self, mock_command: mock.Mock):
+        self.login(username="admin")
+        random_key = "random_key"
+        mock_command.return_value = random_key
+        slice_name = f"Energy Sankey"
+        slice_id = self.get_slice(slice_name, db.session).id
+        form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
+        rv = self.client.get(
+            f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
+        )
+        self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
 
 
 if __name__ == "__main__":

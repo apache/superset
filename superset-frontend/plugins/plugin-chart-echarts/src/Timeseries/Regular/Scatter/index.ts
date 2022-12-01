@@ -21,8 +21,7 @@ import {
   Behavior,
   ChartMetadata,
   ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
 import {
@@ -55,10 +54,10 @@ export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('../../EchartsTimeseries'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        description: hasGenericChartAxes
           ? t(
               'Scatter Plot has the horizontal axis in linear units, and the points are connected in order. It shows a statistical relationship between two variables.',
             )
@@ -72,7 +71,7 @@ export default class EchartsTimeseriesScatterChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        name: hasGenericChartAxes
           ? t('Scatter Plot')
           : t('Time-series Scatter Plot'),
         tags: [

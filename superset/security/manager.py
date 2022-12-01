@@ -184,6 +184,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Queries",
         "Import dashboards",
         "Upload a CSV",
+        "ReportSchedule",
+        "Alerts & Report",
     }
 
     ADMIN_ONLY_PERMISSIONS = {
@@ -1101,7 +1103,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .where(view_menu_table.c.id == db_pvm.view_menu_id)
             .values(name=new_view_menu_name)
         )
-        new_db_view_menu = self.find_view_menu(new_view_menu_name)
+        new_db_view_menu = self._find_view_menu_on_sqla_event(
+            connection, new_view_menu_name
+        )
 
         self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
         return new_db_view_menu
@@ -1155,7 +1159,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .values(name=new_dataset_vm_name)
             )
             # After update refresh
-            new_dataset_view_menu = self.find_view_menu(new_dataset_vm_name)
+            new_dataset_view_menu = self._find_view_menu_on_sqla_event(
+                connection, new_dataset_vm_name
+            )
 
             # Update dataset (SqlaTable perm field)
             connection.execute(
@@ -1194,11 +1200,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+            Database,
+        )
+
         try:
             dataset_perm = target.get_perm()
+            database = target.database
         except DatasetInvalidPermissionEvaluationException:
-            logger.warning("Dataset has no database refusing to set permission")
-            return
+            logger.warning(
+                "Dataset has no database will retry with database_id to set permission"
+            )
+            database = self.get_session.query(Database).get(target.database_id)
+            dataset_perm = self.get_dataset_perm(
+                target.id, target.table_name, database.database_name
+            )
         dataset_table = target.__table__
 
         self._insert_pvm_on_sqla_event(
@@ -1214,7 +1230,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if target.schema:
             dataset_schema_perm = self.get_schema_perm(
-                target.database.database_name, target.schema
+                database.database_name, target.schema
             )
             self._insert_pvm_on_sqla_event(
                 mapper, connection, "schema_access", dataset_schema_perm
@@ -1484,12 +1500,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def _find_permission_on_sqla_event(
         self, connection: Connection, name: str
     ) -> Permission:
+        """
+        Find a FAB Permission using a SQLA connection.
+
+        A session.query may not return the latest results on newly created/updated
+        objects/rows using connection. On this case we should use a connection also
+
+        :param connection: SQLAlchemy connection
+        :param name: The permission name (it's unique)
+        :return: Permission
+        """
         permission_table = self.permission_model.__table__  # pylint: disable=no-member
 
         permission_ = connection.execute(
             permission_table.select().where(permission_table.c.name == name)
         ).fetchone()
         permission = Permission()
+        # ensures this object is never persisted
         permission.metadata = None
         permission.id = permission_.id
         permission.name = permission_.name
@@ -1498,12 +1525,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def _find_view_menu_on_sqla_event(
         self, connection: Connection, name: str
     ) -> ViewMenu:
+        """
+        Find a FAB ViewMenu using a SQLA connection.
+
+        A session.query may not return the latest results on newly created/updated
+        objects/rows using connection. On this case we should use a connection also
+
+        :param connection: SQLAlchemy connection
+        :param name: The ViewMenu name (it's unique)
+        :return: ViewMenu
+        """
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
 
         view_menu_ = connection.execute(
             view_menu_table.select().where(view_menu_table.c.name == name)
         ).fetchone()
         view_menu = ViewMenu()
+        # ensures this object is never persisted
         view_menu.metadata = None
         view_menu.id = view_menu_.id
         view_menu.name = view_menu_.name
@@ -1665,6 +1703,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param connection: The DB-API connection
         :param target: The mapped instance being persisted
         """
+
+    @staticmethod
+    def get_exclude_users_from_lists() -> List[str]:
+        """
+        Override to dynamically identify a list of usernames to exclude from
+        all UI dropdown lists, owners, created_by filters etc...
+
+        It will exclude all users from the all endpoints of the form
+        ``/api/v1/<modelview>/related/<column>``
+
+        Optionally you can also exclude them using the `EXCLUDE_USERS_FROM_LISTS`
+        config setting.
+
+        :return: A list of usernames
+        """
+        return []
 
     def raise_for_access(
         # pylint: disable=too-many-arguments,too-many-locals

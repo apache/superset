@@ -41,7 +41,8 @@ const TAB_HEIGHT = 140;
     editorQueries are queries executed by users passed from SqlEditor component
     dataPrebiewQueries are all queries executed for preview of table data (from SqlEditorLeft)
 */
-interface SouthPanePropTypes {
+export interface SouthPanePropTypes {
+  queryEditorId: string;
   editorQueries: any[];
   latestQueryId?: string;
   dataPreviewQueries: any[];

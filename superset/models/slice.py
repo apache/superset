@@ -42,7 +42,6 @@ from sqlalchemy.orm.mapper import Mapper
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
-from superset.models.tags import ChartUpdater
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -335,8 +334,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def url(self) -> str:
-        form_data = f"%7B%22slice_id%22%3A%20{self.id}%7D"
-        return f"/explore/?slice_id={self.id}&form_data={form_data}"
+        return f"/explore/?slice_id={self.id}"
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:
@@ -367,13 +365,6 @@ def event_after_chart_changed(
 sqla.event.listen(Slice, "before_insert", set_related_perm)
 sqla.event.listen(Slice, "before_update", set_related_perm)
 
-# events for updating tags
-if is_feature_enabled("TAGGING_SYSTEM"):
-    sqla.event.listen(Slice, "after_insert", ChartUpdater.after_insert)
-    sqla.event.listen(Slice, "after_update", ChartUpdater.after_update)
-    sqla.event.listen(Slice, "after_delete", ChartUpdater.after_delete)
-
-# events for updating tags
 if is_feature_enabled("THUMBNAILS_SQLA_LISTENERS"):
     sqla.event.listen(Slice, "after_insert", event_after_chart_changed)
     sqla.event.listen(Slice, "after_update", event_after_chart_changed)

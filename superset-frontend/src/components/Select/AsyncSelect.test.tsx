@@ -98,6 +98,11 @@ const findSelectOption = (text: string) =>
     within(getElementByClassName('.rc-virtual-list')).getByText(text),
   );
 
+const querySelectOption = (text: string) =>
+  waitFor(() =>
+    within(getElementByClassName('.rc-virtual-list')).queryByText(text),
+  );
+
 const findAllSelectOptions = () =>
   waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
@@ -734,6 +739,21 @@ test('renders a helper text when one is provided', async () => {
   await open();
   expect(screen.getByRole('note')).toBeInTheDocument();
   expect(screen.queryByText(helperText)).toBeInTheDocument();
+});
+
+test('finds an element with a numeric value and does not duplicate the options', async () => {
+  const options = jest.fn(async () => ({
+    data: [
+      { label: 'a', value: 11 },
+      { label: 'b', value: 12 },
+    ],
+    totalCount: 2,
+  }));
+  render(<AsyncSelect {...defaultProps} options={options} allowNewOptions />);
+  await open();
+  await type('11');
+  expect(await findSelectOption('a')).toBeInTheDocument();
+  expect(await querySelectOption('11')).not.toBeInTheDocument();
 });
 
 /*

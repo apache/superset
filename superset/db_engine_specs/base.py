@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import (
     Any,
     Callable,
+    ContextManager,
     Dict,
     List,
     Match,
@@ -361,6 +362,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]
     ] = {}
 
+    # Whether the engine supports file uploads
+    # if True, database will be listed as option in the upload file form
+    supports_file_upload = True
+
     @classmethod
     def supports_url(cls, url: URL) -> bool:
         """
@@ -427,6 +432,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
+    def parse_error_exception(cls, exception: Exception) -> Exception:
+        """
+        Each engine can implement and converge its own specific parser method
+
+        :return: An Exception with a parsed string off the original exception
+        """
+        return exception
+
+    @classmethod
     def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
         """
         Get a superset custom DBAPI exception from the driver specific exception.
@@ -439,7 +453,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if not new_exception:
-            return exception
+            return cls.parse_error_exception(exception)
         return new_exception(str(exception))
 
     @classmethod
@@ -467,8 +481,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         schema: Optional[str] = None,
         source: Optional[utils.QuerySource] = None,
-    ) -> Engine:
-        return database.get_sqla_engine(schema=schema, source=source)
+    ) -> ContextManager[Engine]:
+        """
+        Return an engine context manager.
+
+            >>> with DBEngineSpec.get_engine(database, schema, source) as engine:
+            ...     connection = engine.connect()
+            ...     connection.execute(sql)
+
+        """
+        return database.get_sqla_engine_with_context(schema=schema, source=source)
 
     @classmethod
     def get_timestamp_expr(
@@ -476,7 +498,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         col: ColumnClause,
         pdf: Optional[str],
         time_grain: Optional[str],
-        type_: Optional[str] = None,
     ) -> TimestampExpression:
         """
         Construct a TimestampExpression to be used in a SQLAlchemy query.
@@ -484,10 +505,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param col: Target column for the TimestampExpression
         :param pdf: date format (seconds or milliseconds)
         :param time_grain: time grain, e.g. P1Y for 1 year
-        :param type_: the source column type
         :return: TimestampExpression object
         """
         if time_grain:
+            type_ = str(getattr(col, "type", ""))
             time_expr = cls.get_time_grain_expressions().get(time_grain)
             if not time_expr:
                 raise NotImplementedError(
@@ -636,7 +657,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             return cursor.fetchall()
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def expand_data(
@@ -891,17 +912,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
 
-        engine = cls.get_engine(database)
         to_sql_kwargs["name"] = table.table
 
         if table.schema:
             # Only add schema when it is preset and non empty.
             to_sql_kwargs["schema"] = table.schema
 
-        if engine.dialect.supports_multivalues_insert:
-            to_sql_kwargs["method"] = "multi"
+        with cls.get_engine(database) as engine:
+            if engine.dialect.supports_multivalues_insert:
+                to_sql_kwargs["method"] = "multi"
 
-        df.to_sql(con=engine, **to_sql_kwargs)
+            df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
     def convert_dttm(  # pylint: disable=unused-argument
@@ -1013,19 +1034,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         inspector: Inspector,
         schema: Optional[str],
-    ) -> List[str]:
+    ) -> Set[str]:
         """
-        Get all tables from schema
+        Get all the real table names within the specified schema.
 
-        :param database: The database to get info
-        :param inspector: SqlAlchemy inspector
-        :param schema: Schema to inspect. If omitted, uses default schema for database
-        :return: All tables in schema
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The physical table names
         """
-        tables = inspector.get_table_names(schema)
+
+        try:
+            tables = set(inspector.get_table_names(schema))
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
         if schema and cls.try_remove_schema_from_table_name:
-            tables = [re.sub(f"^{schema}\\.", "", table) for table in tables]
-        return sorted(tables)
+            tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
+        return tables
 
     @classmethod
     def get_view_names(  # pylint: disable=unused-argument
@@ -1033,19 +1062,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         inspector: Inspector,
         schema: Optional[str],
-    ) -> List[str]:
+    ) -> Set[str]:
         """
-        Get all views from schema
+        Get all the view names within the specified schema.
 
-        :param database: The database to get info
-        :param inspector: SqlAlchemy inspector
-        :param schema: Schema name. If omitted, uses default schema for database
-        :return: All views in schema
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The view names
         """
-        views = inspector.get_view_names(schema)
+
+        try:
+            views = set(inspector.get_view_names(schema))
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
         if schema and cls.try_remove_schema_from_table_name:
-            views = [re.sub(f"^{schema}\\.", "", view) for view in views]
-        return sorted(views)
+            views = {re.sub(f"^{schema}\\.", "", view) for view in views}
+        return views
 
     @classmethod
     def get_table_comment(
@@ -1258,13 +1295,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
-        engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            for statement in statements:
-                processed_statement = cls.process_statement(statement, database)
-                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
+        with cls.get_engine(database, schema=schema, source=source) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                for statement in statements:
+                    processed_statement = cls.process_statement(statement, database)
+                    costs.append(
+                        cls.estimate_statement_cost(processed_statement, cursor)
+                    )
         return costs
 
     @classmethod
@@ -1323,7 +1362,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except Exception as ex:
-            raise cls.get_dbapi_mapped_exception(ex)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
 
     @classmethod
     def make_label_compatible(cls, label: str) -> Union[str, quoted_name]:
@@ -1615,7 +1654,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return user.username if user else None
 
     @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str) -> str:
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
         """
         Mask ``encrypted_extra``.
 
@@ -1628,7 +1667,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     # pylint: disable=unused-argument
     @classmethod
-    def unmask_encrypted_extra(cls, old: str, new: str) -> str:
+    def unmask_encrypted_extra(
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
         """
         Remove masks from ``encrypted_extra``.
 
@@ -1637,6 +1678,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         without having to provide sensitive data to the client.
         """
         return new
+
+    @classmethod
+    def get_public_information(cls) -> Dict[str, Any]:
+        """
+        Construct a Dict with properties we want to expose.
+
+        :returns: Dict with properties of our class like supports_file_upload
+        """
+        return {
+            "supports_file_upload": cls.supports_file_upload,
+        }
 
 
 # schema for adding a database by providing parameters instead of the
@@ -1667,6 +1719,10 @@ class BasicParametersType(TypedDict, total=False):
     database: str
     query: Dict[str, Any]
     encryption: bool
+
+
+class BasicPropertiesType(TypedDict):
+    parameters: BasicParametersType
 
 
 class BasicParametersMixin:
@@ -1746,7 +1802,7 @@ class BasicParametersMixin:
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BasicParametersType
+        cls, properties: BasicPropertiesType
     ) -> List[SupersetError]:
         """
         Validates any number of parameters, for progressive validation.
@@ -1757,6 +1813,7 @@ class BasicParametersMixin:
         errors: List[SupersetError] = []
 
         required = {"host", "port", "username", "database"}
+        parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
         missing = sorted(required - present)
 

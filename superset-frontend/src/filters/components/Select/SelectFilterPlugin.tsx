@@ -36,7 +36,7 @@ import { Select } from 'src/components';
 import debounce from 'lodash/debounce';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
-import { propertyComparator } from 'src/components/Select/Select';
+import { propertyComparator } from 'src/components/Select/utils';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -228,7 +228,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         : null;
       // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
       // TODO: still need repopulate default value in config modal when column changed
-      if (firstItem && firstItem[0] !== undefined) {
+      if (firstItem?.[0] !== undefined) {
         updateDataMask(firstItem);
       }
     } else if (isDisabled) {

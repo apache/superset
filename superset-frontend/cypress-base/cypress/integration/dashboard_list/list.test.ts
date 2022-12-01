@@ -69,7 +69,7 @@ describe('Dashboards list', () => {
 
     it('should sort correctly in list mode', () => {
       cy.getBySel('sort-header').eq(1).click();
-      cy.getBySel('table-row').first().contains('ECharts Dashboard');
+      cy.getBySel('table-row').first().contains('Supported Charts Dashboard');
       cy.getBySel('sort-header').eq(1).click();
       cy.getBySel('table-row').first().contains("World Bank's Data");
       cy.getBySel('sort-header').eq(1).click();
@@ -121,13 +121,13 @@ describe('Dashboards list', () => {
 
     it('should sort in card mode', () => {
       orderAlphabetical();
-      cy.getBySel('styled-card').first().contains('ECharts Dashboard');
+      cy.getBySel('styled-card').first().contains('Supported Charts Dashboard');
     });
   });
 
   describe('common actions', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0, 1, 2, 3]);
       cy.visit(DASHBOARD_LIST);
     });
 

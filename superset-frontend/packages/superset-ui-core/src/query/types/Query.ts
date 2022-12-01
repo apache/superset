@@ -136,12 +136,6 @@ export interface QueryObject
   /** The size of bucket by which to group timeseries data (forthcoming) */
   time_grain?: string;
 
-  /** Maximum number of timeseries */
-  timeseries_limit?: number;
-
-  /** The metric used to sort the returned result. */
-  timeseries_limit_metric?: Maybe<QueryFormMetric>;
-
   /** Direction to ordered by */
   order_desc?: boolean;
 
@@ -258,6 +252,7 @@ export const CtasEnum = {
 
 export type QueryColumn = {
   name: string;
+  column_name?: string;
   type: string | null;
   is_dttm: boolean;
 };
@@ -350,6 +345,7 @@ export type QueryResults = {
 
 export type QueryResponse = Query & QueryResults;
 
+// todo: move out from typing
 export const testQuery: Query = {
   id: 'clientId2353',
   dbId: 1,
@@ -388,21 +384,68 @@ export const testQuery: Query = {
   columns: [
     {
       name: 'Column 1',
-      type: DatasourceType.Query,
+      type: 'STRING',
       is_dttm: false,
     },
     {
       name: 'Column 3',
-      type: DatasourceType.Query,
+      type: 'STRING',
       is_dttm: false,
     },
     {
       name: 'Column 2',
-      type: DatasourceType.Query,
+      type: 'TIMESTAMP',
       is_dttm: true,
     },
   ],
 };
+
+export const testQueryResults = {
+  results: {
+    displayLimitReached: false,
+    columns: [
+      {
+        name: 'Column 1',
+        type: 'STRING',
+        is_dttm: false,
+      },
+      {
+        name: 'Column 3',
+        type: 'STRING',
+        is_dttm: false,
+      },
+      {
+        name: 'Column 2',
+        type: 'TIMESTAMP',
+        is_dttm: true,
+      },
+    ],
+    data: [
+      { 'Column 1': 'a', 'Column 2': 'b', 'Column 3': '2014-11-11T00:00:00' },
+    ],
+    expanded_columns: [],
+    selected_columns: [
+      {
+        name: 'Column 1',
+        type: 'STRING',
+        is_dttm: false,
+      },
+      {
+        name: 'Column 3',
+        type: 'STRING',
+        is_dttm: false,
+      },
+      {
+        name: 'Column 2',
+        type: 'TIMESTAMP',
+        is_dttm: true,
+      },
+    ],
+    query: { limit: 6 },
+  },
+};
+
+export const testQueryResponse = { ...testQuery, ...testQueryResults };
 
 export enum ContributionType {
   Row = 'row',

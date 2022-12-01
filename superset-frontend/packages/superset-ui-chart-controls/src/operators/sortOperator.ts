@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,10 +16,13 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
+import { isEmpty } from 'lodash';
 import {
   ensureIsArray,
-  getColumnLabel,
   getMetricLabel,
+  getXAxisLabel,
+  hasGenericChartAxes,
+  isDefined,
   PostProcessingSort,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
@@ -29,19 +31,35 @@ export const sortOperator: PostProcessingFactory<PostProcessingSort> = (
   formData,
   queryObject,
 ) => {
-  const { columns, metrics, timeseries_limit_metric, order_desc } = queryObject;
-  const metricLabels = ensureIsArray(metrics).map(getMetricLabel);
-  const columnLabels = ensureIsArray(columns).map(getColumnLabel);
-  const column: string[] = ensureIsArray(timeseries_limit_metric).map(
-    getMetricLabel,
-  );
-  if (metricLabels.includes(column[0]) || columnLabels.includes(column[0])) {
+  // the sortOperator only used in the barchart v2
+  const sortableLabels = [
+    getXAxisLabel(formData),
+    ...ensureIsArray(formData.metrics).map(metric => getMetricLabel(metric)),
+  ].filter(Boolean);
+
+  if (
+    hasGenericChartAxes &&
+    isDefined(formData?.x_axis_sort) &&
+    isDefined(formData?.x_axis_sort_asc) &&
+    sortableLabels.includes(formData.x_axis_sort) &&
+    // the sort operator doesn't support sort-by multiple series.
+    isEmpty(formData.groupby)
+  ) {
+    if (formData.x_axis_sort === getXAxisLabel(formData)) {
+      return {
+        operation: 'sort',
+        options: {
+          is_sort_index: true,
+          ascending: formData.x_axis_sort_asc,
+        },
+      };
+    }
+
     return {
       operation: 'sort',
       options: {
-        columns: {
-          [column[0]]: !order_desc,
-        },
+        by: formData.x_axis_sort,
+        ascending: formData.x_axis_sort_asc,
       },
     };
   }

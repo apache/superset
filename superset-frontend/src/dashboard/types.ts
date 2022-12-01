@@ -29,7 +29,7 @@ import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 
-import { User } from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ChartState } from '../explore/types';
 
 export { Dashboard } from 'src/types/Dashboard';
@@ -52,6 +52,11 @@ export type Chart = ChartState & {
   };
 };
 
+export enum FilterBarOrientation {
+  VERTICAL = 'VERTICAL',
+  HORIZONTAL = 'HORIZONTAL',
+}
+
 export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
 export type DashboardLayoutState = { present: DashboardLayout };
@@ -71,6 +76,17 @@ export type DashboardState = {
   focusedFilterField?: {
     chartId: number;
     column: string;
+  };
+  overwriteConfirmMetadata?: {
+    updatedAt: string;
+    updatedBy: string;
+    overwriteConfirmItems: {
+      keyPath: string;
+      oldValue: string;
+      newValue: string;
+    }[];
+    dashboardId: number;
+    data: JsonObject;
   };
 };
 export type DashboardInfo = {
@@ -92,6 +108,7 @@ export type DashboardInfo = {
     label_colors: JsonObject;
     shared_label_colors: JsonObject;
   };
+  filterBarOrientation: FilterBarOrientation;
 };
 
 export type ChartsState = { [key: string]: Chart };
@@ -117,7 +134,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
-  user: User;
+  user: UserWithPermissionsAndRoles;
 };
 
 /** State of dashboardLayout in redux */

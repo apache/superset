@@ -55,21 +55,26 @@ import {
 
 const SAMPLE_CHART = { name: 'Most Populated Countries', viz: 'table' };
 
-function visitDashboard() {
+function visitDashboard(createSample = true) {
   interceptCharts();
   interceptGet();
   interceptDatasets();
+
+  if (createSample) {
+    cy.createSampleDashboards([0]);
+  }
 
   cy.visit(SAMPLE_DASHBOARD_1);
   cy.wait('@get');
   cy.wait('@getCharts');
   cy.wait('@getDatasets');
-  cy.wait(500);
+  cy.url().should('contain', 'native_filters_key');
 }
 
 function prepareDashboardFilters(
   filters: { name: string; column: string; datasetId: number }[],
 ) {
+  cy.createSampleDashboards([0]);
   cy.request({
     method: 'GET',
     url: `api/v1/dashboard/1-sample-dashboard`,
@@ -169,7 +174,7 @@ function prepareDashboardFilters(
             json_metadata: JSON.stringify(jsonMetadata),
           },
         })
-        .then(() => visitDashboard());
+        .then(() => visitDashboard(false));
     }
     return cy;
   });
@@ -196,7 +201,7 @@ describe('Native filters', () => {
 
   describe('Nativefilters tests initial state required', () => {
     beforeEach(() => {
-      cy.createSampleDashboards();
+      cy.createSampleDashboards([0]);
     });
 
     it('Verify that default value is respected after revisit', () => {
@@ -379,11 +384,11 @@ describe('Native filters', () => {
 
   describe('Nativefilters basic interactions', () => {
     before(() => {
-      cy.createSampleDashboards();
       visitDashboard();
     });
 
     beforeEach(() => {
+      cy.createSampleDashboards([0]);
       closeFilterModal();
     });
 
@@ -436,10 +441,6 @@ describe('Native filters', () => {
   });
 
   describe('Nativefilters initial state not required', () => {
-    beforeEach(() => {
-      cy.createSampleDashboards();
-    });
-
     it("User can check 'Filter has default value'", () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
@@ -454,7 +455,9 @@ describe('Native filters', () => {
       let filterKey: string;
       const removeFirstChar = (search: string) =>
         search.split('').slice(1, search.length).join('');
+
       cy.location().then(loc => {
+        cy.url().should('contain', 'native_filters_key');
         const queryParams = qs.parse(removeFirstChar(loc.search));
         filterKey = queryParams.native_filters_key as string;
         expect(typeof filterKey).eq('string');
@@ -463,6 +466,7 @@ describe('Native filters', () => {
       addCountryNameFilter();
       saveNativeFilterSettings([SAMPLE_CHART]);
       cy.location().then(loc => {
+        cy.url().should('contain', 'native_filters_key');
         const queryParams = qs.parse(removeFirstChar(loc.search));
         const newfilterKey = queryParams.native_filters_key;
         expect(newfilterKey).eq(filterKey);
@@ -591,13 +595,13 @@ describe('Native filters', () => {
     });
 
     it('User can cancel changes in native filter', () => {
-      visitDashboard();
-      enterNativeFilterEditModal(false);
-      fillNativeFilterForm(
-        testItems.filterType.value,
-        'suffix',
-        testItems.datasetForNativeFilter,
-      );
+      prepareDashboardFilters([
+        { name: 'country_name', column: 'country_name', datasetId: 2 },
+      ]);
+      enterNativeFilterEditModal();
+      cy.getBySel('filters-config-modal__name-input').type('|EDITED', {
+        force: true,
+      });
       cancelNativeFilterSettings();
       enterNativeFilterEditModal();
       cy.get(nativeFilters.filtersList.removeIcon).first().click();

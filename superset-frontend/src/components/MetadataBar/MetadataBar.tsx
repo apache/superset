@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { uniqWith } from 'lodash';
 import { styled } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import { ContentType } from './ContentType';
 import { config } from './ContentConfig';
 
@@ -58,6 +58,8 @@ const Bar = styled.div<{ count: number }>`
       (ICON_WIDTH + SPACE_BETWEEN_ITEMS) * count -
       SPACE_BETWEEN_ITEMS
     }px;
+    border-radius: ${theme.borderRadius}px;
+    line-height: 1;
   `}
 `;
 
@@ -67,22 +69,41 @@ const StyledItem = styled.div<{
   onClick?: () => void;
 }>`
   ${({ theme, collapsed, last, onClick }) => `
+    display: flex;
+    align-items: center;
     max-width: ${
       ICON_WIDTH +
       ICON_PADDING +
       TEXT_MAX_WIDTH +
       (last ? 0 : SPACE_BETWEEN_ITEMS)
     }px;
-    min-width: ${ICON_WIDTH + (last ? 0 : SPACE_BETWEEN_ITEMS)}px;
-    overflow: hidden;
-    text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
-    white-space: nowrap;
+    min-width: ${
+      collapsed
+        ? ICON_WIDTH + (last ? 0 : SPACE_BETWEEN_ITEMS)
+        : ICON_WIDTH +
+          ICON_PADDING +
+          TEXT_MIN_WIDTH +
+          (last ? 0 : SPACE_BETWEEN_ITEMS)
+    }px;
     padding-right: ${last ? 0 : SPACE_BETWEEN_ITEMS}px;
-    text-decoration: ${onClick ? 'underline' : 'none'};
     cursor: ${onClick ? 'pointer' : 'default'};
-    & > span {
-      color: ${onClick && collapsed ? theme.colors.primary.base : 'undefined'};
+    & .metadata-icon {
+      color: ${
+        onClick && collapsed
+          ? theme.colors.primary.base
+          : theme.colors.grayscale.base
+      };
       padding-right: ${collapsed ? 0 : ICON_PADDING}px;
+      & .anticon {
+        line-height: 0;
+      }
+    }
+    & .metadata-text {
+      min-width: ${TEXT_MIN_WIDTH}px;
+      overflow: hidden;
+      text-overflow: ${collapsed ? 'unset' : 'ellipsis'};
+      white-space: nowrap;
+      text-decoration: ${onClick ? 'underline' : 'none'};
     }
   `}
 `;
@@ -101,11 +122,13 @@ const Item = ({
   contentType,
   collapsed,
   last = false,
+  tooltipPlacement,
 }: {
   barWidth: number | undefined;
   contentType: ContentType;
   collapsed: boolean;
   last?: boolean;
+  tooltipPlacement: TooltipPlacement;
 }) => {
   const { icon, title, tooltip = title } = config(contentType);
   const [isTruncated, setIsTruncated] = useState(false);
@@ -124,14 +147,20 @@ const Item = ({
       collapsed={collapsed}
       last={last}
       onClick={onClick ? () => onClick(type) : undefined}
-      ref={ref}
     >
-      <Icon iconSize="l" />
-      {!collapsed && title}
+      <Icon iconSize="l" className="metadata-icon" />
+      {!collapsed && (
+        <span ref={ref} className="metadata-text">
+          {title}
+        </span>
+      )}
     </StyledItem>
   );
   return isTruncated || collapsed || (tooltip && tooltip !== title) ? (
-    <Tooltip title={<TootipContent>{tooltip}</TootipContent>}>
+    <Tooltip
+      placement={tooltipPlacement}
+      title={<TootipContent>{tooltip}</TootipContent>}
+    >
       {content}
     </Tooltip>
   ) : (
@@ -145,6 +174,11 @@ export interface MetadataBarProps {
    * for each content type, check {@link ContentType}
    */
   items: ContentType[];
+  /**
+   * Antd tooltip placement. To see available values, check {@link TooltipPlacement}.
+   * Defaults to "top".
+   */
+  tooltipPlacement?: TooltipPlacement;
 }
 
 /**
@@ -155,8 +189,9 @@ export interface MetadataBarProps {
  * To extend the list of content types, a developer needs to request the inclusion of the new type in the design system.
  * This process is important to make sure the new type is reviewed by the design team, improving Superset consistency.
  */
-const MetadataBar = ({ items }: MetadataBarProps) => {
-  const { width, ref } = useResizeDetector();
+const MetadataBar = ({ items, tooltipPlacement = 'top' }: MetadataBarProps) => {
+  const [width, setWidth] = useState<number>();
+  const [collapsed, setCollapsed] = useState(false);
   const uniqueItems = uniqWith(items, (a, b) => a.type === b.type);
   const sortedItems = uniqueItems.sort((a, b) => ORDER[a.type] - ORDER[b.type]);
   const count = sortedItems.length;
@@ -166,14 +201,25 @@ const MetadataBar = ({ items }: MetadataBarProps) => {
   if (count > MAX_NUMBER_ITEMS) {
     throw Error('The maximum number of items for the metadata bar is 6.');
   }
-  // Calculates the breakpoint width to collapse the bar.
-  // The last item does not have a space, so we subtract SPACE_BETWEEN_ITEMS from the total.
-  const breakpoint =
-    (ICON_WIDTH + ICON_PADDING + TEXT_MIN_WIDTH + SPACE_BETWEEN_ITEMS) * count -
-    SPACE_BETWEEN_ITEMS;
-  const collapsed = Boolean(width && width < breakpoint);
+
+  const onResize = useCallback(
+    width => {
+      // Calculates the breakpoint width to collapse the bar.
+      // The last item does not have a space, so we subtract SPACE_BETWEEN_ITEMS from the total.
+      const breakpoint =
+        (ICON_WIDTH + ICON_PADDING + TEXT_MIN_WIDTH + SPACE_BETWEEN_ITEMS) *
+          count -
+        SPACE_BETWEEN_ITEMS;
+      setWidth(width);
+      setCollapsed(Boolean(width && width < breakpoint));
+    },
+    [count],
+  );
+
+  const { ref } = useResizeDetector({ onResize });
+
   return (
-    <Bar ref={ref} count={count}>
+    <Bar ref={ref} count={count} data-test="metadata-bar">
       {sortedItems.map((item, index) => (
         <Item
           barWidth={width}
@@ -181,6 +227,7 @@ const MetadataBar = ({ items }: MetadataBarProps) => {
           contentType={item}
           collapsed={collapsed}
           last={index === count - 1}
+          tooltipPlacement={tooltipPlacement}
         />
       ))}
     </Bar>

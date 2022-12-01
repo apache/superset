@@ -52,10 +52,10 @@ jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 jest.mock('src/components/Icons/Icon', () => () => (
   <div data-test="mock-icon" />
 ));
-jest.mock('src/components/Select/WindowedSelect', () => () => (
+jest.mock('src/components/DeprecatedSelect/WindowedSelect', () => () => (
   <div data-test="mock-windowed-select" />
 ));
-jest.mock('src/components/Select', () => () => (
+jest.mock('src/components/DeprecatedSelect', () => () => (
   <div data-test="mock-deprecated-select" />
 ));
 jest.mock('src/components/Select/Select', () => () => (

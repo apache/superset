@@ -65,17 +65,21 @@ const propTypes = {
   deleteComponent: PropTypes.func.isRequired,
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
+
+  // HTML sanitization
+  htmlSanitization: PropTypes.bool,
+  htmlSchemaOverrides: PropTypes.object,
 };
 
 const defaultProps = {};
 
-const MARKDOWN_PLACE_HOLDER = `# ✨Markdown
-## ✨Markdown
-### ✨Markdown
+const MARKDOWN_PLACE_HOLDER = `# ✨Header 1
+## ✨Header 2
+### ✨Header 3
 
 <br />
 
-Click here to edit [markdown](https://bit.ly/1dQOfRK)`;
+Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)`;
 
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
 
@@ -265,6 +269,8 @@ class Markdown extends React.PureComponent {
             ? MARKDOWN_ERROR_MESSAGE
             : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
         }
+        htmlSanitization={this.props.htmlSanitization}
+        htmlSchemaOverrides={this.props.htmlSchemaOverrides}
       />
     );
   }
@@ -373,6 +379,8 @@ function mapStateToProps(state) {
   return {
     undoLength: state.dashboardLayout.past.length,
     redoLength: state.dashboardLayout.future.length,
+    htmlSanitization: state.common.conf.HTML_SANITIZATION,
+    htmlSchemaOverrides: state.common.conf.HTML_SANITIZATION_SCHEMA_EXTENSIONS,
   };
 }
 export default connect(mapStateToProps)(Markdown);

@@ -23,6 +23,7 @@ import {
   FilterConfiguration,
   Divider,
   isFilterDivider,
+  FilterWithDataMask,
 } from '@superset-ui/core';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { TAB_TYPE } from '../../util/componentTypes';
@@ -109,13 +110,15 @@ function useIsFilterInScope() {
       }));
 }
 
-export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
+export function useSelectFiltersInScope(
+  filters: (FilterWithDataMask | Divider)[],
+) {
   const dashboardHasTabs = useDashboardHasTabs();
   const isFilterInScope = useIsFilterInScope();
 
   return useMemo(() => {
-    let filtersInScope: (Filter | Divider)[] = [];
-    const filtersOutOfScope: (Filter | Divider)[] = [];
+    let filtersInScope: (FilterWithDataMask | Divider)[] = [];
+    const filtersOutOfScope: (FilterWithDataMask | Divider)[] = [];
 
     // we check native filters scopes only on dashboards with tabs
     if (!dashboardHasTabs) {

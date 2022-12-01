@@ -18,7 +18,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import Button from 'src/components/Button';
-import Select from 'src/components/Select';
+import Select from 'src/components/DeprecatedSelect';
 import { styled, t, SupersetClient, QueryResponse } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import Loading from 'src/components/Loading';

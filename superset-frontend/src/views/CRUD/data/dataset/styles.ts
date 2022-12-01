@@ -40,7 +40,7 @@ export const RightColumn = styled(Column)`
   height: auto;
   display: flex;
   flex: 1 0 auto;
-  width: auto;
+  width: calc(100% - ${({ theme }) => theme.gridUnit * 80}px);
 `;
 
 const Row = styled.div`
@@ -95,6 +95,11 @@ export const StyledLayoutFooter = styled.div`
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   color: ${({ theme }) => theme.colors.info.base};
+  border-top: ${({ theme }) => theme.gridUnit / 4}px solid
+    ${({ theme }) => theme.colors.grayscale.light2};
+  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  display: flex;
+  justify-content: flex-end;
 `;
 
 export const HeaderComponentStyles = styled.div`

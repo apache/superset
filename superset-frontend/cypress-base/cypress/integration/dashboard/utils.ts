@@ -33,12 +33,14 @@ export const WORLD_HEALTH_CHARTS = [
   { name: 'Box plot', viz: 'box_plot' },
 ] as ChartSpec[];
 
-export const ECHARTS_CHARTS = [
-  { name: 'Number of Girls', viz: 'big_number_total' },
-  { name: 'Participants', viz: 'big_number' },
-  { name: 'Box plot', viz: 'box_plot' },
-  { name: 'Genders', viz: 'pie' },
-  { name: 'Energy Force Layout', viz: 'graph_chart' },
+export const SUPPORTED_TIER1_CHARTS = [
+  { name: 'Big Number', viz: 'big_number_total' },
+  { name: 'Big Number with Trendline', viz: 'big_number' },
+  { name: 'Pie Chart', viz: 'pie' },
+] as ChartSpec[];
+
+export const SUPPORTED_TIER2_CHARTS = [
+  { name: 'Box Plot Chart', viz: 'box_plot' },
 ] as ChartSpec[];
 
 export const testItems = {
@@ -154,6 +156,10 @@ export function interceptCharts() {
 
 export function interceptDatasets() {
   cy.intercept('GET', `/api/v1/dashboard/*/datasets`).as('getDatasets');
+}
+
+export function interceptDashboardasync() {
+  cy.intercept('GET', `/dashboardasync/api/read*`).as('getDashboardasync');
 }
 
 export function setFilter(filter: string, option: string) {
@@ -344,8 +350,8 @@ export function cancelNativeFilterSettings() {
     .should('be.visible')
     .click();
   cy.get(nativeFilters.modal.alertXUnsavedFilters)
-    .should('have.text', 'There are unsaved changes.')
-    .should('be.visible');
+    .should('be.visible')
+    .should('have.text', 'There are unsaved changes.');
   cy.get(nativeFilters.modal.footer)
     .find(nativeFilters.modal.yesCancelButton)
     .contains('cancel')
@@ -453,13 +459,17 @@ export function inputNativeFilterDefaultValue(defaultValue: string) {
   cy.contains('Filter has default value').click();
   cy.contains('Default value is required').should('be.visible');
   cy.get(nativeFilters.modal.container).within(() => {
-    cy.get(nativeFilters.filterConfigurationSections.filterPlaceholder)
-      .contains('options')
-      .should('be.visible');
+    cy.get(
+      nativeFilters.filterConfigurationSections.filterPlaceholder,
+    ).contains('options');
     cy.get(nativeFilters.filterConfigurationSections.collapsedSectionContainer)
-      .first()
-      .get(nativeFilters.filtersPanel.columnEmptyInput)
-      .type(`${defaultValue}{enter}`);
+      .eq(1)
+      .within(() => {
+        cy.get('.ant-select-selection-search-input').type(
+          `${defaultValue}{enter}`,
+          { force: true },
+        );
+      });
   });
 }
 
@@ -475,4 +485,13 @@ export function addCountryNameFilter() {
     testItems.datasetForNativeFilter,
     testItems.topTenChart.filterColumn,
   );
+}
+
+export function openTab(tabComponentIndex: number, tabIndex: number) {
+  return cy
+    .getBySel('dashboard-component-tabs')
+    .eq(tabComponentIndex)
+    .find('[role="tab"]')
+    .eq(tabIndex)
+    .click();
 }

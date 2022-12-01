@@ -103,7 +103,7 @@ describe('useTables hook', () => {
     });
     expect(SupersetClient.get).toHaveBeenCalledTimes(1);
     expect(SupersetClient.get).toHaveBeenCalledWith({
-      endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/undefined/${forceRefresh}/`,
+      endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/${forceRefresh}/`,
     });
     expect(result.current.data).toEqual(expectedData);
     await act(async () => {
@@ -111,36 +111,9 @@ describe('useTables hook', () => {
     });
     expect(SupersetClient.get).toHaveBeenCalledTimes(2);
     expect(SupersetClient.get).toHaveBeenCalledWith({
-      endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/undefined/true/`,
+      endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/true/`,
     });
     expect(result.current.data).toEqual(expectedData);
-  });
-
-  it('returns api response for search keyword', async () => {
-    const expectDbId = 'db1';
-    const expectedSchema = 'schemaA';
-    const expectedKeyword = 'my work';
-    const forceRefresh = false;
-    renderHook(
-      () =>
-        useTables({
-          dbId: expectDbId,
-          schema: expectedSchema,
-          keyword: expectedKeyword,
-        }),
-      {
-        wrapper: QueryProvider,
-      },
-    );
-    await act(async () => {
-      jest.runAllTimers();
-    });
-    expect(SupersetClient.get).toHaveBeenCalledTimes(1);
-    expect(SupersetClient.get).toHaveBeenCalledWith({
-      endpoint: `/superset/tables/${expectDbId}/${expectedSchema}/${encodeURIComponent(
-        expectedKeyword,
-      )}/${forceRefresh}/`,
-    });
   });
 
   it('returns hasMore when total is larger than result size', async () => {

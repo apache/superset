@@ -20,16 +20,18 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  DTTM_ALIAS,
   GenericDataType,
-  getColumnLabel,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
+  QueryFormData,
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
+  getXAxisLabel,
+  isPhysicalColumn,
+  isDefined,
 } from '@superset-ui/core';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
 import {
@@ -38,7 +40,11 @@ import {
   EchartsMixedTimeseriesChartTransformedProps,
   EchartsMixedTimeseriesProps,
 } from './types';
-import { EchartsTimeseriesSeriesType, ForecastSeriesEnum } from '../types';
+import {
+  EchartsTimeseriesSeriesType,
+  ForecastSeriesEnum,
+  Refs,
+} from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   getOverMaxHiddenFormatter,
@@ -62,7 +68,7 @@ import {
   rebaseForecastDatum,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
-import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getPadding,
   getTooltipTimeFormatter,
@@ -74,6 +80,7 @@ import {
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
 import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
@@ -150,24 +157,32 @@ export default function transformProps(
     percentageThreshold,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
+  const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
 
-  const xAxisCol =
-    verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
+  let xAxisLabel = getXAxisLabel(
+    chartProps.rawFormData as QueryFormData,
+  ) as string;
+  if (
+    isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
+    isDefined(verboseMap[xAxisLabel])
+  ) {
+    xAxisLabel = verboseMap[xAxisLabel];
+  }
 
   const rebasedDataA = rebaseForecastDatum(data1, verboseMap);
   const rawSeriesA = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
-    xAxis: xAxisCol,
+    xAxis: xAxisLabel,
   });
   const rebasedDataB = rebaseForecastDatum(data2, verboseMap);
   const rawSeriesB = extractSeries(rebasedDataB, {
     fillNeighborValue: stackB ? 0 : undefined,
-    xAxis: xAxisCol,
+    xAxis: xAxisLabel,
   });
 
   const dataTypes = getColtypesMapping(queriesData[0]);
-  const xAxisDataType = dataTypes?.[xAxisCol] ?? dataTypes?.[xAxisOrig];
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
   const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
@@ -204,7 +219,7 @@ export default function transformProps(
     {
       stack,
       percentageThreshold,
-      xAxisCol,
+      xAxisCol: xAxisLabel,
     },
   );
   const {
@@ -213,7 +228,7 @@ export default function transformProps(
   } = extractDataTotalValues(rebasedDataB, {
     stack: Boolean(stackB),
     percentageThreshold,
-    xAxisCol,
+    xAxisCol: xAxisLabel,
   });
 
   annotationLayers
@@ -224,7 +239,7 @@ export default function transformProps(
           transformFormulaAnnotation(
             layer,
             data1,
-            xAxisCol,
+            xAxisLabel,
             xAxisType,
             colorScale,
             sliceId,
@@ -410,9 +425,8 @@ export default function transformProps(
       },
     ],
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const xValue: number = richTooltip
@@ -500,5 +514,10 @@ export default function transformProps(
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
     xValueFormatter: tooltipFormatter,
+    xAxis: {
+      label: xAxisLabel,
+      type: xAxisType,
+    },
+    refs,
   };
 }

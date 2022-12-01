@@ -17,9 +17,12 @@
  * under the License.
  */
 import {
+  AdhocColumn,
   buildQueryContext,
   ensureIsArray,
   getMetricLabel,
+  hasGenericChartAxes,
+  isPhysicalColumn,
   QueryMode,
   QueryObject,
   removeDuplicates,
@@ -63,7 +66,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
   }
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
-    let { metrics, orderby = [] } = baseQueryObject;
+    let { metrics, orderby = [], columns = [] } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
 
     if (queryMode === QueryMode.aggregate) {
@@ -95,6 +98,24 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           },
         ];
       }
+
+      columns = columns.map(col => {
+        if (
+          isPhysicalColumn(col) &&
+          formData.time_grain_sqla &&
+          hasGenericChartAxes &&
+          formData?.temporal_columns_lookup?.[col]
+        ) {
+          return {
+            timeGrain: formData.time_grain_sqla,
+            columnType: 'BASE_AXIS',
+            sqlExpression: col,
+            label: col,
+            expressionType: 'SQL',
+          } as AdhocColumn;
+        }
+        return col;
+      });
     }
 
     const moreProps: Partial<QueryObject> = {};
@@ -108,6 +129,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     let queryObject = {
       ...baseQueryObject,
+      columns,
       orderby,
       metrics,
       post_processing: postProcessing,

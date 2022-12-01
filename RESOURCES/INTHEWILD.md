@@ -40,6 +40,7 @@ Join our growing community!
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
@@ -89,6 +90,7 @@ Join our growing community!
 - [Myra Labs](http://www.myralabs.com/) [@viksit]
 - [Nielsen](http://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
+- [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [Preset, Inc.](https://preset.io)
@@ -147,7 +149,11 @@ Join our growing community!
 ### HR / Staffing
 - [Symmetrics](https://www.symmetrics.fyi)
 
+### News
+- [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
+
 ### Others
+- [AI inside](https://inside.ai/en/)
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]

@@ -47,7 +47,7 @@ type Options = Omit<RenderOptions, 'queries'> & {
   store?: Store;
 };
 
-function createWrapper(options?: Options) {
+export function createWrapper(options?: Options) {
   const {
     useDnd,
     useRedux,

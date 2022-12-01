@@ -16,14 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useEffect,
-  useState,
-  useMemo,
-  SetStateAction,
-  Dispatch,
-} from 'react';
-import { SupersetClient, t, styled, FAST_DEBOUNCE } from '@superset-ui/core';
+import React, { useEffect, useState, SetStateAction, Dispatch } from 'react';
+import { SupersetClient, t, styled } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form } from 'src/components/Form';
 import Icons from 'src/components/Icons';
@@ -31,15 +25,16 @@ import { TableOption } from 'src/components/TableSelector';
 import RefreshLabel from 'src/components/RefreshLabel';
 import { Table } from 'src/hooks/apiResources';
 import Loading from 'src/components/Loading';
-import DatabaseSelector from 'src/components/DatabaseSelector';
-import { debounce } from 'lodash';
+import DatabaseSelector, {
+  DatabaseObject,
+} from 'src/components/DatabaseSelector';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DatasetActionType, DatasetObject } from '../types';
+import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
-  schema?: string | undefined | null;
+  schema?: string | null | undefined;
   dbId?: number;
 }
 
@@ -60,7 +55,7 @@ const LeftPanelStyle = styled.div`
     }
     .refresh {
       position: absolute;
-      top: ${theme.gridUnit * 43.25}px;
+      top: ${theme.gridUnit * 37.25}px;
       left: ${theme.gridUnit * 16.75}px;
       span[role="button"]{
         font-size: ${theme.gridUnit * 4.25}px;
@@ -80,17 +75,28 @@ const LeftPanelStyle = styled.div`
       overflow: auto;
       position: absolute;
       bottom: 0;
-      top: ${theme.gridUnit * 97.5}px;
+      top: ${theme.gridUnit * 92.25}px;
       left: ${theme.gridUnit * 3.25}px;
       right: 0;
       .options {
+        cursor: pointer;
         padding: ${theme.gridUnit * 1.75}px;
         border-radius: ${theme.borderRadius}px;
+        :hover {
+          background-color: ${theme.colors.grayscale.light4}
+        }
+      }
+      .options-highlighted {
+        cursor: pointer;
+        padding: ${theme.gridUnit * 1.75}px;
+        border-radius: ${theme.borderRadius}px;
+        background-color: ${theme.colors.primary.dark1};
+        color: ${theme.colors.grayscale.light5};
       }
     }
     form > span[aria-label="refresh"] {
       position: absolute;
-      top: ${theme.gridUnit * 73}px;
+      top: ${theme.gridUnit * 67.5}px;
       left: ${theme.gridUnit * 42.75}px;
       font-size: ${theme.gridUnit * 4.25}px;
     }
@@ -108,10 +114,9 @@ const LeftPanelStyle = styled.div`
         margin-bottom: 10px;
       }
       p {
-        color: ${theme.colors.grayscale.light1}
+        color: ${theme.colors.grayscale.light1};
       }
     }
-  }
 `}
 `;
 
@@ -125,12 +130,22 @@ export default function LeftPanel({
   const [loadTables, setLoadTables] = useState(false);
   const [searchVal, setSearchVal] = useState('');
   const [refresh, setRefresh] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<number | null>(null);
 
   const { addDangerToast } = useToasts();
 
-  const setDatabase = (db: Partial<DatasetObject>) => {
-    setDataset({ type: DatasetActionType.selectDatabase, payload: db });
+  const setDatabase = (db: Partial<DatabaseObject>) => {
+    setDataset({ type: DatasetActionType.selectDatabase, payload: { db } });
+    setSelectedTable(null);
     setResetTables(true);
+  };
+
+  const setTable = (tableName: string, index: number) => {
+    setSelectedTable(index);
+    setDataset({
+      type: DatasetActionType.selectTable,
+      payload: { name: 'table_name', value: tableName },
+    });
   };
 
   const getTablesList = (url: string) => {
@@ -164,6 +179,7 @@ export default function LeftPanel({
       });
       setLoadTables(true);
     }
+    setSelectedTable(null);
     setResetTables(true);
   };
 
@@ -172,7 +188,7 @@ export default function LeftPanel({
   useEffect(() => {
     if (loadTables) {
       const endpoint = encodeURI(
-        `/superset/tables/${dbId}/${encodedSchema}/undefined/${refresh}/`,
+        `/superset/tables/${dbId}/${encodedSchema}/${refresh}/`,
       );
       getTablesList(endpoint);
     }
@@ -185,23 +201,14 @@ export default function LeftPanel({
     }
   }, [resetTables]);
 
-  const search = useMemo(
-    () =>
-      debounce((value: string) => {
-        const encodeTableName =
-          value === '' ? undefined : encodeURIComponent(value);
-        const endpoint = encodeURI(
-          `/superset/tables/${dbId}/${encodedSchema}/${encodeTableName}/`,
-        );
-        getTablesList(endpoint);
-      }, FAST_DEBOUNCE),
-    [dbId, encodedSchema],
+  const filteredOptions = tableOptions.filter(option =>
+    option?.value?.toLowerCase().includes(searchVal.toLowerCase()),
   );
 
   const Loader = (inline: string) => (
     <div className="loading-container">
       <Loading position="inline" />
-      <p>{inline} </p>
+      <p>{inline}</p>
     </div>
   );
 
@@ -214,7 +221,6 @@ export default function LeftPanel({
         onSchemaChange={setSchema}
       />
       {loadTables && !refresh && Loader('Table loading')}
-
       {schema && !loadTables && !tableOptions.length && !searchVal && (
         <div className="emptystate">
           <EmptyStateMedium
@@ -242,19 +248,27 @@ export default function LeftPanel({
                 value={searchVal}
                 prefix={<SearchIcon iconSize="l" />}
                 onChange={evt => {
-                  search(evt.target.value);
                   setSearchVal(evt.target.value);
                 }}
                 className="table-form"
                 placeholder={t('Search tables')}
+                allowClear
               />
             )}
           </Form>
           <div className="options-list" data-test="options-list">
             {!refresh &&
-              tableOptions.map((o, i) => (
-                <div className="options" key={i}>
-                  {o.label}
+              filteredOptions.map((option, i) => (
+                <div
+                  className={
+                    selectedTable === i ? 'options-highlighted' : 'options'
+                  }
+                  key={i}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setTable(option.value, i)}
+                >
+                  {option.label}
                 </div>
               ))}
           </div>

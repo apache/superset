@@ -107,9 +107,8 @@ test('should compile query object A', () => {
     row_limit: 10,
     row_offset: undefined,
     series_columns: ['foo'],
-    series_limit: undefined,
+    series_limit: 5,
     series_limit_metric: undefined,
-    timeseries_limit: 5,
     url_params: {},
     custom_params: {},
     custom_form_data: {},
@@ -167,9 +166,8 @@ test('should compile query object B', () => {
     row_limit: 100,
     row_offset: undefined,
     series_columns: [],
-    series_limit: undefined,
+    series_limit: 0,
     series_limit_metric: undefined,
-    timeseries_limit: 0,
     url_params: {},
     custom_params: {},
     custom_form_data: {},
@@ -267,7 +265,22 @@ test('should compile AA in query B', () => {
   });
 });
 
-test('should compile query objects with x-axis', () => {
+test('should convert a queryObject with x-axis although FF is disabled', () => {
+  let windowSpy: any;
+
+  beforeAll(() => {
+    // @ts-ignore
+    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
+      featureFlags: {
+        GENERIC_CHART_AXES: false,
+      },
+    }));
+  });
+
+  afterAll(() => {
+    windowSpy.mockRestore();
+  });
+
   const { queries } = buildQuery({
     ...formDataMixedChart,
     x_axis: 'my_index',
@@ -280,23 +293,29 @@ test('should compile query objects with x-axis', () => {
     filters: [],
     extras: {
       having: '',
-      time_grain_sqla: 'P1W',
       where: "(foo in ('a', 'b'))",
     },
     applied_time_extras: {},
-    columns: ['my_index', 'foo'],
+    columns: [
+      {
+        columnType: 'BASE_AXIS',
+        expressionType: 'SQL',
+        label: 'my_index',
+        sqlExpression: 'my_index',
+        timeGrain: 'P1W',
+      },
+      'foo',
+    ],
     metrics: ['sum(sales)'],
     annotation_layers: [],
     row_limit: 10,
     row_offset: undefined,
     series_columns: ['foo'],
-    series_limit: undefined,
+    series_limit: 5,
     series_limit_metric: undefined,
-    timeseries_limit: 5,
     url_params: {},
     custom_params: {},
     custom_form_data: {},
-    is_timeseries: false,
     time_offsets: [],
     post_processing: [
       {
@@ -332,8 +351,16 @@ test('should compile query objects with x-axis', () => {
   // check the main props on the second query
   expect(queries[1]).toEqual(
     expect.objectContaining({
-      is_timeseries: false,
-      columns: ['my_index'],
+      columns: [
+        {
+          columnType: 'BASE_AXIS',
+          expressionType: 'SQL',
+          label: 'my_index',
+          sqlExpression: 'my_index',
+          timeGrain: 'P1W',
+        },
+      ],
+      granularity: 'ds',
       series_columns: [],
       metrics: ['count'],
       post_processing: [
@@ -348,6 +375,93 @@ test('should compile query objects with x-axis', () => {
             columns: [],
             drop_missing_columns: false,
             index: ['my_index'],
+          },
+        },
+        {
+          operation: 'flatten',
+        },
+      ],
+    }),
+  );
+});
+
+test("shouldn't convert a queryObject with axis although FF is enabled", () => {
+  let windowSpy: any;
+
+  beforeAll(() => {
+    // @ts-ignore
+    windowSpy = jest.spyOn(window, 'window', 'get').mockImplementation(() => ({
+      featureFlags: {
+        GENERIC_CHART_AXES: true,
+      },
+    }));
+  });
+
+  afterAll(() => {
+    windowSpy.mockRestore();
+  });
+
+  const { queries } = buildQuery(formDataMixedChart);
+  expect(queries[0]).toEqual(
+    expect.objectContaining({
+      granularity: 'ds',
+      columns: ['foo'],
+      series_columns: ['foo'],
+      metrics: ['sum(sales)'],
+      is_timeseries: true,
+      extras: {
+        time_grain_sqla: 'P1W',
+        having: '',
+        where: "(foo in ('a', 'b'))",
+      },
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            aggregates: {
+              'sum(sales)': {
+                operator: 'mean',
+              },
+            },
+            columns: ['foo'],
+            drop_missing_columns: false,
+            index: ['__timestamp'],
+          },
+        },
+        {
+          operation: 'rename',
+          options: { columns: { 'sum(sales)': null }, inplace: true, level: 0 },
+        },
+        {
+          operation: 'flatten',
+        },
+      ],
+    }),
+  );
+  expect(queries[1]).toEqual(
+    expect.objectContaining({
+      granularity: 'ds',
+      columns: [],
+      series_columns: [],
+      metrics: ['count'],
+      is_timeseries: true,
+      extras: {
+        time_grain_sqla: 'P1W',
+        having: '',
+        where: "(name in ('c', 'd'))",
+      },
+      post_processing: [
+        {
+          operation: 'pivot',
+          options: {
+            aggregates: {
+              count: {
+                operator: 'mean',
+              },
+            },
+            columns: [],
+            drop_missing_columns: false,
+            index: ['__timestamp'],
           },
         },
         {
