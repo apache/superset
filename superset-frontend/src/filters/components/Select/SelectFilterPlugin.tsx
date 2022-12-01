@@ -17,6 +17,13 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
+import React, {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   AppSection,
   DataMask,
@@ -27,17 +34,20 @@ import {
   getColumnLabel,
   JsonObject,
   smartDateDetailedFormatter,
+  styled,
   t,
   tn,
 } from '@superset-ui/core';
 import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Select } from 'src/components';
+import type { TagProps } from 'antd/lib/tag';
 import debounce from 'lodash/debounce';
-import { SLOW_DEBOUNCE } from 'src/constants';
 import { useImmerReducer } from 'use-immer';
+import { Select, Tag as AntdTag } from 'src/components';
+import { Tooltip } from 'src/components/Tooltip';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import { useCSSTextTruncation } from 'src/hooks/useTruncation';
 import { PluginFilterSelectProps, SelectValue } from './types';
 import { FilterPluginStyle, StatusMessage, StyledFormItem } from '../common';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -72,6 +82,60 @@ function reducer(
       return draft;
   }
 }
+
+const StyledTag = styled(AntdTag)`
+  & .ant-tag-close-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  & .tag-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
+export interface CustomTagProps extends HTMLSpanElement {
+  label: ReactNode;
+}
+
+// TODO: use antd Tag props instead of any. Currently it's causing a typescript error
+const Tag = (props: any) => {
+  const [tagRef, tagIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
+  return (
+    <Tooltip title={tagIsTruncated ? props.children : null}>
+      <StyledTag {...props} className="ant-select-selection-item">
+        <span className="tag-content" ref={tagRef}>
+          {props.children}
+        </span>
+      </StyledTag>
+    </Tooltip>
+  );
+};
+
+const tagRender = (props: TagProps & CustomTagProps) => {
+  const { label } = props;
+
+  const onPreventMouseDown = (event: React.MouseEvent<HTMLElement>) => {
+    // if close icon is clicked, stop propagation to avoid opening the dropdown
+    const target = event.target as HTMLElement;
+    if (
+      target.tagName === 'svg' ||
+      target.tagName === 'path' ||
+      (target.tagName === 'span' &&
+        target.className.includes('ant-tag-close-icon'))
+    ) {
+      event.stopPropagation();
+    }
+  };
+
+  return (
+    <Tag onMouseDown={onPreventMouseDown} {...props}>
+      {label}
+    </Tag>
+  );
+};
 
 export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const {
@@ -333,6 +397,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           maxTagPlaceholder={(val: AntdLabeledValue[]) => (
             <span>+{val.length}</span>
           )}
+          tagRender={tagRender}
           onDropdownVisibleChange={setFilterActive}
         />
       </StyledFormItem>

@@ -25,13 +25,13 @@ import {
   t,
 } from '@superset-ui/core';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { AntdSlider } from 'src/components';
 import { rgba } from 'emotion-rgba';
+import { AntdSlider } from 'src/components';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
-import { FilterBarOrientation } from '../../../dashboard/types';
 
 const LIGHT_BLUE = '#99e7f0';
 const DARK_BLUE = '#6dd3e3';
