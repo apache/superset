@@ -32,7 +32,6 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
-from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
@@ -91,13 +90,10 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
-            # Generate tunnel if present in the properties
+            # TODO: (hughhh) uncomment in API enablement PR
             ssh_tunnel = None
-            if ssh_tunnel := self._properties.get("ssh_tunnel"):
-                url = make_url_safe(database.sqlalchemy_uri_decrypted)
-                ssh_tunnel["bind_host"] = url.host
-                ssh_tunnel["bind_port"] = url.port
-                ssh_tunnel = SSHTunnel(**ssh_tunnel)
+            # if self._properties.get("ssh_tunnel"):
+            #     ssh_tunnel = SSHTunnel(**self._properties["ssh_tunnel"])
 
             event_logger.log_with_context(
                 action="test_connection_attempt",
@@ -108,9 +104,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 with closing(engine.raw_connection()) as conn:
                     return engine.dialect.do_ping(conn)
 
-            with database.get_sqla_engine_with_context(
-                override_ssh_tunnel=ssh_tunnel
-            ) as engine:
+            with database.get_sqla_engine_with_context(ssh_tunnel=ssh_tunnel) as engine:
                 try:
                     alive = func_timeout(
                         app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds(),
