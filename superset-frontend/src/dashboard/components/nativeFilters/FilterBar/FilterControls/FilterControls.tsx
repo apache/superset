@@ -33,6 +33,8 @@ import {
   SupersetTheme,
   t,
   isNativeFilter,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -65,7 +67,10 @@ const FilterControls: FC<FilterControlsProps> = ({
   onFilterSelectionChange,
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    state => state.dashboardInfo.filterBarOrientation,
+    ({ dashboardInfo }) =>
+      isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
+        ? dashboardInfo.filterBarOrientation
+        : FilterBarOrientation.VERTICAL,
   );
 
   const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
@@ -95,7 +100,14 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderer = useCallback(
     ({ id }: Filter | Divider) => {
       const index = filtersWithValues.findIndex(f => f.id === id);
-      return <OutPortal node={portalNodes[index]} inView />;
+      return (
+        // Empty text node is to ensure there's always an element preceding
+        // the OutPortal, otherwise react-reverse-portal crashes
+        <React.Fragment key={id}>
+          {'' /* eslint-disable-line react/jsx-curly-brace-presence */}
+          <OutPortal node={portalNodes[index]} inView />
+        </React.Fragment>
+      );
     },
     [filtersWithValues, portalNodes],
   );
@@ -138,7 +150,7 @@ const FilterControls: FC<FilterControlsProps> = ({
   const activeOverflowedFiltersInScope = useMemo(
     () =>
       overflowedFiltersInScope.filter(
-        filter => isNativeFilter(filter) && filter.dataMask.filterState?.value,
+        filter => isNativeFilter(filter) && filter.dataMask?.filterState?.value,
       ).length,
     [overflowedFiltersInScope],
   );
@@ -219,7 +231,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {portalNodes
         .filter((node, index) => filterIds.has(filtersWithValues[index].id))
         .map((node, index) => (
-          <InPortal node={node}>
+          <InPortal node={node} key={filtersWithValues[index].id}>
             {filterControlFactory(
               index,
               filterBarOrientation,

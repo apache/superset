@@ -144,7 +144,7 @@ def upload_excel(
     form_data = {
         "excel_file": open(filename, "rb"),
         "name": table_name,
-        "con": excel_upload_db_id,
+        "database": excel_upload_db_id,
         "sheet_name": "Sheet1",
         "if_exists": "fail",
         "index_label": "test_label",
@@ -165,7 +165,7 @@ def upload_columnar(
     form_data = {
         "columnar_file": open(filename, "rb"),
         "name": table_name,
-        "con": columnar_upload_db_id,
+        "database": columnar_upload_db_id,
         "if_exists": "fail",
         "index_label": "test_label",
     }
