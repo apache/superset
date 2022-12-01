@@ -53,11 +53,11 @@ def upgrade():
         # SSHTunnelCredentials
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id"), unique=True),
-        sa.Column("server_address", encrypted_field_factory.create(sa.String(1024))),
-        sa.Column("server_port", encrypted_field_factory.create(sa.INTEGER())),
-        sa.Column("username", encrypted_field_factory.create(sa.String(1024))),
+        sa.Column("server_address", sa.String(256)),
+        sa.Column("server_port", sa.INTEGER()),
+        sa.Column("username", encrypted_field_factory.create(sa.String(256))),
         sa.Column(
-            "password", encrypted_field_factory.create(sa.String(1024)), nullable=True
+            "password", encrypted_field_factory.create(sa.String(256)), nullable=True
         ),
         sa.Column(
             "private_key",
@@ -66,11 +66,11 @@ def upgrade():
         ),
         sa.Column(
             "private_key_password",
-            encrypted_field_factory.create(sa.String(1024)),
+            encrypted_field_factory.create(sa.String(256)),
             nullable=True,
         ),
-        sa.Column("bind_host", encrypted_field_factory.create(sa.String(1024))),
-        sa.Column("bind_port", encrypted_field_factory.create(sa.INTEGER())),
+        sa.Column("bind_host", sa.String(256)),
+        sa.Column("bind_port", sa.INTEGER()),
     )
 
 
