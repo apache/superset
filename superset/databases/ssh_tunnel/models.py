@@ -51,7 +51,7 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         foreign_keys=[database_id],
     )
 
-    server_address = sa.Column(sa.String)
+    server_address = sa.Column(sa.Text)
     server_port = sa.Column(sa.Integer)
     username = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
 
@@ -68,7 +68,7 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
 
-    bind_host = sa.Column(sa.String)
+    bind_host = sa.Column(sa.Text)
     bind_port = sa.Column(sa.Integer)
 
     def parameters(self) -> Dict[str, Any]:
