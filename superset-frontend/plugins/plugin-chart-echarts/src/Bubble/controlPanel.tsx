@@ -44,7 +44,17 @@ const config: ControlPanelConfig = {
         ['y'],
         ['adhoc_filters'],
         ['size'],
-        ['limit', null],
+        ['orderby'],
+        [
+          {
+            name: 'order_desc',
+            config: {
+              ...sharedControls.order_desc,
+              visibility: ({ controls }) => Boolean(controls.orderby.value),
+            },
+          },
+        ],
+        ['row_limit'],
         // emitFilterControl,
       ],
     },
@@ -164,7 +174,7 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'logYAxis',
+            name: 'logXAxis',
             config: {
               type: 'CheckboxControl',
               label: t('Logarithmic x-axis'),
@@ -228,7 +238,7 @@ const config: ControlPanelConfig = {
         ['y_axis_format'],
         [
           {
-            name: 'logXAxis',
+            name: 'logYAxis',
             config: {
               type: 'CheckboxControl',
               label: t('Logarithmic y-axis'),

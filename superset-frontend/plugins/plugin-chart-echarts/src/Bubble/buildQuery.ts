@@ -32,7 +32,9 @@ export default function buildQuery(formData: QueryFormData) {
     {
       ...baseQueryObject,
       columns,
-      row_limit: formData.limit,
+      orderby: baseQueryObject.orderby
+        ? [[baseQueryObject.orderby[0], !baseQueryObject.order_desc]]
+        : undefined,
     },
   ]);
 }
