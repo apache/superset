@@ -607,9 +607,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
     def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name
 
-    def get_column(self, column_name: Optional[str]) -> Optional[TableColumn]:
-        return super().get_column(column_name)
-
     @staticmethod
     def _apply_cte(sql: str, cte: Optional[str]) -> str:
         """
