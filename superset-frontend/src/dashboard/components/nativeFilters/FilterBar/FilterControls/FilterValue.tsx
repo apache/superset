@@ -44,6 +44,7 @@ import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { onFiltersRefreshSuccess } from 'src/dashboard/actions/dashboardState';
+import { FAST_DEBOUNCE } from 'src/constants';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
@@ -214,7 +215,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
     if (focusedFilterId && focusedFilterId === filter.id) {
       setTimeout(() => {
         inputRef?.current?.focus();
-      }, 100);
+      }, FAST_DEBOUNCE);
     }
   }, [inputRef, focusedFilterId, filter.id]);
 
