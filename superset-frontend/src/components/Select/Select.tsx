@@ -109,16 +109,22 @@ const Select = forwardRef(
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [maxTagCount, setMaxTagCount] = useState(
+      propsMaxTagCount ?? MAX_TAG_COUNT,
+    );
+
+    useEffect(() => {
+      if (oneLine) {
+        setMaxTagCount(isDropdownVisible ? 0 : 1);
+      }
+    }, [isDropdownVisible, oneLine]);
+
     const mappedMode = isSingleMode
       ? undefined
       : allowNewOptions
       ? 'tags'
       : 'multiple';
 
-    let maxTagCount = propsMaxTagCount ?? MAX_TAG_COUNT;
-    if (oneLine) {
-      maxTagCount = isDropdownVisible ? 0 : 1;
-    }
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
         sortSelectedFirstHelper(a, b, selectValue),
