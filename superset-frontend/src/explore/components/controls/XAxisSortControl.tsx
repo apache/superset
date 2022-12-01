@@ -16,22 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { ControlSetRow } from '../types';
+import React, { useEffect, useState } from 'react';
+import SelectControl from './SelectControl';
 
-export const legacySortBy: ControlSetRow[] = [
-  ['legacy_order_by'],
-  [
-    {
-      name: 'order_desc',
-      config: {
-        type: 'CheckboxControl',
-        label: t('Sort descending'),
-        default: true,
-        description: t(
-          'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
-        ),
-      },
-    },
-  ],
-];
+export default function XAxisSortControl(props: {
+  onChange: (val: string | undefined) => void;
+  value: string | null;
+  shouldReset: boolean;
+}) {
+  const [value, setValue] = useState(props.value);
+  useEffect(() => {
+    if (props.shouldReset) {
+      props.onChange(undefined);
+      setValue(null);
+    }
+  }, [props.shouldReset, props.value]);
+
+  return <SelectControl {...props} value={value} />;
+}
