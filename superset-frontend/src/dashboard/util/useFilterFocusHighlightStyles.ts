@@ -70,7 +70,7 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
 
   if (highlightedFilterId) {
     if (
-      nativeFilters.filters[highlighterFilterId]?.chartsInScope?.includes(
+      nativeFilters.filters[highlightedFilterId]?.chartsInScope?.includes(
         chartId,
       )
     ) {
