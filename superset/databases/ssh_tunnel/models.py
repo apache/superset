@@ -18,11 +18,11 @@
 from typing import Any, Dict
 
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import EncryptedType
 
-from superset import app
 from superset.constants import SSH_TUNNELLING_LOCAL_BIND_ADDRESS
 from superset.models.core import Database
 from superset.models.helpers import (
@@ -31,7 +31,7 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 
-app_config = app.config
+app_config = current_app.config
 
 
 class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
@@ -42,7 +42,9 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     __tablename__ = "ssh_tunnels"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
+    database_id = sa.Column(
+        sa.Integer, sa.ForeignKey("dbs.id"), nullable=False, unique=True
+    )
     database: Database = relationship(
         "Database",
         backref=backref("ssh_tunnels", cascade="all, delete-orphan"),

@@ -52,7 +52,7 @@ def upgrade():
         sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
         # SSHTunnelCredentials
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id")),
+        sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id"), unique=True),
         sa.Column("server_address", encrypted_field_factory.create(sa.String(1024))),
         sa.Column("server_port", encrypted_field_factory.create(sa.INTEGER())),
         sa.Column("username", encrypted_field_factory.create(sa.String(1024))),
