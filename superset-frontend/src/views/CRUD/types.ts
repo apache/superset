@@ -27,7 +27,7 @@ export type FavoriteStatus = {
 export enum TableTabTypes {
   FAVORITE = 'Favorite',
   MINE = 'Mine',
-  EXAMPLES = 'Examples',
+  OTHER = 'Other',
 }
 
 export type Filters = {
@@ -44,7 +44,8 @@ export interface DashboardTableProps {
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
   featureFlag?: boolean;
-  examples: Array<Dashboard>;
+  otherTabData: Array<Dashboard>;
+  otherTabTitle: string;
 }
 
 export interface Dashboard {

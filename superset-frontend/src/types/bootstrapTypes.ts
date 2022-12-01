@@ -81,6 +81,15 @@ export interface CommonBootstrapData {
   feature_flags: Record<string, boolean>;
 }
 
+export interface BootstrapData {
+  user?: BootstrapUser;
+  common?: CommonBootstrapData;
+  config?: any;
+  embedded?: {
+    dashboard_id: string;
+  };
+}
+
 export function isUser(user: any): user is User {
   return isPlainObject(user) && 'username' in user;
 }

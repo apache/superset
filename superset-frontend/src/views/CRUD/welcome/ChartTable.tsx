@@ -53,7 +53,8 @@ interface ChartTableProps {
   user?: User;
   mine: Array<any>;
   showThumbnails: boolean;
-  examples?: Array<object>;
+  otherTabData?: Array<object>;
+  otherTabTitle: string;
 }
 
 function ChartTable({
@@ -62,16 +63,17 @@ function ChartTable({
   addSuccessToast,
   mine,
   showThumbnails,
-  examples,
+  otherTabData,
+  otherTabTitle,
 }: ChartTableProps) {
   const history = useHistory();
   const filterStore = getItem(
     LocalStorageKeys.homepage_chart_filter,
-    TableTabTypes.EXAMPLES,
+    TableTabTypes.OTHER,
   );
   const initialFilter = filterStore;
 
-  const filteredExamples = filter(examples, obj => 'viz_type' in obj);
+  const filteredOtherTabData = filter(otherTabData, obj => 'viz_type' in obj);
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -84,7 +86,7 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    initialFilter === 'Mine' ? mine : filteredExamples,
+    initialFilter === 'Mine' ? mine : filteredOtherTabData,
     [],
     false,
   );
@@ -177,13 +179,13 @@ function ChartTable({
       },
     },
   ];
-  if (examples) {
+  if (otherTabData) {
     menuTabs.push({
-      name: 'Examples',
-      label: t('Examples'),
+      name: 'Other',
+      label: otherTabTitle,
       onClick: () => {
-        setChartFilter(TableTabTypes.EXAMPLES);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTabTypes.EXAMPLES);
+        setChartFilter(TableTabTypes.OTHER);
+        setItem(LocalStorageKeys.homepage_chart_filter, TableTabTypes.OTHER);
       },
     });
   }

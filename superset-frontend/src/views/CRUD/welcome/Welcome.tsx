@@ -40,7 +40,9 @@ import {
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
+import { useBootstrapData } from 'src/hooks/useBootstrapData';
 
+import { Filters } from '../types';
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
@@ -57,7 +59,7 @@ export interface ActivityData {
   Created?: Array<object>;
   Edited?: Array<object>;
   Viewed?: Array<object>;
-  Examples?: Array<object>;
+  Other?: Array<object>;
 }
 
 interface LoadingProps {
@@ -162,6 +164,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     defaultChecked =
       userKey?.thumbnails === undefined ? true : userKey?.thumbnails;
   }
+  const bootstrapData = useBootstrapData();
+  const [otherTabTitle, setOtherTabTitle] = useState('');
+  const [otherTabFilters, setOtherTabFilters] = useState<Filters[]>([]);
   const [checked, setChecked] = useState(defaultChecked);
   const [activityData, setActivityData] = useState<ActivityData | null>(null);
   const [chartData, setChartData] = useState<Array<object> | null>(null);
@@ -186,12 +191,34 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   );
 
   useEffect(() => {
+    const lastTab = bootstrapData.common?.conf.WELCOME_PAGE_LAST_TAB;
+    const [customTitle, customFilter] =
+      typeof lastTab === 'object' ? lastTab : [undefined, undefined];
+    if (customTitle && customFilter) {
+      setOtherTabTitle(t(customTitle));
+      setOtherTabFilters(customFilter);
+    } else if (lastTab === 'all') {
+      setOtherTabTitle(t('All'));
+      setOtherTabFilters([]);
+    } else {
+      setOtherTabTitle(t('Examples'));
+      setOtherTabFilters([
+        {
+          col: 'created_by',
+          opr: 'rel_o_m',
+          value: 0,
+        },
+      ]);
+    }
+  }, [bootstrapData.common?.conf.WELCOME_PAGE_LAST_TAB]);
+
+  useEffect(() => {
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
-    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast)
+    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
         const data: ActivityData | null = {};
-        data.Examples = res.examples;
+        data.Other = res.other;
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
           data.Viewed = filtered;
@@ -282,8 +309,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     }
   }, [activityData]);
 
-  const isRecentActivityLoading =
-    !activityData?.Examples && !activityData?.Viewed;
+  const isRecentActivityLoading = !activityData?.Other && !activityData?.Viewed;
   return (
     <WelcomeContainer>
       {WelcomeMessageExtension && <WelcomeMessageExtension />}
@@ -309,7 +335,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             <Collapse.Panel header={t('Recents')} key="1">
               {activityData &&
               (activityData.Viewed ||
-                activityData.Examples ||
+                activityData.Other ||
                 activityData.Created) &&
               activeChild !== 'Loading' ? (
                 <ActivityTable
@@ -331,7 +357,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   user={user}
                   mine={dashboardData}
                   showThumbnails={checked}
-                  examples={activityData?.Examples}
+                  otherTabData={activityData?.Other}
+                  otherTabTitle={otherTabTitle}
                 />
               )}
             </Collapse.Panel>
@@ -343,7 +370,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   showThumbnails={checked}
                   user={user}
                   mine={chartData}
-                  examples={activityData?.Examples}
+                  otherTabData={activityData?.Other}
+                  otherTabTitle={otherTabTitle}
                 />
               )}
             </Collapse.Panel>

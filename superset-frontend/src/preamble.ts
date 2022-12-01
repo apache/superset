@@ -26,7 +26,7 @@ import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDasboardComponents';
-import { BootstrapUser, User } from './types/bootstrapTypes';
+import { BootstrapData, User } from './types/bootstrapTypes';
 import { initFeatureFlags } from './featureFlags';
 
 if (process.env.WEBPACK_MODE === 'development') {
@@ -34,14 +34,7 @@ if (process.env.WEBPACK_MODE === 'development') {
 }
 
 // eslint-disable-next-line import/no-mutable-exports
-export let bootstrapData: {
-  user?: BootstrapUser;
-  common?: any;
-  config?: any;
-  embedded?: {
-    dashboard_id: string;
-  };
-} = {};
+export let bootstrapData: BootstrapData = {};
 
 // Configure translation
 if (typeof window !== 'undefined') {

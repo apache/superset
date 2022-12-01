@@ -46,28 +46,26 @@ import SubMenu from 'src/views/components/SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
 
-export interface FilterValue {
-  col: string;
-  operator: string;
-  value: string | boolean | number | null | undefined;
-}
-
 function DashboardTable({
   user,
   addDangerToast,
   addSuccessToast,
   mine,
   showThumbnails,
-  examples,
+  otherTabData,
+  otherTabTitle,
 }: DashboardTableProps) {
   const history = useHistory();
   const filterStore = getItem(
     LocalStorageKeys.homepage_dashboard_filter,
-    TableTabTypes.EXAMPLES,
+    TableTabTypes.OTHER,
   );
   const defaultFilter = filterStore;
 
-  const filteredExamples = filter(examples, obj => !('viz_type' in obj));
+  const filteredOtherTabData = filter(
+    otherTabData,
+    obj => !('viz_type' in obj),
+  );
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -80,7 +78,7 @@ function DashboardTable({
     t('dashboard'),
     addDangerToast,
     true,
-    defaultFilter === 'Mine' ? mine : filteredExamples,
+    defaultFilter === 'Mine' ? mine : filteredOtherTabData,
     [],
     false,
   );
@@ -191,15 +189,15 @@ function DashboardTable({
     },
   ];
 
-  if (examples) {
+  if (otherTabData) {
     menuTabs.push({
-      name: 'Examples',
-      label: t('Examples'),
+      name: 'Other',
+      label: otherTabTitle,
       onClick: () => {
-        setDashboardFilter(TableTabTypes.EXAMPLES);
+        setDashboardFilter(TableTabTypes.OTHER);
         setItem(
           LocalStorageKeys.homepage_dashboard_filter,
-          TableTabTypes.EXAMPLES,
+          TableTabTypes.OTHER,
         );
       },
     });
