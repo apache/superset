@@ -24,7 +24,7 @@
     "ws": "^8.2.3"
   },
   "devDependencies": {
-    "@types/cookie": "^0.4.1",
+    "@types/cookie": "^0.5.1",
     "@types/ioredis": "^4.27.8",
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^8.5.9",
