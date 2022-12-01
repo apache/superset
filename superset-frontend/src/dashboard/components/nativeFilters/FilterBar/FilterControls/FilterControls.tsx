@@ -121,6 +121,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         id: filter.id,
         element: (
           <div
+            className="filter-item-wrapper"
             css={css`
               flex-shrink: 0;
             `}
