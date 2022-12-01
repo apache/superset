@@ -28,13 +28,18 @@ import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDasboardComponents';
 import { BootstrapData, User } from './types/bootstrapTypes';
 import { initFeatureFlags } from './featureFlags';
+import { DEFAULT_COMMON_BOOTSTRAP_DATA } from './constants';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
 // eslint-disable-next-line import/no-mutable-exports
-export let bootstrapData: BootstrapData = {};
+export let bootstrapData: BootstrapData = {
+  common: {
+    ...DEFAULT_COMMON_BOOTSTRAP_DATA,
+  },
+};
 
 // Configure translation
 if (typeof window !== 'undefined') {

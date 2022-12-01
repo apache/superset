@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { CommonBootstrapData } from './types/bootstrapTypes';
+
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 
@@ -141,3 +143,26 @@ export const SLOW_DEBOUNCE = 500;
  * Display null as `N/A`
  */
 export const NULL_DISPLAY = 'N/A';
+
+export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
+  flash_messages: [],
+  conf: {},
+  locale: 'en',
+  feature_flags: {},
+  language_pack: {
+    domain: '',
+    locale_data: {
+      superset: {
+        '': {
+          domain: 'superset',
+          lang: 'en',
+          plural_forms: '',
+        },
+      },
+    },
+  },
+  extra_categorical_color_schemes: [],
+  extra_sequential_color_schemes: [],
+  theme_overrides: {},
+  menu_data: {},
+};

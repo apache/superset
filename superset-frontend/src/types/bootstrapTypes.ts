@@ -96,7 +96,7 @@ export interface CommonBootstrapData {
 
 export interface BootstrapData {
   user?: BootstrapUser;
-  common?: CommonBootstrapData;
+  common: CommonBootstrapData;
   config?: any;
   embedded?: {
     dashboard_id: string;
