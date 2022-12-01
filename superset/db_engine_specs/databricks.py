@@ -205,8 +205,45 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
         )
 
     @classmethod
+    def extract_errors(
+        cls, ex: Exception, context: Optional[Dict[str, Any]] = None
+    ) -> List[SupersetError]:
+        raw_message = cls._extract_error_message(ex)
+
+        context = context or {}
+        context = {
+            "host": context["hostname"],
+            "access_token": context["password"],
+            "port": context["port"],
+            "username": context["username"],
+            "database": context["database"],
+        }
+        for regex, (message, error_type, extra) in cls.custom_errors.items():
+            match = regex.search(raw_message)
+            if match:
+                params = {**context, **match.groupdict()}
+                extra["engine_name"] = cls.engine_name
+                return [
+                    SupersetError(
+                        error_type=error_type,
+                        message=message % params,
+                        level=ErrorLevel.ERROR,
+                        extra=extra,
+                    )
+                ]
+
+        return [
+            SupersetError(
+                error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                message=cls._extract_error_message(ex),
+                level=ErrorLevel.ERROR,
+                extra={"engine_name": cls.engine_name},
+            )
+        ]
+
+    @classmethod
     def get_parameters_from_uri(  # type: ignore
-        cls, uri: str, *_
+        cls, uri: str, *_, **__
     ) -> DatabricksParametersType:
         url = make_url_safe(uri)
         encryption = all(
