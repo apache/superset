@@ -21,7 +21,7 @@ from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
-from superset.dao.exceptions import DAOUpdateFailedError
+from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.databases.commands.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseExistsValidationError,
@@ -30,6 +30,7 @@ from superset.databases.commands.exceptions import (
     DatabaseUpdateFailedError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.utils.core import DatasourceType
@@ -94,9 +95,33 @@ class UpdateDatabaseCommand(BaseCommand):
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
+
+            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
+                existing_ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database.id)
+                if existing_ssh_tunnel is None:
+                    # We couldn't found an existing tunnel so we need to create one
+                    SSHTunnelDAO.create(
+                        {
+                            **ssh_tunnel_properties,
+                            "database_id": database.id,
+                        },
+                        commit=False,
+                    )
+                else:
+                    # We found an existing tunnel so we need to update it
+                    ssh_tunnel_model = SSHTunnelDAO.find_by_id(existing_ssh_tunnel.id)
+                    SSHTunnelDAO.update(
+                        ssh_tunnel_model,
+                        ssh_tunnel_properties,
+                        commit=False,
+                    )
+
             db.session.commit()
 
         except DAOUpdateFailedError as ex:
+            logger.exception(ex.exception)
+            raise DatabaseUpdateFailedError() from ex
+        except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise DatabaseUpdateFailedError() from ex
         return database

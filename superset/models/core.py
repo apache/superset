@@ -24,11 +24,12 @@ from ast import literal_eval
 from contextlib import closing, contextmanager
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
 
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
+import sshtunnel
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -53,7 +54,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
-from superset import app, db_engine_specs
+from superset import app, db_engine_specs, is_feature_enabled
 from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
@@ -65,11 +66,16 @@ from superset.utils.core import get_username
 from superset.utils.memoized import memoized
 
 config = app.config
+
+ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 stats_logger = config["STATS_LOGGER"]
 log_query = config["QUERY_LOGGER"]
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from superset.databases.ssh_tunnel.models import SSHTunnel
 
 DB_CONNECTION_MUTATOR = config["DB_CONNECTION_MUTATOR"]
 
@@ -368,14 +374,37 @@ class Database(
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
+        override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
-        yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+        ssh_params: Dict[str, Any] = {}
+        from superset.databases.dao import (  # pylint: disable=import-outside-toplevel
+            DatabaseDAO,
+        )
+
+        if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
+            database_id=self.id
+        ):
+            # if ssh_tunnel is available build engine with information
+            url = make_url_safe(self.sqlalchemy_uri_decrypted)
+            ssh_tunnel.bind_host = url.host
+            ssh_tunnel.bind_port = url.port
+            ssh_params = ssh_tunnel.parameters()
+            with sshtunnel.open_tunnel(**ssh_params) as server:
+                yield self._get_sqla_engine(
+                    schema=schema,
+                    nullpool=nullpool,
+                    source=source,
+                    ssh_tunnel_server=server,
+                )
+        else:
+            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
 
     def _get_sqla_engine(
         self,
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
+        ssh_tunnel_server: Optional[sshtunnel.SSHTunnelForwarder] = None,
     ) -> Engine:
         extra = self.get_extra()
         sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
@@ -417,6 +446,13 @@ class Database(
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url, params, effective_username, security_manager, source
+            )
+
+        if ssh_tunnel_server:
+            # update sqlalchemy_url
+            url = make_url_safe(sqlalchemy_url)
+            sqlalchemy_url = url.set(
+                host="127.0.0.1", port=ssh_tunnel_server.local_bind_port
             )
 
         try:
@@ -556,14 +592,16 @@ class Database(
         :return: The table/schema pairs
         """
         try:
-            return {
-                (table, schema)
-                for table in self.db_engine_spec.get_table_names(
-                    database=self,
-                    inspector=self.inspector,
-                    schema=schema,
-                )
-            }
+            with self.get_inspector_with_context() as inspector:
+                tables = {
+                    (table, schema)
+                    for table in self.db_engine_spec.get_table_names(
+                        database=self,
+                        inspector=inspector,
+                        schema=schema,
+                    )
+                }
+                return tables
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
@@ -590,16 +628,22 @@ class Database(
         :return: set of views
         """
         try:
-            return {
-                (view, schema)
-                for view in self.db_engine_spec.get_view_names(
-                    database=self,
-                    inspector=self.inspector,
-                    schema=schema,
-                )
-            }
+            with self.get_inspector_with_context() as inspector:
+                return {
+                    (view, schema)
+                    for view in self.db_engine_spec.get_view_names(
+                        database=self,
+                        inspector=inspector,
+                        schema=schema,
+                    )
+                }
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
+
+    @contextmanager
+    def get_inspector_with_context(self) -> Inspector:
+        with self.get_sqla_engine_with_context() as engine:
+            yield sqla.inspect(engine)
 
     @cache_util.memoized_func(
         key="db:{self.id}:schema_list",
@@ -622,7 +666,8 @@ class Database(
         :return: schema list
         """
         try:
-            return self.db_engine_spec.get_schema_names(self.inspector)
+            with self.get_inspector_with_context() as inspector:
+                return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
@@ -690,7 +735,8 @@ class Database(
     def get_columns(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        return self.db_engine_spec.get_columns(self.inspector, table_name, schema)
+        with self.get_inspector_with_context() as inspector:
+            return self.db_engine_spec.get_columns(inspector, table_name, schema)
 
     def get_metrics(
         self,
@@ -702,26 +748,29 @@ class Database(
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        indexes = self.inspector.get_indexes(table_name, schema)
-        return self.db_engine_spec.normalize_indexes(indexes)
+        with self.get_inspector_with_context() as inspector:
+            indexes = inspector.get_indexes(table_name, schema)
+            return self.db_engine_spec.normalize_indexes(indexes)
 
     def get_pk_constraint(
         self, table_name: str, schema: Optional[str] = None
     ) -> Dict[str, Any]:
-        pk_constraint = self.inspector.get_pk_constraint(table_name, schema) or {}
+        with self.get_inspector_with_context() as inspector:
+            pk_constraint = inspector.get_pk_constraint(table_name, schema) or {}
 
-        def _convert(value: Any) -> Any:
-            try:
-                return utils.base_json_conv(value)
-            except TypeError:
-                return None
+            def _convert(value: Any) -> Any:
+                try:
+                    return utils.base_json_conv(value)
+                except TypeError:
+                    return None
 
-        return {key: _convert(value) for key, value in pk_constraint.items()}
+            return {key: _convert(value) for key, value in pk_constraint.items()}
 
     def get_foreign_keys(
         self, table_name: str, schema: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        return self.inspector.get_foreign_keys(table_name, schema)
+        with self.get_inspector_with_context() as inspector:
+            return inspector.get_foreign_keys(table_name, schema)
 
     def get_schema_access_for_file_upload(  # pylint: disable=invalid-name
         self,

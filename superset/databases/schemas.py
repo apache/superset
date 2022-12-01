@@ -365,6 +365,22 @@ class DatabaseValidateParametersSchema(Schema):
     )
 
 
+class DatabaseSSHTunnel(Schema):
+    id = fields.Integer()
+    database_id = fields.Integer()
+
+    server_address = fields.String(required=True)
+    server_port = fields.Integer(required=True)
+    username = fields.String(required=True)
+
+    # Basic Authentication
+    password = fields.String(required=False)
+
+    # password protected private key authentication
+    private_key = fields.String(required=False)
+    private_key_password = fields.String(required=False)
+
+
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
@@ -409,6 +425,7 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
     uuid = fields.String(required=False)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
@@ -456,6 +473,22 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     external_url = fields.String(allow_none=True)
 
 
+class DatabaseSSHTunnel(Schema):
+    id = fields.Integer()
+    database_id = fields.Integer()
+
+    server_address = fields.String()
+    server_port = fields.Integer()
+    username = fields.String()
+
+    # Basic Authentication
+    password = fields.String(required=False)
+
+    # password protected private key authentication
+    private_key = fields.String(required=False)
+    private_key_password = fields.String(required=False)
+
+
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
 
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
@@ -481,6 +514,8 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
         description=sqlalchemy_uri_description,
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
+
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class TableMetadataOptionsResponseSchema(Schema):
