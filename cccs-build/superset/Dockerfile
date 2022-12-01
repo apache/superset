@@ -4,6 +4,7 @@ FROM $VAULT_CA_CONTAINER AS vault_ca
 FROM uchimera.azurecr.io/cccs/superset-base:cccs-2.0_20221014182839_b5135
 
 
+
 USER root
 
 COPY *requirements.txt /tmp/

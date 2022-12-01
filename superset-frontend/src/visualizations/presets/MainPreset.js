@@ -90,6 +90,7 @@ import {
   AtAGlanceUserIdChartPlugin,
   AtAGlanceUserIDSasChartPlugin,
   ApplicationLinksChartPlugin,
+  IFrameVisualizationChartPlugin,
 } from 'src/cccs-viz/plugins/';
 import FilterBoxChartPlugin from '../FilterBox/FilterBoxChartPlugin';
 import TimeTableChartPlugin from '../TimeTable';
@@ -117,6 +118,7 @@ export default class MainPreset extends Preset {
         }),
         new AtAGlanceChartIpPlugin().configure({ key: 'at_a_glance_ip' }),
         new AtAGlanceChartDnsPlugin().configure({ key: 'at_a_glance_dns' }),
+        new IFrameVisualizationChartPlugin().configure({ key: 'i_frame' }),
         new GwwkChartsChartPlugin().configure({ key: 'gwwk_charts' }),
         new GwwkDatasetsChartPlugin().configure({ key: 'gwwk_datasets' }),
         new GwwkDashboardsChartPlugin().configure({ key: 'gwwk_dashboards' }),

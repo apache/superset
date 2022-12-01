@@ -28,3 +28,4 @@ export { default as AtAGlanceChartDnsPlugin } from './plugin-chart-at-a-glance-d
 export { default as AtAGlanceUserIdChartPlugin } from './plugin-chart-at-a-glance-user-id/src/plugin';
 export { default as AtAGlanceUserIDSasChartPlugin } from './plugin-chart-at-a-glance-user-id-sas/src/plugin';
 export { default as ApplicationLinksChartPlugin } from './plugin-chart-application-links/src/plugin';
+export { default as IFrameVisualizationChartPlugin } from './plugin-chart-iframe/src/plugin';
