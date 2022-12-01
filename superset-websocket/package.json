@@ -16,7 +16,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "cookie": "^0.5.0",
-    "hot-shots": "^9.0.0",
+    "hot-shots": "^9.3.0",
     "ioredis": "^4.28.0",
     "jsonwebtoken": "^8.5.1",
     "uuid": "^8.3.2",
