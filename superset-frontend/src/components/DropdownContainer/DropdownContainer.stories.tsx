@@ -24,7 +24,7 @@ import Button from '../Button';
 import DropdownContainer, { DropdownContainerProps, Ref } from '.';
 
 export default {
-  title: 'DropdownContainer',
+  title: 'Design System/Components/DropdownContainer',
   component: DropdownContainer,
 };
 

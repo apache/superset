@@ -26,7 +26,9 @@ import React, {
   useLayoutEffect,
   useMemo,
   useState,
+  useRef,
 } from 'react';
+import { Global } from '@emotion/react';
 import { css, t, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { usePrevious } from 'src/hooks/usePrevious';
@@ -34,6 +36,8 @@ import Badge from '../Badge';
 import Icons from '../Icons';
 import Button from '../Button';
 import Popover from '../Popover';
+
+const MAX_HEIGHT = 500;
 
 /**
  * Container item.
@@ -104,12 +108,12 @@ const DropdownContainer = forwardRef(
     {
       items,
       onOverflowingStateChange,
-      dropdownContent: getPopoverContent,
-      dropdownRef: popoverRef,
-      dropdownStyle: popoverStyle = {},
-      dropdownTriggerCount: popoverTriggerCount,
-      dropdownTriggerIcon: popoverTriggerIcon,
-      dropdownTriggerText: popoverTriggerText = t('More'),
+      dropdownContent,
+      dropdownRef,
+      dropdownStyle = {},
+      dropdownTriggerCount,
+      dropdownTriggerIcon,
+      dropdownTriggerText = t('More'),
       style,
     }: DropdownContainerProps,
     outerRef: RefObject<Ref>,
@@ -123,6 +127,13 @@ const DropdownContainer = forwardRef(
 
     // We use React.useState to be able to mock the state in Jest
     const [overflowingIndex, setOverflowingIndex] = React.useState<number>(-1);
+
+    let targetRef = useRef<HTMLDivElement>(null);
+    if (dropdownRef) {
+      targetRef = dropdownRef;
+    }
+
+    const [showOverflow, setShowOverflow] = useState(false);
 
     useLayoutEffect(() => {
       const container = current?.children.item(0);
@@ -214,7 +225,7 @@ const DropdownContainer = forwardRef(
 
     const popoverContent = useMemo(
       () =>
-        getPopoverContent || overflowingCount ? (
+        dropdownContent || overflowingCount ? (
           <div
             css={css`
               display: flex;
@@ -222,23 +233,35 @@ const DropdownContainer = forwardRef(
               gap: ${theme.gridUnit * 4}px;
             `}
             data-test="dropdown-content"
-            style={popoverStyle}
-            ref={popoverRef}
+            style={dropdownStyle}
+            ref={targetRef}
           >
-            {getPopoverContent
-              ? getPopoverContent(overflowedItems)
+            {dropdownContent
+              ? dropdownContent(overflowedItems)
               : overflowedItems.map(item => item.element)}
           </div>
         ) : null,
       [
-        getPopoverContent,
-        overflowedItems,
+        dropdownContent,
         overflowingCount,
-        popoverRef,
-        popoverStyle,
         theme.gridUnit,
+        dropdownStyle,
+        overflowedItems,
       ],
     );
+
+    useLayoutEffect(() => {
+      if (popoverVisible) {
+        // Measures scroll height after rendering the elements
+        setTimeout(() => {
+          if (targetRef.current) {
+            // We only set overflow when there's enough space to display
+            // Select's popovers because they are restrained by the overflow property.
+            setShowOverflow(targetRef.current.scrollHeight > MAX_HEIGHT);
+          }
+        }, 100);
+      }
+    }, [popoverVisible]);
 
     useImperativeHandle(
       outerRef,
@@ -271,35 +294,63 @@ const DropdownContainer = forwardRef(
           {notOverflowedItems.map(item => item.element)}
         </div>
         {popoverContent && (
-          <Popover
-            content={popoverContent}
-            trigger="click"
-            visible={popoverVisible}
-            onVisibleChange={visible => setPopoverVisible(visible)}
-            placement="bottom"
-          >
-            <Button buttonStyle="secondary">
-              {popoverTriggerIcon}
-              {popoverTriggerText}
-              <Badge
-                count={popoverTriggerCount ?? overflowingCount}
-                css={css`
-                  margin-left: ${popoverTriggerCount ?? overflowingCount
-                    ? '8px'
-                    : '0'};
-                `}
-              />
-              <Icons.DownOutlined
-                iconSize="m"
-                iconColor={theme.colors.grayscale.light1}
-                css={css`
-                  .anticon {
-                    display: flex;
+          <>
+            <Global
+              styles={css`
+                .ant-popover-inner-content {
+                  max-height: ${MAX_HEIGHT}px;
+                  overflow: ${showOverflow ? 'auto' : 'visible'};
+                  padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px;
+
+                  // Some OS versions only show the scroll when hovering.
+                  // These settings will make the scroll always visible.
+                  ::-webkit-scrollbar {
+                    -webkit-appearance: none;
+                    width: 14px;
                   }
-                `}
-              />
-            </Button>
-          </Popover>
+                  ::-webkit-scrollbar-thumb {
+                    border-radius: 9px;
+                    background-color: ${theme.colors.grayscale.light1};
+                    border: 3px solid transparent;
+                    background-clip: content-box;
+                  }
+                  ::-webkit-scrollbar-track {
+                    background-color: ${theme.colors.grayscale.light4};
+                    border-left: 1px solid ${theme.colors.grayscale.light2};
+                  }
+                }
+              `}
+            />
+            <Popover
+              content={popoverContent}
+              trigger="click"
+              visible={popoverVisible}
+              onVisibleChange={visible => setPopoverVisible(visible)}
+              placement="bottom"
+            >
+              <Button buttonStyle="secondary">
+                {dropdownTriggerIcon}
+                {dropdownTriggerText}
+                <Badge
+                  count={dropdownTriggerCount ?? overflowingCount}
+                  css={css`
+                    margin-left: ${dropdownTriggerCount ?? overflowingCount
+                      ? `${theme.gridUnit * 2}px`
+                      : '0'};
+                  `}
+                />
+                <Icons.DownOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.grayscale.light1}
+                  css={css`
+                    .anticon {
+                      display: flex;
+                    }
+                  `}
+                />
+              </Button>
+            </Popover>
+          </>
         )}
       </div>
     );
