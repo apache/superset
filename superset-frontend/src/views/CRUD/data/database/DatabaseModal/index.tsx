@@ -602,10 +602,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           },
         });
       }
+
+      // make sure that button spinner animates
+      setLoading(true);
       const errors = await getValidation(dbToUpdate, true);
       if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+        setLoading(false);
         return;
       }
+      setLoading(false);
+      // end spinner animation
+
       const parameters_schema = isEditMode
         ? dbToUpdate.parameters_schema?.properties
         : dbModel?.parameters.properties;
@@ -897,6 +904,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               key="submit"
               buttonStyle="primary"
               onClick={onSave}
+              loading={isLoading}
             >
               {t('Connect')}
             </StyledFooterButton>
@@ -914,6 +922,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             buttonStyle="primary"
             onClick={onSave}
             data-test="modal-confirm-button"
+            loading={isLoading}
           >
             {t('Finish')}
           </StyledFooterButton>
@@ -933,6 +942,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             buttonStyle="primary"
             onClick={onSave}
             disabled={handleDisableOnImport()}
+            loading={isLoading}
           >
             {t('Connect')}
           </StyledFooterButton>
@@ -953,6 +963,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         buttonStyle="primary"
         onClick={onSave}
         disabled={db?.is_managed_externally}
+        loading={isLoading}
         tooltip={
           db?.is_managed_externally
             ? t(
