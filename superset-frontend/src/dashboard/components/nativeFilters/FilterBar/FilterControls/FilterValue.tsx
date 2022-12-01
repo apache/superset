@@ -253,9 +253,12 @@ const FilterValue: React.FC<FilterControlProps> = ({
     [filter.dataMask?.filterState, isMissingRequiredValue],
   );
 
-  const formDataWithDisplayParams = useMemo(
-    () => ({ ...formData, orientation, overflow }),
-    [formData, orientation, overflow],
+  const displaySettings = useMemo(
+    () => ({
+      filterBarOrientation: orientation,
+      isOverflowingFilterBar: overflow,
+    }),
+    [orientation, overflow],
   );
 
   if (error) {
@@ -277,7 +280,8 @@ const FilterValue: React.FC<FilterControlProps> = ({
           height={HEIGHT}
           width="100%"
           showOverflow={showOverflow}
-          formData={formDataWithDisplayParams}
+          formData={formData}
+          displaySettings={displaySettings}
           parentRef={parentRef}
           inputRef={inputRef}
           // For charts that don't have datasource we need workaround for empty placeholder

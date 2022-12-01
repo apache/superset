@@ -23,12 +23,21 @@ import { PluginFilterTimeProps } from './types';
 import { FilterPluginStyle } from '../common';
 
 const TimeFilterStyles = styled(FilterPluginStyle)`
+  display: flex;
+  align-items: center;
   overflow-x: auto;
+
+  & .ant-tag {
+    margin-right: 0;
+  }
 `;
 
 const ControlContainer = styled.div<{
   validateStatus?: 'error' | 'warning' | 'info';
 }>`
+  display: flex;
+  height: 100%;
+  max-width: 100%;
   padding: 2px;
   & > span,
   & > span:hover {

@@ -132,6 +132,15 @@ const ARG_TYPES = {
       By default label and value.
     `,
   },
+  oneLine: {
+    defaultValue: false,
+    description: `Sets maxTagCount to 1. The overflow tag is always displayed in
+       the same line, line wrapping is disabled.
+       When the dropdown is open, sets maxTagCount to 0,
+       displays only the overflow tag.
+       Requires '"mode=multiple"'.
+     `,
+  },
 };
 
 const mountHeader = (type: String) => {
@@ -197,6 +206,7 @@ InteractiveSelect.args = {
   invertSelection: false,
   placeholder: 'Select ...',
   optionFilterProps: ['value', 'label', 'custom'],
+  oneLine: false,
 };
 
 InteractiveSelect.argTypes = {
