@@ -66,7 +66,6 @@ class UpdateKeyValueCommand(BaseCommand):
             return self.update()
         except SQLAlchemyError as ex:
             db.session.rollback()
-            logger.exception("Error running update command")
             raise KeyValueUpdateFailedError() from ex
 
     def validate(self) -> None:

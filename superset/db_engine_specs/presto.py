@@ -19,14 +19,25 @@ from __future__ import annotations
 
 import logging
 import re
-import textwrap
 import time
 from abc import ABCMeta
 from collections import defaultdict, deque
 from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
-from typing import Any, cast, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
+from textwrap import dedent
+from typing import (
+    Any,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 from urllib import parse
 
 import pandas as pd
@@ -392,46 +403,80 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def get_table_names(
-        cls, database: Database, inspector: Inspector, schema: Optional[str]
-    ) -> List[str]:
-        tables = super().get_table_names(database, inspector, schema)
-        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
-            return tables
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> Set[str]:
+        """
+        Get all the real table names within the specified schema.
 
-        views = set(cls.get_view_names(database, inspector, schema))
-        actual_tables = set(tables) - views
-        return list(actual_tables)
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        Note that PyHive's Hive and Presto SQLAlchemy dialects do not adhere to the
+        specification where the `get_table_names` method returns both real tables and
+        views. Futhermore the dialects wrongfully infer the request as schema agnostic
+        when the schema is omitted.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The physical table names
+        """
+
+        return super().get_table_names(
+            database, inspector, schema
+        ) - cls.get_view_names(database, inspector, schema)
 
     @classmethod
     def get_view_names(
-        cls, database: Database, inspector: Inspector, schema: Optional[str]
-    ) -> List[str]:
-        """Returns an empty list
-
-        get_table_names() function returns all table names and view names,
-        and get_view_names() is not implemented in sqlalchemy_presto.py
-        https://github.com/dropbox/PyHive/blob/e25fc8440a0686bbb7a5db5de7cb1a77bdb4167a/pyhive/sqlalchemy_presto.py
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> Set[str]:
         """
-        if not is_feature_enabled("PRESTO_SPLIT_VIEWS_FROM_TABLES"):
-            return []
+        Get all the view names within the specified schema.
+
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        Note that PyHive's Hive and Presto SQLAlchemy dialects do not implement the
+        `get_view_names` method. To ensure consistency with the `get_table_names` method
+        the request is deemed schema agnostic when the schema is omitted.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The view names
+        """
 
         if schema:
-            sql = (
-                "SELECT table_name FROM information_schema.views "
-                "WHERE table_schema=%(schema)s"
-            )
+            sql = dedent(
+                """
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = %(schema)s
+                AND table_type = 'VIEW'
+                """
+            ).strip()
             params = {"schema": schema}
         else:
-            sql = "SELECT table_name FROM information_schema.views"
+            sql = dedent(
+                """
+                SELECT table_name FROM information_schema.tables
+                WHERE table_type = 'VIEW'
+                """
+            ).strip()
             params = {}
 
-        engine = cls.get_engine(database, schema=schema)
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
+        with cls.get_engine(database, schema=schema) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
 
-        return [row[0] for row in results]
+        return {row[0] for row in results}
 
     @classmethod
     def _create_column_info(
@@ -951,17 +996,17 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
-        engine = cls.get_engine(database, schema)
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            sql = f"SHOW CREATE VIEW {schema}.{table}"
-            try:
-                cls.execute(cursor, sql)
+        with cls.get_engine(database, schema=schema) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                sql = f"SHOW CREATE VIEW {schema}.{table}"
+                try:
+                    cls.execute(cursor, sql)
 
-            except DatabaseError:  # not a VIEW
-                return None
-            rows = cls.fetch_data(cursor, 1)
-        return rows[0][0]
+                except DatabaseError:  # not a VIEW
+                    return None
+                rows = cls.fetch_data(cursor, 1)
+            return rows[0][0]
 
     @classmethod
     def get_tracking_url(cls, cursor: "Cursor") -> Optional[str]:
@@ -1087,7 +1132,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             else f"SHOW PARTITIONS FROM {table_name}"
         )
 
-        sql = textwrap.dedent(
+        sql = dedent(
             f"""\
             {partition_select_clause}
             {where_clause}

@@ -76,25 +76,25 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
         pdf.ds = pd.to_datetime(pdf.ds, unit="ms")
     pdf = pdf.head(100) if sample else pdf
 
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
 
-    pdf.to_sql(
-        tbl_name,
-        database.get_sqla_engine(),
-        schema=schema,
-        if_exists="replace",
-        chunksize=500,
-        dtype={
-            # TODO(bkyryliuk): use TIMESTAMP type for presto
-            "ds": DateTime if database.backend != "presto" else String(255),
-            "gender": String(16),
-            "state": String(10),
-            "name": String(255),
-        },
-        method="multi",
-        index=False,
-    )
+        pdf.to_sql(
+            tbl_name,
+            engine,
+            schema=schema,
+            if_exists="replace",
+            chunksize=500,
+            dtype={
+                # TODO(bkyryliuk): use TIMESTAMP type for presto
+                "ds": DateTime if database.backend != "presto" else String(255),
+                "gender": String(16),
+                "state": String(10),
+                "name": String(255),
+            },
+            method="multi",
+            index=False,
+        )
     print("Done loading table!")
     print("-" * 80)
 
@@ -104,8 +104,8 @@ def load_birth_names(
 ) -> None:
     """Loading birth name dataset from a zip file in the repo"""
     database = get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
 
     tbl_name = "birth_names"
     table_exists = database.has_table_by_name(tbl_name, schema=schema)

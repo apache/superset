@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
 import {
@@ -27,8 +26,8 @@ import {
   logging,
   SupersetClient,
   t,
+  tn,
 } from '@superset-ui/core';
-import { toggleActive, deleteActiveReport } from 'src/reports/actions/reports';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
@@ -38,6 +37,7 @@ import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
+import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 
 const propTypes = {
@@ -83,12 +83,11 @@ export const ExploreChartHeader = ({
   canOverwrite,
   canDownload,
   isStarred,
-  sliceUpdated,
   sliceName,
-  onSaveChart,
   saveDisabled,
   metadata,
 }) => {
+  const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
 
@@ -142,6 +141,17 @@ export const ExploreChartHeader = ({
     setIsPropertiesModalOpen(false);
   };
 
+  const showModal = useCallback(() => {
+    dispatch(setSaveChartModalVisibility(true));
+  }, [dispatch]);
+
+  const updateSlice = useCallback(
+    slice => {
+      dispatch(sliceUpdated(slice));
+    },
+    [dispatch],
+  );
+
   const [menu, isDropdownVisible, setIsDropdownVisible] =
     useExploreAdditionalActionsMenu(
       latestQueryFormData,
@@ -150,6 +160,7 @@ export const ExploreChartHeader = ({
       actions.redirectSQLLab,
       openPropertiesModal,
       ownState,
+      metadata?.dashboards,
     );
 
   const metadataBar = useMemo(() => {
@@ -161,8 +172,19 @@ export const ExploreChartHeader = ({
       type: MetadataType.DASHBOARDS,
       title:
         metadata.dashboards.length > 0
-          ? t('Added to %s dashboard(s)', metadata.dashboards.length)
+          ? tn(
+              'Added to 1 dashboard',
+              'Added to %s dashboards',
+              metadata.dashboards.length,
+              metadata.dashboards.length,
+            )
           : t('Not added to any dashboard'),
+      description:
+        metadata.dashboards.length > 0
+          ? t(
+              'You can preview the list of dashboards in the chart settings dropdown.',
+            )
+          : undefined,
     });
     items.push({
       type: MetadataType.LAST_MODIFIED,
@@ -181,7 +203,7 @@ export const ExploreChartHeader = ({
         value: slice?.description,
       });
     }
-    return <MetadataBar items={items} />;
+    return <MetadataBar items={items} tooltipPlacement="bottom" />;
   }, [metadata, slice?.description]);
 
   const oldSliceName = slice?.slice_name;
@@ -236,7 +258,7 @@ export const ExploreChartHeader = ({
             <div>
               <Button
                 buttonStyle="secondary"
-                onClick={onSaveChart}
+                onClick={showModal}
                 disabled={saveDisabled}
                 data-test="query-save-button"
                 css={saveButtonStyles}
@@ -257,7 +279,7 @@ export const ExploreChartHeader = ({
         <PropertiesModal
           show={isPropertiesModalOpen}
           onHide={closePropertiesModal}
-          onSave={sliceUpdated}
+          onSave={updateSlice}
           slice={slice}
         />
       )}
@@ -267,11 +289,4 @@ export const ExploreChartHeader = ({
 
 ExploreChartHeader.propTypes = propTypes;
 
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    { sliceUpdated, toggleActive, deleteActiveReport },
-    dispatch,
-  );
-}
-
-export default connect(null, mapDispatchToProps)(ExploreChartHeader);
+export default ExploreChartHeader;

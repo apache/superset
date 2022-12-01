@@ -40,6 +40,7 @@ Join our growing community!
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
@@ -151,6 +152,7 @@ Join our growing community!
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
 
 ### Others
+- [AI inside](https://inside.ai/en/)
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]

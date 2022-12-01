@@ -31,7 +31,7 @@ import { CheckOutlined, EllipsisOutlined } from '@ant-design/icons';
 import Button from 'src/components/Button';
 import { Tooltip } from 'src/components/Tooltip';
 import FiltersHeader from './FiltersHeader';
-import { getFilterBarTestId } from '..';
+import { getFilterBarTestId } from '../utils';
 
 const HeaderButton = styled(Button)`
   padding: 0;

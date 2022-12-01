@@ -77,7 +77,7 @@ const EXPLORE_URL_PATH_PARAMS = {
 // we need to "flatten" the search params to use them with /v1/explore endpoint
 const getParsedExploreURLSearchParams = (search: string) => {
   const urlSearchParams = new URLSearchParams(search);
-  return Object.keys(EXPLORE_URL_SEARCH_PARAMS).reduce((acc, currentParam) => {
+  return Array.from(urlSearchParams.keys()).reduce((acc, currentParam) => {
     const paramValue = urlSearchParams.get(currentParam);
     if (paramValue === null) {
       return acc;
@@ -93,9 +93,10 @@ const getParsedExploreURLSearchParams = (search: string) => {
     if (typeof parsedParamValue === 'object') {
       return { ...acc, ...parsedParamValue };
     }
+    const key = EXPLORE_URL_SEARCH_PARAMS[currentParam]?.name || currentParam;
     return {
       ...acc,
-      [EXPLORE_URL_SEARCH_PARAMS[currentParam].name]: parsedParamValue,
+      [key]: parsedParamValue,
     };
   }, {});
 };
@@ -105,7 +106,7 @@ const getParsedExploreURLPathParams = (pathname: string) =>
   Object.keys(EXPLORE_URL_PATH_PARAMS).reduce((acc, currentParam) => {
     const re = new RegExp(`/(${currentParam})/(\\w+)`);
     const pathGroups = pathname.match(re);
-    if (pathGroups && pathGroups[2]) {
+    if (pathGroups?.[2]) {
       return { ...acc, [EXPLORE_URL_PATH_PARAMS[currentParam]]: pathGroups[2] };
     }
     return acc;

@@ -36,6 +36,8 @@ import {
   css,
   SupersetTheme,
   useTheme,
+  isDefined,
+  JsonValue,
 } from '@superset-ui/core';
 import {
   ControlPanelSectionConfig,
@@ -45,6 +47,9 @@ import {
   ExpandedControlItem,
   sections,
 } from '@superset-ui/chart-controls';
+import { useSelector } from 'react-redux';
+import { rgba } from 'emotion-rgba';
+import { kebabCase } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
 import Tabs from 'src/components/Tabs';
@@ -57,9 +62,6 @@ import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-
-import { rgba } from 'emotion-rgba';
-import { kebabCase } from 'lodash';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -264,14 +266,66 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
+  const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const controlsTransferred = useSelector<
+    ExplorePageState,
+    string[] | undefined
+  >(state => state.explore.controlsTransferred);
+
+  useEffect(() => {
+    let shouldUpdateControls = false;
+    const removeDatasourceWarningFromControl = (
+      value: JsonValue | undefined,
+    ) => {
+      if (
+        typeof value === 'object' &&
+        isDefined(value) &&
+        'datasourceWarning' in value &&
+        value.datasourceWarning === true
+      ) {
+        shouldUpdateControls = true;
+        return { ...value, datasourceWarning: false };
+      }
+      return value;
+    };
+    if (
+      props.chart.chartStatus === 'success' &&
+      prevChartStatus !== 'success'
+    ) {
+      controlsTransferred?.forEach(controlName => {
+        shouldUpdateControls = false;
+        if (!isDefined(props.controls[controlName])) {
+          return;
+        }
+        const alteredControls = Array.isArray(props.controls[controlName].value)
+          ? ensureIsArray(props.controls[controlName].value)?.map(
+              removeDatasourceWarningFromControl,
+            )
+          : removeDatasourceWarningFromControl(
+              props.controls[controlName].value,
+            );
+        if (shouldUpdateControls) {
+          props.actions.setControlValue(controlName, alteredControls);
+        }
+      });
+    }
+  }, [
+    controlsTransferred,
+    prevChartStatus,
+    props.actions,
+    props.chart.chartStatus,
+    props.controls,
+  ]);
+
   useEffect(() => {
     if (
       prevDatasource &&
+      prevDatasource.type !== DatasourceType.Query &&
       (props.exploreState.datasource?.id !== prevDatasource.id ||
         props.exploreState.datasource?.type !== prevDatasource.type)
     ) {
@@ -450,11 +504,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         {hasErrors && (
           <Tooltip
             id={`${kebabCase('validation-errors')}-tooltip`}
-            title="This section contains validation errors"
+            title={t('This section contains validation errors')}
           >
             <Icons.InfoCircleOutlined
               css={css`
-                ${iconStyles}
+                ${iconStyles};
                 color: ${errorColor};
               `}
             />
@@ -590,7 +644,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             >
               <Icons.ExclamationCircleOutlined
                 css={css`
-                  ${iconStyles}
+                  ${iconStyles};
                   color: ${errorColor};
                 `}
               />

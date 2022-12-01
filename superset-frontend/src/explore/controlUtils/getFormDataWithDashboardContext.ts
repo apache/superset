@@ -29,8 +29,8 @@ import {
   AdhocFilter,
   isFreeFormAdhocFilter,
   isSimpleAdhocFilter,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
-import { NO_TIME_RANGE } from '../constants';
 
 const simpleFilterToAdhoc = (
   filterClause: QueryObjectFilterClause,

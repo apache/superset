@@ -24,6 +24,7 @@ import Button from 'src/components/Button';
 import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
+  CategoricalColorNamespace,
   ensureIsArray,
   getCategoricalSchemeRegistry,
   getSharedLabelColor,
@@ -61,7 +62,6 @@ type PropertiesModalProps = {
   show?: boolean;
   onHide?: () => void;
   colorScheme?: string;
-  setColorSchemeAndUnsavedChanges?: () => void;
   onSubmit?: (params: Record<string, any>) => void;
   addSuccessToast: (message: string) => void;
   addDangerToast: (message: string) => void;
@@ -133,7 +133,7 @@ const PropertiesModal = ({
     }
 
     Modal.error({
-      title: 'Error',
+      title: t('Error'),
       content: errorText,
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
@@ -197,9 +197,7 @@ const PropertiesModal = ({
       }
       const metaDataCopy = { ...metadata };
 
-      if (metaDataCopy?.shared_label_colors) {
-        delete metaDataCopy.shared_label_colors;
-      }
+      delete metaDataCopy.shared_label_colors;
 
       delete metaDataCopy.color_scheme_domain;
 
@@ -284,7 +282,7 @@ const PropertiesModal = ({
   };
 
   const onColorSchemeChange = (
-    colorScheme?: string,
+    colorScheme = '',
     { updateMetadata = true } = {},
   ) => {
     // check that color_scheme is valid
@@ -294,7 +292,7 @@ const PropertiesModal = ({
     // only fire if the color_scheme is present and invalid
     if (colorScheme && !colorChoices.includes(colorScheme)) {
       Modal.error({
-        title: 'Error',
+        title: t('Error'),
         content: t('A valid color scheme is required'),
         okButtonProps: { danger: true, className: 'btn-danger' },
       });
@@ -335,7 +333,7 @@ const PropertiesModal = ({
 
     // color scheme in json metadata has precedence over selection
     currentColorScheme = metadata?.color_scheme || colorScheme;
-    colorNamespace = metadata?.color_namespace || '';
+    colorNamespace = metadata?.color_namespace;
 
     // filter shared_label_color from user input
     if (metadata?.shared_label_colors) {
@@ -345,16 +343,20 @@ const PropertiesModal = ({
       delete metadata.color_scheme_domain;
     }
 
-    metadata.shared_label_colors = getSharedLabelColor().getColorMap(
-      colorNamespace,
-      currentColorScheme,
-      true,
-    );
-
-    if (metadata?.color_scheme) {
+    const sharedLabelColor = getSharedLabelColor();
+    const categoricalNamespace =
+      CategoricalColorNamespace.getNamespace(colorNamespace);
+    categoricalNamespace.resetColors();
+    if (currentColorScheme) {
+      sharedLabelColor.updateColorMap(colorNamespace, currentColorScheme);
+      metadata.shared_label_colors = Object.fromEntries(
+        sharedLabelColor.getColorMap(),
+      );
       metadata.color_scheme_domain =
         categoricalSchemeRegistry.get(colorScheme)?.colors || [];
     } else {
+      sharedLabelColor.reset();
+      metadata.shared_label_colors = {};
       metadata.color_scheme_domain = [];
     }
 
@@ -402,9 +404,9 @@ const PropertiesModal = ({
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
-      addSuccessToast(t('Dashboard properties updated'));
       onSubmit(onSubmitProps);
       onHide();
+      addSuccessToast(t('Dashboard properties updated'));
     } else {
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
@@ -420,9 +422,9 @@ const PropertiesModal = ({
           ...morePutProps,
         }),
       }).then(() => {
-        addSuccessToast(t('The dashboard has been saved'));
         onSubmit(onSubmitProps);
         onHide();
+        addSuccessToast(t('The dashboard has been saved'));
       }, handleErrorResponse);
     }
   };

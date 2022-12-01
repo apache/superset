@@ -171,18 +171,6 @@ def create_slices(tbl: SqlaTable) -> List[Slice]:
                 groupby=["gender"],
             ),
         ),
-        # TODO: use a different dataset for world map
-        Slice(
-            **slice_props,
-            slice_name="World Map",
-            viz_type="world_map",
-            params=get_slice_json(
-                defaults,
-                viz_type="world_map",
-                metric="sum__num",
-                entity="gender",
-            ),
-        ),
         # ---------------------
         # TIER 2
         # ---------------------
@@ -465,11 +453,11 @@ def load_supported_charts_dashboard() -> None:
     """Loading a dashboard featuring supported charts"""
 
     database = get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
 
-    tbl_name = "birth_names"
-    table_exists = database.has_table_by_name(tbl_name, schema=schema)
+        tbl_name = "birth_names"
+        table_exists = database.has_table_by_name(tbl_name, schema=schema)
 
     if table_exists:
         table = get_table_connector_registry()
@@ -673,7 +661,7 @@ def load_supported_charts_dashboard() -> None:
     "meta": {
       "chartId": 11,
       "height": 50,
-      "sliceName": "World Map",
+      "sliceName": "% Rural",
       "width": 4
     },
     "type": "CHART"

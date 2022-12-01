@@ -45,18 +45,17 @@ def create_test_table_context(database: Database):
     schema = get_example_default_schema()
     full_table_name = f"{schema}.test_table" if schema else "test_table"
 
-    database.get_sqla_engine().execute(
-        f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
-    )
-    database.get_sqla_engine().execute(
-        f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)"
-    )
-    database.get_sqla_engine().execute(
-        f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)"
-    )
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(
+            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
+        )
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")
 
     yield db.session
-    database.get_sqla_engine().execute(f"DROP TABLE {full_table_name}")
+
+    with database.get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
 
 
 class TestDatasource(SupersetTestCase):
@@ -297,6 +296,44 @@ class TestDatasource(SupersetTestCase):
             else:
                 print(k)
                 self.assertEqual(resp[k], datasource_post[k])
+
+    def test_save_default_endpoint_validation_fail(self):
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://www.google.com"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 400
+
+    def test_save_default_endpoint_validation_unsafe(self):
+        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = False
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://www.google.com"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 200
+        self.app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"] = True
+
+    def test_save_default_endpoint_validation_success(self):
+        self.login(username="admin")
+        tbl_id = self.get_table(name="birth_names").id
+
+        datasource_post = get_datasource_post()
+        datasource_post["id"] = tbl_id
+        datasource_post["owners"] = [1]
+        datasource_post["default_endpoint"] = "http://localhost/superset/1"
+        data = dict(data=json.dumps(datasource_post))
+        resp = self.client.post("/datasource/save/", data=data)
+        assert resp.status_code == 200
 
     def save_datasource_from_dict(self, datasource_post):
         data = dict(data=json.dumps(datasource_post))

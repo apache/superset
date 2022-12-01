@@ -187,29 +187,29 @@ def add_data(
 
     database = get_example_database()
     table_exists = database.has_table_by_name(table_name)
-    engine = database.get_sqla_engine()
 
-    if columns is None:
-        if not table_exists:
-            raise Exception(
-                f"The table {table_name} does not exist. To create it you need to "
-                "pass a list of column names and types."
-            )
+    with database.get_sqla_engine_with_context() as engine:
+        if columns is None:
+            if not table_exists:
+                raise Exception(
+                    f"The table {table_name} does not exist. To create it you need to "
+                    "pass a list of column names and types."
+                )
 
-        inspector = inspect(engine)
-        columns = inspector.get_columns(table_name)
+            inspector = inspect(engine)
+            columns = inspector.get_columns(table_name)
 
-    # create table if needed
-    column_objects = get_column_objects(columns)
-    metadata = MetaData()
-    table = Table(table_name, metadata, *column_objects)
-    metadata.create_all(engine)
+        # create table if needed
+        column_objects = get_column_objects(columns)
+        metadata = MetaData()
+        table = Table(table_name, metadata, *column_objects)
+        metadata.create_all(engine)
 
-    if not append:
-        engine.execute(table.delete())
+        if not append:
+            engine.execute(table.delete())
 
-    data = generate_data(columns, num_rows)
-    engine.execute(table.insert(), data)
+        data = generate_data(columns, num_rows)
+        engine.execute(table.insert(), data)
 
 
 def get_column_objects(columns: List[ColumnInfo]) -> List[Column]:

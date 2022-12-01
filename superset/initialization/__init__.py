@@ -150,10 +150,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.tags.api import TagRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
-        from superset.views.annotations import (
-            AnnotationLayerModelView,
-            AnnotationModelView,
-        )
+        from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
         from superset.views.core import Superset
@@ -240,16 +237,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Data",
             category_label=__("Data"),
         )
-
-        appbuilder.add_view(
-            AnnotationLayerModelView,
-            "Annotation Layers",
-            label=__("Annotation Layers"),
-            icon="fa-comment",
-            category="Manage",
-            category_label=__("Manage"),
-            category_icon="",
-        )
         appbuilder.add_view(
             DashboardModelView,
             "Dashboards",
@@ -327,7 +314,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqlLab)
         appbuilder.add_view_no_menu(SqlMetricInlineView)
-        appbuilder.add_view_no_menu(AnnotationModelView)
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableColumnInlineView)
         appbuilder.add_view_no_menu(TableModelView)
@@ -446,6 +432,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Manage"),
             icon="fa-exclamation-triangle",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("ALERT_REPORTS"),
+        )
+
+        appbuilder.add_view(
+            AnnotationLayerView,
+            "Annotation Layers",
+            label=_("Annotation Layers"),
+            href="/annotationlayer/list/",
+            icon="fa-comment",
+            category_icon="",
+            category="Manage",
+            category_label=__("Manage"),
         )
 
         appbuilder.add_view(
@@ -622,8 +619,28 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Flask-Compress
         Compress(self.superset_app)
 
-        if self.config["TALISMAN_ENABLED"]:
-            talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
+        show_csp_warning = False
+        if (
+            self.config["CONTENT_SECURITY_POLICY_WARNING"]
+            and not self.superset_app.debug
+        ):
+            if self.config["TALISMAN_ENABLED"]:
+                talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
+                if not self.config["TALISMAN_CONFIG"].get("content_security_policy"):
+                    show_csp_warning = True
+            else:
+                show_csp_warning = True
+
+        if show_csp_warning:
+            logger.warning(
+                "We haven't found any Content Security Policy (CSP) defined in "
+                "the configurations. Please make sure to configure CSP using the "
+                "TALISMAN_CONFIG key or any other external software. Failing to "
+                "configure CSP have serious security implications. Check "
+                "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
+                "information. You can disable this warning using the "
+                "CONTENT_SECURITY_POLICY_WARNING key."
+            )
 
     def configure_logging(self) -> None:
         self.config["LOGGING_CONFIGURATOR"].configure_logging(

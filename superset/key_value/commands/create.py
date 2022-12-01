@@ -64,7 +64,6 @@ class CreateKeyValueCommand(BaseCommand):
             return self.create()
         except SQLAlchemyError as ex:
             db.session.rollback()
-            logger.exception("Error running create command")
             raise KeyValueCreateFailedError() from ex
 
     def validate(self) -> None:

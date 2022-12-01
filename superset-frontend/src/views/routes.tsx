@@ -163,11 +163,11 @@ export const routes: Routes = [
     Component: CssTemplatesList,
   },
   {
-    path: '/annotationlayermodelview/list/',
+    path: '/annotationlayer/list/',
     Component: AnnotationLayersList,
   },
   {
-    path: '/annotationmodelview/:annotationLayerId/annotation/',
+    path: '/annotationlayer/:annotationLayerId/annotation/',
     Component: AnnotationList,
   },
   {

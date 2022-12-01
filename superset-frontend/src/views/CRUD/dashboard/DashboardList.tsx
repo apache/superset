@@ -471,6 +471,7 @@ function DashboardList(props: DashboardListProps) {
   const favoritesFilter: Filter = useMemo(
     () => ({
       Header: t('Favorite'),
+      key: 'favorite',
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
@@ -488,6 +489,7 @@ function DashboardList(props: DashboardListProps) {
     const filters_list = [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -509,6 +511,7 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -530,6 +533,7 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Header: t('Status'),
+        key: 'published',
         id: 'published',
         input: 'select',
         operator: FilterOperator.equals,
@@ -542,6 +546,7 @@ function DashboardList(props: DashboardListProps) {
       ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
+        key: 'certified',
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
@@ -556,6 +561,7 @@ function DashboardList(props: DashboardListProps) {
     if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
       filters_list.push({
         Header: t('Tags'),
+        key: 'tags',
         id: 'tags',
         input: 'select',
         operator: FilterOperator.chartTags,
@@ -565,6 +571,7 @@ function DashboardList(props: DashboardListProps) {
     }
     filters_list.push({
       Header: t('Search'),
+      key: 'search',
       id: 'dashboard_title',
       input: 'search',
       operator: FilterOperator.titleOrSlug,

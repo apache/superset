@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer } from 'react';
+import React, { useReducer, Reducer, useState } from 'react';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
@@ -65,13 +65,17 @@ export function datasetReducer(
   }
 }
 
+const prevUrl =
+  '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+
 export default function AddDataset() {
   const [dataset, setDataset] = useReducer<
     Reducer<Partial<DatasetObject> | null, DSReducerActionType>
   >(datasetReducer, null);
+  const [hasColumns, setHasColumns] = useState(false);
 
   const HeaderComponent = () => (
-    <Header setDataset={setDataset} datasetName={dataset?.dataset_name ?? ''} />
+    <Header setDataset={setDataset} title={dataset?.table_name} />
   );
 
   const LeftPanelComponent = () => (
@@ -81,18 +85,25 @@ export default function AddDataset() {
       dbId={dataset?.db?.id}
     />
   );
-  const prevUrl =
-    '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+
+  const DatasetPanelComponent = () => (
+    <DatasetPanel
+      tableName={dataset?.table_name}
+      dbId={dataset?.db?.id}
+      schema={dataset?.schema}
+      setHasColumns={setHasColumns}
+    />
+  );
 
   const FooterComponent = () => (
-    <Footer url={prevUrl} datasetObject={dataset} />
+    <Footer url={prevUrl} datasetObject={dataset} hasColumns={hasColumns} />
   );
 
   return (
     <DatasetLayout
       header={HeaderComponent()}
       leftPanel={LeftPanelComponent()}
-      datasetPanel={DatasetPanel()}
+      datasetPanel={DatasetPanelComponent()}
       footer={FooterComponent()}
     />
   );

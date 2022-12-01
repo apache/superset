@@ -1,4 +1,5 @@
 import { SetDataMaskHook } from '@superset-ui/core';
+import { FilterBarOrientation } from 'src/dashboard/types';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -21,6 +22,8 @@ import { SetDataMaskHook } from '@superset-ui/core';
 export interface PluginFilterStylesProps {
   height: number;
   width: number;
+  orientation?: FilterBarOrientation;
+  overflow?: boolean;
 }
 
 export interface PluginFilterHooks {

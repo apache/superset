@@ -455,13 +455,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     () => [
       {
         Header: t('Expose in SQL Lab'),
+        key: 'expose_in_sql_lab',
         id: 'expose_in_sqllab',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
@@ -474,17 +475,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             <span>{t('AQE')}</span>
           </Tooltip>
         ),
+        key: 'allow_run_async',
         id: 'allow_run_async',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'database_name',
         input: 'search',
         operator: FilterOperator.contains,

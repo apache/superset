@@ -17,7 +17,9 @@
  * under the License.
  */
 import {
+  ensureIsArray,
   getChartMetadataRegistry,
+  JsonResponse,
   styled,
   SupersetClient,
   t,
@@ -51,6 +53,7 @@ import ListView, {
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
+import CrossLinks from 'src/components/ListView/CrossLinks';
 import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -150,6 +153,15 @@ interface ChartListProps {
   };
 }
 
+type ChartLinkedDashboard = {
+  id: number;
+  dashboard_title: string;
+};
+
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
 function ChartList(props: ChartListProps) {
   const {
     addDangerToast,
@@ -247,6 +259,56 @@ function ChartList(props: ChartListProps) {
       ),
     );
   }
+  const fetchDashboards = async (
+    filterValue = '',
+    page: number,
+    pageSize: number,
+  ) => {
+    // add filters if filterValue
+    const filters = filterValue
+      ? {
+          filters: [
+            {
+              col: 'dashboards',
+              opr: FilterOperator.relationManyMany,
+              value: filterValue,
+            },
+          ],
+        }
+      : {};
+    const queryParams = rison.encode({
+      columns: ['dashboard_title', 'id'],
+      keys: ['none'],
+      order_column: 'dashboard_title',
+      order_direction: 'asc',
+      page,
+      page_size: pageSize,
+      ...filters,
+    });
+    const response: void | JsonResponse = await SupersetClient.get({
+      endpoint: !filterValue
+        ? `/api/v1/dashboard/?q=${queryParams}`
+        : `/api/v1/chart/?q=${queryParams}`,
+    }).catch(() =>
+      addDangerToast(t('An error occurred while fetching dashboards')),
+    );
+    const dashboards = response?.json?.result?.map(
+      ({
+        dashboard_title: dashboardTitle,
+        id,
+      }: {
+        dashboard_title: string;
+        id: number;
+      }) => ({
+        label: dashboardTitle,
+        value: id,
+      }),
+    );
+    return {
+      data: uniqBy<SelectOption>(dashboards, 'value'),
+      totalCount: response?.json?.count,
+    };
+  };
 
   const columns = useMemo(
     () => [
@@ -324,6 +386,26 @@ function ChartList(props: ChartListProps) {
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { dashboards },
+          },
+        }: any) => (
+          <CrossLinks
+            crossLinks={ensureIsArray(dashboards).map(
+              (d: ChartLinkedDashboard) => ({
+                title: d.dashboard_title,
+                id: d.id,
+              }),
+            )}
+          />
+        ),
+        Header: t('Dashboards added to'),
+        accessor: 'dashboards',
+        disableSortBy: true,
+        size: 'xxl',
       },
       {
         Cell: ({
@@ -499,6 +581,7 @@ function ChartList(props: ChartListProps) {
   const favoritesFilter: Filter = useMemo(
     () => ({
       Header: t('Favorite'),
+      key: 'favorite',
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
@@ -516,6 +599,7 @@ function ChartList(props: ChartListProps) {
     const filters_list = [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -537,6 +621,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -558,6 +643,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Chart type'),
+        key: 'viz_type',
         id: 'viz_type',
         input: 'select',
         operator: FilterOperator.equals,
@@ -583,6 +669,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Dataset'),
+        key: 'dataset',
         id: 'datasource_id',
         input: 'select',
         operator: FilterOperator.equals,
@@ -590,9 +677,20 @@ function ChartList(props: ChartListProps) {
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
+      {
+        Header: t('Dashboards'),
+        key: 'dashboards',
+        id: 'dashboards',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: fetchDashboards,
+        paginate: true,
+      },
       ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
+        key: 'certified',
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
@@ -607,15 +705,17 @@ function ChartList(props: ChartListProps) {
     if (isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM)) {
       filters_list.push({
         Header: t('Tags'),
+        key: 'tags',
         id: 'tags',
         input: 'select',
         operator: FilterOperator.chartTags,
         unfilteredLabel: t('All'),
-        fetchSelects: loadTags
+        fetchSelects: loadTags,
       });
     }
     filters_list.push({
       Header: t('Search'),
+      key: 'search',
       id: 'slice_name',
       input: 'search',
       operator: FilterOperator.chartAllText,
@@ -714,6 +814,7 @@ function ChartList(props: ChartListProps) {
       });
     }
   }
+
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />

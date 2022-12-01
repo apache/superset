@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
+import { styled, NO_TIME_RANGE } from '@superset-ui/core';
 import React, { useCallback, useEffect } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
-import { NO_TIME_RANGE } from 'src/explore/constants';
 import { PluginFilterTimeProps } from './types';
 import { FilterPluginStyle } from '../common';
 
@@ -89,7 +88,6 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   }, [filterState.value]);
 
   return props.formData?.inView ? (
-    // @ts-ignore
     <TimeFilterStyles width={width} height={height}>
       <ControlContainer
         tabIndex={-1}
@@ -104,7 +102,6 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           value={filterState.value || NO_TIME_RANGE}
           name="time_range"
           onChange={handleTimeRangeChange}
-          type={filterState.validateStatus}
           onOpenPopover={() => setFilterActive(true)}
           onClosePopover={() => setFilterActive(false)}
         />

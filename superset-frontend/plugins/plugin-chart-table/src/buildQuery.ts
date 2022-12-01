@@ -20,9 +20,8 @@ import {
   AdhocColumn,
   buildQueryContext,
   ensureIsArray,
-  FeatureFlag,
   getMetricLabel,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   isPhysicalColumn,
   QueryMode,
   QueryObject,
@@ -104,8 +103,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         if (
           isPhysicalColumn(col) &&
           formData.time_grain_sqla &&
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) &&
-          formData?.datetime_columns_lookup?.[col]
+          hasGenericChartAxes &&
+          formData?.temporal_columns_lookup?.[col]
         ) {
           return {
             timeGrain: formData.time_grain_sqla,

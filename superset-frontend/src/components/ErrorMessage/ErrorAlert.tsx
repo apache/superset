@@ -132,7 +132,7 @@ export default function ErrorAlert({
       {description && (
         <div className="error-body">
           <p>{description}</p>
-          {!isExpandable && (
+          {!isExpandable && body && (
             <span
               role="button"
               tabIndex={0}
