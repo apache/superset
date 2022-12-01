@@ -18,46 +18,66 @@
  */
 import React, { ReactNode } from 'react';
 import { css } from '@emotion/react';
-import { Divider, Filter, t } from '@superset-ui/core';
+import { Divider, Filter, SupersetTheme, t } from '@superset-ui/core';
 import { AntdCollapse } from 'src/components';
 
 export interface FiltersOutOfScopeCollapsibleProps {
   filtersOutOfScope: (Filter | Divider)[];
   renderer: (filter: Filter | Divider) => ReactNode;
   hasTopMargin?: boolean;
+  horizontalOverflow?: boolean;
 }
 
 export const FiltersOutOfScopeCollapsible = ({
   filtersOutOfScope,
-  hasTopMargin,
   renderer,
+  hasTopMargin,
+  horizontalOverflow,
 }: FiltersOutOfScopeCollapsibleProps) => (
   <AntdCollapse
     ghost
     bordered
     expandIconPosition="right"
     collapsible={filtersOutOfScope.length === 0 ? 'disabled' : undefined}
-    css={theme => css`
-      &.ant-collapse {
-        margin-top: ${hasTopMargin
-          ? theme.gridUnit * 6
-          : theme.gridUnit * -3}px;
-        & > .ant-collapse-item {
-          & > .ant-collapse-header {
-            padding-left: 0;
-            padding-bottom: ${theme.gridUnit * 2}px;
+    css={(theme: SupersetTheme) =>
+      horizontalOverflow
+        ? css`
+            &.ant-collapse > .ant-collapse-item {
+              & > .ant-collapse-header {
+                padding: 0;
 
-            & > .ant-collapse-arrow {
-              right: ${theme.gridUnit}px;
+                & > .ant-collapse-arrow {
+                  right: 0;
+                  padding: 0;
+                }
+              }
+
+              & .ant-collapse-content-box {
+                padding: ${theme.gridUnit * 4}px 0 0;
+                margin-bottom: ${theme.gridUnit * -4}px;
+              }
             }
-          }
+          `
+        : css`
+            &.ant-collapse {
+              margin-top: ${hasTopMargin ? theme.gridUnit * 6 : 0}px;
+              & > .ant-collapse-item {
+                & > .ant-collapse-header {
+                  padding-left: 0;
+                  padding-bottom: ${theme.gridUnit * 2}px;
 
-          & .ant-collapse-content-box {
-            padding: ${theme.gridUnit * 4}px 0 0;
-          }
-        }
-      }
-    `}
+                  & > .ant-collapse-arrow {
+                    right: ${theme.gridUnit}px;
+                  }
+                }
+
+                & .ant-collapse-content-box {
+                  padding: ${theme.gridUnit * 4}px 0 0;
+                }
+              }
+            }
+          `
+    }
   >
     <AntdCollapse.Panel
       header={t('Filters out of scope (%d)', filtersOutOfScope.length)}
