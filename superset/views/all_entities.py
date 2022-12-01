@@ -33,7 +33,7 @@ from superset.jinja_context import ExtraCache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
+from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
 from superset.superset_typing import FlaskResponse
 from superset.views.base import SupersetModelView
 

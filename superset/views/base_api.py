@@ -35,7 +35,7 @@ from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.tags import Tag
+from superset.tags.models import Tag
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger

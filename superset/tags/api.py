@@ -24,7 +24,7 @@ from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
-from superset.models.tags import ObjectTypes, Tag
+from superset.tags.models import ObjectTypes, Tag
 from superset.tags.commands.create import CreateTagCommand
 from superset.tags.commands.exceptions import (
     TagCreateFailedError,

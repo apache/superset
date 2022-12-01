@@ -42,7 +42,6 @@ from sqlalchemy.orm.mapper import Mapper
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
-from superset.models.tags import ChartUpdater, Tag
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
@@ -99,7 +98,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     )
     owners = relationship(security_manager.user_model, secondary=slice_user)
     tags = relationship(
-        Tag,
+        "Tag",
         secondary="tagged_object",
         primaryjoin="and_(Slice.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "

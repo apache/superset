@@ -53,7 +53,6 @@ from superset.extensions import cache_manager
 from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
-from superset.models.tags import DashboardUpdater, Tag
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.utils import core as utils
@@ -150,7 +149,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     )
     owners = relationship(security_manager.user_model, secondary=dashboard_user)
     tags = relationship(
-        Tag,
+        "Tag",
         secondary="tagged_object",
         primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "

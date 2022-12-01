@@ -49,7 +49,6 @@ from superset.models.helpers import (
     ExtraJSONMixin,
     ImportExportMixin,
 )
-from superset.models.tags import QueryUpdater, Tag
 from superset.sql_parse import CtasMethod, ParsedQuery, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.core import GenericDataType, QueryStatus, user_label
@@ -366,7 +365,7 @@ class SavedQuery(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     rows = Column(Integer, nullable=True)
     last_run = Column(DateTime, nullable=True)
     tags = relationship(
-        Tag,
+        "Tag",
         secondary="tagged_object",
         primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
         secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "

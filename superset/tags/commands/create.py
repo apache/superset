@@ -21,7 +21,7 @@ from flask_appbuilder.models.sqla import Model
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.models.tags import ObjectTypes
+from superset.tags.models import ObjectTypes
 from superset.tags.commands.exceptions import (
     TagCreateFailedError,
     TagInvalidError,

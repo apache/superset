@@ -20,7 +20,7 @@ from typing import Any, Dict
 from superset import security_manager
 from superset.dao.base import BaseDAO
 from superset.extensions import db
-from superset.models.tags import ObjectTypes, Tag, TaggedObject, TagTypes
+from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
 
 logger = logging.getLogger(__name__)
 
