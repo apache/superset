@@ -364,25 +364,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("SQL Lab"),
         )
         appbuilder.add_view(
-            DatabaseView,
-            "Databases",
-            label=__("Databases"),
-            icon="fa-database",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-database",
-        )
-        appbuilder.add_link(
-            "Datasets",
-            label=__("Datasets"),
-            href="/tablemodelview/list/",
-            icon="fa-table",
-            category="Data",
-            category_label=__("Data"),
-            category_icon="fa-table",
-        )
-        appbuilder.add_separator("Data")
-        appbuilder.add_view(
             TaggedObjectsModelView,
             "All Entities",
             label=__("All Entities"),

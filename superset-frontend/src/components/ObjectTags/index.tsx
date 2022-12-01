@@ -29,7 +29,7 @@ import {
   ClientErrorObject,
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
-import { deleteTag, fetchTags } from 'src/tags';
+import { deleteTaggedObjects, fetchTags } from 'src/tags';
 
 export interface ObjectTagsProps {
   objectType: string;
@@ -137,7 +137,7 @@ export const ObjectTags = ({
   }, [objectType, objectId, includeTypes]);
 
   const onDelete = (tagIndex: number) => {
-    deleteTag(
+    deleteTaggedObjects(
       { objectType, objectId },
       tags[tagIndex],
       () => setTags(tags.filter((_, i) => i !== tagIndex)),

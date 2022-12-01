@@ -43,7 +43,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { loadTags } from 'src/components/ObjectTags';
 import TagType from 'src/types/TagType';
-import { addTag, deleteTag, fetchTags, OBJECT_TYPES } from 'src/tags';
+import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
 import { TagsList } from 'src/components/Tags';
 
 const StyledFormItem = styled(FormItem)`
@@ -606,7 +606,7 @@ const PropertiesModal = ({
     // delete tags that are in old tags, but not in new tags
     oldTags.map((tag: TagType) => {
       if (!newTags.some(t => t.name === tag.name)) {
-        deleteTag(
+        deleteTaggedObjects(
           {
             objectType: OBJECT_TYPES.DASHBOARD,
             objectId: dashboardId,

@@ -29,12 +29,11 @@ export function fetchAllTags(
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {
-  let url = `/tagview/tags/`;
+  const url = `/tagview/tags/`;
   SupersetClient.get({ endpoint: url })
     .then(({ json }) => callback(json))
     .catch(response => error(response));
 }
-
 
 export function fetchTags(
   {
@@ -48,7 +47,9 @@ export function fetchTags(
   if (objectType === undefined || objectId === undefined) {
     throw new Error('Need to specify objectType and objectId');
   }
-  SupersetClient.get({ endpoint: `/taggedobjectview/tags/${objectType}/${objectId}/` })
+  SupersetClient.get({
+    endpoint: `/taggedobjectview/tags/${objectType}/${objectId}/`,
+  })
     .then(({ json }) =>
       callback(
         json.filter((tag: Tag) => tag.name.indexOf(':') === -1 || includeTypes),
@@ -71,11 +72,11 @@ export function fetchSuggestions(
     .catch(response => error(response));
 }
 
-export function deleteTag(
+export function deleteTaggedObjects(
   { objectType, objectId }: { objectType: string; objectId: number },
   tag: Tag,
   callback: (text: string) => void,
-  error: (response: Response) => void,
+  error: (response: string) => void,
 ) {
   if (objectType === undefined || objectId === undefined) {
     throw new Error('Need to specify objectType and objectId');
@@ -85,8 +86,33 @@ export function deleteTag(
     body: JSON.stringify([tag.name]),
     parseMethod: 'text',
   })
-    .then(({ text }) => callback(text))
-    .catch(response => error(response));
+    .then(({ text }) =>
+      text ? callback(text) : callback('Successfully Deleted Tagged Objects'),
+    )
+    .catch(response => {
+      const err_str = response.message;
+      return err_str ? error(err_str) : error('Error Deleting Tagged Objects');
+    });
+}
+
+export function deleteTags(
+  tags: Tag[],
+  callback: (text: string) => void,
+  error: (response: string) => void,
+) {
+  const tags_str = JSON.stringify(tags.map(tag => tag.name) as string[]);
+  SupersetClient.delete({
+    endpoint: `/tagview/tags`,
+    body: tags_str,
+    parseMethod: 'text',
+  })
+    .then(({ text }) =>
+      text ? callback(text) : callback('Successfully Deleted Tag'),
+    )
+    .catch(response => {
+      const err_str = response.message;
+      return err_str ? error(err_str) : error('Error Deleting Tag');
+    });
 }
 
 export function addTag(

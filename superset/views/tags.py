@@ -159,7 +159,7 @@ class TagView(BaseSupersetView):
 
     @has_access_api
     @expose("/tags/<object_type:object_type>/<int:object_id>/", methods=["DELETE"])
-    def delete(  # pylint: disable=no-self-use
+    def delete_tagged_objects(  # pylint: disable=no-self-use
         self, object_type: ObjectTypes, object_id: int
     ) -> FlaskResponse:
         """Remove tags from an object."""
@@ -173,6 +173,26 @@ class TagView(BaseSupersetView):
                 TaggedObject.object_id == object_id,
             ),
             TaggedObject.tag.has(Tag.name.in_(tag_names)),
+        ).delete(synchronize_session=False)
+        db.session.commit()
+
+        return Response(status=204)  # 204 NO CONTENT
+
+    @has_access_api
+    @expose("/tags", methods=["DELETE"])
+    def delete_tags(  # pylint: disable=no-self-use
+        self
+    ) -> FlaskResponse:
+        """Remove tags, and all tagged objects with that tag """
+        tag_names = request.get_json(force=True)
+        if not tag_names:
+            return Response(status=403)
+        db.session()
+        db.session.query(TaggedObject).filter(
+            TaggedObject.tag.has(Tag.name.in_(tag_names)),
+        ).delete(synchronize_session=False)
+        db.session.query(Tag).filter(
+            Tag.name.in_(tag_names),
         ).delete(synchronize_session=False)
         db.session.commit()
 

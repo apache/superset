@@ -34,7 +34,7 @@ import Chart, { Slice } from 'src/types/Chart';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/ObjectTags';
-import { addTag, deleteTag, fetchTags, OBJECT_TYPES } from 'src/tags';
+import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
 import TagType from 'src/types/TagType';
 import { TagsList } from 'src/components/Tags';
 
@@ -264,7 +264,7 @@ function PropertiesModal({
     // delete tags that are in old tags, but not in new tags
     oldTags.map((tag: TagType) => {
       if (!newTags.some(t => t.name === tag.name)) {
-        deleteTag(
+        deleteTaggedObjects(
           {
             objectType: OBJECT_TYPES.CHART,
             objectId: slice.slice_id,
