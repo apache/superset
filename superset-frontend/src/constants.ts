@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CommonBootstrapData } from './types/bootstrapTypes';
+import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
@@ -164,5 +164,34 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   extra_categorical_color_schemes: [],
   extra_sequential_color_schemes: [],
   theme_overrides: {},
-  menu_data: {},
+  menu_data: {
+    menu: [],
+    brand: {
+      path: '',
+      icon: '',
+      alt: '',
+      tooltip: '',
+      text: '',
+    },
+    navbar_right: {
+      show_watermark: true,
+      languages: {},
+      show_language_picker: true,
+      user_is_anonymous: false,
+      user_info_url: '',
+      user_login_url: '',
+      user_logout_url: '',
+      user_profile_url: '',
+      locale: '',
+    },
+    settings: [],
+    environment_tag: {
+      text: '',
+      color: '',
+    },
+  },
+};
+
+export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
+  common: DEFAULT_COMMON_BOOTSTRAP_DATA,
 };

@@ -40,7 +40,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
-import { useBootstrapData } from 'src/hooks/useBootstrapData';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 import { Filters } from '../types';
 import ActivityTable from './ActivityTable';
@@ -140,6 +140,8 @@ const WelcomeNav = styled.div`
   `}
 `;
 
+const bootstrapData = getBootstrapData();
+
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
     {[...new Array(loadingCardCount)].map((_, index) => (
@@ -164,7 +166,6 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     defaultChecked =
       userKey?.thumbnails === undefined ? true : userKey?.thumbnails;
   }
-  const bootstrapData = useBootstrapData();
   const [otherTabTitle, setOtherTabTitle] = useState('');
   const [otherTabFilters, setOtherTabFilters] = useState<Filters[]>([]);
   const [checked, setChecked] = useState(defaultChecked);
