@@ -54,6 +54,7 @@ import {
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
+import { oneLineTagRender } from './CustomTag';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -315,6 +316,7 @@ const Select = forwardRef(
             )
           }
           oneLine={oneLine}
+          tagRender={oneLine ? oneLineTagRender : undefined}
           {...props}
           ref={ref}
         >

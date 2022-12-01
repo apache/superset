@@ -27,6 +27,7 @@ import {
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
+import { TagProps } from 'antd/lib/tag';
 
 export type RawValue = string | number;
 
@@ -210,3 +211,8 @@ export interface AsyncSelectProps extends BaseSelectProps {
    */
   onError?: (error: string) => void;
 }
+
+export type CustomTagProps = HTMLSpanElement &
+  TagProps & {
+    label: ReactNode;
+  };
