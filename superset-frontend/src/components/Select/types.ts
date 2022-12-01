@@ -140,6 +140,13 @@ export interface BaseSelectProps extends AntdExposedProps {
     b: AntdLabeledValue,
     search?: string,
   ) => number;
+  /**
+   * Sets maxTagCount to 1. The overflow tag is always displayed in
+   * the same line, line wrapping is disabled.
+   * When the dropdown is open, sets maxTagCount to 0,
+   * displays only the overflow tag.
+   */
+  oneLine?: boolean;
 
   suffixIcon?: ReactNode;
 

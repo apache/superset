@@ -96,6 +96,8 @@ const Select = forwardRef(
       tokenSeparators,
       value,
       getPopupContainer,
+      oneLine,
+      maxTagCount: propsMaxTagCount,
       ...props
     }: SelectProps,
     ref: RefObject<HTMLInputElement>,
@@ -112,6 +114,10 @@ const Select = forwardRef(
       ? 'tags'
       : 'multiple';
 
+    let maxTagCount = propsMaxTagCount ?? MAX_TAG_COUNT;
+    if (oneLine) {
+      maxTagCount = isDropdownVisible ? 0 : 1;
+    }
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
         sortSelectedFirstHelper(a, b, selectValue),
@@ -280,7 +286,7 @@ const Select = forwardRef(
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
-          maxTagCount={MAX_TAG_COUNT}
+          maxTagCount={maxTagCount}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onDeselect={handleOnDeselect}
@@ -308,6 +314,7 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" />
             )
           }
+          oneLine={oneLine}
           {...props}
           ref={ref}
         >

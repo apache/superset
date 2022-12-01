@@ -325,20 +325,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onChange={handleChange}
           ref={inputRef}
           loading={isRefreshing}
-          maxTagCount={
-            filterBarOrientation === FilterBarOrientation.HORIZONTAL
-              ? 'responsive'
-              : 5
-          }
+          oneLine={filterBarOrientation === FilterBarOrientation.HORIZONTAL}
           invertSelection={inverseSelection}
           // @ts-ignore
           options={options}
           sortComparator={sortComparator}
-          maxTagTextLength={
-            filterBarOrientation === FilterBarOrientation.HORIZONTAL
-              ? 5
-              : undefined
-          }
           maxTagPlaceholder={(val: AntdLabeledValue[]) => (
             <span>+{val.length}</span>
           )}
