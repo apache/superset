@@ -314,7 +314,7 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         type_ = column_spec.sqla_type if column_spec else None
         if expression := self.expression:
             if template_processor:
-                template_processor.process_template(expression)
+                expression = template_processor.process_template(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -365,10 +365,9 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
         if not self.expression and not time_grain and not is_epoch:
             sqla_col = column(self.column_name, type_=type_)
             return self.table.make_sqla_column_compatible(sqla_col, label)
-        if self.expression:
-            expression = self.expression
+        if expression := self.expression:
             if template_processor:
-                expression = template_processor.process_template(self.expression)
+                expression = template_processor.process_template(expression)
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
