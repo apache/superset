@@ -49,9 +49,9 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     dashboardFilters,
   );
 
-  const highlighterFilterId =
+  const highlightedFilterId =
     nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
-  if (!(focusedFilterScope || highlighterFilterId)) {
+  if (!(focusedFilterScope || highlightedFilterId)) {
     return {};
   }
 
@@ -68,9 +68,9 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     pointerEvents: 'auto',
   };
 
-  if (highlighterFilterId) {
+  if (highlightedFilterId) {
     if (
-      nativeFilters.filters[highlighterFilterId]?.chartsInScope?.includes(
+      nativeFilters.filters[highlightedFilterId]?.chartsInScope?.includes(
         chartId,
       )
     ) {
