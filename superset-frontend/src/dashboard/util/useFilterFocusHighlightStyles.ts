@@ -49,9 +49,9 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     dashboardFilters,
   );
 
-  const highlighterFilterId =
+  const highlightedFilterId =
     nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
-  if (!(focusedFilterScope || highlighterFilterId)) {
+  if (!(focusedFilterScope || highlightedFilterId)) {
     return {};
   }
 
