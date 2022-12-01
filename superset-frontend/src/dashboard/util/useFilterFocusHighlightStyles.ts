@@ -68,7 +68,7 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     pointerEvents: 'auto',
   };
 
-  if (highlighterFilterId) {
+  if (highlightedFilterId) {
     if (
       nativeFilters.filters[highlighterFilterId]?.chartsInScope?.includes(
         chartId,
