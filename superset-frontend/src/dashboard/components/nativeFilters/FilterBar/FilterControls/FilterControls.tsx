@@ -90,7 +90,14 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderer = useCallback(
     ({ id }: Filter | Divider) => {
       const index = filtersWithValues.findIndex(f => f.id === id);
-      return <OutPortal key={id} node={portalNodes[index]} inView />;
+      return (
+        // Empty text node is to ensure there's always an element preceding
+        // the OutPortal, otherwise react-reverse-portal crashes
+        <React.Fragment key={id}>
+          {'' /* eslint-disable-line react/jsx-curly-brace-presence */}
+          <OutPortal node={portalNodes[index]} inView />
+        </React.Fragment>
+      );
     },
     [filtersWithValues, portalNodes],
   );
