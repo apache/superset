@@ -328,7 +328,10 @@ const DropdownContainer = forwardRef(
               onVisibleChange={visible => setPopoverVisible(visible)}
               placement="bottom"
             >
-              <Button buttonStyle="secondary">
+              <Button
+                buttonStyle="secondary"
+                data-test="dropdown-container-btn"
+              >
                 {dropdownTriggerIcon}
                 {dropdownTriggerText}
                 <Badge

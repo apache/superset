@@ -107,7 +107,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
           <>
             {canEdit && <FilterBarOrientationSelect />}
             {!hasFilters && (
-              <FilterBarEmptyStateContainer>
+              <FilterBarEmptyStateContainer data-test="horizontal-filterbar-empty">
                 {t('No filters are currently added to this dashboard.')}
               </FilterBarEmptyStateContainer>
             )}

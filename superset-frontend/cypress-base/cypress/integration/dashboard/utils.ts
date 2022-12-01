@@ -162,6 +162,12 @@ export function interceptDashboardasync() {
   cy.intercept('GET', `/dashboardasync/api/read*`).as('getDashboardasync');
 }
 
+export function interceptFilterState() {
+  cy.intercept('POST', `/api/v1/dashboard/*/filter_state*`).as(
+    'postFilterState',
+  );
+}
+
 export function setFilter(filter: string, option: string) {
   interceptFiltering();
 
@@ -304,7 +310,9 @@ export function applyNativeFilterValueWithIndex(index: number, value: string) {
     .should('be.visible', { timeout: 10000 })
     .type(`${value}{enter}`);
   // click the title to dismiss shown options
-  cy.get(nativeFilters.filterFromDashboardView.filterName).eq(index).click();
+  cy.get(nativeFilters.filterFromDashboardView.filterName)
+    .eq(index)
+    .click({ force: true });
 }
 
 /** ************************************************************************

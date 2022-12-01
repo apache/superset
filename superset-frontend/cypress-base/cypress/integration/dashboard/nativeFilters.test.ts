@@ -51,6 +51,7 @@ import {
   interceptGet,
   interceptCharts,
   interceptDatasets,
+  interceptFilterState,
 } from './utils';
 
 const SAMPLE_CHART = { name: 'Most Populated Countries', viz: 'table' };
@@ -193,6 +194,166 @@ function closeFilterModal() {
     }
   });
 }
+
+function openVerticalFilterBar() {
+  cy.getBySel('dashboard-filters-panel').should('exist');
+  cy.getBySel('filter-bar__expand-button').click();
+}
+
+function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
+  cy.getBySel('filterbar-orientation-icon').click();
+  cy.getBySel('dropdown-selectable-info')
+    .contains('Orientation of filter bar')
+    .should('exist');
+
+  if (orientation === 'vertical') {
+    cy.get('.ant-dropdown-menu-item-selected')
+      .contains('Horizontal (Top)')
+      .should('exist');
+    cy.get('.ant-dropdown-menu-item').contains('Vertical (Left)').click();
+    cy.getBySel('dashboard-filters-panel').should('exist');
+  } else {
+    cy.get('.ant-dropdown-menu-item-selected')
+      .contains('Vertical (Left)')
+      .should('exist');
+    cy.get('.ant-dropdown-menu-item').contains('Horizontal (Top)').click();
+    cy.getBySel('loading-indicator').should('exist');
+    cy.getBySel('filter-bar').should('exist');
+    cy.getBySel('dashboard-filters-panel').should('not.exist');
+  }
+}
+
+function openMoreFilters() {
+  interceptFilterState();
+  cy.getBySel('dropdown-container-btn').click();
+  cy.wait('@postFilterState');
+}
+
+describe('Horizontal FilterBar', () => {
+  before(() => {
+    cy.login();
+  });
+
+  beforeEach(() => {
+    cy.preserveLogin();
+  });
+
+  it('should go from vertical to horizontal and the opposite', () => {
+    visitDashboard();
+    openVerticalFilterBar();
+    setFilterBarOrientation('horizontal');
+    setFilterBarOrientation('vertical');
+  });
+
+  it('should show all default actions in horizontal mode', () => {
+    visitDashboard();
+    openVerticalFilterBar();
+    setFilterBarOrientation('horizontal');
+    cy.getBySel('horizontal-filterbar-empty')
+      .contains('No filters are currently added to this dashboard.')
+      .should('exist');
+    cy.getBySel('filter-bar__create-filter').should('exist');
+    cy.getBySel('filterbar-action-buttons').should('exist');
+  });
+
+  it('should stay in horizontal mode when reloading', () => {
+    visitDashboard();
+    openVerticalFilterBar();
+    setFilterBarOrientation('horizontal');
+    cy.reload();
+    cy.getBySel('dashboard-filters-panel').should('not.exist');
+  });
+
+  it('should show all filters', () => {
+    prepareDashboardFilters([
+      { name: 'test_1', column: 'country_name', datasetId: 2 },
+      { name: 'test_2', column: 'country_code', datasetId: 2 },
+    ]);
+    setFilterBarOrientation('horizontal');
+    cy.get('.filter-item-wrapper').should('have.length', 2);
+  });
+
+  it('should show "more filters" on window resize', () => {
+    prepareDashboardFilters([
+      { name: 'test_1', column: 'country_name', datasetId: 2 },
+      { name: 'test_2', column: 'country_code', datasetId: 2 },
+      { name: 'test_3', column: 'region', datasetId: 2 },
+    ]);
+    setFilterBarOrientation('horizontal');
+
+    cy.getBySel('form-item-value').should('have.length', 3);
+    cy.viewport(800, 1024);
+    cy.getBySel('form-item-value').should('have.length', 1);
+    openMoreFilters();
+    cy.getBySel('form-item-value').should('have.length', 3);
+  });
+
+  it('should show "more filters" and scroll', () => {
+    prepareDashboardFilters([
+      { name: 'test_1', column: 'country_name', datasetId: 2 },
+      { name: 'test_2', column: 'country_code', datasetId: 2 },
+      { name: 'test_3', column: 'region', datasetId: 2 },
+      { name: 'test_4', column: 'year', datasetId: 2 },
+      { name: 'test_5', column: 'country_name', datasetId: 2 },
+      { name: 'test_6', column: 'country_code', datasetId: 2 },
+      { name: 'test_7', column: 'region', datasetId: 2 },
+      { name: 'test_8', column: 'year', datasetId: 2 },
+      { name: 'test_9', column: 'country_name', datasetId: 2 },
+      { name: 'test_10', column: 'country_code', datasetId: 2 },
+      { name: 'test_11', column: 'region', datasetId: 2 },
+      { name: 'test_12', column: 'year', datasetId: 2 },
+    ]);
+    setFilterBarOrientation('horizontal');
+    cy.get('.filter-item-wrapper').should('have.length', 3);
+    openMoreFilters();
+    cy.getBySel('form-item-value').should('have.length', 12);
+    cy.getBySel('filter-control-name').contains('test_10').should('be.visible');
+    cy.getBySel('filter-control-name')
+      .contains('test_12')
+      .should('not.be.visible');
+    cy.get('.ant-popover-inner-content').scrollTo('bottom');
+    cy.getBySel('filter-control-name').contains('test_12').should('be.visible');
+  });
+
+  it('should display newly added filter', () => {
+    visitDashboard();
+    openVerticalFilterBar();
+    setFilterBarOrientation('horizontal');
+
+    enterNativeFilterEditModal(false);
+    addCountryNameFilter();
+    saveNativeFilterSettings([]);
+    validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
+  });
+
+  it('should spot changes in "more filters" and apply their values', () => {
+    cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
+    prepareDashboardFilters([
+      { name: 'test_1', column: 'country_name', datasetId: 2 },
+      { name: 'test_2', column: 'country_code', datasetId: 2 },
+      { name: 'test_3', column: 'region', datasetId: 2 },
+      { name: 'test_4', column: 'year', datasetId: 2 },
+      { name: 'test_5', column: 'country_name', datasetId: 2 },
+      { name: 'test_6', column: 'country_code', datasetId: 2 },
+      { name: 'test_7', column: 'region', datasetId: 2 },
+      { name: 'test_8', column: 'year', datasetId: 2 },
+      { name: 'test_9', column: 'country_name', datasetId: 2 },
+      { name: 'test_10', column: 'country_code', datasetId: 2 },
+      { name: 'test_11', column: 'region', datasetId: 2 },
+      { name: 'test_12', column: 'year', datasetId: 2 },
+    ]);
+    setFilterBarOrientation('horizontal');
+    openMoreFilters();
+    applyNativeFilterValueWithIndex(8, testItems.filterDefaultValue);
+    cy.get(nativeFilters.applyFilter).click({ force: true });
+    cy.wait('@chart');
+    cy.get('.ant-scroll-number.ant-badge-count').should(
+      'have.attr',
+      'title',
+      '1',
+    );
+  });
+});
 
 describe('Native filters', () => {
   beforeEach(() => {

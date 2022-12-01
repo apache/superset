@@ -134,6 +134,7 @@ export function setFilterBarOrientation(
 export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
   return async (dispatch: Dispatch, getState: () => RootState) => {
     const { id, metadata } = getState().dashboardInfo;
+    console.log('getState().dashboardInfo', getState().dashboardInfo);
     const updateDashboard = makeApi<
       Partial<DashboardInfo>,
       { result: Partial<DashboardInfo>; last_modified_time: number }
