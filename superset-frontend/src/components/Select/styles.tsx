@@ -56,20 +56,20 @@ export const StyledSelect = styled(AntdSelect, {
     ${
       oneLine &&
       `
-      .ant-select-selection-overflow {
-        flex-wrap: nowrap;
-      }
+        .ant-select-selection-overflow {
+          flex-wrap: nowrap;
+        }
 
-      .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
-        flex-shrink: 1;
-        min-width: ${theme.gridUnit * 13}px;
-      }
+        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+          flex-shrink: 1;
+          min-width: ${theme.gridUnit * 13}px;
+        }
 
-      .ant-select-selection-overflow-item-suffix {
-        flex: unset;
-        min-width: 0px;
-      }
-    `
+        .ant-select-selection-overflow-item-suffix {
+          flex: unset;
+          min-width: 0px;
+        }
+      `
     }
  `}
 `;
