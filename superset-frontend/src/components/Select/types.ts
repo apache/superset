@@ -152,10 +152,6 @@ export interface SelectProps extends BaseSelectProps {
    * The options can be static, an array of options.
    */
   options: SelectOptionsType;
-  /**
-   * Called when select all option is selected
-   */
-  onSelectAll?: () => void;
 }
 
 export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };

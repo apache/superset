@@ -19,7 +19,7 @@
 import React from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { Select } from 'src/components';
+import Select from 'src/components/Select/Select';
 import { SELECT_ALL_VALUE } from './utils';
 
 const ARIA_LABEL = 'Test';
