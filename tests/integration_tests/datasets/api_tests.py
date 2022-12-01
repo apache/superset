@@ -61,7 +61,6 @@ from tests.integration_tests.fixtures.importexport import (
 from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 
 
-
 class TestDatasetApi(SupersetTestCase):
 
     fixture_tables_names = (
@@ -1285,8 +1284,8 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 200
 
         tag: Tag = db.session.query(Tag).filter(
-            Tag.type==TagTypes.custom,
-            Tag.name==new_tag
+            Tag.type == TagTypes.custom,
+            Tag.name == new_tag
         )
         # Assert new custom tag now exists in the the tags table
         assert tag.count() == 1
@@ -1312,6 +1311,36 @@ class TestDatasetApi(SupersetTestCase):
         )
         assert tagged_object.count() == 0
 
+        db.session.commit()
+
+    # Ensure tags are not created in the tags and tagged_objects tables when
+    # feature flag is not enabled
+    def test_update_dataset_no_tags(self):
+        dataset = self.insert_default_dataset()
+        self.login(username="admin")
+        new_tag = "update dataset test tag"
+        dataset_data = {
+            "tags": [new_tag],
+        }
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        assert rv.status_code == 200
+
+        tag: Tag = db.session.query(Tag).filter(
+            Tag.type == TagTypes.custom,
+            Tag.name == new_tag
+        )
+        # Assert new custom tag does not exist
+        assert tag.count() == 0
+
+        tagged_object: TaggedObject = db.session.query(TaggedObject).filter(
+            TaggedObject.object_id == dataset.id,
+            TaggedObject.object_type == ObjectTypes.dataset
+        )
+        # Assert an associated tagged object was not created
+        assert tagged_object.count() == 0
+
+        db.session.delete(dataset)
         db.session.commit()
 
     def test_update_dataset_item_gamma(self):
@@ -2262,6 +2291,9 @@ class TestDatasetApi(SupersetTestCase):
                 }
             ]
         }
+
+    # Ensure tags are created in the tags and tagged_objects tables when
+    # added via import api
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_import_dataset_with_tags(self):
         """
@@ -2330,6 +2362,68 @@ class TestDatasetApi(SupersetTestCase):
         ).count()
         assert num_tagged_objects == 0
 
+        db.session.commit()
+
+    # Ensure tags are not created in the tags and tagged_objects tables when
+    # feature flag is not enabled
+    def test_import_dataset_no_tags(self):
+        """
+        Dataset API: Test import dataset with tags
+        """
+        self.login(username="admin")
+        uri = "api/v1/dataset/import/"
+        dataset_config_with_tags = dataset_config.copy()
+        dataset_config_with_tags['tags'] = ['example 1', 'example 2']
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("dataset_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(dataset_metadata_config).encode())
+            with bundle.open(
+                "dataset_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(database_config).encode())
+            with bundle.open(
+                "dataset_export/datasets/imported_dataset.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(dataset_config_with_tags).encode())
+        buf.seek(0)
+        form_data = {
+            "formData": (buf, "dataset_export.zip"),
+            "sync_columns": "true",
+            "sync_metrics": "true",
+        }
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(
+                uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+
+        assert len(database.tables) == 1
+        dataset = database.tables[0]
+        assert dataset.table_name == "imported_dataset"
+        assert str(dataset.uuid) == dataset_config["uuid"]
+
+        tags = db.session.query(Tag).filter(
+            Tag.name.in_(['example 1', 'example 2'])
+        )
+        num_tagged_objects = db.session.query(TaggedObject).filter(
+            TaggedObject.object_id == dataset.id,
+            TaggedObject.object_type == ObjectTypes.dataset
+        ).count()
+
+        assert tags.count() == 0
+        assert num_tagged_objects == 0
+
+        dataset.owners = []
+        database.owners = []
+        db.session.delete(dataset)
+        db.session.delete(database)
         db.session.commit()
 
     @pytest.mark.usefixtures("create_datasets")
