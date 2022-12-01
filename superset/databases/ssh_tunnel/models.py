@@ -23,6 +23,7 @@ from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import EncryptedType
 
 from superset import app
+from superset.constants import SSH_TUNNELLING_LOCAL_BIND_ADDRESS
 from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -74,13 +75,13 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             "ssh_port": self.server_port,
             "ssh_username": self.username,
             "remote_bind_address": (self.bind_host, self.bind_port),
-            "local_bind_address": ("127.0.0.1",),
+            "local_bind_address": (SSH_TUNNELLING_LOCAL_BIND_ADDRESS,),
         }
 
         if self.password:
             params["ssh_password"] = self.password
         elif self.private_key:
-            params["ssh_pkey"] = self.private_key
-            params["ssh_private_key_password"] = self.private_key_password
+            params["private_key"] = self.private_key
+            params["private_key_password"] = self.private_key_password
 
         return params
