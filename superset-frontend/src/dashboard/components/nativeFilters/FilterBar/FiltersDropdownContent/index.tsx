@@ -38,6 +38,7 @@ export const FiltersDropdownContent = ({
     css={(theme: SupersetTheme) =>
       css`
         width: ${theme.gridUnit * 56}px;
+        padding: ${theme.gridUnit}px 0;
       `
     }
   >
@@ -46,6 +47,7 @@ export const FiltersDropdownContent = ({
       <FiltersOutOfScopeCollapsible
         filtersOutOfScope={filtersOutOfScope}
         renderer={renderer}
+        horizontalOverflow
       />
     )}
   </div>

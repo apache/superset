@@ -97,8 +97,11 @@ const HorizontalFilterControlContainer = styled(Form)`
 const HorizontalOverflowFilterControlContainer = styled(
   VerticalFilterControlContainer,
 )`
-  && .ant-form-item-label > label {
-    padding-right: unset;
+  && .ant-form-item-label {
+    line-height: 1;
+    & > label {
+      padding-right: unset;
+    }
   }
 `;
 

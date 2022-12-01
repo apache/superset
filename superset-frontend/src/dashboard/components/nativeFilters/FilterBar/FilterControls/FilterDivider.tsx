@@ -42,9 +42,14 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
       css={css`
         display: flex;
         align-items: center;
-        height: ${8 * theme.gridUnit}px;
+        height: ${6 * theme.gridUnit}px;
         border-left: 1px solid ${theme.colors.grayscale.light2};
         padding-left: ${4 * theme.gridUnit}px;
+
+        .filter-item-wrapper:first-child & {
+          border-left: none;
+          padding-left: 0;
+        }
       `}
     >
       <Tooltip overlay={titleIsTruncated ? title : null}>
@@ -109,6 +114,7 @@ const HorizontalOverflowDivider = ({
             font-weight: ${theme.typography.weights.normal};
             font-size: ${theme.typography.sizes.m}px;
             margin: 0 0 ${theme.gridUnit}px 0;
+            line-height: 1;
           `}
         >
           {title}
@@ -124,7 +130,8 @@ const HorizontalOverflowDivider = ({
               display: block;
               font-size: ${theme.typography.sizes.s}px;
               color: ${theme.colors.grayscale.base};
-              margin: 0;
+              margin: ${theme.gridUnit * 2.5}px 0 0 0;
+              line-height: 1;
             `}
           >
             {description}
