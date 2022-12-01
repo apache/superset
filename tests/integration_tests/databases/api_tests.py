@@ -395,6 +395,8 @@ class TestDatabaseApi(SupersetTestCase):
             "password": "bar",
         }
         updated_ssh_tunnel_properties = {
+            "server_address": "123.132.123.1",
+            "server_port": 8080,
             "username": "Test",
         }
         database_data_with_ssh_tunnel = {
