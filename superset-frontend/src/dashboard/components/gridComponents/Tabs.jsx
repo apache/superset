@@ -340,10 +340,10 @@ export class Tabs extends React.PureComponent {
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
     let tabsToHighlight;
-    const highlighterFilterId =
+    const highlightedFilterId =
       nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
-    if (highlighterFilterId) {
-      tabsToHighlight = nativeFilters.filters[highlighterFilterId]?.tabsInScope;
+    if (highlightedFilterId) {
+      tabsToHighlight = nativeFilters.filters[highlightedFilterId]?.tabsInScope;
     }
     return (
       <DragDroppable
