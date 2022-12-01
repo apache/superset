@@ -131,6 +131,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         id: filter.id,
         element: (
           <div
+            className="filter-item-wrapper"
             css={css`
               flex-shrink: 0;
             `}
@@ -161,6 +162,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         css`
           padding-left: ${theme.gridUnit * 4}px;
           min-width: 0;
+          flex: 1;
         `
       }
     >
