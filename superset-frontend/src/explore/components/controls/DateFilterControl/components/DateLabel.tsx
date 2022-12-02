@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import React, { forwardRef, ReactNode, RefObject } from 'react';
 import { css, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
@@ -79,15 +79,19 @@ const LabelContainer = styled.div<{
   `}
 `;
 
-export const DateLabel = (props: DateLabelProps) => {
-  const theme = useTheme();
-  return (
-    <LabelContainer {...props}>
-      <span className="date-label-content">{props.label}</span>
-      <Icons.CalendarOutlined
-        iconSize="s"
-        iconColor={theme.colors.grayscale.base}
-      />
-    </LabelContainer>
-  );
-};
+export const DateLabel = forwardRef(
+  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => {
+    const theme = useTheme();
+    return (
+      <LabelContainer {...props}>
+        <span className="date-label-content" ref={ref}>
+          {props.label}
+        </span>
+        <Icons.CalendarOutlined
+          iconSize="s"
+          iconColor={theme.colors.grayscale.base}
+        />
+      </LabelContainer>
+    );
+  },
+);

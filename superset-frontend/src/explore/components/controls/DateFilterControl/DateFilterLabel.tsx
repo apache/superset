@@ -28,6 +28,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
+import { useCSSTextTruncation } from 'src/hooks/useTruncation';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -139,13 +140,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
-  const [tooltipTitle, setTooltipTitle] = useState<string>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<string | null>(value);
   const theme = useTheme();
+  const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
       setActualTimeRange(NO_TIME_RANGE);
-      setTooltipTitle(NO_TIME_RANGE);
+      setTooltipTitle(null);
       setValidTimeRange(true);
       return;
     }
@@ -153,7 +155,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       if (error) {
         setEvalResponse(error || '');
         setValidTimeRange(false);
-        setTooltipTitle(value || '');
+        setTooltipTitle(value || null);
       } else {
         /*
           HRT == human readable text
@@ -172,16 +174,27 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           guessedFrame === 'No filter'
         ) {
           setActualTimeRange(value);
+          setTooltipTitle(labelIsTruncated ? value : null);
         } else {
+          const tooltipTitle = labelIsTruncated ? (
+            <>
+              <div>
+                <strong>{actualRange}</strong>
+                {value && <div>{value}</div>}
+              </div>
+            </>
+          ) : (
+            value || null
+          );
           setActualTimeRange(actualRange || '');
-          setTooltipTitle(value || '');
+          setTooltipTitle(tooltipTitle);
         }
         setValidTimeRange(true);
       }
       setLastFetchedTimeRange(value);
       setEvalResponse(actualRange || value);
     });
-  }, [value]);
+  }, [guessedFrame, labelIsTruncated, labelRef, value]);
 
   useDebouncedEffect(
     () => {
@@ -327,6 +340,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
+          ref={labelRef}
         />
       </Tooltip>
     </ControlPopover>
@@ -341,6 +355,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.modalOverlay}
+          ref={labelRef}
         />
       </Tooltip>
       {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter when GENERIC_CHART_AXES is enabled */}
