@@ -26,7 +26,9 @@ import React, {
   useLayoutEffect,
   useMemo,
   useState,
+  useRef,
 } from 'react';
+import { Global } from '@emotion/react';
 import { css, t, useTheme } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { usePrevious } from 'src/hooks/usePrevious';
@@ -34,6 +36,8 @@ import Badge from '../Badge';
 import Icons from '../Icons';
 import Button from '../Button';
 import Popover from '../Popover';
+
+const MAX_HEIGHT = 500;
 
 /**
  * Container item.
@@ -104,12 +108,12 @@ const DropdownContainer = forwardRef(
     {
       items,
       onOverflowingStateChange,
-      dropdownContent: popoverContent,
-      dropdownRef: popoverRef,
-      dropdownStyle: popoverStyle = {},
-      dropdownTriggerCount: popoverTriggerCount,
-      dropdownTriggerIcon: popoverTriggerIcon,
-      dropdownTriggerText: popoverTriggerText = t('More'),
+      dropdownContent,
+      dropdownRef,
+      dropdownStyle = {},
+      dropdownTriggerCount,
+      dropdownTriggerIcon,
+      dropdownTriggerText = t('More'),
       style,
     }: DropdownContainerProps,
     outerRef: RefObject<Ref>,
@@ -123,6 +127,13 @@ const DropdownContainer = forwardRef(
 
     // We use React.useState to be able to mock the state in Jest
     const [overflowingIndex, setOverflowingIndex] = React.useState<number>(-1);
+
+    let targetRef = useRef<HTMLDivElement>(null);
+    if (dropdownRef) {
+      targetRef = dropdownRef;
+    }
+
+    const [showOverflow, setShowOverflow] = useState(false);
 
     useLayoutEffect(() => {
       const container = current?.children.item(0);
@@ -209,31 +220,48 @@ const DropdownContainer = forwardRef(
       }
     }, [notOverflowedIds, onOverflowingStateChange, overflowedIds]);
 
-    const content = useMemo(
-      () => (
-        <div
-          css={css`
-            display: flex;
-            flex-direction: column;
-            gap: ${theme.gridUnit * 3}px;
-          `}
-          data-test="dropdown-content"
-          style={popoverStyle}
-          ref={popoverRef}
-        >
-          {popoverContent
-            ? popoverContent(overflowedItems)
-            : overflowedItems.map(item => item.element)}
-        </div>
-      ),
+    const overflowingCount =
+      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
+
+    const popoverContent = useMemo(
+      () =>
+        dropdownContent || overflowingCount ? (
+          <div
+            css={css`
+              display: flex;
+              flex-direction: column;
+              gap: ${theme.gridUnit * 4}px;
+            `}
+            data-test="dropdown-content"
+            style={dropdownStyle}
+            ref={targetRef}
+          >
+            {dropdownContent
+              ? dropdownContent(overflowedItems)
+              : overflowedItems.map(item => item.element)}
+          </div>
+        ) : null,
       [
-        overflowedItems,
-        popoverContent,
-        popoverRef,
-        popoverStyle,
+        dropdownContent,
+        overflowingCount,
         theme.gridUnit,
+        dropdownStyle,
+        overflowedItems,
       ],
     );
+
+    useLayoutEffect(() => {
+      if (popoverVisible) {
+        // Measures scroll height after rendering the elements
+        setTimeout(() => {
+          if (targetRef.current) {
+            // We only set overflow when there's enough space to display
+            // Select's popovers because they are restrained by the overflow property.
+            setShowOverflow(targetRef.current.scrollHeight > MAX_HEIGHT);
+          }
+        }, 100);
+      }
+    }, [popoverVisible]);
 
     useImperativeHandle(
       outerRef,
@@ -244,22 +272,29 @@ const DropdownContainer = forwardRef(
       [ref],
     );
 
-    const overflowingCount =
-      overflowingIndex !== -1 ? items.length - overflowingIndex : 0;
+    // Closes the popover when scrolling on the document
+    useEffect(() => {
+      document.onscroll = popoverVisible
+        ? () => setPopoverVisible(false)
+        : null;
+      return () => {
+        document.onscroll = null;
+      };
+    }, [popoverVisible]);
 
     return (
       <div
         ref={ref}
         css={css`
           display: flex;
-          align-items: flex-end;
+          align-items: center;
         `}
       >
         <div
           css={css`
             display: flex;
             align-items: center;
-            gap: ${theme.gridUnit * 3}px;
+            gap: ${theme.gridUnit * 4}px;
             margin-right: ${theme.gridUnit * 3}px;
             min-width: 100px;
           `}
@@ -268,23 +303,64 @@ const DropdownContainer = forwardRef(
         >
           {notOverflowedItems.map(item => item.element)}
         </div>
-        {overflowingCount > 0 && (
-          <Popover
-            content={content}
-            trigger="click"
-            visible={popoverVisible}
-            onVisibleChange={visible => setPopoverVisible(visible)}
-          >
-            <Button buttonStyle="secondary">
-              {popoverTriggerIcon}
-              {popoverTriggerText}
-              <Badge count={popoverTriggerCount || overflowingCount} />
-              <Icons.DownOutlined
-                iconSize="m"
-                iconColor={theme.colors.grayscale.base}
-              />
-            </Button>
-          </Popover>
+        {popoverContent && (
+          <>
+            <Global
+              styles={css`
+                .ant-popover-inner-content {
+                  max-height: ${MAX_HEIGHT}px;
+                  overflow: ${showOverflow ? 'auto' : 'visible'};
+                  padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px;
+
+                  // Some OS versions only show the scroll when hovering.
+                  // These settings will make the scroll always visible.
+                  ::-webkit-scrollbar {
+                    -webkit-appearance: none;
+                    width: 14px;
+                  }
+                  ::-webkit-scrollbar-thumb {
+                    border-radius: 9px;
+                    background-color: ${theme.colors.grayscale.light1};
+                    border: 3px solid transparent;
+                    background-clip: content-box;
+                  }
+                  ::-webkit-scrollbar-track {
+                    background-color: ${theme.colors.grayscale.light4};
+                    border-left: 1px solid ${theme.colors.grayscale.light2};
+                  }
+                }
+              `}
+            />
+            <Popover
+              content={popoverContent}
+              trigger="click"
+              visible={popoverVisible}
+              onVisibleChange={visible => setPopoverVisible(visible)}
+              placement="bottom"
+            >
+              <Button buttonStyle="secondary">
+                {dropdownTriggerIcon}
+                {dropdownTriggerText}
+                <Badge
+                  count={dropdownTriggerCount ?? overflowingCount}
+                  css={css`
+                    margin-left: ${dropdownTriggerCount ?? overflowingCount
+                      ? `${theme.gridUnit * 2}px`
+                      : '0'};
+                  `}
+                />
+                <Icons.DownOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.grayscale.light1}
+                  css={css`
+                    .anticon {
+                      display: flex;
+                    }
+                  `}
+                />
+              </Button>
+            </Popover>
+          </>
         )}
       </div>
     );

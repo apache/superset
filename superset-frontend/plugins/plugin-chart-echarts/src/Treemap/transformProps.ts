@@ -47,7 +47,7 @@ import {
   BORDER_COLOR,
 } from './constants';
 import { OpacityEnum } from '../constants';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 import { Refs } from '../types';
 
 export function formatLabel({
@@ -310,7 +310,7 @@ export default function transformProps(
 
   const echartOptions: EChartsCoreOption = {
     tooltip: {
-      position: getDefaultPosition(refs),
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
