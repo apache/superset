@@ -284,6 +284,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if new_model.driver:
                 item["driver"] = new_model.driver
 
+            if item.get("ssh_tunnel"):
+                item["ssh_tunnel"] = new_model.ssh_tunnel
+
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())

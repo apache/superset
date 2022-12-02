@@ -82,6 +82,7 @@ class CreateDatabaseCommand(BaseCommand):
                     },
                     commit=False,
                 )
+                database.mask_password_in_ssh_tunnel(ssh_tunnel)
 
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)

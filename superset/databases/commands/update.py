@@ -100,20 +100,22 @@ class UpdateDatabaseCommand(BaseCommand):
                 existing_ssh_tunnel_model = DatabaseDAO.get_ssh_tunnel(database.id)
                 if existing_ssh_tunnel_model is None:
                     # We couldn't found an existing tunnel so we need to create one
-                    SSHTunnelDAO.create(
+                    ssh_tunnel = SSHTunnelDAO.create(
                         {
                             **ssh_tunnel_properties,
                             "database_id": database.id,
                         },
                         commit=False,
                     )
+                    database.mask_password_in_ssh_tunnel(ssh_tunnel)
                 else:
                     # We found an existing tunnel so we need to update it
-                    SSHTunnelDAO.update(
+                    ssh_tunnel = SSHTunnelDAO.update(
                         existing_ssh_tunnel_model,
                         ssh_tunnel_properties,
                         commit=False,
                     )
+                    database.mask_password_in_ssh_tunnel(ssh_tunnel)
 
             db.session.commit()
 

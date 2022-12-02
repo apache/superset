@@ -105,7 +105,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     return engine.dialect.do_ping(conn)
 
             with database.get_sqla_engine_with_context(
-                override_ssh_tunnel=ssh_tunnel
+                ssh_tunnel=ssh_tunnel
             ) as engine:
                 try:
                     alive = func_timeout(
