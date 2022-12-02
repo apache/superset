@@ -171,6 +171,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setDataMask,
     setFocusedFilter,
     unsetFocusedFilter,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFilterActive,
     filterState,
     inputRef,
@@ -312,8 +314,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             isOverflowing={isOverflowingFilterBar}
             onFocus={setFocusedFilter}
             onBlur={unsetFocusedFilter}
-            onMouseEnter={setFocusedFilter}
-            onMouseLeave={unsetFocusedFilter}
+            onMouseEnter={setHoveredFilter}
+            onMouseLeave={unsetHoveredFilter}
             onMouseDown={() => setFilterActive(true)}
             onMouseUp={() => setFilterActive(false)}
           >

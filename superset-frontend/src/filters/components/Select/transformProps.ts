@@ -39,6 +39,8 @@ export default function transformProps(
   const newFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const {
     setDataMask = noOp,
+    setHoveredFilter = noOp,
+    unsetHoveredFilter = noOp,
     setFocusedFilter = noOp,
     unsetFocusedFilter = noOp,
     setFilterActive = noOp,
@@ -61,6 +63,8 @@ export default function transformProps(
     formData: newFormData,
     isRefreshing,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
