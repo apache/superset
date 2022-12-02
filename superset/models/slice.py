@@ -43,6 +43,7 @@ from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
+from superset.thumbnails.utils import get_chart_digest
 from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.memoized import memoized
@@ -245,7 +246,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
+        return f"/api/v1/chart/{self.id}/thumbnail/{get_chart_digest(self)}/"
 
     @property
     def json_data(self) -> str:

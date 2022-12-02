@@ -21,6 +21,8 @@ in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
@@ -39,6 +41,7 @@ from typing import (
     Literal,
     Optional,
     Set,
+    Tuple,
     Type,
     TYPE_CHECKING,
     Union,
@@ -60,6 +63,7 @@ from superset.jinja_context import BaseTemplateProcessor
 from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
+from superset.thumbnails.types import ThumbnailExecutor
 from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -72,6 +76,8 @@ if TYPE_CHECKING:
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -573,11 +579,41 @@ THEME_OVERRIDES: Dict[str, Any] = {}
 # This is merely a default
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
+# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
+# the username of the account used to render the queries and dashboards/charts
+SELENIUM_USER: Optional[str] = "admin"
+
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
-# Also used by Alerts & Reports
 # ---------------------------------------------------
-THUMBNAIL_SELENIUM_USER = "admin"
+
+# To be able to have different thumbnails for different users, use this config to define
+# 1. which user to execute the thumbnails as 2. custom callbacks for creating the
+# digests for the dashboard and chart thumbnail images. To have unique thumbnails for
+# all users, use the following example config:
+from hashlib import md5
+
+# THUMBNAIL_EXECUTOR_CONFIG: Optional[
+#    Tuple[
+#        ThumbnailExecutor,
+#        Optional[Callable[[Dashboard, models.User], str]],
+#        Optional[Callable[[Slice, models.User], str]],
+#    ]
+# ] = (
+#    ThumbnailExecutor.User,
+#    lambda x: md5(f"{x[0].digest()}\n{x[1].id}".encode("utf-8")).hexdigest(),
+#    lambda x: md5(f"{x[0].digest()}\n{x[1].id}".encode("utf-8")).hexdigest(),
+# )
+
+THUMBNAIL_EXECUTOR_CONFIG: Optional[
+    Tuple[
+        ThumbnailExecutor,
+        Optional[Callable[[Dashboard, models.User], str]],
+        Optional[Callable[[Slice, models.User], str]],
+    ]
+] = None
+
+
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "NullCache",
     "CACHE_NO_NULL_WARNING": True,
@@ -930,7 +966,7 @@ SQLLAB_CTAS_NO_LIMIT = False
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
 SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
-    Callable[["Database", "models.User", str, str], str]
+    Callable[[Database, models.User, str, str], str]
 ] = None
 
 # If enabled, it can be used to store the results of long-running queries
@@ -955,8 +991,8 @@ CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
 def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
-    database: "Database",
-    user: "models.User",  # pylint: disable=unused-argument
+    database: Database,
+    user: models.User,  # pylint: disable=unused-argument
     schema: Optional[str],
 ) -> str:
     # Note the final empty path enforces a trailing slash.
@@ -974,7 +1010,7 @@ UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[["Database", "models.User"], List[str]] = (
+ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], List[str]] = (
     lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
     if UPLOADED_CSV_HIVE_NAMESPACE
     else []

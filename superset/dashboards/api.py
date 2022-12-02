@@ -20,7 +20,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, Optional
+from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import make_response, redirect, request, Response, send_file, url_for
@@ -33,7 +33,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, thumbnail_cache
+from superset import is_feature_enabled, thumbnail_cache, security_manager
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -95,6 +95,7 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.thumbnails.utils import get_dashboard_digest
 
 logger = logging.getLogger(__name__)
 
@@ -879,7 +880,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = self.datamodel.get(pk, self._base_filters)
+        dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
 
@@ -887,26 +888,38 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         )
         # If force, request a screenshot from the workers
+        dashboard_digest = get_dashboard_digest(dashboard)
+        username = user.username if (user := security_manager.current_user) else None
         if kwargs["rison"].get("force", False):
-            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
+            cache_dashboard_thumbnail.delay(
+                url=dashboard_url,
+                digest=dashboard_digest,
+                username=username,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # fetch the dashboard screenshot using the current user and cache if set
         screenshot = DashboardScreenshot(
-            dashboard_url, dashboard.digest
+            dashboard_url, dashboard_digest
         ).get_from_cache(cache=thumbnail_cache)
         # If the screenshot does not exist, request one from the workers
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
-            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
+            cache_dashboard_thumbnail.delay(
+                username=username,
+                url=dashboard_url,
+                digest=dashboard_digest,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # If digests
-        if dashboard.digest != digest:
+        if dashboard_digest != digest:
             self.incr_stats("redirect", self.thumbnail.__name__)
             return redirect(
                 url_for(
                     f"{self.__class__.__name__}.thumbnail",
                     pk=pk,
-                    digest=dashboard.digest,
+                    digest=dashboard_digest,
                 )
             )
         self.incr_stats("from_cache", self.thumbnail.__name__)

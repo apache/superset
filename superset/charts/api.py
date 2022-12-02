@@ -18,7 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import app, is_feature_enabled, thumbnail_cache
+from superset import app, is_feature_enabled, thumbnail_cache, security_manager
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.delete import DeleteChartCommand
@@ -75,6 +75,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
+from superset.thumbnails.utils import get_chart_digest
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -557,12 +558,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # Don't shrink the image if thumb_size is not specified
         thumb_size = rison_dict.get("thumb_size") or window_size
 
-        chart = self.datamodel.get(pk, self._base_filters)
+        chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
 
+        chart_digest = get_chart_digest(chart)
         chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
-        screenshot_obj = ChartScreenshot(chart_url, chart.digest)
+        screenshot_obj = ChartScreenshot(chart_url, chart_digest)
         cache_key = screenshot_obj.cache_key(window_size, thumb_size)
         image_url = get_url_path(
             "ChartRestApi.screenshot", pk=chart.id, digest=cache_key
@@ -572,7 +574,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             logger.info("Triggering screenshot ASYNC")
             kwargs = {
                 "url": chart_url,
-                "digest": chart.digest,
+                "digest": chart_digest,
                 "force": True,
                 "window_size": window_size,
                 "thumb_size": thumb_size,
@@ -680,16 +682,23 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        chart = self.datamodel.get(pk, self._base_filters)
+        chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
 
+        username = user.username if (user := security_manager.current_user) else None
         url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+        chart_digest = get_chart_digest(chart)
         if kwargs["rison"].get("force", False):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
-            cache_chart_thumbnail.delay(url, chart.digest, force=True)
+            cache_chart_thumbnail.delay(
+                username=username,
+                url=url,
+                digest=chart_digest,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # fetch the chart screenshot using the current user and cache if set
         screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
@@ -701,7 +710,12 @@ class ChartRestApi(BaseSupersetModelRestApi):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
-            cache_chart_thumbnail.delay(url, chart.digest, force=True)
+            cache_chart_thumbnail.delay(
+                username=username,
+                url=url,
+                digest=chart_digest,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # If digests
         if chart.digest != digest:

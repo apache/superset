@@ -55,6 +55,7 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
+from superset.thumbnails.utils import get_dashboard_digest
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
 from superset.utils.decorators import debounce
@@ -253,7 +254,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
+        return f"/api/v1/dashboard/{self.id}/thumbnail/{get_dashboard_digest(self)}/"
 
     @property
     def changed_by_name(self) -> str:
