@@ -1028,7 +1028,7 @@ When contributing new React components to Superset, please try to add a Story al
 
 ## Translating
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate Superset.
 In Python files, we import the magic `_` function using:
 
 ```python
