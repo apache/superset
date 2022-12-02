@@ -20,7 +20,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Label from 'src/components/Label';
 import Modal from 'src/components/Modal';
 import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -45,6 +44,7 @@ import {
   CustomFrame,
   AdvancedFrame,
 } from './components';
+import { DateLabel } from './components/DateLabel';
 
 const StyledRangeType = styled(Select)`
   width: 272px;
@@ -322,12 +322,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       overlayStyle={{ width: '600px' }}
     >
       <Tooltip placement="top" title={tooltipTitle}>
-        <Label
-          className="pointer"
+        <DateLabel
+          label={actualTimeRange}
+          isActive={show}
+          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
-        >
-          {actualTimeRange}
-        </Label>
+        />
       </Tooltip>
     </ControlPopover>
   );
@@ -335,13 +335,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const modalContent = (
     <>
       <Tooltip placement="top" title={tooltipTitle}>
-        <Label
-          className="pointer"
+        <DateLabel
           onClick={toggleOverlay}
+          label={actualTimeRange}
+          isActive={show}
+          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.modalOverlay}
-        >
-          {actualTimeRange}
-        </Label>
+        />
       </Tooltip>
       {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter when GENERIC_CHART_AXES is enabled */}
       <Modal

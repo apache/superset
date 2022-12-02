@@ -38,6 +38,7 @@ const ControlContainer = styled.div<{
   display: flex;
   height: 100%;
   max-width: 100%;
+  width: 100%;
   padding: 2px;
   & > span,
   & > span:hover {
