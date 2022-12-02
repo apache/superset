@@ -168,8 +168,11 @@ export default class MainPreset extends Preset {
         new EchartsTreeChartPlugin().configure({ key: 'tree_chart' }),
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         ...experimentalplugins,
-      ].concat(isFeatureEnabled(FeatureFlag.ADHOC_DASHBOARD_NATIVE_FILTERS) ?
-      [new AdhocFilterPlugin().configure({ key: 'filter_adhoc' })] : []),
+      ].concat(
+        isFeatureEnabled(FeatureFlag.ADHOC_DASHBOARD_NATIVE_FILTERS)
+          ? [new AdhocFilterPlugin().configure({ key: 'filter_adhoc' })]
+          : [],
+      ),
     });
   }
 }
