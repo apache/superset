@@ -132,19 +132,20 @@ interface DatabaseModalProps {
 }
 
 export enum ActionType {
+  addTableCatalogSheet,
   configMethodChange,
   dbSelected,
+  driverChange,
   editorChange,
+  extraEditorChange,
+  extraInputChange,
   fetched,
   inputChange,
   parametersChange,
+  queryChange,
+  removeTableCatalogSheet,
   reset,
   textChange,
-  extraInputChange,
-  extraEditorChange,
-  addTableCatalogSheet,
-  removeTableCatalogSheet,
-  queryChange,
 }
 
 interface DBReducerPayloadType {
@@ -197,6 +198,10 @@ export type DBReducerActionType =
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
       };
+    }
+  | {
+      type: ActionType.driverChange;
+      payload: string;
     };
 
 const StyledBtns = styled.div`
@@ -251,6 +256,19 @@ export function dbReducer(
             schemas_allowed_for_file_upload: (action.payload.value || '')
               .split(',')
               .filter(schema => schema !== ''),
+          }),
+        };
+      }
+      if (action.payload.name === 'http_path') {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            engine_params: {
+              connect_args: {
+                [action.payload.name]: action.payload.value?.trim(),
+              },
+            },
           }),
         };
       }
@@ -406,6 +424,12 @@ export function dbReducer(
     case ActionType.configMethodChange:
       return {
         ...action.payload,
+      };
+
+    case ActionType.driverChange:
+      return {
+        ...trimmedState,
+        driver: action.payload,
       };
 
     case ActionType.reset:
@@ -578,10 +602,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           },
         });
       }
+
+      // make sure that button spinner animates
+      setLoading(true);
       const errors = await getValidation(dbToUpdate, true);
       if ((validationErrors && !isEmpty(validationErrors)) || errors) {
+        setLoading(false);
         return;
       }
+      setLoading(false);
+      // end spinner animation
+
       const parameters_schema = isEditMode
         ? dbToUpdate.parameters_schema?.properties
         : dbModel?.parameters.properties;
@@ -873,6 +904,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               key="submit"
               buttonStyle="primary"
               onClick={onSave}
+              loading={isLoading}
             >
               {t('Connect')}
             </StyledFooterButton>
@@ -890,6 +922,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             buttonStyle="primary"
             onClick={onSave}
             data-test="modal-confirm-button"
+            loading={isLoading}
           >
             {t('Finish')}
           </StyledFooterButton>
@@ -909,6 +942,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             buttonStyle="primary"
             onClick={onSave}
             disabled={handleDisableOnImport()}
+            loading={isLoading}
           >
             {t('Connect')}
           </StyledFooterButton>
@@ -929,6 +963,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         buttonStyle="primary"
         onClick={onSave}
         disabled={db?.is_managed_externally}
+        loading={isLoading}
         tooltip={
           db?.is_managed_externally
             ? t(
@@ -966,8 +1001,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (show) {
       setTabKey(DEFAULT_TAB_KEY);
-      getAvailableDbs();
       setLoading(true);
+      getAvailableDbs();
     }
     if (databaseId && show) {
       fetchDB();
@@ -1254,11 +1289,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         sslForced={sslForced}
         dbModel={dbModel}
         db={db as DatabaseObject}
+        setDatabaseDriver={(driver: string) => {
+          onChange(ActionType.driverChange, driver);
+        }}
         onParametersChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.parametersChange, {
             type: target.type,
             name: target.name,
             checked: target.checked,
+            value: target.value,
+          })
+        }
+        onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+          onChange(ActionType.extraInputChange, {
+            name: target.name,
             value: target.value,
           })
         }
@@ -1419,11 +1463,20 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
+              setDatabaseDriver={(driver: string) => {
+                onChange(ActionType.driverChange, driver);
+              }}
               onParametersChange={({ target }: { target: HTMLInputElement }) =>
                 onChange(ActionType.parametersChange, {
                   type: target.type,
                   name: target.name,
                   checked: target.checked,
+                  value: target.value,
+                })
+              }
+              onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.extraInputChange, {
+                  name: target.name,
                   value: target.value,
                 })
               }
@@ -1606,11 +1659,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   db={db}
                   sslForced={sslForced}
                   dbModel={dbModel}
+                  setDatabaseDriver={(driver: string) => {
+                    onChange(ActionType.driverChange, driver);
+                  }}
                   onAddTableCatalog={() => {
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
                   onQueryChange={({ target }: { target: HTMLInputElement }) =>
                     onChange(ActionType.queryChange, {
+                      name: target.name,
+                      value: target.value,
+                    })
+                  }
+                  onExtraInputChange={({
+                    target,
+                  }: {
+                    target: HTMLInputElement;
+                  }) =>
+                    onChange(ActionType.extraInputChange, {
                       name: target.name,
                       value: target.value,
                     })
