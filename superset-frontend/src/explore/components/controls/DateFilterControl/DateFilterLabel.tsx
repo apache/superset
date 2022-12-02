@@ -44,8 +44,8 @@ import {
   CalendarFrame,
   CustomFrame,
   AdvancedFrame,
+  DateLabel,
 } from './components';
-import { DateLabel } from './components/DateLabel';
 
 const StyledRangeType = styled(Select)`
   width: 272px;
