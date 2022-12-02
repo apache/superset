@@ -206,7 +206,6 @@ export const ExploreChartHeader = ({
   }, [metadata, slice?.description]);
 
   const oldSliceName = slice?.slice_name;
-
   return (
     <>
       <PageHeaderWithActions
@@ -234,16 +233,19 @@ export const ExploreChartHeader = ({
           showTooltip: true,
         }}
         titlePanelAdditionalItems={
-          sliceFormData ? (
-            <AlteredSliceTag
-              className="altered"
-              origFormData={{
-                ...sliceFormData,
-                chartTitle: oldSliceName,
-              }}
-              currentFormData={{ ...formData, chartTitle: sliceName }}
-            />
-          ) : null
+          <div css={additionalItemsStyles}>
+            {sliceFormData ? (
+              <AlteredSliceTag
+                className="altered"
+                origFormData={{
+                  ...sliceFormData,
+                  chartTitle: oldSliceName,
+                }}
+                currentFormData={{ ...formData, chartTitle: sliceName }}
+              />
+            ) : null}
+            {metadataBar}
+          </div>
         }
         rightPanelAdditionalItems={
           <Tooltip
