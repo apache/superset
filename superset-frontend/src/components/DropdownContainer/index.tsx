@@ -142,33 +142,42 @@ const DropdownContainer = forwardRef(
         const childrenArray = Array.from(children);
 
         // Stores items width once
-        if (itemsWidth.length === 0) {
+        if (itemsWidth.length === 0 && childrenArray.length > 0) {
           setItemsWidth(
             childrenArray.map(child => child.getBoundingClientRect().width),
           );
         }
 
         // Calculates the index of the first overflowed element
+        // +1 is to give at least one pixel of difference and avoid flakiness
         const index = childrenArray.findIndex(
           child =>
             child.getBoundingClientRect().right >
-            container.getBoundingClientRect().right,
+            container.getBoundingClientRect().right + 1,
         );
-        setOverflowingIndex(index === -1 ? children.length : index);
 
-        if (width > previousWidth && overflowingIndex !== -1) {
+        let newOverflowingIndex = index === -1 ? children.length : index;
+
+        if (width > previousWidth && newOverflowingIndex !== -1) {
           // Calculates remaining space in the container
           const button = current?.children.item(1);
           const buttonRight = button?.getBoundingClientRect().right || 0;
           const containerRight = current?.getBoundingClientRect().right || 0;
           const remainingSpace = containerRight - buttonRight;
-          // Checks if the first element in the dropdown fits in the remaining space
-          const fitsInRemainingSpace = remainingSpace >= itemsWidth[0];
-          if (fitsInRemainingSpace && overflowingIndex < items.length) {
-            // Moves element from dropdown to container
-            setOverflowingIndex(overflowingIndex + 1);
+
+          // Checks if some elements in the dropdown fits in the remaining space
+          let sum = 0;
+          for (let i = newOverflowingIndex; i < items.length; i += 1) {
+            sum += itemsWidth[i];
+            if (sum <= remainingSpace) {
+              newOverflowingIndex = i + 1;
+            } else {
+              break;
+            }
           }
         }
+
+        setOverflowingIndex(newOverflowingIndex);
       }
     }, [
       current,
@@ -206,7 +215,7 @@ const DropdownContainer = forwardRef(
     const [overflowedItems, overflowedIds] = useMemo(
       () =>
         overflowingIndex !== -1
-          ? reduceItems(items.slice(overflowingIndex, items.length))
+          ? reduceItems(items.slice(overflowingIndex))
           : [[], []],
       [items, overflowingIndex],
     );
@@ -296,7 +305,7 @@ const DropdownContainer = forwardRef(
             align-items: center;
             gap: ${theme.gridUnit * 4}px;
             margin-right: ${theme.gridUnit * 3}px;
-            min-width: 100px;
+            min-width: 0px;
           `}
           data-test="container"
           style={style}
