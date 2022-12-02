@@ -18,7 +18,6 @@ import { logging } from '@superset-ui/core';
  * specific language governing permissions and limitations
  * under the License.
  */
-
 export default function updateComponentParentsList({
   currentComponent,
   layout = {},
@@ -54,23 +53,3 @@ export default function updateComponentParentsList({
     }
   }
 }
-
-/*
-export default function updateComponentParentsList({
-  currentComponent,
-  layout = {},
-}) {
-  if (currentComponent && layout[currentComponent.id]) {
-    const parentsList = (currentComponent.parents || []).slice();
-    parentsList.push(currentComponent.id);
-    currentComponent.children.forEach(childId => {
-      console.log(`currentComponent.children.forEach: ${childId}`);
-      layout[childId].parents = parentsList; // eslint-disable-line no-param-reassign
-      updateComponentParentsList({
-        currentComponent: layout[childId],
-        layout,
-      });
-    });
-  }
-}
-*/
