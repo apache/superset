@@ -51,7 +51,6 @@ const AllEntitiesNav = styled.div`
 `;
 
 function AllEntities() {
-  
   const [tagSuggestions, setTagSuggestions] = useState<string[]>();
   const [tagsQuery, setTagsQuery] = useQueryParam('tags', StringParam);
 

@@ -76,14 +76,12 @@ function PropertiesModal({
   const [tags, setTags] = useState<TagType[]>([]);
 
   const tagsAsSelectValues = useMemo(() => {
-    const selectTags = tags.map((tag) => {
-      return {
-        value:tag.name,
-        label:tag.name
-      }
-    });
+    const selectTags = tags.map(tag => ({
+      value: tag.name,
+      label: tag.name,
+    }));
     return selectTags;
-  }, [tags.length])
+  }, [tags.length]);
 
   function showError({ error, statusText, message }: any) {
     let errorText = error || statusText || t('An error has occurred');
@@ -180,8 +178,8 @@ function PropertiesModal({
             includeTypes: false,
           },
           (currentTags: TagType[]) => updateTags(currentTags, tags),
-          (error) => {
-            showError(error)
+          error => {
+            showError(error);
           },
         );
       } catch (error: any) {
@@ -235,7 +233,7 @@ function PropertiesModal({
           includeTypes: false,
         },
         (tags: TagType[]) => setTags(tags),
-        (error) => {
+        error => {
           showError(error);
         },
       );
@@ -247,6 +245,7 @@ function PropertiesModal({
   const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
     // update the tags for this object
     // add tags that are in new tags, but not in old tags
+    // eslint-disable-next-line array-callback-return
     newTags.map((tag: TagType) => {
       if (!oldTags.some(t => t.name === tag.name)) {
         addTag(
@@ -262,6 +261,7 @@ function PropertiesModal({
       }
     });
     // delete tags that are in old tags, but not in new tags
+    // eslint-disable-next-line array-callback-return
     oldTags.map((tag: TagType) => {
       if (!newTags.some(t => t.name === tag.name)) {
         deleteTaggedObjects(
@@ -272,23 +272,22 @@ function PropertiesModal({
           tag,
           () => {},
           () => {},
-        )
+        );
       }
     });
-  }
+  };
 
   const handleChangeTags = (values: { label: string; value: number }[]) => {
     // triggered whenever a new tag is selected or a tag was deselected
     // on new tag selected, add the tag
-    
-    const uniqueTags = [...new Set(values.map((v => v.label)))];
-    setTags([...uniqueTags.map(t => ({name: t}))])
-    return;
-  }
+
+    const uniqueTags = [...new Set(values.map(v => v.label))];
+    setTags([...uniqueTags.map(t => ({ name: t }))]);
+  };
 
   const handleClearTags = () => {
     setTags([]);
-  }
+  };
 
   return (
     <Modal

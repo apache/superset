@@ -35,7 +35,6 @@ import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';

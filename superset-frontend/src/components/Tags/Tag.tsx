@@ -55,7 +55,11 @@ const Tag = ({
       ) : (
         <StyledTag role="link" key={id} onClick={onClick}>
           {id ? (
-            <a href={`/superset/tags/?tags=${name}`} target="_blank">
+            <a
+              href={`/superset/tags/?tags=${name}`}
+              target="_blank"
+              rel="noreferrer"
+            >
               {isLongTag ? `${name.slice(0, 20)}...` : name}
             </a>
           ) : isLongTag ? (

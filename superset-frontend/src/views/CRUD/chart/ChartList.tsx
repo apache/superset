@@ -70,9 +70,9 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import { bootstrapData } from 'src/preamble';
 import Owner from 'src/types/Owner';
-import ChartCard from './ChartCard';
 import { OBJECT_TYPES } from 'src/tags';
 import { loadTags } from 'src/components/ObjectTags';
+import ChartCard from './ChartCard';
 
 const FlexRowContainer = styled.div`
   align-items: center;

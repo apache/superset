@@ -53,9 +53,9 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { bootstrapData } from 'src/preamble';
+import { loadTags } from 'src/components/ObjectTags';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
-import { loadTags } from 'src/components/ObjectTags';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -566,7 +566,7 @@ function DashboardList(props: DashboardListProps) {
         input: 'select',
         operator: FilterOperator.chartTags,
         unfilteredLabel: t('All'),
-        fetchSelects: loadTags
+        fetchSelects: loadTags,
       });
     }
     filters_list.push({

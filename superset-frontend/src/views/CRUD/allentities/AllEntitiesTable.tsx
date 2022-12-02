@@ -55,7 +55,9 @@ interface AllEntitiesTableProps {
   search?: string;
 }
 
-export default function AllEntitiesTable({ search = '' }: AllEntitiesTableProps) {
+export default function AllEntitiesTable({
+  search = '',
+}: AllEntitiesTableProps) {
   const [objects, setObjects] = useState<TaggedObjects>({
     dashboard: [],
     chart: [],
@@ -76,7 +78,6 @@ export default function AllEntitiesTable({ search = '' }: AllEntitiesTableProps)
         console.log(error.json());
       },
     );
-
   }, [search]);
 
   const renderTable = (type: any) => {

@@ -112,7 +112,10 @@ const SavedQueryList = lazy(
     ),
 );
 const AllEntitiesPage = lazy(
-  () => import(/* webpackChunkName: "AllEntities" */ 'src/views/CRUD/allentities/AllEntities'),
+  () =>
+    import(
+      /* webpackChunkName: "AllEntities" */ 'src/views/CRUD/allentities/AllEntities'
+    ),
 );
 const TagsPage = lazy(
   () => import(/* webpackChunkName: "TagList" */ 'src/views/CRUD/tags/TagList'),

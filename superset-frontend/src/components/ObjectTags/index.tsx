@@ -21,7 +21,6 @@ import React, { useEffect, useState } from 'react';
 import { styled, SupersetClient, t } from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 
-import { objectTagsStyles } from './styles';
 import { TagsList } from 'src/components/Tags';
 import rison from 'rison';
 import { cacheWrapper } from 'src/utils/cacheWrapper';
@@ -30,6 +29,7 @@ import {
   getClientErrorObject,
 } from 'src/utils/getClientErrorObject';
 import { deleteTaggedObjects, fetchTags } from 'src/tags';
+import { objectTagsStyles } from './styles';
 
 export interface ObjectTagsProps {
   objectType: string;
@@ -141,7 +141,7 @@ export const ObjectTags = ({
       { objectType, objectId },
       tags[tagIndex],
       () => setTags(tags.filter((_, i) => i !== tagIndex)),
-      (error) => {
+      error => {
         throw new Error(t('An Error occured when deleting the tag'));
       },
     );
@@ -150,9 +150,7 @@ export const ObjectTags = ({
 
   return (
     <span>
-      <StyledTagsDiv
-        css={objectTagsStyles}
-      >
+      <StyledTagsDiv css={objectTagsStyles}>
         <TagsList
           tags={tags}
           editable={editMode}
