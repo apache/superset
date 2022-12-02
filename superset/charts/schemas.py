@@ -149,7 +149,7 @@ openapi_spec_methods_override = {
 }
 
 
-class TagSchema(Schema): 
+class TagSchema(Schema):
     id = fields.Int()
     name = fields.String()
     type = fields.String()
@@ -171,7 +171,8 @@ class ChartEntityResponseSchema(Schema):
     form_data = fields.Dict(description=form_data_description)
     slice_url = fields.String(description=slice_url_description)
     certified_by = fields.String(description=certified_by_description)
-    certification_details = fields.String(description=certification_details_description)
+    certification_details = fields.String(
+        description=certification_details_description)
 
 
 class ChartPostSchema(Schema):
@@ -182,7 +183,8 @@ class ChartPostSchema(Schema):
     slice_name = fields.String(
         description=slice_name_description, required=True, validate=Length(1, 250)
     )
-    description = fields.String(description=description_description, allow_none=True)
+    description = fields.String(
+        description=description_description, allow_none=True)
     viz_type = fields.String(
         description=viz_type_description,
         validate=Length(0, 250),
@@ -203,7 +205,8 @@ class ChartPostSchema(Schema):
     cache_timeout = fields.Integer(
         description=cache_timeout_description, allow_none=True
     )
-    datasource_id = fields.Integer(description=datasource_id_description, required=True)
+    datasource_id = fields.Integer(
+        description=datasource_id_description, required=True)
     datasource_type = fields.String(
         description=datasource_type_description,
         validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
@@ -212,8 +215,10 @@ class ChartPostSchema(Schema):
     datasource_name = fields.String(
         description=datasource_name_description, allow_none=True
     )
-    dashboards = fields.List(fields.Integer(description=dashboards_description))
-    certified_by = fields.String(description=certified_by_description, allow_none=True)
+    dashboards = fields.List(fields.Integer(
+        description=dashboards_description))
+    certified_by = fields.String(
+        description=certified_by_description, allow_none=True)
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
@@ -229,7 +234,8 @@ class ChartPutSchema(Schema):
     slice_name = fields.String(
         description=slice_name_description, allow_none=True, validate=Length(0, 250)
     )
-    description = fields.String(description=description_description, allow_none=True)
+    description = fields.String(
+        description=description_description, allow_none=True)
     viz_type = fields.String(
         description=viz_type_description,
         allow_none=True,
@@ -255,8 +261,10 @@ class ChartPutSchema(Schema):
         validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
         allow_none=True,
     )
-    dashboards = fields.List(fields.Integer(description=dashboards_description))
-    certified_by = fields.String(description=certified_by_description, allow_none=True)
+    dashboards = fields.List(fields.Integer(
+        description=dashboards_description))
+    certified_by = fields.String(
+        description=certified_by_description, allow_none=True)
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
@@ -918,14 +926,16 @@ class AnnotationLayerSchema(Schema):
         keys=fields.String(
             desciption="Name of property to be overridden",
             validate=validate.OneOf(
-                choices=("granularity", "time_grain_sqla", "time_range", "time_shift"),
+                choices=("granularity", "time_grain_sqla",
+                         "time_range", "time_shift"),
             ),
         ),
         values=fields.Raw(allow_none=True),
         description="which properties should be overridable",
         allow_none=True,
     )
-    show = fields.Boolean(description="Should the layer be shown", required=True)
+    show = fields.Boolean(
+        description="Should the layer be shown", required=True)
     showLabel = fields.Boolean(
         description="Should the label always be shown",
         allow_none=True,
@@ -998,7 +1008,8 @@ class ChartDataQueryObjectSchema(Schema):
         unknown = EXCLUDE
 
     datasource = fields.Nested(ChartDataDatasourceSchema, allow_none=True)
-    result_type = EnumField(ChartDataResultType, by_value=True, allow_none=True)
+    result_type = EnumField(ChartDataResultType,
+                            by_value=True, allow_none=True)
 
     annotation_layers = fields.List(
         fields.Nested(AnnotationLayerSchema),
@@ -1015,7 +1026,8 @@ class ChartDataQueryObjectSchema(Schema):
         "if defined in datasource",
         allow_none=True,
     )
-    filters = fields.List(fields.Nested(ChartDataFilterSchema), allow_none=True)
+    filters = fields.List(fields.Nested(
+        ChartDataFilterSchema), allow_none=True)
     granularity = fields.String(
         description="Name of temporal column used for time filtering. For legacy Druid "
         "datasources this defines the time grain.",
@@ -1141,7 +1153,8 @@ class ChartDataQueryObjectSchema(Schema):
             (
                 fields.Raw(
                     validate=[
-                        Length(min=1, error=_("orderby column must be populated"))
+                        Length(min=1, error=_(
+                            "orderby column must be populated"))
                     ],
                     allow_none=False,
                 ),
@@ -1312,7 +1325,8 @@ class ChartDataResponseResult(Schema):
         allow_none=False,
     )
     data = fields.List(fields.Dict(), description="A list with results")
-    colnames = fields.List(fields.String(), description="A list of column names")
+    colnames = fields.List(
+        fields.String(), description="A list of column names")
     coltypes = fields.List(
         fields.Integer(), description="A list of generic data types of each column"
     )
@@ -1376,7 +1390,8 @@ class ImportV1ChartSchema(Schema):
     slice_name = fields.String(required=True)
     viz_type = fields.String(required=True)
     params = fields.Dict()
-    query_context = fields.String(allow_none=True, validate=utils.validate_json)
+    query_context = fields.String(
+        allow_none=True, validate=utils.validate_json)
     cache_timeout = fields.Integer(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)

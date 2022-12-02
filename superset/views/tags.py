@@ -50,6 +50,7 @@ def process_template(content: str) -> str:
     }
     return template.render(context)
 
+
 class TagModelView(SupersetModelView):
     route_base = "/superset/tags"
     datamodel = SQLAInterface(Tag)
@@ -62,6 +63,7 @@ class TagModelView(SupersetModelView):
             return super().list()
 
         return super().render_app_template()
+
 
 class TagView(BaseSupersetView):
     @staticmethod
@@ -108,7 +110,7 @@ class TagView(BaseSupersetView):
         )
         tags = [{"id": id, "name": name} for id, name in query]
         return json_success(json.dumps(tags))
-    
+
     @has_access_api
     @expose("/tags/<object_type:object_type>/<int:object_id>/", methods=["GET"])
     def get(  # pylint: disable=no-self-use
@@ -144,12 +146,14 @@ class TagView(BaseSupersetView):
             else:
                 type_ = TagTypes.custom
 
-            tag = db.session.query(Tag).filter_by(name=name, type=type_).first()
+            tag = db.session.query(Tag).filter_by(
+                name=name, type=type_).first()
             if not tag:
                 tag = Tag(name=name, type=type_)
 
             tagged_objects.append(
-                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
+                TaggedObject(object_id=object_id,
+                             object_type=object_type, tag=tag)
             )
 
         db.session.add_all(tagged_objects)
@@ -210,7 +214,8 @@ class TagView(BaseSupersetView):
             return json_success(json.dumps([]))
 
         # filter types
-        types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
+        types = [type_ for type_ in request.args.get(
+            "types", "").split(",") if type_]
 
         results: List[Dict[str, Any]] = []
 

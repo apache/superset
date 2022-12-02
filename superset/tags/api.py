@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-many-lines
 import logging
 
 from flask import request, Response
@@ -105,7 +104,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
         log_to_statsd=False,
     )
-    def post(self, object_type: ObjectTypes, object_id: int) -> Response:
+    def add_new_tags(self, object_type: ObjectTypes, object_id: int) -> Response:
         """Adds new tags to an object.
         ---
         post:

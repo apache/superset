@@ -40,7 +40,6 @@ from typing import (
 import dateutil.parser
 import numpy as np
 import pandas as pd
-from pyrsistent import v
 import sqlalchemy as sa
 import sqlparse
 from flask import escape, Markup

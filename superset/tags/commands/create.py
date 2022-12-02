@@ -40,7 +40,8 @@ class CreateTagCommand(CreateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            tag = TagDAO.create_tagged_objects(self._object_type, self._object_id, self._properties)
+            tag = TagDAO.create_tagged_objects(
+                self._object_type, self._object_id, self._properties)
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise TagCreateFailedError() from ex
