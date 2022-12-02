@@ -166,7 +166,7 @@ def extract_tags(config: Dict[str, Any]) -> Tuple[Dict[str, Any], Optional[List[
     return config, tags
 
 
-def import_tags(dataset: SqlaTable, existing: bool, tags: List[str]) -> None:
+def import_tags(dataset: SqlaTable, existing: bool, tags: Optional[List[str]]) -> None:
     if tags:
         if existing:
             add_custom_object_tags(tags, ObjectTypes.dataset, dataset.id)
