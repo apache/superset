@@ -18,5 +18,6 @@
 from flask_babel import lazy_gettext as _
 from marshmallow import ValidationError
 
+
 class CustomTagNameValidationError(ValidationError):
-    message =_("Custom tag has invalid name, cannot contain ':'")
+    message = _("Custom tag has invalid name, cannot contain ':'")

@@ -21,13 +21,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.dao.base import BaseDAO
-from superset.extensions import db
+from superset.extensions import db, feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectTypes, TaggedObject
 from superset.tags.utils import update_custom_object_tags
-from superset.extensions import feature_flag_manager
 from superset.utils.core import DatasourceType
 from superset.views.base import DatasourceFilter
 
@@ -43,8 +42,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         try:
             return db.session.query(Database).filter_by(id=database_id).one_or_none()
         except SQLAlchemyError as ex:  # pragma: no cover
-            logger.error("Could not get database by id: %s",
-                         str(ex), exc_info=True)
+            logger.error("Could not get database by id: %s", str(ex), exc_info=True)
             return None
 
     @staticmethod
@@ -78,8 +76,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
             database.get_table(table_name, schema=schema)
             return True
         except SQLAlchemyError as ex:  # pragma: no cover
-            logger.warning("Got an error %s validating table: %s",
-                           str(ex), table_name)
+            logger.warning("Got an error %s validating table: %s", str(ex), table_name)
             return False
 
     @staticmethod
@@ -116,8 +113,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     def validate_columns_exist(dataset_id: int, columns_ids: List[int]) -> bool:
         dataset_query = (
             db.session.query(TableColumn.id).filter(
-                TableColumn.table_id == dataset_id, TableColumn.id.in_(
-                    columns_ids)
+                TableColumn.table_id == dataset_id, TableColumn.id.in_(columns_ids)
             )
         ).all()
         return len(columns_ids) == len(dataset_query)
@@ -173,11 +169,10 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         if "metrics" in properties:
             cls.update_metrics(model, properties.pop("metrics"), commit=commit)
 
-        if ("tags" in properties
-                and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")):
-            cls.update_tags(
-                model.id, properties.get("tags", []), commit=commit
-            )
+        if "tags" in properties and feature_flag_manager.is_feature_enabled(
+            "TAGGING_SYSTEM"
+        ):
+            cls.update_tags(model.id, properties.get("tags", []), commit=commit)
 
         return super().update(model, properties, commit=commit)
 
@@ -287,7 +282,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
         Creates/updates tagged objects based on a list of Tag names.
         - Delete all current tagged objects related to this object
-        - If a tag with that name exists we create the tagged object relation to 
+        - If a tag with that name exists we create the tagged object relation to
           this object
         - If a tag does not exist we create the tag and the relation to this object
         """
@@ -296,7 +291,7 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
             object_type=ObjectTypes.dataset,
             tags=tags,
             commit=commit,
-            overwrite=True
+            overwrite=True,
         )
 
     @classmethod
