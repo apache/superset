@@ -91,7 +91,7 @@ export type Filter = {
   description: string;
 };
 
-export type FilterWithDataMask = Filter & { dataMask?: DataMaskWithId };
+export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
 
 export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
   id: string;
@@ -104,6 +104,15 @@ export function isNativeFilter(
   filterElement: Filter | Divider,
 ): filterElement is Filter {
   return filterElement.type === NativeFilterType.NATIVE_FILTER;
+}
+
+export function isNativeFilterWithDataMask(
+  filterElement: Filter | Divider,
+): filterElement is FilterWithDataMask {
+  return (
+    isNativeFilter(filterElement) &&
+    (filterElement as FilterWithDataMask).dataMask?.filterState?.value
+  );
 }
 
 export function isFilterDivider(
