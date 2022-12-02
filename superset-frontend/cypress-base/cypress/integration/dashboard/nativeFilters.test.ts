@@ -229,7 +229,7 @@ function openMoreFilters() {
   cy.wait('@postFilterState');
 }
 
-describe('Horizontal FilterBar', () => {
+describe.only('Horizontal FilterBar', () => {
   before(() => {
     cy.login();
   });
@@ -264,16 +264,17 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('dashboard-filters-panel').should('not.exist');
   });
 
-  it('should show all filters in available space', () => {
+  it('should show all filters in available space on load', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
+      { name: 'test_3', column: 'region', datasetId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
-    cy.get('.filter-item-wrapper').should('have.length', 2);
+    cy.get('.filter-item-wrapper').should('have.length', 3);
   });
 
-  it('should show "more filters" on window resize', () => {
+  it('should show "more filters" on window resizing up and down', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -285,6 +286,9 @@ describe('Horizontal FilterBar', () => {
     cy.viewport(800, 1024);
     cy.getBySel('form-item-value').should('have.length', 1);
     openMoreFilters();
+    cy.getBySel('form-item-value').should('have.length', 3);
+    cy.getBySel('filter-bar').click();
+    cy.viewport(1280, 1024);
     cy.getBySel('form-item-value').should('have.length', 3);
   });
 
@@ -322,7 +326,7 @@ describe('Horizontal FilterBar', () => {
 
     enterNativeFilterEditModal(false);
     addCountryNameFilter();
-    saveNativeFilterSettings([]);
+    saveNativeFilterSettings([SAMPLE_CHART]);
     validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
   });
 
@@ -375,7 +379,7 @@ describe('Horizontal FilterBar', () => {
     });
     cy.get('.filterStatusPopover').contains('test_8').click();
     cy.getBySel('dropdown-content').should('be.visible');
-    cy.getBySel('.ant-select-focused').should('be.visible');
+    cy.get('.ant-select-focused').should('be.visible');
   });
 
   it('should show tag count and one plain tag on focus and only count on blur in select ', () => {
