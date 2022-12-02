@@ -63,7 +63,7 @@ test('filter with dataMask type guard', () => {
   expect(isNativeFilterWithDataMask(filterDivider)).toBeFalsy();
 });
 
-test('filter divider with dataMask type guard', () => {
+test('filter divider type guard', () => {
   expect(isFilterDivider(filter)).toBeFalsy();
   expect(isFilterDivider(filterWithDataMask)).toBeFalsy();
   expect(isFilterDivider(filterDivider)).toBeTruthy();
