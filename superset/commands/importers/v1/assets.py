@@ -70,7 +70,6 @@ class ImportAssetsCommand(BaseCommand):
         self.passwords: Dict[str, str] = kwargs.get("passwords") or {}
         self._configs: Dict[str, Any] = {}
 
-    # pylint: disable=too-many-locals
     @staticmethod
     def _import(session: Session, configs: Dict[str, Any]) -> None:
         # import databases first
@@ -124,19 +123,12 @@ class ImportAssetsCommand(BaseCommand):
                     }
                     dashboard_chart_ids.append(dashboard_chart_id)
 
-                try:
-                    session.execute(
-                        delete(dashboard_slices).where(
-                            dashboard_slices.c.dashboard_id == dashboard.id
-                        )
+                session.execute(
+                    delete(dashboard_slices).where(
+                        dashboard_slices.c.dashboard_id == dashboard.id
                     )
-                    session.execute(
-                        insert(dashboard_slices).values(dashboard_chart_ids)
-                    )
-                    session.commit()
-                except Exception as error:
-                    session.rollback()
-                    raise Exception from error
+                )
+                session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
 
     def run(self) -> None:
         self.validate()
