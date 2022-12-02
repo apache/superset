@@ -83,6 +83,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     isRefreshing,
     width,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -319,8 +321,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           onSearch={searchWrapper}
           onSelect={clearSuggestionSearch}
           onBlur={handleBlur}
-          onMouseEnter={setFocusedFilter}
-          onMouseLeave={unsetFocusedFilter}
+          onFocus={setFocusedFilter}
+          onMouseEnter={setHoveredFilter}
+          onMouseLeave={unsetHoveredFilter}
           // @ts-ignore
           onChange={handleChange}
           ref={inputRef}

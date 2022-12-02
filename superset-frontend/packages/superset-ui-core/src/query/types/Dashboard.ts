@@ -126,6 +126,7 @@ export type NativeFiltersState = {
   filters: Filters;
   filterSets: FilterSets;
   focusedFilterId?: string;
+  hoveredFilterId?: string;
 };
 
 export type DashboardComponentMetadata = {
