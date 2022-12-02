@@ -177,12 +177,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           setTooltipTitle(labelIsTruncated ? value : null);
         } else {
           const tooltipTitle = labelIsTruncated ? (
-            <>
-              <div>
-                <strong>{actualRange}</strong>
-                {value && <div>{value}</div>}
-              </div>
-            </>
+            <div>
+              <strong>{actualRange}</strong>
+              {value && <div>{value}</div>}
+            </div>
           ) : (
             value || null
           );
