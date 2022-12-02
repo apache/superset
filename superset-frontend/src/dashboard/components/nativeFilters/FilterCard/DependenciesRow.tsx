@@ -19,7 +19,6 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { css, t, useTheme } from '@superset-ui/core';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import Icons from 'src/components/Icons';
 import { useTruncation } from 'src/hooks/useTruncation';
 import {
@@ -33,6 +32,7 @@ import {
 import { useFilterDependencies } from './useFilterDependencies';
 import { DependencyValueProps, FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
+import { setFocusedNativeFilter } from 'src/dashboard/actions/nativeFilters';
 
 const DependencyValue = ({
   dependency,
@@ -40,7 +40,7 @@ const DependencyValue = ({
 }: DependencyValueProps) => {
   const dispatch = useDispatch();
   const handleClick = useCallback(() => {
-    dispatch(setDirectPathToChild([dependency.id]));
+    dispatch(setFocusedNativeFilter(dependency.id));
   }, [dependency.id, dispatch]);
   return (
     <span>
