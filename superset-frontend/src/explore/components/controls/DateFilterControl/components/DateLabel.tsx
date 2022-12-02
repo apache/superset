@@ -52,8 +52,11 @@ const LabelContainer = styled.div<{
       ${isActive ? ACTIVE_BORDER_COLOR : theme.colors.grayscale.light2};
     border-radius: ${theme.borderRadius}px;
 
+    cursor: pointer;
+
     transition: border-color 0.3s cubic-bezier(0.65, 0.05, 0.36, 1);
-    :hover {
+    :hover,
+    :focus {
       border-color: ${ACTIVE_BORDER_COLOR};
     }
 
@@ -83,7 +86,7 @@ export const DateLabel = forwardRef(
   (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => {
     const theme = useTheme();
     return (
-      <LabelContainer {...props}>
+      <LabelContainer {...props} tabIndex={0}>
         <span className="date-label-content" ref={ref}>
           {props.label}
         </span>
