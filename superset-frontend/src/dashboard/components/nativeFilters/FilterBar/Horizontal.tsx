@@ -93,7 +93,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
   dataMaskSelected,
   filterValues,
   isInitialized,
-  directPathToChild,
+  focusedFilterId,
   onSelectionChange,
 }) => {
   const hasFilters = filterValues.length > 0;
@@ -124,7 +124,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
             {hasFilters && (
               <FilterControls
                 dataMaskSelected={dataMaskSelected}
-                directPathToChild={directPathToChild}
+                focusedFilterId={focusedFilterId}
                 onFilterSelectionChange={onSelectionChange}
               />
             )}

@@ -30,5 +30,7 @@ export interface PluginFilterHooks {
   setDataMask: SetDataMaskHook;
   setFocusedFilter: () => void;
   unsetFocusedFilter: () => void;
+  setHoveredFilter: () => void;
+  unsetHoveredFilter: () => void;
   setFilterActive: (isActive: boolean) => void;
 }
