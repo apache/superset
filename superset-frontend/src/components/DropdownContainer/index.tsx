@@ -135,59 +135,6 @@ const DropdownContainer = forwardRef(
 
     const [showOverflow, setShowOverflow] = useState(false);
 
-    useLayoutEffect(() => {
-      const container = current?.children.item(0);
-      if (container) {
-        const { children } = container;
-        const childrenArray = Array.from(children);
-
-        // Stores items width once
-        if (itemsWidth.length === 0 && childrenArray.length > 0) {
-          setItemsWidth(
-            childrenArray.map(child => child.getBoundingClientRect().width),
-          );
-        }
-
-        // Calculates the index of the first overflowed element
-        // +1 is to give at least one pixel of difference and avoid flakiness
-        const index = childrenArray.findIndex(
-          child =>
-            child.getBoundingClientRect().right >
-            container.getBoundingClientRect().right + 1,
-        );
-
-        let newOverflowingIndex = index === -1 ? children.length : index;
-
-        if (width > previousWidth && newOverflowingIndex !== -1) {
-          // Calculates remaining space in the container
-          const button = current?.children.item(1);
-          const buttonRight = button?.getBoundingClientRect().right || 0;
-          const containerRight = current?.getBoundingClientRect().right || 0;
-          const remainingSpace = containerRight - buttonRight;
-
-          // Checks if some elements in the dropdown fits in the remaining space
-          let sum = 0;
-          for (let i = newOverflowingIndex; i < items.length; i += 1) {
-            sum += itemsWidth[i];
-            if (sum <= remainingSpace) {
-              newOverflowingIndex = i + 1;
-            } else {
-              break;
-            }
-          }
-        }
-
-        setOverflowingIndex(newOverflowingIndex);
-      }
-    }, [
-      current,
-      items.length,
-      itemsWidth,
-      overflowingIndex,
-      previousWidth,
-      width,
-    ]);
-
     const reduceItems = (items: Item[]): [Item[], string[]] =>
       items.reduce(
         ([items, ids], item) => {
@@ -219,6 +166,71 @@ const DropdownContainer = forwardRef(
           : [[], []],
       [items, overflowingIndex],
     );
+
+    useEffect(() => {
+      if (itemsWidth.length !== items.length) {
+        const container = current?.children.item(0);
+        if (container) {
+          const { children } = container;
+          const childrenArray = Array.from(children);
+          setItemsWidth(
+            childrenArray.map(child => child.getBoundingClientRect().width),
+          );
+        }
+      }
+    }, [current?.children, items.length, itemsWidth.length]);
+
+    useLayoutEffect(() => {
+      const container = current?.children.item(0);
+      if (container) {
+        const { children } = container;
+        const childrenArray = Array.from(children);
+
+        // Calculates the index of the first overflowed element
+        // +1 is to give at least one pixel of difference and avoid flakiness
+        const index = childrenArray.findIndex(
+          child =>
+            child.getBoundingClientRect().right >
+            container.getBoundingClientRect().right + 1,
+        );
+
+        // If elements fit (-1) and there's overflowed items
+        // then preserve the overflow index. We can't use overflowIndex
+        // directly because the items may have been modified
+        let newOverflowingIndex =
+          index === -1 && overflowedItems.length > 0
+            ? items.length - overflowedItems.length
+            : index;
+
+        if (width > previousWidth) {
+          // Calculates remaining space in the container
+          const button = current?.children.item(1);
+          const buttonRight = button?.getBoundingClientRect().right || 0;
+          const containerRight = current?.getBoundingClientRect().right || 0;
+          const remainingSpace = containerRight - buttonRight;
+
+          // Checks if some elements in the dropdown fits in the remaining space
+          let sum = 0;
+          for (let i = childrenArray.length; i < items.length; i += 1) {
+            sum += itemsWidth[i];
+            if (sum <= remainingSpace) {
+              newOverflowingIndex = i + 1;
+            } else {
+              break;
+            }
+          }
+        }
+
+        setOverflowingIndex(newOverflowingIndex);
+      }
+    }, [
+      current,
+      items.length,
+      itemsWidth,
+      overflowedItems.length,
+      previousWidth,
+      width,
+    ]);
 
     useEffect(() => {
       if (onOverflowingStateChange) {
