@@ -30,7 +30,6 @@ import { FALSE_STRING, NULL_STRING, TRUE_STRING } from 'src/utils/common';
 export const getAdhocExtraFormData = (
   adhoc_filters: AdhocFilter[] = [],
   emptyFilter = false,
-  inverseSelection = false,
 ): ExtraFormData => {
   const extra: ExtraFormData = {};
   if (emptyFilter) {
