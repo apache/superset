@@ -19,7 +19,7 @@
 
 import json
 
-from pybigquery.sqlalchemy_bigquery import BigQueryDialect
+from sqlalchemy_bigquery import BigQueryDialect
 from pytest_mock import MockFixture
 from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
