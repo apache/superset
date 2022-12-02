@@ -34,7 +34,6 @@ import {
 export const getAdhocExtraFormData = (
   adhoc_filters: AdhocFilter[] = [],
   emptyFilter = false,
-  inverseSelection = false,
 ): ExtraFormData => {
   const extra: ExtraFormData = {};
   if (emptyFilter) {

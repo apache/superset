@@ -58,7 +58,7 @@ type DataMaskAction =
       filterState: {
         label?: string;
         filters?: AdhocFilter[];
-        value: AdhocFilter[];
+        value?: AdhocFilter[] | null;
       };
     };
 
@@ -95,7 +95,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     unsetFocusedFilter,
     appSection,
   } = props;
-  const { enableEmptyFilter, inverseSelection, defaultToFirstItem } = formData;
+  const { enableEmptyFilter } = formData;
   const datasetId = useMemo(
     () => formData.datasource.split('_')[0],
     [formData.datasource],
@@ -152,7 +152,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
           const { error, message } = await getClientErrorObject(badResponse);
           let errorText = message || error || t('An error has occurred');
           if (message === 'Forbidden') {
-            errorText = t('You do not have permission to edit this dashboard');
+            errorText = t('You do not have permission to access this dataset');
           }
           addDangerToast(errorText);
         },
@@ -160,36 +160,22 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     }
   });
 
-  const labelString: (props: AdhocFilter) => string = (props: AdhocFilter) => {
-    if (ensureIsArray(props.comparator).length >= 2) {
-      return `${props.subject} ${props.operator} (${props.comparator.join(
-        ', ',
-      )})`;
-    }
-    return `${props.subject} ${props.operator} ${props.comparator}`;
-  };
-
   const updateDataMask = useCallback(
     (adhoc_filters: AdhocFilter[]) => {
-      const emptyFilter =
-        enableEmptyFilter && !inverseSelection && !adhoc_filters?.length;
+      const emptyFilter = enableEmptyFilter && !adhoc_filters?.length;
 
       dispatchDataMask({
         type: 'filterState',
         __cache: filterState,
-        extraFormData: getAdhocExtraFormData(
-          adhoc_filters,
-          emptyFilter,
-          inverseSelection,
-        ),
+        extraFormData: getAdhocExtraFormData(adhoc_filters, emptyFilter),
         filterState: {
           ...filterState,
           label: (adhoc_filters || [])
             .map(f =>
-              f.sqlExpression ? String(f.sqlExpression) : labelString(f),
+              f.sqlExpression ? String(f.sqlExpression) : f.getDefaultLabel(),
             )
             .join(', '),
-          value: adhoc_filters,
+          value: adhoc_filters?.length ? adhoc_filters : null,
           filters: adhoc_filters,
         },
       });
@@ -197,10 +183,8 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       appSection,
-      defaultToFirstItem,
       dispatchDataMask,
       enableEmptyFilter,
-      inverseSelection,
       JSON.stringify(filterState),
       labelFormatter,
     ],
@@ -245,7 +229,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
               updateDataMask(filters);
             }}
             label={' '}
-            value={filterState.filters || []}
+            value={filterState.filters || null}
           />
         </ControlContainer>
       </StyledFormItem>
