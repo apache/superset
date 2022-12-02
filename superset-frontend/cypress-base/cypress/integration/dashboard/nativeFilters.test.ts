@@ -264,7 +264,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('dashboard-filters-panel').should('not.exist');
   });
 
-  it('should show all filters', () => {
+  it('should show all filters in available space', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -352,6 +352,47 @@ describe('Horizontal FilterBar', () => {
       'title',
       '1',
     );
+  });
+
+  it('should focus filter and open "more filters" programmatically', () => {
+    prepareDashboardFilters([
+      { name: 'test_1', column: 'country_name', datasetId: 2 },
+      { name: 'test_2', column: 'country_code', datasetId: 2 },
+      { name: 'test_3', column: 'region', datasetId: 2 },
+      { name: 'test_4', column: 'year', datasetId: 2 },
+      { name: 'test_5', column: 'country_name', datasetId: 2 },
+      { name: 'test_6', column: 'country_code', datasetId: 2 },
+      { name: 'test_7', column: 'region', datasetId: 2 },
+      { name: 'test_8', column: 'year', datasetId: 2 },
+      { name: 'test_9', column: 'country_name', datasetId: 2 },
+      { name: 'test_10', column: 'country_code', datasetId: 2 },
+      { name: 'test_11', column: 'region', datasetId: 2 },
+      { name: 'test_12', column: 'year', datasetId: 2 },
+    ]);
+    setFilterBarOrientation('horizontal');
+    cy.getBySel('slice-header').within(() => {
+      cy.get('.filter-counts').click();
+    });
+    cy.get('.filterStatusPopover').contains('test_8').click();
+    cy.getBySel('dropdown-content').should('be.visible');
+    cy.getBySel('.ant-select-focused').should('be.visible');
+  });
+
+  it('should show tag count and one plain tag on focus and only count on blur in select ', () => {
+    prepareDashboardFilters([
+      { name: 'test_1', column: 'country_name', datasetId: 2 },
+    ]);
+    setFilterBarOrientation('horizontal');
+    enterNativeFilterEditModal();
+    inputNativeFilterDefaultValue('Albania');
+    inputNativeFilterDefaultValue('Algeria', true);
+    saveNativeFilterSettings([SAMPLE_CHART]);
+    cy.getBySel('filter-bar').within(() => {
+      cy.get(nativeFilters.filterItem).contains('Albania').should('be.visible');
+      cy.get(nativeFilters.filterItem).contains('+1').should('be.visible');
+      cy.get('.ant-select-selection-search-input').click();
+      cy.get(nativeFilters.filterItem).contains('+2').should('be.visible');
+    });
   });
 });
 
