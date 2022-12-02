@@ -212,12 +212,11 @@ export default function ErrorAlert({
           }
         >
           <>
-            {subtitle && (
-              <>
-                <p>{subtitle}</p>
-                <br />
-              </>
-            )}
+            <p>{subtitle}</p>
+            {/* This break was in the original design of the modal but
+            the spacing looks really off if there is only
+            subtitle or a body */}
+            {subtitle && body && <br />}
             {body}
           </>
         </ErrorModal>

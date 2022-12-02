@@ -1156,6 +1156,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           : typeof dbErrors === 'string'
           ? [dbErrors]
           : [];
+    } else if (
+      !isEmpty(validationErrors) &&
+      validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
+    ) {
+      alertErrors = [
+        validationErrors?.description || validationErrors?.message,
+      ];
     }
     if (alertErrors.length) {
       return (
@@ -1165,9 +1172,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             description={t(
               'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
             )}
-            stackTrace={alertErrors?.[0]}
+            subtitle={alertErrors?.[0] || validationErrors?.description}
             copyText={validationErrors?.description}
-            subtitle={validationErrors?.description}
           />
         </ErrorAlertContainer>
       );
