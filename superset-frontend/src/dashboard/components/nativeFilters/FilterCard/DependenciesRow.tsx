@@ -21,6 +21,7 @@ import { useDispatch } from 'react-redux';
 import { css, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { useTruncation } from 'src/hooks/useTruncation';
+import { setFocusedNativeFilter } from 'src/dashboard/actions/nativeFilters';
 import {
   DependencyItem,
   Row,
@@ -32,7 +33,6 @@ import {
 import { useFilterDependencies } from './useFilterDependencies';
 import { DependencyValueProps, FilterCardRowProps } from './types';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
-import { setFocusedNativeFilter } from 'src/dashboard/actions/nativeFilters';
 
 const DependencyValue = ({
   dependency,
