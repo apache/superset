@@ -32,9 +32,9 @@ import {
   css,
   SupersetTheme,
   t,
-  isNativeFilter,
   isFeatureEnabled,
   FeatureFlag,
+  isNativeFilterWithDataMask,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -150,8 +150,8 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const activeOverflowedFiltersInScope = useMemo(
     () =>
-      overflowedFiltersInScope.filter(
-        filter => isNativeFilter(filter) && filter.dataMask?.filterState?.value,
+      overflowedFiltersInScope.filter(filter =>
+        isNativeFilterWithDataMask(filter),
       ).length,
     [overflowedFiltersInScope],
   );
