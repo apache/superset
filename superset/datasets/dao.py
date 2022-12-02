@@ -287,7 +287,8 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
         """
         Creates/updates tagged objects based on a list of Tag names.
         - Delete all current tagged objects related to this object
-        - If a tag with that name exists we create the tagged object relation to this object
+        - If a tag with that name exists we create the tagged object relation to 
+          this object
         - If a tag does not exist we create the tag and the relation to this object
         """
         return update_custom_object_tags(

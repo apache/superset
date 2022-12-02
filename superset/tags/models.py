@@ -190,7 +190,9 @@ class ObjectUpdater:
 
         # delete orphaned owner tags
         for tag_id in ids:
-            if session.query(TaggedObject).filter(TaggedObject.tag_id == tag_id).count() == 0:
+            if session.query(TaggedObject) \
+                      .filter(TaggedObject.tag_id == tag_id) \
+                      .count() == 0:
                 session.query(Tag).filter(
                     Tag.id == tag_id
                 ).delete()
@@ -218,7 +220,9 @@ class ObjectUpdater:
         tagged_objs.delete()
         # delete orphaned tags
         for tag_id in tag_ids:
-            if session.query(TaggedObject).filter(TaggedObject.tag_id == tag_id).count() == 0:
+            if session.query(TaggedObject) \
+                      .filter(TaggedObject.tag_id == tag_id) \
+                      .count() == 0:
                 session.query(Tag).filter(
                     Tag.id == tag_id
                 ).delete()

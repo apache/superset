@@ -18,7 +18,7 @@ import gzip
 import json
 import logging
 import re
-from typing import Any, Dict
+from typing import Any, Dict, List
 from urllib import request
 
 import pandas as pd
@@ -100,9 +100,8 @@ def import_dataset(
                 logger.info("Unable to encode `%s` field: %s",
                             key, config[key])
     # extract tags from config
-    tags = None
-    if "tags" in config.keys() and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-        tags = config.pop("tags")
+    config, tags = extract_tags(config)
+    
     for key in ("metrics", "columns"):
         for attributes in config.get(key, []):
             if attributes.get("extra") is not None:
@@ -124,12 +123,8 @@ def import_dataset(
     try:
         dataset = SqlaTable.import_from_dict(
             session, config, recursive=True, sync=sync)
-        if tags:
-            if existing:
-                add_custom_object_tags(tags, ObjectTypes.dataset, dataset.id)
-            else:
-                update_custom_object_tags(
-                    tags, ObjectTypes.dataset, dataset.id, overwrite=True)
+        import_tags(dataset, existing, tags)
+        
     except MultipleResultsFound:
         # Finding multiple results when importing a dataset only happens because initially
         # datasets were imported without schemas (eg, `examples.NULL.users`), and later
@@ -162,6 +157,21 @@ def import_dataset(
 
     return dataset
 
+def extract_tags(config):
+    tags = None
+    if "tags" in config.keys() \
+        and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+        tags = config.pop("tags")
+
+    return config, tags
+
+def import_tags(dataset: SqlaTable, existing: bool, tags: List[str]):
+    if tags:
+        if existing:
+            add_custom_object_tags(tags, ObjectTypes.dataset, dataset.id)
+        else:
+            update_custom_object_tags(
+                tags, ObjectTypes.dataset, dataset.id, overwrite=True)
 
 def load_data(
     data_uri: str, dataset: SqlaTable, database: Database, session: Session

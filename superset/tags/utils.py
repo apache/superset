@@ -41,7 +41,7 @@ def add_custom_object_tags(
     object_type: Enum(ObjectTypes),
     object_id: int,
     commit: bool = True,
-):  # pylint: disable=no-self-use
+):
     """
     Add new tags to the dataset. Duplicates are ignored
     tags:
@@ -90,11 +90,13 @@ def delete_custom_object_tags(
         Tag.type == TagTypes.custom
     )
     # get all current custom tags tagged to this object
-    tagged_objects = db.session.query(TaggedObject).join(Tag, Tag.id == TaggedObject.tag_id).filter(
-        TaggedObject.object_type == object_type,
-        TaggedObject.object_id == object_id,
-        Tag.type == TagTypes.custom
-    )
+    tagged_objects = db.session.query(TaggedObject) \
+        .join(Tag, Tag.id == TaggedObject.tag_id) \
+        .filter(
+            TaggedObject.object_type == object_type,
+            TaggedObject.object_id == object_id,
+            Tag.type == TagTypes.custom
+        )
     if tags_to_delete.count() > 0:
         tagged_objects_to_delete = db.session.query(TaggedObject).filter(
             TaggedObject.tag_id.in_([tag.id for tag in tags_to_delete])
