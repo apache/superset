@@ -239,9 +239,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
-  const directPathToChild = useSelector<RootState, string[]>(
-    state => state.dashboardState.directPathToChild,
-  );
+  const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
+  const focusedFilterId = nativeFilters?.focusedFilterId;
   const fullSizeChartId = useSelector<RootState, number | null>(
     state => state.dashboardState.fullSizeChartId,
   );
@@ -369,7 +368,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.HORIZONTAL && (
             <FilterBar
-              directPathToChild={directPathToChild}
+              focusedFilterId={focusedFilterId}
               orientation={FilterBarOrientation.HORIZONTAL}
             />
           )}
@@ -401,7 +400,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       </div>
     ),
     [
-      directPathToChild,
+      focusedFilterId,
       nativeFiltersEnabled,
       filterBarOrientation,
       editMode,
@@ -437,7 +436,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
                   <StickyPanel ref={containerRef} width={filterBarWidth}>
                     <ErrorBoundary>
                       <FilterBar
-                        directPathToChild={directPathToChild}
+                        focusedFilterId={focusedFilterId}
                         orientation={FilterBarOrientation.VERTICAL}
                         verticalConfig={{
                           filtersOpen: dashboardFiltersOpen,

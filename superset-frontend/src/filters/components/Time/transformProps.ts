@@ -34,6 +34,8 @@ export default function transformProps(chartProps: ChartProps) {
   } = chartProps;
   const {
     setDataMask = noOp,
+    setHoveredFilter = noOp,
+    unsetHoveredFilter = noOp,
     setFocusedFilter = noOp,
     unsetFocusedFilter = noOp,
     setFilterActive = noOp,
@@ -50,6 +52,8 @@ export default function transformProps(chartProps: ChartProps) {
     height,
     behaviors,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
