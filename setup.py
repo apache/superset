@@ -126,9 +126,9 @@ setup(
         "athena": ["pyathena[pandas]>=2, <3"],
         "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
-            "pandas_gbq>=0.10.0",
-            "pybigquery>=0.4.10",
-            "google-cloud-bigquery>=2.4.0",
+            "pandas-gbq>=0.18.1",
+            "sqlalchemy-bigquery>=1.5.0",
+            "google-cloud-bigquery>=3.4.0",
         ],
         "clickhouse": ["clickhouse-connect>=0.4.6, <0.5"],
         "cockroachdb": ["cockroachdb>=0.3.5, <0.4"],
