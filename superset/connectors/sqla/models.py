@@ -103,7 +103,12 @@ from superset.jinja_context import (
 )
 from superset.models.annotations import Annotation
 from superset.models.core import Database
-from superset.models.helpers import AuditMixinNullable, CertificationMixin, QueryResult
+from superset.models.helpers import (
+    AuditMixinNullable,
+    CertificationMixin,
+    ImportExportMixin,
+    QueryResult,
+)
 from superset.sql_parse import ParsedQuery, sanitize_clause
 from superset.superset_typing import (
     AdhocColumn,
@@ -2210,7 +2215,7 @@ RLSFilterTables = Table(
 )
 
 
-class RowLevelSecurityFilter(Model, AuditMixinNullable):
+class RowLevelSecurityFilter(Model, AuditMixinNullable, ImportExportMixin):
     """
     Custom where clauses attached to Tables and Roles.
     """
@@ -2232,3 +2237,6 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
     )
     clause = Column(Text, nullable=False)
+
+    # TODO: add columns for import/export here
+    # and also migration for it
