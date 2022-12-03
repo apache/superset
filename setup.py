@@ -126,6 +126,7 @@ setup(
         "athena": ["pyathena[pandas]>=2, <3"],
         "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
+            "db-dtypes @ git+ssh://git@github.com/googleapis/python-db-dtypes-pandas.git@388e082a47d9515a14e20ffd87705c71712087ab#egg=db-dtypes",
             "pandas-gbq>=0.18.1",
             "sqlalchemy-bigquery>=1.5.0",
             "google-cloud-bigquery>=3.4.0",
