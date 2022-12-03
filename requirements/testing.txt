@@ -18,6 +18,10 @@ cachetools==5.2.0
     # via google-auth
 coverage==5.5
     # via pytest-cov
+db-dtypes @ git+https://git@github.com/googleapis/python-db-dtypes-pandas.git@388e082a47d9515a14e20ffd87705c71712087ab
+    # via
+    #   apache-superset
+    #   pandas-gbq
 docker==5.0.0
     # via -r requirements/testing.in
 flask-testing==0.8.1
@@ -29,6 +33,7 @@ google-api-core[grpc]==2.11.0
     #   google-cloud-bigquery
     #   google-cloud-bigquery-storage
     #   google-cloud-core
+    #   pandas-gbq
     #   sqlalchemy-bigquery
 google-auth==2.14.1
     # via
@@ -36,8 +41,8 @@ google-auth==2.14.1
     #   google-auth-oauthlib
     #   google-cloud-core
     #   pandas-gbq
-    #   sqlalchemy-bigquery
     #   pydata-google-auth
+    #   sqlalchemy-bigquery
 google-auth-oauthlib==0.7.1
     # via
     #   pandas-gbq
@@ -48,7 +53,10 @@ google-cloud-bigquery[bqstorage,pandas]==3.4.0
     #   pandas-gbq
     #   sqlalchemy-bigquery
 google-cloud-bigquery-storage==2.16.2
-    # via google-cloud-bigquery
+    # via
+    #   google-cloud-bigquery
+    #   pandas-gbq
+    #   sqlalchemy-bigquery
 google-cloud-core==2.3.2
     # via google-cloud-bigquery
 google-crc32c==1.5.0
@@ -72,12 +80,8 @@ isort==5.9.3
     # via pylint
 lazy-object-proxy==1.6.0
     # via astroid
-libcst==0.4.9
-    # via google-cloud-bigquery-storage
 mccabe==0.6.1
     # via pylint
-mypy-extensions==0.4.3
-    # via typing-inspect
 oauthlib==3.2.2
     # via requests-oauthlib
 openapi-schema-validator==0.1.5
@@ -96,6 +100,7 @@ protobuf==4.21.10
     # via
     #   google-api-core
     #   google-cloud-bigquery
+    #   google-cloud-bigquery-storage
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
@@ -105,8 +110,6 @@ pyasn1==0.4.8
     #   rsa
 pyasn1-modules==0.2.8
     # via google-auth
-sqlalchemy-bigquery==1.5.0
-    # via apache-superset
 pydata-google-auth==1.4.0
     # via pandas-gbq
 pyfakefs==4.5.6
@@ -128,12 +131,12 @@ requests-oauthlib==1.3.1
     # via google-auth-oauthlib
 rsa==4.9
     # via google-auth
+sqlalchemy-bigquery==1.5.0
+    # via apache-superset
 statsd==3.3.0
     # via -r requirements/testing.in
 trino==0.319.0
     # via apache-superset
-typing-inspect==0.7.1
-    # via libcst
 websocket-client==1.2.0
     # via docker
 wrapt==1.12.1
