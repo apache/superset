@@ -33,7 +33,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, thumbnail_cache, security_manager
+from superset import is_feature_enabled, security_manager, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -83,6 +83,7 @@ from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
+from superset.thumbnails.utils import get_dashboard_digest
 from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -95,7 +96,6 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
-from superset.thumbnails.utils import get_dashboard_digest
 
 logger = logging.getLogger(__name__)
 
@@ -888,8 +888,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         )
         # If force, request a screenshot from the workers
-        dashboard_digest = get_dashboard_digest(dashboard)
         username = user.username if (user := security_manager.current_user) else None
+        dashboard_digest = get_dashboard_digest(dashboard)
         if kwargs["rison"].get("force", False):
             cache_dashboard_thumbnail.delay(
                 url=dashboard_url,

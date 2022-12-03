@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import logging
+from enum import Enum
 from typing import Optional, TYPE_CHECKING, Union
 
 from flask import current_app, g
@@ -26,6 +27,7 @@ from flask_appbuilder.security.sqla.models import User
 from superset import security_manager
 from superset.thumbnails.exceptions import ThumbnailUserNotFoundError
 from superset.thumbnails.types import ThumbnailExecutor
+from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
@@ -33,34 +35,48 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-EXECUTOR_INDEX = 0
-DASHBOARD_INDEX = 1
-CHART_INDEX = 2
+
+class ThumbnailConfigIndex(int, Enum):
+    EXECUTOR = 0
+    DASHBOARD_CALLBACK = 1
+    CHART_CALLBACK = 2
 
 
-def _get_digest(model: Union[Dashboard, Slice], idx) -> str:
+def _get_digest(
+    model: Union[Dashboard, Slice],
+    callback_index: ThumbnailConfigIndex,
+) -> str:
+    user = security_manager.current_user
     if config := current_app.config["THUMBNAIL_EXECUTOR_CONFIG"]:
-        if callback := config[idx]:
-            return callback(model)
+        if callback := config[callback_index]:
+            return callback((model, user))
+
+        # default to using user-specific digest when executing as user
+        if config[ThumbnailConfigIndex.EXECUTOR] == ThumbnailExecutor.User:
+            username = user.username if user else ""
+            return md5_sha_from_str(f"{model.digest}\n{username}")
 
     return model.digest
 
 
 def get_chart_digest(chart: Slice) -> str:
-    return _get_digest(chart, DASHBOARD_INDEX)
+    return _get_digest(chart, ThumbnailConfigIndex.CHART_CALLBACK)
 
 
 def get_dashboard_digest(dashboard: Dashboard) -> str:
-    return _get_digest(dashboard, DASHBOARD_INDEX)
+    return _get_digest(dashboard, ThumbnailConfigIndex.DASHBOARD_CALLBACK)
 
 
-def _get_user(username: str) -> User:
-    return security_manager.find_user(username=username)
+def _get_user(username: Optional[str]) -> Optional[User]:
+    if username:
+        return security_manager.find_user(username=username)
+
+    return None
 
 
 def get_executor(username: Optional[str]) -> User:
     if config := current_app.config["THUMBNAIL_EXECUTOR_CONFIG"]:
-        executor = config[EXECUTOR_INDEX]
+        executor = config[ThumbnailConfigIndex.EXECUTOR]
         if executor == ThumbnailExecutor.Selenium:
             if username := current_app.config.get("THUMBNAIL_SELENIUM_USER"):
                 logger.warning(

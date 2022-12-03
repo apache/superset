@@ -608,8 +608,8 @@ from hashlib import md5
 THUMBNAIL_EXECUTOR_CONFIG: Optional[
     Tuple[
         ThumbnailExecutor,
-        Optional[Callable[[Dashboard, models.User], str]],
-        Optional[Callable[[Slice, models.User], str]],
+        Optional[Callable[[Dashboard, Optional[models.User]], str]],
+        Optional[Callable[[Slice, Optional[models.User]], str]],
     ]
 ] = None
 
