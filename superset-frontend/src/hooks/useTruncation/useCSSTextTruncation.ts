@@ -42,21 +42,18 @@ const useCSSTextTruncation = <T extends HTMLElement>(): [
 ] => {
   const [isTruncated, setIsTruncated] = useState(true);
   const ref = useRef<T>(null);
-  const { offsetWidth, scrollWidth } = ref.current ?? {};
-  const prevWidths = useRef({ offsetWidth, scrollWidth });
-  const { offsetWidth: prevOffsetWidth, scrollWidth: prevScrollWidth } =
-    prevWidths.current;
+  const [offsetWidth, setOffsetWidth] = useState(0);
+  const [scrollWidth, setScrollWidth] = useState(0);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    setOffsetWidth(ref.current?.offsetWidth ?? 0);
+    setScrollWidth(ref.current?.scrollWidth ?? 0);
+  });
 
   useEffect(() => {
-    if (
-      offsetWidth &&
-      scrollWidth &&
-      (offsetWidth !== prevOffsetWidth || scrollWidth !== prevScrollWidth)
-    ) {
-      prevWidths.current = { offsetWidth, scrollWidth };
-      setIsTruncated(offsetWidth < scrollWidth);
-    }
-  }, [offsetWidth, prevOffsetWidth, prevScrollWidth, scrollWidth]);
+    setIsTruncated(offsetWidth < scrollWidth);
+  }, [offsetWidth, scrollWidth]);
 
   return [ref, isTruncated];
 };
