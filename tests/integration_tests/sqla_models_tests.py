@@ -201,22 +201,34 @@ class TestDatabaseModel(SupersetTestCase):
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
-            "groupby": ["user", "expr"],
+            "columns": [
+                "user",
+                "expr",
+                {
+                    "hasCustomLabel": True,
+                    "label": "adhoc_column",
+                    "sqlExpression": "'{{ 'foo_' + time_grain }}'",
+                },
+            ],
             "metrics": [
                 {
+                    "hasCustomLabel": True,
+                    "label": "adhoc_metric",
                     "expressionType": AdhocMetricExpressionType.SQL,
-                    "sqlExpression": "SUM(case when user = '{{ current_username() }}' "
-                    "then 1 else 0 end)",
-                    "label": "SUM(userid)",
-                }
+                    "sqlExpression": "SUM(case when user = '{{ 'user_' + "
+                    "current_username() }}' then 1 else 0 end)",
+                },
+                "count_timegrain",
             ],
             "is_timeseries": False,
             "filter": [],
+            "extras": {"time_grain_sqla": "P1D"},
         }
 
         table = SqlaTable(
             table_name="test_has_jinja_metric_and_expr",
-            sql="SELECT '{{ current_username() }}' as user",
+            sql="SELECT '{{ 'user_' + current_username() }}' as user, "
+            "'{{ 'xyz_' + time_grain }}' as time_grain",
             database=get_example_database(),
         )
         TableColumn(
@@ -226,14 +238,25 @@ class TestDatabaseModel(SupersetTestCase):
             type="VARCHAR(100)",
             table=table,
         )
+        SqlMetric(
+            metric_name="count_timegrain",
+            expression="count('{{ 'bar_' + time_grain }}')",
+            table=table,
+        )
         db.session.commit()
 
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
-        # assert expression
-        assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
-        # assert metric
-        assert "SUM(case when user = 'abc' then 1 else 0 end)" in query
+        # assert virtual dataset
+        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
+        # assert dataset calculated column
+        assert "case when 'abc' = 'abc' then 'yes' else 'no' end AS expr" in query
+        # assert adhoc column
+        assert "'foo_P1D'" in query
+        # assert dataset saved metric
+        assert "count('bar_P1D')" in query
+        # assert adhoc metric
+        assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
         # Cleanup
         db.session.delete(table)
         db.session.commit()
