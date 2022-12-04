@@ -223,13 +223,16 @@ function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   }
 }
 
-function openMoreFilters() {
+function openMoreFilters(intercetFilterState = true) {
   interceptFilterState();
   cy.getBySel('dropdown-container-btn').click();
-  cy.wait('@postFilterState');
+
+  if (intercetFilterState) {
+    cy.wait('@postFilterState');
+  }
 }
 
-describe.only('Horizontal FilterBar', () => {
+describe('Horizontal FilterBar', () => {
   before(() => {
     cy.login();
   });
@@ -284,12 +287,19 @@ describe.only('Horizontal FilterBar', () => {
 
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.viewport(800, 1024);
-    cy.getBySel('form-item-value').should('have.length', 1);
+    cy.getBySel('form-item-value').should('have.length', 0);
     openMoreFilters();
     cy.getBySel('form-item-value').should('have.length', 3);
+
     cy.getBySel('filter-bar').click();
-    cy.viewport(1280, 1024);
+    cy.viewport(1000, 1024);
+    openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
+
+    cy.getBySel('filter-bar').click();
+    cy.viewport(1300, 1024);
+    cy.getBySel('form-item-value').should('have.length', 3);
+    cy.getBySel('dropdown-container-btn').should('not.exist');
   });
 
   it('should show "more filters" and scroll', () => {
@@ -326,7 +336,7 @@ describe.only('Horizontal FilterBar', () => {
 
     enterNativeFilterEditModal(false);
     addCountryNameFilter();
-    saveNativeFilterSettings([SAMPLE_CHART]);
+    saveNativeFilterSettings([]);
     validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
   });
 
