@@ -38,28 +38,11 @@ const ControlContainer = styled.div<{
   display: flex;
   height: 100%;
   max-width: 100%;
-  padding: 2px;
-  & > span,
-  & > span:hover {
-    border: 2px solid transparent;
-    display: inline-block;
-    border: ${({ theme, validateStatus }) =>
-      validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`};
-  }
-  &:focus {
-    & > span {
-      border: 2px solid
-        ${({ theme, validateStatus }) =>
-          validateStatus
-            ? theme.colors[validateStatus]?.base
-            : theme.colors.primary.base};
-      outline: 0;
-      box-shadow: 0 0 0 2px
-        ${({ validateStatus }) =>
-          validateStatus
-            ? 'rgba(224, 67, 85, 12%)'
-            : 'rgba(32, 167, 201, 0.2)'};
-    }
+  width: 100%;
+  & > div,
+  & > div:hover {
+    ${({ validateStatus, theme }) =>
+      validateStatus && `border-color: ${theme.colors[validateStatus]?.base}`}
   }
 `;
 
@@ -101,7 +84,6 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   return props.formData?.inView ? (
     <TimeFilterStyles width={width} height={height}>
       <ControlContainer
-        tabIndex={-1}
         ref={inputRef}
         validateStatus={filterState.validateStatus}
         onFocus={setFocusedFilter}
