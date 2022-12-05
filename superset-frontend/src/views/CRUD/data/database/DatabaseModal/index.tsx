@@ -1191,23 +1191,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           : typeof dbErrors === 'string'
           ? [dbErrors]
           : [];
-    } else if (!isEmpty(validationErrors)) {
-      alertErrors =
-        validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
-          ? [
-              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
-            ]
-          : [];
+    } else if (
+      !isEmpty(validationErrors) &&
+      validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
+    ) {
+      alertErrors = [
+        validationErrors?.description || validationErrors?.message,
+      ];
     }
-
     if (alertErrors.length) {
       return (
-        <ErrorMessageWithStackTrace
-          title={t('Database Creation Error')}
-          description={alertErrors[0]}
-          subtitle={validationErrors?.description}
-          copyText={validationErrors?.description}
-        />
+        <ErrorAlertContainer>
+          <ErrorMessageWithStackTrace
+            title={t('Database Creation Error')}
+            description={t(
+              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
+            )}
+            subtitle={alertErrors?.[0] || validationErrors?.description}
+            copyText={validationErrors?.description}
+          />
+        </ErrorAlertContainer>
       );
     }
     return <></>;
@@ -1532,6 +1535,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               />
             </StyledAlertMargin>
           )}
+          {showDBError && errorAlert()}
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
@@ -1565,9 +1569,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {showDBError && (
-            <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
-          )}
         </Tabs.TabPane>
       </TabsStyled>
     </Modal>
@@ -1742,9 +1743,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
                 {/* Step 2 */}
-                {showDBError && (
-                  <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
-                )}
+                {showDBError && errorAlert()}
               </>
             ))}
         </>
