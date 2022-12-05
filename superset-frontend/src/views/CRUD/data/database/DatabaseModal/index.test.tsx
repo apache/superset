@@ -1405,10 +1405,14 @@ describe('DatabaseModal', () => {
     test('Error displays when it is a string', async () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
+      const button = screen.getByText('See more');
+      userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
+      expect(errorMessage).toBeVisible();
+      const closeButton = screen.getByText('Close');
+      userEvent.click(closeButton);
       expect(step2of3text).toBeVisible();
       expect(errorTitleMessage).toBeVisible();
-      expect(errorMessage).toBeVisible();
     });
   });
 });
