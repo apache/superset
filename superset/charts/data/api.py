@@ -143,7 +143,7 @@ class ChartDataRestApi(ChartRestApi):
             command = ChartDataCommand(query_context)
             command.validate()
         except DatasourceNotFound as error:
-            return self.response_404(message=error)
+            return self.response_404()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
@@ -233,7 +233,7 @@ class ChartDataRestApi(ChartRestApi):
             command = ChartDataCommand(query_context)
             command.validate()
         except DatasourceNotFound as error:
-            return self.response_404(message=error)
+            return self.response_404()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
