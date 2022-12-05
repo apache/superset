@@ -98,17 +98,17 @@ export function ColumnSelect({
     }
     if (datasetId != null) {
       cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}`,
+        endpoint: `/api/v1/dataset/${datasetId}/column`,
       }).then(
         ({ json: { result } }) => {
           const lookupValue = Array.isArray(value) ? value : [value];
-          const valueExists = result.columns.some((column: Column) =>
+          const valueExists = result.some((column: Column) =>
             lookupValue?.includes(column.column_name),
           );
           if (!valueExists) {
             resetColumnField();
           }
-          setColumns(result.columns);
+          setColumns(result);
         },
         async badResponse => {
           const { error, message } = await getClientErrorObject(badResponse);

@@ -24,26 +24,22 @@ import { Column, JsonObject } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { ColumnSelect } from './ColumnSelect';
 
-fetchMock.get('glob:*/api/v1/dataset/123', {
+fetchMock.get('glob:*/api/v1/dataset/123/column', {
   body: {
-    result: {
-      columns: [
-        { column_name: 'column_name_01', is_dttm: true },
-        { column_name: 'column_name_02', is_dttm: false },
-        { column_name: 'column_name_03', is_dttm: false },
-      ],
-    },
+    result: [
+      { column_name: 'column_name_01', is_dttm: true },
+      { column_name: 'column_name_02', is_dttm: false },
+      { column_name: 'column_name_03', is_dttm: false },
+    ],
   },
 });
-fetchMock.get('glob:*/api/v1/dataset/456', {
+fetchMock.get('glob:*/api/v1/dataset/456/column', {
   body: {
-    result: {
-      columns: [
-        { column_name: 'column_name_04', is_dttm: false },
-        { column_name: 'column_name_05', is_dttm: false },
-        { column_name: 'column_name_06', is_dttm: false },
-      ],
-    },
+    result: [
+      { column_name: 'column_name_04', is_dttm: false },
+      { column_name: 'column_name_05', is_dttm: false },
+      { column_name: 'column_name_06', is_dttm: false },
+    ],
   },
 });
 

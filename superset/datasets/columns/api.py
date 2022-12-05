@@ -15,13 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any
 
 from flask import Response
-from flask_appbuilder.api import expose, permission_name, protect, safe
+from flask_appbuilder.api import expose, permission_name, protect, rison, safe
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.connectors.sqla.models import TableColumn
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.datasets.columns.commands.delete import DeleteDatasetColumnCommand
 from superset.datasets.columns.commands.exceptions import (
     DatasetColumnDeleteFailedError,
@@ -36,14 +38,99 @@ logger = logging.getLogger(__name__)
 class DatasetColumnsRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(TableColumn)
 
-    include_route_methods = {"delete"}
-    class_permission_name = "Dataset"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
-
-    resource_name = "dataset"
     allow_browser_login = True
-
+    class_permission_name = "Dataset"
+    include_route_methods = {RouteMethod.DELETE, RouteMethod.GET_LIST}
+    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    list_columns = [  # See DatasetRestApi.show_select_columns.
+        "advanced_data_type",
+        "changed_on",
+        "column_name",
+        "created_on",
+        "description",
+        "expression",
+        "filterable",
+        "groupby",
+        "id",
+        "is_active",
+        "extra",
+        "is_dttm",
+        "python_date_format",
+        "type",
+        "uuid",
+        "verbose_name",
+    ]
+    search_columns = ["table_id"]
+    max_page_size = -1
     openapi_spec_tag = "Datasets"
+    resource_name = "dataset"
+
+    @expose("/<int:pk>/column", methods=["GET"])
+    @protect()
+    @safe
+    @permission_name("get")
+    @rison(get_list_schema)
+    def get_list(  # pylint: disable=arguments-differ
+        self,
+        pk: int,
+        **kwargs: Any,
+    ) -> Response:
+        """Get a list of dataset columns
+        ---
+        get:
+          description: >-
+            Get a list of dataset columns
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The dataset id for these columns
+            name: pk
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_list_schema'
+          responses:
+            200:
+              description: Columns from dataset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        description: >-
+                          A list of column ids
+                        type: array
+                        items:
+                          type: string
+                      count:
+                        description: >-
+                          The total record count on the backend
+                        type: number
+                      result:
+                        description: >-
+                          The result from the get list query
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/{{self.__class__.__name__}}.get_list'  # pylint: disable=line-too-long
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+
+        rison_data = kwargs.setdefault("rison", {})
+        rison_data.setdefault("filters", [])
+        rison_data["filters"].append({"col": "table_id", "opr": "eq", "value": pk})
+        rison_data["page_size"] = -1
+        return self.get_list_headless(**kwargs)
 
     @expose("/<int:pk>/column/<int:column_id>", methods=["DELETE"])
     @protect()

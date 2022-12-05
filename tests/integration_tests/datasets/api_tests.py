@@ -57,6 +57,10 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_metadata_config,
     dataset_ui_export,
 )
+from tests.integration_tests.fixtures.world_bank_dashboard import (
+    load_world_bank_dashboard_with_slices,
+    load_world_bank_data,
+)
 
 
 class TestDatasetApi(SupersetTestCase):
@@ -2298,3 +2302,17 @@ class TestDatasetApi(SupersetTestCase):
         }
         rv = self.post_assert_metric(uri, table_data, "duplicate")
         assert rv.status_code == 422
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dataset_columns(self):
+        if backend() == "sqlite":
+            return
+
+        self.login(username="admin")
+        table = self.get_table(name="wb_health_population")
+        uri = f"api/v1/dataset/{table.id}/column"
+        rv = self.get_assert_metric(uri, "get_list")
+        response = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert response["count"] == 328
+        assert len(response["ids"]) == 328  # Non-paginated results.

@@ -146,8 +146,8 @@ export function interceptUnfav() {
   cy.intercept(`/superset/favstar/Dashboard/*/unselect/`).as('unselect');
 }
 
-export function interceptDataset() {
-  cy.intercept('GET', `/api/v1/dataset/*`).as('getDataset');
+export function interceptDatasetColumns() {
+  cy.intercept('GET', `/api/v1/dataset/*/column`).as('getDatasetColumns');
 }
 
 export function interceptCharts() {
@@ -209,13 +209,13 @@ export function collapseFilterOnLeftPanel() {
  * @summary helper for enter native filter edit modal
  ************************************************************************* */
 export function enterNativeFilterEditModal(waitForDataset = true) {
-  interceptDataset();
+  interceptDatasetColumns();
   cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
     force: true,
   });
   cy.get(nativeFilters.modal.container).should('be.visible');
   if (waitForDataset) {
-    cy.wait('@getDataset');
+    cy.wait('@getDatasetColumns');
   }
 }
 
