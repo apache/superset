@@ -41,6 +41,7 @@ def cache_chart_thumbnail(
     window_size: Optional[WindowSize] = None,
     thumb_size: Optional[WindowSize] = None,
 ) -> None:
+    # pylint: disable=import-outside-toplevel
     from superset.models.slice import Slice
 
     if not thumbnail_cache:
@@ -74,15 +75,14 @@ def cache_dashboard_thumbnail(
     force: bool = False,
     thumb_size: Optional[WindowSize] = None,
 ) -> None:
+    # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
 
     if not thumbnail_cache:
         logging.warning("No cache set, refusing to compute")
         return
     dashboard = Dashboard.get(dashboard_id)
-    url = get_url_path(
-        "Superset.dashboard", dashboard_id_or_slug=dashboard.id
-    )
+    url = get_url_path("Superset.dashboard", dashboard_id_or_slug=dashboard.id)
 
     logger.info("Caching dashboard: %s", url)
     _, username = get_executor(
