@@ -296,6 +296,7 @@ export type Query = {
   errorMessage: string | null;
   extra: {
     progress: string | null;
+    errors?: SupersetError[];
   };
   id: string;
   isDataPreview: boolean;
