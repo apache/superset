@@ -30,14 +30,9 @@ import {
   SQL_TOOLBAR_HEIGHT,
 } from 'src/SqlLab/constants';
 import AceEditorWrapper from 'src/SqlLab/components/AceEditorWrapper';
-import ConnectedSouthPane from 'src/SqlLab/components/SouthPane/state';
+import SouthPane from 'src/SqlLab/components/SouthPane';
 import SqlEditor from 'src/SqlLab/components/SqlEditor';
 import QueryProvider from 'src/views/QueryProvider';
-import {
-  queryEditorSetFunctionNames,
-  queryEditorSetSelectedText,
-  queryEditorSetSchemaOptions,
-} from 'src/SqlLab/actions/sqlLab';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import {
   initialState,
@@ -97,13 +92,6 @@ const setup = (props = {}, store) =>
 
 describe('SqlEditor', () => {
   const mockedProps = {
-    actions: {
-      queryEditorSetFunctionNames,
-      queryEditorSetSelectedText,
-      queryEditorSetSchemaOptions,
-      addDangerToast: jest.fn(),
-      removeDataPreview: jest.fn(),
-    },
     queryEditor: initialState.sqlLab.queryEditors[0],
     latestQuery: queries[0],
     tables: [table],
@@ -238,7 +226,7 @@ describe('SqlEditor', () => {
     await waitForComponentToPaint(wrapper);
     const totalSize =
       parseFloat(wrapper.find(AceEditorWrapper).props().height) +
-      wrapper.find(ConnectedSouthPane).props().height +
+      wrapper.find(SouthPane).props().height +
       SQL_TOOLBAR_HEIGHT +
       SQL_EDITOR_GUTTER_MARGIN * 2 +
       SQL_EDITOR_GUTTER_HEIGHT;
@@ -252,7 +240,7 @@ describe('SqlEditor', () => {
     await waitForComponentToPaint(wrapper);
     const totalSize =
       parseFloat(wrapper.find(AceEditorWrapper).props().height) +
-      wrapper.find(ConnectedSouthPane).props().height +
+      wrapper.find(SouthPane).props().height +
       SQL_TOOLBAR_HEIGHT +
       SQL_EDITOR_GUTTER_MARGIN * 2 +
       SQL_EDITOR_GUTTER_HEIGHT;
