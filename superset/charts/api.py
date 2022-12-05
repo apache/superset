@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import app, is_feature_enabled, thumbnail_cache, security_manager
+from superset import app, is_feature_enabled, security_manager, thumbnail_cache
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.delete import DeleteChartCommand
@@ -74,8 +74,7 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.slice import Slice
-from superset.tasks.thumbnails import cache_chart_thumbnail
-from superset.thumbnails.utils import get_chart_digest
+from superset.thumbnails.tasks import cache_chart_thumbnail
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -562,9 +561,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
-        chart_digest = get_chart_digest(chart)
         chart_url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
-        screenshot_obj = ChartScreenshot(chart_url, chart_digest)
+        screenshot_obj = ChartScreenshot(chart_url, chart.digest)
         cache_key = screenshot_obj.cache_key(window_size, thumb_size)
         image_url = get_url_path(
             "ChartRestApi.screenshot", pk=chart.id, digest=cache_key
@@ -572,14 +570,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
-            kwargs = {
-                "url": chart_url,
-                "digest": chart_digest,
-                "force": True,
-                "window_size": window_size,
-                "thumb_size": thumb_size,
-            }
-            cache_chart_thumbnail.delay(**kwargs)
+            username = (
+                user.username if (user := security_manager.current_user) else None
+            )
+            cache_chart_thumbnail.delay(
+                username=username,
+                chart_id=chart.id,
+                force=True,
+                window_size=window_size,
+                thumb_size=thumb_size,
+            )
             return self.response(
                 202, cache_key=cache_key, chart_url=chart_url, image_url=image_url
             )
@@ -688,15 +688,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         username = user.username if (user := security_manager.current_user) else None
         url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
-        chart_digest = get_chart_digest(chart)
         if kwargs["rison"].get("force", False):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
             cache_chart_thumbnail.delay(
                 username=username,
-                url=url,
-                digest=chart_digest,
+                chart_id=chart.id,
                 force=True,
             )
             return self.response(202, message="OK Async")
@@ -712,8 +710,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
             cache_chart_thumbnail.delay(
                 username=username,
-                url=url,
-                digest=chart_digest,
+                chart_id=chart.id,
                 force=True,
             )
             return self.response(202, message="OK Async")

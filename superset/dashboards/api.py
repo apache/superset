@@ -82,8 +82,7 @@ from superset.embedded.dao import EmbeddedDAO
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.tasks.thumbnails import cache_dashboard_thumbnail
-from superset.thumbnails.utils import get_dashboard_digest
+from superset.thumbnails.tasks import cache_dashboard_thumbnail
 from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -889,37 +888,34 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
         # If force, request a screenshot from the workers
         username = user.username if (user := security_manager.current_user) else None
-        dashboard_digest = get_dashboard_digest(dashboard)
         if kwargs["rison"].get("force", False):
             cache_dashboard_thumbnail.delay(
-                url=dashboard_url,
-                digest=dashboard_digest,
                 username=username,
+                dashboard_id=dashboard.id,
                 force=True,
             )
             return self.response(202, message="OK Async")
         # fetch the dashboard screenshot using the current user and cache if set
         screenshot = DashboardScreenshot(
-            dashboard_url, dashboard_digest
+            dashboard_url, dashboard.digest
         ).get_from_cache(cache=thumbnail_cache)
         # If the screenshot does not exist, request one from the workers
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
             cache_dashboard_thumbnail.delay(
                 username=username,
-                url=dashboard_url,
-                digest=dashboard_digest,
+                dashboard_id=dashboard.id,
                 force=True,
             )
             return self.response(202, message="OK Async")
         # If digests
-        if dashboard_digest != digest:
+        if dashboard.digest != digest:
             self.incr_stats("redirect", self.thumbnail.__name__)
             return redirect(
                 url_for(
                     f"{self.__class__.__name__}.thumbnail",
                     pk=pk,
-                    digest=dashboard_digest,
+                    digest=dashboard.digest,
                 )
             )
         self.incr_stats("from_cache", self.thumbnail.__name__)

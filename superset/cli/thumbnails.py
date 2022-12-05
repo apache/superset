@@ -69,7 +69,7 @@ def compute_thumbnails(
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.tasks.thumbnails import (
+    from superset.thumbnails.tasks import (
         cache_chart_thumbnail,
         cache_dashboard_thumbnail,
     )

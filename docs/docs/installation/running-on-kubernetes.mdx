@@ -345,7 +345,7 @@ configOverrides:
 
     class CeleryConfig(object):
       broker_url = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
-      imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+      imports = ('superset.sql_lab', "superset.tasks", "superset.thumbnails.tasks", )
       result_backend = f"redis://{env('REDIS_HOST')}:{env('REDIS_PORT')}/0"
       task_annotations = {
           'sql_lab.get_sql_results': {

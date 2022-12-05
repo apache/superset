@@ -54,13 +54,11 @@ from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
-from superset.tasks.thumbnails import cache_dashboard_thumbnail
-from superset.thumbnails.utils import get_dashboard_digest
+from superset.thumbnails.digest import get_dashboard_digest
+from superset.thumbnails.tasks import cache_dashboard_thumbnail
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
 from superset.utils.decorators import debounce
-from superset.utils.hashing import md5_sha_from_str
-from superset.utils.urls import get_url_path
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -242,11 +240,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def digest(self) -> str:
-        """
-        Returns a MD5 HEX digest that makes this dashboard unique
-        """
-        unique_string = f"{self.position_json}.{self.css}.{self.json_metadata}"
-        return md5_sha_from_str(unique_string)
+        return get_dashboard_digest(self)
 
     @property
     def thumbnail_url(self) -> str:
@@ -254,7 +248,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/dashboard/{self.id}/thumbnail/{get_dashboard_digest(self)}/"
+        return f"/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
 
     @property
     def changed_by_name(self) -> str:
@@ -330,8 +324,13 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return {}
 
     def update_thumbnail(self) -> None:
-        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=self.id)
-        cache_dashboard_thumbnail.delay(url, self.digest, force=True)
+        username = user.username if (user := security_manager.current_user) else None
+        cache_dashboard_thumbnail.delay(
+            username=username,
+            dashboard_id=self.id,
+            digest=self.digest,
+            force=True,
+        )
 
     @debounce(0.1)
     def clear_cache(self) -> None:

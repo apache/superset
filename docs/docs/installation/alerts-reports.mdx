@@ -90,7 +90,7 @@ REDIS_PORT = "6379"
 
 class CeleryConfig:
     broker_url = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
-    imports = ('superset.sql_lab', "superset.tasks", "superset.tasks.thumbnails", )
+    imports = ('superset.sql_lab', "superset.tasks", "superset.thumbnails.tasks", )
     result_backend = 'redis://%s:%s/0' % (REDIS_HOST, REDIS_PORT)
     worker_prefetch_multiplier = 10
     task_acks_late = True

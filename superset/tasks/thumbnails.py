@@ -15,65 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Utility functions used across Superset"""
-
 import logging
-from typing import Optional
 
-from superset import thumbnail_cache
-from superset.extensions import celery_app
-from superset.thumbnails.utils import get_executor
-from superset.utils.core import override_user
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.webdriver import WindowSize
+# TODO(villebro): deprecate in 3.0
+# pylint: disable=unused-wildcard-import,wildcard-import
+from superset.thumbnails.tasks import *
 
 logger = logging.getLogger(__name__)
 
-
-@celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
-def cache_chart_thumbnail(
-    username: Optional[str],
-    url: str,
-    digest: str,
-    force: bool = False,
-    window_size: Optional[WindowSize] = None,
-    thumb_size: Optional[WindowSize] = None,
-) -> None:
-    if not thumbnail_cache:
-        logger.warning("No cache set, refusing to compute")
-        return None
-    logger.info("Caching chart: %s", url)
-    screenshot = ChartScreenshot(url, digest)
-    user = get_executor(username)
-    with override_user(user):
-        screenshot.compute_and_cache(
-            user=user,
-            cache=thumbnail_cache,
-            force=force,
-            window_size=window_size,
-            thumb_size=thumb_size,
-        )
-    return None
-
-
-@celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
-def cache_dashboard_thumbnail(
-    username: Optional[str],
-    url: str,
-    digest: str,
-    force: bool = False,
-    thumb_size: Optional[WindowSize] = None,
-) -> None:
-    if not thumbnail_cache:
-        logging.warning("No cache set, refusing to compute")
-        return
-    logger.info("Caching dashboard: %s", url)
-    screenshot = DashboardScreenshot(url, digest)
-    user = get_executor(username=username)
-    with override_user(user):
-        screenshot.compute_and_cache(
-            user=user,
-            cache=thumbnail_cache,
-            force=force,
-            thumb_size=thumb_size,
-        )
+logger.warning(
+    "The import path superset.tasks.thumbnails is deprecated and will be removed in"
+    "3.0. Please use superset.thumbnails.tasks instead."
+)

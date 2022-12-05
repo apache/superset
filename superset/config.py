@@ -41,7 +41,6 @@ from typing import (
     Literal,
     Optional,
     Set,
-    Tuple,
     Type,
     TYPE_CHECKING,
     Union,
@@ -60,10 +59,9 @@ from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
-from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
-from superset.thumbnails.types import ThumbnailExecutor
+from superset.tasks.types import ExecutorType
 from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -581,38 +579,31 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
 # the username of the account used to render the queries and dashboards/charts
-SELENIUM_USER: Optional[str] = "admin"
+THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
 
-# To be able to have different thumbnails for different users, use this config to define
-# 1. which user to execute the thumbnails as 2. custom callbacks for creating the
-# digests for the dashboard and chart thumbnail images. To have unique thumbnails for
-# all users, use the following example config:
-from hashlib import md5
+# To be able to have different thumbnails for different users, use these configs to
+# define which user to execute the thumbnails and potentially custom functions for
+# calculating thumbnail digests. To have unique thumbnails for all users, use the
+# following config:
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.INITIATOR]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 
-# THUMBNAIL_EXECUTOR_CONFIG: Optional[
-#    Tuple[
-#        ThumbnailExecutor,
-#        Optional[Callable[[Dashboard, models.User], str]],
-#        Optional[Callable[[Slice, models.User], str]],
-#    ]
-# ] = (
-#    ThumbnailExecutor.User,
-#    lambda x: md5(f"{x[0].digest()}\n{x[1].id}".encode("utf-8")).hexdigest(),
-#    lambda x: md5(f"{x[0].digest()}\n{x[1].id}".encode("utf-8")).hexdigest(),
-# )
-
-THUMBNAIL_EXECUTOR_CONFIG: Optional[
-    Tuple[
-        ThumbnailExecutor,
-        Optional[Callable[[Dashboard, Optional[models.User]], str]],
-        Optional[Callable[[Slice, Optional[models.User]], str]],
-    ]
+# By default, thumbnail digests are calculated based on various parameters in the
+# chart/dashboard metadata, and in the case of user-specific thumbnails, the
+# SECRET_KEY and the username. To specify a custom digest function, use the following
+# config parameters to define callbacks that receive
+# 1. the model (dashboard or chart)
+# 2. the executor type
+# 3. the executor's username
+# and return the final digest string:
+THUMBNAIL_DASHBOARD_DIGEST_FUNC: Optional[
+    Callable[[Dashboard, ExecutorType, str], str]
 ] = None
-
+THUMBNAIL_CHART_DIGEST_FUNC: Optional[Callable[[Slice, ExecutorType, str], str]] = None
 
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "NullCache",
@@ -1210,16 +1201,14 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # creator if either is contained within the list of owners, otherwise the first owner
 # will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
-#     ReportScheduleExecutor.CREATOR_OWNER,
-#     ReportScheduleExecutor.CREATOR,
-#     ReportScheduleExecutor.MODIFIER_OWNER,
-#     ReportScheduleExecutor.MODIFIER,
-#     ReportScheduleExecutor.OWNER,
-#     ReportScheduleExecutor.SELENIUM,
+#     ScheduledTaskExecutor.CREATOR_OWNER,
+#     ScheduledTaskExecutor.CREATOR,
+#     ScheduledTaskExecutor.MODIFIER_OWNER,
+#     ScheduledTaskExecutor.MODIFIER,
+#     ScheduledTaskExecutor.OWNER,
+#     ScheduledTaskExecutor.SELENIUM,
 # ]
-ALERT_REPORTS_EXECUTE_AS: List[ReportScheduleExecutor] = [
-    ReportScheduleExecutor.SELENIUM
-]
+ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
