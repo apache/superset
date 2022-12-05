@@ -36,7 +36,6 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/ObjectTags';
 import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
 import TagType from 'src/types/TagType';
-import { TagsList } from 'src/components/Tags';
 
 export type PropertiesModalProps = {
   slice: Slice;

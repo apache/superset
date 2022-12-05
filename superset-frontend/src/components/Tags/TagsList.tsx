@@ -36,10 +36,9 @@ export type TagsListProps = {
 
 const TagsDiv = styled.div`
   max-width: 100%;
-  display: -webkit-flex;
   display: flex;
-  -webkit-flex-direction: row;
-  -webkit-flex-wrap: wrap;
+  flex-direction: row;
+  flex-wrap: wrap;
 `;
 
 const TagsList = ({
