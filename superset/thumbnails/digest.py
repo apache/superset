@@ -56,7 +56,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str:
     executor_type, executor = get_executor(
         executor_types=config["THUMBNAIL_EXECUTE_AS"],
         model=dashboard,
-        initiator=g.user.username,
+        initiator=g.user.username if hasattr(g, "user") and g.user else None,
     )
     if func := config["THUMBNAIL_DASHBOARD_DIGEST_FUNC"]:
         return func(dashboard, executor_type, executor)
@@ -75,7 +75,7 @@ def get_chart_digest(chart: Slice) -> str:
     executor_type, executor = get_executor(
         executor_types=config["THUMBNAIL_EXECUTE_AS"],
         model=chart,
-        initiator=g.user.username,
+        initiator=g.user.username if hasattr(g, "user") and g.user else None,
     )
     if func := config["THUMBNAIL_CHART_DIGEST_FUNC"]:
         return func(chart, executor_type, executor)

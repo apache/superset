@@ -19,7 +19,8 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple, TYPE_CHECKING, Union
 
-from superset import app
+from flask import current_app
+
 from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.types import ExecutorType
 
@@ -53,10 +54,10 @@ def get_executor(
     owners = model.owners
     owner_dict = {owner.id: owner for owner in owners}
     for executor_type in executor_types:
+        if executor_type == ExecutorType.SELENIUM:
+            return executor_type, current_app.config["THUMBNAIL_SELENIUM_USER"]
         if executor_type == ExecutorType.INITIATOR and initiator:
             return executor_type, initiator
-        if executor_type == ExecutorType.SELENIUM:
-            return executor_type, app.config["THUMBNAIL_SELENIUM_USER"]
         if executor_type == ExecutorType.CREATOR_OWNER:
             if (user := model.created_by) and (owner := owner_dict.get(user.id)):
                 return executor_type, owner.username
