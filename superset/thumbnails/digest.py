@@ -20,10 +20,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from flask import current_app, g
+from flask import current_app
 
 from superset.tasks.types import ExecutorType
 from superset.tasks.utils import get_executor
+from superset.thumbnails.utils import get_initiator
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
@@ -56,7 +57,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str:
     executor_type, executor = get_executor(
         executor_types=config["THUMBNAIL_EXECUTE_AS"],
         model=dashboard,
-        initiator=g.user.username if hasattr(g, "user") and g.user else None,
+        initiator=get_initiator(),
     )
     if func := config["THUMBNAIL_DASHBOARD_DIGEST_FUNC"]:
         return func(dashboard, executor_type, executor)
@@ -75,7 +76,7 @@ def get_chart_digest(chart: Slice) -> str:
     executor_type, executor = get_executor(
         executor_types=config["THUMBNAIL_EXECUTE_AS"],
         model=chart,
-        initiator=g.user.username if hasattr(g, "user") and g.user else None,
+        initiator=get_initiator(),
     )
     if func := config["THUMBNAIL_CHART_DIGEST_FUNC"]:
         return func(chart, executor_type, executor)

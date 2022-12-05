@@ -56,6 +56,7 @@ from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.thumbnails.tasks import cache_dashboard_thumbnail
+from superset.thumbnails.utils import get_initiator
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
 from superset.utils.decorators import debounce
@@ -324,7 +325,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return {}
 
     def update_thumbnail(self) -> None:
-        username = user.username if (user := security_manager.current_user) else None
+        username = get_initiator()
         cache_dashboard_thumbnail.delay(
             username=username,
             dashboard_id=self.id,
