@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Tuple, TYPE_CHECKING, Union
 
-from flask import current_app
+from flask import current_app, g
 
 from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.types import ExecutorType
@@ -84,3 +84,11 @@ def get_executor(
                 return executor_type, owners[0].username
 
     raise ExecutorNotFoundError()
+
+
+def get_initiator() -> Optional[str]:
+    user = g.user if hasattr(g, "user") and g.user and g.user else None
+    if user and not user.is_anonymous:
+        return user.username
+
+    return None

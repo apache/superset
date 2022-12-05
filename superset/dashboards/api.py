@@ -33,7 +33,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import is_feature_enabled, security_manager, thumbnail_cache
+from superset import is_feature_enabled, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
@@ -83,6 +83,7 @@ from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.thumbnails.tasks import cache_dashboard_thumbnail
+from superset.tasks.utils import get_initiator
 from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -887,10 +888,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         )
         # If force, request a screenshot from the workers
-        username = user.username if (user := security_manager.current_user) else None
+        initiator = get_initiator()
         if kwargs["rison"].get("force", False):
             cache_dashboard_thumbnail.delay(
-                username=username,
+                initiator=initiator,
                 dashboard_id=dashboard.id,
                 force=True,
             )
@@ -903,7 +904,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
             cache_dashboard_thumbnail.delay(
-                username=username,
+                initiator=initiator,
                 dashboard_id=dashboard.id,
                 force=True,
             )

@@ -28,8 +28,9 @@ from superset import db, is_feature_enabled, security_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.tasks.types import ExecutorType
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
-from superset.utils.urls import get_url_host, get_url_path
+from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WebDriverProxy
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.test_app import app
@@ -145,24 +146,45 @@ class TestThumbnails(SupersetTestCase):
         self.assertEqual(rv.status_code, 404)
 
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_dashboard_screenshot(self):
+    def test_get_async_dashboard_screenshot_as_selenium(self):
         """
-        Thumbnails: Simple get async dashboard screenshot
+        Thumbnails: Simple get async dashboard screenshot as selenium user
         """
         dashboard = db.session.query(Dashboard).all()[0]
-        self.login(username="admin")
+        self.login(username="alpha")
         uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
         with patch(
-            "superset.tasks.thumbnails.cache_dashboard_thumbnail.delay"
+            "superset.thumbnails.tasks.cache_dashboard_thumbnail.delay"
         ) as mock_task:
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 202)
 
-            expected_uri = f"{get_url_host()}superset/dashboard/{dashboard.id}/"
-            expected_digest = dashboard.digest
-            expected_kwargs = {"force": True}
             mock_task.assert_called_with(
-                expected_uri, expected_digest, **expected_kwargs
+                initiator="admin",
+                dashboard_id=dashboard.id,
+                force=True,
+            )
+
+    @with_feature_flags(THUMBNAILS=True)
+    def test_get_async_dashboard_screenshot_as_initiator(self):
+        """
+        Thumbnails: Simple get async dashboard screenshot as initiator
+        """
+        dashboard = db.session.query(Dashboard).all()[0]
+        self.login(username="alpha")
+        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
+        with patch(
+            "superset.thumbnails.tasks.cache_dashboard_thumbnail.delay"
+        ) as mock_task, patch.dict(
+            "superset.thumbnails.tasks.current_app.config", [ExecutorType.INITIATOR]
+        ):
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 202)
+
+            mock_task.assert_called_with(
+                initiator="alpha",
+                dashboard_id=dashboard.id,
+                force=True,
             )
 
     @with_feature_flags(THUMBNAILS=True)
@@ -188,23 +210,39 @@ class TestThumbnails(SupersetTestCase):
         self.assertEqual(rv.status_code, 404)
 
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_chart_screenshot(self):
+    def test_get_async_chart_screenshot_as_selenium(self):
         """
-        Thumbnails: Simple get async chart screenshot
+        Thumbnails: Simple get async chart screenshot as selenium user
         """
         chart = db.session.query(Slice).all()[0]
-        self.login(username="admin")
+        self.login(username="alpha")
         uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
         with patch(
-            "superset.tasks.thumbnails.cache_chart_thumbnail.delay"
+            "superset.thumbnails.tasks.cache_chart_thumbnail.delay"
         ) as mock_task:
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 202)
-            expected_uri = f"{get_url_host()}superset/slice/{chart.id}/?standalone=true"
-            expected_digest = chart.digest
-            expected_kwargs = {"force": True}
             mock_task.assert_called_with(
-                expected_uri, expected_digest, **expected_kwargs
+                initiator="admin", chart_id=chart.id, force=True
+            )
+
+    @with_feature_flags(THUMBNAILS=True)
+    def test_get_async_chart_screenshot_as_initiator(self):
+        """
+        Thumbnails: Simple get async chart screenshot as initiator
+        """
+        chart = db.session.query(Slice).all()[0]
+        self.login(username="alpha")
+        uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
+        with patch(
+            "superset.thumbnails.tasks.cache_dashboard_thumbnail.delay"
+        ) as mock_task, patch.dict(
+            "superset.thumbnails.tasks.current_app.config", [ExecutorType.INITIATOR]
+        ):
+            rv = self.client.get(uri)
+            self.assertEqual(rv.status_code, 202)
+            mock_task.assert_called_with(
+                initiator="alpha", chart_id=chart.id, force=True
             )
 
     @with_feature_flags(THUMBNAILS=True)

@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
 def cache_chart_thumbnail(
-    username: Optional[str],
+    initiator: Optional[str],
     chart_id: int,
     force: bool = False,
     window_size: Optional[WindowSize] = None,
@@ -53,7 +53,7 @@ def cache_chart_thumbnail(
     _, username = get_executor(
         executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
         model=chart,
-        initiator=username,
+        initiator=initiator,
     )
     user = security_manager.find_user(username)
     with override_user(user):
@@ -70,7 +70,7 @@ def cache_chart_thumbnail(
 
 @celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
 def cache_dashboard_thumbnail(
-    username: Optional[str],
+    initiator: Optional[str],
     dashboard_id: int,
     force: bool = False,
     thumb_size: Optional[WindowSize] = None,
@@ -88,7 +88,7 @@ def cache_dashboard_thumbnail(
     _, username = get_executor(
         executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
         model=dashboard,
-        initiator=username,
+        initiator=initiator,
     )
     user = security_manager.find_user(username)
     with override_user(user):

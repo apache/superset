@@ -44,6 +44,7 @@ from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.thumbnails.digest import get_chart_digest
 from superset.thumbnails.tasks import cache_chart_thumbnail
+from superset.tasks.utils import get_initiator
 from superset.utils import core as utils
 from superset.utils.memoized import memoized
 from superset.viz import BaseViz, viz_types
@@ -360,9 +361,8 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
 def event_after_chart_changed(
     _mapper: Mapper, _connection: Connection, target: Slice
 ) -> None:
-    username = user.username if (user := security_manager.current_user) else None
     cache_chart_thumbnail.delay(
-        username=username,
+        initiator=get_initiator(),
         chart_id=target.id,
         force=True,
     )

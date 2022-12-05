@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import app, is_feature_enabled, security_manager, thumbnail_cache
+from superset import app, is_feature_enabled, thumbnail_cache
 from superset.charts.commands.bulk_delete import BulkDeleteChartCommand
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.delete import DeleteChartCommand
@@ -75,6 +75,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.thumbnails.tasks import cache_chart_thumbnail
+from superset.tasks.utils import get_initiator
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -570,11 +571,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
-            username = (
-                user.username if (user := security_manager.current_user) else None
-            )
             cache_chart_thumbnail.delay(
-                username=username,
+                initiator=get_initiator(),
                 chart_id=chart.id,
                 force=True,
                 window_size=window_size,
@@ -686,14 +684,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
-        username = user.username if (user := security_manager.current_user) else None
+        initiator = get_initiator()
         url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if kwargs["rison"].get("force", False):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
             cache_chart_thumbnail.delay(
-                username=username,
+                initiator=initiator,
                 chart_id=chart.id,
                 force=True,
             )
@@ -709,7 +707,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
             cache_chart_thumbnail.delay(
-                username=username,
+                initiator=initiator,
                 chart_id=chart.id,
                 force=True,
             )
