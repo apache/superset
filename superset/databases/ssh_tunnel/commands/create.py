@@ -15,14 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from flask_appbuilder.models.sqla import Model
-from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.databases.dao import DatabaseDAO
 from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelCreateFailedError
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 

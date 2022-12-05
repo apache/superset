@@ -55,7 +55,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs
-from superset.constants import PASSWORD_MASK
+from superset.constants import PASSWORD_MASK, SSH_TUNNELLING_LOCAL_BIND_ADDRESS
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
@@ -451,7 +451,8 @@ class Database(
             # update sqlalchemy_url
             url = make_url_safe(sqlalchemy_url)
             sqlalchemy_url = url.set(
-                host="127.0.0.1", port=ssh_tunnel_server.local_bind_port
+                host=SSH_TUNNELLING_LOCAL_BIND_ADDRESS,
+                port=ssh_tunnel_server.local_bind_port,
             )
 
         try:
