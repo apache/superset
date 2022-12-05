@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
+import React, { ReactNode, useState, useEffect, useMemo } from 'react';
+import {
+  css,
+  styled,
+  t,
+  useTheme,
+  NO_TIME_RANGE,
+  SupersetTheme,
+} from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Modal from 'src/components/Modal';
@@ -121,6 +128,28 @@ const IconWrapper = styled.span`
   }
 `;
 
+const getTooltipTitle = (
+  isLabelTruncated: boolean,
+  label: string | undefined,
+  range: string | undefined,
+) =>
+  isLabelTruncated ? (
+    <div>
+      {label && <strong>{label}</strong>}
+      {range && (
+        <div
+          css={(theme: SupersetTheme) => css`
+            margin-top: ${theme.gridUnit}px;
+          `}
+        >
+          {range}
+        </div>
+      )}
+    </div>
+  ) : (
+    range || null
+  );
+
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
     onChange,
@@ -140,7 +169,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
-  const [tooltipTitle, setTooltipTitle] = useState<string | null>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(value);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
@@ -174,26 +203,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           guessedFrame === 'No filter'
         ) {
           setActualTimeRange(value);
-          setTooltipTitle(labelIsTruncated ? value : null);
-        } else {
-          const tooltipTitle = labelIsTruncated ? (
-            <div>
-              <strong>{actualRange}</strong>
-              {value && (
-                <div
-                  css={css`
-                    margin-top: ${theme.gridUnit}px;
-                  `}
-                >
-                  {value}
-                </div>
-              )}
-            </div>
-          ) : (
-            value || null
+          setTooltipTitle(
+            getTooltipTitle(labelIsTruncated, value, actualRange),
           );
+        } else {
           setActualTimeRange(actualRange || '');
-          setTooltipTitle(tooltipTitle);
+          setTooltipTitle(
+            getTooltipTitle(labelIsTruncated, actualRange, value),
+          );
         }
         setValidTimeRange(true);
       }
