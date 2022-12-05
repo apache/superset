@@ -90,11 +90,16 @@ const LoaderContainer = styled.div`
   ${({ theme }) => `
   padding: ${theme.gridUnit * 8}px
     ${theme.gridUnit * 6}px;
-
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 98%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   `}
 `;
 
@@ -250,8 +255,9 @@ const DatasetPanel = ({
   const datasetNames = datasets?.map(dataset => dataset.table_name);
 
   let component;
+  let loader;
   if (loading) {
-    component = (
+    loader = (
       <LoaderContainer>
         <StyledLoader>
           <img alt={ALT_LOADING} src={LOADING_GIF} />
@@ -259,30 +265,33 @@ const DatasetPanel = ({
         </StyledLoader>
       </LoaderContainer>
     );
-  } else if (tableName && hasColumns && !hasError) {
-    component = (
-      <>
-        <StyledTitle>{COLUMN_TITLE}</StyledTitle>
-        <TableContainer>
-          <StyledTable
-            loading={loading}
-            size={TableSize.SMALL}
-            columns={tableColumnDefinition}
-            data={columnList}
-            pageSizeOptions={pageSizeOptions}
-            defaultPageSize={10}
-          />
-        </TableContainer>
-      </>
-    );
-  } else {
-    component = (
-      <MessageContent
-        hasColumns={hasColumns}
-        hasError={hasError}
-        tableName={tableName}
-      />
-    );
+  }
+  if (!loading) {
+    if (!loading && tableName && hasColumns && !hasError) {
+      component = (
+        <>
+          <StyledTitle>{COLUMN_TITLE}</StyledTitle>
+          <TableContainer>
+            <StyledTable
+              loading={loading}
+              size={TableSize.SMALL}
+              columns={tableColumnDefinition}
+              data={columnList}
+              pageSizeOptions={pageSizeOptions}
+              defaultPageSize={10}
+            />
+          </TableContainer>
+        </>
+      );
+    } else {
+      component = (
+        <MessageContent
+          hasColumns={hasColumns}
+          hasError={hasError}
+          tableName={tableName}
+        />
+      );
+    }
   }
 
   return (
@@ -307,6 +316,7 @@ const DatasetPanel = ({
         </>
       )}
       {component}
+      {loader}
     </>
   );
 };
