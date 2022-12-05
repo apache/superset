@@ -172,12 +172,15 @@ class TestThumbnails(SupersetTestCase):
         """
         dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="alpha")
-        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
         with patch(
             "superset.thumbnails.tasks.cache_dashboard_thumbnail.delay"
         ) as mock_task, patch.dict(
-            "superset.thumbnails.tasks.current_app.config", [ExecutorType.INITIATOR]
+            "superset.thumbnails.tasks.current_app.config",
+            {
+                "THUMBNAIL_EXECUTE_AS": [ExecutorType.INITIATOR],
+            },
         ):
+            uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 202)
 
@@ -233,12 +236,15 @@ class TestThumbnails(SupersetTestCase):
         """
         chart = db.session.query(Slice).all()[0]
         self.login(username="alpha")
-        uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
         with patch(
-            "superset.thumbnails.tasks.cache_dashboard_thumbnail.delay"
+            "superset.thumbnails.tasks.cache_chart_thumbnail.delay"
         ) as mock_task, patch.dict(
-            "superset.thumbnails.tasks.current_app.config", [ExecutorType.INITIATOR]
+            "superset.thumbnails.tasks.current_app.config",
+            {
+                "THUMBNAIL_EXECUTE_AS": [ExecutorType.INITIATOR],
+            },
         ):
+            uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 202)
             mock_task.assert_called_with(
