@@ -30,6 +30,7 @@ import {
   convertValueToLabel,
 } from 'src/utils/commonHelper';
 import moment from 'moment';
+import Button from 'src/components/Button';
 
 interface FlashViewButtonProps extends ToastProps {
   flash: FlashServiceObject;
@@ -77,6 +78,17 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
+  const appContainer = document.getElementById('app');
+  const bootstrapData = JSON.parse(
+    appContainer?.getAttribute('data-bootstrap') || '{}',
+  );
+  const flashUrl = bootstrapData?.common?.conf?.FLASH_URL;
+
+  const openAuditLogs = () => {
+    const url = `${flashUrl}v1/flash/${flash?.id}/audit-log`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const renderModalBody = () => (
     <>
       <Row>
@@ -87,6 +99,7 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
           <Value>{flash?.tableName}</Value>
         </StyledCol>
       </Row>
+
       <Row>
         <StyledCol xs={5}>
           <Label>Owner:</Label>
@@ -190,6 +203,9 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
               : 'NIL'}
           </Value>
         </StyledCol>
+      </Row>
+      <Row css={{ justifyContent: 'flex-end' }}>
+        <Button onClick={() => openAuditLogs()}>Audit Logs</Button>
       </Row>
       <Label>SQL Query:</Label>
       <SyntaxHighlighterCopy
