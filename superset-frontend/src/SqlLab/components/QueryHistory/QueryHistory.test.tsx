@@ -20,16 +20,8 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import QueryHistory from 'src/SqlLab/components/QueryHistory';
 
-const NOOP = () => {};
 const mockedProps = {
   queries: [],
-  actions: {
-    queryEditorSetAndSaveSql: NOOP,
-    cloneQueryToNewTab: NOOP,
-    fetchQueryResults: NOOP,
-    clearQueryResults: NOOP,
-    removeQuery: NOOP,
-  },
   displayLimit: 1000,
   latestQueryId: 'yhMUZCGb',
 };
