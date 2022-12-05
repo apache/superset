@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel
 from contextlib import nullcontext
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import pandas as pd
 import pytest
@@ -24,7 +24,7 @@ from pytest_mock import MockFixture
 
 from superset.reports.commands.exceptions import AlertQueryError
 from superset.reports.models import ReportCreationMethod, ReportScheduleType
-from superset.reports.types import ReportScheduleExecutor
+from superset.tasks.types import ExecutorType
 from superset.utils.database import get_example_database
 from tests.integration_tests.test_app import app
 
@@ -32,23 +32,34 @@ from tests.integration_tests.test_app import app
 @pytest.mark.parametrize(
     "owner_names,creator_name,config,expected_result",
     [
-        (["gamma"], None, [ReportScheduleExecutor.SELENIUM], "admin"),
-        (["gamma"], None, [ReportScheduleExecutor.OWNER], "gamma"),
-        (["alpha", "gamma"], "gamma", [ReportScheduleExecutor.CREATOR_OWNER], "gamma"),
-        (["alpha", "gamma"], "alpha", [ReportScheduleExecutor.CREATOR_OWNER], "alpha"),
+        (["gamma"], None, [ExecutorType.SELENIUM], (ExecutorType.SELENIUM, "admin")),
+        (["gamma"], None, [ExecutorType.OWNER], (ExecutorType.OWNER, "gamma")),
+        (
+            ["alpha", "gamma"],
+            "gamma",
+            [ExecutorType.CREATOR_OWNER],
+            (ExecutorType.CREATOR_OWNER, "gamma"),
+        ),
+        (
+            ["alpha", "gamma"],
+            "alpha",
+            [ExecutorType.CREATOR_OWNER],
+            (ExecutorType.CREATOR_OWNER, "alpha"),
+        ),
         (
             ["alpha", "gamma"],
             "admin",
-            [ReportScheduleExecutor.CREATOR_OWNER],
+            [ExecutorType.CREATOR_OWNER],
             AlertQueryError(),
         ),
+        (["gamma"], None, [ExecutorType.INITIATOR], AlertQueryError()),
     ],
 )
 def test_execute_query_as_report_executor(
     owner_names: List[str],
     creator_name: Optional[str],
-    config: List[ReportScheduleExecutor],
-    expected_result: Union[str, Exception],
+    config: List[ExecutorType],
+    expected_result: Union[Tuple[ExecutorType, str], Exception],
     mocker: MockFixture,
     app_context: None,
     get_user,
@@ -85,7 +96,7 @@ def test_execute_query_as_report_executor(
         )
         with cm:
             command.run()
-            assert override_user_mock.call_args[0][0].username == expected_result
+            assert override_user_mock.call_args[0][0] == expected_result
 
         app.config["ALERT_REPORTS_EXECUTE_AS"] = original_config
 
