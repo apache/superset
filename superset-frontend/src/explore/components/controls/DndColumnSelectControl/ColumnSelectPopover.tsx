@@ -406,7 +406,7 @@ const ColumnSelectPopover = ({
           {t('Close')}
         </Button>
         <Button
-          disabled={stateIsValid && !hasUnsavedChanges}
+          disabled={!stateIsValid || !hasUnsavedChanges}
           buttonStyle="primary"
           buttonSize="small"
           onClick={onSave}

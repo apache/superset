@@ -126,7 +126,7 @@ describe('AdhocFilterEditPopover', () => {
     wrapper
       .instance()
       .onAdhocFilterChange(simpleAdhocFilter.duplicateWith({ operator: null }));
-    expect(wrapper.find(Button).find({ disabled: false })).toExist();
+    expect(wrapper.find(Button).find({ disabled: true })).toExist();
     wrapper.instance().onAdhocFilterChange(sqlAdhocFilter);
     expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
   });
