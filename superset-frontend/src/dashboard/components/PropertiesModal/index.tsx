@@ -574,7 +574,7 @@ const PropertiesModal = ({
         },
         (tags: TagType[]) => setTags(tags),
         (error: Response) => {
-          handleErrorResponse(error);
+          addDangerToast(`Error fetching tags: ${error.text}`);
         },
       );
     } catch (error: any) {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import TagsList, { TagsListProps } from './TagsList';
 
 const testTags = [
@@ -49,16 +49,19 @@ const mockedProps: TagsListProps = {
   maxTags: 5,
 };
 
-const findAllTags = () => screen.getAllByRole('link')! as HTMLElement[];
+const getElementsByClassName = (className: string) =>
+  document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
+
+const findAllTags = () => waitFor(() => getElementsByClassName('.ant-tag'));
 
 test('should render', () => {
   const { container } = render(<TagsList {...mockedProps} />);
   expect(container).toBeInTheDocument();
 });
 
-test('should render 5 elements', () => {
+test('should render 5 elements', async () => {
   render(<TagsList {...mockedProps} />);
-  const tagsListItems = findAllTags();
+  const tagsListItems = await findAllTags();
   expect(tagsListItems).toHaveLength(5);
   expect(tagsListItems[0]).toHaveTextContent(testTags[0].name);
   expect(tagsListItems[1]).toHaveTextContent(testTags[1].name);
@@ -67,9 +70,9 @@ test('should render 5 elements', () => {
   expect(tagsListItems[4]).toHaveTextContent(testTags[4].name);
 });
 
-test('should render 3 elements when maxTags is set to 3', () => {
+test('should render 3 elements when maxTags is set to 3', async () => {
   render(<TagsList {...mockedProps} maxTags={3} />);
-  const tagsListItems = findAllTags();
+  const tagsListItems = await findAllTags();
   expect(tagsListItems).toHaveLength(3);
   expect(tagsListItems[2]).toHaveTextContent('+3...');
 });

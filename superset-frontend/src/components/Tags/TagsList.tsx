@@ -75,6 +75,7 @@ const TagsList = ({
           {tags.slice(0, tempMaxTags - 1).map((tag: TagType, index) => (
             <Tag
               id={tag.id}
+              key={tag.id}
               name={tag.name}
               index={index}
               onDelete={handleDelete}
@@ -90,6 +91,7 @@ const TagsList = ({
           {tags.map((tag: TagType, index) => (
             <Tag
               id={tag.id}
+              key={tag.id}
               name={tag.name}
               index={index}
               onDelete={handleDelete}
