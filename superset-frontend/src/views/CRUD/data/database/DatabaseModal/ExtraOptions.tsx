@@ -50,7 +50,16 @@ const ExtraOptions = ({
   const createAsOpen = !!(db?.allow_ctas || db?.allow_cvas);
   const isFileUploadSupportedByEngine =
     db?.engine_information?.supports_file_upload;
-  const extraJson: ExtraJson = JSON.parse(db?.extra || '{}');
+
+  // JSON.parse will deep parse engine_params
+  // if it's an object, and we want to keep it a string
+  const extraJson: ExtraJson = JSON.parse(db?.extra || '{}', (key, value) => {
+    if (key === 'engine_params' && typeof value === 'object') {
+      // keep this as a string
+      return JSON.stringify(value);
+    }
+    return value;
+  });
 
   return (
     <Collapse
@@ -469,6 +478,7 @@ const ExtraOptions = ({
             <StyledJsonEditor
               name="engine_params"
               value={
+                // don't show an empty object
                 !Object.keys(extraJson?.engine_params || {}).length
                   ? ''
                   : extraJson?.engine_params
