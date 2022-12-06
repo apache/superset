@@ -27,6 +27,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import './styles.css';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -152,7 +153,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     setErrors(err);
   };
 
-  const renderSaveDialog = () => (
+  const renderConfirmationMessage = () => (
     <div>
       <Alert
         css={theme => ({
@@ -168,14 +169,43 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 in undesirable ways.`)}
       />
       {t('Are you sure you want to save and apply changes?')}
+      <Button
+        data-test="datasource-modal-cancel"
+        buttonSize="small"
+        className="async_confirm"
+        onClick={onHide}
+      >
+        {t('Cancel')}
+      </Button>
+      <Button
+        buttonSize="small"
+        buttonStyle="primary"
+        data-test="datasource-modal-save"
+        onClick={onConfirmSave}
+        disabled={
+          isSaving ||
+          errors.length > 0 ||
+          currentDatasource.is_managed_externally
+        }
+        tooltip={
+          currentDatasource.is_managed_externally
+            ? t(
+                "This dataset is managed externally, and can't be edited in Superset",
+              )
+            : ''
+        }
+      >
+        {t('Save')}
+      </Button>
     </div>
   );
 
   const onClickSave = () => {
     dialog.current = modal.confirm({
       title: t('Confirm save'),
-      content: renderSaveDialog(),
+      content: renderConfirmationMessage(),
       onOk: onConfirmSave,
+      className: 'async_confirm',
       icon: null,
     });
   };
