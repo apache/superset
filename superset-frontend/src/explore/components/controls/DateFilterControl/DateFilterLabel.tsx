@@ -357,13 +357,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       visible={show}
       onVisibleChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
-      getPopupContainer={() =>
+      getPopupContainer={(triggerNode) =>
         isOverflowingFilterBar
-          ? (document.getElementsByClassName(
-              'dropdowncontainer',
-            )[0] as HTMLElement)
+          ? triggerNode.parentNode as HTMLElement
           : document.body
       }
+      destroyTooltipOnHide
     >
       <Tooltip placement="top" title={tooltipTitle}>
         <DateLabel
