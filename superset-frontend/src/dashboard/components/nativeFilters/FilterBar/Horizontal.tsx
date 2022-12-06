@@ -55,7 +55,6 @@ const HorizontalBarContent = styled.div`
 
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
-    margin-left: ${theme.gridUnit * 4}px;
     font-weight: ${theme.typography.weights.bold};
     color: ${theme.colors.grayscale.base};
     font-size: ${theme.typography.sizes.s}px;
@@ -107,11 +106,6 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
         ) : (
           <>
             {canEdit && <FilterBarOrientationSelect />}
-            {!hasFilters && (
-              <FilterBarEmptyStateContainer data-test="horizontal-filterbar-empty">
-                {t('No filters are currently added to this dashboard.')}
-              </FilterBarEmptyStateContainer>
-            )}
             {canEdit && (
               <FiltersLinkContainer hasFilters={hasFilters}>
                 <FilterConfigurationLink
@@ -121,6 +115,11 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
                   <Icons.PlusSmall /> {t('Add/Edit Filters')}
                 </FilterConfigurationLink>
               </FiltersLinkContainer>
+            )}
+            {!hasFilters && (
+              <FilterBarEmptyStateContainer data-test="horizontal-filterbar-empty">
+                {t('No filters are currently added to this dashboard.')}
+              </FilterBarEmptyStateContainer>
             )}
             {hasFilters && (
               <FilterControls
