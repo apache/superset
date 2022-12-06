@@ -21,7 +21,7 @@ import json
 import logging
 import textwrap
 from ast import literal_eval
-from contextlib import closing, contextmanager
+from contextlib import closing, contextmanager, nullcontext
 from copy import deepcopy
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
@@ -384,19 +384,18 @@ class Database(
         ):
             # if ssh_tunnel is available build engine with information
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
-            ssh_tunnel.bind_host = url.host
-            ssh_tunnel.bind_port = url.port
-            ssh_params = ssh_tunnel.parameters()
-            with sshtunnel.open_tunnel(**ssh_params) as server:
-                yield self._get_sqla_engine(
-                    schema=schema,
-                    nullpool=nullpool,
-                    source=source,
-                    ssh_tunnel_server=server,
-                )
-
+            ssh_params = ssh_tunnel.parameters(bind_host=url.host, bind_port=url.port)
+            engine_context = sshtunnel.open_tunnel(**ssh_params)
         else:
-            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+            engine_context = nullcontext()
+
+        with engine_context as server_context:
+            yield self._get_sqla_engine(
+                schema=schema,
+                nullpool=nullpool,
+                source=source,
+                ssh_tunnel_server=server_context,
+            )
 
     def _get_sqla_engine(
         self,
