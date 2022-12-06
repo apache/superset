@@ -40,9 +40,9 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
 `;
 
 export const StyledSelect = styled(AntdSelect, {
-  shouldForwardProp: prop => prop !== 'headerPosition',
-})<{ headerPosition: string }>`
-  ${({ theme, headerPosition }) => `
+  shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
+})<{ headerPosition: string; oneLine?: boolean }>`
+  ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
@@ -51,6 +51,25 @@ export const StyledSelect = styled(AntdSelect, {
     // This is fixed in version 4.16
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
       pointer-events: none;
+    }
+
+    ${
+      oneLine &&
+      `
+        .ant-select-selection-overflow {
+          flex-wrap: nowrap;
+        }
+
+        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+          flex-shrink: 1;
+          min-width: ${theme.gridUnit * 13}px;
+        }
+
+        .ant-select-selection-overflow-item-suffix {
+          flex: unset;
+          min-width: 0px;
+        }
+      `
     }
  `}
 `;

@@ -110,8 +110,8 @@ test('should toggle the table when the header is clicked', async () => {
   userEvent.click(header);
 
   await waitFor(() => {
-    expect(store.getActions()).toHaveLength(2);
-    expect(store.getActions()[1].type).toEqual('COLLAPSE_TABLE');
+    expect(store.getActions()).toHaveLength(4);
+    expect(store.getActions()[3].type).toEqual('COLLAPSE_TABLE');
   });
 });
 

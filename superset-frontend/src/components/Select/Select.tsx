@@ -54,6 +54,7 @@ import {
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
+import { oneLineTagRender } from './CustomTag';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -96,6 +97,8 @@ const Select = forwardRef(
       tokenSeparators,
       value,
       getPopupContainer,
+      oneLine,
+      maxTagCount: propsMaxTagCount,
       ...props
     }: SelectProps,
     ref: RefObject<HTMLInputElement>,
@@ -106,6 +109,16 @@ const Select = forwardRef(
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
     const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [maxTagCount, setMaxTagCount] = useState(
+      propsMaxTagCount ?? MAX_TAG_COUNT,
+    );
+
+    useEffect(() => {
+      if (oneLine) {
+        setMaxTagCount(isDropdownVisible ? 0 : 1);
+      }
+    }, [isDropdownVisible, oneLine]);
+
     const mappedMode = isSingleMode
       ? undefined
       : allowNewOptions
@@ -280,7 +293,7 @@ const Select = forwardRef(
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
-          maxTagCount={MAX_TAG_COUNT}
+          maxTagCount={maxTagCount}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onDeselect={handleOnDeselect}
@@ -308,6 +321,8 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" />
             )
           }
+          oneLine={oneLine}
+          tagRender={oneLine ? oneLineTagRender : undefined}
           {...props}
           ref={ref}
         >

@@ -44,7 +44,8 @@ import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { onFiltersRefreshSuccess } from 'src/dashboard/actions/dashboardState';
-import { dispatchFocusAction } from './utils';
+import { FAST_DEBOUNCE } from 'src/constants';
+import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
@@ -78,7 +79,7 @@ const useShouldFilterRefresh = () => {
 const FilterValue: React.FC<FilterControlProps> = ({
   dataMaskSelected,
   filter,
-  directPathToChild,
+  focusedFilterId,
   onFilterSelectionChange,
   inView = true,
   showOverflow,
@@ -211,10 +212,12 @@ const FilterValue: React.FC<FilterControlProps> = ({
   ]);
 
   useEffect(() => {
-    if (directPathToChild?.[0] === filter.id) {
-      inputRef?.current?.focus();
+    if (focusedFilterId && focusedFilterId === filter.id) {
+      setTimeout(() => {
+        inputRef?.current?.focus();
+      }, FAST_DEBOUNCE);
     }
-  }, [inputRef, directPathToChild, filter.id]);
+  }, [inputRef, focusedFilterId, filter.id]);
 
   const setDataMask = useCallback(
     (dataMask: DataMask) => onFilterSelectionChange(filter, dataMask),
@@ -230,14 +233,32 @@ const FilterValue: React.FC<FilterControlProps> = ({
     [dispatch],
   );
 
+  const setHoveredFilter = useCallback(
+    () => dispatchHoverAction(dispatch, id),
+    [dispatch, id],
+  );
+  const unsetHoveredFilter = useCallback(
+    () => dispatchHoverAction(dispatch),
+    [dispatch],
+  );
+
   const hooks = useMemo(
     () => ({
       setDataMask,
+      setHoveredFilter,
+      unsetHoveredFilter,
       setFocusedFilter,
       unsetFocusedFilter,
       setFilterActive,
     }),
-    [setDataMask, setFilterActive, setFocusedFilter, unsetFocusedFilter],
+    [
+      setDataMask,
+      setFilterActive,
+      setHoveredFilter,
+      unsetHoveredFilter,
+      setFocusedFilter,
+      unsetFocusedFilter,
+    ],
   );
 
   const isMissingRequiredValue = checkIsMissingRequiredValue(
@@ -253,9 +274,12 @@ const FilterValue: React.FC<FilterControlProps> = ({
     [filter.dataMask?.filterState, isMissingRequiredValue],
   );
 
-  const formDataWithDisplayParams = useMemo(
-    () => ({ ...formData, orientation, overflow }),
-    [formData, orientation, overflow],
+  const displaySettings = useMemo(
+    () => ({
+      filterBarOrientation: orientation,
+      isOverflowingFilterBar: overflow,
+    }),
+    [orientation, overflow],
   );
 
   if (error) {
@@ -277,7 +301,8 @@ const FilterValue: React.FC<FilterControlProps> = ({
           height={HEIGHT}
           width="100%"
           showOverflow={showOverflow}
-          formData={formDataWithDisplayParams}
+          formData={formData}
+          displaySettings={displaySettings}
           parentRef={parentRef}
           inputRef={inputRef}
           // For charts that don't have datasource we need workaround for empty placeholder

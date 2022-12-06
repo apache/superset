@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
-import { css, styled, t, useTheme, NO_TIME_RANGE } from '@superset-ui/core';
+import React, { ReactNode, useState, useEffect, useMemo } from 'react';
+import {
+  css,
+  styled,
+  t,
+  useTheme,
+  NO_TIME_RANGE,
+  SupersetTheme,
+} from '@superset-ui/core';
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import Label from 'src/components/Label';
 import Modal from 'src/components/Modal';
 import { Divider } from 'src/components';
 import Icons from 'src/components/Icons';
@@ -29,6 +35,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
+import { useCSSTextTruncation } from 'src/hooks/useTruncation';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -44,6 +51,7 @@ import {
   CalendarFrame,
   CustomFrame,
   AdvancedFrame,
+  DateLabel,
 } from './components';
 
 const StyledRangeType = styled(Select)`
@@ -120,6 +128,28 @@ const IconWrapper = styled.span`
   }
 `;
 
+const getTooltipTitle = (
+  isLabelTruncated: boolean,
+  label: string | undefined,
+  range: string | undefined,
+) =>
+  isLabelTruncated ? (
+    <div>
+      {label && <strong>{label}</strong>}
+      {range && (
+        <div
+          css={(theme: SupersetTheme) => css`
+            margin-top: ${theme.gridUnit}px;
+          `}
+        >
+          {range}
+        </div>
+      )}
+    </div>
+  ) : (
+    range || null
+  );
+
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
     onChange,
@@ -139,13 +169,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
-  const [tooltipTitle, setTooltipTitle] = useState<string>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(value);
   const theme = useTheme();
+  const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
       setActualTimeRange(NO_TIME_RANGE);
-      setTooltipTitle(NO_TIME_RANGE);
+      setTooltipTitle(null);
       setValidTimeRange(true);
       return;
     }
@@ -153,7 +184,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       if (error) {
         setEvalResponse(error || '');
         setValidTimeRange(false);
-        setTooltipTitle(value || '');
+        setTooltipTitle(value || null);
       } else {
         /*
           HRT == human readable text
@@ -172,16 +203,21 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
           guessedFrame === 'No filter'
         ) {
           setActualTimeRange(value);
+          setTooltipTitle(
+            getTooltipTitle(labelIsTruncated, value, actualRange),
+          );
         } else {
           setActualTimeRange(actualRange || '');
-          setTooltipTitle(value || '');
+          setTooltipTitle(
+            getTooltipTitle(labelIsTruncated, actualRange, value),
+          );
         }
         setValidTimeRange(true);
       }
       setLastFetchedTimeRange(value);
       setEvalResponse(actualRange || value);
     });
-  }, [value]);
+  }, [guessedFrame, labelIsTruncated, labelRef, value]);
 
   useDebouncedEffect(
     () => {
@@ -322,12 +358,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       overlayStyle={{ width: '600px' }}
     >
       <Tooltip placement="top" title={tooltipTitle}>
-        <Label
-          className="pointer"
+        <DateLabel
+          label={actualTimeRange}
+          isActive={show}
+          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.popoverOverlay}
-        >
-          {actualTimeRange}
-        </Label>
+          ref={labelRef}
+        />
       </Tooltip>
     </ControlPopover>
   );
@@ -335,13 +372,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const modalContent = (
     <>
       <Tooltip placement="top" title={tooltipTitle}>
-        <Label
-          className="pointer"
+        <DateLabel
           onClick={toggleOverlay}
+          label={actualTimeRange}
+          isActive={show}
+          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
           data-test={DATE_FILTER_TEST_KEY.modalOverlay}
-        >
-          {actualTimeRange}
-        </Label>
+          ref={labelRef}
+        />
       </Tooltip>
       {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter when GENERIC_CHART_AXES is enabled */}
       <Modal

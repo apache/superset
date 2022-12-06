@@ -29,7 +29,7 @@ cachelib==0.4.1
     # via apache-superset
 celery==5.2.2
     # via apache-superset
-cffi==1.14.6
+cffi==1.15.1
     # via cryptography
 click==8.0.4
     # via
@@ -156,7 +156,7 @@ marshmallow-sqlalchemy==0.23.1
     # via flask-appbuilder
 msgpack==1.0.2
     # via apache-superset
-numpy==1.22.1
+numpy==1.23.5
     # via
     #   apache-superset
     #   pandas
@@ -165,7 +165,7 @@ packaging==21.3
     # via
     #   bleach
     #   deprecation
-pandas==1.4.4
+pandas==1.5.2
     # via apache-superset
 parsedatetime==2.6
     # via apache-superset
@@ -177,7 +177,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.28
     # via click-repl
-pyarrow==6.0.1
+pyarrow==10.0.1
     # via apache-superset
 pycparser==2.20
     # via cffi
