@@ -480,6 +480,7 @@ function SavedQueryList({
       {
         Header: t('Tags'),
         id: 'tags',
+        key: 'tags',
         input: 'search',
         operator: FilterOperator.savedQueryTags,
       },

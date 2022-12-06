@@ -30,7 +30,6 @@ import { uniqBy } from 'lodash';
 import moment from 'moment';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
-  Actions,
   createErrorHandler,
   createFetchRelated,
   handleChartDelete,
@@ -70,7 +69,6 @@ import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import { bootstrapData } from 'src/preamble';
 import Owner from 'src/types/Owner';
-import { OBJECT_TYPES } from 'src/tags';
 import { loadTags } from 'src/components/Tags/utils';
 import ChartCard from './ChartCard';
 
@@ -158,7 +156,7 @@ type ChartLinkedDashboard = {
   dashboard_title: string;
 };
 
-const Actions = styled.div`
+const StyledActions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
@@ -493,7 +491,7 @@ function ChartList(props: ChartListProps) {
           }
 
           return (
-            <Actions className="actions">
+            <StyledActions className="actions">
               {canDelete && (
                 <ConfirmStatusChange
                   title={t('Please confirm')}
@@ -556,7 +554,7 @@ function ChartList(props: ChartListProps) {
                   </span>
                 </Tooltip>
               )}
-            </Actions>
+            </StyledActions>
           );
         },
         Header: t('Actions'),

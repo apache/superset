@@ -69,7 +69,6 @@ function TagList(props: TagListProps) {
       resourceCollection: tags,
       bulkSelectEnabled,
     },
-    setResourceCollection: setTags,
     hasPerm,
     fetchData,
     toggleBulkSelect,

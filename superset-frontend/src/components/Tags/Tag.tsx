@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, SupersetTheme } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import TagType from 'src/types/TagType';
 import AntdTag from 'antd/lib/tag';
 import React, { useMemo } from 'react';

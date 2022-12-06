@@ -17,19 +17,17 @@
  * under the License.
  */
 import React from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { t, useTheme } from '@superset-ui/core';
-import { handleDashboardDelete, CardStyles } from 'src/views/CRUD/utils';
+import { CardStyles } from 'src/views/CRUD/utils';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListViewCard from 'src/components/ListViewCard';
 import Icons from 'src/components/Icons';
-import Label from 'src/components/Label';
-import FacePile from 'src/components/FacePile';
-import FaveStar from 'src/components/FaveStar';
 import { Tag } from 'src/views/CRUD/types';
+import { deleteTags } from 'src/tags';
 
 interface TagCardProps {
   tag: Tag;
@@ -55,9 +53,12 @@ function TagCard({
   addSuccessToast,
   showThumbnails,
 }: TagCardProps) {
-  const history = useHistory();
   const canDelete = hasPerm('can_write');
-  const canExport = hasPerm('can_export');
+
+  const handleTagDelete = (tag: Tag) => {
+    deleteTags([tag], addSuccessToast, addDangerToast);
+    refreshData();
+  };
 
   const theme = useTheme();
   const menu = (
@@ -71,16 +72,7 @@ function TagCard({
                 {t('Are you sure you want to delete')} <b>{tag.name}</b>?
               </>
             }
-            onConfirm={() =>
-              handleTagDelete(
-                tag,
-                refreshData,
-                addSuccessToast,
-                addDangerToast,
-                tagFilter,
-                userId,
-              )
-            }
+            onConfirm={() => handleTagDelete(tag)}
           >
             {confirmDelete => (
               <div
@@ -101,7 +93,6 @@ function TagCard({
   return (
     <CardStyles>
       <ListViewCard
-        loading={tag.loading || false}
         title={tag.name}
         cover={
           !isFeatureEnabled(FeatureFlag.THUMBNAILS) || !showThumbnails ? (
@@ -111,7 +102,7 @@ function TagCard({
         url={undefined}
         linkComponent={Link}
         imgFallbackURL="/static/assets/images/dashboard-card-fallback.svg"
-        description={t('Modified %s', tag.changed_on)}
+        description={t('Modified %s', tag.changed_on_delta_humanized)}
         actions={
           <ListViewCard.Actions
             onClick={e => {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';

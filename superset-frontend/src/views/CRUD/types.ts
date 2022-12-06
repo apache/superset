@@ -133,11 +133,15 @@ export enum QueryObjectColumns {
   tracking_url = 'tracking_url',
 }
 
+export type ImportResourceName =
+  | 'chart'
+  | 'dashboard'
+  | 'database'
+  | 'dataset'
+  | 'saved_query';
+
 export interface Tag {
-  changed_by_name: string;
-  changed_by_url: string;
   changed_on_delta_humanized: string;
-  changed_by: string;
   name: string;
   id: number;
   created_by: object;
