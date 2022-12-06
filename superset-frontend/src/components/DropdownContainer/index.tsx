@@ -256,6 +256,7 @@ const DropdownContainer = forwardRef(
             data-test="dropdown-content"
             style={dropdownStyle}
             ref={targetRef}
+            className="dropdowncontainer"
           >
             {dropdownContent
               ? dropdownContent(overflowedItems)

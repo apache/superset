@@ -56,7 +56,6 @@ const ControlPopover: React.FC<PopoverProps> = ({
 
   const calculatePlacement = useCallback(() => {
     const visibilityRatio = getVisibilityRatio(triggerElementRef.current!);
-
     if (visibilityRatio < 0.35) {
       setPlacement('rightTop');
     } else if (visibilityRatio > 0.65) {
