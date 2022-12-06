@@ -263,7 +263,7 @@ const DatasetPanel = ({
   const theme = useTheme();
   const hasColumns = columnList?.length > 0 ?? false;
   const datasetNames = datasets?.map(dataset => dataset.table_name);
-  const tablesWithDatasets = datasets?.find(
+  const tableWithDataset = datasets?.find(
     dataset => dataset.table_name === tableName,
   );
 
@@ -284,7 +284,7 @@ const DatasetPanel = ({
       component = (
         <>
           <StyledTitle>{COLUMN_TITLE}</StyledTitle>
-          {tablesWithDatasets ? (
+          {tableWithDataset ? (
             <TableContainerWithBanner>
               <TableScrollContainer>
                 <Table
@@ -329,7 +329,7 @@ const DatasetPanel = ({
       {tableName && (
         <>
           {datasetNames?.includes(tableName) &&
-            renderExistingDatasetAlert(tablesWithDatasets)}
+            renderExistingDatasetAlert(tableWithDataset)}
           <StyledHeader
             position={
               !loading && hasColumns ? EPosition.RELATIVE : EPosition.ABSOLUTE

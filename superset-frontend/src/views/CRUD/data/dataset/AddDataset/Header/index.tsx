@@ -101,7 +101,7 @@ export default function Header({
         />
       ) : (
         <StyledCreateDatasetTitle>
-          {title ?? DEFAULT_TITLE}
+          {title || DEFAULT_TITLE}
         </StyledCreateDatasetTitle>
       )}
     </HeaderComponentStyles>
