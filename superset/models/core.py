@@ -390,12 +390,7 @@ class Database(
             engine_context = nullcontext()
 
         with engine_context as server_context:
-            yield self._get_sqla_engine(
-                schema=schema,
-                nullpool=nullpool,
-                source=source,
-                ssh_tunnel_server=server_context,
-            )
+            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source, ssh_tunnel_server=server_context)
 
     def _get_sqla_engine(
         self,
