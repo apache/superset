@@ -55,8 +55,8 @@ const HALF = 0.5;
 const MARGIN_MULTIPLIER = 3;
 
 const StyledHeader = styled.div<StyledHeaderProps>`
-  ${({ theme }) => `
-  position: ${(props: StyledHeaderProps) => props.position};
+  ${({ theme, position }) => `
+  position: ${position};
   margin: ${theme.gridUnit * (MARGIN_MULTIPLIER + 1)}px
     ${theme.gridUnit * MARGIN_MULTIPLIER}px
     ${theme.gridUnit * MARGIN_MULTIPLIER}px
@@ -129,8 +129,8 @@ const TableContainerWithBanner = styled.div`
   position: relative;
   margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
   margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  overflow: scroll;
   height: calc(100% - ${theme.gridUnit * 60}px);
+  overflow: auto;
   `}
 `;
 
@@ -139,12 +139,12 @@ const TableContainerWithoutBanner = styled.div`
   position: relative;
   margin: ${theme.gridUnit * MARGIN_MULTIPLIER}px;
   margin-left: ${theme.gridUnit * (MARGIN_MULTIPLIER + 3)}px;
-  overflow: scroll;
   height: calc(100% - ${theme.gridUnit * 30}px);
+  overflow: auto;
   `}
 `;
 
-const StyledTable = styled(Table)`
+const TableScrollContainer = styled.div`
   position: absolute;
   left: 0;
   top: 0;
@@ -286,25 +286,29 @@ const DatasetPanel = ({
           <StyledTitle>{COLUMN_TITLE}</StyledTitle>
           {tablesWithDatasets ? (
             <TableContainerWithBanner>
-              <StyledTable
-                loading={loading}
-                size={TableSize.SMALL}
-                columns={tableColumnDefinition}
-                data={columnList}
-                pageSizeOptions={pageSizeOptions}
-                defaultPageSize={25}
-              />
+              <TableScrollContainer>
+                <Table
+                  loading={loading}
+                  size={TableSize.SMALL}
+                  columns={tableColumnDefinition}
+                  data={columnList}
+                  pageSizeOptions={pageSizeOptions}
+                  defaultPageSize={25}
+                />
+              </TableScrollContainer>
             </TableContainerWithBanner>
           ) : (
             <TableContainerWithoutBanner>
-              <StyledTable
-                loading={loading}
-                size={TableSize.SMALL}
-                columns={tableColumnDefinition}
-                data={columnList}
-                pageSizeOptions={pageSizeOptions}
-                defaultPageSize={25}
-              />
+              <TableScrollContainer>
+                <Table
+                  loading={loading}
+                  size={TableSize.SMALL}
+                  columns={tableColumnDefinition}
+                  data={columnList}
+                  pageSizeOptions={pageSizeOptions}
+                  defaultPageSize={25}
+                />
+              </TableScrollContainer>
             </TableContainerWithoutBanner>
           )}
         </>
