@@ -88,6 +88,7 @@ const verticalStyle = (theme: SupersetTheme, width: number) => css`
 
 const horizontalStyle = (theme: SupersetTheme) => css`
   align-items: center;
+  margin-left: auto;
   && > .filter-clear-all-button {
     text-transform: capitalize;
     font-weight: ${theme.typography.weights.normal};
