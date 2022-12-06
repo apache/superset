@@ -254,7 +254,7 @@ function ReportModal({
             {t('Formatted CSV attached in email')}
           </StyledRadio>
           <StyledRadio value={NOTIFICATION_FORMATS.XLSX}>
-            {t('Formatted XLSX attached in email')}
+            {t('Formatted Excel attached in email')}
           </StyledRadio>
         </StyledRadioGroup>
       </div>
