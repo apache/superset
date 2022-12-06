@@ -159,6 +159,7 @@ class BaseReportState:
         if self._report_schedule.chart:
             if result_format in {
                 ChartDataResultFormat.CSV,
+                ChartDataResultFormat.XLSX,
                 ChartDataResultFormat.JSON,
             }:
                 return get_url_path(
@@ -331,7 +332,7 @@ class BaseReportState:
         }
         return log_data
 
-    def _get_xlsx_data(self):
+    def _get_xlsx_data(self) -> bytes:
         csv_data = self._get_csv_data()
 
         df = pd.read_csv(BytesIO(csv_data))
