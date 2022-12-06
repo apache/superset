@@ -39,6 +39,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import FacePile from 'src/components/FacePile';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/tags';
+import { Tag as AntdTag } from 'antd';
 import { Tag } from '../types';
 import TagCard from './TagCard';
 
@@ -100,23 +101,14 @@ function TagList(props: TagListProps) {
             original: { name: tagName },
           },
         }: any) => (
-          <Link to={`/superset/all_entities/?tags=${tagName}`}>{tagName}</Link>
+          <AntdTag>
+            <Link to={`/superset/all_entities/?tags=${tagName}`}>
+              {tagName}
+            </Link>
+          </AntdTag>
         ),
         Header: t('Name'),
         accessor: 'name',
-      },
-      {
-        Cell: ({
-          row: {
-            original: {
-              changed_by_name: changedByName,
-              changed_by_url: changedByUrl,
-            },
-          },
-        }: any) => <a href={changedByUrl}>{changedByName}</a>,
-        Header: t('Modified by'),
-        accessor: 'changed_by.first_name',
-        size: 'xl',
       },
       {
         Cell: ({

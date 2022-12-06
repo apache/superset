@@ -41,10 +41,9 @@ import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeMo
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
-import { loadTags } from 'src/components/ObjectTags';
 import TagType from 'src/types/TagType';
 import { addTag, deleteTaggedObjects, fetchTags, OBJECT_TYPES } from 'src/tags';
-import { TagsList } from 'src/components/Tags';
+import { loadTags } from 'src/components/Tags/utils';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;

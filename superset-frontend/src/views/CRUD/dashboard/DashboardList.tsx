@@ -53,7 +53,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { bootstrapData } from 'src/preamble';
-import { loadTags } from 'src/components/ObjectTags';
+import { loadTags } from 'src/components/Tags/utils';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
 

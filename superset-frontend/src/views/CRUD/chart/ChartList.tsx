@@ -71,7 +71,7 @@ import { GenericLink } from 'src/components/GenericLink/GenericLink';
 import { bootstrapData } from 'src/preamble';
 import Owner from 'src/types/Owner';
 import { OBJECT_TYPES } from 'src/tags';
-import { loadTags } from 'src/components/ObjectTags';
+import { loadTags } from 'src/components/Tags/utils';
 import ChartCard from './ChartCard';
 
 const FlexRowContainer = styled.div`
