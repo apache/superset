@@ -30,7 +30,7 @@ from superset import db, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
-from superset.models.sql_lab import Tag
+from superset.tags.models import Tag
 
 from tests.integration_tests.base_tests import SupersetTestCase
 
