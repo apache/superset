@@ -286,7 +286,7 @@ describe('Horizontal FilterBar', () => {
     setFilterBarOrientation('horizontal');
 
     cy.getBySel('form-item-value').should('have.length', 3);
-    cy.viewport(800, 1024);
+    cy.viewport(768, 1024);
     cy.getBySel('form-item-value').should('have.length', 0);
     openMoreFilters();
     cy.getBySel('form-item-value').should('have.length', 3);
