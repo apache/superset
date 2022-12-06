@@ -316,7 +316,7 @@ const DropdownContainer = forwardRef(
             display: flex;
             align-items: center;
             gap: ${theme.gridUnit * 4}px;
-            margin-right: ${theme.gridUnit * 3}px;
+            margin-right: ${theme.gridUnit * 4}px;
             min-width: 0px;
           `}
           data-test="container"
