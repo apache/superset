@@ -16,11 +16,14 @@
 # under the License.
 # from superset import db
 # from superset.models.dashboard import Dashboard
+
+import json
 import urllib.request
 from io import BytesIO
 from unittest import skipUnless
 from unittest.mock import ANY, call, patch
 
+import pytest
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
 
@@ -33,6 +36,10 @@ from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WebDriverProxy
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
 from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
@@ -54,11 +61,14 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
         """
         Thumbnails: Simple get async dashboard screenshot
         """
-        dashboard = db.session.query(Dashboard).all()[0]
         with patch("superset.dashboards.api.DashboardRestApi.get") as mock_get:
+            rv = self.client.get("/api/v1/dashboard/")
+            resp = json.loads(rv.data.decode("utf-8"))
+            thumbnail_url = resp["result"][0]["thumbnail_url"]
+
             response = self.url_open_auth(
                 "admin",
-                f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/",
+                thumbnail_url,
             )
             self.assertEqual(response.getcode(), 202)
 
@@ -122,7 +132,15 @@ class TestWebDriverProxy(SupersetTestCase):
 class TestThumbnails(SupersetTestCase):
 
     mock_image = b"bytes mock image"
+    digest_return_value = "foo_bar"
+    digest_hash = "5c7d96a3dd7a87850a2ef34087565a6e"
 
+    def _get_thumbnail_url(self, url: str):
+        rv = self.client.get(url)
+        resp = json.loads(rv.data.decode("utf-8"))
+        return resp["result"][0]["thumbnail_url"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=False)
     def test_dashboard_thumbnail_disabled(self):
         """
@@ -134,6 +152,7 @@ class TestThumbnails(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=False)
     def test_chart_thumbnail_disabled(self):
         """
@@ -145,55 +164,51 @@ class TestThumbnails(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_async_dashboard_screenshot_as_selenium(self):
         """
         Thumbnails: Simple get async dashboard screenshot as selenium user
         """
-        dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="alpha")
-        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
         with patch(
-            "superset.thumbnails.tasks.cache_dashboard_thumbnail.delay"
-        ) as mock_task:
-            rv = self.client.get(uri)
+            "superset.thumbnails.digest._adjust_string_for_executor"
+        ) as mock_adjust_string:
+            mock_adjust_string.return_value = self.digest_return_value
+            thumbnail_url = self._get_thumbnail_url("/api/v1/dashboard/")
+            assert self.digest_hash in thumbnail_url
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
+            assert mock_adjust_string.call_args[0][2] == "admin"
+
+            rv = self.client.get(thumbnail_url)
             self.assertEqual(rv.status_code, 202)
 
-            mock_task.assert_called_with(
-                initiator="admin",
-                dashboard_id=dashboard.id,
-                force=True,
-            )
-
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_async_dashboard_screenshot_as_initiator(self):
         """
         Thumbnails: Simple get async dashboard screenshot as initiator
         """
-        dashboard = db.session.query(Dashboard).all()[0]
         username = "alpha"
         self.login(username=username)
-        with patch(
-            "superset.thumbnails.tasks.cache_dashboard_thumbnail.delay"
-        ) as mock_task, patch(
-            "superset.thumbnails.digest.get_initiator"
-        ) as mock_initiator, patch.dict(
+        with patch.dict(
             "superset.thumbnails.digest.current_app.config",
             {
                 "THUMBNAIL_EXECUTE_AS": [ExecutorType.INITIATOR],
             },
-        ):
-            mock_initiator.return_value = username
-            uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
-            rv = self.client.get(uri)
+        ), patch(
+            "superset.thumbnails.digest._adjust_string_for_executor"
+        ) as mock_adjust_string:
+            mock_adjust_string.return_value = self.digest_return_value
+            thumbnail_url = self._get_thumbnail_url("/api/v1/dashboard/")
+            assert self.digest_hash in thumbnail_url
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.INITIATOR
+            assert mock_adjust_string.call_args[0][2] == username
+
+            rv = self.client.get(thumbnail_url)
             self.assertEqual(rv.status_code, 202)
 
-            mock_task.assert_called_with(
-                initiator=username,
-                dashboard_id=dashboard.id,
-                force=True,
-            )
-
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_async_dashboard_notfound(self):
         """
@@ -205,6 +220,7 @@ class TestThumbnails(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
     def test_get_async_dashboard_not_allowed(self):
         """
@@ -216,47 +232,51 @@ class TestThumbnails(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_async_chart_screenshot_as_selenium(self):
         """
         Thumbnails: Simple get async chart screenshot as selenium user
         """
-        chart = db.session.query(Slice).all()[0]
         self.login(username="alpha")
         with patch(
-            "superset.thumbnails.tasks.security_manager.find_user"
-        ) as mock_find_user:
-            uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
-            rv = self.client.get(uri)
-            self.assertEqual(rv.status_code, 202)
-            mock_find_user.assert_called_with("admin")
+            "superset.thumbnails.digest._adjust_string_for_executor"
+        ) as mock_adjust_string:
+            mock_adjust_string.return_value = self.digest_return_value
+            thumbnail_url = self._get_thumbnail_url("/api/v1/chart/")
+            assert self.digest_hash in thumbnail_url
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
+            assert mock_adjust_string.call_args[0][2] == "admin"
 
+            rv = self.client.get(thumbnail_url)
+            self.assertEqual(rv.status_code, 202)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_async_chart_screenshot_as_initiator(self):
         """
         Thumbnails: Simple get async chart screenshot as initiator
         """
-        chart = db.session.query(Slice).all()[0]
         username = "alpha"
         self.login(username=username)
-        with patch(
-            "superset.thumbnails.tasks.cache_chart_thumbnail.delay"
-        ) as mock_task, patch(
-            "superset.thumbnails.digest.get_initiator"
-        ) as mock_initiator, patch.dict(
+        with patch.dict(
             "superset.thumbnails.digest.current_app.config",
             {
                 "THUMBNAIL_EXECUTE_AS": [ExecutorType.INITIATOR],
             },
-        ):
-            mock_initiator.return_value = username
-            uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
-            rv = self.client.get(uri)
-            self.assertEqual(rv.status_code, 202)
-            mock_task.assert_called_with(
-                initiator=username, chart_id=chart.id, force=True
-            )
+        ), patch(
+            "superset.thumbnails.digest._adjust_string_for_executor"
+        ) as mock_adjust_string:
+            mock_adjust_string.return_value = self.digest_return_value
+            thumbnail_url = self._get_thumbnail_url("/api/v1/chart/")
+            assert self.digest_hash in thumbnail_url
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.INITIATOR
+            assert mock_adjust_string.call_args[0][2] == username
 
+            rv = self.client.get(thumbnail_url)
+            self.assertEqual(rv.status_code, 202)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_async_chart_notfound(self):
         """
@@ -268,6 +288,7 @@ class TestThumbnails(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_chart_wrong_digest(self):
         """
@@ -285,6 +306,7 @@ class TestThumbnails(SupersetTestCase):
                 rv, f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
             )
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_dashboard_screenshot(self):
         """
@@ -300,6 +322,7 @@ class TestThumbnails(SupersetTestCase):
             self.assertEqual(rv.status_code, 200)
             self.assertEqual(rv.data, self.mock_image)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_chart_screenshot(self):
         """
@@ -315,6 +338,7 @@ class TestThumbnails(SupersetTestCase):
             self.assertEqual(rv.status_code, 200)
             self.assertEqual(rv.data, self.mock_image)
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
     def test_get_cached_dashboard_wrong_digest(self):
         """
