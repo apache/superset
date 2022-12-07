@@ -122,7 +122,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
-            RowLevelSecurityFiltersModelView,
+            RowLevelSecurityView,
             SqlMetricInlineView,
             TableColumnInlineView,
             TableModelView,
@@ -281,14 +281,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Manage"),
             category_icon="",
         )
-        appbuilder.add_view(
-            RowLevelSecurityFiltersModelView,
-            "Row Level Security",
-            label=__("Row Level Security"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-lock",
-        )
 
         #
         # Setup views with no menu
@@ -408,6 +400,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Security"),
             icon="fa-table",
             menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
+        )
+
+        appbuilder.add_view(
+            RowLevelSecurityView,
+            "Row Level Security",
+            href="/rowlevelsecurity/list/",
+            label=__("Row Level Security"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
         )
 
     def init_app_in_ctx(self) -> None:

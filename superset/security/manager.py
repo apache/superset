@@ -1884,7 +1884,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
-                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.Regular
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
@@ -1893,7 +1893,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
-                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.Base
             )
             .filter(RLSFilterRoles.c.role_id.in_(user_roles))
         )
@@ -1914,12 +1914,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or_(
                     and_(
                         RowLevelSecurityFilter.filter_type
-                        == RowLevelSecurityFilterType.REGULAR,
+                        == RowLevelSecurityFilterType.Regular,
                         RowLevelSecurityFilter.id.in_(regular_filter_roles),
                     ),
                     and_(
                         RowLevelSecurityFilter.filter_type
-                        == RowLevelSecurityFilterType.BASE,
+                        == RowLevelSecurityFilterType.Base,
                         RowLevelSecurityFilter.id.notin_(base_filter_roles),
                     ),
                 )

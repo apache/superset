@@ -360,9 +360,9 @@ class ReservedUrlParameters(str, Enum):
         return standalone
 
 
-class RowLevelSecurityFilterType(str, Enum):
-    REGULAR = "Regular"
-    BASE = "Base"
+class RowLevelSecurityFilterType(Enum):
+    Regular = "Regular"
+    Base = "Base"
 
 
 class TemporalType(str, Enum):

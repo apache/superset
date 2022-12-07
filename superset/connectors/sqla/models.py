@@ -2275,7 +2275,7 @@ RLSFilterTables = Table(
 )
 
 
-class RowLevelSecurityFilter(Model, AuditMixinNullable, ImportExportMixin):
+class RowLevelSecurityFilter(Model, AuditMixinNullable):
     """
     Custom where clauses attached to Tables and Roles.
     """
@@ -2285,7 +2285,8 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable, ImportExportMixin):
     name = Column(String(255), unique=True, nullable=False)
     description = Column(Text)
     filter_type = Column(
-        Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
+        Enum(utils.RowLevelSecurityFilterType),
+        info={"enum_class": utils.RowLevelSecurityFilterType},
     )
     group_key = Column(String(255), nullable=True)
     roles = relationship(
@@ -2297,6 +2298,3 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable, ImportExportMixin):
         SqlaTable, secondary=RLSFilterTables, backref="row_level_security_filters"
     )
     clause = Column(Text, nullable=False)
-
-    # TODO: add columns for import/export here
-    # and also migration for it
