@@ -1226,7 +1226,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledInputContainer>
               <div className="inline-container wrap">
                 <StyledInputContainer>
-                  <div className="control-label">
+                  <div className="control-label" css={inputSpacer}>
                     {TRIGGER_ALERT_IF_TEXT}
                     <span className="required">*</span>
                   </div>
