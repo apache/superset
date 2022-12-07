@@ -31,4 +31,3 @@ def with_tagging_system_feature():
             yield
             app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
             clear_sqla_event_listeners()
-        yield
