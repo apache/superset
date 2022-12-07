@@ -70,7 +70,7 @@ export const StyledSelect = styled(AntdSelect, {
           min-width: 0px;
         }
       `
-    }
+    };
  `}
 `;
 
