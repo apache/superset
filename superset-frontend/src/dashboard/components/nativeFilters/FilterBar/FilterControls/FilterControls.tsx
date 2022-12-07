@@ -103,7 +103,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       return (
         // Empty text node is to ensure there's always an element preceding
         // the OutPortal, otherwise react-reverse-portal crashes
-        <React.Fragment key={id}>
+        <React.Fragment>
           {'' /* eslint-disable-line react/jsx-curly-brace-presence */}
           <OutPortal node={portalNodes[index]} inView />
         </React.Fragment>
