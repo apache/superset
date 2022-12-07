@@ -18,11 +18,11 @@
  */
 import React, { useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { css, SupersetTheme } from '@superset-ui/core';
+import { css, SupersetTheme, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { useTruncation } from 'src/hooks/useTruncation';
 import { RootState } from 'src/dashboard/types';
-import { Row, FilterName, StyledEdit, InternalRow } from './Styles';
+import { Row, FilterName, InternalRow } from './Styles';
 import { FilterCardRowProps } from './types';
 import { FilterConfigurationLink } from '../FilterBar/FilterConfigurationLink';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
@@ -31,6 +31,7 @@ export const NameRow = ({
   filter,
   hidePopover,
 }: FilterCardRowProps & { hidePopover: () => void }) => {
+  const theme = useTheme();
   const filterNameRef = useRef<HTMLElement>(null);
   const [elementsTruncated] = useTruncation(filterNameRef);
   const dashboardId = useSelector<RootState, number>(
@@ -62,7 +63,7 @@ export const NameRow = ({
         onClick={hidePopover}
         initialFilterId={filter.id}
       >
-        <StyledEdit />
+        <Icons.Edit iconSize="m" iconColor={theme.colors.grayscale.light1} />
       </FilterConfigurationLink>
     </Row>
   );
