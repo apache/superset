@@ -26,6 +26,7 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 import countries, { countryOptions } from './countries';
+import legend from './legend';
 
 const propTypes = {
   data: PropTypes.arrayOf(
@@ -40,6 +41,7 @@ const propTypes = {
   linearColorScheme: PropTypes.string,
   mapBaseUrl: PropTypes.string,
   numberFormat: PropTypes.string,
+  metricLabel: PropTypes.string,
 };
 
 const maps = {};
@@ -54,10 +56,17 @@ function CountryMap(element, props) {
     numberFormat,
     colorScheme,
     sliceId,
+    displayLegend,
+    displayLegendMetricLabel,
+    displayLegendFontSize,
+    displayLegendOrientation,
   } = props;
 
   const container = element;
   const format = getNumberFormatter(numberFormat);
+  const linearColorScaleSchema =
+    getSequentialSchemeRegistry().get(linearColorScheme);
+
   const linearColorScale = getSequentialSchemeRegistry()
     .get(linearColorScheme)
     .createLinearScale(d3Extent(data, v => v.metric));
@@ -69,6 +78,7 @@ function CountryMap(element, props) {
       ? colorScale(d.country_id, sliceId)
       : linearColorScale(d.metric);
   });
+
   const colorFn = d => colorMap[d.properties.ISO] || 'none';
 
   const path = d3.geo.path();
@@ -176,9 +186,15 @@ function CountryMap(element, props) {
     }
     d3.select(this).style('fill', c);
     selectAndDisplayNameOfRegion(d);
+
     const result = data.filter(
-      region => region.country_id === d.properties.ISO,
+      region => region.country_id.toString() === d.properties.ISO.toString(),
     );
+    console.info({
+      result,
+      d,
+      data,
+    });
     updateMetrics(result);
   };
 
@@ -226,9 +242,24 @@ function CountryMap(element, props) {
       .on('mouseenter', mouseenter)
       .on('mouseout', mouseout)
       .on('click', clicked);
+
+    legend({
+      svg,
+      title: displayLegendMetricLabel,
+      data,
+      width,
+      height,
+      format,
+      display: displayLegend,
+      orientation: displayLegendOrientation,
+      fontSize: displayLegendFontSize,
+      colorScale: linearColorScale,
+      colorSchema: linearColorScaleSchema,
+    });
   }
 
   const map = maps[country];
+
   if (map) {
     drawMap(map);
   } else {
