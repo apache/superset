@@ -204,6 +204,13 @@ jest.mock('@superset-ui/core', () => ({
   }),
 }));
 
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) =>
+      <span role="img" aria-label={fileName.replace('_', '-')} />,
+);
+
 // extract text from embedded html tags
 // source: https://polvara.me/posts/five-things-you-didnt-know-about-testing-library
 const getTextInHTMLTags =
@@ -217,90 +224,98 @@ const getTextInHTMLTags =
     return nodeHasText && childrenDontHaveText;
   };
 
+const hidePopover = jest.fn();
+
 const renderContent = (filter = baseFilter, initialState = baseInitialState) =>
-  render(<FilterCardContent filter={filter} hidePopover={() => {}} />, {
+  render(<FilterCardContent filter={filter} hidePopover={hidePopover} />, {
     useRedux: true,
     initialState,
   });
 
-describe('Filter Card', () => {
-  it('Basic', () => {
-    renderContent();
-    expect(screen.getByText('Native filter 1')).toBeVisible();
-    expect(screen.getByLabelText('filter-small')).toBeVisible();
+test('filter card title, edit, type, scope, dependencies', () => {
+  renderContent();
+  expect(screen.getByText('Native filter 1')).toBeVisible();
+  expect(screen.getByLabelText('filter-small')).toBeVisible();
 
-    expect(screen.getByText('Filter type')).toBeVisible();
-    expect(screen.getByText('Select filter')).toBeVisible();
+  expect(screen.getByRole('button', { name: /edit/i })).toBeVisible();
 
-    expect(screen.getByText('Scope')).toBeVisible();
-    expect(screen.getByText('All charts')).toBeVisible();
+  expect(screen.getByText('Filter type')).toBeVisible();
+  expect(screen.getByText('Select filter')).toBeVisible();
 
-    expect(screen.queryByText('Dependencies')).not.toBeInTheDocument();
+  expect(screen.getByText('Scope')).toBeVisible();
+  expect(screen.getByText('All charts')).toBeVisible();
+
+  expect(screen.queryByText('Dependencies')).not.toBeInTheDocument();
+  screen.logTestingPlaygroundURL();
+});
+
+test('filter card scope with excluded', () => {
+  const filter = {
+    ...baseFilter,
+    scope: { rootPath: [DASHBOARD_ROOT_ID], excluded: [1, 4] },
+  };
+  renderContent(filter);
+  expect(screen.getByText('Scope')).toBeVisible();
+  expect(
+    screen.getByText(getTextInHTMLTags('Test chart 2, Test chart 3')),
+  ).toBeVisible();
+});
+
+test('filter card scope with top level tab as root', () => {
+  const filter = {
+    ...baseFilter,
+    scope: { rootPath: ['TAB-1', 'TAB-2'], excluded: [1, 2] },
+  };
+  renderContent(filter);
+  expect(screen.getByText('Scope')).toBeVisible();
+  expect(
+    screen.getByText(getTextInHTMLTags('Tab 2, Test chart 3')),
+  ).toBeVisible();
+});
+
+test('filter card empty scope', () => {
+  const filter = {
+    ...baseFilter,
+    scope: { rootPath: [], excluded: [1, 2, 3, 4] },
+  };
+  renderContent(filter);
+  expect(screen.getByText('Scope')).toBeVisible();
+  expect(screen.getByText('None')).toBeVisible();
+});
+
+test('filter card with dependency', () => {
+  const filter = {
+    ...baseFilter,
+    cascadeParentIds: ['NATIVE_FILTER-2'],
+  };
+  renderContent(filter);
+  expect(screen.getByText('Dependent on')).toBeVisible();
+  expect(screen.getByText('Native filter 2')).toBeVisible();
+});
+
+test('focus filter on filter card dependency click', () => {
+  const useDispatchMock = jest.spyOn(reactRedux, 'useDispatch');
+  const dummyDispatch = jest.fn();
+  useDispatchMock.mockReturnValue(dummyDispatch);
+
+  const filter = {
+    ...baseFilter,
+    cascadeParentIds: ['NATIVE_FILTER-2'],
+  };
+  renderContent(filter);
+
+  userEvent.click(screen.getByText('Native filter 2'));
+  expect(dummyDispatch).toHaveBeenCalledWith({
+    type: SET_FOCUSED_NATIVE_FILTER,
+    id: 'NATIVE_FILTER-2',
   });
+});
 
-  describe('Scope', () => {
-    it('Scope with excluded', () => {
-      const filter = {
-        ...baseFilter,
-        scope: { rootPath: [DASHBOARD_ROOT_ID], excluded: [1, 4] },
-      };
-      renderContent(filter);
-      expect(screen.getByText('Scope')).toBeVisible();
-      expect(
-        screen.getByText(getTextInHTMLTags('Test chart 2, Test chart 3')),
-      ).toBeVisible();
-    });
-
-    it('Scope with top level tab as root', () => {
-      const filter = {
-        ...baseFilter,
-        scope: { rootPath: ['TAB-1', 'TAB-2'], excluded: [1, 2] },
-      };
-      renderContent(filter);
-      expect(screen.getByText('Scope')).toBeVisible();
-      expect(
-        screen.getByText(getTextInHTMLTags('Tab 2, Test chart 3')),
-      ).toBeVisible();
-    });
-
-    it('Empty scope', () => {
-      const filter = {
-        ...baseFilter,
-        scope: { rootPath: [], excluded: [1, 2, 3, 4] },
-      };
-      renderContent(filter);
-      expect(screen.getByText('Scope')).toBeVisible();
-      expect(screen.getByText('None')).toBeVisible();
-    });
-  });
-
-  describe('Dependencies', () => {
-    it('Has dependency', () => {
-      const filter = {
-        ...baseFilter,
-        cascadeParentIds: ['NATIVE_FILTER-2'],
-      };
-      renderContent(filter);
-      expect(screen.getByText('Dependent on')).toBeVisible();
-      expect(screen.getByText('Native filter 2')).toBeVisible();
-    });
-
-    it('Focus filter on dependency click', () => {
-      const useDispatchMock = jest.spyOn(reactRedux, 'useDispatch');
-      const dummyDispatch = jest.fn();
-      useDispatchMock.mockReturnValue(dummyDispatch);
-
-      const filter = {
-        ...baseFilter,
-        cascadeParentIds: ['NATIVE_FILTER-2'],
-      };
-      renderContent(filter);
-
-      userEvent.click(screen.getByText('Native filter 2'));
-      expect(dummyDispatch).toHaveBeenCalledWith({
-        type: SET_FOCUSED_NATIVE_FILTER,
-        id: 'NATIVE_FILTER-2',
-      });
-    });
-  });
+test('edit filter on filter card edit click', async () => {
+  renderContent();
+  const editButton = screen.getByRole('button', { name: /edit/i });
+  userEvent.click(editButton);
+  expect(
+    await screen.findByRole('dialog', { name: /add and edit filters/i }),
+  ).toBeVisible();
 });
