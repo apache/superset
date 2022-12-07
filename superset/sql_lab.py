@@ -463,13 +463,9 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             )
         )
 
-    with database.get_sqla_engine_with_context(
-        query.schema, source=QuerySource.SQL_LAB
-    ) as engine:
-        # Sharing a single connection and cursor across the
-        # execution of all statements (if many)
-        with closing(engine.raw_connection()) as conn:
-            # closing the connection closes the cursor as well
+    with database.get_raw_connection(
+        schema=query.schema, 
+        source=QuerySource.SQL_LAB) as conn:
             cursor = conn.cursor()
             cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
             if cancel_query_id is not None:
@@ -627,10 +623,9 @@ def cancel_query(query: Query) -> bool:
     if cancel_query_id is None:
         return False
 
-    with query.database.get_sqla_engine_with_context(
-        query.schema, source=QuerySource.SQL_LAB
-    ) as engine:
-        with closing(engine.raw_connection()) as conn:
+    with query.database.get_raw_connection(
+        schema=query.schema, 
+        source=QuerySource.SQL_LAB) as conn:
             with closing(conn.cursor()) as cursor:
                 return query.database.db_engine_spec.cancel_query(
                     cursor, query, cancel_query_id
