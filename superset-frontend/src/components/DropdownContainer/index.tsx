@@ -358,6 +358,7 @@ const DropdownContainer = forwardRef(
               visible={popoverVisible}
               onVisibleChange={visible => setPopoverVisible(visible)}
               placement="bottom"
+              destroyTooltipOnHide
             >
               <Button
                 buttonStyle="secondary"
