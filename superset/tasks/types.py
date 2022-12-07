@@ -31,9 +31,9 @@ class ExecutorType(str, Enum):
     CREATOR = "creator"
     # The creator of the model, if found in the owners list
     CREATOR_OWNER = "creator_owner"
-    # The initiator of the request. In the case of Alerts & Reports, this is always
+    # The currently logged in user. In the case of Alerts & Reports, this is always
     # None. For Thumbnails, this is the user that requested the thumbnail
-    INITIATOR = "initiator"
+    CURRENT_USER = "current_user"
     # The last modifier of the model
     MODIFIER = "modifier"
     # The last modifier of the model, if found in the owners list

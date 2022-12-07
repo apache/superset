@@ -589,7 +589,7 @@ THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
 # define which user to execute the thumbnails and potentially custom functions for
 # calculating thumbnail digests. To have unique thumbnails for all users, use the
 # following config:
-# THUMBNAIL_EXECUTE_AS = [ExecutorType.INITIATOR]
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
 THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 
 # By default, thumbnail digests are calculated based on various parameters in the

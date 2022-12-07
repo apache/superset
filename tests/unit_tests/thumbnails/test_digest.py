@@ -61,11 +61,10 @@ def CUSTOM_CHART_FUNC(
 
 
 @pytest.mark.parametrize(
-    "dashboard_overrides,secret_key,execute_as,has_initiator,use_custom_digest,expected_result",
+    "dashboard_overrides,execute_as,has_current_user,use_custom_digest,expected_result",
     [
         (
             None,
-            "my_secret",
             [ExecutorType.SELENIUM],
             False,
             False,
@@ -73,62 +72,48 @@ def CUSTOM_CHART_FUNC(
         ),
         (
             None,
-            "my_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             True,
             False,
-            "7c9bccb14f0bac455c5cd0181d9c61a1",
-        ),
-        (
-            None,
-            "my_other_secret",
-            [ExecutorType.INITIATOR],
-            True,
-            False,
-            "3fe8f5fc9fa81c78d064e2b11ba4aaa8",
+            "55fa9f78f4d8c96464fd5b369a8f2367",
         ),
         (
             {
                 "position_json": {"b": "c"},
             },
-            "my_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             True,
             False,
-            "bf9401fd23f778c0026e9b614b81736f",
+            "9725aa2717974238f03c3fc29bef243b",
         ),
         (
             {
                 "css": "background-color: darkblue;",
             },
-            "my_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             True,
             False,
-            "8752d66b796f8e9f81a083b681bdefe9",
+            "234e168024483a520b705ecf71cf4fca",
         ),
         (
             {
                 "json_metadata": {"d": "e"},
             },
-            "my_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             True,
             False,
-            "62e1f5bff56c57614c31beb83d67c492",
+            "430dc5a4ab07928f4465c43a32b4c846",
         ),
         (
             None,
-            "my_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             True,
             True,
-            "1.initiator.1",
+            "1.current_user.1",
         ),
         (
             None,
-            "my_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             False,
             False,
             ExecutorNotFoundError(),
@@ -137,9 +122,8 @@ def CUSTOM_CHART_FUNC(
 )
 def test_dashboard_digest(
     dashboard_overrides: Optional[Dict[str, Any]],
-    secret_key: str,
     execute_as: List[ExecutorType],
-    has_initiator: bool,
+    has_current_user: bool,
     use_custom_digest: bool,
     expected_result: Union[str, Exception],
 ) -> None:
@@ -153,14 +137,13 @@ def test_dashboard_digest(
     }
     dashboard = Dashboard(**kwargs)
     user: Optional[User] = None
-    if has_initiator:
+    if has_current_user:
         user = User(id=1, username="1")
     func = CUSTOM_DASHBOARD_FUNC if use_custom_digest else None
 
     with patch.dict(
         app.config,
         {
-            "SECRET_KEY": secret_key,
             "THUMBNAIL_EXECUTE_AS": execute_as,
             "THUMBNAIL_DASHBOARD_DIGEST_FUNC": func,
         },
@@ -175,11 +158,10 @@ def test_dashboard_digest(
 
 
 @pytest.mark.parametrize(
-    "chart_overrides,secret_key,execute_as,has_initiator,use_custom_digest,expected_result",
+    "chart_overrides,execute_as,has_current_user,use_custom_digest,expected_result",
     [
         (
             None,
-            "my_secret",
             [ExecutorType.SELENIUM],
             False,
             False,
@@ -187,32 +169,21 @@ def test_dashboard_digest(
         ),
         (
             None,
-            "my_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             True,
             False,
-            "97b78018f0eac76156bb54d3051faed0",
+            "4f8109d3761e766e650af514bb358f10",
         ),
         (
             None,
-            "my_other_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             True,
-            False,
-            "9558cafa50981d550019c854f553b393",
+            True,
+            "2.current_user.1",
         ),
         (
             None,
-            "my_secret",
-            [ExecutorType.INITIATOR],
-            True,
-            True,
-            "2.initiator.1",
-        ),
-        (
-            None,
-            "my_secret",
-            [ExecutorType.INITIATOR],
+            [ExecutorType.CURRENT_USER],
             False,
             False,
             ExecutorNotFoundError(),
@@ -221,9 +192,8 @@ def test_dashboard_digest(
 )
 def test_chart_digest(
     chart_overrides: Optional[Dict[str, Any]],
-    secret_key: str,
     execute_as: List[ExecutorType],
-    has_initiator: bool,
+    has_current_user: bool,
     use_custom_digest: bool,
     expected_result: Union[str, Exception],
 ) -> None:
@@ -237,14 +207,13 @@ def test_chart_digest(
     }
     chart = Slice(**kwargs)
     user: Optional[User] = None
-    if has_initiator:
+    if has_current_user:
         user = User(id=1, username="1")
     func = CUSTOM_CHART_FUNC if use_custom_digest else None
 
     with patch.dict(
         app.config,
         {
-            "SECRET_KEY": secret_key,
             "THUMBNAIL_EXECUTE_AS": execute_as,
             "THUMBNAIL_CHART_DIGEST_FUNC": func,
         },

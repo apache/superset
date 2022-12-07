@@ -74,7 +74,7 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.slice import Slice
-from superset.tasks.utils import get_initiator
+from superset.tasks.utils import get_current_user
 from superset.thumbnails.tasks import cache_chart_thumbnail
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
@@ -572,7 +572,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
             cache_chart_thumbnail.delay(
-                initiator=get_initiator(),
+                current_user=get_current_user(),
                 chart_id=chart.id,
                 force=True,
                 window_size=window_size,
@@ -684,14 +684,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if not chart:
             return self.response_404()
 
-        initiator = get_initiator()
+        current_user = get_current_user()
         url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if kwargs["rison"].get("force", False):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
             cache_chart_thumbnail.delay(
-                initiator=initiator,
+                current_user=current_user,
                 chart_id=chart.id,
                 force=True,
             )
@@ -707,7 +707,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
             cache_chart_thumbnail.delay(
-                initiator=initiator,
+                current_user=current_user,
                 chart_id=chart.id,
                 force=True,
             )

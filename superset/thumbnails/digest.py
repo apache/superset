@@ -23,7 +23,7 @@ from typing import TYPE_CHECKING
 from flask import current_app
 
 from superset.tasks.types import ExecutorType
-from superset.tasks.utils import get_executor, get_initiator
+from superset.tasks.utils import get_current_user, get_executor
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
@@ -39,14 +39,12 @@ def _adjust_string_for_executor(
     executor: str,
 ) -> str:
     """
-    Add the secret key and executor to the unique string if the thumbnail is
+    Add the executor to the unique string if the thumbnail is
     user-specific.
     """
-    if executor_type == ExecutorType.INITIATOR:
-        secret_key = current_app.config["SECRET_KEY"]
-        # the digest for the user=specific thumbnail needs to be unguessable and unique,
-        # hence the secret key and username are appended to the unique string
-        unique_string = f"{secret_key}\n{unique_string}\n{executor}"
+    if executor_type == ExecutorType.CURRENT_USER:
+        # add the user id to the string to make it unique
+        unique_string = f"{unique_string}\n{executor}"
 
     return unique_string
 
@@ -56,7 +54,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str:
     executor_type, executor = get_executor(
         executor_types=config["THUMBNAIL_EXECUTE_AS"],
         model=dashboard,
-        initiator=get_initiator(),
+        current_user=get_current_user(),
     )
     if func := config["THUMBNAIL_DASHBOARD_DIGEST_FUNC"]:
         return func(dashboard, executor_type, executor)
@@ -75,7 +73,7 @@ def get_chart_digest(chart: Slice) -> str:
     executor_type, executor = get_executor(
         executor_types=config["THUMBNAIL_EXECUTE_AS"],
         model=chart,
-        initiator=get_initiator(),
+        current_user=get_current_user(),
     )
     if func := config["THUMBNAIL_CHART_DIGEST_FUNC"]:
         return func(chart, executor_type, executor)

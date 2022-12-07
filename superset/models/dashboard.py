@@ -54,7 +54,7 @@ from superset.models.filter_set import FilterSet
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
-from superset.tasks.utils import get_initiator
+from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.thumbnails.tasks import cache_dashboard_thumbnail
 from superset.utils import core as utils
@@ -326,7 +326,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     def update_thumbnail(self) -> None:
         cache_dashboard_thumbnail.delay(
-            initiator=get_initiator(),
+            current_user=get_current_user(),
             dashboard_id=self.id,
             force=True,
         )
@@ -438,8 +438,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @classmethod
     def get(cls, id_or_slug: Union[str, int]) -> Dashboard:
-        session = db.session()
-        qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
+        qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
 

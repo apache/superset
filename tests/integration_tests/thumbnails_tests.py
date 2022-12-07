@@ -185,16 +185,16 @@ class TestThumbnails(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_dashboard_screenshot_as_initiator(self):
+    def test_get_async_dashboard_screenshot_as_current_user(self):
         """
-        Thumbnails: Simple get async dashboard screenshot as initiator
+        Thumbnails: Simple get async dashboard screenshot as current user
         """
         username = "alpha"
         self.login(username=username)
         with patch.dict(
             "superset.thumbnails.digest.current_app.config",
             {
-                "THUMBNAIL_EXECUTE_AS": [ExecutorType.INITIATOR],
+                "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
             },
         ), patch(
             "superset.thumbnails.digest._adjust_string_for_executor"
@@ -202,7 +202,7 @@ class TestThumbnails(SupersetTestCase):
             mock_adjust_string.return_value = self.digest_return_value
             thumbnail_url = self._get_thumbnail_url("/api/v1/dashboard/")
             assert self.digest_hash in thumbnail_url
-            assert mock_adjust_string.call_args[0][1] == ExecutorType.INITIATOR
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.CURRENT_USER
             assert mock_adjust_string.call_args[0][2] == username
 
             rv = self.client.get(thumbnail_url)
@@ -253,16 +253,16 @@ class TestThumbnails(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_chart_screenshot_as_initiator(self):
+    def test_get_async_chart_screenshot_as_current_user(self):
         """
-        Thumbnails: Simple get async chart screenshot as initiator
+        Thumbnails: Simple get async chart screenshot as current user
         """
         username = "alpha"
         self.login(username=username)
         with patch.dict(
             "superset.thumbnails.digest.current_app.config",
             {
-                "THUMBNAIL_EXECUTE_AS": [ExecutorType.INITIATOR],
+                "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
             },
         ), patch(
             "superset.thumbnails.digest._adjust_string_for_executor"
@@ -270,7 +270,7 @@ class TestThumbnails(SupersetTestCase):
             mock_adjust_string.return_value = self.digest_return_value
             thumbnail_url = self._get_thumbnail_url("/api/v1/chart/")
             assert self.digest_hash in thumbnail_url
-            assert mock_adjust_string.call_args[0][1] == ExecutorType.INITIATOR
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.CURRENT_USER
             assert mock_adjust_string.call_args[0][2] == username
 
             rv = self.client.get(thumbnail_url)

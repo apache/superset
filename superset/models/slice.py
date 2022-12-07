@@ -42,7 +42,7 @@ from sqlalchemy.orm.mapper import Mapper
 from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
-from superset.tasks.utils import get_initiator
+from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_chart_digest
 from superset.thumbnails.tasks import cache_chart_thumbnail
 from superset.utils import core as utils
@@ -343,8 +343,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get(cls, id_: int) -> Slice:
-        session = db.session()
-        qry = session.query(Slice).filter_by(id=id_)
+        qry = db.session.query(Slice).filter_by(id=id_)
         return qry.one_or_none()
 
 
@@ -362,7 +361,7 @@ def event_after_chart_changed(
     _mapper: Mapper, _connection: Connection, target: Slice
 ) -> None:
     cache_chart_thumbnail.delay(
-        initiator=get_initiator(),
+        current_user=get_current_user(),
         chart_id=target.id,
         force=True,
     )

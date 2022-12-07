@@ -82,7 +82,7 @@ from superset.embedded.dao import EmbeddedDAO
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.tasks.utils import get_initiator
+from superset.tasks.utils import get_current_user
 from superset.thumbnails.tasks import cache_dashboard_thumbnail
 from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
@@ -888,10 +888,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         )
         # If force, request a screenshot from the workers
-        initiator = get_initiator()
+        current_user = get_current_user()
         if kwargs["rison"].get("force", False):
             cache_dashboard_thumbnail.delay(
-                initiator=initiator,
+                current_user=current_user,
                 dashboard_id=dashboard.id,
                 force=True,
             )
@@ -904,7 +904,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
             cache_dashboard_thumbnail.delay(
-                initiator=initiator,
+                current_user=current_user,
                 dashboard_id=dashboard.id,
                 force=True,
             )

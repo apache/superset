@@ -52,7 +52,7 @@ from tests.integration_tests.test_app import app
             [ExecutorType.CREATOR_OWNER],
             AlertQueryError(),
         ),
-        (["gamma"], None, [ExecutorType.INITIATOR], AlertQueryError()),
+        (["gamma"], None, [ExecutorType.CURRENT_USER], AlertQueryError()),
     ],
 )
 def test_execute_query_as_report_executor(

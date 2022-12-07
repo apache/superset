@@ -54,7 +54,7 @@ class ModelType(int, Enum):
 
 
 @pytest.mark.parametrize(
-    "model_type,executor_types,model_config,initiator,expected_result",
+    "model_type,executor_types,model_config,current_user,expected_result",
     [
         (
             ModelType.REPORT_SCHEDULE,
@@ -180,7 +180,7 @@ class ModelType(int, Enum):
         (
             ModelType.REPORT_SCHEDULE,
             [
-                ExecutorType.INITIATOR,
+                ExecutorType.CURRENT_USER,
             ],
             ModelConfig(owners=[1, 2, 3, 4, 5, 6, 7], creator=4, modifier=8),
             None,
@@ -189,11 +189,11 @@ class ModelType(int, Enum):
         (
             ModelType.DASHBOARD,
             [
-                ExecutorType.INITIATOR,
+                ExecutorType.CURRENT_USER,
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             4,
-            (ExecutorType.INITIATOR, 4),
+            (ExecutorType.CURRENT_USER, 4),
         ),
         (
             ModelType.DASHBOARD,
@@ -207,7 +207,7 @@ class ModelType(int, Enum):
         (
             ModelType.DASHBOARD,
             [
-                ExecutorType.INITIATOR,
+                ExecutorType.CURRENT_USER,
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             None,
@@ -218,7 +218,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CREATOR_OWNER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.INITIATOR,
+                ExecutorType.CURRENT_USER,
                 ExecutorType.SELENIUM,
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
@@ -228,11 +228,11 @@ class ModelType(int, Enum):
         (
             ModelType.CHART,
             [
-                ExecutorType.INITIATOR,
+                ExecutorType.CURRENT_USER,
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             4,
-            (ExecutorType.INITIATOR, 4),
+            (ExecutorType.CURRENT_USER, 4),
         ),
         (
             ModelType.CHART,
@@ -246,7 +246,7 @@ class ModelType(int, Enum):
         (
             ModelType.CHART,
             [
-                ExecutorType.INITIATOR,
+                ExecutorType.CURRENT_USER,
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             None,
@@ -257,7 +257,7 @@ class ModelType(int, Enum):
             [
                 ExecutorType.CREATOR_OWNER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.INITIATOR,
+                ExecutorType.CURRENT_USER,
                 ExecutorType.SELENIUM,
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
@@ -270,7 +270,7 @@ def test_get_executor(
     model_type: ModelType,
     executor_types: List[ExecutorType],
     model_config: ModelConfig,
-    initiator: Optional[int],
+    current_user: Optional[int],
     expected_result: Tuple[int, ExecutorNotFoundError],
 ) -> None:
     from superset.models.dashboard import Dashboard
@@ -317,7 +317,7 @@ def test_get_executor(
         executor_type, executor = get_executor(
             executor_types=executor_types,
             model=obj,
-            initiator=str(initiator) if initiator else None,
+            current_user=str(current_user) if current_user else None,
         )
         assert executor_type == expected_executor_type
         assert executor == expected_executor

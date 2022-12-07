@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 def get_executor(
     executor_types: List[ExecutorType],
     model: Union[Dashboard, ReportSchedule, Slice],
-    initiator: Optional[str] = None,
+    current_user: Optional[str] = None,
 ) -> Tuple[ExecutorType, str]:
     """
     Extract the user that should be used to execute a scheduled task. Certain executor
@@ -44,9 +44,9 @@ def get_executor(
     :param executor_types: The requested executor type in descending order. When the
            first user is found it is returned.
     :param model: The underlying object
-    :param initiator: The username of the user that initiated the task. For thumbnails
-           this is the user that requested the thumbnail, while for alerts and
-           reports this is None (=initiated by Celery).
+    :param current_user: The username of the user that initiated the task. For
+           thumbnails this is the user that requested the thumbnail, while for alerts
+           and reports this is None (=initiated by Celery).
     :return: User to execute the report as
     :raises ScheduledTaskExecutorNotFoundError: If no users were found in after
             iterating through all entries in `executor_types`
@@ -56,8 +56,8 @@ def get_executor(
     for executor_type in executor_types:
         if executor_type == ExecutorType.SELENIUM:
             return executor_type, current_app.config["THUMBNAIL_SELENIUM_USER"]
-        if executor_type == ExecutorType.INITIATOR and initiator:
-            return executor_type, initiator
+        if executor_type == ExecutorType.CURRENT_USER and current_user:
+            return executor_type, current_user
         if executor_type == ExecutorType.CREATOR_OWNER:
             if (user := model.created_by) and (owner := owner_dict.get(user.id)):
                 return executor_type, owner.username
@@ -86,8 +86,8 @@ def get_executor(
     raise ExecutorNotFoundError()
 
 
-def get_initiator() -> Optional[str]:
-    user = g.user if hasattr(g, "user") and g.user and g.user else None
+def get_current_user() -> Optional[str]:
+    user = g.user if hasattr(g, "user") and g.user else None
     if user and not user.is_anonymous:
         return user.username
 
