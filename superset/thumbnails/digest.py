@@ -23,8 +23,7 @@ from typing import TYPE_CHECKING
 from flask import current_app
 
 from superset.tasks.types import ExecutorType
-from superset.tasks.utils import get_executor
-from superset.tasks.utils import get_initiator
+from superset.tasks.utils import get_executor, get_initiator
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
