@@ -48,6 +48,7 @@ const config: ControlPanelConfig = {
         ],
         ['entity'],
         ['metric'],
+        ['orderby'],
         ['adhoc_filters'],
       ],
     },
@@ -71,6 +72,54 @@ const config: ControlPanelConfig = {
           },
         ],
         ['linear_color_scheme'],
+        [
+          {
+            name: 'displayLegend',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Legend'),
+              renderTrigger: true,
+              default: 'None',
+              choices: [
+                'None',
+                'Top',
+                'TopLeft',
+                'TopRight',
+                'Bottom',
+                'BottomLeft',
+                'BottomRight',
+              ].map(v => [v, v]),
+            },
+          },
+          {
+            name: 'displayLegendOrientation',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Orientation'),
+              renderTrigger: true,
+              default: 'Horizontal',
+              choices: ['Horizontal', 'Vertical'].map(v => [v, v]),
+              description: t('Legend Orientation'),
+              visibility: ({ controls }: any) =>
+                controls.displayLegend.value !== 'None',
+            },
+          },
+          {
+            name: 'displayLegendFontSize',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Font Size'),
+              renderTrigger: true,
+              default: 10,
+              choices: [8, 9, 10, 11, 12, 13, 14].map(v => [v, v]),
+              visibility: ({ controls }: any) =>
+                controls.displayLegend.value !== 'None',
+            },
+          },
+        ],
       ],
     },
   ],

@@ -24,6 +24,9 @@ export default function transformProps(chartProps) {
     selectCountry,
     colorScheme,
     sliceId,
+    displayLegend,
+    displayLegendFontSize,
+    displayLegendOrientation,
   } = formData;
 
   return {
@@ -35,5 +38,9 @@ export default function transformProps(chartProps) {
     numberFormat,
     colorScheme,
     sliceId,
+    displayLegend,
+    displayLegendFontSize,
+    displayLegendMetricLabel: formData?.metric?.label,
+    displayLegendOrientation,
   };
 }
