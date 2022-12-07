@@ -383,6 +383,7 @@ class Database(
             database_id=self.id
         ):
             # if ssh_tunnel is available build engine with information
+            logger.info("Creating ssh tunnel for db: %", self.id)
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
             ssh_params = ssh_tunnel.parameters(bind_host=url.host, bind_port=url.port)
             engine_context = sshtunnel.open_tunnel(**ssh_params)
@@ -640,8 +641,12 @@ class Database(
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @contextmanager
-    def get_inspector_with_context(self) -> Inspector:
-        with self.get_sqla_engine_with_context() as engine:
+    def get_inspector_with_context(
+        self, ssh_tunnel: Optional["SSHTunnel"] = None
+    ) -> Inspector:
+        with self.get_sqla_engine_with_context(
+            override_ssh_tunnel=ssh_tunnel
+        ) as engine:
             yield sqla.inspect(engine)
 
     @cache_util.memoized_func(
@@ -653,6 +658,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
+        ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> List[str]:
         """Parameters need to be passed as keyword arguments.
 
@@ -665,7 +671,7 @@ class Database(
         :return: schema list
         """
         try:
-            with self.get_inspector_with_context() as inspector:
+            with self.get_inspector_with_context(ssh_tunnel=ssh_tunnel) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
