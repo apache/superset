@@ -373,6 +373,9 @@ interface NotificationMethodAddProps {
   onClick: () => void;
 }
 
+const ADD_NOTIFICATION_METHOD_TEXT = t('Add notification method');
+const ADD_DELIVERY_METHOD_TEXT = t('Add delivery method');
+
 const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
   status = 'active',
   onClick,
@@ -391,8 +394,8 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
       <i className="fa fa-plus" />{' '}
       {status === 'active'
-        ? t('Add notification method')
-        : t('Add delivery method')}
+        ? ADD_NOTIFICATION_METHOD_TEXT
+        : ADD_DELIVERY_METHOD_TEXT}
     </StyledNotificationAddButton>
   );
 };
@@ -1049,6 +1052,42 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setIsHidden(false);
   }
 
+  const SAVE_TEXT = t('Save');
+  const ADD_TEXT = t('Add');
+  const EDIT_REPORT_TEXT = t('Edit Report');
+  const EDIT_ALERT_TEXT = t('Edit Alert');
+  const ADD_REPORT_TEXT = t('Add Report');
+  const ADD_ALERT_TEXT = t('Add Alert');
+  const REPORT_NAME_TEXT = t('Report name');
+  const ALERT_NAME_TEXT = t('Alert name');
+  const OWNERS_TEXT = t('Owners');
+  const DESCRIPTION_TEXT = t('Description');
+  const ACTIVE_TEXT = t('Active');
+  const ALERT_CONDITION_TEXT = t('Alert condition');
+  const DATABASE_TEXT = t('Database');
+  const SQL_QUERY_TEXT = t('SQL Query');
+  const TRIGGER_ALERT_IF_TEXT = t('Trigger Alert If...');
+  const CONDITION_TEXT = t('Condition');
+  const VALUE_TEXT = t('Value');
+  const VALUE_TOOLTIP = t('Threshold value should be double precision number');
+  const REPORT_SCHEDULE_TEXT = t('Report schedule');
+  const ALERT_CONDITION_SCHEDULE_TEXT = t('Alert condition schedule');
+  const TIMEZONE_TEXT = t('Timezone');
+  const SCHEDULE_SETTINGS_TEXT = t('Schedule settings');
+  const LOG_RETENTION_TEXT = t('Log retention');
+  const WORKING_TIMEOUT_TEXT = t('Working timeout');
+  const TIME_IN_SECONDS_TEXT = t('Time in seconds');
+  const SECONDS_TEXT = t('seconds');
+  const GRACE_PERIOD_TEXT = t('Grace period');
+  const MESSAGE_CONTENT_TEXT = t('Message content');
+  const DASHBOARD_TEXT = t('Dashboard');
+  const CHART_TEXT = t('Chart');
+  const SEND_AS_PNG_TEXT = t('Send as PNG');
+  const SEND_AS_CSV_TEXT = t('Send as CSV');
+  const SEND_AS_TEXT = t('Send as text');
+  const IGNORE_CACHE_TEXT = t('Ignore cache when generating screenshot');
+  const NOTIFICATION_METHOD_TEXT = t('Notification method');
+
   return (
     <StyledModal
       className="no-content-padding"
@@ -1056,7 +1095,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}
       onHide={hide}
-      primaryButtonName={isEditMode ? t('Save') : t('Add')}
+      primaryButtonName={isEditMode ? SAVE_TEXT : ADD_TEXT}
       show={show}
       width="100%"
       maxWidth="1450px"
@@ -1068,12 +1107,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <Icons.PlusLarge css={StyledIcon} />
           )}
           {isEditMode && isReport
-            ? t('Edit Report')
+            ? EDIT_REPORT_TEXT
             : isEditMode
-            ? t('Edit Alert')
+            ? EDIT_ALERT_TEXT
             : isReport
-            ? t('Add Report')
-            : t('Add Alert')}
+            ? ADD_REPORT_TEXT
+            : ADD_ALERT_TEXT}
         </h4>
       }
     >
@@ -1081,7 +1120,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         <div className="header-section">
           <StyledInputContainer>
             <div className="control-label">
-              {isReport ? t('Report name') : t('Alert name')}
+              {isReport ? REPORT_NAME_TEXT : ALERT_NAME_TEXT}
               <span className="required">*</span>
             </div>
             <div className="input-container">
@@ -1089,7 +1128,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 type="text"
                 name="name"
                 value={currentAlert ? currentAlert.name : ''}
-                placeholder={isReport ? t('Report name') : t('Alert name')}
+                placeholder={isReport ? REPORT_NAME_TEXT : ALERT_NAME_TEXT}
                 onChange={onTextChange}
                 css={inputSpacer}
               />
@@ -1097,12 +1136,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           </StyledInputContainer>
           <StyledInputContainer>
             <div className="control-label">
-              {t('Owners')}
+              {OWNERS_TEXT}
               <span className="required">*</span>
             </div>
             <div data-test="owners-select" className="input-container">
               <AsyncSelect
-                ariaLabel={t('Owners')}
+                ariaLabel={OWNERS_TEXT}
                 allowClear
                 name="owners"
                 mode="multiple"
@@ -1119,13 +1158,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </div>
           </StyledInputContainer>
           <StyledInputContainer>
-            <div className="control-label">{t('Description')}</div>
+            <div className="control-label">{DESCRIPTION_TEXT}</div>
             <div className="input-container">
               <input
                 type="text"
                 name="description"
                 value={currentAlert ? currentAlert.description || '' : ''}
-                placeholder={t('Description')}
+                placeholder={DESCRIPTION_TEXT}
                 onChange={onTextChange}
                 css={inputSpacer}
               />
@@ -1136,23 +1175,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={onActiveSwitch}
               checked={currentAlert ? currentAlert.active : true}
             />
-            <div className="switch-label">{t('Active')}</div>
+            <div className="switch-label">{ACTIVE_TEXT}</div>
           </StyledSwitchContainer>
         </div>
         <div className="column-section">
           {!isReport && (
             <div className="column condition">
               <StyledSectionTitle>
-                <h4>{t('Alert condition')}</h4>
+                <h4>{ALERT_CONDITION_TEXT}</h4>
               </StyledSectionTitle>
               <StyledInputContainer>
                 <div className="control-label">
-                  {t('Database')}
+                  {DATABASE_TEXT}
                   <span className="required">*</span>
                 </div>
                 <div className="input-container">
                   <AsyncSelect
-                    ariaLabel={t('Database')}
+                    ariaLabel={DATABASE_TEXT}
                     name="source"
                     value={
                       currentAlert?.database?.label &&
@@ -1170,7 +1209,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledInputContainer>
               <StyledInputContainer>
                 <div className="control-label">
-                  {t('SQL Query')}
+                  {SQL_QUERY_TEXT}
                   <span className="required">*</span>
                 </div>
                 <TextAreaControl
@@ -1188,12 +1227,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <div className="inline-container wrap">
                 <StyledInputContainer>
                   <div className="control-label">
-                    {t('Trigger Alert If...')}
+                    {TRIGGER_ALERT_IF_TEXT}
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
                     <Select
-                      ariaLabel={t('Condition')}
+                      ariaLabel={CONDITION_TEXT}
                       onChange={onConditionChange}
                       placeholder="Condition"
                       value={
@@ -1206,12 +1245,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </StyledInputContainer>
                 <StyledInputContainer>
                   <div className="control-label">
-                    {t('Value')}{' '}
-                    <InfoTooltipWithTrigger
-                      tooltip={t(
-                        'Threshold value should be double precision number',
-                      )}
-                    />
+                    {VALUE_TEXT}{' '}
+                    <InfoTooltipWithTrigger tooltip={VALUE_TOOLTIP} />
                     <span className="required">*</span>
                   </div>
                   <div className="input-container">
@@ -1225,7 +1260,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           ? currentAlert.validator_config_json.threshold
                           : ''
                       }
-                      placeholder={t('Value')}
+                      placeholder={VALUE_TEXT}
                       onChange={onThresholdChange}
                     />
                   </div>
@@ -1237,8 +1272,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <StyledSectionTitle>
               <h4>
                 {isReport
-                  ? t('Report schedule')
-                  : t('Alert condition schedule')}
+                  ? REPORT_SCHEDULE_TEXT
+                  : ALERT_CONDITION_SCHEDULE_TEXT}
               </h4>
               <span className="required">*</span>
             </StyledSectionTitle>
@@ -1246,7 +1281,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               value={currentAlert?.crontab || DEFAULT_CRON_VALUE}
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
-            <div className="control-label">{t('Timezone')}</div>
+            <div className="control-label">{TIMEZONE_TEXT}</div>
             <div
               className="input-container"
               css={(theme: SupersetTheme) => timezoneHeaderStyle(theme)}
@@ -1258,17 +1293,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               />
             </div>
             <StyledSectionTitle>
-              <h4>{t('Schedule settings')}</h4>
+              <h4>{SCHEDULE_SETTINGS_TEXT}</h4>
             </StyledSectionTitle>
             <StyledInputContainer>
               <div className="control-label">
-                {t('Log retention')}
+                {LOG_RETENTION_TEXT}
                 <span className="required">*</span>
               </div>
               <div className="input-container">
                 <Select
-                  ariaLabel={t('Log retention')}
-                  placeholder={t('Log retention')}
+                  ariaLabel={LOG_RETENTION_TEXT}
+                  placeholder={LOG_RETENTION_TEXT}
                   onChange={onLogRetentionChange}
                   value={
                     typeof currentAlert?.log_retention === 'number'
@@ -1282,7 +1317,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </StyledInputContainer>
             <StyledInputContainer>
               <div className="control-label">
-                {t('Working timeout')}
+                {WORKING_TIMEOUT_TEXT}
                 <span className="required">*</span>
               </div>
               <div className="input-container">
@@ -1291,40 +1326,40 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   min="1"
                   name="working_timeout"
                   value={currentAlert?.working_timeout || ''}
-                  placeholder={t('Time in seconds')}
+                  placeholder={TIME_IN_SECONDS_TEXT}
                   onChange={onTimeoutVerifyChange}
                 />
-                <span className="input-label">{t('seconds')}</span>
+                <span className="input-label">{SECONDS_TEXT}</span>
               </div>
             </StyledInputContainer>
             {!isReport && (
               <StyledInputContainer>
-                <div className="control-label">{t('Grace period')}</div>
+                <div className="control-label">{GRACE_PERIOD_TEXT}</div>
                 <div className="input-container">
                   <input
                     type="number"
                     min="1"
                     name="grace_period"
                     value={currentAlert?.grace_period || ''}
-                    placeholder={t('Time in seconds')}
+                    placeholder={TIME_IN_SECONDS_TEXT}
                     onChange={onTimeoutVerifyChange}
                   />
-                  <span className="input-label">{t('seconds')}</span>
+                  <span className="input-label">{SECONDS_TEXT}</span>
                 </div>
               </StyledInputContainer>
             )}
           </div>
           <div className="column message">
             <StyledSectionTitle>
-              <h4>{t('Message content')}</h4>
+              <h4>{MESSAGE_CONTENT_TEXT}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
             <Radio.Group onChange={onContentTypeChange} value={contentType}>
-              <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
-              <StyledRadio value="chart">{t('Chart')}</StyledRadio>
+              <StyledRadio value="dashboard">{DASHBOARD_TEXT}</StyledRadio>
+              <StyledRadio value="chart">{CHART_TEXT}</StyledRadio>
             </Radio.Group>
             <AsyncSelect
-              ariaLabel={t('Chart')}
+              ariaLabel={CHART_TEXT}
               css={{
                 display: contentType === 'chart' ? 'inline' : 'none',
               }}
@@ -1341,7 +1376,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               onChange={onChartChange}
             />
             <AsyncSelect
-              ariaLabel={t('Dashboard')}
+              ariaLabel={DASHBOARD_TEXT}
               css={{
                 display: contentType === 'dashboard' ? 'inline' : 'none',
                 margin: `${supersetTheme.gridUnit * 2}px 0`,
@@ -1365,12 +1400,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     onChange={onFormatChange}
                     value={reportFormat}
                   >
-                    <StyledRadio value="PNG">{t('Send as PNG')}</StyledRadio>
-                    <StyledRadio value="CSV">{t('Send as CSV')}</StyledRadio>
+                    <StyledRadio value="PNG">{SEND_AS_PNG_TEXT}</StyledRadio>
+                    <StyledRadio value="CSV">{SEND_AS_CSV_TEXT}</StyledRadio>
                     {TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType) && (
-                      <StyledRadio value="TEXT">
-                        {t('Send as text')}
-                      </StyledRadio>
+                      <StyledRadio value="TEXT">{SEND_AS_TEXT}</StyledRadio>
                     )}
                   </StyledRadioGroup>
                 </div>
@@ -1384,12 +1417,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   checked={forceScreenshot}
                   onChange={onForceScreenshotChange}
                 >
-                  {t('Ignore cache when generating screenshot')}
+                  {IGNORE_CACHE_TEXT}
                 </StyledCheckbox>
               </div>
             )}
             <StyledSectionTitle>
-              <h4>{t('Notification method')}</h4>
+              <h4>{NOTIFICATION_METHOD_TEXT}</h4>
               <span className="required">*</span>
             </StyledSectionTitle>
             {notificationSettings.map((notificationSetting, i) => (
