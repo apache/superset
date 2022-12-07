@@ -231,8 +231,9 @@ class TestThumbnails(SupersetTestCase):
             uri = f"api/v1/chart/{chart.id}/thumbnail/1234/"
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 302)
-            self.assertRedirects(
-                rv, f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
+            self.assertEqual(
+                rv.headers["Location"],
+                f"/api/v1/chart/{chart.id}/thumbnail/{chart.digest}/",
             )
 
     @with_feature_flags(THUMBNAILS=True)
@@ -278,6 +279,7 @@ class TestThumbnails(SupersetTestCase):
             uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/1234/"
             rv = self.client.get(uri)
             self.assertEqual(rv.status_code, 302)
-            self.assertRedirects(
-                rv, f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
+            self.assertEqual(
+                rv.headers["Location"],
+                f"/api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/",
             )

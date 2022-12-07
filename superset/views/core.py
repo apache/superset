@@ -773,7 +773,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query["form_data_key"] = [form_data_key]
             url = url._replace(query=parse.urlencode(query, True))
             redirect_url = parse.urlunparse(url)
-        return redirect_url
+
+        # Return a relative URL
+        url = parse.urlparse(redirect_url)
+        if url.query:
+            return f"{url.path}?{url.query}"
+        return url.path
 
     @has_access
     @event_logger.log_this

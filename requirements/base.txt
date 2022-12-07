@@ -25,10 +25,8 @@ bleach==3.3.1
     # via apache-superset
 brotli==1.0.9
     # via flask-compress
-cachelib==0.9.0
-    # via
-    #   apache-superset
-    #   flask-caching
+cachelib==0.4.1
+    # via apache-superset
 celery==5.2.2
     # via apache-superset
 cffi==1.15.1
@@ -82,21 +80,21 @@ flask-appbuilder==4.1.6
     # via apache-superset
 flask-babel==1.0.0
     # via flask-appbuilder
-flask-caching==2.0.1
+flask-caching==1.10.1
     # via apache-superset
-flask-compress==1.13
+flask-compress==1.10.1
     # via apache-superset
 flask-jwt-extended==4.3.1
     # via flask-appbuilder
-flask-login==0.4.1
+flask-login==0.6.0
     # via flask-appbuilder
-flask-migrate==4.0.0
+flask-migrate==3.1.0
     # via apache-superset
 flask-sqlalchemy==2.5.1
     # via
     #   flask-appbuilder
     #   flask-migrate
-flask-talisman==1.0.0
+flask-talisman==0.8.1
     # via apache-superset
 flask-wtf==1.0.1
     # via
@@ -273,6 +271,7 @@ werkzeug==2.2.2
     # via
     #   flask
     #   flask-jwt-extended
+    #   flask-login
 wtforms==2.3.3
     # via
     #   apache-superset
