@@ -59,7 +59,7 @@ export const NameRow = ({
       </InternalRow>
       <FilterConfigurationLink
         dashboardId={dashboardId}
-        onClick={() => hidePopover()}
+        onClick={hidePopover}
         initialFilterId={filter.id}
       >
         <StyledEdit />
