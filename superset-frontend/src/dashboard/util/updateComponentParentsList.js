@@ -1,3 +1,5 @@
+import { logging } from '@superset-ui/core';
+
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,16 +22,34 @@ export default function updateComponentParentsList({
   currentComponent,
   layout = {},
 }) {
-  if (currentComponent && layout[currentComponent.id]) {
-    const parentsList = (currentComponent.parents || []).slice();
-    parentsList.push(currentComponent.id);
+  if (currentComponent && layout) {
+    if (layout[currentComponent.id]) {
+      const parentsList = Array.isArray(currentComponent.parents)
+        ? currentComponent.parents.slice()
+        : [];
 
-    currentComponent.children.forEach(childId => {
-      layout[childId].parents = parentsList; // eslint-disable-line no-param-reassign
-      updateComponentParentsList({
-        currentComponent: layout[childId],
-        layout,
-      });
-    });
+      parentsList.push(currentComponent.id);
+
+      if (Array.isArray(currentComponent.children)) {
+        currentComponent.children.forEach(childId => {
+          const child = layout[childId];
+          if (child) {
+            child.parents = parentsList; // eslint-disable-line no-param-reassign
+            updateComponentParentsList({
+              currentComponent: child,
+              layout,
+            });
+          } else {
+            logging.warn(
+              `The current layout does not contain a component with the id: ${childId}.  Skipping this component`,
+            );
+          }
+        });
+      }
+    } else {
+      logging.warn(
+        `The current layout does not contain a component with the id: ${currentComponent?.id}.  Skipping this component`,
+      );
+    }
   }
 }

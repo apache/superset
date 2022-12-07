@@ -16,22 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { ControlSetRow } from '../types';
+import React from 'react';
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 
-export const legacySortBy: ControlSetRow[] = [
-  ['legacy_order_by'],
-  [
-    {
-      name: 'order_desc',
-      config: {
-        type: 'CheckboxControl',
-        label: t('Sort descending'),
-        default: true,
-        description: t(
-          'Whether to sort descending or ascending. Takes effect only when "Sort by" is set',
-        ),
-      },
-    },
-  ],
-];
+export interface BooleanCellProps {
+  value?: boolean;
+}
+
+function BooleanCell({ value }: BooleanCellProps) {
+  return <span>{value ? BOOL_TRUE_DISPLAY : BOOL_FALSE_DISPLAY}</span>;
+}
+
+export default BooleanCell;

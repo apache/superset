@@ -26,7 +26,18 @@ from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
 from textwrap import dedent
-from typing import Any, cast, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    cast,
+    Dict,
+    List,
+    Optional,
+    Pattern,
+    Set,
+    Tuple,
+    TYPE_CHECKING,
+    Union,
+)
 from urllib import parse
 
 import pandas as pd
@@ -396,7 +407,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         database: Database,
         inspector: Inspector,
         schema: Optional[str],
-    ) -> List[str]:
+    ) -> Set[str]:
         """
         Get all the real table names within the specified schema.
 
@@ -414,12 +425,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         :returns: The physical table names
         """
 
-        return sorted(
-            list(
-                set(super().get_table_names(database, inspector, schema))
-                - set(cls.get_view_names(database, inspector, schema))
-            )
-        )
+        return super().get_table_names(
+            database, inspector, schema
+        ) - cls.get_view_names(database, inspector, schema)
 
     @classmethod
     def get_view_names(
@@ -427,7 +435,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         database: Database,
         inspector: Inspector,
         schema: Optional[str],
-    ) -> List[str]:
+    ) -> Set[str]:
         """
         Get all the view names within the specified schema.
 
@@ -462,14 +470,13 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             ).strip()
             params = {}
 
-        engine = cls.get_engine(database, schema=schema)
+        with cls.get_engine(database, schema=schema) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                cursor.execute(sql, params)
+                results = cursor.fetchall()
 
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            cursor.execute(sql, params)
-            results = cursor.fetchall()
-
-        return sorted([row[0] for row in results])
+        return {row[0] for row in results}
 
     @classmethod
     def _create_column_info(
@@ -989,17 +996,17 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
-        engine = cls.get_engine(database, schema)
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            sql = f"SHOW CREATE VIEW {schema}.{table}"
-            try:
-                cls.execute(cursor, sql)
+        with cls.get_engine(database, schema=schema) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                sql = f"SHOW CREATE VIEW {schema}.{table}"
+                try:
+                    cls.execute(cursor, sql)
 
-            except DatabaseError:  # not a VIEW
-                return None
-            rows = cls.fetch_data(cursor, 1)
-        return rows[0][0]
+                except DatabaseError:  # not a VIEW
+                    return None
+                rows = cls.fetch_data(cursor, 1)
+            return rows[0][0]
 
     @classmethod
     def get_tracking_url(cls, cursor: "Cursor") -> Optional[str]:

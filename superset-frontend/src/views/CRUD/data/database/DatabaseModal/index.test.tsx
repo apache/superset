@@ -226,6 +226,37 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         supports_file_upload: false,
       },
     },
+    {
+      available_drivers: ['connector'],
+      default_driver: 'connector',
+      engine: 'databricks',
+      name: 'Databricks',
+      parameters: {
+        properties: {
+          access_token: {
+            type: 'string',
+          },
+          database: {
+            type: 'string',
+          },
+          host: {
+            type: 'string',
+          },
+          http_path: {
+            type: 'string',
+          },
+          port: {
+            format: 'int32',
+            type: 'integer',
+          },
+        },
+        required: ['access_token', 'database', 'host', 'http_path', 'port'],
+        type: 'object',
+      },
+      preferred: true,
+      sqlalchemy_uri_placeholder:
+        'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
+    },
   ],
 });
 fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
@@ -238,6 +269,7 @@ const databaseFixture: DatabaseObject = {
   database_name: 'Postgres',
   name: 'PostgresDB',
   is_managed_externally: false,
+  driver: 'psycopg2',
 };
 
 describe('DatabaseModal', () => {
@@ -355,8 +387,9 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer[0]).toBeEmptyDOMElement();
+
       // This is how many preferred databases are rendered
-      expect(preferredDbIcon).toHaveLength(4);
+      expect(preferredDbIcon).toHaveLength(5);
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -1372,10 +1405,14 @@ describe('DatabaseModal', () => {
     test('Error displays when it is a string', async () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
+      const button = screen.getByText('See more');
+      userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
+      expect(errorMessage).toBeVisible();
+      const closeButton = screen.getByText('Close');
+      userEvent.click(closeButton);
       expect(step2of3text).toBeVisible();
       expect(errorTitleMessage).toBeVisible();
-      expect(errorMessage).toBeVisible();
     });
   });
 });

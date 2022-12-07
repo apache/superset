@@ -17,12 +17,33 @@
  * under the License.
  */
 import React from 'react';
-import { QueryState } from '@superset-ui/core';
+import { QueryState, styled } from '@superset-ui/core';
+import Icons, { IconType } from 'src/components/Icons';
+
+const IconContainer = styled.span`
+  position: absolute;
+  top: -7px;
+  left: 0px;
+`;
 
 interface TabStatusIconProps {
   tabState: QueryState;
 }
 
+const STATE_ICONS: Record<string, React.FC<IconType>> = {
+  success: Icons.Check,
+  failed: Icons.CancelX,
+};
+
 export default function TabStatusIcon({ tabState }: TabStatusIconProps) {
-  return <div className={`circle ${tabState}`} />;
+  const StatusIcon = STATE_ICONS[tabState];
+  return (
+    <div className={`circle ${tabState}`}>
+      {StatusIcon && (
+        <IconContainer>
+          <StatusIcon iconSize="xs" />
+        </IconContainer>
+      )}
+    </div>
+  );
 }

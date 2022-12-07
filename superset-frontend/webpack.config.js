@@ -387,6 +387,9 @@ const config = {
               sourceMap: true,
               lessOptions: {
                 javascriptEnabled: true,
+                modifyVars: {
+                  'root-entry-name': 'default',
+                },
               },
             },
           },

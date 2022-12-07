@@ -105,13 +105,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
-    raw_connections bypass the pybigquery query execution context and deal with
+    raw_connections bypass the sqlalchemy-bigquery query execution context and deal with
     raw dbapi connection directly.
     If this value is not set, the default value is set to 1, as described here,
     https://googlecloudplatform.github.io/google-cloud-python/latest/_modules/google/cloud/bigquery/dbapi/cursor.html#Cursor
 
-    The default value of 5000 is derived from the pybigquery.
-    https://github.com/mxmzdlv/pybigquery/blob/d214bb089ca0807ca9aaa6ce4d5a01172d40264e/pybigquery/sqlalchemy_bigquery.py#L102
+    The default value of 5000 is derived from the sqlalchemy-bigquery.
+    https://github.com/googleapis/python-bigquery-sqlalchemy/blob/4e17259088f89eac155adc19e0985278a29ecf9c/sqlalchemy_bigquery/base.py#L762
     """
     arraysize = 5000
 
@@ -340,8 +340,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         if not table.schema:
             raise Exception("The table schema must be defined")
 
-        engine = cls.get_engine(database)
-        to_gbq_kwargs = {"destination_table": str(table), "project_id": engine.url.host}
+        to_gbq_kwargs = {}
+        with cls.get_engine(database) as engine:
+            to_gbq_kwargs = {
+                "destination_table": str(table),
+                "project_id": engine.url.host,
+            }
 
         # Add credentials if they are set on the SQLAlchemy dialect.
         creds = engine.dialect.credentials_info

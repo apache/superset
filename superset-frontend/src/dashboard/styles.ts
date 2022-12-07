@@ -24,9 +24,18 @@ export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
     padding: 0;
     border-radius: 4px;
 
+    &.ant-popover-placement-bottom {
+      padding-top: ${theme.gridUnit}px;
+    }
+
+    &.ant-popover-placement-left {
+      padding-right: ${theme.gridUnit * 3}px;
+    }
+
     .ant-popover-inner {
       box-shadow: 0 0 8px rgb(0 0 0 / 10%);
     }
+
     .ant-popover-inner-content {
       padding: ${theme.gridUnit * 4}px;
     }

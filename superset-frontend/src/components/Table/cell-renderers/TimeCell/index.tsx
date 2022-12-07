@@ -16,22 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { getTimeFormatter, TimeFormats } from '@superset-ui/core';
+import NullCell from '../NullCell';
 
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+export interface TimeCellProps {
+  format?: string;
+  value?: number | Date;
+}
 
-const enableCrossFilter = isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
+function TimeCell({
+  format = TimeFormats.DATABASE_DATETIME,
+  value,
+}: TimeCellProps) {
+  if (value) {
+    return <span>{getTimeFormatter(format).format(value)}</span>;
+  }
+  return <NullCell />;
+}
 
-export const emitFilterControl = enableCrossFilter
-  ? [
-      {
-        name: 'emit_filter',
-        config: {
-          type: 'CheckboxControl',
-          label: t('Enable dashboard cross filters'),
-          default: false,
-          renderTrigger: true,
-          description: t('Enable dashboard cross filters'),
-        },
-      },
-    ]
-  : [];
+export default TimeCell;

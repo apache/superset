@@ -31,7 +31,7 @@ export enum EmptyStateSize {
 export interface EmptyStateSmallProps {
   title: ReactNode;
   description?: ReactNode;
-  image: ReactNode;
+  image?: ReactNode;
 }
 
 export interface EmptyStateProps extends EmptyStateSmallProps {
@@ -156,7 +156,7 @@ export const EmptyStateBig = ({
   className,
 }: EmptyStateProps) => (
   <EmptyStateContainer className={className}>
-    <ImageContainer image={image} size={EmptyStateSize.Big} />
+    {image && <ImageContainer image={image} size={EmptyStateSize.Big} />}
     <TextContainer
       css={(theme: SupersetTheme) =>
         css`
@@ -187,7 +187,7 @@ export const EmptyStateMedium = ({
   buttonText,
 }: EmptyStateProps) => (
   <EmptyStateContainer>
-    <ImageContainer image={image} size={EmptyStateSize.Medium} />
+    {image && <ImageContainer image={image} size={EmptyStateSize.Medium} />}
     <TextContainer
       css={(theme: SupersetTheme) =>
         css`
@@ -216,7 +216,7 @@ export const EmptyStateSmall = ({
   description,
 }: EmptyStateSmallProps) => (
   <EmptyStateContainer>
-    <ImageContainer image={image} size={EmptyStateSize.Small} />
+    {image && <ImageContainer image={image} size={EmptyStateSize.Small} />}
     <TextContainer
       css={(theme: SupersetTheme) =>
         css`

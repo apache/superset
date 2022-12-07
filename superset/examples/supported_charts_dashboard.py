@@ -453,11 +453,11 @@ def load_supported_charts_dashboard() -> None:
     """Loading a dashboard featuring supported charts"""
 
     database = get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
 
-    tbl_name = "birth_names"
-    table_exists = database.has_table_by_name(tbl_name, schema=schema)
+        tbl_name = "birth_names"
+        table_exists = database.has_table_by_name(tbl_name, schema=schema)
 
     if table_exists:
         table = get_table_connector_registry()
