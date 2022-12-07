@@ -19,11 +19,11 @@ under the License.
 
 ## Change Log
 ### 2.0.1 (Thu Oct 13 09:52:35 2022 -0700)
-**Database Migrations** 
+**Database Migrations**
 
-**Features** 
+**Features**
 
-**Fixes** 
+**Fixes**
 - [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina) (security improvement)
 - [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina) (security improvement)
 - [#21776](https://github.com/apache/superset/pull/21776) fix(CustomFrame): Resolves issue #21731 where date range in explore throws runtime error (@eric-briscoe)
@@ -68,7 +68,7 @@ under the License.
 - [#20733](https://github.com/apache/superset/pull/20733) fix(docker): Make Gunicorn max_requests and max_requests_jitter adjustable  (@mdeshmu)
 - [#20714](https://github.com/apache/superset/pull/20714) fix: logger message (@betodealmeida)
 
-**Others** 
+**Others**
 - [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 - [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 - [#20644](https://github.com/apache/superset/pull/20644) chore(deps): bump moment from 2.29.2 to 2.29.4 in /superset-frontend (@dependabot[bot])
