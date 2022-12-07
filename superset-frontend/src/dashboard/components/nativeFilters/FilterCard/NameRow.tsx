@@ -37,6 +37,11 @@ export const NameRow = ({
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
+
+  const canEdit = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+  );
+
   return (
     <Row
       css={(theme: SupersetTheme) =>
@@ -58,13 +63,15 @@ export const NameRow = ({
           <FilterName ref={filterNameRef}>{filter.name}</FilterName>
         </TooltipWithTruncation>
       </InternalRow>
-      <FilterConfigurationLink
-        dashboardId={dashboardId}
-        onClick={hidePopover}
-        initialFilterId={filter.id}
-      >
-        <Icons.Edit iconSize="m" iconColor={theme.colors.grayscale.light1} />
-      </FilterConfigurationLink>
+      {canEdit && (
+        <FilterConfigurationLink
+          dashboardId={dashboardId}
+          onClick={hidePopover}
+          initialFilterId={filter.id}
+        >
+          <Icons.Edit iconSize="m" iconColor={theme.colors.grayscale.light1} />
+        </FilterConfigurationLink>
+      )}
     </Row>
   );
 };
