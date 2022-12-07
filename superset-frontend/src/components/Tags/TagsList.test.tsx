@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, waitFor } from 'spec/helpers/testing-library';
 import TagsList, { TagsListProps } from './TagsList';
 
 const testTags = [
