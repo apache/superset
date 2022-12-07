@@ -37,7 +37,7 @@ export interface LabeledErrorBoundInputProps {
   tooltipText?: string | null;
   id?: string;
   classname?: string;
-  showPasswordField?: boolean;
+  shouldShowToggleVisibility?: boolean;
   [x: string]: any;
 }
 
@@ -102,7 +102,7 @@ const LabeledErrorBoundInput = ({
   tooltipText,
   id,
   className,
-  showPasswordField,
+  shouldShowToggleVisibility,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
@@ -121,7 +121,7 @@ const LabeledErrorBoundInput = ({
       help={errorMessage || helpText}
       hasFeedback={!!errorMessage}
     >
-      {showPasswordField || props.name === 'password' ? (
+      {shouldShowToggleVisibility || props.name === 'password' ? (
         <StyledInputPassword
           {...props}
           {...validationMethods}

@@ -153,7 +153,7 @@ export const passwordField = ({
     placeholder={t('e.g. ********')}
     label={t('Password')}
     onChange={changeMethods.onParametersChange}
-    showPasswordField
+    shouldShowToggleVisibility
   />
 );
 export const accessTokenField = ({
