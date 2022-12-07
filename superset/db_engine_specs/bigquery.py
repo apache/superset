@@ -425,20 +425,25 @@ class BigQueryEngineSpec(BaseEngineSpec):
         )  # Make an API request.
 
         # Format Bytes.
+        BYTE_DIVISION = 1024
         if hasattr(query_job, "total_bytes_processed"):
             query_bytes_processed = query_job.total_bytes_processed
-            if query_bytes_processed // 1000 == 0:
+            if query_bytes_processed // BYTE_DIVISION == 0:
                 byte_type = "B"
                 total_bytes_processed = query_bytes_processed
-            elif query_bytes_processed // (1000**2) == 0:
+            elif query_bytes_processed // (BYTE_DIVISION**2) == 0:
                 byte_type = "KB"
-                total_bytes_processed = round(query_bytes_processed / 1000, 2)
-            elif query_bytes_processed // (1000**3) == 0:
+                total_bytes_processed = round(query_bytes_processed / BYTE_DIVISION, 2)
+            elif query_bytes_processed // (BYTE_DIVISION**3) == 0:
                 byte_type = "MB"
-                total_bytes_processed = round(query_bytes_processed / (1000**2), 2)
+                total_bytes_processed = round(
+                    query_bytes_processed / (BYTE_DIVISION**2), 2
+                )
             else:
                 byte_type = "GB"
-                total_bytes_processed = round(query_bytes_processed / (1000**3), 2)
+                total_bytes_processed = round(
+                    query_bytes_processed / (BYTE_DIVISION**3), 2
+                )
 
             return {f"{byte_type} Processed": total_bytes_processed}
         return {}
