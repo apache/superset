@@ -18,15 +18,16 @@
 import copy
 
 from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import select
+
 from tests.unit_tests.fixtures.assets_configs import (
-    databases_config,
-    datasets_config,
     charts_config_1,
     charts_config_2,
     dashboards_config_1,
     dashboards_config_2,
+    databases_config,
+    datasets_config,
 )
-from sqlalchemy.sql import select
 
 
 def test_import_new_assets(session: Session) -> None:
@@ -34,8 +35,8 @@ def test_import_new_assets(session: Session) -> None:
     Test that all new assets are imported correctly.
     """
     from superset.commands.importers.v1.assets import ImportAssetsCommand
-    from superset.models.slice import Slice
     from superset.models.dashboard import dashboard_slices
+    from superset.models.slice import Slice
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -63,8 +64,8 @@ def test_import_adds_dashboard_charts(session: Session) -> None:
     Test that existing dashboards are updated with new charts.
     """
     from superset.commands.importers.v1.assets import ImportAssetsCommand
-    from superset.models.slice import Slice
     from superset.models.dashboard import dashboard_slices
+    from superset.models.slice import Slice
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member
@@ -99,8 +100,8 @@ def test_import_removes_dashboard_charts(session: Session) -> None:
     Test that existing dashboards are updated without old charts.
     """
     from superset.commands.importers.v1.assets import ImportAssetsCommand
-    from superset.models.slice import Slice
     from superset.models.dashboard import dashboard_slices
+    from superset.models.slice import Slice
 
     engine = session.get_bind()
     Slice.metadata.create_all(engine)  # pylint: disable=no-member

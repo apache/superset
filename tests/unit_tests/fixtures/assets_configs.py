@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, Dict
 
-databases_config = {
+databases_config: Dict[str, Any] = {
     "databases/examples.yaml": {
         "database_name": "examples",
         "sqlalchemy_uri": "sqlite:///test.db",
@@ -31,7 +32,7 @@ databases_config = {
         "allow_csv_upload": False,
     },
 }
-datasets_config = {
+datasets_config: Dict[str, Any] = {
     "datasets/examples/video_game_sales.yaml": {
         "table_name": "video_game_sales",
         "main_dttm_col": None,
@@ -79,7 +80,7 @@ datasets_config = {
         "database_uuid": "a2dc77af-e654-49bb-b321-40f6b559a1ee",
     },
 }
-charts_config_1 = {
+charts_config_1: Dict[str, Any] = {
     "charts/Games_per_Genre_over_time_95.yaml": {
         "slice_name": "Games per Genre over time",
         "viz_type": "line",
@@ -99,7 +100,7 @@ charts_config_1 = {
         "dataset_uuid": "53d47c0c-c03d-47f0-b9ac-81225f808283",
     },
 }
-dashboards_config_1 = {
+dashboards_config_1: Dict[str, Any] = {
     "dashboards/Video_Game_Sales_11.yaml": {
         "dashboard_title": "Video Game Sales",
         "description": None,
@@ -181,7 +182,7 @@ dashboards_config_1 = {
     },
 }
 
-charts_config_2 = {
+charts_config_2: Dict[str, Any] = {
     "charts/Games_per_Genre_131.yaml": {
         "slice_name": "Games per Genre",
         "viz_type": "treemap",
@@ -192,7 +193,7 @@ charts_config_2 = {
         "dataset_uuid": "53d47c0c-c03d-47f0-b9ac-81225f808283",
     },
 }
-dashboards_config_2 = {
+dashboards_config_2: Dict[str, Any] = {
     "dashboards/Video_Game_Sales_11.yaml": {
         "dashboard_title": "Video Game Sales",
         "description": None,
