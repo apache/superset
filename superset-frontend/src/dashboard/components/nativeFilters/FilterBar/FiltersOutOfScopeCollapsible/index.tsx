@@ -23,7 +23,7 @@ import { AntdCollapse } from 'src/components';
 
 export interface FiltersOutOfScopeCollapsibleProps {
   filtersOutOfScope: (Filter | Divider)[];
-  renderer: (filter: Filter | Divider) => ReactNode;
+  renderer: (filter: Filter | Divider, index: number) => ReactNode;
   hasTopMargin?: boolean;
   horizontalOverflow?: boolean;
 }

@@ -98,14 +98,15 @@ const FilterControls: FC<FilterControlsProps> = ({
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
   const renderer = useCallback(
-    ({ id }: Filter | Divider) => {
-      const index = filtersWithValues.findIndex(f => f.id === id);
+    ({ id }: Filter | Divider, index: number | undefined) => {
+      const filterIndex = filtersWithValues.findIndex(f => f.id === id);
+      const key = index ?? id;
       return (
         // Empty text node is to ensure there's always an element preceding
         // the OutPortal, otherwise react-reverse-portal crashes
-        <React.Fragment key={id}>
+        <React.Fragment key={key}>
           {'' /* eslint-disable-line react/jsx-curly-brace-presence */}
-          <OutPortal node={portalNodes[index]} inView />
+          <OutPortal node={portalNodes[filterIndex]} inView />
         </React.Fragment>
       );
     },
@@ -127,7 +128,7 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const items = useMemo(
     () =>
-      filtersInScope.map(filter => ({
+      filtersInScope.map((filter, index) => ({
         id: filter.id,
         element: (
           <div
@@ -136,7 +137,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               flex-shrink: 0;
             `}
           >
-            {renderer(filter)}
+            {renderer(filter, index)}
           </div>
         ),
       })),
