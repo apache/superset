@@ -2253,7 +2253,6 @@ sa.event.listen(SqlaTable, "after_delete", SqlaTable.after_delete)
 sa.event.listen(SqlMetric, "after_update", SqlaTable.update_column)
 sa.event.listen(TableColumn, "after_update", SqlaTable.update_column)
 
-
 RLSFilterRoles = Table(
     "rls_filter_roles",
     metadata,

@@ -368,8 +368,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "All Entities",
             label=__("All Entities"),
             icon="",
-            category="Tagging",
-            category_label=__("Tagging"),
             category_icon="",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled(
                 "TAGGING_SYSTEM"
@@ -380,8 +378,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "Tags",
             label=__("Tags"),
             icon="",
-            category="Tagging",
-            category_label=__("Tagging"),
             category_icon="",
             menu_cond=lambda: feature_flag_manager.is_feature_enabled(
                 "TAGGING_SYSTEM"

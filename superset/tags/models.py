@@ -84,7 +84,6 @@ class Tag(Model, AuditMixinNullable):
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
 
-
 class TaggedObject(Model, AuditMixinNullable):
 
     """An association between an object and a tag."""
