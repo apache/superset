@@ -465,6 +465,7 @@ function DashboardList(props: DashboardListProps) {
     () => [
       {
         Header: t('Search'),
+        key: 'search',
         id: 'dashboard_title',
         input: 'search',
         operator: FilterOperator.titleOrSlug,
@@ -539,7 +540,6 @@ function DashboardList(props: DashboardListProps) {
           { label: t('No'), value: false },
         ],
       },
-        key: 'search',
     ],
     [addDangerToast, favoritesFilter, props.user],
   );
