@@ -82,19 +82,19 @@ flask-babel==1.0.0
     # via flask-appbuilder
 flask-caching==1.10.1
     # via apache-superset
-flask-compress==1.10.1
+flask-compress==1.13
     # via apache-superset
 flask-jwt-extended==4.3.1
     # via flask-appbuilder
 flask-login==0.6.0
     # via flask-appbuilder
-flask-migrate==3.1.0
+flask-migrate==4.0.0
     # via apache-superset
 flask-sqlalchemy==2.5.1
     # via
     #   flask-appbuilder
     #   flask-migrate
-flask-talisman==0.8.1
+flask-talisman==1.0.0
     # via apache-superset
 flask-wtf==1.0.1
     # via
@@ -271,7 +271,6 @@ werkzeug==2.1.2
     # via
     #   flask
     #   flask-jwt-extended
-    #   flask-login
 wtforms==2.3.3
     # via
     #   apache-superset
