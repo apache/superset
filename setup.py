@@ -94,7 +94,7 @@ setup(
         "graphlib-backport",
         "gunicorn>=20.1.0",
         "hashids>=1.3.1, <2",
-        "holidays>=0.16.0, <0.17",
+        "holidays>=0.17.2, <0.18",
         "humanize",
         "isodate",
         "markdown>=3.0",
