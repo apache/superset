@@ -111,7 +111,7 @@ const publishDataMask = debounce(
 
 export const FilterBarScrollContext = createContext(false);
 const FilterBar: React.FC<FiltersBarProps> = ({
-  directPathToChild,
+  focusedFilterId,
   orientation = FilterBarOrientation.VERTICAL,
   verticalConfig,
 }) => {
@@ -254,7 +254,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       canEdit={canEdit}
       dashboardId={dashboardId}
       dataMaskSelected={dataMaskSelected}
-      directPathToChild={directPathToChild}
+      focusedFilterId={focusedFilterId}
       filterValues={filterValues}
       isInitialized={isInitialized}
       onSelectionChange={handleFilterSelectionChange}
@@ -264,7 +264,7 @@ const FilterBar: React.FC<FiltersBarProps> = ({
       actions={actions}
       canEdit={canEdit}
       dataMaskSelected={dataMaskSelected}
-      directPathToChild={directPathToChild}
+      focusedFilterId={focusedFilterId}
       filtersOpen={verticalConfig.filtersOpen}
       filterValues={filterValues}
       isInitialized={isInitialized}
