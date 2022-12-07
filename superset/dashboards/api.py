@@ -184,7 +184,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "is_managed_externally",
     ]
     if is_feature_enabled("TAGGING_SYSTEM"):
-       list_columns += ["tags.id", "tags.name", "tags.type"]
+        list_columns += ["tags.id", "tags.name", "tags.type"]
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
         "changed_by.first_name",
