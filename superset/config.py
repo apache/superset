@@ -577,13 +577,12 @@ THEME_OVERRIDES: Dict[str, Any] = {}
 # This is merely a default
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
-# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
-# the username of the account used to render the queries and dashboards/charts
-THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
-
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
+# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
+# the username of the account used to render the queries and dashboards/charts
+THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
 
 # To be able to have different thumbnails for different users, use these configs to
 # define which user to execute the thumbnails and potentially custom functions for
@@ -594,11 +593,13 @@ THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 
 # By default, thumbnail digests are calculated based on various parameters in the
 # chart/dashboard metadata, and in the case of user-specific thumbnails, the
-# SECRET_KEY and the username. To specify a custom digest function, use the following
-# config parameters to define callbacks that receive
+# username. To specify a custom digest function, use the following config parameters
+# to define callbacks that receive
 # 1. the model (dashboard or chart)
-# 2. the executor type
-# 3. the executor's username
+# 2. the executor type (e.g. ExecutorType.SELENIUM)
+# 3. the executor's username (note, this is the executor as defined by
+# `THUMBNAIL_EXECUTE_AS`; the executor is only equal to the currently logged in
+# user if the executor type is equal to `ExecutorType.CURRENT_USER`)
 # and return the final digest string:
 THUMBNAIL_DASHBOARD_DIGEST_FUNC: Optional[
     Callable[[Dashboard, ExecutorType, str], str]
