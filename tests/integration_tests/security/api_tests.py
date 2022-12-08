@@ -124,3 +124,16 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         )
 
         self.assert400(response)
+
+
+class TestUserApi(SupersetTestCase):
+    def test_user_permissions(self):
+        self.login(username="gamma")
+        self.create_user("test", "test", "Public", "test", "user", "test@fab.org")
+        response = self.client.delete(f"api/v1/users/{self.get_user('test').id}")
+        self.assert403(response)
+        self.logout()
+        self.login(username="admin")
+        response = self.client.delete(f"api/v1/users/{self.get_user('test').id}")
+        self.assert200(response)
+        assert self.get_user("test") is None
