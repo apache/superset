@@ -180,11 +180,11 @@ describe('AlertReportModal', () => {
     expect(wrapper.find('input[name="name"]')).toExist();
   });
 
-  it('renders five select elements when in report mode', () => {
+  it('renders four select elements when in report mode', () => {
     expect(wrapper.find(Select)).toExist();
     expect(wrapper.find(AsyncSelect)).toExist();
     expect(wrapper.find(Select)).toHaveLength(2);
-    expect(wrapper.find(AsyncSelect)).toHaveLength(3);
+    expect(wrapper.find(AsyncSelect)).toHaveLength(2);
   });
 
   it('renders Switch element', () => {
@@ -220,14 +220,14 @@ describe('AlertReportModal', () => {
     expect(input.props().initialValue).toEqual('SELECT NaN');
   });
 
-  it('renders five select element when in report mode', () => {
+  it('renders four select element when in report mode', () => {
     expect(wrapper.find(Select)).toExist();
     expect(wrapper.find(AsyncSelect)).toExist();
     expect(wrapper.find(Select)).toHaveLength(2);
-    expect(wrapper.find(AsyncSelect)).toHaveLength(3);
+    expect(wrapper.find(AsyncSelect)).toHaveLength(2);
   });
 
-  it('renders seven select elements when in alert mode', async () => {
+  it('renders six select elements when in alert mode', async () => {
     const props = {
       ...mockedProps,
       isReport: false,
@@ -238,7 +238,7 @@ describe('AlertReportModal', () => {
     expect(addWrapper.find(Select)).toExist();
     expect(addWrapper.find(AsyncSelect)).toExist();
     expect(addWrapper.find(Select)).toHaveLength(3);
-    expect(addWrapper.find(AsyncSelect)).toHaveLength(4);
+    expect(addWrapper.find(AsyncSelect)).toHaveLength(3);
   });
 
   it('renders value input element when in alert mode', async () => {
