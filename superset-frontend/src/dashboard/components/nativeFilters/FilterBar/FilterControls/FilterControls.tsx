@@ -153,7 +153,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     () =>
       overflowedFiltersInScope.filter(filter =>
         isNativeFilterWithDataMask(filter),
-      ).length,
+      ),
     [overflowedFiltersInScope],
   );
 
@@ -180,7 +180,17 @@ const FilterControls: FC<FilterControlsProps> = ({
           />
         }
         dropdownTriggerText={t('More filters')}
-        dropdownTriggerCount={activeOverflowedFiltersInScope}
+        dropdownTriggerCount={activeOverflowedFiltersInScope.length}
+        dropdownTriggerTooltip={
+          activeOverflowedFiltersInScope.length === 0
+            ? t('No applied filters')
+            : t(
+                'Applied filters: %s',
+                activeOverflowedFiltersInScope
+                  .map(filter => filter.name)
+                  .join(', '),
+              )
+        }
         dropdownContent={
           overflowedFiltersInScope.length ||
           (filtersOutOfScope.length && showCollapsePanel)

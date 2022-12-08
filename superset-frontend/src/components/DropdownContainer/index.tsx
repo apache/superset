@@ -27,6 +27,7 @@ import React, {
   useMemo,
   useState,
   useRef,
+  ReactNode,
 } from 'react';
 import { Global } from '@emotion/react';
 import { css, t, useTheme } from '@superset-ui/core';
@@ -36,6 +37,7 @@ import Badge from '../Badge';
 import Icons from '../Icons';
 import Button from '../Button';
 import Popover from '../Popover';
+import { Tooltip } from '../Tooltip';
 
 const MAX_HEIGHT = 500;
 
@@ -96,6 +98,10 @@ export interface DropdownContainerProps {
    */
   dropdownTriggerText?: string;
   /**
+   * Text of the dropdown trigger tooltip
+   */
+  dropdownTriggerTooltip?: ReactNode | null;
+  /**
    * Main container additional style properties.
    */
   style?: CSSProperties;
@@ -114,6 +120,7 @@ const DropdownContainer = forwardRef(
       dropdownTriggerCount,
       dropdownTriggerIcon,
       dropdownTriggerText = t('More'),
+      dropdownTriggerTooltip = null,
       style,
     }: DropdownContainerProps,
     outerRef: RefObject<Ref>,
@@ -360,30 +367,32 @@ const DropdownContainer = forwardRef(
               placement="bottom"
               destroyTooltipOnHide
             >
-              <Button
-                buttonStyle="secondary"
-                data-test="dropdown-container-btn"
-              >
-                {dropdownTriggerIcon}
-                {dropdownTriggerText}
-                <Badge
-                  count={dropdownTriggerCount ?? overflowingCount}
-                  css={css`
-                    margin-left: ${dropdownTriggerCount ?? overflowingCount
-                      ? `${theme.gridUnit * 2}px`
-                      : '0'};
-                  `}
-                />
-                <Icons.DownOutlined
-                  iconSize="m"
-                  iconColor={theme.colors.grayscale.light1}
-                  css={css`
-                    .anticon {
-                      display: flex;
-                    }
-                  `}
-                />
-              </Button>
+              <Tooltip title={dropdownTriggerTooltip}>
+                <Button
+                  buttonStyle="secondary"
+                  data-test="dropdown-container-btn"
+                >
+                  {dropdownTriggerIcon}
+                  {dropdownTriggerText}
+                  <Badge
+                    count={dropdownTriggerCount ?? overflowingCount}
+                    css={css`
+                      margin-left: ${dropdownTriggerCount ?? overflowingCount
+                        ? `${theme.gridUnit * 2}px`
+                        : '0'};
+                    `}
+                  />
+                  <Icons.DownOutlined
+                    iconSize="m"
+                    iconColor={theme.colors.grayscale.light1}
+                    css={css`
+                      .anticon {
+                        display: flex;
+                      }
+                    `}
+                  />
+                </Button>
+              </Tooltip>
             </Popover>
           </>
         )}
