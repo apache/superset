@@ -24,7 +24,12 @@ import {
   QueryFormMetric,
 } from '@superset-ui/core';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { EChartTransformedProps, LabelPositionEnum } from '../types';
+import {
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LabelPositionEnum,
+} from '../types';
 
 export type EchartsTreemapFormData = QueryFormData & {
   colorScheme?: string;
@@ -73,4 +78,6 @@ export interface TreemapSeriesCallbackDataParams extends CallbackDataParams {
 }
 
 export type TreemapTransformedProps =
-  EChartTransformedProps<EchartsTreemapFormData>;
+  BaseTransformedProps<EchartsTreemapFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;

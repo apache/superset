@@ -32,7 +32,10 @@ import {
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { SAVE_TYPE_OVERWRITE } from 'src/dashboard/util/constants';
+import {
+  SAVE_TYPE_OVERWRITE,
+  SAVE_TYPE_OVERWRITE_CONFIRMED,
+} from 'src/dashboard/util/constants';
 import {
   addSuccessToast,
   addWarningToast,
@@ -43,6 +46,8 @@ import serializeFilterScopes from 'src/dashboard/util/serializeFilterScopes';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { logEvent } from 'src/logger/actions';
+import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   setChartConfiguration,
@@ -56,6 +61,7 @@ import {
   updateDirectPathToFilter,
 } from './dashboardFilters';
 import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
+import getOverwriteItems from '../util/getOverwriteItems';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -189,6 +195,14 @@ export function saveDashboardRequestSuccess(lastModifiedTime) {
   };
 }
 
+export const SET_OVERRIDE_CONFIRM = 'SET_OVERRIDE_CONFIRM';
+export function setOverrideConfirm(overwriteConfirmMetadata) {
+  return {
+    type: SET_OVERRIDE_CONFIRM,
+    overwriteConfirmMetadata,
+  };
+}
+
 export function saveDashboardRequest(data, id, saveType) {
   return (dispatch, getState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
@@ -316,6 +330,7 @@ export function saveDashboardRequest(data, id, saveType) {
       );
 
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
+      dispatch(setOverrideConfirm(undefined));
       return response;
     };
 
@@ -335,34 +350,85 @@ export function saveDashboardRequest(data, id, saveType) {
       dispatch(addDangerToast(errorText));
     };
 
-    if (saveType === SAVE_TYPE_OVERWRITE) {
+    if (
+      [SAVE_TYPE_OVERWRITE, SAVE_TYPE_OVERWRITE_CONFIRMED].includes(saveType)
+    ) {
       let chartConfiguration = {};
       if (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS)) {
         chartConfiguration = handleChartConfiguration();
       }
-      const updatedDashboard = {
-        certified_by: cleanedData.certified_by,
-        certification_details: cleanedData.certification_details,
-        css: cleanedData.css,
-        dashboard_title: cleanedData.dashboard_title,
-        slug: cleanedData.slug,
-        owners: cleanedData.owners,
-        roles: cleanedData.roles,
-        json_metadata: safeStringify({
-          ...(cleanedData?.metadata || {}),
-          default_filters: safeStringify(serializedFilters),
-          filter_scopes: serializedFilterScopes,
-          chart_configuration: chartConfiguration,
-        }),
-      };
+      const updatedDashboard =
+        saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
+          ? data
+          : {
+              certified_by: cleanedData.certified_by,
+              certification_details: cleanedData.certification_details,
+              css: cleanedData.css,
+              dashboard_title: cleanedData.dashboard_title,
+              slug: cleanedData.slug,
+              owners: cleanedData.owners,
+              roles: cleanedData.roles,
+              json_metadata: safeStringify({
+                ...(cleanedData?.metadata || {}),
+                default_filters: safeStringify(serializedFilters),
+                filter_scopes: serializedFilterScopes,
+                chart_configuration: chartConfiguration,
+              }),
+            };
 
-      return SupersetClient.put({
-        endpoint: `/api/v1/dashboard/${id}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedDashboard),
+      const updateDashboard = () =>
+        SupersetClient.put({
+          endpoint: `/api/v1/dashboard/${id}`,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedDashboard),
+        })
+          .then(response => onUpdateSuccess(response))
+          .catch(response => onError(response));
+      return new Promise((resolve, reject) => {
+        if (
+          !isFeatureEnabled(FeatureFlag.CONFIRM_DASHBOARD_DIFF) ||
+          saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
+        ) {
+          // skip overwrite precheck
+          resolve();
+          return;
+        }
+
+        // precheck for overwrite items
+        SupersetClient.get({
+          endpoint: `/api/v1/dashboard/${id}`,
+        }).then(response => {
+          const dashboard = response.json.result;
+          const overwriteConfirmItems = getOverwriteItems(
+            dashboard,
+            updatedDashboard,
+          );
+          if (overwriteConfirmItems.length > 0) {
+            dispatch(
+              setOverrideConfirm({
+                updatedAt: dashboard.changed_on,
+                updatedBy: dashboard.changed_by_name,
+                overwriteConfirmItems,
+                dashboardId: id,
+                data: updatedDashboard,
+              }),
+            );
+            return reject(overwriteConfirmItems);
+          }
+          return resolve();
+        });
       })
-        .then(response => onUpdateSuccess(response))
-        .catch(response => onError(response));
+        .then(updateDashboard)
+        .catch(overwriteConfirmItems => {
+          const errorText = t('Please confirm the overwrite values.');
+          dispatch(
+            logEvent(LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA, {
+              dashboard_id: id,
+              items: overwriteConfirmItems,
+            }),
+          );
+          dispatch(addDangerToast(errorText));
+        });
     }
     // changing the data as the endpoint requires
     const copyData = { ...cleanedData };

@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import (
     Any,
     Callable,
+    ContextManager,
     Dict,
     List,
     Match,
@@ -431,6 +432,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return {}
 
     @classmethod
+    def parse_error_exception(cls, exception: Exception) -> Exception:
+        """
+        Each engine can implement and converge its own specific parser method
+
+        :return: An Exception with a parsed string off the original exception
+        """
+        return exception
+
+    @classmethod
     def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
         """
         Get a superset custom DBAPI exception from the driver specific exception.
@@ -443,7 +453,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
         if not new_exception:
-            return exception
+            return cls.parse_error_exception(exception)
         return new_exception(str(exception))
 
     @classmethod
@@ -471,8 +481,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         schema: Optional[str] = None,
         source: Optional[utils.QuerySource] = None,
-    ) -> Engine:
-        return database.get_sqla_engine(schema=schema, source=source)
+    ) -> ContextManager[Engine]:
+        """
+        Return an engine context manager.
+
+            >>> with DBEngineSpec.get_engine(database, schema, source) as engine:
+            ...     connection = engine.connect()
+            ...     connection.execute(sql)
+
+        """
+        return database.get_sqla_engine_with_context(schema=schema, source=source)
 
     @classmethod
     def get_timestamp_expr(
@@ -894,17 +912,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
 
-        engine = cls.get_engine(database)
         to_sql_kwargs["name"] = table.table
 
         if table.schema:
             # Only add schema when it is preset and non empty.
             to_sql_kwargs["schema"] = table.schema
 
-        if engine.dialect.supports_multivalues_insert:
-            to_sql_kwargs["method"] = "multi"
+        with cls.get_engine(database) as engine:
+            if engine.dialect.supports_multivalues_insert:
+                to_sql_kwargs["method"] = "multi"
 
-        df.to_sql(con=engine, **to_sql_kwargs)
+            df.to_sql(con=engine, **to_sql_kwargs)
 
     @classmethod
     def convert_dttm(  # pylint: disable=unused-argument
@@ -1016,23 +1034,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         inspector: Inspector,
         schema: Optional[str],
-    ) -> List[str]:
+    ) -> Set[str]:
         """
-        Get all tables from schema
+        Get all the real table names within the specified schema.
 
-        :param database: The database to get info
-        :param inspector: SqlAlchemy inspector
-        :param schema: Schema to inspect. If omitted, uses default schema for database
-        :return: All tables in schema
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The physical table names
         """
+
         try:
-            tables = inspector.get_table_names(schema)
+            tables = set(inspector.get_table_names(schema))
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            tables = [re.sub(f"^{schema}\\.", "", table) for table in tables]
-        return sorted(tables)
+            tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
+        return tables
 
     @classmethod
     def get_view_names(  # pylint: disable=unused-argument
@@ -1040,23 +1062,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         database: "Database",
         inspector: Inspector,
         schema: Optional[str],
-    ) -> List[str]:
+    ) -> Set[str]:
         """
-        Get all views from schema
+        Get all the view names within the specified schema.
 
-        :param database: The database to get info
-        :param inspector: SqlAlchemy inspector
-        :param schema: Schema name. If omitted, uses default schema for database
-        :return: All views in schema
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The view names
         """
+
         try:
-            views = inspector.get_view_names(schema)
+            views = set(inspector.get_view_names(schema))
         except Exception as ex:
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            views = [re.sub(f"^{schema}\\.", "", view) for view in views]
-        return sorted(views)
+            views = {re.sub(f"^{schema}\\.", "", view) for view in views}
+        return views
 
     @classmethod
     def get_table_comment(
@@ -1269,13 +1295,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         parsed_query = sql_parse.ParsedQuery(sql)
         statements = parsed_query.get_statements()
 
-        engine = cls.get_engine(database, schema=schema, source=source)
         costs = []
-        with closing(engine.raw_connection()) as conn:
-            cursor = conn.cursor()
-            for statement in statements:
-                processed_statement = cls.process_statement(statement, database)
-                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
+        with cls.get_engine(database, schema=schema, source=source) as engine:
+            with closing(engine.raw_connection()) as conn:
+                cursor = conn.cursor()
+                for statement in statements:
+                    processed_statement = cls.process_statement(statement, database)
+                    costs.append(
+                        cls.estimate_statement_cost(processed_statement, cursor)
+                    )
         return costs
 
     @classmethod
@@ -1728,7 +1756,7 @@ class BasicParametersMixin:
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
         parameters: BasicParametersType,
-        encryted_extra: Optional[Dict[str, str]] = None,
+        encrypted_extra: Optional[Dict[str, str]] = None,
     ) -> str:
         # make a copy so that we don't update the original
         query = parameters.get("query", {}).copy()

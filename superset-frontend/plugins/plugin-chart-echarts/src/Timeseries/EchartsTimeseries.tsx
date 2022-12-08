@@ -48,9 +48,12 @@ export default function EchartsTimeseries({
   onContextMenu,
   xValueFormatter,
   xAxis,
+  refs,
 }: TimeseriesChartTransformedProps) {
   const { emitFilter, stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
+  // eslint-disable-next-line no-param-reassign
+  refs.echartRef = echartRef;
   const lastTimeRef = useRef(Date.now());
   const lastSelectedLegend = useRef('');
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -256,7 +259,7 @@ export default function EchartsTimeseries({
         <ExtraControls formData={formData} setControlValue={setControlValue} />
       </div>
       <Echart
-        ref={echartRef}
+        refs={refs}
         height={height - extraControlHeight}
         width={width}
         echartOptions={echartOptions}

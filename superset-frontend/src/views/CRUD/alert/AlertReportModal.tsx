@@ -1359,41 +1359,38 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <StyledRadio value="dashboard">{DASHBOARD_TEXT}</StyledRadio>
               <StyledRadio value="chart">{CHART_TEXT}</StyledRadio>
             </Radio.Group>
-            <AsyncSelect
-              ariaLabel={CHART_TEXT}
-              css={{
-                display: contentType === 'chart' ? 'inline' : 'none',
-              }}
-              name="chart"
-              value={
-                currentAlert?.chart?.label && currentAlert?.chart?.value
-                  ? {
-                      value: currentAlert.chart.value,
-                      label: currentAlert.chart.label,
-                    }
-                  : undefined
-              }
-              options={loadChartOptions}
-              onChange={onChartChange}
-            />
-            <AsyncSelect
-              ariaLabel={DASHBOARD_TEXT}
-              css={{
-                display: contentType === 'dashboard' ? 'inline' : 'none',
-                margin: `${theme.gridUnit * 2}px 0`,
-              }}
-              name="dashboard"
-              value={
-                currentAlert?.dashboard?.label && currentAlert?.dashboard?.value
-                  ? {
-                      value: currentAlert.dashboard.value,
-                      label: currentAlert.dashboard.label,
-                    }
-                  : undefined
-              }
-              options={loadDashboardOptions}
-              onChange={onDashboardChange}
-            />
+            {contentType === 'chart' ? (
+              <AsyncSelect
+                ariaLabel={t('Chart')}
+                name="chart"
+                value={
+                  currentAlert?.chart?.label && currentAlert?.chart?.value
+                    ? {
+                        value: currentAlert.chart.value,
+                        label: currentAlert.chart.label,
+                      }
+                    : undefined
+                }
+                options={loadChartOptions}
+                onChange={onChartChange}
+              />
+            ) : (
+              <AsyncSelect
+                ariaLabel={t('Dashboard')}
+                name="dashboard"
+                value={
+                  currentAlert?.dashboard?.label &&
+                  currentAlert?.dashboard?.value
+                    ? {
+                        value: currentAlert.dashboard.value,
+                        label: currentAlert.dashboard.label,
+                      }
+                    : undefined
+                }
+                options={loadDashboardOptions}
+                onChange={onDashboardChange}
+              />
+            )}
             {formatOptionEnabled && (
               <>
                 <div className="inline-container">

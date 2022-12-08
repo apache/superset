@@ -184,6 +184,30 @@ def generate_download_headers(
     return headers
 
 
+def deprecated(
+    eol_version: str = "3.0.0",
+) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
+    """
+    A decorator to set an API endpoint from SupersetView has deprecated.
+    Issues a log warning
+    """
+
+    def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+        def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+            logger.warning(
+                "%s.%s "
+                "This API endpoint is deprecated and will be removed in version %s",
+                self.__class__.__name__,
+                f.__name__,
+                eol_version,
+            )
+            return f(self, *args, **kwargs)
+
+        return functools.update_wrapper(wraps, f)
+
+    return _deprecated
+
+
 def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
     """
     A decorator to label an endpoint as an API. Catches uncaught exceptions and
