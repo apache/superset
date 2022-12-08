@@ -28,18 +28,18 @@ from flask_babel import lazy_gettext as _
 from marshmallow import fields, Schema
 from sqlalchemy import and_, distinct, func
 from sqlalchemy.orm.query import Query
-from superset.connectors.sqla.models import SqlaTable
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import InvalidPayloadFormatError
 from superset.extensions import db, event_logger, security_manager
 from superset.models.core import FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.tags.models import Tag
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.stats_logger import BaseStatsLogger
 from superset.superset_typing import FlaskResponse
+from superset.tags.models import Tag
 from superset.utils.core import get_user_id, time_function
 from superset.views.base import handle_api_exception
 
@@ -175,9 +175,7 @@ class BaseTagFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         tags_query = (
             db.session.query(self.model.id)
             .join(self.model.tags)
-            .filter(
-                Tag.name.ilike(ilike_value)
-            )
+            .filter(Tag.name.ilike(ilike_value))
         )
         return query.filter(self.model.id.in_(tags_query))
 

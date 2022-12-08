@@ -33,8 +33,8 @@ from superset.jinja_context import ExtraCache
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
-from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
 from superset.superset_typing import FlaskResponse
+from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
 from superset.views.base import SupersetModelView
 
 from .base import BaseSupersetView, json_success
@@ -49,6 +49,7 @@ def process_template(content: str) -> str:
     }
     return template.render(context)
 
+
 class TaggedObjectsModelView(SupersetModelView):
     route_base = "/superset/all_entities"
     datamodel = SQLAInterface(Tag)
@@ -61,6 +62,7 @@ class TaggedObjectsModelView(SupersetModelView):
             return super().list()
 
         return super().render_app_template()
+
 
 class TaggedObjectView(BaseSupersetView):
     @staticmethod

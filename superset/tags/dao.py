@@ -30,10 +30,8 @@ class TagDAO(BaseDAO):
 
     @staticmethod
     def create_tagged_objects(
-            object_type: ObjectTypes,
-            object_id: int,
-            properties: Dict[str, Any]
-        ) -> None:
+        object_type: ObjectTypes, object_id: int, properties: Dict[str, Any]
+    ) -> None:
         tag_names = properties["tags"]
 
         tagged_objects = []
@@ -46,19 +44,15 @@ class TagDAO(BaseDAO):
 
             tag = TagDAO.get_by_name(name, type_)
             tagged_objects.append(
-                TaggedObject(object_id=object_id,
-                             object_type=object_type, tag=tag)
+                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
             )
 
         db.session.add_all(tagged_objects)
         db.session.commit()
 
-        return tag
-
     @staticmethod
-    def get_by_name(name: str, type_: str) -> Tag:
-        tag = db.session.query(Tag).filter(
-            Tag.name == name, Tag.type == type_).first()
+    def get_by_name(name: str, type_: TagTypes) -> Tag:
+        tag = db.session.query(Tag).filter(Tag.name == name, Tag.type == type_).first()
         if not tag:
             tag = Tag(name=name, type=type_)
         # security_manager.raise_for_tag_access(tag)

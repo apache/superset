@@ -39,7 +39,6 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
-    from superset.connectors.sqla.models import SqlaTable
 
 Session = sessionmaker(autoflush=False)
 
@@ -84,6 +83,7 @@ class Tag(Model, AuditMixinNullable):
     name = Column(String(250), unique=True)
     type = Column(Enum(TagTypes))
 
+
 class TaggedObject(Model, AuditMixinNullable):
 
     """An association between an object and a tag."""
@@ -91,8 +91,12 @@ class TaggedObject(Model, AuditMixinNullable):
     __tablename__ = "tagged_object"
     id = Column(Integer, primary_key=True)
     tag_id = Column(Integer, ForeignKey("tag.id"))
-    object_id = Column(Integer, ForeignKey("dashboards.id"),
-                       ForeignKey("slices.id"), ForeignKey("saved_query.id"))
+    object_id = Column(
+        Integer,
+        ForeignKey("dashboards.id"),
+        ForeignKey("slices.id"),
+        ForeignKey("saved_query.id"),
+    )
     object_type = Column(Enum(ObjectTypes))
 
     tag = relationship("Tag", backref="objects")
@@ -157,8 +161,7 @@ class ObjectUpdater:
         cls._add_owners(session, target)
 
         # add `type:` tags
-        tag = get_tag("type:{0}".format(cls.object_type),
-                      session, TagTypes.type)
+        tag = get_tag("type:{0}".format(cls.object_type), session, TagTypes.type)
         tagged_object = TaggedObject(
             tag_id=tag.id, object_id=target.id, object_type=cls.object_type
         )
@@ -271,7 +274,7 @@ class FavStarUpdater:
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
         session = Session(bind=connection)
-        name = f'favorited_by:{target.user_id}'
+        name = f"favorited_by:{target.user_id}"
         query = (
             session.query(TaggedObject.id)
             .join(Tag)

@@ -52,9 +52,9 @@ from superset.charts.filters import (
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
     ChartFavoriteFilter,
-    ChartTagFilter,
     ChartFilter,
     ChartHasCreatedByFilter,
+    ChartTagFilter,
 )
 from superset.charts.schemas import (
     CHART_SCHEMAS,
@@ -141,7 +141,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "is_managed_externally",
     ]
     if is_feature_enabled("TAGGING_SYSTEM"):
-        show_columns += ["tags.id","tags.name","tags.type"]
+        show_columns += ["tags.id", "tags.name", "tags.type"]
 
     show_select_columns = show_columns + ["table.id"]
     list_columns = [
@@ -218,7 +218,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "viz_type",
     ]
     if is_feature_enabled("TAGGING_SYSTEM"):
-        search_columns += ['tags']
+        search_columns += ["tags"]
     base_order = ("changed_on", "desc")
     base_filters = [["id", ChartFilter, lambda: []]]
     search_filters = {
@@ -227,7 +227,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
     }
     if is_feature_enabled("TAGGING_SYSTEM"):
-        search_filters['tags'] = [ChartTagFilter]
+        search_filters["tags"] = [ChartTagFilter]
 
     # Will just affect _info endpoint
     edit_columns = ["slice_name"]

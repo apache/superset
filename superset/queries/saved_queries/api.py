@@ -50,8 +50,8 @@ from superset.queries.saved_queries.commands.importers.dispatcher import (
 from superset.queries.saved_queries.filters import (
     SavedQueryAllTextFilter,
     SavedQueryFavoriteFilter,
-    SavedQueryTagFilter,
     SavedQueryFilter,
+    SavedQueryTagFilter,
 )
 from superset.queries.saved_queries.schemas import (
     get_delete_ids_schema,
@@ -146,13 +146,13 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     search_columns = ["id", "database", "label", "schema", "created_by"]
     if is_feature_enabled("TAGGING_SYSTEM"):
-        search_columns += ['tags']
+        search_columns += ["tags"]
     search_filters = {
         "id": [SavedQueryFavoriteFilter],
         "label": [SavedQueryAllTextFilter],
     }
     if is_feature_enabled("TAGGING_SYSTEM"):
-        search_filters['tags'] = [SavedQueryTagFilter]
+        search_filters["tags"] = [SavedQueryTagFilter]
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

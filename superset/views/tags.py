@@ -35,8 +35,8 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.superset_typing import FlaskResponse
-from superset.views.base import SupersetModelView
 from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
+from superset.views.base import SupersetModelView
 
 from .base import BaseSupersetView, json_success
 
@@ -93,7 +93,8 @@ class TagView(BaseSupersetView):
                 "changed_on": obj.changed_on,
                 "changed_by": obj.changed_by_fk,
                 "created_by": obj.created_by_fk,
-            } for obj in query
+            }
+            for obj in query
         ]
         return json_success(json.dumps(results, default=utils.core.json_int_dttm_ser))
 
@@ -146,14 +147,12 @@ class TagView(BaseSupersetView):
             else:
                 type_ = TagTypes.custom
 
-            tag = db.session.query(Tag).filter_by(
-                name=name, type=type_).first()
+            tag = db.session.query(Tag).filter_by(name=name, type=type_).first()
             if not tag:
                 tag = Tag(name=name, type=type_)
 
             tagged_objects.append(
-                TaggedObject(object_id=object_id,
-                             object_type=object_type, tag=tag)
+                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
             )
 
         db.session.add_all(tagged_objects)
@@ -184,10 +183,8 @@ class TagView(BaseSupersetView):
 
     @has_access_api
     @expose("/tags", methods=["DELETE"])
-    def delete_tags(  # pylint: disable=no-self-use
-        self
-    ) -> FlaskResponse:
-        """Remove tags, and all tagged objects with that tag """
+    def delete_tags(self) -> FlaskResponse:  # pylint: disable=no-self-use
+        """Remove tags, and all tagged objects with that tag"""
         tag_names = request.get_json(force=True)
         if not tag_names:
             return Response(status=403)
@@ -214,8 +211,7 @@ class TagView(BaseSupersetView):
             return json_success(json.dumps([]))
 
         # filter types
-        types = [type_ for type_ in request.args.get(
-            "types", "").split(",") if type_]
+        types = [type_ for type_ in request.args.get("types", "").split(",") if type_]
 
         results: List[Dict[str, Any]] = []
 

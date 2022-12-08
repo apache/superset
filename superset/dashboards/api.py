@@ -61,8 +61,8 @@ from superset.dashboards.filters import (
     DashboardCreatedByMeFilter,
     DashboardFavoriteFilter,
     DashboardHasCreatedByFilter,
-    DashboardTitleOrSlugFilter,
     DashboardTagFilter,
+    DashboardTitleOrSlugFilter,
     FilterRelatedRoles,
 )
 from superset.dashboards.schemas import (
@@ -210,24 +210,36 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     edit_columns = add_columns
 
     search_columns = (
-        "created_by",
-        "changed_by",
-        "dashboard_title",
-        "id",
-        "owners",
-        "published",
-        "roles",
-        "slug",
+        (
+            "created_by",
+            "changed_by",
+            "dashboard_title",
+            "id",
+            "owners",
+            "published",
+            "roles",
+            "slug",
+        )
+        if not is_feature_enabled("TAGGING_SYSTEM")
+        else (
+            "created_by",
+            "changed_by",
+            "dashboard_title",
+            "id",
+            "owners",
+            "published",
+            "roles",
+            "slug",
+            "tags",
+        )
     )
-    if is_feature_enabled("TAGGING_SYSTEM"):
-        search_columns += ("tags",)
     search_filters = {
         "dashboard_title": [DashboardTitleOrSlugFilter],
         "id": [DashboardFavoriteFilter, DashboardCertifiedFilter],
         "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
     }
     if is_feature_enabled("TAGGING_SYSTEM"):
-        search_filters['tags'] = [DashboardTagFilter]
+        search_filters["tags"] = [DashboardTagFilter]
 
     base_order = ("changed_on", "desc")
 

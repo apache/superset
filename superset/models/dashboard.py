@@ -153,8 +153,8 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             "Tag",
             secondary="tagged_object",
             primaryjoin="and_(Dashboard.id == TaggedObject.object_id)",
-            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, " \
-                "TaggedObject.object_type == 'dashboard')",
+            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+            "TaggedObject.object_type == 'dashboard')",
         )
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)

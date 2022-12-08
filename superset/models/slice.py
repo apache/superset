@@ -102,8 +102,8 @@ class Slice(  # pylint: disable=too-many-public-methods
             "Tag",
             secondary="tagged_object",
             primaryjoin="and_(Slice.id == TaggedObject.object_id)",
-            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, " \
-                "TaggedObject.object_type == 'chart')",
+            secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+            "TaggedObject.object_type == 'chart')",
         )
     table = relationship(
         "SqlaTable",

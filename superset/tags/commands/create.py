@@ -21,12 +21,9 @@ from flask_appbuilder.models.sqla import Model
 
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.tags.models import ObjectTypes
-from superset.tags.commands.exceptions import (
-    TagCreateFailedError,
-    TagInvalidError,
-)
+from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
 from superset.tags.dao import TagDAO
+from superset.tags.models import ObjectTypes
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +38,8 @@ class CreateTagCommand(CreateMixin, BaseCommand):
         self.validate()
         try:
             tag = TagDAO.create_tagged_objects(
-                self._object_type, self._object_id, self._properties)
+                self._object_type, self._object_id, self._properties
+            )
         except DAOCreateFailedError as ex:
             logger.exception(ex.exception)
             raise TagCreateFailedError() from ex

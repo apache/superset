@@ -16,14 +16,12 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import (
-    CommandInvalidError,
-    CreateFailedError,
-)
+from superset.commands.exceptions import CommandInvalidError, CreateFailedError
 
 
 class TagInvalidError(CommandInvalidError):
     message = _("Tag parameters are invalid.")
+
 
 class TagCreateFailedError(CreateFailedError):
     message = _("Tag could not be created.")

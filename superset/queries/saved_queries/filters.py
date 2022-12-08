@@ -58,9 +58,7 @@ class SavedQueryFavoriteFilter(
     model = SavedQuery
 
 
-class SavedQueryTagFilter(  # pylint: disable=too-few-public-methods
-    BaseTagFilter
-):
+class SavedQueryTagFilter(BaseTagFilter):  # pylint: disable=too-few-public-methods
     """
     Custom filter for the GET list that filters all dashboards that a user has favored
     """

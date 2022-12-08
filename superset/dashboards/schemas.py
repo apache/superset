@@ -165,8 +165,7 @@ class DashboardGetResponseSchema(Schema):
     json_metadata = fields.String(description=json_metadata_description)
     position_json = fields.String(description=position_json_description)
     certified_by = fields.String(description=certified_by_description)
-    certification_details = fields.String(
-        description=certification_details_description)
+    certification_details = fields.String(description=certification_details_description)
     changed_by_name = fields.String()
     changed_by_url = fields.String()
     changed_by = fields.Nested(UserSchema)
@@ -256,8 +255,7 @@ class DashboardPostSchema(BaseDashboardSchema):
         validate=validate_json_metadata,
     )
     published = fields.Boolean(description=published_description)
-    certified_by = fields.String(
-        description=certified_by_description, allow_none=True)
+    certified_by = fields.String(description=certified_by_description, allow_none=True)
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )
@@ -277,8 +275,7 @@ class DashboardPutSchema(BaseDashboardSchema):
     owners = fields.List(
         fields.Integer(description=owners_description, allow_none=True)
     )
-    roles = fields.List(fields.Integer(
-        description=roles_description, allow_none=True))
+    roles = fields.List(fields.Integer(description=roles_description, allow_none=True))
     position_json = fields.String(
         description=position_json_description, allow_none=True, validate=validate_json
     )
@@ -288,10 +285,8 @@ class DashboardPutSchema(BaseDashboardSchema):
         allow_none=True,
         validate=validate_json_metadata,
     )
-    published = fields.Boolean(
-        description=published_description, allow_none=True)
-    certified_by = fields.String(
-        description=certified_by_description, allow_none=True)
+    published = fields.Boolean(description=published_description, allow_none=True)
+    certified_by = fields.String(description=certified_by_description, allow_none=True)
     certification_details = fields.String(
         description=certification_details_description, allow_none=True
     )

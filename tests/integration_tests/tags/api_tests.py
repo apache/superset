@@ -37,14 +37,14 @@ from tests.integration_tests.base_tests import SupersetTestCase
 TAGS_FIXTURE_COUNT = 10
 
 TAGS_LIST_COLUMNS = [
-    'id',
-    'name',
-    'type',
-    'changed_by.first_name',
-    'changed_by.last_name',
-    'changed_on_delta_humanized',
-    'created_by.first_name',
-    'created_by.last_name'
+    "id",
+    "name",
+    "type",
+    "changed_by.first_name",
+    "changed_by.last_name",
+    "changed_on_delta_humanized",
+    "created_by.first_name",
+    "created_by.last_name",
 ]
 
 
@@ -73,7 +73,7 @@ class TestTagApi(SupersetTestCase):
                 tags.append(
                     self.insert_tag(
                         name=f"example_tag_{cx}",
-                        tag_type='custom',
+                        tag_type="custom",
                     )
                 )
 
@@ -90,7 +90,7 @@ class TestTagApi(SupersetTestCase):
         """
         tag = self.insert_tag(
             name="test get tag",
-            tag_type='custom',
+            tag_type="custom",
         )
         self.login(username="admin")
         uri = f"api/v1/tag/{tag.id}"
@@ -102,7 +102,7 @@ class TestTagApi(SupersetTestCase):
             "created_by": None,
             "id": tag.id,
             "name": "test get tag",
-            "type": TagTypes.custom.value
+            "type": TagTypes.custom.value,
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in expected_result.items():
@@ -115,7 +115,7 @@ class TestTagApi(SupersetTestCase):
         """
         Query API: Test get query not found
         """
-        tag = self.insert_tag(name="test tag", tag_type='custom')
+        tag = self.insert_tag(name="test tag", tag_type="custom")
         max_id = db.session.query(func.max(Tag.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/tag/{max_id + 1}"
@@ -135,6 +135,6 @@ class TestTagApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        assert data['count'] == TAGS_FIXTURE_COUNT
+        assert data["count"] == TAGS_FIXTURE_COUNT
         # check expected columns
         assert data["list_columns"] == TAGS_LIST_COLUMNS

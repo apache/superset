@@ -29,8 +29,7 @@ openapi_spec_methods_override = {
     },
     "info": {
         "get": {
-            "description": "Several metadata information about tag API "
-            "endpoints.",
+            "description": "Several metadata information about tag API " "endpoints.",
         }
     },
 }

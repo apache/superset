@@ -150,6 +150,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.tags.api import TagRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
+        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
         from superset.views.chart.views import SliceAsync, SliceModelView
@@ -183,10 +184,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TableSchemaView,
             TabStateView,
         )
-        from superset.views.users.api import CurrentUserRestApi
-        from superset.views.all_entities import TaggedObjectsModelView, TaggedObjectView
         from superset.views.tags import TagModelView, TagView
-
+        from superset.views.users.api import CurrentUserRestApi
 
         #
         # Setup API views
@@ -369,9 +368,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=__("All Entities"),
             icon="",
             category_icon="",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "TAGGING_SYSTEM"
-            ),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
         appbuilder.add_view(
             TagModelView,
@@ -379,9 +376,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=__("Tags"),
             icon="",
             category_icon="",
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "TAGGING_SYSTEM"
-            ),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"),
         )
         appbuilder.add_api(LogRestApi)
         appbuilder.add_view(

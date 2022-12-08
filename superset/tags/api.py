@@ -23,21 +23,15 @@ from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
-from superset.tags.models import ObjectTypes, Tag
 from superset.tags.commands.create import CreateTagCommand
-from superset.tags.commands.exceptions import (
-    TagCreateFailedError,
-    TagInvalidError,
-)
+from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
+from superset.tags.models import ObjectTypes, Tag
 from superset.tags.schemas import (
+    openapi_spec_methods_override,
     TagGetResponseSchema,
     TagPostSchema,
-    openapi_spec_methods_override,
 )
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    statsd_metrics,
-)
+from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -54,28 +48,28 @@ class TagRestApi(BaseSupersetModelRestApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
     list_columns = [
-      "id",
-      "name",
-      "type",
-      "changed_by.first_name",
-      "changed_by.last_name",
-      "changed_on_delta_humanized",
-      "created_by.first_name",
-      "created_by.last_name",
+        "id",
+        "name",
+        "type",
+        "changed_by.first_name",
+        "changed_by.last_name",
+        "changed_on_delta_humanized",
+        "created_by.first_name",
+        "created_by.last_name",
     ]
 
     list_select_columns = list_columns
 
     show_columns = [
-      "id",
-      "name",
-      "type",
-      "changed_by.first_name",
-      "changed_by.last_name",
-      "changed_on_delta_humanized",
-      "created_by.first_name",
-      "created_by.last_name",
-      "created_by"
+        "id",
+        "name",
+        "type",
+        "changed_by.first_name",
+        "changed_by.last_name",
+        "changed_on_delta_humanized",
+        "created_by.first_name",
+        "created_by.last_name",
+        "created_by",
     ]
 
     add_model_schema = TagPostSchema()
@@ -83,18 +77,17 @@ class TagRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Tags"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = (
-        TagGetResponseSchema,
-    )
-    apispec_parameter_schemas = {}
+    openapi_spec_component_schemas = (TagGetResponseSchema,)
     openapi_spec_methods = openapi_spec_methods_override
     """ Overrides GET methods OpenApi descriptions """
 
     def __repr__(self) -> str:
         """Deterministic string representation of the API instance for etag_cache."""
-        return 'Superset.tags.api.TagRestApi@v' \
-            f'{self.appbuilder.app.config["VERSION_STRING"]}' \
+        return (
+            "Superset.tags.api.TagRestApi@v"
+            f'{self.appbuilder.app.config["VERSION_STRING"]}'
             f'{self.appbuilder.app.config["VERSION_SHA"]}'
+        )
 
     @expose("/<int:object_type>/<int:object_id>/", methods=["POST"])
     @protect()
