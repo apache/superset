@@ -758,7 +758,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "RLS_IN_SQLLAB": False,
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
-    "CACHE_IMPERSONATION": False,
+    "CACHE_IMPERSONATION": True,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
     "DRILL_TO_DETAIL": True,
