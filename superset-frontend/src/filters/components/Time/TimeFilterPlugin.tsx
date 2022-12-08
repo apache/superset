@@ -58,6 +58,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     height,
     filterState,
     inputRef,
+    isOverflowingFilterBar = false,
   } = props;
 
   const handleTimeRangeChange = useCallback(
@@ -97,6 +98,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           onChange={handleTimeRangeChange}
           onOpenPopover={() => setFilterActive(true)}
           onClosePopover={() => setFilterActive(false)}
+          isOverflowingFilterBar={isOverflowingFilterBar}
         />
       </ControlContainer>
     </TimeFilterStyles>
