@@ -731,7 +731,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_FILTER_BOX_MIGRATION": False,
-    "ENABLE_ADVANCED_DATA_TYPES": False,
+    "ENABLE_ADVANCED_DATA_TYPES": True,
     "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
@@ -758,10 +758,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "RLS_IN_SQLLAB": False,
     # Enable caching per impersonation key (e.g username) in a datasource where user
     # impersonation is enabled
-    "CACHE_IMPERSONATION": False,
+    "CACHE_IMPERSONATION": True,
     # Enable sharing charts with embedding
     "EMBEDDABLE_CHARTS": True,
-    "DRILL_TO_DETAIL": False,
+    "DRILL_TO_DETAIL": True,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
