@@ -63,8 +63,10 @@ from tests.integration_tests.fixtures.tags import with_tagging_system_feature
 
 class TestDatasetApi(SupersetTestCase):
 
-    fixture_tables_names = ("ab_permission", "ab_permission_view", "ab_view_menu")
-    fixture_virtual_table_names = ("sql_virtual_dataset_1", "sql_virtual_dataset_2")
+    fixture_tables_names = (
+        "ab_permission", "ab_permission_view", "ab_view_menu")
+    fixture_virtual_table_names = (
+        "sql_virtual_dataset_1", "sql_virtual_dataset_2")
 
     @staticmethod
     def insert_dataset(
@@ -147,7 +149,8 @@ class TestDatasetApi(SupersetTestCase):
             admin = self.get_user("admin")
             main_db = get_main_database()
             for tables_name in self.fixture_tables_names:
-                datasets.append(self.insert_dataset(tables_name, [admin.id], main_db))
+                datasets.append(self.insert_dataset(
+                    tables_name, [admin.id], main_db))
 
             yield datasets
 
@@ -390,7 +393,8 @@ class TestDatasetApi(SupersetTestCase):
                 {
                     "count": 1,
                     "result": [
-                        {"text": "information_schema", "value": "information_schema"}
+                        {"text": "information_schema",
+                            "value": "information_schema"}
                     ],
                 },
             )
@@ -401,7 +405,8 @@ class TestDatasetApi(SupersetTestCase):
                 {
                     "count": 2,
                     "result": [
-                        {"text": "information_schema", "value": "information_schema"}
+                        {"text": "information_schema",
+                            "value": "information_schema"}
                     ],
                 },
             )
@@ -706,7 +711,8 @@ class TestDatasetApi(SupersetTestCase):
             return
 
         self.login(username="admin")
-        dataset_data = {"database": 1000, "schema": "", "table_name": "birth_names"}
+        dataset_data = {"database": 1000,
+                        "schema": "", "table_name": "birth_names"}
         uri = "api/v1/dataset/"
         rv = self.post_assert_metric(uri, dataset_data, "post")
         assert rv.status_code == 422
@@ -855,11 +861,15 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200
 
-        columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
+        columns = db.session.query(TableColumn).filter_by(
+            table_id=dataset.id).all()
 
-        assert new_col_dict["column_name"] in [col.column_name for col in columns]
-        assert new_col_dict["description"] in [col.description for col in columns]
-        assert new_col_dict["expression"] in [col.expression for col in columns]
+        assert new_col_dict["column_name"] in [
+            col.column_name for col in columns]
+        assert new_col_dict["description"] in [
+            col.description for col in columns]
+        assert new_col_dict["expression"] in [
+            col.expression for col in columns]
         assert new_col_dict["type"] in [col.type for col in columns]
         assert new_col_dict["advanced_data_type"] in [
             col.advanced_data_type for col in columns
@@ -912,7 +922,8 @@ class TestDatasetApi(SupersetTestCase):
 
         assert rv.status_code == 200
 
-        columns = db.session.query(TableColumn).filter_by(table_id=dataset.id).all()
+        columns = db.session.query(TableColumn).filter_by(
+            table_id=dataset.id).all()
         assert len(columns) != prev_col_len
         assert len(columns) == 3
         db.session.delete(dataset)
@@ -1188,7 +1199,8 @@ class TestDatasetApi(SupersetTestCase):
         self.login(username="admin")
         uri = f"api/v1/dataset/{dataset.id}"
         # try to insert a new column ID that already exists
-        data = {"metrics": [{"metric_name": "count", "expression": "COUNT(*)"}]}
+        data = {"metrics": [
+            {"metric_name": "count", "expression": "COUNT(*)"}]}
         rv = self.put_assert_metric(uri, data, "put")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
@@ -1255,12 +1267,16 @@ class TestDatasetApi(SupersetTestCase):
         db.session.delete(dataset)
         db.session.commit()
 
-    # Ensure a tag was added to the tag table and that an associated tagged object was created
+    # Ensure a tag was added to the tag table and that an associated 
+    #   tagged object was created
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_update_dataset_create_tag(self):
         """
         Dataset API: Test update dataset tag
         """
+        if backend() == "sqlite":
+            return
+
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         new_tag = "update dataset test tag"
@@ -1303,6 +1319,11 @@ class TestDatasetApi(SupersetTestCase):
     # Ensure tags are not created in the tags and tagged_objects tables when
     # feature flag is not enabled
     def test_update_dataset_no_tags(self):
+        """
+        Dataset API: Test update dataset without tags
+        """
+        if backend() == "sqlite":
+            return
         dataset = self.insert_default_dataset()
         self.login(username="admin")
         new_tag = "update dataset test tag"
@@ -1876,7 +1897,8 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 403
 
-        perm1 = security_manager.find_permission_view_menu("can_export", "Dataset")
+        perm1 = security_manager.find_permission_view_menu(
+            "can_export", "Dataset")
 
         perm2 = security_manager.find_permission_view_menu(
             "datasource_access", dataset.perm
@@ -2042,14 +2064,16 @@ class TestDatasetApi(SupersetTestCase):
             "sync_columns": "true",
             "sync_metrics": "true",
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
         assert response == {"message": "OK"}
 
         database = (
-            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+            db.session.query(Database).filter_by(
+                uuid=database_config["uuid"]).one()
         )
 
         assert database.database_name == "imported_database"
@@ -2082,7 +2106,8 @@ class TestDatasetApi(SupersetTestCase):
             "sync_columns": "true",
             "sync_metrics": "true",
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
@@ -2090,7 +2115,8 @@ class TestDatasetApi(SupersetTestCase):
         assert db.session.query(SqlaTable).count() == num_datasets + 1
 
         dataset = (
-            db.session.query(SqlaTable).filter_by(table_name="birth_names_2").one()
+            db.session.query(SqlaTable).filter_by(
+                table_name="birth_names_2").one()
         )
         db.session.delete(dataset)
         db.session.commit()
@@ -2109,7 +2135,8 @@ class TestDatasetApi(SupersetTestCase):
         form_data = {
             "formData": (buf, "dataset_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
@@ -2120,7 +2147,8 @@ class TestDatasetApi(SupersetTestCase):
         form_data = {
             "formData": (buf, "dataset_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
@@ -2149,7 +2177,8 @@ class TestDatasetApi(SupersetTestCase):
             "formData": (buf, "dataset_export.zip"),
             "overwrite": "true",
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 200
@@ -2157,7 +2186,8 @@ class TestDatasetApi(SupersetTestCase):
 
         # clean up
         database = (
-            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+            db.session.query(Database).filter_by(
+                uuid=database_config["uuid"]).one()
         )
         dataset = database.tables[0]
 
@@ -2194,7 +2224,8 @@ class TestDatasetApi(SupersetTestCase):
         form_data = {
             "formData": (buf, "dataset_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
@@ -2245,7 +2276,8 @@ class TestDatasetApi(SupersetTestCase):
         form_data = {
             "formData": (buf, "dataset_export.zip"),
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
@@ -2274,6 +2306,8 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test import dataset with tags
         """
+        if backend() == "sqlite":
+            return
         self.login(username="admin")
         uri = "api/v1/dataset/import/"
         dataset_config_with_tags = dataset_config.copy()
@@ -2296,13 +2330,15 @@ class TestDatasetApi(SupersetTestCase):
             "sync_columns": "true",
             "sync_metrics": "true",
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert response == {"message": "OK"}
 
         database = (
-            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+            db.session.query(Database).filter_by(
+                uuid=database_config["uuid"]).one()
         )
         assert database.database_name == "imported_database"
 
@@ -2311,7 +2347,8 @@ class TestDatasetApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        tags = db.session.query(Tag).filter(Tag.name.in_(["example 1", "example 2"]))
+        tags = db.session.query(Tag).filter(
+            Tag.name.in_(["example 1", "example 2"]))
         num_tagged_objects = (
             db.session.query(TaggedObject)
             .filter(
@@ -2349,6 +2386,8 @@ class TestDatasetApi(SupersetTestCase):
         """
         Dataset API: Test import dataset with tags
         """
+        if backend() == "sqlite":
+            return
         self.login(username="admin")
         uri = "api/v1/dataset/import/"
         dataset_config_with_tags = dataset_config.copy()
@@ -2371,13 +2410,15 @@ class TestDatasetApi(SupersetTestCase):
             "sync_columns": "true",
             "sync_metrics": "true",
         }
-        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        rv = self.client.post(uri, data=form_data,
+                              content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert response == {"message": "OK"}
 
         database = (
-            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+            db.session.query(Database).filter_by(
+                uuid=database_config["uuid"]).one()
         )
         assert database.database_name == "imported_database"
 
@@ -2386,7 +2427,8 @@ class TestDatasetApi(SupersetTestCase):
         assert dataset.table_name == "imported_dataset"
         assert str(dataset.uuid) == dataset_config["uuid"]
 
-        tags = db.session.query(Tag).filter(Tag.name.in_(["example 1", "example 2"]))
+        tags = db.session.query(Tag).filter(
+            Tag.name.in_(["example 1", "example 2"]))
         num_tagged_objects = (
             db.session.query(TaggedObject)
             .filter(
@@ -2455,7 +2497,8 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 201
         rv_data = json.loads(rv.data)
         new_dataset: SqlaTable = (
-            db.session.query(SqlaTable).filter_by(id=rv_data["id"]).one_or_none()
+            db.session.query(SqlaTable).filter_by(
+                id=rv_data["id"]).one_or_none()
         )
         assert new_dataset is not None
         assert new_dataset.id != dataset.id
