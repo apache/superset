@@ -122,12 +122,12 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
     schema = utils.get_example_default_schema()
     form_data = {
         "csv_file": open(filename, "rb"),
-        "sep": ",",
-        "name": table_name,
-        "con": csv_upload_db_id,
+        "delimiter": ",",
+        "table_name": table_name,
+        "database": csv_upload_db_id,
         "if_exists": "fail",
         "index_label": "test_label",
-        "mangle_dupe_cols": False,
+        "overwrite_duplicate": False,
     }
     if schema:
         form_data["schema"] = schema
@@ -144,7 +144,7 @@ def upload_excel(
     form_data = {
         "excel_file": open(filename, "rb"),
         "name": table_name,
-        "con": excel_upload_db_id,
+        "database": excel_upload_db_id,
         "sheet_name": "Sheet1",
         "if_exists": "fail",
         "index_label": "test_label",
@@ -165,7 +165,7 @@ def upload_columnar(
     form_data = {
         "columnar_file": open(filename, "rb"),
         "name": table_name,
-        "con": columnar_upload_db_id,
+        "database": columnar_upload_db_id,
         "if_exists": "fail",
         "index_label": "test_label",
     }

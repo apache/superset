@@ -1173,7 +1173,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             tables = security_manager.get_datasources_accessible_by_user(
                 database=database,
                 schema=schema_parsed,
-                datasource_names=[
+                datasource_names=sorted(
                     utils.DatasourceName(*datasource_name)
                     for datasource_name in database.get_all_table_names_in_schema(
                         schema=schema_parsed,
@@ -1181,13 +1181,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         cache=database.table_cache_enabled,
                         cache_timeout=database.table_cache_timeout,
                     )
-                ],
+                ),
             )
 
             views = security_manager.get_datasources_accessible_by_user(
                 database=database,
                 schema=schema_parsed,
-                datasource_names=[
+                datasource_names=sorted(
                     utils.DatasourceName(*datasource_name)
                     for datasource_name in database.get_all_view_names_in_schema(
                         schema=schema_parsed,
@@ -1195,7 +1195,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         cache=database.table_cache_enabled,
                         cache_timeout=database.table_cache_timeout,
                     )
-                ],
+                ),
             )
         except SupersetException as ex:
             return json_error_response(ex.message, ex.status)

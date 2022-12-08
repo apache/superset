@@ -28,7 +28,7 @@ interface CommonFiltersBarProps {
   actions: React.ReactNode;
   canEdit: boolean;
   dataMaskSelected: DataMaskStateWithId;
-  directPathToChild?: string[];
+  focusedFilterId?: string;
   filterValues: (Filter | Divider)[];
   isInitialized: boolean;
   onSelectionChange: (
@@ -46,7 +46,7 @@ interface VerticalBarConfig {
 }
 
 export interface FiltersBarProps
-  extends Pick<CommonFiltersBarProps, 'directPathToChild'> {
+  extends Pick<CommonFiltersBarProps, 'focusedFilterId'> {
   orientation: FilterBarOrientation;
   verticalConfig?: VerticalBarConfig;
 }

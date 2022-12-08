@@ -98,7 +98,7 @@ describe('AdhocMetricEditPopover', () => {
 
   it('prevents saving if no column or aggregate is chosen', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
+    expect(wrapper.find(Button).find({ disabled: false })).not.toExist();
     wrapper.instance().onColumnChange(null);
     expect(wrapper.find(Button).find({ disabled: true })).toExist();
     wrapper.instance().onColumnChange(columns[0].column_name);
@@ -109,9 +109,9 @@ describe('AdhocMetricEditPopover', () => {
 
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).not.toExist();
+    expect(wrapper.find(Button).find({ disabled: true })).toExist();
     wrapper.instance().onColumnChange(columns[1].column_name);
-    expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).toExist();
+    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
   });
 
   it('will initiate a drag when clicked', () => {

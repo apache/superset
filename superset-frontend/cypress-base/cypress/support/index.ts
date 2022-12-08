@@ -129,6 +129,8 @@ Cypress.on('uncaught:exception', err => {
     // returning false here prevents Cypress from failing the test
     return false;
   }
+
+  return false; // TODO:@geido remove
 });
 /* eslint-enable consistent-return */
 

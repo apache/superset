@@ -27,6 +27,7 @@ export const FilterCard = ({
   filter,
   getPopupContainer,
   isVisible: externalIsVisible = true,
+  placement,
 }: FilterCardProps) => {
   const [internalIsVisible, setInternalIsVisible] = useState(false);
 
@@ -37,7 +38,7 @@ export const FilterCard = ({
   }, [externalIsVisible]);
   return (
     <Popover
-      placement="right"
+      placement={placement}
       overlayClassName="filter-card-popover"
       mouseEnterDelay={0.2}
       mouseLeaveDelay={0.2}

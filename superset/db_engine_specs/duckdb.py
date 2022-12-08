@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
@@ -75,5 +75,5 @@ class DuckDBEngineSpec(BaseEngineSpec):
     @classmethod
     def get_table_names(
         cls, database: Database, inspector: Inspector, schema: Optional[str]
-    ) -> List[str]:
-        return sorted(inspector.get_table_names(schema))
+    ) -> Set[str]:
+        return set(inspector.get_table_names(schema))

@@ -35,29 +35,40 @@ import { RootState } from 'src/dashboard/types';
 import { getFilterBarTestId } from '../utils';
 import FilterBarOrientationSelect from '../FilterBarOrientationSelect';
 
-const TitleArea = styled.h4`
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  margin: 0;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+const TitleArea = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0 ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
 
-  & > span {
-    flex-grow: 1;
-  }
+    & > span {
+      font-size: ${theme.typography.sizes.l}px;
+      flex-grow: 1;
+      font-weight: ${theme.typography.weights.bold};
+    }
+
+    & > div:first-of-type {
+      line-height: 0;
+    }
+
+    & > button > span.anticon {
+      line-height: 0;
+    }
+  `}
 `;
 
 const HeaderButton = styled(Button)`
   padding: 0;
-
-  .anticon {
-    padding-top: ${({ theme }) => `${theme.gridUnit + 2}px`};
-  }
 `;
 
 const Wrapper = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
+    theme.gridUnit
+  }px;
 
     .ant-dropdown-trigger span {
       padding-right: ${theme.gridUnit * 2}px;

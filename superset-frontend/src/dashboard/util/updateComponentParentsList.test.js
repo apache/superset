@@ -95,3 +95,68 @@ describe('updateComponentParentsList', () => {
     ]);
   });
 });
+
+describe('updateComponentParentsList with bad inputs', () => {
+  it('should handle invalid parameters and not throw error', () => {
+    updateComponentParentsList({
+      currentComponent: undefined,
+      layout: undefined,
+    });
+
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: undefined,
+        layout: undefined,
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: {},
+        layout: undefined,
+      }),
+    ).not.toThrow();
+
+    /**
+     * the assignment of layout = {} only works for undefined, not null
+     * This was a missed case in the function previously.
+     * This test ensure the null check is not removed
+     */
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: {},
+        layout: null,
+      }),
+    ).not.toThrow();
+
+    /**
+     * This test catches an edge case that caused runtime error in production system where
+     * a simple logic flaw performed a dot notation lookup on an undefined object
+     */
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: { id: 'id3', children: ['id1', 'id2'] },
+        layout: { id3: {} },
+      }),
+    ).not.toThrow();
+
+    /**
+     * This test catches an edge case that causes runtime error where
+     * a simple logic flaw performed currentComponent.children.forEach without
+     * verifying currentComponent.children is an Array with a .forEach function defined
+     */
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: { id: 'id3' },
+        layout: { id3: {} },
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      updateComponentParentsList({
+        currentComponent: { id: 'id3' },
+        layout: {},
+      }),
+    ).not.toThrow();
+  });
+});

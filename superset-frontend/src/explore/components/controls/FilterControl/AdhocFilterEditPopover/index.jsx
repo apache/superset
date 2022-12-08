@@ -245,10 +245,12 @@ export default class AdhocFilterEditPopover extends React.Component {
           </Button>
           <Button
             data-test="adhoc-filter-edit-popover-save-button"
-            disabled={!stateIsValid || !this.state.isSimpleTabValid}
-            buttonStyle={
-              hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
+            disabled={
+              !stateIsValid ||
+              !this.state.isSimpleTabValid ||
+              !hasUnsavedChanges
             }
+            buttonStyle="primary"
             buttonSize="small"
             className="m-r-5"
             onClick={this.onSave}

@@ -40,7 +40,7 @@ const mockPropsWithDataset = {
 };
 
 describe('Footer', () => {
-  it('renders a Footer with a cancel button and a disabled create button', () => {
+  test('renders a Footer with a cancel button and a disabled create button', () => {
     render(<Footer {...mockedProps} />, { useRedux: true });
 
     const saveButton = screen.getByRole('button', {
@@ -55,7 +55,7 @@ describe('Footer', () => {
     expect(createButton).toBeDisabled();
   });
 
-  it('renders a Create Dataset button when a table is selected', () => {
+  test('renders a Create Dataset button when a table is selected', () => {
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
     const createButton = screen.getByRole('button', {
@@ -63,5 +63,17 @@ describe('Footer', () => {
     });
 
     expect(createButton).toBeEnabled();
+  });
+
+  test('create button becomes disabled when table already has a dataset', () => {
+    render(<Footer datasets={['real_info']} {...mockPropsWithDataset} />, {
+      useRedux: true,
+    });
+
+    const createButton = screen.getByRole('button', {
+      name: /Create/i,
+    });
+
+    expect(createButton).toBeDisabled();
   });
 });

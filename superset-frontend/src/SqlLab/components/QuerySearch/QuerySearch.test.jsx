@@ -43,7 +43,6 @@ fetchMock.get(DATABASE_ENDPOINT, []);
 
 describe('QuerySearch', () => {
   const mockedProps = {
-    actions: { addDangerToast: jest.fn() },
     displayLimit: 50,
   };
 

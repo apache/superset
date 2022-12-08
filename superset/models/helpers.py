@@ -1095,6 +1095,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     @staticmethod
     def filter_values_handler(  # pylint: disable=too-many-arguments
         values: Optional[FilterValues],
+        operator: str,
         target_generic_type: utils.GenericDataType,
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
@@ -1107,6 +1108,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return None
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
+            if operator == utils.FilterOperator.TEMPORAL_RANGE:
+                return value
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL
@@ -1692,6 +1695,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_generic_type = utils.GenericDataType.STRING
                 eq = self.filter_values_handler(
                     values=val,
+                    operator=op,
                     target_generic_type=target_generic_type,
                     target_native_type=col_type,
                     is_list_target=is_list_target,

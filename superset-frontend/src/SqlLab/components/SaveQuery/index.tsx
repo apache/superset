@@ -87,6 +87,7 @@ const SaveQuery = ({
   const query = useMemo(
     () => ({
       ...queryEditor,
+      columns,
     }),
     [queryEditor, columns],
   );

@@ -56,6 +56,7 @@ import jordan from './countries/jordan.geojson';
 import kenya from './countries/kenya.geojson';
 import korea from './countries/korea.geojson';
 import kuwait from './countries/kuwait.geojson';
+import latvia from './countries/latvia.geojson';
 import liechtenstein from './countries/liechtenstein.geojson';
 import lithuania from './countries/lithuania.geojson';
 import nigeria from './countries/nigeria.geojson';
@@ -141,6 +142,7 @@ export const countries = {
   kenya,
   korea,
   kuwait,
+  latvia,
   liechtenstein,
   lithuania,
   malaysia,

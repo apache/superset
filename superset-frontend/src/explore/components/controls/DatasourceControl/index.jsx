@@ -302,7 +302,7 @@ class DatasourceControl extends React.PureComponent {
             )}
           </Menu.Item>
         )}
-        <Menu.Item key={CHANGE_DATASET}>{t('Change dataset')}</Menu.Item>
+        <Menu.Item key={CHANGE_DATASET}>{t('Swap dataset')}</Menu.Item>
         {datasource && (
           <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
         )}
@@ -421,7 +421,7 @@ class DatasourceControl extends React.PureComponent {
                         this.handleMenuItemClick({ key: CHANGE_DATASET })
                       }
                     >
-                      {t('Change dataset')}
+                      {t('Swap dataset')}
                     </Button>
                   </p>
                 </>

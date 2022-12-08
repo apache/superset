@@ -16,7 +16,7 @@
 # under the License.
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy.engine.reflection import Inspector
@@ -88,6 +88,6 @@ class SqliteEngineSpec(BaseEngineSpec):
     @classmethod
     def get_table_names(
         cls, database: "Database", inspector: Inspector, schema: Optional[str]
-    ) -> List[str]:
+    ) -> Set[str]:
         """Need to disregard the schema for Sqlite"""
-        return sorted(inspector.get_table_names())
+        return set(inspector.get_table_names())

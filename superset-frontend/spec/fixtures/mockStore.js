@@ -20,6 +20,7 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 
 import { rootReducer } from 'src/views/store';
+import { FilterBarOrientation } from 'src/dashboard/types';
 
 import mockState from './mockState';
 import {
@@ -125,6 +126,9 @@ export const stateWithNativeFilters = {
       },
     },
   },
+  dashboardInfo: {
+    filterBarOrientation: FilterBarOrientation.VERTICAL,
+  },
 };
 
 export const getMockStoreWithNativeFilters = () =>
@@ -153,6 +157,7 @@ export const stateWithoutNativeFilters = {
   },
   dashboardInfo: {
     dash_edit_perm: true,
+    filterBarOrientation: FilterBarOrientation.VERTICAL,
     metadata: {
       native_filter_configuration: [],
     },

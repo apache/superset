@@ -94,17 +94,17 @@ test('Should open a menu', async () => {
   render(<DatasourceControl {...props} />);
 
   expect(screen.queryByText('Edit dataset')).not.toBeInTheDocument();
-  expect(screen.queryByText('Change dataset')).not.toBeInTheDocument();
+  expect(screen.queryByText('Swap dataset')).not.toBeInTheDocument();
   expect(screen.queryByText('View in SQL Lab')).not.toBeInTheDocument();
 
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   expect(await screen.findByText('Edit dataset')).toBeInTheDocument();
-  expect(screen.getByText('Change dataset')).toBeInTheDocument();
+  expect(screen.getByText('Swap dataset')).toBeInTheDocument();
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
 });
 
-test('Click on Change dataset option', async () => {
+test('Click on Swap dataset option', async () => {
   const props = createProps();
   SupersetClientGet.mockImplementation(
     async ({ endpoint }: { endpoint: string }) => {
@@ -123,7 +123,7 @@ test('Click on Change dataset option', async () => {
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
 
   await act(async () => {
-    userEvent.click(screen.getByText('Change dataset'));
+    userEvent.click(screen.getByText('Swap dataset'));
   });
   expect(
     screen.getByText(

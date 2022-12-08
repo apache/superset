@@ -58,6 +58,8 @@ const Bar = styled.div<{ count: number }>`
       (ICON_WIDTH + SPACE_BETWEEN_ITEMS) * count -
       SPACE_BETWEEN_ITEMS
     }px;
+    border-radius: ${theme.borderRadius}px;
+    line-height: 1;
   `}
 `;
 
@@ -68,6 +70,7 @@ const StyledItem = styled.div<{
 }>`
   ${({ theme, collapsed, last, onClick }) => `
     display: flex;
+    align-items: center;
     max-width: ${
       ICON_WIDTH +
       ICON_PADDING +
@@ -91,6 +94,9 @@ const StyledItem = styled.div<{
           : theme.colors.grayscale.base
       };
       padding-right: ${collapsed ? 0 : ICON_PADDING}px;
+      & .anticon {
+        line-height: 0;
+      }
     }
     & .metadata-text {
       min-width: ${TEXT_MIN_WIDTH}px;

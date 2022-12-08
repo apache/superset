@@ -185,8 +185,7 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
   } = useTables({
     dbId: database?.id,
     schema: currentSchema,
-    onSuccess: (data: { options: Table[] }) => {
-      onTablesLoad?.(data.options);
+    onSuccess: () => {
       if (isFetched) {
         addSuccessToast(t('List updated'));
       }
@@ -202,6 +201,14 @@ const TableSelector: FunctionComponent<TableSelectorProps> = ({
       });
     },
   });
+
+  useEffect(() => {
+    // Set the tableOptions in the queryEditor so autocomplete
+    // works on new tabs
+    if (data && isFetched) {
+      onTablesLoad?.(data.options);
+    }
+  }, [data, isFetched, onTablesLoad]);
 
   const tableOptions = useMemo<TableOption[]>(
     () =>

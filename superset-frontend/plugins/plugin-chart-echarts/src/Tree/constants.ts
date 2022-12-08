@@ -17,6 +17,7 @@
  * under the License.
  */
 import { TreeSeriesOption } from 'echarts';
+import { EchartsTreeFormData } from './types';
 
 export const DEFAULT_TREE_SERIES_OPTION: TreeSeriesOption = {
   label: {
@@ -27,4 +28,19 @@ export const DEFAULT_TREE_SERIES_OPTION: TreeSeriesOption = {
   animationDuration: 500,
   animationEasing: 'cubicOut',
   lineStyle: { color: 'source', width: 1.5 },
+};
+
+export const DEFAULT_FORM_DATA: Partial<EchartsTreeFormData> = {
+  id: '',
+  parent: '',
+  name: '',
+  rootNodeId: '',
+  layout: 'orthogonal',
+  orient: 'LR',
+  symbol: 'emptyCircle',
+  symbolSize: 7,
+  roam: true,
+  nodeLabelPosition: 'left',
+  childLabelPosition: 'bottom',
+  emphasis: 'descendant',
 };

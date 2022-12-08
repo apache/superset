@@ -147,7 +147,7 @@ const ROLLING_RULE: PostProcessingRolling = {
 const SORT_RULE: PostProcessingSort = {
   operation: 'sort',
   options: {
-    columns: { foo: true },
+    by: 'foo',
   },
 };
 
