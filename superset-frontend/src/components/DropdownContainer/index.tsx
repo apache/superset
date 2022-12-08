@@ -376,10 +376,14 @@ const DropdownContainer = forwardRef(
                   {dropdownTriggerText}
                   <Badge
                     count={dropdownTriggerCount ?? overflowingCount}
+                    color={
+                      (dropdownTriggerCount ?? overflowingCount) > 0
+                        ? theme.colors.primary.base
+                        : theme.colors.grayscale.light1
+                    }
+                    showZero
                     css={css`
-                      margin-left: ${dropdownTriggerCount ?? overflowingCount
-                        ? `${theme.gridUnit * 2}px`
-                        : '0'};
+                      margin-left: ${theme.gridUnit * 2}px;
                     `}
                   />
                   <Icons.DownOutlined
