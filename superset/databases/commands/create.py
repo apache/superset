@@ -75,7 +75,6 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             database = DatabaseDAO.create(self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
-            db.session.flush()
 
             ssh_tunnel = None
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
