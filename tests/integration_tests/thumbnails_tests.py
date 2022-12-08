@@ -20,6 +20,7 @@
 import json
 import urllib.request
 from io import BytesIO
+from typing import Tuple
 from unittest import skipUnless
 from unittest.mock import ANY, call, patch
 
@@ -44,6 +45,9 @@ from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
 
+CHART_URL = "/api/v1/chart/"
+DASHBOARD_URL = "/api/v1/dashboard/"
+
 
 class TestThumbnailsSeleniumLive(LiveServerTestCase):
     def create_app(self):
@@ -62,7 +66,7 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
         Thumbnails: Simple get async dashboard screenshot
         """
         with patch("superset.dashboards.api.DashboardRestApi.get") as mock_get:
-            rv = self.client.get("/api/v1/dashboard/")
+            rv = self.client.get(DASHBOARD_URL)
             resp = json.loads(rv.data.decode("utf-8"))
             thumbnail_url = resp["result"][0]["thumbnail_url"]
 
@@ -135,10 +139,11 @@ class TestThumbnails(SupersetTestCase):
     digest_return_value = "foo_bar"
     digest_hash = "5c7d96a3dd7a87850a2ef34087565a6e"
 
-    def _get_thumbnail_url(self, url: str):
+    def _get_id_and_thumbnail_url(self, url: str) -> Tuple[int, str]:
         rv = self.client.get(url)
         resp = json.loads(rv.data.decode("utf-8"))
-        return resp["result"][0]["thumbnail_url"]
+        obj = resp["result"][0]
+        return obj["id"], obj["thumbnail_url"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=False)
@@ -146,10 +151,9 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Dashboard thumbnail disabled
         """
-        dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="admin")
-        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
-        rv = self.client.get(uri)
+        _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
+        rv = self.client.get(thumbnail_url)
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -158,10 +162,9 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Chart thumbnail disabled
         """
-        chart = db.session.query(Slice).all()[0]
         self.login(username="admin")
-        uri = f"api/v1/chart/{chart}/thumbnail/{chart.digest}/"
-        rv = self.client.get(uri)
+        _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
+        rv = self.client.get(thumbnail_url)
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -175,7 +178,7 @@ class TestThumbnails(SupersetTestCase):
             "superset.thumbnails.digest._adjust_string_for_executor"
         ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
-            thumbnail_url = self._get_thumbnail_url("/api/v1/dashboard/")
+            _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
             assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
             assert mock_adjust_string.call_args[0][2] == "admin"
@@ -200,7 +203,7 @@ class TestThumbnails(SupersetTestCase):
             "superset.thumbnails.digest._adjust_string_for_executor"
         ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
-            thumbnail_url = self._get_thumbnail_url("/api/v1/dashboard/")
+            _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
             assert mock_adjust_string.call_args[0][1] == ExecutorType.CURRENT_USER
             assert mock_adjust_string.call_args[0][2] == username
@@ -226,10 +229,9 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Simple get async dashboard not allowed
         """
-        dashboard = db.session.query(Dashboard).all()[0]
         self.login(username="gamma")
-        uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
-        rv = self.client.get(uri)
+        _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
+        rv = self.client.get(thumbnail_url)
         self.assertEqual(rv.status_code, 404)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -243,7 +245,7 @@ class TestThumbnails(SupersetTestCase):
             "superset.thumbnails.digest._adjust_string_for_executor"
         ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
-            thumbnail_url = self._get_thumbnail_url("/api/v1/chart/")
+            _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url
             assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
             assert mock_adjust_string.call_args[0][2] == "admin"
@@ -268,7 +270,7 @@ class TestThumbnails(SupersetTestCase):
             "superset.thumbnails.digest._adjust_string_for_executor"
         ) as mock_adjust_string:
             mock_adjust_string.return_value = self.digest_return_value
-            thumbnail_url = self._get_thumbnail_url("/api/v1/chart/")
+            _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url
             assert mock_adjust_string.call_args[0][1] == ExecutorType.CURRENT_USER
             assert mock_adjust_string.call_args[0][2] == username
@@ -294,17 +296,14 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Simple get chart with wrong digest
         """
-        chart = db.session.query(Slice).all()[0]
         with patch.object(
             ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
         ):
             self.login(username="admin")
-            uri = f"api/v1/chart/{chart.id}/thumbnail/1234/"
-            rv = self.client.get(uri)
+            id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
+            rv = self.client.get(f"api/v1/chart/{id_}/thumbnail/1234/")
             self.assertEqual(rv.status_code, 302)
-            self.assertRedirects(
-                rv, f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
-            )
+            self.assertRedirects(rv, thumbnail_url)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -312,13 +311,12 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Simple get cached dashboard screenshot
         """
-        dashboard = db.session.query(Dashboard).all()[0]
         with patch.object(
             DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
         ):
             self.login(username="admin")
-            uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
-            rv = self.client.get(uri)
+            _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
+            rv = self.client.get(thumbnail_url)
             self.assertEqual(rv.status_code, 200)
             self.assertEqual(rv.data, self.mock_image)
 
@@ -328,13 +326,12 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Simple get cached chart screenshot
         """
-        chart = db.session.query(Slice).all()[0]
         with patch.object(
             ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
         ):
             self.login(username="admin")
-            uri = f"api/v1/chart/{chart.id}/thumbnail/{chart.digest}/"
-            rv = self.client.get(uri)
+            id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
+            rv = self.client.get(thumbnail_url)
             self.assertEqual(rv.status_code, 200)
             self.assertEqual(rv.data, self.mock_image)
 
@@ -344,14 +341,11 @@ class TestThumbnails(SupersetTestCase):
         """
         Thumbnails: Simple get dashboard with wrong digest
         """
-        dashboard = db.session.query(Dashboard).all()[0]
         with patch.object(
             DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
         ):
             self.login(username="admin")
-            uri = f"api/v1/dashboard/{dashboard.id}/thumbnail/1234/"
-            rv = self.client.get(uri)
+            id_, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
+            rv = self.client.get(f"api/v1/dashboard/{id_}/thumbnail/1234/")
             self.assertEqual(rv.status_code, 302)
-            self.assertRedirects(
-                rv, f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/"
-            )
+            self.assertRedirects(rv, thumbnail_url)
