@@ -488,6 +488,13 @@ function DashboardList(props: DashboardListProps) {
   const filters: Filters = useMemo(() => {
     const filters_list = [
       {
+        Header: t('Search'),
+        key: 'search',
+        id: 'dashboard_title',
+        input: 'search',
+        operator: FilterOperator.titleOrSlug,
+      },
+      {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
@@ -569,13 +576,6 @@ function DashboardList(props: DashboardListProps) {
         fetchSelects: loadTags,
       });
     }
-    filters_list.push({
-      Header: t('Search'),
-      key: 'search',
-      id: 'dashboard_title',
-      input: 'search',
-      operator: FilterOperator.titleOrSlug,
-    });
     return filters_list;
   }, [addDangerToast, favoritesFilter, props.user]);
 

@@ -251,7 +251,7 @@ def test_parse_error_message() -> None:
     Test that we parse a received message and just extract the useful information.
 
     Example errors:
-    bigquery error: 400 Table \"case_detail_all_suites\" must be qualified with a dataset (e.g. dataset.table).
+    bigquery error: 400 Syntax error:  Table \"case_detail_all_suites\" must be qualified with a dataset (e.g. dataset.table).
 
     (job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)
                                                 -----Query Job SQL Follows-----
@@ -259,8 +259,8 @@ def test_parse_error_message() -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    message = 'bigquery error: 400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).\n\n(job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)\n\n     -----Query Job SQL Follows-----     \n\n    |    .    |    .    |    .    |\n   1:select * from case_detail_all_suites\n   2:LIMIT 1001\n    |    .    |    .    |    .    |'
-    expected_result = '400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    message = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).\n\n(job ID: ddf30b05-44e8-4fbf-aa29-40bfccaed886)\n\n     -----Query Job SQL Follows-----     \n\n    |    .    |    .    |    .    |\n   1:select * from case_detail_all_suites\n   2:LIMIT 1001\n    |    .    |    .    |    .    |'
+    expected_result = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
     assert (
         str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
         == expected_result
@@ -277,9 +277,9 @@ def test_parse_error_raises_exception() -> None:
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
-    message = 'bigquery error: 400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    message = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
     message_2 = "6"
-    expected_result = '400 Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
+    expected_result = 'bigquery error: 400 Syntax error: Table "case_detail_all_suites" must be qualified with a dataset (e.g. dataset.table).'
     assert (
         str(BigQueryEngineSpec.parse_error_exception(Exception(message)))
         == expected_result
