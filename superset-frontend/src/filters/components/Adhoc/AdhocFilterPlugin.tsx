@@ -19,7 +19,6 @@
 /* eslint-disable no-param-reassign */
 import {
   DataMask,
-  ensureIsArray,
   ExtraFormData,
   JsonObject,
   JsonResponse,
