@@ -29,7 +29,7 @@ import {
   SupersetClient,
   css,
   SupersetTheme,
-  supersetTheme,
+  useTheme,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -415,6 +415,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
+  const theme = useTheme();
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
@@ -1379,7 +1380,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               ariaLabel={DASHBOARD_TEXT}
               css={{
                 display: contentType === 'dashboard' ? 'inline' : 'none',
-                margin: `${supersetTheme.gridUnit * 2}px 0`,
+                margin: `${theme.gridUnit * 2}px 0`,
               }}
               name="dashboard"
               value={
