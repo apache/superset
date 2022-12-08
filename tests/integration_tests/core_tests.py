@@ -231,41 +231,6 @@ class TestCore(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 422)
 
-    def test_annotation_json_endpoint(self):
-        # Set up an annotation layer and annotation
-        layer = AnnotationLayer(name="foo", descr="bar")
-        db.session.add(layer)
-        db.session.commit()
-
-        annotation = Annotation(
-            layer_id=layer.id,
-            short_descr="my_annotation",
-            start_dttm=datetime.datetime(2020, 5, 20, 18, 21, 51),
-            end_dttm=datetime.datetime(2020, 5, 20, 18, 31, 51),
-        )
-
-        db.session.add(annotation)
-        db.session.commit()
-
-        self.login()
-        resp_annotations = json.loads(
-            self.get_resp("annotationlayermodelview/api/read")
-        )
-        # the UI needs id and name to function
-        self.assertIn("id", resp_annotations["result"][0])
-        self.assertIn("name", resp_annotations["result"][0])
-
-        response = self.get_resp(
-            f"/superset/annotation_json/{layer.id}?form_data="
-            + quote(json.dumps({"time_range": "100 years ago : now"}))
-        )
-        assert "my_annotation" in response
-
-        # Rollback changes
-        db.session.delete(annotation)
-        db.session.delete(layer)
-        db.session.commit()
-
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
             role = security_manager.find_role(role_name)

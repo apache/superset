@@ -23,12 +23,34 @@ import { PluginFilterTimeProps } from './types';
 import { ControlContainer, FilterPluginStyle } from '../common';
 
 const TimeFilterStyles = styled(FilterPluginStyle)`
+  display: flex;
+  align-items: center;
   overflow-x: auto;
+
+  & .ant-tag {
+    margin-right: 0;
+  }
+`;
+
+const ControlContainer = styled.div<{
+  validateStatus?: 'error' | 'warning' | 'info';
+}>`
+  display: flex;
+  height: 100%;
+  max-width: 100%;
+  width: 100%;
+  & > div,
+  & > div:hover {
+    ${({ validateStatus, theme }) =>
+      validateStatus && `border-color: ${theme.colors[validateStatus]?.base}`}
+  }
 `;
 
 export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const {
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -36,6 +58,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     height,
     filterState,
     inputRef,
+    isOverflowingFilterBar = false,
   } = props;
 
   const handleTimeRangeChange = useCallback(
@@ -62,13 +85,12 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   return props.formData?.inView ? (
     <TimeFilterStyles width={width} height={height}>
       <ControlContainer
-        tabIndex={-1}
         ref={inputRef}
         validateStatus={filterState.validateStatus}
         onFocus={setFocusedFilter}
         onBlur={unsetFocusedFilter}
-        onMouseEnter={setFocusedFilter}
-        onMouseLeave={unsetFocusedFilter}
+        onMouseEnter={setHoveredFilter}
+        onMouseLeave={unsetHoveredFilter}
       >
         <DateFilterControl
           value={filterState.value || NO_TIME_RANGE}
@@ -76,6 +98,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
           onChange={handleTimeRangeChange}
           onOpenPopover={() => setFilterActive(true)}
           onClosePopover={() => setFilterActive(false)}
+          isOverflowingFilterBar={isOverflowingFilterBar}
         />
       </ControlContainer>
     </TimeFilterStyles>

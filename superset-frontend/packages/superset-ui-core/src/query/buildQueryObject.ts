@@ -22,18 +22,18 @@ import {
   AdhocFilter,
   QueryObject,
   QueryObjectFilterClause,
-  isPhysicalColumn,
-  isAdhocColumn,
+  isQueryFormMetric,
 } from './types';
 import {
   QueryFieldAliases,
-  QueryFormColumn,
+  QueryFormMetric,
   QueryFormData,
 } from './types/QueryFormData';
 import processFilters from './processFilters';
 import extractExtras from './extractExtras';
 import extractQueryFields from './extractQueryFields';
 import { overrideExtraFormData } from './processExtraFormData';
+import { isDefined } from '../utils';
 
 /**
  * Build the common segments of all query objects (e.g. the granularity field derived from
@@ -94,9 +94,9 @@ export default function buildQueryObject<T extends QueryFormData>(
     ...extras,
     ...filterFormData,
   });
-  const normalizeSeriesLimitMetric = (column: QueryFormColumn | undefined) => {
-    if (isAdhocColumn(column) || isPhysicalColumn(column)) {
-      return column;
+  const normalizeSeriesLimitMetric = (metric: QueryFormMetric | undefined) => {
+    if (isQueryFormMetric(metric)) {
+      return metric;
     }
     return undefined;
   };
@@ -123,10 +123,11 @@ export default function buildQueryObject<T extends QueryFormData>(
         ? undefined
         : numericRowOffset,
     series_columns,
-    series_limit,
-    series_limit_metric: normalizeSeriesLimitMetric(series_limit_metric),
-    timeseries_limit: limit ? Number(limit) : 0,
-    timeseries_limit_metric: timeseries_limit_metric || undefined,
+    series_limit: series_limit ?? (isDefined(limit) ? Number(limit) : 0),
+    series_limit_metric:
+      normalizeSeriesLimitMetric(series_limit_metric) ??
+      timeseries_limit_metric ??
+      undefined,
     order_desc: typeof order_desc === 'undefined' ? true : order_desc,
     url_params: url_params || undefined,
     custom_params,

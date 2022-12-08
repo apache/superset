@@ -38,6 +38,11 @@ const links = [
     'participate in conversations with committers and contributors',
   ],
   [
+    'https://calendar.google.com/calendar/u/2?cid=c3VwZXJzZXQuY29tbWl0dGVyc0BnbWFpbC5jb20',
+    'Superset Community Calendar',
+    'join us for working group sessions and other community gatherings',
+  ],
+  [
     'https://stackoverflow.com/questions/tagged/superset+apache-superset',
     'Stack Overflow',
     'our growing knowledge base',

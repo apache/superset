@@ -36,7 +36,7 @@ beforeAll(() => {
     value => value.value,
   );
 
-  fetchMock.get('glob:*/annotationlayermodelview/api/read?*', {
+  fetchMock.get('glob:*/api/v1/annotation_layer/*', {
     result: [{ label: 'Chart A', value: 'a' }],
   });
 

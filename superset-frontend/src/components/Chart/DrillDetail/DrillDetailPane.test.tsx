@@ -134,7 +134,12 @@ test('should render the table with results', async () => {
   fetchWithData();
   await waitForRender();
   expect(screen.getByRole('table')).toBeInTheDocument();
-  expect(screen.getAllByRole('row')).toHaveLength(4);
+  expect(screen.getByText('1996')).toBeInTheDocument();
+  expect(screen.getByText('11.27')).toBeInTheDocument();
+  expect(screen.getByText('1989')).toBeInTheDocument();
+  expect(screen.getByText('23.2')).toBeInTheDocument();
+  expect(screen.getByText('1999')).toBeInTheDocument();
+  expect(screen.getByText('9')).toBeInTheDocument();
   expect(
     screen.getByRole('columnheader', { name: 'year' }),
   ).toBeInTheDocument();

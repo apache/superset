@@ -40,8 +40,10 @@ import {
   getLegendProps,
   sanitizeHtml,
 } from '../utils/series';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { defaultGrid } from '../defaults';
 import { OpacityEnum, DEFAULT_LEGEND_FORM_DATA } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
 
@@ -115,6 +117,7 @@ export default function transformProps(
     ...DEFAULT_FUNNEL_FORM_DATA,
     ...formData,
   };
+  const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
   const keys = data.map(datum =>
@@ -212,7 +215,7 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
@@ -240,5 +243,6 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    refs,
   };
 }

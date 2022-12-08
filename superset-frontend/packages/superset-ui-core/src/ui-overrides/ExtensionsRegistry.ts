@@ -65,6 +65,7 @@ export type Extensions = Partial<{
   'navbar.right-menu.item.icon': React.ComponentType<RightMenuItemIconProps>;
   'navbar.right': React.ComponentType;
   'report-modal.dropdown.item.icon': React.ComponentType;
+  'root.context.provider': React.ComponentType;
   'welcome.message': React.ComponentType;
   'welcome.banner': React.ComponentType;
   'welcome.main.replacement': React.ComponentType;

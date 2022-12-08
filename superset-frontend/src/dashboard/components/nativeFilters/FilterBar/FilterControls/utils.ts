@@ -21,7 +21,21 @@ import { Dispatch } from 'react';
 import {
   setFocusedNativeFilter,
   unsetFocusedNativeFilter,
+  setHoveredNativeFilter,
+  unsetHoveredNativeFilter,
 } from 'src/dashboard/actions/nativeFilters';
+import { FAST_DEBOUNCE } from 'src/constants';
+
+export const dispatchHoverAction = debounce(
+  (dispatch: Dispatch<any>, id?: string) => {
+    if (id) {
+      dispatch(setHoveredNativeFilter(id));
+    } else {
+      dispatch(unsetHoveredNativeFilter());
+    }
+  },
+  FAST_DEBOUNCE,
+);
 
 export const dispatchFocusAction = debounce(
   (dispatch: Dispatch<any>, id?: string) => {
@@ -31,5 +45,5 @@ export const dispatchFocusAction = debounce(
       dispatch(unsetFocusedNativeFilter());
     }
   },
-  300,
+  FAST_DEBOUNCE,
 );

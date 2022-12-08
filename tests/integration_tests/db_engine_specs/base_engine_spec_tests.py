@@ -229,11 +229,11 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
         """ Make sure base engine spec removes schema name from table name
         ie. when try_remove_schema_from_table_name == True. """
-        base_result_expected = ["table", "table_2"]
+        base_result_expected = {"table", "table_2"}
         base_result = BaseEngineSpec.get_table_names(
             database=mock.ANY, schema="schema", inspector=inspector
         )
-        self.assertListEqual(base_result_expected, base_result)
+        assert base_result_expected == base_result
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):

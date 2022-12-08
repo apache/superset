@@ -28,15 +28,16 @@ import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
 
 export default function EchartsTreemap({
-  height,
-  width,
   echartOptions,
-  setDataMask,
-  labelMap,
-  groupby,
-  selectedValues,
   formData,
+  groupby,
+  height,
+  labelMap,
   onContextMenu,
+  refs,
+  setDataMask,
+  selectedValues,
+  width,
 }: TreemapTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
@@ -113,6 +114,7 @@ export default function EchartsTreemap({
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

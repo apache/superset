@@ -41,7 +41,7 @@ describe('Timeseries buildQuery', () => {
     });
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['bar', 'baz']);
-    expect(query.timeseries_limit_metric).toEqual('bar');
+    expect(query.series_limit_metric).toEqual('bar');
     expect(query.order_desc).toEqual(true);
     expect(query.orderby).toEqual([['bar', false]]);
   });
@@ -55,7 +55,7 @@ describe('Timeseries buildQuery', () => {
     });
     const [query] = queryContext.queries;
     expect(query.metrics).toEqual(['bar', 'baz']);
-    expect(query.timeseries_limit_metric).toEqual('bar');
+    expect(query.series_limit_metric).toEqual('bar');
     expect(query.order_desc).toEqual(true);
     expect(query.orderby).toEqual([['foo', true]]);
   });

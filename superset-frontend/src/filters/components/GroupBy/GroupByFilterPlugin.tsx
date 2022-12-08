@@ -36,6 +36,8 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
     height,
     width,
     setDataMask,
+    setHoveredFilter,
+    unsetHoveredFilter,
     setFocusedFilter,
     unsetFocusedFilter,
     setFilterActive,
@@ -116,6 +118,8 @@ export default function PluginFilterGroupBy(props: PluginFilterGroupByProps) {
           onChange={handleChange}
           onBlur={unsetFocusedFilter}
           onFocus={setFocusedFilter}
+          onMouseEnter={setHoveredFilter}
+          onMouseLeave={unsetHoveredFilter}
           ref={inputRef}
           options={options}
           onDropdownVisibleChange={setFilterActive}

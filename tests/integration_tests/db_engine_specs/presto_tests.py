@@ -56,7 +56,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             ).strip(),
             {"schema": schema},
         )
-        assert result == ["a", "d"]
+        assert result == {"a", "d"}
 
     def test_get_view_names_without_schema(self):
         database = mock.MagicMock()
@@ -77,7 +77,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             ).strip(),
             {},
         )
-        assert result == ["a", "d"]
+        assert result == {"a", "d"}
 
     def verify_presto_column(self, column, expected_results):
         inspector = mock.Mock()
@@ -670,10 +670,10 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         mock_get_view_names,
         mock_get_table_names,
     ):
-        mock_get_view_names.return_value = ["view1", "view2"]
-        mock_get_table_names.return_value = ["table1", "table2", "view1", "view2"]
+        mock_get_view_names.return_value = {"view1", "view2"}
+        mock_get_table_names.return_value = {"table1", "table2", "view1", "view2"}
         tables = PrestoEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
-        assert tables == ["table1", "table2"]
+        assert tables == {"table1", "table2"}
 
     def test_get_full_name(self):
         names = [

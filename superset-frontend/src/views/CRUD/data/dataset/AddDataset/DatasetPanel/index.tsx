@@ -18,6 +18,7 @@
  */
 import React, { useEffect, useState, useRef } from 'react';
 import { SupersetClient } from '@superset-ui/core';
+import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
 import DatasetPanel from './DatasetPanel';
 import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
 
@@ -53,6 +54,7 @@ export interface IDatasetPanelWrapperProps {
    */
   schema?: string | null;
   setHasColumns?: Function;
+  datasets?: DatasetObject[] | undefined;
 }
 
 const DatasetPanelWrapper = ({
@@ -60,6 +62,7 @@ const DatasetPanelWrapper = ({
   dbId,
   schema,
   setHasColumns,
+  datasets,
 }: IDatasetPanelWrapperProps) => {
   const [columnList, setColumnList] = useState<ITableColumn[]>([]);
   const [loading, setLoading] = useState(false);
@@ -110,7 +113,7 @@ const DatasetPanelWrapper = ({
     if (tableName && schema && dbId) {
       getTableMetadata({ tableName, dbId, schema });
     }
-    // getTableMetadata is a const and should not be independency array
+    // getTableMetadata is a const and should not be in dependency array
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tableName, dbId, schema]);
 
@@ -120,6 +123,7 @@ const DatasetPanelWrapper = ({
       hasError={hasError}
       loading={loading}
       tableName={tableName}
+      datasets={datasets}
     />
   );
 };

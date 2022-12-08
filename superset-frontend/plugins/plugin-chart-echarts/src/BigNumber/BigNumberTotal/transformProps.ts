@@ -23,10 +23,13 @@ import {
   extractTimegrain,
   QueryFormData,
 } from '@superset-ui/core';
-import { BigNumberTotalChartProps } from '../types';
+import { BigNumberTotalChartProps, BigNumberVizProps } from '../types';
 import { getDateFormatter, parseMetricValue } from '../utils';
+import { Refs } from '../../types';
 
-export default function transformProps(chartProps: BigNumberTotalChartProps) {
+export default function transformProps(
+  chartProps: BigNumberTotalChartProps,
+): BigNumberVizProps {
   const { width, height, queriesData, formData, rawFormData, hooks } =
     chartProps;
   const {
@@ -38,6 +41,7 @@ export default function transformProps(chartProps: BigNumberTotalChartProps) {
     timeFormat,
     yAxisFormat,
   } = formData;
+  const refs: Refs = {};
   const { data = [], coltypes = [] } = queriesData[0];
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metricName = getMetricLabel(metric);
@@ -76,5 +80,6 @@ export default function transformProps(chartProps: BigNumberTotalChartProps) {
     subheaderFontSize,
     subheader: formattedSubheader,
     onContextMenu,
+    refs,
   };
 }

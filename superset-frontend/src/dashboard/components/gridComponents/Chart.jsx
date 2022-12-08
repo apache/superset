@@ -190,7 +190,9 @@ class Chart extends React.Component {
 
       if (
         nextProps.width !== this.props.width ||
-        nextProps.height !== this.props.height
+        nextProps.height !== this.props.height ||
+        nextProps.width !== this.state.width ||
+        nextProps.height !== this.state.height
       ) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);

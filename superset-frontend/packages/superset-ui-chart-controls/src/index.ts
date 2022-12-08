@@ -30,12 +30,6 @@ export * from './components/ColumnOption';
 export * from './components/ColumnTypeLabel/ColumnTypeLabel';
 export * from './components/MetricOption';
 
-// React control components
-export { default as sharedControls, withDndFallback } from './shared-controls';
-export { default as sharedControlComponents } from './shared-controls/components';
-export { legacySortBy } from './shared-controls/legacySortBy';
-export * from './shared-controls/emitFilterControl';
-export * from './shared-controls/components';
+export * from './shared-controls';
 export * from './types';
-export * from './shared-controls/mixins';
 export * from './fixtures';

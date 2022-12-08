@@ -82,6 +82,7 @@ export const StyledLayoutLeftPanel = styled.div`
 
 export const StyledLayoutDatasetPanel = styled.div`
   width: 100%;
+  position: relative;
 `;
 
 export const StyledLayoutRightPanel = styled.div`

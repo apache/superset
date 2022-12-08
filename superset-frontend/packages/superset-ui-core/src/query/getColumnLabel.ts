@@ -23,8 +23,8 @@ export default function getColumnLabel(column: QueryFormColumn): string {
   if (isPhysicalColumn(column)) {
     return column;
   }
-  if (column.label) {
+  if (column?.label) {
     return column.label;
   }
-  return column.sqlExpression;
+  return column?.sqlExpression;
 }

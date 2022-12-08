@@ -79,11 +79,50 @@ describe('useFilterFocusHighlightStyles', () => {
     expect(parseFloat(styles.opacity)).toBe(0.3);
   });
 
+  it('should return unfocused styles if chart is not in scope of hovered native filter', async () => {
+    const store = createMockStore({
+      nativeFilters: {
+        hoveredFilterId: 'test-filter',
+        filters: {
+          otherId: {
+            chartsInScope: [],
+          },
+        },
+      },
+    });
+    renderWrapper(10, store);
+
+    const container = screen.getByTestId('test-component');
+
+    const styles = getComputedStyle(container);
+    expect(parseFloat(styles.opacity)).toBe(0.3);
+  });
+
   it('should return focused styles if chart is in scope of focused native filter', async () => {
     const chartId = 18;
     const store = createMockStore({
       nativeFilters: {
         focusedFilterId: 'testFilter',
+        filters: {
+          testFilter: {
+            chartsInScope: [chartId],
+          },
+        },
+      },
+    });
+    renderWrapper(chartId, store);
+
+    const container = screen.getByTestId('test-component');
+
+    const styles = getComputedStyle(container);
+    expect(parseFloat(styles.opacity)).toBe(1);
+  });
+
+  it('should return focused styles if chart is in scope of hovered native filter', async () => {
+    const chartId = 18;
+    const store = createMockStore({
+      nativeFilters: {
+        hoveredFilterId: 'testFilter',
         filters: {
           testFilter: {
             chartsInScope: [chartId],

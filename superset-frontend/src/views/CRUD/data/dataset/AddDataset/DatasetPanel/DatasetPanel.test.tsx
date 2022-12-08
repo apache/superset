@@ -24,7 +24,7 @@ import DatasetPanel, {
   tableColumnDefinition,
   COLUMN_TITLE,
 } from './DatasetPanel';
-import { exampleColumns } from './fixtures';
+import { exampleColumns, exampleDataset } from './fixtures';
 import {
   SELECT_MESSAGE,
   CREATE_MESSAGE,
@@ -44,7 +44,7 @@ jest.mock(
 );
 
 describe('DatasetPanel', () => {
-  it('renders a blank state DatasetPanel', () => {
+  test('renders a blank state DatasetPanel', () => {
     render(<DatasetPanel hasError={false} columnList={[]} loading={false} />);
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
@@ -65,7 +65,7 @@ describe('DatasetPanel', () => {
     expect(sqlLabLink).toBeVisible();
   });
 
-  it('renders a no columns screen', () => {
+  test('renders a no columns screen', () => {
     render(
       <DatasetPanel
         tableName="Name"
@@ -83,7 +83,7 @@ describe('DatasetPanel', () => {
     expect(noColumnsDescription).toBeVisible();
   });
 
-  it('renders a loading screen', () => {
+  test('renders a loading screen', () => {
     render(
       <DatasetPanel
         tableName="Name"
@@ -99,7 +99,7 @@ describe('DatasetPanel', () => {
     expect(blankDatasetTitle).toBeVisible();
   });
 
-  it('renders an error screen', () => {
+  test('renders an error screen', () => {
     render(
       <DatasetPanel
         tableName="Name"
@@ -115,7 +115,7 @@ describe('DatasetPanel', () => {
     expect(errorDescription).toBeVisible();
   });
 
-  it('renders a table with columns displayed', async () => {
+  test('renders a table with columns displayed', async () => {
     const tableName = 'example_name';
     render(
       <DatasetPanel
@@ -137,5 +137,24 @@ describe('DatasetPanel', () => {
       expect(screen.getByText(row.name)).toBeInTheDocument();
       expect(screen.getByText(row.type)).toBeInTheDocument();
     });
+  });
+
+  test('renders an info banner if table already has a dataset', async () => {
+    render(
+      <DatasetPanel
+        tableName="example_table"
+        hasError={false}
+        columnList={exampleColumns}
+        loading={false}
+        datasets={exampleDataset}
+      />,
+    );
+
+    // This is text in the info banner
+    expect(
+      await screen.findByText(
+        /this table already has a dataset associated with it. you can only associate one dataset with a table./i,
+      ),
+    ).toBeVisible();
   });
 });

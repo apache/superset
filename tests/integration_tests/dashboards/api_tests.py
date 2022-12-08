@@ -275,10 +275,22 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric(uri, "get_charts")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
-        self.assertEqual(len(data["result"]), 1)
-        self.assertEqual(
-            data["result"][0]["slice_name"], dashboard.slices[0].slice_name
-        )
+        assert len(data["result"]) == 1
+        result = data["result"][0]
+        assert set(result.keys()) == {
+            "cache_timeout",
+            "certification_details",
+            "certified_by",
+            "changed_on",
+            "description",
+            "description_markeddown",
+            "form_data",
+            "id",
+            "slice_name",
+            "slice_url",
+        }
+        assert result["id"] == dashboard.slices[0].id
+        assert result["slice_name"] == dashboard.slices[0].slice_name
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):

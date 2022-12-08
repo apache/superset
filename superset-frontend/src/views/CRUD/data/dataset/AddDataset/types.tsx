@@ -32,6 +32,7 @@ export interface DatasetObject {
   schema?: string | null;
   dataset_name: string;
   table_name?: string | null;
+  explore_url?: string;
 }
 
 export interface DatasetReducerPayloadType {
