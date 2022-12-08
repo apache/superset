@@ -60,5 +60,6 @@ export default function transformProps(chartProps: ChartProps) {
     width,
     inputRef,
     filterBarOrientation: displaySettings?.filterBarOrientation,
+    isOverflowingFilterBar: displaySettings?.isOverflowingFilterBar,
   };
 }
