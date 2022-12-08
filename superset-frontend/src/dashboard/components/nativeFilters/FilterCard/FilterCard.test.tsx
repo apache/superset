@@ -245,7 +245,6 @@ test('filter card title, type, scope, dependencies', () => {
   expect(screen.getByText('All charts')).toBeVisible();
 
   expect(screen.queryByText('Dependencies')).not.toBeInTheDocument();
-  screen.logTestingPlaygroundURL();
 });
 
 test('filter card scope with excluded', () => {
