@@ -30,7 +30,12 @@ from superset.databases.commands.exceptions import (
     DatabaseUpdateFailedError,
 )
 from superset.databases.dao import DatabaseDAO
-from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
+from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelCreateFailedError,
+    SSHTunnelInvalidError,
+)
+from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
 from superset.extensions import db, security_manager
 from superset.models.core import Database
 from superset.utils.core import DatasourceType
@@ -100,22 +105,28 @@ class UpdateDatabaseCommand(BaseCommand):
                 existing_ssh_tunnel_model = DatabaseDAO.get_ssh_tunnel(database.id)
                 if existing_ssh_tunnel_model is None:
                     # We couldn't found an existing tunnel so we need to create one
-                    ssh_tunnel = SSHTunnelDAO.create(
-                        {
-                            **ssh_tunnel_properties,
-                            "database_id": database.id,
-                        },
-                        commit=False,
-                    )
-                    database.mask_password_in_ssh_tunnel(ssh_tunnel)
+                    try:
+                        ssh_tunnel = CreateSSHTunnelCommand(
+                            database.id, ssh_tunnel_properties
+                        ).run()
+                        database.mask_password_in_ssh_tunnel(ssh_tunnel)
+                    except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
+                        # So we can show the original message
+                        raise ex
+                    except Exception as ex:
+                        raise DatabaseUpdateFailedError() from ex
                 else:
                     # We found an existing tunnel so we need to update it
-                    ssh_tunnel = SSHTunnelDAO.update(
-                        existing_ssh_tunnel_model,
-                        ssh_tunnel_properties,
-                        commit=False,
-                    )
-                    database.mask_password_in_ssh_tunnel(ssh_tunnel)
+                    try:
+                        ssh_tunnel = UpdateSSHTunnelCommand(
+                            existing_ssh_tunnel_model.id, ssh_tunnel_properties
+                        ).run()
+                        database.mask_password_in_ssh_tunnel(ssh_tunnel)
+                    except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
+                        # So we can show the original message
+                        raise ex
+                    except Exception as ex:
+                        raise DatabaseUpdateFailedError() from ex
 
             db.session.commit()
 

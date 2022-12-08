@@ -285,7 +285,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 item["driver"] = new_model.driver
 
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = new_model.ssh_tunnel
+                item["ssh_tunnel"] = new_model.ssh_tunnel  # pylint: disable=no-member
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:

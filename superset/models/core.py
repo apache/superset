@@ -353,10 +353,15 @@ class Database(
     def mask_password_in_ssh_tunnel(self, ssh_tunnel: "SSHTunnel") -> None:
         if ssh_tunnel.password is not None and ssh_tunnel.password != PASSWORD_MASK:
             # Mask the real password with our password mask
-            self.ssh_tunnel["password"] = PASSWORD_MASK
-        if ssh_tunnel.private_key_password is not None and ssh_tunnel.private_key_password != PASSWORD_MASK:
+            self.ssh_tunnel["password"] = PASSWORD_MASK  # pylint: disable=no-member
+        if (
+            ssh_tunnel.private_key_password is not None
+            and ssh_tunnel.private_key_password != PASSWORD_MASK
+        ):
             # Mask the real password with our password mask
-            self.ssh_tunnel["private_key_password"] = PASSWORD_MASK
+            self.ssh_tunnel[  # pylint: disable=no-member
+                "private_key_password"
+            ] = PASSWORD_MASK
 
     def get_effective_user(self, object_url: URL) -> Optional[str]:
         """
@@ -392,26 +397,18 @@ class Database(
         ):
             # if ssh_tunnel is available build engine with information
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
-            ssh_tunnel.bind_host = url.host
-            ssh_tunnel.bind_port = url.port
-            ssh_params = ssh_tunnel.parameters()
-            with sshtunnel.open_tunnel(**ssh_params) as server:
-                yield self._get_sqla_engine(
-                    schema=schema,
-                    nullpool=nullpool,
-                    source=source,
-                    ssh_tunnel_server=server,
-                )
-
-        if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
-            database_id=self.id
-        ):
-            # if ssh_tunnel is available build engine with information
-            url = make_url_safe(self.sqlalchemy_uri_decrypted)
             ssh_params = ssh_tunnel.parameters(bind_host=url.host, bind_port=url.port)
             engine_context = sshtunnel.open_tunnel(**ssh_params)
         else:
-            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+            engine_context = nullcontext()
+
+        with engine_context as server_context:
+            yield self._get_sqla_engine(
+                schema=schema,
+                nullpool=nullpool,
+                source=source,
+                ssh_tunnel_server=server_context,
+            )
 
     def _get_sqla_engine(
         self,

@@ -284,8 +284,11 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch(
         "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
     )
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
     def test_create_database_with_ssh_tunnel(
-        self, mock_test_connection_database_command_run
+        self, mock_test_connection_database_command_run, mock_get_all_schema_names
     ):
         """
         Database API: Test create with SSH Tunnel
@@ -305,7 +308,6 @@ class TestDatabaseApi(SupersetTestCase):
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "ssh_tunnel": ssh_tunnel_properties,
         }
-
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
@@ -377,8 +379,11 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch(
         "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
     )
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
     def test_update_ssh_tunnel_via_database_api(
-        self, mock_test_connection_database_command_run
+        self, mock_test_connection_database_command_run, mock_get_all_schema_names
     ):
         """
         Database API: Test update with SSH Tunnel
@@ -421,32 +426,33 @@ class TestDatabaseApi(SupersetTestCase):
         )
         self.assertEqual(model_ssh_tunnel.database_id, response.get("id"))
         self.assertEqual(model_ssh_tunnel.username, "foo")
-        with mock.patch(
-            "superset.models.core.Database.get_all_schema_names",
-            return_value=["information_schema", "public"],
-        ):
-            uri = "api/v1/database/{}".format(response.get("id"))
-            rv = self.client.put(uri, json=database_data_with_ssh_tunnel_update)
-            response_update = json.loads(rv.data.decode("utf-8"))
-            self.assertEqual(rv.status_code, 200)
-            model_ssh_tunnel = (
-                db.session.query(SSHTunnel)
-                .filter(SSHTunnel.database_id == response_update.get("id"))
-                .one()
-            )
-            self.assertEqual(model_ssh_tunnel.database_id, response_update.get("id"))
-            self.assertEqual(model_ssh_tunnel.username, "Test")
-            self.assertEqual(model_ssh_tunnel.server_address, "123.132.123.1")
-            self.assertEqual(model_ssh_tunnel.server_port, 8080)
-            # Cleanup
-            model = db.session.query(Database).get(response.get("id"))
-            db.session.delete(model)
-            db.session.commit()
+        uri = "api/v1/database/{}".format(response.get("id"))
+        rv = self.client.put(uri, json=database_data_with_ssh_tunnel_update)
+        response_update = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(rv.status_code, 200)
+        model_ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == response_update.get("id"))
+            .one()
+        )
+        self.assertEqual(model_ssh_tunnel.database_id, response_update.get("id"))
+        self.assertEqual(model_ssh_tunnel.username, "Test")
+        self.assertEqual(model_ssh_tunnel.server_address, "123.132.123.1")
+        self.assertEqual(model_ssh_tunnel.server_port, 8080)
+        # Cleanup
+        model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
 
     @mock.patch(
         "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
     )
-    def test_cascade_delete_ssh_tunnel(self, mock_test_connection_database_command_run):
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
+    def test_cascade_delete_ssh_tunnel(
+        self, mock_test_connection_database_command_run, mock_get_all_schema_names
+    ):
         """
         Database API: Test create with SSH Tunnel
         """
@@ -490,8 +496,11 @@ class TestDatabaseApi(SupersetTestCase):
     @mock.patch(
         "superset.databases.commands.test_connection.TestConnectionDatabaseCommand.run",
     )
+    @mock.patch(
+        "superset.models.core.Database.get_all_schema_names",
+    )
     def test_do_not_create_database_if_ssh_tunnel_creation_fails(
-        self, mock_test_connection_database_command_run
+        self, mock_test_connection_database_command_run, mock_get_all_schema_names
     ):
         """
         Database API: Test create with SSH Tunnel
