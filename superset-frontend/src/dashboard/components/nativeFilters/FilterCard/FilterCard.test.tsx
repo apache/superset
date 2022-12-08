@@ -27,6 +27,7 @@ import { SET_FOCUSED_NATIVE_FILTER } from 'src/dashboard/actions/nativeFilters';
 import { FilterCardContent } from './FilterCardContent';
 
 const baseInitialState = {
+  dashboardInfo: {},
   nativeFilters: {
     filters: {
       'NATIVE_FILTER-1': {
@@ -232,12 +233,10 @@ const renderContent = (filter = baseFilter, initialState = baseInitialState) =>
     initialState,
   });
 
-test('filter card title, edit, type, scope, dependencies', () => {
+test('filter card title, type, scope, dependencies', () => {
   renderContent();
   expect(screen.getByText('Native filter 1')).toBeVisible();
   expect(screen.getByLabelText('filter-small')).toBeVisible();
-
-  expect(screen.getByRole('button', { name: /edit/i })).toBeVisible();
 
   expect(screen.getByText('Filter type')).toBeVisible();
   expect(screen.getByText('Select filter')).toBeVisible();
@@ -311,8 +310,28 @@ test('focus filter on filter card dependency click', () => {
   });
 });
 
-test('edit filter on filter card edit click', async () => {
+test('edit filter button for dashboard viewer', () => {
   renderContent();
+  expect(
+    screen.queryByRole('button', { name: /edit/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('edit filter button for dashboard editor', () => {
+  renderContent(baseFilter, {
+    ...baseInitialState,
+    dashboardInfo: { dash_edit_perm: true },
+  });
+
+  expect(screen.getByRole('button', { name: /edit/i })).toBeVisible();
+});
+
+test('open modal on edit filter button click', async () => {
+  renderContent(baseFilter, {
+    ...baseInitialState,
+    dashboardInfo: { dash_edit_perm: true },
+  });
+
   const editButton = screen.getByRole('button', { name: /edit/i });
   userEvent.click(editButton);
   expect(
