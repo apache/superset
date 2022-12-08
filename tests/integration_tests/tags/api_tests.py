@@ -30,11 +30,23 @@ from superset import db, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
-from superset.tags.models import Tag
+from superset.tags.models import Tag, TagTypes
 
 from tests.integration_tests.base_tests import SupersetTestCase
 
 TAGS_FIXTURE_COUNT = 10
+
+TAGS_LIST_COLUMNS = [
+    'id',
+    'name',
+    'type',
+    'changed_by.first_name',
+    'changed_by.last_name',
+    'changed_on_delta_humanized',
+    'created_by.first_name',
+    'created_by.last_name'
+]
+
 
 class TestTagApi(SupersetTestCase):
     def insert_tag(
@@ -53,6 +65,9 @@ class TestTagApi(SupersetTestCase):
     @pytest.fixture()
     def create_tags(self):
         with self.create_app().app_context():
+            # clear tags table
+            tags = db.session.query(Tag).delete()
+            db.session.commit()
             tags = []
             for cx in range(TAGS_FIXTURE_COUNT):
                 tags.append(
@@ -82,13 +97,16 @@ class TestTagApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         expected_result = {
+            "changed_by": None,
+            "changed_on_delta_humanized": "now",
+            "created_by": None,
             "id": tag.id,
             "name": "test get tag",
-            "type": 'custom'
+            "type": TagTypes.custom.value
         }
         data = json.loads(rv.data.decode("utf-8"))
-        for key, value in data["result"].items():
-            self.assertEqual(value, expected_result[key])
+        for key, value in expected_result.items():
+            self.assertEqual(value, data["result"][key])
         # rollback changes
         db.session.delete(tag)
         db.session.commit()
@@ -117,10 +135,6 @@ class TestTagApi(SupersetTestCase):
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == TAGS_FIXTURE_COUNT
+        assert data['count'] == TAGS_FIXTURE_COUNT
         # check expected columns
-        assert sorted(list(data["result"][0].keys())) == [
-            "id",
-            "name",
-            "type",
-        ]
+        assert data["list_columns"] == TAGS_LIST_COLUMNS
