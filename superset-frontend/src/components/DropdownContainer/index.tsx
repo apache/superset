@@ -167,24 +167,24 @@ const DropdownContainer = forwardRef(
       [items, overflowingIndex],
     );
 
-    useEffect(() => {
-      if (itemsWidth.length !== items.length) {
-        const container = current?.children.item(0);
-        if (container) {
-          const { children } = container;
-          const childrenArray = Array.from(children);
-          setItemsWidth(
-            childrenArray.map(child => child.getBoundingClientRect().width),
-          );
-        }
-      }
-    }, [current?.children, items.length, itemsWidth.length]);
-
     useLayoutEffect(() => {
       const container = current?.children.item(0);
       if (container) {
         const { children } = container;
         const childrenArray = Array.from(children);
+
+        // If items length change, add all items to the container
+        // and recalculate the widths
+        if (itemsWidth.length !== items.length) {
+          if (childrenArray.length === items.length) {
+            setItemsWidth(
+              childrenArray.map(child => child.getBoundingClientRect().width),
+            );
+          } else {
+            setOverflowingIndex(-1);
+            return;
+          }
+        }
 
         // Calculates the index of the first overflowed element
         // +1 is to give at least one pixel of difference and avoid flakiness
