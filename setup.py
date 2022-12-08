@@ -74,7 +74,7 @@ setup(
     install_requires=[
         "backoff>=1.8.0",
         "bleach>=3.0.2, <4.0.0",
-        "cachelib>=0.4.1,<0.5",
+        "cachelib>=0.5.0, <1.0",
         "celery>=5.2.2, <6.0.0",
         "click>=8.0.3",
         "colorama",
@@ -84,7 +84,7 @@ setup(
         "deprecation>=2.1.0, <2.2.0",
         "flask>=2.1.3, <2.2",
         "flask-appbuilder>=4.1.6, <5.0.0",
-        "flask-caching>=1.10.0",
+        "flask-caching>=1.10.1, <2.0",
         "flask-compress>=1.13, <2.0",
         "flask-talisman>=1.0.0, <2.0",
         "flask-login>=0.6.0, <0.7",
