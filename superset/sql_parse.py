@@ -228,7 +228,7 @@ class ParsedQuery:
         # for `UNKNOWN`, check all DDL/DML explicitly: only `SELECT` DML is allowed,
         # and no DDL is allowed
         if any(token.ttype == DDL for token in parsed[0]) or any(
-            token.ttype == DML and token.value != "SELECT" for token in parsed[0]
+            token.ttype == DML and token.normalized != "SELECT" for token in parsed[0]
         ):
             return False
 
@@ -237,7 +237,7 @@ class ParsedQuery:
             return False
 
         return any(
-            token.ttype == DML and token.value == "SELECT" for token in parsed[0]
+            token.ttype == DML and token.normalized == "SELECT" for token in parsed[0]
         )
 
     def is_valid_ctas(self) -> bool:
