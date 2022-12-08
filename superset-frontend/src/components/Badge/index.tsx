@@ -28,8 +28,8 @@ export interface BadgeProps extends AntdBadgeProps {
 const Badge = styled(
   (
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    { textColor, ...props }: BadgeProps,
-  ) => <AntdBadge {...props} />,
+    { textColor, color, text, ...props }: BadgeProps,
+  ) => <AntdBadge text={text} color={text ? color : undefined} {...props} />,
 )`
   & > sup {
     padding: 0 ${({ theme }) => theme.gridUnit * 2}px;
