@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_babel import lazy_gettext as _
+from marshmallow import ValidationError
 
 from superset.commands.exceptions import (
     CommandException,
@@ -43,3 +44,11 @@ class SSHTunnelUpdateFailedError(UpdateFailedError):
 
 class SSHTunnelCreateFailedError(CommandException):
     message = _("Creating SSH Tunnel failed for an unknown reason")
+
+
+class SSHTunnelRequiredFieldValidationError(ValidationError):
+    def __init__(self, field_name: str) -> None:
+        super().__init__(
+            [_("Field is required")],
+            field_name=field_name,
+        )

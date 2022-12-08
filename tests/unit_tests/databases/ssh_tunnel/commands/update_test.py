@@ -20,6 +20,8 @@ from typing import Iterator
 import pytest
 from sqlalchemy.orm.session import Session
 
+from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelInvalidError
+
 
 @pytest.fixture
 def session_with_data(session: Session) -> Iterator[Session]:
@@ -67,3 +69,25 @@ def test_update_shh_tunnel_command(session_with_data: Session) -> None:
     assert result
     assert isinstance(result, SSHTunnel)
     assert "Test2" == result.server_address
+
+
+def test_update_shh_tunnel_invalid_params(session_with_data: Session) -> None:
+    from superset.databases.dao import DatabaseDAO
+    from superset.databases.ssh_tunnel.commands.update import UpdateSSHTunnelCommand
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+
+    result = DatabaseDAO.get_ssh_tunnel(1)
+
+    assert result
+    assert isinstance(result, SSHTunnel)
+    assert 1 == result.database_id
+    assert "Test" == result.server_address
+
+    # If we are trying to update a tunnel with a private_key_password
+    # then a private_key is mandatory
+    update_payload = {"private_key_password": "pass"}
+    command = UpdateSSHTunnelCommand(1, update_payload)
+
+    with pytest.raises(SSHTunnelInvalidError) as excinfo:
+        command.run()
+    assert str(excinfo.value) == ("SSH Tunnel parameters are invalid.")
