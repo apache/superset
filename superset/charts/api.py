@@ -74,8 +74,8 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.slice import Slice
+from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
-from superset.thumbnails.tasks import cache_chart_thumbnail
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (

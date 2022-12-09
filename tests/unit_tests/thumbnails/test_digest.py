@@ -68,14 +68,14 @@ def CUSTOM_CHART_FUNC(
             [ExecutorType.SELENIUM],
             False,
             False,
-            "9dfd9e0685911ca56f041e57b63bd950",
+            "0f94edd2d7dfd71724ce8236c05a6bf5",
         ),
         (
             None,
             [ExecutorType.CURRENT_USER],
             True,
             False,
-            "55fa9f78f4d8c96464fd5b369a8f2367",
+            "6b05b0eff27796f266e538a26a155cf7",
         ),
         (
             {
@@ -84,7 +84,7 @@ def CUSTOM_CHART_FUNC(
             [ExecutorType.CURRENT_USER],
             True,
             False,
-            "9725aa2717974238f03c3fc29bef243b",
+            "c9c06fd8058f8b1d3bb84e2699aaae0f",
         ),
         (
             {
@@ -93,7 +93,7 @@ def CUSTOM_CHART_FUNC(
             [ExecutorType.CURRENT_USER],
             True,
             False,
-            "234e168024483a520b705ecf71cf4fca",
+            "be15e84a631755e537bd2706beeae70a",
         ),
         (
             {
@@ -102,7 +102,7 @@ def CUSTOM_CHART_FUNC(
             [ExecutorType.CURRENT_USER],
             True,
             False,
-            "430dc5a4ab07928f4465c43a32b4c846",
+            "9996e1f6cf8ebbf2aebe2938a7d59a0e",
         ),
         (
             None,

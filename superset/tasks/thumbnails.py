@@ -15,15 +15,87 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import logging
+"""Utility functions used across Superset"""
 
-# TODO(villebro): deprecate in 3.0
-# pylint: disable=unused-wildcard-import,wildcard-import
-from superset.thumbnails.tasks import *
+import logging
+from typing import cast, Optional
+
+from flask import current_app
+
+from superset import security_manager, thumbnail_cache
+from superset.extensions import celery_app
+from superset.tasks.utils import get_executor
+from superset.utils.core import override_user
+from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.urls import get_url_path
+from superset.utils.webdriver import WindowSize
 
 logger = logging.getLogger(__name__)
 
-logger.warning(
-    "The import path superset.tasks.thumbnails is deprecated and will be removed in"
-    "3.0. Please use superset.thumbnails.tasks instead."
-)
+
+@celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
+def cache_chart_thumbnail(
+    current_user: Optional[str],
+    chart_id: int,
+    force: bool = False,
+    window_size: Optional[WindowSize] = None,
+    thumb_size: Optional[WindowSize] = None,
+) -> None:
+    # pylint: disable=import-outside-toplevel
+    from superset.models.slice import Slice
+
+    if not thumbnail_cache:
+        logger.warning("No cache set, refusing to compute")
+        return None
+    chart = cast(Slice, Slice.get(chart_id))
+    url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
+    logger.info("Caching chart: %s", url)
+    _, username = get_executor(
+        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        model=chart,
+        current_user=current_user,
+    )
+    user = security_manager.find_user(username)
+    with override_user(user):
+        screenshot = ChartScreenshot(url, chart.digest)
+        screenshot.compute_and_cache(
+            user=user,
+            cache=thumbnail_cache,
+            force=force,
+            window_size=window_size,
+            thumb_size=thumb_size,
+        )
+    return None
+
+
+@celery_app.task(name="cache_dashboard_thumbnail", soft_time_limit=300)
+def cache_dashboard_thumbnail(
+    current_user: Optional[str],
+    dashboard_id: int,
+    force: bool = False,
+    thumb_size: Optional[WindowSize] = None,
+) -> None:
+    # pylint: disable=import-outside-toplevel
+    from superset.models.dashboard import Dashboard
+
+    if not thumbnail_cache:
+        logging.warning("No cache set, refusing to compute")
+        return
+    dashboard = Dashboard.get(dashboard_id)
+    url = get_url_path("Superset.dashboard", dashboard_id_or_slug=dashboard.id)
+
+    logger.info("Caching dashboard: %s", url)
+    _, username = get_executor(
+        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        model=dashboard,
+        current_user=current_user,
+    )
+    user = security_manager.find_user(username)
+    with override_user(user):
+        screenshot = DashboardScreenshot(url, dashboard.digest)
+        screenshot.compute_and_cache(
+            user=user,
+            cache=thumbnail_cache,
+            force=force,
+            thumb_size=thumb_size,
+        )

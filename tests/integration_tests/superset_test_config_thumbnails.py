@@ -63,7 +63,7 @@ REDIS_RESULTS_DB = os.environ.get("REDIS_RESULTS_DB", 3)
 
 class CeleryConfig(object):
     BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    CELERY_IMPORTS = ("superset.sql_lab", "superset.thumbnails.tasks")
+    CELERY_IMPORTS = ("superset.sql_lab", "superset.tasks.thumbnails")
     CELERY_ANNOTATIONS = {"sql_lab.add": {"rate_limit": "10/s"}}
     CONCURRENCY = 1
 
