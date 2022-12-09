@@ -182,7 +182,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 *feature_flagged_filters,
             )
         )
-
         return query
 
 
