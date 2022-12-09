@@ -69,7 +69,7 @@ export const NameRow = ({
           onClick={hidePopover}
           initialFilterId={filter.id}
         >
-          <Icons.Edit iconSize="m" iconColor={theme.colors.grayscale.light1} />
+          <Icons.Edit iconSize="l" iconColor={theme.colors.grayscale.light1} />
         </FilterConfigurationLink>
       )}
     </Row>
