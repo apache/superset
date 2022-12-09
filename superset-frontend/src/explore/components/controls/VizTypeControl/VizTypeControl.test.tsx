@@ -139,7 +139,7 @@ describe('VizTypeControl', () => {
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Bar Chart v2',
+        'Time-series Bar Chart',
       ),
     ).toBeInTheDocument();
     expect(
@@ -251,7 +251,7 @@ describe('VizTypeControl', () => {
       within(visualizations).getByText('Time-series Line Chart'),
     ).toBeVisible();
     expect(
-      within(visualizations).getByText('Time-series Bar Chart v2'),
+      within(visualizations).getByText('Time-series Bar Chart'),
     ).toBeVisible();
     expect(
       within(visualizations).queryByText('Line Chart'),
@@ -269,9 +269,7 @@ describe('VizTypeControl', () => {
     renderWrapper();
     userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
     const visualizations = screen.getByTestId(getTestId('viz-row'));
-    userEvent.click(
-      within(visualizations).getByText('Time-series Bar Chart v2'),
-    );
+    userEvent.click(within(visualizations).getByText('Time-series Bar Chart'));
 
     expect(defaultProps.onChange).not.toBeCalled();
     userEvent.dblClick(
