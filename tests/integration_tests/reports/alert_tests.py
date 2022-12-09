@@ -32,19 +32,19 @@ from tests.integration_tests.test_app import app
 @pytest.mark.parametrize(
     "owner_names,creator_name,config,expected_result",
     [
-        (["gamma"], None, [ExecutorType.SELENIUM], (ExecutorType.SELENIUM, "admin")),
-        (["gamma"], None, [ExecutorType.OWNER], (ExecutorType.OWNER, "gamma")),
+        (["gamma"], None, [ExecutorType.SELENIUM], "admin"),
+        (["gamma"], None, [ExecutorType.OWNER], "gamma"),
         (
             ["alpha", "gamma"],
             "gamma",
             [ExecutorType.CREATOR_OWNER],
-            (ExecutorType.CREATOR_OWNER, "gamma"),
+            "gamma",
         ),
         (
             ["alpha", "gamma"],
             "alpha",
             [ExecutorType.CREATOR_OWNER],
-            (ExecutorType.CREATOR_OWNER, "alpha"),
+            "alpha",
         ),
         (
             ["alpha", "gamma"],
@@ -96,7 +96,7 @@ def test_execute_query_as_report_executor(
         )
         with cm:
             command.run()
-            assert override_user_mock.call_args[0][0] == expected_result
+            assert override_user_mock.call_args[0][0].username == expected_result
 
         app.config["ALERT_REPORTS_EXECUTE_AS"] = original_config
 
