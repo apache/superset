@@ -40,7 +40,7 @@ class DashboardDAO(BaseDAO):
     base_filter = DashboardAccessFilter
 
     @staticmethod
-    def get_by_id_or_slug(id_or_slug: str) -> Dashboard:
+    def get_by_id_or_slug(id_or_slug: Union[int, str]) -> Dashboard:
         query = (
             db.session.query(Dashboard)
             .filter(id_or_slug_filter(id_or_slug))
@@ -78,7 +78,7 @@ class DashboardDAO(BaseDAO):
         :returns: The datetime the dashboard was last changed.
         """
 
-        dashboard = (
+        dashboard: Dashboard = (
             DashboardDAO.get_by_id_or_slug(id_or_slug_or_dashboard)
             if isinstance(id_or_slug_or_dashboard, str)
             else id_or_slug_or_dashboard
