@@ -19,13 +19,14 @@ under the License.
 
 ## Change Log
 ### 2.0.1 (Thu Oct 13 09:52:35 2022 -0700)
-**Database Migrations**
+**Database Migrations** 
 
-**Features**
+**Features** 
 
-**Fixes**
-- [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina) (security improvement)
-- [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina) (security improvement)
+**Fixes** 
+- [#21895](https://github.com/apache/superset/pull/21895) feat: Improves SafeMarkdown HTML sanitization (@michael-s-molina) (security fix)
+- [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina) (security fix)
+- [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina) (security fix)
 - [#21776](https://github.com/apache/superset/pull/21776) fix(CustomFrame): Resolves issue #21731 where date range in explore throws runtime error (@eric-briscoe)
 - [#21637](https://github.com/apache/superset/pull/21637) fix: respect chart cache timeout setting (@mayurnewase)
 - [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
@@ -68,13 +69,14 @@ under the License.
 - [#20733](https://github.com/apache/superset/pull/20733) fix(docker): Make Gunicorn max_requests and max_requests_jitter adjustable  (@mdeshmu)
 - [#20714](https://github.com/apache/superset/pull/20714) fix: logger message (@betodealmeida)
 
-**Others**
+**Others** 
 - [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 - [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
 - [#20644](https://github.com/apache/superset/pull/20644) chore(deps): bump moment from 2.29.2 to 2.29.4 in /superset-frontend (@dependabot[bot])
 - [#21721](https://github.com/apache/superset/pull/21721) build: changelog for 2.0.1 (@AAfghahi)
 - [#21018](https://github.com/apache/superset/pull/21018) perf: Memoize the common_bootstrap_payload (@bkyryliuk)
 - [#21091](https://github.com/apache/superset/pull/21091) chore(deps): unpin holidays dependency version (@ecederstrand)
+
 ### 2.0 (Tue Jun 28 08:53:02 2022 -0400)
 
 **Database Migrations**
