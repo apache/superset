@@ -1006,7 +1006,8 @@ SELECT
 FROM foo f"""
     )
     assert sql.is_select()
-    
+
+
 def test_cte_is_select_lowercase() -> None:
     """
     Some CTEs with lowercase select are not correctly identified as SELECTS.
