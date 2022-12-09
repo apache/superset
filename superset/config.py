@@ -471,6 +471,11 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DRILL_TO_DETAIL": False,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
     "HORIZONTAL_FILTER_BAR": False,
+    # The feature is off by default, and currently only supported in Presto and Postgres,
+    # and Bigquery.
+    # It also need to be enabled on a per-database basis, by adding the key/value pair
+    # `cost_estimate_enabled: true` to the database `extra` attribute.
+    "ESTIMATE_QUERY_COST": False,
 }
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
@@ -873,17 +878,14 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = int(timedelta(hours=6).total_seconds())
 # query costs before they run. These EXPLAIN queries should have a small
 # timeout.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
-# The feature is off by default, and currently only supported in Presto and Postgres,
-# and Bigquery.
-# It also need to be enabled on a per-database basis, by adding the key/value pair
-# `cost_estimate_enabled: true` to the database `extra` attribute.
-ESTIMATE_QUERY_COST = False
+
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
 # your specific infrastructure. For example, you could analyze queries a posteriori by
 # running EXPLAIN on them, and compute a histogram of relative costs to present the
-# cost as a percentile:
-#
+# cost as a percentile, this step is optional as every db engine spec has its own
+# query cost formatter, but it you wanna customize it you can define it inside the config:
+
 # def postgres_query_cost_formatter(
 #     result: List[Dict[str, Any]]
 # ) -> List[Dict[str, str]]:
@@ -901,9 +903,7 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-#  Then on define the formatter on the config:
-#
-# "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+# QUERY_COST_FORMATTERS_BY_ENGINE: {"postgresql": postgres_query_cost_formatter}
 QUERY_COST_FORMATTERS_BY_ENGINE: Dict[
     str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
 ] = {}
