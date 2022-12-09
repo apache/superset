@@ -734,7 +734,8 @@ class Database(
     def get_table_comment(
         self, table_name: str, schema: Optional[str] = None
     ) -> Optional[str]:
-        return self.db_engine_spec.get_table_comment(self.inspector, table_name, schema)
+        with self.get_inspector_with_context() as inspector:
+            return self.db_engine_spec.get_table_comment(inspector, table_name, schema)
 
     def get_columns(
         self, table_name: str, schema: Optional[str] = None
@@ -747,7 +748,8 @@ class Database(
         table_name: str,
         schema: Optional[str] = None,
     ) -> List[MetricType]:
-        return self.db_engine_spec.get_metrics(self, self.inspector, table_name, schema)
+        with self.get_inspector_with_context() as inspector:
+            return self.db_engine_spec.get_metrics(self, inspector, table_name, schema)
 
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None
