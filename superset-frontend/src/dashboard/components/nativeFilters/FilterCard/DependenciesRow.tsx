@@ -106,6 +106,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
         <RowValue ref={dependenciesRef}>
           {dependencies.map((dependency, index) => (
             <DependencyValue
+              key={dependency.id}
               dependency={dependency}
               hasSeparator={index !== 0}
             />
