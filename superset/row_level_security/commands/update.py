@@ -46,8 +46,6 @@ class UpdateRLSRuleCommand(BaseCommand):
         return rule
 
     def validate(self) -> None:
-        # check rule exists
-        # self._model = db.session.query(RowLevelSecurityFilter).filter(RowLevelSecurityFilter.id == self._model_id).one_or_none()
         self._model = RLSDAO.find_by_id(self._model_id)
         if not self._model:
             raise RLSRuleNotFoundError()
