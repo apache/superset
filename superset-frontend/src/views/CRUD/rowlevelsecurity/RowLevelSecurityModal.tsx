@@ -149,7 +149,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   }, [rule]);
 
   useEffect(() => {
-    console.log('checking resource ', resource);
     if (resource) {
       setCurrentRule({ ...resource, id: rule?.id });
       const selectedTableAndRoles = getSelectedData();

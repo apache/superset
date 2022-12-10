@@ -50,7 +50,6 @@ interface RLSProps {
   };
 }
 
-// TODO: get addSuccessToast and addDangerToast function here
 function RowLevelSecurityList(props: RLSProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const [ruleModalOpen, setRuleModalOpen] = useState<boolean>(false);
@@ -110,7 +109,7 @@ function RowLevelSecurityList(props: RLSProps) {
         addSuccessToast(t(`Deleted`));
       },
       createErrorHandler(errMsg =>
-        addDangerToast(t('There was an issue deleting rules: ', errMsg)),
+        addDangerToast(t('There was an issue deleting rules: %s', errMsg)),
       ),
     );
   }
