@@ -132,9 +132,9 @@ const ExtraOptions = ({
                   <input
                     type="text"
                     name="force_ctas_schema"
-                    value={db?.force_ctas_schema || ''}
                     placeholder={t('Create or select schema...')}
                     onChange={onInputChange}
+                    value={db?.force_ctas_schema || ''}
                   />
                 </div>
                 <div className="helper">
@@ -451,17 +451,17 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="metadata_params"
-              value={
-                !Object.keys(extraJson?.metadata_params || {}).length
-                  ? ''
-                  : extraJson?.metadata_params
-              }
               placeholder={t('Metadata Parameters')}
               onChange={(json: string) =>
                 onExtraEditorChange({ json, name: 'metadata_params' })
               }
               width="100%"
               height="160px"
+              defaultValue={
+                !Object.keys(extraJson?.metadata_params || {}).length
+                  ? ''
+                  : extraJson?.metadata_params
+              }
             />
           </div>
           <div className="helper">
@@ -477,18 +477,17 @@ const ExtraOptions = ({
           <div className="input-container">
             <StyledJsonEditor
               name="engine_params"
-              value={
-                // don't show an empty object
-                !Object.keys(extraJson?.engine_params || {}).length
-                  ? ''
-                  : extraJson?.engine_params
-              }
               placeholder={t('Engine Parameters')}
               onChange={(json: string) =>
                 onExtraEditorChange({ json, name: 'engine_params' })
               }
               width="100%"
               height="160px"
+              defaultValue={
+                !Object.keys(extraJson?.engine_params || {}).length
+                  ? ''
+                  : extraJson?.engine_params
+              }
             />
           </div>
           <div className="helper">
@@ -507,9 +506,9 @@ const ExtraOptions = ({
             <input
               type="number"
               name="version"
-              value={extraJson?.version || ''}
               placeholder={t('Version number')}
               onChange={onExtraInputChange}
+              value={extraJson?.version || ''}
             />
           </div>
           <div className="helper">

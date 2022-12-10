@@ -1332,23 +1332,6 @@ describe('DatabaseModal', () => {
       ...jest.requireActual('src/views/CRUD/hooks'),
       useSingleViewResource: jest.fn(),
     }));
-    // const useSingleViewResourceMock = jest.spyOn(
-    //   hooks,
-    //   'useSingleViewResource',
-    // );
-
-    // useSingleViewResourceMock.mockReturnValue({
-    //   state: {
-    //     loading: false,
-    //     resource: null,
-    //     error: { _schema: 'Test Error With Object' },
-    //   },
-    //   fetchResource: jest.fn(),
-    //   createResource: jest.fn(),
-    //   updateResource: jest.fn(),
-    //   clearError: jest.fn(),
-    //   setResource: jest.fn(),
-    // });
 
     const renderAndWait = async () => {
       const mounted = act(async () => {
