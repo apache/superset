@@ -1,3 +1,22 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import {
   css,
   styled,
@@ -8,15 +27,14 @@ import {
 import Modal from 'src/components/Modal';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import Icons from 'src/components/Icons';
-import { FilterType, MetaObject, RLSObject } from './types';
-import { validate } from 'schema-utils';
 import Select from 'src/components/Select/Select';
-import { FilterOptions } from './constants';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
-import { SelectValue } from 'src/filters/components/Select/types';
 import rison from 'rison';
+import { LabeledErrorBoundInput } from 'src/components/Form';
+import { noBottomMargin } from 'src/components/ReportModal/styles';
 import { useSingleViewResource } from '../hooks';
-import { hide } from 'yargs';
+import { FilterOptions } from './constants';
+import { FilterType, MetaObject, RLSObject } from './types';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
@@ -33,15 +51,54 @@ const StyledIcon = (theme: SupersetTheme) => css`
 const StyledSectionContainer = styled.div`
   display: flex;
   flex-direction: column;
+  padding: ${({ theme }) =>
+    `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px`};
+
+  label {
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    color: ${({ theme }) => theme.colors.grayscale.light1};
+  }
+}
 `;
 
 const StyledInputContainer = styled.div`
   display: flex;
   flex-direction: column;
+  margin: ${({ theme }) => theme.gridUnit}px;
+
+  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+
+  .input-container {
+    display: flex;
+    align-items: center;
+
+    > div {
+      width: 100%;
+    }
+
+    label {
+      display: flex;
+      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    }
+  }
+
+  input,
+  textarea {
+    flex: 1 1 auto;
+  }
+
+  textarea {
+    height: 100px;
+    resize: none;
+  }
+
+  .labled-input {
+    margin-bottom: 0px;
+  }
 `;
 
 interface RowLevelSecurityModalProps {
-  rule: RLSObject;
+  rule: RLSObject | null;
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
   onAdd?: (alert?: any) => void;
@@ -66,8 +123,6 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     ...DEAFULT_RULE,
   });
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [tableOptions, setTableOptions] = useState<MetaObject[]>([]);
-  const [roleOptions, setRoleOptions] = useState<MetaObject[]>([]);
 
   const isEditMode = rule !== null;
 
@@ -90,61 +145,66 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       setCurrentRule({ ...DEAFULT_RULE });
     } else if (rule?.id !== null && !loading && !fetchError) {
       fetchResource(rule.id as number);
-      setCurrentRule({ ...rule });
     }
   }, [rule]);
 
+  useEffect(() => {
+    console.log('checking resource ', resource);
+    if (resource) {
+      setCurrentRule({ ...resource, id: rule?.id });
+      const selectedTableAndRoles = getSelectedData();
+      updateRuleState('tables', selectedTableAndRoles?.tables || []);
+      updateRuleState('roles', selectedTableAndRoles?.roles || []);
+    }
+  }, [resource]);
+
   // find selected tables and roles
   const getSelectedData = useCallback(() => {
-    if (
-      !currentRule ||
-      (currentRule.tables?.length && currentRule.roles?.length)
-    )
-      return;
+    if (!resource) {
+      return null;
+    }
     const tables: MetaObject[] = [];
     const roles: MetaObject[] = [];
 
-    currentRule.tables?.forEach(selectedTable => {
-      const table = tableOptions.filter(to => to.value == selectedTable);
-      tables.push(table);
+    resource.tables?.forEach(selectedTable => {
+      tables.push({
+        key: selectedTable.id,
+        label: selectedTable.table_name,
+        value: selectedTable.id,
+      });
     });
 
-    currentRule.roles?.forEach(selectedRole => {
-      const role = roleOptions.filter(ro => ro.value == selectedRole);
-      roles.push(role);
+    resource.roles?.forEach(selectedRole => {
+      roles.push({
+        key: selectedRole.id,
+        label: selectedRole.name,
+        value: selectedRole.id,
+      });
     });
 
     return { tables, roles };
-  }, [tableOptions, roleOptions, currentRule?.tables, currentRule?.roles]);
-
-  // useEffect()
+  }, [resource?.tables, resource?.roles]);
 
   // validate
   const currentRuleSafe = currentRule || {};
   useEffect(() => {
     validate();
-  }, [
-    currentRuleSafe.name,
-    currentRuleSafe.filter_type,
-    currentRuleSafe.group_key,
-    currentRuleSafe.roles,
-    currentRuleSafe.tables,
-    currentRuleSafe.clause,
-  ]);
+  }, [currentRuleSafe.name, currentRuleSafe.clause]);
 
   // * event handlers *
+  type SelectValue = {
+    value: string;
+    label: string;
+  };
+
   const updateRuleState = (name: string, value: any) => {
-    console.log('updating rule ', name, value);
     setCurrentRule(currentRuleData => ({
       ...currentRuleData,
       [name]: value,
     }));
   };
 
-  const onTextChange = (
-    event: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-  ) => {
-    const { target } = event;
+  const onTextChange = (target: HTMLInputElement | HTMLTextAreaElement) => {
     updateRuleState(target.name, target.value);
   };
 
@@ -162,22 +222,22 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
   const hide = () => {
     clearError();
-    onHide();
     setCurrentRule({ ...DEAFULT_RULE });
+    onHide();
   };
 
   const onSave = () => {
     const tables: number[] = [];
     const roles: number[] = [];
 
-    currentRule.tables?.forEach(table => tables.push(table.value));
-    currentRule.roles?.forEach(role => roles.push(role.value));
+    currentRule.tables?.forEach(table => tables.push(table.key));
+    currentRule.roles?.forEach(role => roles.push(role.key));
 
-    const data = { ...currentRule, tables, roles };
+    const data: any = { ...currentRule, tables, roles };
 
     if (isEditMode && currentRule.id) {
       const updateId = currentRule.id;
-      delete currentRule.id;
+      delete data.id;
       updateResource(updateId, data).then(response => {
         if (!response) {
           return;
@@ -243,7 +303,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
   // * state validators *
   const validate = () => {
-    if (currentRule && currentRule.name && currentRule.clause) {
+    if (currentRule?.name && currentRule?.clause) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -255,11 +315,11 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       className="no-content-padding"
       responsive
       show={show}
-      onHide={onHide}
+      onHide={hide}
       primaryButtonName={isEditMode ? t('Save') : t('Add')}
       disablePrimaryButton={disableSave}
       onHandledPrimaryAction={onSave}
-      width="60%"
+      width="30%"
       maxWidth="1450px"
       title={
         <h4 data-test="rls-modal-title">
@@ -275,18 +335,20 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       <StyledSectionContainer>
         <div className="main-section">
           <StyledInputContainer>
-            <div className="control-label">
-              {t('Rule Name')}
-              <span className="required">*</span>
-            </div>
-            <div className="input-container">
-              <input
-                type="text"
-                name="name"
-                value={currentRule ? currentRule.name : ''}
-                onChange={onTextChange}
-              />
-            </div>
+            <LabeledErrorBoundInput
+              id="name"
+              name="name"
+              className="labeled-input"
+              value={currentRule ? currentRule.name : ''}
+              required
+              validationMethods={{
+                onChange: ({ target }: { target: HTMLInputElement }) =>
+                  onTextChange(target),
+              }}
+              css={noBottomMargin}
+              label={t('Rule Name')}
+              data-test="rule-name-test"
+            />
           </StyledInputContainer>
 
           <StyledInputContainer>
@@ -310,7 +372,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 ariaLabel={t('Tables')}
                 mode="multiple"
                 onChange={onTablesChange}
-                value={currentRule?.tables}
+                value={(currentRule?.tables as SelectValue[]) || []}
                 options={loadTableOptions}
               />
             </div>
@@ -323,50 +385,49 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 ariaLabel={t('Roles')}
                 mode="multiple"
                 onChange={onRolesChange}
-                value={currentRule?.roles}
+                value={(currentRule?.roles as SelectValue[]) || []}
                 options={loadRoleOptions}
               />
             </div>
           </StyledInputContainer>
-
           <StyledInputContainer>
-            <div className="control-label">{t('Group Key')}</div>
-            <div className="input-container">
-              <input
-                type="text"
-                name="group_key"
-                value={currentRule ? currentRule.group_key : ''}
-                onChange={onTextChange}
-              />
-            </div>
+            <LabeledErrorBoundInput
+              id="group_key"
+              name="group_key"
+              value={currentRule ? currentRule.group_key : ''}
+              validationMethods={{
+                onChange: ({ target }: { target: HTMLInputElement }) =>
+                  onTextChange(target),
+              }}
+              css={noBottomMargin}
+              label={t('Group Key')}
+              data-test="group-key-test"
+            />
           </StyledInputContainer>
 
           <StyledInputContainer>
-            <div className="control-label">
-              {t('Clause')}
-              <span className="required">*</span>
-            </div>
-            <div className="input-container">
-              <input
-                type="text"
-                name="clause"
-                value={currentRule ? currentRule.clause : ''}
-                onChange={onTextChange}
-              />
-            </div>
+            <LabeledErrorBoundInput
+              id="clause"
+              name="clause"
+              value={currentRule ? currentRule.clause : ''}
+              required
+              validationMethods={{
+                onChange: ({ target }: { target: HTMLInputElement }) =>
+                  onTextChange(target),
+              }}
+              css={noBottomMargin}
+              label={t('Clause')}
+              data-test="clause-test"
+            />
           </StyledInputContainer>
 
           <StyledInputContainer>
-            <div className="control-label">
-              {t('Description')}
-              <span className="required">*</span>
-            </div>
+            <div className="control-label">{t('Description')}</div>
             <div className="input-container">
-              <input
-                type="description"
+              <textarea
                 name="description"
                 value={currentRule ? currentRule.description : ''}
-                onChange={onTextChange}
+                onChange={event => onTextChange(event.target)}
               />
             </div>
           </StyledInputContainer>

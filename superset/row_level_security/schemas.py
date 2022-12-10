@@ -11,6 +11,8 @@ roles_description = "For regular filters, these are the roles this filter will b
 group_key_description = "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe')."
 clause_description = "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false)."
 
+get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
 
 class RLSPostSchema(Schema):
     name = fields.String(
