@@ -135,7 +135,6 @@ export enum ActionType {
   addTableCatalogSheet,
   configMethodChange,
   dbSelected,
-  driverChange,
   editorChange,
   extraEditorChange,
   extraInputChange,
@@ -180,6 +179,7 @@ export type DBReducerActionType =
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
         engine_information?: {};
+        driver?: string;
       };
     }
   | {
@@ -198,10 +198,6 @@ export type DBReducerActionType =
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
       };
-    }
-  | {
-      type: ActionType.driverChange;
-      payload: string;
     };
 
 const StyledBtns = styled.div`
@@ -424,12 +420,6 @@ export function dbReducer(
     case ActionType.configMethodChange:
       return {
         ...action.payload,
-      };
-
-    case ActionType.driverChange:
-      return {
-        ...trimmedState,
-        driver: action.payload,
       };
 
     case ActionType.reset:
@@ -753,7 +743,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const { engine, parameters, engine_information } = selectedDbModel;
+      const { engine, parameters, engine_information, default_driver } =
+        selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -764,6 +755,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine_information,
+          driver: default_driver,
         },
       });
 
@@ -1292,9 +1284,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         sslForced={sslForced}
         dbModel={dbModel}
         db={db as DatabaseObject}
-        setDatabaseDriver={(driver: string) => {
-          onChange(ActionType.driverChange, driver);
-        }}
         onParametersChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.parametersChange, {
             type: target.type,
@@ -1466,9 +1455,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
-              setDatabaseDriver={(driver: string) => {
-                onChange(ActionType.driverChange, driver);
-              }}
               onParametersChange={({ target }: { target: HTMLInputElement }) =>
                 onChange(ActionType.parametersChange, {
                   type: target.type,
@@ -1660,9 +1646,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   db={db}
                   sslForced={sslForced}
                   dbModel={dbModel}
-                  setDatabaseDriver={(driver: string) => {
-                    onChange(ActionType.driverChange, driver);
-                  }}
                   onAddTableCatalog={() => {
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
