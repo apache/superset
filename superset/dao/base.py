@@ -198,4 +198,4 @@ class BaseDAO:
                 db.session.commit()
         except SQLAlchemyError as ex:
             db.session.rollback()
-            raise DAOCreateFailedError(exception=ex) from ex
+            raise DAODeleteFailedError(exception=ex) from ex
