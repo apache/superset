@@ -44,16 +44,10 @@ class CreateRLSRuleCommand(BaseCommand):
 
     def validate(self) -> None:
         roles = security_manager.find_roles_by_id(self._properties.get("roles", []))
-
-        tables = []
-        for table_id in self._properties.get("tables", []):
-            table = (
-                db.session.query(SqlaTable)
-                .filter(SqlaTable.id == table_id)
-                .one_or_none()
-            )
-            if table:
-                tables.append(table)
-
+        tables = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.id.in_(self._properties.get("tables", [])))
+            .all()
+        )
         self._properties["roles"] = roles
         self._properties["tables"] = tables
