@@ -1786,4 +1786,34 @@ describe('dbReducer', () => {
       catalog: [],
     });
   });
+
+  test('it will add db information when one is selected', () => {
+    const { backend, ...db } = databaseFixture;
+    const action: DBReducerActionType = {
+      type: ActionType.dbSelected,
+      payload: {
+        engine_information: {
+          supports_file_upload: true,
+        },
+        ...db,
+        driver: db.driver,
+        engine: backend,
+      },
+    };
+    const currentState = dbReducer({}, action);
+
+    expect(currentState).toEqual({
+      database_name: db.database_name,
+      engine: backend,
+      configuration_method: db.configuration_method,
+      engine_information: {
+        supports_file_upload: true,
+      },
+      driver: db.driver,
+      expose_in_sqllab: true,
+      extra: '{"allows_virtual_table_explore":true}',
+      is_managed_externally: false,
+      name: 'PostgresDB',
+    });
+  });
 });
