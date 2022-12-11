@@ -454,7 +454,6 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def query_cost_formatter(
         cls, raw_cost: List[Dict[str, Any]]
     ) -> List[Dict[str, str]]:
-        print([{k: str(v) for k, v in row.items()} for row in raw_cost])
         return [{k: str(v) for k, v in row.items()} for row in raw_cost]
 
     @classmethod
