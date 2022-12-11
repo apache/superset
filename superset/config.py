@@ -473,7 +473,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "HORIZONTAL_FILTER_BAR": False,
     # The feature is off by default, and currently only supported in Presto and Postgres,
     # and Bigquery.
-    # It also need to be enabled on a per-database basis, by adding the key/value pair
+    # It also needs to be enabled on a per-database basis, by adding the key/value pair
     # `cost_estimate_enabled: true` to the database `extra` attribute.
     "ESTIMATE_QUERY_COST": False,
 }
