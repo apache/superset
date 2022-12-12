@@ -464,61 +464,58 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
         )
 
     with database.get_raw_connection(
-        schema=query.schema, 
-        source=QuerySource.SQL_LAB) as conn:
-            cursor = conn.cursor()
-            cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
-            if cancel_query_id is not None:
-                query.set_extra_json_key(cancel_query_key, cancel_query_id)
-                session.commit()
-            statement_count = len(statements)
-            for i, statement in enumerate(statements):
-                # Check if stopped
-                session.refresh(query)
-                if query.status == QueryStatus.STOPPED:
-                    payload.update({"status": query.status})
-                    return payload
+        schema=query.schema, source=QuerySource.SQL_LAB
+    ) as conn:
+        cursor = conn.cursor()
+        cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
+        if cancel_query_id is not None:
+            query.set_extra_json_key(cancel_query_key, cancel_query_id)
+            session.commit()
+        statement_count = len(statements)
+        for i, statement in enumerate(statements):
+            # Check if stopped
+            session.refresh(query)
+            if query.status == QueryStatus.STOPPED:
+                payload.update({"status": query.status})
+                return payload
 
-                # For CTAS we create the table only on the last statement
-                apply_ctas = query.select_as_cta and (
-                    query.ctas_method == CtasMethod.VIEW
-                    or (
-                        query.ctas_method == CtasMethod.TABLE
-                        and i == len(statements) - 1
-                    )
+            # For CTAS we create the table only on the last statement
+            apply_ctas = query.select_as_cta and (
+                query.ctas_method == CtasMethod.VIEW
+                or (query.ctas_method == CtasMethod.TABLE and i == len(statements) - 1)
+            )
+
+            # Run statement
+            msg = f"Running statement {i+1} out of {statement_count}"
+            logger.info("Query %s: %s", str(query_id), msg)
+            query.set_extra_json_key("progress", msg)
+            session.commit()
+            try:
+                result_set = execute_sql_statement(
+                    statement,
+                    query,
+                    session,
+                    cursor,
+                    log_params,
+                    apply_ctas,
                 )
+            except SqlLabQueryStoppedException:
+                payload.update({"status": QueryStatus.STOPPED})
+                return payload
+            except Exception as ex:  # pylint: disable=broad-except
+                msg = str(ex)
+                prefix_message = (
+                    f"[Statement {i+1} out of {statement_count}]"
+                    if statement_count > 1
+                    else ""
+                )
+                payload = handle_query_error(
+                    ex, query, session, payload, prefix_message
+                )
+                return payload
 
-                # Run statement
-                msg = f"Running statement {i+1} out of {statement_count}"
-                logger.info("Query %s: %s", str(query_id), msg)
-                query.set_extra_json_key("progress", msg)
-                session.commit()
-                try:
-                    result_set = execute_sql_statement(
-                        statement,
-                        query,
-                        session,
-                        cursor,
-                        log_params,
-                        apply_ctas,
-                    )
-                except SqlLabQueryStoppedException:
-                    payload.update({"status": QueryStatus.STOPPED})
-                    return payload
-                except Exception as ex:  # pylint: disable=broad-except
-                    msg = str(ex)
-                    prefix_message = (
-                        f"[Statement {i+1} out of {statement_count}]"
-                        if statement_count > 1
-                        else ""
-                    )
-                    payload = handle_query_error(
-                        ex, query, session, payload, prefix_message
-                    )
-                    return payload
-
-            # Commit the connection so CTA queries will create the table.
-            conn.commit()
+        # Commit the connection so CTA queries will create the table.
+        conn.commit()
 
     # Success, updating the query entry in database
     query.rows = result_set.size
@@ -624,9 +621,9 @@ def cancel_query(query: Query) -> bool:
         return False
 
     with query.database.get_raw_connection(
-        schema=query.schema, 
-        source=QuerySource.SQL_LAB) as conn:
-            with closing(conn.cursor()) as cursor:
-                return query.database.db_engine_spec.cancel_query(
-                    cursor, query, cancel_query_id
-                )
+        schema=query.schema, source=QuerySource.SQL_LAB
+    ) as conn:
+        with closing(conn.cursor()) as cursor:
+            return query.database.db_engine_spec.cancel_query(
+                cursor, query, cancel_query_id
+            )

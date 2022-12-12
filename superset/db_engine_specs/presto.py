@@ -22,7 +22,6 @@ import re
 import time
 from abc import ABCMeta
 from collections import defaultdict, deque
-from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
 from textwrap import dedent
@@ -1002,7 +1001,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             except DatabaseError:  # not a VIEW
                 return None
             rows = cls.fetch_data(cursor, 1)
-            
+
             return rows[0][0]
 
     @classmethod

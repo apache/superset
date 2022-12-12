@@ -18,7 +18,6 @@
 import json
 import logging
 import re
-from contextlib import closing
 from datetime import datetime
 from typing import (
     Any,
@@ -1300,9 +1299,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             cursor = conn.cursor()
             for statement in statements:
                 processed_statement = cls.process_statement(statement, database)
-                costs.append(
-                    cls.estimate_statement_cost(processed_statement, cursor)
-                )
+                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
 
         return costs
 

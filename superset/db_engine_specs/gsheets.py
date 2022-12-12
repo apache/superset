@@ -16,7 +16,6 @@
 # under the License.
 import json
 import re
-from contextlib import closing
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
 
 from apispec import APISpec
@@ -110,9 +109,9 @@ class GSheetsEngineSpec(SqliteEngineSpec):
         schema_name: Optional[str],
     ) -> Dict[str, Any]:
         with database.get_raw_connection(schema=schema_name) as conn:
-                cursor = conn.cursor()
-                cursor.execute(f'SELECT GET_METADATA("{table_name}")')
-                results = cursor.fetchone()[0]
+            cursor = conn.cursor()
+            cursor.execute(f'SELECT GET_METADATA("{table_name}")')
+            results = cursor.fetchone()[0]
         try:
             metadata = json.loads(results)
         except Exception:  # pylint: disable=broad-except
