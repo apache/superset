@@ -47,7 +47,7 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     )
     database: Database = relationship(
         "Database",
-        backref=backref("ssh_tunnels", cascade="all, delete-orphan"),
+        backref=backref("ssh_tunnels", uselist=False, cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
 
