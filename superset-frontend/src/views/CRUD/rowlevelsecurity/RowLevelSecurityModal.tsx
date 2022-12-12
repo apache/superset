@@ -32,12 +32,10 @@ import AsyncSelect from 'src/components/Select/AsyncSelect';
 import rison from 'rison';
 import { LabeledErrorBoundInput } from 'src/components/Form';
 import { noBottomMargin } from 'src/components/ReportModal/styles';
+import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from '../hooks';
 import { FilterOptions } from './constants';
 import { FilterType, MetaObject, RLSObject } from './types';
-import { IconTooltip } from 'src/components/IconTooltip';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
-import InfoTooltip from 'src/components/InfoTooltip';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
