@@ -284,8 +284,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if new_model.driver:
                 item["driver"] = new_model.driver
 
+            # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
                 item["ssh_tunnel"] = new_model.ssh_tunnel  # pylint: disable=no-member
+                item["ssh_tunnel"].pop("password", None)
+                item["ssh_tunnel"].pop("private_key_password", None)
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
@@ -368,6 +371,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
             if changed_model.parameters:
                 item["parameters"] = changed_model.parameters
+            # Return SSH Tunnel and hide passwords if any
+            if item.get("ssh_tunnel"):
+                item["ssh_tunnel"] = changed_model.ssh_tunnel
+                item["ssh_tunnel"].pop("password", None)
+                item["ssh_tunnel"].pop("private_key_password", None)
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()

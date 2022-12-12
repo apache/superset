@@ -106,10 +106,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 if existing_ssh_tunnel_model is None:
                     # We couldn't found an existing tunnel so we need to create one
                     try:
-                        ssh_tunnel = CreateSSHTunnelCommand(
-                            database.id, ssh_tunnel_properties
-                        ).run()
-                        database.mask_password_in_ssh_tunnel(ssh_tunnel)
+                        CreateSSHTunnelCommand(database.id, ssh_tunnel_properties).run()
                     except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
                         # So we can show the original message
                         raise ex
@@ -118,10 +115,9 @@ class UpdateDatabaseCommand(BaseCommand):
                 else:
                     # We found an existing tunnel so we need to update it
                     try:
-                        ssh_tunnel = UpdateSSHTunnelCommand(
+                        UpdateSSHTunnelCommand(
                             existing_ssh_tunnel_model.id, ssh_tunnel_properties
                         ).run()
-                        database.mask_password_in_ssh_tunnel(ssh_tunnel)
                     except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
                         # So we can show the original message
                         raise ex

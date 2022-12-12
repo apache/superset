@@ -84,7 +84,6 @@ class CreateDatabaseCommand(BaseCommand):
                     ssh_tunnel = CreateSSHTunnelCommand(
                         database.id, ssh_tunnel_properties
                     ).run()
-                    database.mask_password_in_ssh_tunnel(ssh_tunnel)
                 except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
                     event_logger.log_with_context(
                         action=f"db_creation_failed.{ex.__class__.__name__}",

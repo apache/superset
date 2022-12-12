@@ -350,19 +350,6 @@ class Database(
         conn = conn.set(password=PASSWORD_MASK if conn.password else None)
         self.sqlalchemy_uri = str(conn)  # hides the password
 
-    def mask_password_in_ssh_tunnel(self, ssh_tunnel: "SSHTunnel") -> None:
-        if ssh_tunnel.password is not None and ssh_tunnel.password != PASSWORD_MASK:
-            # Mask the real password with our password mask
-            self.ssh_tunnel["password"] = PASSWORD_MASK  # pylint: disable=no-member
-        if (
-            ssh_tunnel.private_key_password is not None
-            and ssh_tunnel.private_key_password != PASSWORD_MASK
-        ):
-            # Mask the real password with our password mask
-            self.ssh_tunnel[  # pylint: disable=no-member
-                "private_key_password"
-            ] = PASSWORD_MASK
-
     def get_effective_user(self, object_url: URL) -> Optional[str]:
         """
         Get the effective user, especially during impersonation.
