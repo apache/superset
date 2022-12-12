@@ -35,6 +35,9 @@ import { noBottomMargin } from 'src/components/ReportModal/styles';
 import { useSingleViewResource } from '../hooks';
 import { FilterOptions } from './constants';
 import { FilterType, MetaObject, RLSObject } from './types';
+import { IconTooltip } from 'src/components/IconTooltip';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import InfoTooltip from 'src/components/InfoTooltip';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
@@ -351,7 +354,14 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
           </StyledInputContainer>
 
           <StyledInputContainer>
-            <div className="control-label">{t('Filter Type')}</div>
+            <div className="control-label">
+              {t('Filter Type')}{' '}
+              <InfoTooltip
+                tooltip={t(
+                  'Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.',
+                )}
+              />
+            </div>
             <div className="input-container">
               <Select
                 name="filter_type"
@@ -365,7 +375,14 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
           </StyledInputContainer>
 
           <StyledInputContainer>
-            <div className="control-label">{t('Tables')}</div>
+            <div className="control-label">
+              {t('Tables')}{' '}
+              <InfoTooltip
+                tooltip={t(
+                  'These are the tables this filter will be applied to.',
+                )}
+              />
+            </div>
             <div className="input-container">
               <AsyncSelect
                 ariaLabel={t('Tables')}
@@ -378,7 +395,14 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
           </StyledInputContainer>
 
           <StyledInputContainer>
-            <div className="control-label">{t('Roles')}</div>
+            <div className="control-label">
+              {t('Roles')}{' '}
+              <InfoTooltip
+                tooltip={t(
+                  'For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.',
+                )}
+              />
+            </div>
             <div className="input-container">
               <AsyncSelect
                 ariaLabel={t('Roles')}
@@ -400,24 +424,34 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
               }}
               css={noBottomMargin}
               label={t('Group Key')}
+              hasTooltip
+              tooltipText={t(
+                `Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').`,
+              )}
               data-test="group-key-test"
             />
           </StyledInputContainer>
 
           <StyledInputContainer>
-            <LabeledErrorBoundInput
-              id="clause"
-              name="clause"
-              value={currentRule ? currentRule.clause : ''}
-              required
-              validationMethods={{
-                onChange: ({ target }: { target: HTMLInputElement }) =>
-                  onTextChange(target),
-              }}
-              css={noBottomMargin}
-              label={t('Clause')}
-              data-test="clause-test"
-            />
+            <div className="control-label">
+              <LabeledErrorBoundInput
+                id="clause"
+                name="clause"
+                value={currentRule ? currentRule.clause : ''}
+                required
+                validationMethods={{
+                  onChange: ({ target }: { target: HTMLInputElement }) =>
+                    onTextChange(target),
+                }}
+                css={noBottomMargin}
+                label={t('Clause')}
+                hasTooltip
+                tooltipText={t(
+                  'This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).',
+                )}
+                data-test="clause-test"
+              />
+            </div>
           </StyledInputContainer>
 
           <StyledInputContainer>

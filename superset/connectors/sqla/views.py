@@ -272,16 +272,6 @@ class SqlMetricInlineView(  # pylint: disable=too-many-ancestors
     edit_form_extra_fields = add_form_extra_fields
 
 
-class RowLevelSecurityListWidget(
-    SupersetListWidget
-):  # pylint: disable=too-few-public-methods
-    template = "superset/models/rls/list.html"
-
-    def __init__(self, **kwargs: Any):
-        kwargs["appbuilder"] = current_app.appbuilder
-        super().__init__(**kwargs)
-
-
 class RowLevelSecurityView(BaseSupersetView):
     route_base = "/rowlevelsecurity"
     class_permission_name = "RowLevelSecurity"

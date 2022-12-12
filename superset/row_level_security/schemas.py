@@ -19,8 +19,10 @@
 from marshmallow import fields, Schema
 from marshmallow.validate import Length, OneOf
 
+from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.utils.core import RowLevelSecurityFilterType
 
+id_description = "Unique if of rls filter"
 name_description = "Name of rls filter"
 description_description = "Detailed description"
 filter_type_description = "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them."
@@ -30,6 +32,55 @@ group_key_description = "Filters with the same group key will be ORed together w
 clause_description = "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false)."
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+
+
+class RolesSchema(Schema):
+    name = fields.String()
+    id = fields.Integer()
+
+
+class TablesSchema(Schema):
+    table_name = fields.String()
+    id = fields.Integer()
+
+
+class RLSListSchema(Schema):
+    id = fields.Integer(description=id_description)
+    name = fields.String(description=name_description)
+    filter_type = fields.String(
+        description=filter_type_description,
+        validate=OneOf(
+            [filter_type.value for filter_type in RowLevelSecurityFilterType]
+        ),
+    )
+    roles = fields.List(fields.Nested(RolesSchema))
+    tables = fields.List(fields.Nested(TablesSchema))
+    clause = fields.String(
+        description=clause_description, required=True, allow_none=False
+    )
+    changed_on_delta_humanized = fields.Function(
+        RowLevelSecurityFilter.created_on_delta_humanized
+    )
+    group_key = fields.String(description=group_key_description)
+    description = fields.String(description=description_description)
+
+
+class RLSShowSchema(Schema):
+    id = fields.Integer(description=id_description)
+    name = fields.String(description=name_description)
+    filter_type = fields.String(
+        description=filter_type_description,
+        validate=OneOf(
+            [filter_type.value for filter_type in RowLevelSecurityFilterType]
+        ),
+    )
+    roles = fields.List(fields.Nested(RolesSchema))
+    tables = fields.List(fields.Nested(TablesSchema))
+    clause = fields.String(
+        description=clause_description, required=True, allow_none=False
+    )
+    group_key = fields.String(description=group_key_description)
+    description = fields.String(description=description_description)
 
 
 class RLSPostSchema(Schema):

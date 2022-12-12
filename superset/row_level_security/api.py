@@ -36,8 +36,10 @@ from superset.row_level_security.commands.exceptions import RLSRuleNotFoundError
 from superset.row_level_security.commands.update import UpdateRLSRuleCommand
 from superset.row_level_security.schemas import (
     get_delete_ids_schema,
+    RLSListSchema,
     RLSPostSchema,
     RLSPutSchema,
+    RLSShowSchema,
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -66,10 +68,11 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "id",
         "name",
         "filter_type",
-        "tables",
-        "roles",
+        "tables.id",
+        "tables.table_name",
+        "roles.id",
+        "roles.name",
         "clause",
-        "creator",
         "changed_on_delta_humanized",
         "group_key",
     ]
@@ -105,6 +108,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
     )
     edit_columns = add_columns
 
+    show_model_schema = RLSShowSchema()
+    list_model_schema = RLSListSchema()
     add_model_schema = RLSPostSchema()
     edit_model_schema = RLSPutSchema()
 
