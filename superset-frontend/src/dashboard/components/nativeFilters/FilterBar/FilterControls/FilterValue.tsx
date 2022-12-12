@@ -319,4 +319,4 @@ const FilterValue: React.FC<FilterControlProps> = ({
     </StyledDiv>
   );
 };
-export default FilterValue;
+export default React.memo(FilterValue);
