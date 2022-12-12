@@ -150,7 +150,7 @@ export enum ActionType {
 interface DBReducerPayloadType {
   target?: string;
   name: string;
-  json?: {};
+  json?: string;
   type?: string;
   checked?: boolean;
   value?: string;
@@ -215,20 +215,28 @@ export function dbReducer(
   let query = {};
   let query_input = '';
   let parametersCatalog;
+  let actionPayloadJson;
   const extraJson: ExtraJson = JSON.parse(trimmedState.extra || '{}');
 
   switch (action.type) {
     case ActionType.extraEditorChange:
       // "extra" payload in state is a string
+      try {
+        // we don't want to stringify encoded strings twice
+        actionPayloadJson = JSON.parse(action.payload.json || '{}');
+      } catch (e) {
+        actionPayloadJson = action.payload.json;
+      }
       return {
         ...trimmedState,
         extra: JSON.stringify({
           ...extraJson,
-          [action.payload.name]: action.payload.json,
+          [action.payload.name]: actionPayloadJson,
         }),
       };
     case ActionType.extraInputChange:
       // "extra" payload in state is a string
+
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
