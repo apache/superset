@@ -25,12 +25,13 @@ import {
   within,
   cleanup,
   act,
+  waitFor,
 } from 'spec/helpers/testing-library';
-import * as hooks from 'src/views/CRUD/hooks';
 import {
   DatabaseObject,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import * as hooks from 'src/views/CRUD/hooks';
 import DatabaseModal, {
   dbReducer,
   DBReducerActionType,
@@ -47,6 +48,20 @@ const dbProps = {
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
 const VALIDATE_PARAMS_ENDPOINT = 'glob:*/api/v1/database/validate_parameters*';
+const DATABASE_CONNECT_ENDPOINT = 'glob:*/api/v1/database/';
+
+fetchMock.post(DATABASE_CONNECT_ENDPOINT, {
+  id: 10,
+  result: {
+    configuration_method: 'sqlalchemy_form',
+    database_name: 'Other2',
+    driver: 'apsw',
+    expose_in_sqllab: true,
+    extra: '{"allows_virtual_table_explore":true}',
+    sqlalchemy_uri: 'gsheets://',
+  },
+  json: 'foo',
+});
 
 fetchMock.config.overwriteRoutes = true;
 fetchMock.get(DATABASE_FETCH_ENDPOINT, {
@@ -1178,6 +1193,7 @@ describe('DatabaseModal', () => {
         const databaseNameField = textboxes[1];
         const usernameField = textboxes[2];
         const passwordField = textboxes[3];
+        const connectButton = screen.getByRole('button', { name: 'Connect' });
 
         expect(hostField).toHaveValue('');
         expect(portField).toHaveValue(null);
@@ -1198,19 +1214,10 @@ describe('DatabaseModal', () => {
         expect(usernameField).toHaveValue('testdb');
         expect(passwordField).toHaveValue('demoPassword');
 
-        /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
-
-        // Mock useSingleViewResource
-        const mockUseSingleViewResource = jest.fn();
-        mockUseSingleViewResource.mockImplementation(useSingleViewResource);
-
-        const { fetchResource } = mockUseSingleViewResource('database');
-
-        // Invalid hook call?
-        userEvent.click(screen.getByRole('button', { name: 'Connect' }));
-        expect(fetchResource).toHaveBeenCalled();
-
-        */
+        userEvent.click(connectButton);
+        await waitFor(() => {
+          expect(fetchMock.calls(VALIDATE_PARAMS_ENDPOINT).length).toEqual(6);
+        });
       });
     });
 
@@ -1325,23 +1332,6 @@ describe('DatabaseModal', () => {
       ...jest.requireActual('src/views/CRUD/hooks'),
       useSingleViewResource: jest.fn(),
     }));
-    const useSingleViewResourceMock = jest.spyOn(
-      hooks,
-      'useSingleViewResource',
-    );
-
-    useSingleViewResourceMock.mockReturnValue({
-      state: {
-        loading: false,
-        resource: null,
-        error: { _schema: 'Test Error With Object' },
-      },
-      fetchResource: jest.fn(),
-      createResource: jest.fn(),
-      updateResource: jest.fn(),
-      clearError: jest.fn(),
-      setResource: jest.fn(),
-    });
 
     const renderAndWait = async () => {
       const mounted = act(async () => {
@@ -1442,7 +1432,7 @@ describe('dbReducer', () => {
   test('it will set state to payload from extra editor', () => {
     const action: DBReducerActionType = {
       type: ActionType.extraEditorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     const currentState = dbReducer(databaseFixture, action);
     // extra should be serialized
@@ -1455,20 +1445,20 @@ describe('dbReducer', () => {
   test('it will set state to payload from editor', () => {
     const action: DBReducerActionType = {
       type: ActionType.editorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     const currentState = dbReducer(databaseFixture, action);
     // extra should be serialized
     expect(currentState).toEqual({
       ...databaseFixture,
-      foo: { bar: 1 },
+      foo: JSON.stringify({ bar: 1 }),
     });
   });
 
   test('it will add extra payload to existing extra data', () => {
     const action: DBReducerActionType = {
       type: ActionType.extraEditorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     // extra should be a string
     const currentState = dbReducer(
