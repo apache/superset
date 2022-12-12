@@ -510,28 +510,19 @@ class TestDatabaseApi(SupersetTestCase):
         if example_db.backend == "sqlite":
             return
         ssh_tunnel_properties = {
-            "server_address_failure": "123.132.123.1",
+            "server_address": "123.132.123.1",
         }
         database_data = {
             "database_name": "test-db-failure-ssh-tunnel",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "ssh_tunnel": ssh_tunnel_properties,
         }
-        fail_message = {
-            "message": {
-                "ssh_tunnel": {
-                    "server_address_failure": ["Unknown field."],
-                    "server_address": ["Missing data for required field."],
-                    "server_port": ["Missing data for required field."],
-                    "username": ["Missing data for required field."],
-                }
-            }
-        }
+        fail_message = {"message": "SSH Tunnel parameters are invalid."}
 
         uri = "api/v1/database/"
         rv = self.client.post(uri, json=database_data)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 400)
+        self.assertEqual(rv.status_code, 422)
         model_ssh_tunnel = (
             db.session.query(SSHTunnel)
             .filter(SSHTunnel.database_id == response.get("id"))

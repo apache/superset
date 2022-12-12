@@ -81,9 +81,7 @@ class CreateDatabaseCommand(BaseCommand):
                 try:
                     # So database.id is not None
                     db.session.flush()
-                    ssh_tunnel = CreateSSHTunnelCommand(
-                        database.id, ssh_tunnel_properties
-                    ).run()
+                    CreateSSHTunnelCommand(database.id, ssh_tunnel_properties).run()
                 except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
                     event_logger.log_with_context(
                         action=f"db_creation_failed.{ex.__class__.__name__}",
