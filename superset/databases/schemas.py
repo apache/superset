@@ -366,9 +366,6 @@ class DatabaseValidateParametersSchema(Schema):
 
 
 class DatabaseSSHTunnel(Schema):
-    id = fields.Integer()
-    database_id = fields.Integer()
-
     server_address = fields.String()
     server_port = fields.Integer()
     username = fields.String()
