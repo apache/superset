@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t, logging } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
 import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';
@@ -45,7 +45,7 @@ interface EditPageProps {
   id: string;
 }
 
-const TRANSLATED = {
+const TRANSLATiONS = {
   USAGE_TEXT: t('Usage'),
   COLUMNS_TEXT: t('Columns'),
   METRICS_TEXT: t('Metrics'),
@@ -64,20 +64,20 @@ const EditPage = ({ id }: EditPageProps) => {
         .then(({ json = {} }) => {
           setUsageCount(json.charts.count);
         })
-        .catch(err => console.log(err));
+        .catch(err => logging.log(err));
   }, [id]);
 
   const UsageTab = (
     <TabStyles>
-      <span>{TRANSLATED.USAGE_TEXT}</span>
+      <span>{TRANSLATiONS.USAGE_TEXT}</span>
       <Badge count={usageCount + 1} />
     </TabStyles>
   );
 
   return (
     <StyledTabs moreIcon={null} fullWidth={false}>
-      <Tabs.TabPane tab={TRANSLATED.COLUMNS_TEXT} key="1" />
-      <Tabs.TabPane tab={TRANSLATED.METRICS_TEXT} key="2" />
+      <Tabs.TabPane tab={TRANSLATiONS.COLUMNS_TEXT} key="1" />
+      <Tabs.TabPane tab={TRANSLATiONS.METRICS_TEXT} key="2" />
       <Tabs.TabPane tab={UsageTab} key="3" />
     </StyledTabs>
   );
