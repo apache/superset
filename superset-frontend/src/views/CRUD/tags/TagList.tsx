@@ -159,7 +159,6 @@ function TagList(props: TagListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        {/* fix icon name */}
                         <Icons.Trash data-test="dashboard-list-trash-icon" />
                       </span>
                     </Tooltip>

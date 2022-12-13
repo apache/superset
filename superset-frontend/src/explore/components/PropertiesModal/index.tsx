@@ -138,6 +138,41 @@ function PropertiesModal({
     [],
   );
 
+  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
+    // update the tags for this object
+    // add tags that are in new tags, but not in old tags
+    // eslint-disable-next-line array-callback-return
+    newTags.map((tag: TagType) => {
+      if (!oldTags.some(t => t.name === tag.name)) {
+        addTag(
+          {
+            objectType: OBJECT_TYPES.CHART,
+            objectId: slice.slice_id,
+            includeTypes: false,
+          },
+          tag.name,
+          () => {},
+          () => {},
+        );
+      }
+    });
+    // delete tags that are in old tags, but not in new tags
+    // eslint-disable-next-line array-callback-return
+    oldTags.map((tag: TagType) => {
+      if (!newTags.some(t => t.name === tag.name)) {
+        deleteTaggedObjects(
+          {
+            objectType: OBJECT_TYPES.CHART,
+            objectId: slice.slice_id,
+          },
+          tag,
+          () => {},
+          () => {},
+        );
+      }
+    });
+  };
+
   const onSubmit = async (values: {
     certified_by?: string;
     certification_details?: string;
@@ -181,8 +216,8 @@ function PropertiesModal({
             showError(error);
           },
         );
-      } catch (error: any) {
-        console.log(error);
+      } catch (error) {
+        showError(error);
       }
     }
 
@@ -236,45 +271,10 @@ function PropertiesModal({
           showError(error);
         },
       );
-    } catch (error: any) {
-      console.log(error);
+    } catch (error) {
+      showError(error);
     }
   }, [slice.slice_id]);
-
-  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
-    // update the tags for this object
-    // add tags that are in new tags, but not in old tags
-    // eslint-disable-next-line array-callback-return
-    newTags.map((tag: TagType) => {
-      if (!oldTags.some(t => t.name === tag.name)) {
-        addTag(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-            includeTypes: false,
-          },
-          tag.name,
-          () => {},
-          () => {},
-        );
-      }
-    });
-    // delete tags that are in old tags, but not in new tags
-    // eslint-disable-next-line array-callback-return
-    oldTags.map((tag: TagType) => {
-      if (!newTags.some(t => t.name === tag.name)) {
-        deleteTaggedObjects(
-          {
-            objectType: OBJECT_TYPES.CHART,
-            objectId: slice.slice_id,
-          },
-          tag,
-          () => {},
-          () => {},
-        );
-      }
-    });
-  };
 
   const handleChangeTags = (values: { label: string; value: number }[]) => {
     // triggered whenever a new tag is selected or a tag was deselected

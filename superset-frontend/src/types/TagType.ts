@@ -17,12 +17,14 @@
  * under the License.
  */
 
+import { MouseEventHandler } from 'react';
+
 export interface TagType {
   id?: string | number;
   type?: string | number;
   editable?: boolean;
-  onDelete?: any;
-  onClick?: any;
+  onDelete?: (index: number) => void;
+  onClick?: MouseEventHandler<HTMLSpanElement>;
   name: string;
   index?: number | undefined;
 }

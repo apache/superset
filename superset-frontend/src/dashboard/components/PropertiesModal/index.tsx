@@ -305,6 +305,41 @@ const PropertiesModal = ({
     setColorScheme(colorScheme);
   };
 
+  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
+    // update the tags for this object
+    // add tags that are in new tags, but not in old tags
+    // eslint-disable-next-line array-callback-return
+    newTags.map((tag: TagType) => {
+      if (!oldTags.some(t => t.name === tag.name)) {
+        addTag(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+            includeTypes: false,
+          },
+          tag.name,
+          () => {},
+          () => {},
+        );
+      }
+    });
+    // delete tags that are in old tags, but not in new tags
+    // eslint-disable-next-line array-callback-return
+    oldTags.map((tag: TagType) => {
+      if (!newTags.some(t => t.name === tag.name)) {
+        deleteTaggedObjects(
+          {
+            objectType: OBJECT_TYPES.DASHBOARD,
+            objectId: dashboardId,
+          },
+          tag,
+          () => {},
+          () => {},
+        );
+      }
+    });
+  };
+
   const onFinish = () => {
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
@@ -376,8 +411,8 @@ const PropertiesModal = ({
             handleErrorResponse(error);
           },
         );
-      } catch (error: any) {
-        console.log(error);
+      } catch (error) {
+        handleErrorResponse(error);
       }
     }
 
@@ -577,45 +612,10 @@ const PropertiesModal = ({
           addDangerToast(`Error fetching tags: ${error.text}`);
         },
       );
-    } catch (error: any) {
+    } catch (error) {
       handleErrorResponse(error);
     }
   }, [dashboardId]);
-
-  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
-    // update the tags for this object
-    // add tags that are in new tags, but not in old tags
-    // eslint-disable-next-line array-callback-return
-    newTags.map((tag: TagType) => {
-      if (!oldTags.some(t => t.name === tag.name)) {
-        addTag(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
-            includeTypes: false,
-          },
-          tag.name,
-          () => {},
-          () => {},
-        );
-      }
-    });
-    // delete tags that are in old tags, but not in new tags
-    // eslint-disable-next-line array-callback-return
-    oldTags.map((tag: TagType) => {
-      if (!newTags.some(t => t.name === tag.name)) {
-        deleteTaggedObjects(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
-          },
-          tag,
-          () => {},
-          () => {},
-        );
-      }
-    });
-  };
 
   const handleChangeTags = (values: { label: string; value: number }[]) => {
     // triggered whenever a new tag is selected or a tag was deselected

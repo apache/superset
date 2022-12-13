@@ -24,9 +24,9 @@ import Tag from './Tag';
 const mockedProps: TagType = {
   name: 'example-tag',
   id: 1,
-  onDelete: null,
+  onDelete: undefined,
   editable: false,
-  onClick: null,
+  onClick: undefined,
 };
 
 test('should render', () => {

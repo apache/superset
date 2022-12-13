@@ -18,8 +18,9 @@
  */
 import React, { useState, useEffect } from 'react';
 import moment from 'moment';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, logging } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { fetchObjects } from '../../../tags';
 import Loading from '../../../components/Loading';
 
@@ -58,6 +59,8 @@ interface AllEntitiesTableProps {
 export default function AllEntitiesTable({
   search = '',
 }: AllEntitiesTableProps) {
+  type objectType = 'dashboard' | 'chart' | 'query';
+
   const [objects, setObjects] = useState<TaggedObjects>({
     dashboard: [],
     chart: [],
@@ -75,15 +78,15 @@ export default function AllEntitiesTable({
         setObjects(objects);
       },
       (error: Response) => {
-        console.log(error.json());
+        addDangerToast('Error Fetching Tagged Objects');
+        logging.log(error.json());
       },
     );
   }, [search]);
 
-  const renderTable = (type: any) => {
+  const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
       [type]: <a href={o.url}>{o.name}</a>,
-      // eslint-disable-next-line react/no-danger
       modified: moment.utc(o.changed_on).fromNow(),
     }));
     return (

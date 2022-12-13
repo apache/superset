@@ -24,22 +24,24 @@ import React, { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 
 const StyledTag = styled(AntdTag)`
-  margin-top: ${({ theme }) => theme.gridUnit}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  ${({ theme }) => `
+  margin-top: ${theme.gridUnit}px; 
+  margin-bottom: ${theme.gridUnit}px; 
+  font-size: ${theme.typography.sizes.s}px;
+  `};
 `;
 
 const Tag = ({
   name,
   id,
   index = undefined,
-  onDelete = null,
+  onDelete = undefined,
   editable = false,
-  onClick = null,
+  onClick = undefined,
 }: TagType) => {
   const isLongTag = useMemo(() => name.length > 20, [name]);
 
-  const handleClose = () => (index ? onDelete(index) : null);
+  const handleClose = () => (index ? onDelete?.(index) : null);
 
   const tagElem = (
     <>

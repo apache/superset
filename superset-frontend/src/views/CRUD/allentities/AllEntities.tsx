@@ -17,37 +17,40 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled } from '@superset-ui/core';
+import { logging, styled, t } from '@superset-ui/core';
 import Tag from 'src/types/TagType';
 import { StringParam, useQueryParam } from 'use-query-params';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SelectControl from 'src/explore/components/controls/SelectControl';
 import { fetchSuggestions } from 'src/tags';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import AllEntitiesTable from './AllEntitiesTable';
 
 const AllEntitiesContainer = styled.div`
-  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  ${({ theme }) => `
+  background-color: ${theme.colors.grayscale.light4};
   .select-control {
-    margin-left: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-right: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-left: ${theme.gridUnit * 4}px;
+    margin-right: ${theme.gridUnit * 4}px;
+    margin-bottom: ${theme.gridUnit * 2}px;
   }
   .select-control-label {
     text-transform: uppercase;
-    font-size: ${({ theme }) => theme.gridUnit * 3}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    margin-bottom: ${({ theme }) => theme.gridUnit * 1}px;
-  }
+    font-size: ${theme.gridUnit * 3}px;
+    color: ${theme.colors.grayscale.base};
+    margin-bottom: ${theme.gridUnit * 1}px;
+  }`}
 `;
 
 const AllEntitiesNav = styled.div`
-  height: 50px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  ${({ theme }) => `
+  height: ${theme.gridUnit * 12.5}px;
+  background-color: ${theme.colors.grayscale.light5};
+  margin-bottom: ${theme.gridUnit * 4}px;
   .navbar-brand {
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-  }
+    margin-left: ${theme.gridUnit * 2}px;
+    font-weight: ${theme.typography.weights.bold};
+  }`};
 `;
 
 function AllEntities() {
@@ -62,7 +65,8 @@ function AllEntities() {
         setTagSuggestions(tagSuggestions);
       },
       (error: Response) => {
-        console.log(error.json());
+        logging.log(error.json());
+        addDangerToast(`Error Fetching Suggestions`);
       },
     );
   }, [tagsQuery]);
@@ -75,10 +79,10 @@ function AllEntities() {
   return (
     <AllEntitiesContainer>
       <AllEntitiesNav>
-        <span className="navbar-brand">All Entities</span>
+        <span className="navbar-brand">{t('All Entities')}</span>
       </AllEntitiesNav>
       <div className="select-control">
-        <div className="select-control-label">search by tags</div>
+        <div className="select-control-label">{t('search by tags')}</div>
         <SelectControl
           name="tags"
           value={tagsQuery ? tagsQuery.split(',') : ''}
