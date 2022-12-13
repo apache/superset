@@ -229,6 +229,9 @@ export function startQuery(query) {
 
 export function querySuccess(query, results) {
   return function (dispatch) {
+    if (!results.query) {
+      return false;
+    }
     const sync =
       !query.isDataPreview &&
       isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)

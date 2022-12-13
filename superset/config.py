@@ -1072,6 +1072,8 @@ TRACKING_URL_TRANSFORMER = lambda url: url
 
 # Interval between consecutive polls when using Hive Engine
 HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
+# Interval between consecutive polls when using Impala Engine
+IMPALA_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
 
 # Interval between consecutive polls when using Presto Engine
 # See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
