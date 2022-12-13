@@ -41,6 +41,8 @@ class DashboardDAO(BaseDAO):
 
     @staticmethod
     def get_by_id_or_slug(id_or_slug: Union[int, str]) -> Dashboard:
+        from superset import security_manager
+
         query = (
             db.session.query(Dashboard)
             .filter(id_or_slug_filter(id_or_slug))
@@ -56,6 +58,8 @@ class DashboardDAO(BaseDAO):
         dashboard = query.one_or_none()
         if not dashboard:
             raise DashboardNotFoundError()
+        # Check dashboard RBAC
+        security_manager.raise_for_dashboard_access(dashboard)
         return dashboard
 
     @staticmethod

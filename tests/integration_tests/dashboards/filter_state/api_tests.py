@@ -268,7 +268,7 @@ def test_put_not_owner(test_client, login_as, dashboard_id: int):
             "value": UPDATED_VALUE,
         },
     )
-    assert resp.status_code == 403
+    assert resp.status_code == 404
 
 
 def test_get_key_not_found(test_client, login_as_admin, dashboard_id: int):
@@ -314,4 +314,4 @@ def test_delete_access_denied(
 def test_delete_not_owner(test_client, login_as, dashboard_id: int):
     login_as("gamma")
     resp = test_client.delete(f"api/v1/dashboard/{dashboard_id}/filter_state/{KEY}")
-    assert resp.status_code == 403
+    assert resp.status_code == 404
