@@ -595,6 +595,12 @@ SCREENSHOT_SELENIUM_RETRIES = 5
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
+# Replace unexpected errors in screenshots with real error messages
+SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
+# Max time to wait for error message modal to show up, in seconds
+SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
+# Max time to wait for error message modal to close, in seconds
+SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 
 # ---------------------------------------------------
 # Image and file configuration
