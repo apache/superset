@@ -35,9 +35,9 @@ test('should render edit dataset view with tabs', async () => {
 
   const columnTab = await screen.findByRole('tab', { name: /columns/i });
   const metricsTab = screen.getByRole('tab', { name: /metrics/i });
-  const UsagesTab = screen.getByText(/usage/i);
+  const usageTab = screen.getByRole('tab', { name: /usage/i });
 
   expect(columnTab).toBeInTheDocument();
   expect(metricsTab).toBeInTheDocument();
-  expect(UsagesTab).toBeInTheDocument();
+  expect(usageTab).toBeInTheDocument();
 });
