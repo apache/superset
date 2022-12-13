@@ -31,8 +31,10 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
-_DEFAULT_DASHBOARD_KWARGS = {
+_DEFAULT_DASHBOARD_KWARGS: Dict[str, Any] = {
     "id": 1,
+    "dashboard_title": "My Title",
+    "slices": [{"id": 1, "slice_name": "My Chart"}],
     "position_json": '{"a": "b"}',
     "css": "background-color: lightblue;",
     "json_metadata": '{"c": "d"}',
@@ -68,14 +70,41 @@ def CUSTOM_CHART_FUNC(
             [ExecutorType.SELENIUM],
             False,
             False,
-            "0f94edd2d7dfd71724ce8236c05a6bf5",
+            "71452fee8ffbd8d340193d611bcd4559",
         ),
         (
             None,
             [ExecutorType.CURRENT_USER],
             True,
             False,
-            "6b05b0eff27796f266e538a26a155cf7",
+            "209dc060ac19271b8708731e3b8280f5",
+        ),
+        (
+            {
+                "id": 2,
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            "06a4144466dbd5ffad0c3c2225e96296",
+        ),
+        (
+            {
+                "dashboard_title": "My Other Title",
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            "209dc060ac19271b8708731e3b8280f5",
+        ),
+        (
+            {
+                "slices": [{"id": 2, "slice_name": "My Other Chart"}],
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            "a823ece9563895ccb14f3d9095e84f7a",
         ),
         (
             {
@@ -84,7 +113,7 @@ def CUSTOM_CHART_FUNC(
             [ExecutorType.CURRENT_USER],
             True,
             False,
-            "c9c06fd8058f8b1d3bb84e2699aaae0f",
+            "33c5475f92a904925ab3ef493526e5b5",
         ),
         (
             {
@@ -93,7 +122,7 @@ def CUSTOM_CHART_FUNC(
             [ExecutorType.CURRENT_USER],
             True,
             False,
-            "be15e84a631755e537bd2706beeae70a",
+            "cec57345e6402c0d4b3caee5cfaa0a03",
         ),
         (
             {
@@ -102,7 +131,7 @@ def CUSTOM_CHART_FUNC(
             [ExecutorType.CURRENT_USER],
             True,
             False,
-            "9996e1f6cf8ebbf2aebe2938a7d59a0e",
+            "5380dcbe94621a0759b09554404f3d02",
         ),
         (
             None,
@@ -129,13 +158,15 @@ def test_dashboard_digest(
 ) -> None:
     from superset import app
     from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
     from superset.thumbnails.digest import get_dashboard_digest
 
     kwargs = {
         **_DEFAULT_DASHBOARD_KWARGS,
         **(dashboard_overrides or {}),
     }
-    dashboard = Dashboard(**kwargs)
+    slices = [Slice(**slice_kwargs) for slice_kwargs in kwargs.pop("slices")]
+    dashboard = Dashboard(**kwargs, slices=slices)
     user: Optional[User] = None
     if has_current_user:
         user = User(id=1, username="1")

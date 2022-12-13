@@ -60,7 +60,8 @@ def get_dashboard_digest(dashboard: Dashboard) -> str:
         return func(dashboard, executor_type, executor)
 
     unique_string = (
-        f"{dashboard.position_json}.{dashboard.css}.{dashboard.json_metadata}"
+        f"{dashboard.id}\n{dashboard.charts}\n{dashboard.position_json}\n"
+        f"{dashboard.css}\n{dashboard.json_metadata}"
     )
 
     unique_string = _adjust_string_for_executor(unique_string, executor_type, executor)
