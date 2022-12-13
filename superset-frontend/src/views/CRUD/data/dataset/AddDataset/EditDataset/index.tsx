@@ -22,28 +22,34 @@ import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';
 
 const StyledTabs = styled(Tabs)`
-  margin-top: 34px;
-  padding-left: 16px;
-  // display: inline-block;
-  .ant-tabs-top > .ant-tabs-nav::before,
+  ${({ theme }) => `
+  margin-top: ${theme.gridUnit * 8.5}px;
+  padding-left: ${theme.gridUnit * 4}px;
+
   .ant-tabs-top > .ant-tabs-nav::before {
-    width: 200px;
+    width: ${theme.gridUnit * 50}px;
   }
-  .ant-tabs-nav-list > div:nth-last-child(2) {
-    // margin-right: 0px;
-  }
+  `}
 `;
 
 const TabStyles = styled.div`
+  ${({ theme }) => `
   .ant-badge {
-    width: 32px;
-    margin-left: 10px;
+    width: ${theme.gridUnit * 8}px;
+    margin-left: ${theme.gridUnit * 2.5}px;
   }
+  `}
 `;
 
 interface EditPageProps {
   id: string;
 }
+
+const TRANSLATED = {
+  USAGE_TEXT: t('Usage'),
+  COLUMNS_TEXT: t('Columns'),
+  METRICS_TEXT: t('Metrics'),
+};
 
 const EditPage = ({ id }: EditPageProps) => {
   const [usageCount, setUsageCount] = useState(0);
@@ -61,23 +67,19 @@ const EditPage = ({ id }: EditPageProps) => {
         .catch(err => console.log(err));
   }, [id]);
 
-  const Tab = (
+  const UsageTab = (
     <TabStyles>
-      <span>{t('Usage')}</span>
+      <span>{TRANSLATED.USAGE_TEXT}</span>
       <Badge count={usageCount + 1} />
     </TabStyles>
   );
 
   return (
-    <>
-      <StyledTabs moreIcon={null} fullWidth={false}>
-        <Tabs.TabPane tab={t('Columns')} key="1" />
-        <Tabs.TabPane tab={t('Metrics')} key="2" />
-        <Tabs.TabPane tab={Tab} key="3">
-          <div>placeholder</div>
-        </Tabs.TabPane>
-      </StyledTabs>
-    </>
+    <StyledTabs moreIcon={null} fullWidth={false}>
+      <Tabs.TabPane tab={TRANSLATED.COLUMNS_TEXT} key="1" />
+      <Tabs.TabPane tab={TRANSLATED.METRICS_TEXT} key="2" />
+      <Tabs.TabPane tab={UsageTab} key="3" />
+    </StyledTabs>
   );
 };
 
