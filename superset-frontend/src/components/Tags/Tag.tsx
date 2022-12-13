@@ -25,8 +25,8 @@ import { Tooltip } from 'src/components/Tooltip';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
-  margin-top: ${theme.gridUnit}px; 
-  margin-bottom: ${theme.gridUnit}px; 
+  margin-top: ${theme.gridUnit}px;
+  margin-bottom: ${theme.gridUnit}px;
   font-size: ${theme.typography.sizes.s}px;
   `};
 `;
