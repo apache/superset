@@ -19,8 +19,9 @@
 import urllib.request
 from io import BytesIO
 from unittest import skipUnless
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, call, MagicMock, patch
 
+import pytest
 from flask_testing import LiveServerTestCase
 from sqlalchemy.sql import func
 
@@ -30,7 +31,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_host, get_url_path
-from superset.utils.webdriver import WebDriverProxy
+from superset.utils.webdriver import find_unexpected_errors, WebDriverProxy
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.test_app import app
 
@@ -60,6 +61,71 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
                 f"api/v1/dashboard/{dashboard.id}/thumbnail/{dashboard.digest}/",
             )
             self.assertEqual(response.getcode(), 202)
+
+
+class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    @patch("superset.utils.webdriver.find_unexpected_errors")
+    def test_not_call_find_unexpected_errors_if_feature_disabled(
+        self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
+    ):
+        webdriver_proxy = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
+        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
+
+        assert not mock_find_unexpected_errors.called
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    @patch("superset.utils.webdriver.find_unexpected_errors")
+    def test_call_find_unexpected_errors_if_feature_enabled(
+        self, mock_find_unexpected_errors, mock_firefox, mock_webdriver_wait
+    ):
+        app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
+        webdriver_proxy = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
+        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
+
+        assert mock_find_unexpected_errors.called
+
+        app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = False
+
+    def test_find_unexpected_errors_no_alert(self):
+        webdriver = MagicMock()
+
+        webdriver.find_elements.return_value = []
+
+        unexpected_errors = find_unexpected_errors(driver=webdriver)
+        assert len(unexpected_errors) == 0
+
+        assert "alert" in webdriver.find_elements.call_args_list[0][0][1]
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    def test_find_unexpected_errors(self, mock_webdriver_wait):
+        webdriver = MagicMock()
+        alert_div = MagicMock()
+
+        webdriver.find_elements.return_value = [alert_div]
+        alert_div.find_elements.return_value = MagicMock()
+
+        unexpected_errors = find_unexpected_errors(driver=webdriver)
+        assert len(unexpected_errors) == 1
+
+        # attempt to find alerts
+        assert "alert" in webdriver.find_elements.call_args_list[0][0][1]
+        # attempt to click on "See more" buttons
+        assert "button" in alert_div.find_element.call_args_list[0][0][1]
+        # Wait for error modal to show up and to hide
+        assert 2 == len(mock_webdriver_wait.call_args_list)
+        # replace the text in alert div, eg, "unexpected errors"
+        assert alert_div == webdriver.execute_script.call_args_list[0][0][1]
 
 
 class TestWebDriverProxy(SupersetTestCase):
