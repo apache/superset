@@ -73,6 +73,14 @@ function Footer({
 
     return LOG_ACTIONS[value];
   };
+<<<<<<< HEAD
+=======
+  const goToPreviousUrl = (newurl = url) => {
+    // this is a placeholder url until the final feature gets implemented
+    // at that point we will be passing in the url of the previous location.
+    window.location.href = newurl;
+  };
+>>>>>>> 9dbecbebdd (Rebase and make usage tab accessible)
 
   const cancelButtonOnClick = () => {
     if (!datasetObject) {
