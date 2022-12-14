@@ -20,7 +20,6 @@ from typing import Any
 
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
-from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -43,8 +42,6 @@ from superset.row_level_security.schemas import (
 )
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
-    RelatedFieldFilter,
-    requires_form_data,
     requires_json,
     statsd_metrics,
 )
@@ -140,7 +137,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
           responses:
             201:
-              description: Report schedule added
+              description: RLS Rule added
               content:
                 application/json:
                   schema:
@@ -188,21 +185,27 @@ class RLSRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def put(self, pk: int) -> Response:
-        """Creates a new RLS rule
+        """Updates an RLS Rule
         ---
-        post:
+        put:
           description: >-
-            Create a new RLS Rule
+            Updates an RLS Rule
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The Rule pk
           requestBody:
             description: RLS schema
             required: true
             content:
               application/json:
                 schema:
-                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
           responses:
-            201:
-              description: Report schedule added
+            200:
+              description: Rule changed
               content:
                 application/json:
                   schema:
@@ -211,11 +214,13 @@ class RLSRestApi(BaseSupersetModelRestApi):
                       id:
                         type: number
                       result:
-                        $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+                        $ref: '#/components/schemas/{{self.__class__.__name__}}.put'
             400:
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -223,6 +228,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+
         try:
             item = self.edit_model_schema.load(request.json)
         except ValidationError as error:
@@ -233,7 +239,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except DAOCreateFailedError as ex:
             logger.error(
-                "Error creating RLS rule %s: %s",
+                "Error updating RLS rule %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,
@@ -252,11 +258,11 @@ class RLSRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Delete bulk Report Schedule layers
+        """Delete bulk RLS rules
         ---
         delete:
           description: >-
-            Deletes multiple report schedules in a bulk operation.
+            Deletes multiple RLS rules in a bulk operation.
           parameters:
           - in: query
             name: q
@@ -266,7 +272,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
                   $ref: '#/components/schemas/get_delete_ids_schema'
           responses:
             200:
-              description: Report Schedule bulk delete
+              description: RLS Rule bulk delete
               content:
                 application/json:
                   schema:
@@ -291,8 +297,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
             return self.response(
                 200,
                 message=ngettext(
-                    "Deleted %(num)d report schedule",
-                    "Deleted %(num)d report schedules",
+                    "Deleted %(num)d rules",
+                    "Deleted %(num)d rules",
                     num=len(item_ids),
                 ),
             )

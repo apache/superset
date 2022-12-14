@@ -55,9 +55,7 @@ class RLSListSchema(Schema):
     )
     roles = fields.List(fields.Nested(RolesSchema))
     tables = fields.List(fields.Nested(TablesSchema))
-    clause = fields.String(
-        description=clause_description, required=True, allow_none=False
-    )
+    clause = fields.String(description=clause_description)
     changed_on_delta_humanized = fields.Function(
         RowLevelSecurityFilter.created_on_delta_humanized
     )
@@ -76,9 +74,7 @@ class RLSShowSchema(Schema):
     )
     roles = fields.List(fields.Nested(RolesSchema))
     tables = fields.List(fields.Nested(TablesSchema))
-    clause = fields.String(
-        description=clause_description, required=True, allow_none=False
-    )
+    clause = fields.String(description=clause_description)
     group_key = fields.String(description=group_key_description)
     description = fields.String(description=description_description)
 
@@ -106,6 +102,7 @@ class RLSPostSchema(Schema):
         description=tables_description,
         required=True,
         allow_none=False,
+        validate=Length(1),
     )
     roles = fields.List(
         fields.Integer(), description=roles_description, required=True, allow_none=False

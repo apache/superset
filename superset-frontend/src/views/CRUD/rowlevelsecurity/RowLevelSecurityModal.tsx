@@ -93,8 +93,9 @@ const StyledInputContainer = styled.div`
     resize: none;
   }
 
-  .labled-input {
-    margin-bottom: 0px;
+  .required {
+    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
+    color: ${({ theme }) => theme.colors.error.base};
   }
 `;
 
@@ -189,7 +190,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   const currentRuleSafe = currentRule || {};
   useEffect(() => {
     validate();
-  }, [currentRuleSafe.name, currentRuleSafe.clause]);
+  }, [currentRuleSafe.name, currentRuleSafe.clause, currentRuleSafe?.tables]);
 
   // * event handlers *
   type SelectValue = {
@@ -303,7 +304,11 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
   // * state validators *
   const validate = () => {
-    if (currentRule?.name && currentRule?.clause) {
+    if (
+      currentRule?.name &&
+      currentRule?.clause &&
+      currentRule.tables?.length
+    ) {
       setDisableSave(false);
     } else {
       setDisableSave(true);
@@ -374,7 +379,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
 
           <StyledInputContainer>
             <div className="control-label">
-              {t('Tables')}{' '}
+              {t('Tables')} <span className="required">*</span>
               <InfoTooltip
                 tooltip={t(
                   'These are the tables this filter will be applied to.',

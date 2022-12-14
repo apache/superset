@@ -21,14 +21,11 @@ from typing import List, Optional
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
-from superset.exceptions import SupersetSecurityException
-from superset.reports.commands.exceptions import (
-    ReportScheduleBulkDeleteFailedError,
-    ReportScheduleForbiddenError,
-    ReportScheduleNotFoundError,
-)
-from superset.reports.dao import ReportScheduleDAO
 from superset.reports.models import ReportSchedule
+from superset.row_level_security.commands.exceptions import (
+    RLSRuleNotFoundError,
+    RuleBulkDeleteFailedError,
+)
 from superset.row_level_security.dao import RLSDAO
 
 logger = logging.getLogger(__name__)
@@ -46,10 +43,10 @@ class BulkDeleteRLSRuleCommand(BaseCommand):
             return None
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)
-            raise ReportScheduleBulkDeleteFailedError() from ex
+            raise RuleBulkDeleteFailedError() from ex
 
     def validate(self) -> None:
         # Validate/populate model exists
         self._models = RLSDAO.find_by_ids(self._model_ids)
         if not self._models or len(self._models) != len(self._model_ids):
-            raise ReportScheduleNotFoundError()
+            raise RLSRuleNotFoundError()

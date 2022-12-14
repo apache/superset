@@ -17,9 +17,13 @@
 
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CommandException
+from superset.commands.exceptions import CommandException, DeleteFailedError
 
 
 class RLSRuleNotFoundError(CommandException):
     status = 404
     message = _("RLS Rule not found.")
+
+
+class RuleBulkDeleteFailedError(DeleteFailedError):
+    message = _("Report Schedule could not be deleted.")

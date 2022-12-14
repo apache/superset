@@ -21,13 +21,16 @@ from unittest import mock
 
 import pytest
 from flask import g
+import json
 
-from superset import db, security_manager
+from superset import db, security_manager, app
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.security.guest_token import (
     GuestTokenResourceType,
     GuestUser,
 )
+from flask_appbuilder.models.sqla import filters
+from ..conftest import with_config
 from ..base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -38,6 +41,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,
 )
 from tests.integration_tests.fixtures.unicode_dashboard import (
+    UNICODE_TBL_NAME,
     load_unicode_dashboard_with_slice,
     load_unicode_data,
 )
@@ -174,19 +178,18 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.login(username="admin")
         test_dataset = self._get_test_dataset()
         rv = self.client.post(
-            "/rowlevelsecurityfiltersmodelview/add",
-            data=dict(
-                name="rls1",
-                description="Some description",
-                filter_type="Regular",
-                tables=[test_dataset.id],
-                roles=[security_manager.find_role("Alpha").id],
-                group_key="group_key_1",
-                clause="client_id=1",
-            ),
-            follow_redirects=True,
+            "/api/v1/rowlevelsecurity/",
+            json={
+                "name": "rls1",
+                "description": "Some description",
+                "filter_type": "Regular",
+                "tables": [test_dataset.id],
+                "roles": [security_manager.find_role("Alpha").id],
+                "group_key": "group_key_1",
+                "clause": "client_id=1",
+            },
         )
-        self.assertEqual(rv.status_code, 200)
+        self.assertEqual(rv.status_code, 201)
         rls1 = (
             db.session.query(RowLevelSecurityFilter).filter_by(name="rls1")
         ).one_or_none()
@@ -201,41 +204,39 @@ class TestRowLevelSecurity(SupersetTestCase):
         self.login(username="admin")
         test_dataset = self._get_test_dataset()
         rv = self.client.post(
-            "/rowlevelsecurityfiltersmodelview/add",
-            data=dict(
-                name="rls_entry1",
-                description="Some description",
-                filter_type="Regular",
-                tables=[test_dataset.id],
-                roles=[security_manager.find_role("Alpha").id],
-                group_key="group_key_1",
-                clause="client_id=1",
-            ),
-            follow_redirects=True,
+            "/api/v1/rowlevelsecurity/",
+            json={
+                "name": "rls_entry1",
+                "description": "Some description",
+                "filter_type": "Regular",
+                "tables": [test_dataset.id],
+                "roles": [security_manager.find_role("Alpha").id],
+                "group_key": "group_key_1",
+                "clause": "client_id=1",
+            },
         )
-        self.assertEqual(rv.status_code, 200)
-        data = rv.data.decode("utf-8")
-        assert "Already exists." in data
+        self.assertEqual(rv.status_code, 422)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "Create failed" in data["message"]
 
     @pytest.mark.usefixtures("create_dataset")
     def test_model_view_rls_add_tables_required(self):
         self.login(username="admin")
         rv = self.client.post(
-            "/rowlevelsecurityfiltersmodelview/add",
-            data=dict(
-                name="rls1",
-                description="Some description",
-                filter_type="Regular",
-                tables=[],
-                roles=[security_manager.find_role("Alpha").id],
-                group_key="group_key_1",
-                clause="client_id=1",
-            ),
-            follow_redirects=True,
+            "/api/v1/rowlevelsecurity/",
+            json={
+                "name": "rls1",
+                "description": "Some description",
+                "filter_type": "Regular",
+                "tables": [],
+                "roles": [security_manager.find_role("Alpha").id],
+                "group_key": "group_key_1",
+                "clause": "client_id=1",
+            },
         )
-        self.assertEqual(rv.status_code, 200)
-        data = rv.data.decode("utf-8")
-        assert "This field is required." in data
+        self.assertEqual(rv.status_code, 400)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["message"] == {"tables": ["Shorter than minimum length 1."]}
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_rls_filter_alters_energy_query(self):
@@ -302,6 +303,37 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.NAMES_B_REGEX.search(sql)
         assert not self.NAMES_Q_REGEX.search(sql)
         assert not self.BASE_FILTER_REGEX.search(sql)
+
+
+class TestRowLevelSecurityWithRelatedFilters(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_data")
+    @pytest.mark.usefixtures("load_energy_table_data")
+    def test_rls_tables_related_api(self):
+        self.login("Admin")
+        rv = self.client.get("/api/v1/rowlevelsecurity/related/tables")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+
+        assert data["count"] == 3
+        assert len(result) == 3
+        assert UNICODE_TBL_NAME in result[0]["text"]
+        assert "energy_usage" in result[1]["text"]
+        assert "birth_names" in result[2]["text"]
+
+    def test_rls_roles_related_api(self):
+        self.login("Admin")
+        rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+
+        db_role_names = set([r.name for r in security_manager.get_all_roles()])
+        received_roles = set([role["text"] for role in result])
+
+        assert data["count"] == len(db_role_names)
+        assert len(result) == len(db_role_names)
+        assert db_role_names == received_roles
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")

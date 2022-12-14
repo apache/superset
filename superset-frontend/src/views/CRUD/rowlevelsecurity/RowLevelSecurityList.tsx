@@ -240,7 +240,7 @@ function RowLevelSecurityList(props: RLSProps) {
     buttonAction: () => handleRuleEdit(null),
     buttonText: canEdit ? (
       <>
-        <i className="fa fa-plus" /> {'Rule'}{' '}
+        <i className="fa fa-plus" data-test="add-rule-empty" /> {'Rule'}{' '}
       </>
     ) : null,
   };
@@ -286,7 +286,7 @@ function RowLevelSecurityList(props: RLSProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Rule')}
+          <i className="fa fa-plus" data-test="add-rule" /> {t('Rule')}
         </>
       ),
       buttonStyle: 'primary',
