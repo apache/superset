@@ -25,16 +25,15 @@ import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 interface SafeMarkdownProps {
   source: string;
+  htmlSanitization?: boolean;
+  htmlSchemaOverrides?: typeof defaultSchema;
 }
 
-function SafeMarkdown({ source }: SafeMarkdownProps) {
-  const appContainer = document.getElementById('app');
-  const { common } = JSON.parse(
-    appContainer?.getAttribute('data-bootstrap') || '{}',
-  );
-  const htmlSanitization: boolean = common?.conf?.HTML_SANITIZATION ?? true;
-  const htmlSchemaOverrides: typeof defaultSchema =
-    common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
+function SafeMarkdown({
+  source,
+  htmlSanitization = true,
+  htmlSchemaOverrides = {},
+}: SafeMarkdownProps) {
   const displayHtml = isFeatureEnabled(FeatureFlag.DISPLAY_MARKDOWN_HTML);
   const escapeHtml = isFeatureEnabled(FeatureFlag.ESCAPE_MARKDOWN_HTML);
 
