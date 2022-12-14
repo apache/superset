@@ -492,20 +492,17 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 #                          FIREWALL (only port 22 is open)
 
 # ----------------------------------------------------------------------
-class SSHManager:
-    def mutator(self, ssh_tunnel_params: Dict[str, Any]) -> Dict[str, Any]:
+class SSHManager:  # pylint: disable=too-few-public-methods
+    local_bind_address = "127.0.0.1"
+
+    def mutator(  # pylint: disable=no-self-use
+        self, ssh_tunnel_params: Dict[str, Any]
+    ) -> Dict[str, Any]:
         # override any ssh tunnel configuration object
         return ssh_tunnel_params
 
-    @property
-    def local_bind_address(self):
-        # set the local binding address for the local client
-        # the port will be dynamically configured by the sshtunnel.SSHTunnelForwarder
-        # `server` return value
-        return "127.0.0.1"
 
-
-SSH_TUNNEL_MANAGER = SSHManager
+SSH_TUNNEL_MANAGER = SSHManager  # pylint: disable=invalid-name
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -1496,7 +1493,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type:ignore
+        from superset_config import *  # type: ignore
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
