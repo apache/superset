@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
 
-from superset import app, is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (

@@ -21,7 +21,6 @@ from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (
@@ -36,9 +35,6 @@ logger = logging.getLogger(__name__)
 
 
 class CreateSSHTunnelCommand(BaseCommand):
-    def __str__(self) -> str:
-        return super().__str__()
-
     def __init__(self, database_id: int, data: Dict[str, Any]):
         self._properties = data.copy()
         self._properties["database_id"] = database_id

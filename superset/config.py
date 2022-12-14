@@ -492,24 +492,20 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 #                          FIREWALL (only port 22 is open)
 
 # ----------------------------------------------------------------------
-# class SSHManager:
-#      def validate(self, ssh_tunnel_params: Dict[str, Any]) -> None:
-#          # validation on CREATE + UPDATE on SSHTunnel Model
-#          # to block a request this function most raise an exception
-#          raise NotImplemented()
+class SSHManager:
+    def mutator(self, ssh_tunnel_params: Dict[str, Any]) -> Dict[str, Any]:
+        # override any ssh tunnel configuration object
+        return ssh_tunnel_params
 
-#      def mutator(self, ssh_tunnel_params: Dict[str, Any]) -> Dict[str, Any]:
-#          # override any ssh tunnel configuration object
-#          raise NotImplemented()
+    @property
+    def local_bind_address(self):
+        # set the local binding address for the local client
+        # the port will be dynamically configured by the sshtunnel.SSHTunnelForwarder
+        # `server` return value
+        return "127.0.0.1"
 
-#      @property
-#      def local_bind_address(self):
-#          # set the local binding address for the local client
-#          # the port will be dynamically configured by the sshtunnel.SSHTunnelForwarder
-#         # `server` return value
-#         return "127.0.0.1"
 
-SSH_TUNNEL_MANAGER = None
+SSH_TUNNEL_MANAGER = SSHManager()
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
