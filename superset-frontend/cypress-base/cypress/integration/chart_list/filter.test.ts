@@ -50,7 +50,7 @@ describe('Charts filters', () => {
     });
 
     it('should filter by viz type correctly', () => {
-      setFilter('Chart type', 'Area Chart');
+      setFilter('Chart type', 'Area Chart (legacy)');
       cy.getBySel('styled-card').should('have.length', 3);
       setFilter('Chart type', 'Bubble Chart');
       cy.getBySel('styled-card').should('have.length', 2);
@@ -91,7 +91,7 @@ describe('Charts filters', () => {
     });
 
     it('should filter by viz type correctly', () => {
-      setFilter('Chart type', 'Area Chart');
+      setFilter('Chart type', 'Area Chart (legacy)');
       cy.getBySel('table-row').should('have.length', 3);
       setFilter('Chart type', 'Bubble Chart');
       cy.getBySel('table-row').should('have.length', 2);

@@ -16,22 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+export interface BooleanCellProps {
+  value?: boolean;
+}
 
-const enableCrossFilter = isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS);
+function BooleanCell({ value }: BooleanCellProps) {
+  return <span>{value ? BOOL_TRUE_DISPLAY : BOOL_FALSE_DISPLAY}</span>;
+}
 
-export const emitFilterControl = enableCrossFilter
-  ? [
-      {
-        name: 'emit_filter',
-        config: {
-          type: 'CheckboxControl',
-          label: t('Enable dashboard cross filters'),
-          default: false,
-          renderTrigger: true,
-          description: t('Enable dashboard cross filters'),
-        },
-      },
-    ]
-  : [];
+export default BooleanCell;

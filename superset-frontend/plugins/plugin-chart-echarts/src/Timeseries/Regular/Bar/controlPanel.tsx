@@ -41,7 +41,6 @@ import {
 const {
   logAxis,
   minorSplitLine,
-  rowLimit,
   truncateYAxis,
   yAxisBounds,
   zoomable,
@@ -260,7 +259,7 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
 const config: ControlPanelConfig = {
   controlPanelSections: [
     sections.genericTime,
-    sections.echartsTimeSeriesQuery,
+    sections.echartsTimeSeriesQueryWithXAxisSort,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -324,40 +323,6 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
-  controlOverrides: {
-    row_limit: {
-      default: rowLimit,
-    },
-    limit: {
-      rerender: ['timeseries_limit_metric', 'order_desc'],
-    },
-    timeseries_limit_metric: {
-      label: t('Series Limit Sort By'),
-      description: t(
-        'Metric used to order the limit if a series limit is present. ' +
-          'If undefined reverts to the first metric (where appropriate).',
-      ),
-      visibility: ({ controls }) => Boolean(controls?.limit.value),
-      mapStateToProps: (state, controlState) => {
-        const timeserieslimitProps =
-          sharedControls.timeseries_limit_metric.mapStateToProps?.(
-            state,
-            controlState,
-          ) || {};
-        timeserieslimitProps.value = state.controls?.limit?.value
-          ? controlState?.value
-          : [];
-        return timeserieslimitProps;
-      },
-    },
-    order_desc: {
-      label: t('Series Limit Sort Descending'),
-      default: false,
-      description: t(
-        'Whether to sort descending or ascending if a series limit is present',
-      ),
-    },
-  },
   formDataOverrides: formData => ({
     ...formData,
     metrics: getStandardizedControls().popAllMetrics(),

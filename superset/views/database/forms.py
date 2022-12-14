@@ -146,11 +146,19 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
     )
-    delimiter = StringField(
+    delimiter = SelectField(
         _("Delimiter"),
         description=_("Enter a delimiter for this data"),
+        choices=[
+            (",", _(",")),
+            (".", _(".")),
+            ("other", _("Other")),
+        ],
         validators=[DataRequired()],
-        widget=BS3TextFieldWidget(),
+        default=[","],
+    )
+    otherInput = StringField(
+        _("Other"),
     )
     if_exists = SelectField(
         _("If Table Already Exists"),
@@ -293,7 +301,7 @@ class ExcelToDatabaseForm(UploadToDatabaseForm):
         widget=BS3TextFieldWidget(),
     )
 
-    con = QuerySelectField(
+    database = QuerySelectField(
         _("Database"),
         query_factory=UploadToDatabaseForm.file_allowed_dbs,
         get_pk=lambda a: a.id,
@@ -424,7 +432,7 @@ class ColumnarToDatabaseForm(UploadToDatabaseForm):
         ],
     )
 
-    con = QuerySelectField(
+    database = QuerySelectField(
         _("Database"),
         query_factory=UploadToDatabaseForm.file_allowed_dbs,
         get_pk=lambda a: a.id,

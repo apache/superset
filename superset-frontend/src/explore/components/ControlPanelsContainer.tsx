@@ -266,6 +266,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const prevState = usePrevious(props.exploreState);
   const prevDatasource = usePrevious(props.exploreState.datasource);
+  const prevChartStatus = usePrevious(props.chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
 
@@ -277,40 +278,45 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   >(state => state.explore.controlsTransferred);
 
   useEffect(() => {
+    let shouldUpdateControls = false;
     const removeDatasourceWarningFromControl = (
       value: JsonValue | undefined,
     ) => {
       if (
         typeof value === 'object' &&
         isDefined(value) &&
-        'datasourceWarning' in value
+        'datasourceWarning' in value &&
+        value.datasourceWarning === true
       ) {
+        shouldUpdateControls = true;
         return { ...value, datasourceWarning: false };
       }
       return value;
     };
-    if (props.chart.chartStatus === 'success') {
+    if (
+      props.chart.chartStatus === 'success' &&
+      prevChartStatus !== 'success'
+    ) {
       controlsTransferred?.forEach(controlName => {
+        shouldUpdateControls = false;
         if (!isDefined(props.controls[controlName])) {
           return;
         }
-        if (Array.isArray(props.controls[controlName].value)) {
-          const alteredControls = ensureIsArray(
-            props.controls[controlName].value,
-          )?.map(removeDatasourceWarningFromControl);
-          props.actions.setControlValue(controlName, alteredControls);
-        } else {
-          props.actions.setControlValue(
-            controlName,
-            removeDatasourceWarningFromControl(
+        const alteredControls = Array.isArray(props.controls[controlName].value)
+          ? ensureIsArray(props.controls[controlName].value)?.map(
+              removeDatasourceWarningFromControl,
+            )
+          : removeDatasourceWarningFromControl(
               props.controls[controlName].value,
-            ),
-          );
+            );
+        if (shouldUpdateControls) {
+          props.actions.setControlValue(controlName, alteredControls);
         }
       });
     }
   }, [
     controlsTransferred,
+    prevChartStatus,
     props.actions,
     props.chart.chartStatus,
     props.controls,

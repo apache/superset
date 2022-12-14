@@ -96,7 +96,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          hasGenericChartAxes ? 'datetime_columns_lookup' : null,
+          hasGenericChartAxes ? 'temporal_columns_lookup' : null,
         ],
         [
           {

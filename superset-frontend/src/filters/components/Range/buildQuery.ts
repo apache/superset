@@ -45,7 +45,6 @@ export default function buildQuery(formData: QueryFormData) {
     {
       ...baseQueryObject,
       columns: [],
-      groupby: [],
       metrics: [
         {
           aggregate: 'MIN',

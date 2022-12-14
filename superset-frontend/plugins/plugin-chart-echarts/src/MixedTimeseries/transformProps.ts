@@ -80,7 +80,7 @@ import {
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
 import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
@@ -425,9 +425,8 @@ export default function transformProps(
       },
     ],
     tooltip: {
-      position: getDefaultPosition(refs),
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
-      appendToBody: true,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const xValue: number = richTooltip

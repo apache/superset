@@ -44,7 +44,7 @@ import {
 } from '../utils/series';
 import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
-import { getDefaultPosition } from '../utils/tooltip';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export function formatLabel({
   params,
@@ -232,7 +232,7 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      position: getDefaultPosition(refs),
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
     },
