@@ -43,10 +43,10 @@ from superset import db, is_feature_enabled, security_manager
 from superset.legacy import update_time_range
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.tasks.thumbnails import cache_chart_thumbnail
+from superset.tasks.utils import get_current_user
+from superset.thumbnails.digest import get_chart_digest
 from superset.utils import core as utils
-from superset.utils.hashing import md5_sha_from_str
 from superset.utils.memoized import memoized
-from superset.utils.urls import get_url_path
 from superset.viz import BaseViz, viz_types
 
 if TYPE_CHECKING:
@@ -234,10 +234,7 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def digest(self) -> str:
-        """
-        Returns a MD5 HEX digest that makes this dashboard unique
-        """
-        return md5_sha_from_str(self.params or "")
+        return get_chart_digest(self)
 
     @property
     def thumbnail_url(self) -> str:
@@ -344,6 +341,11 @@ class Slice(  # pylint: disable=too-many-public-methods
             self.query_context_factory = QueryContextFactory()
         return self.query_context_factory
 
+    @classmethod
+    def get(cls, id_: int) -> Slice:
+        qry = db.session.query(Slice).filter_by(id=id_)
+        return qry.one_or_none()
+
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
     src_class = target.cls_model
@@ -358,8 +360,11 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
 def event_after_chart_changed(
     _mapper: Mapper, _connection: Connection, target: Slice
 ) -> None:
-    url = get_url_path("Superset.slice", slice_id=target.id, standalone="true")
-    cache_chart_thumbnail.delay(url, target.digest, force=True)
+    cache_chart_thumbnail.delay(
+        current_user=get_current_user(),
+        chart_id=target.id,
+        force=True,
+    )
 
 
 sqla.event.listen(Slice, "before_insert", set_related_perm)
