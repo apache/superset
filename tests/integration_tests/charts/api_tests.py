@@ -1315,9 +1315,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         chart.owners = []
         dataset.owners = []
-        database.owners = []
         db.session.delete(chart)
+        db.session.commit()
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 
@@ -1387,9 +1388,10 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
 
         chart.owners = []
         dataset.owners = []
-        database.owners = []
         db.session.delete(chart)
+        db.session.commit()
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 

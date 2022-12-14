@@ -423,11 +423,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                 remote_id=eager_datasource.id,
                 database_name=eager_datasource.database.name,
             )
-            datasource_class = copied_datasource.__class__
-            for field_name in datasource_class.export_children:
-                field_val = getattr(eager_datasource, field_name).copy()
-                # set children without creating ORM relations
-                copied_datasource.__dict__[field_name] = field_val
             eager_datasources.append(copied_datasource)
 
         return json.dumps(
