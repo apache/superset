@@ -22,7 +22,6 @@ from typing import Any, Dict, List, Optional, Union
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
 from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.filters import DashboardAccessFilter
