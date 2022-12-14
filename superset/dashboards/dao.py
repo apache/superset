@@ -57,8 +57,6 @@ class DashboardDAO(BaseDAO):
         dashboard = query.one_or_none()
         if not dashboard:
             raise DashboardNotFoundError()
-        # Check dashboard RBAC
-        security_manager.raise_for_dashboard_access(dashboard)
         return dashboard
 
     @staticmethod
