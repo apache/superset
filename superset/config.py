@@ -505,7 +505,7 @@ class SSHManager:
         return "127.0.0.1"
 
 
-SSH_TUNNEL_MANAGER = SSHManager()
+SSH_TUNNEL_MANAGER = SSHManager
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
