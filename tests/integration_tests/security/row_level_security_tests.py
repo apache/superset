@@ -22,6 +22,7 @@ from unittest import mock
 import pytest
 from flask import g
 import json
+import prison
 
 from superset import db, security_manager, app
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
@@ -310,20 +311,28 @@ class TestRowLevelSecurityWithRelatedFilters(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_data")
     def test_rls_tables_related_api(self):
         self.login("Admin")
-        rv = self.client.get("/api/v1/rowlevelsecurity/related/tables")
+
+        params = prison.dumps({"page": 0, "page_size": 100})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
 
-        assert data["count"] == 3
-        assert len(result) == 3
-        assert UNICODE_TBL_NAME in result[0]["text"]
-        assert "energy_usage" in result[1]["text"]
-        assert "birth_names" in result[2]["text"]
+        db_tables = db.session.query(SqlaTable).all()
+
+        db_table_names = set([t.table_name for t in db_tables])
+        received_tables = set([table["text"].split(".")[-1] for table in result])
+
+        assert data["count"] == len(db_tables)
+        assert len(result) == len(db_tables)
+        assert db_table_names == received_tables
 
     def test_rls_roles_related_api(self):
         self.login("Admin")
-        rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")
+        params = prison.dumps({"page": 0, "page_size": 100})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]

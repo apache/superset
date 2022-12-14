@@ -1298,10 +1298,11 @@ TALISMAN_CONFIG = {
 # on `RLSRestApi`. Example:
 #
 # from flask_appbuilder.models.sqla import filters
+
 # RLS_FILTER_RELATED_FIELDS = {
-#             "tables": [["table_name", filters.FilterStartsWith, "birth"]],
-#             "roles": [["name", filters.FilterContains, "access"]]
-#         }
+#     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
+#     "roles": [["name", filters.FilterContains, "Admin"]]
+# }
 RLS_FILTER_RELATED_FIELDS: Dict[str, BaseFilter] = {}
 
 #

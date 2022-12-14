@@ -17,9 +17,8 @@
 """Views used by the SqlAlchemy connector"""
 import logging
 import re
-from typing import Any, cast
 
-from flask import current_app, flash, Markup, redirect
+from flask import flash, Markup, redirect
 from flask_appbuilder import CompactCRUDMixin, expose, permission_name
 from flask_appbuilder.fieldwidgets import Select2Widget
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -28,7 +27,7 @@ from flask_babel import lazy_gettext as _
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Regexp
 
-from superset import app, db
+from superset import db
 from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -40,7 +39,6 @@ from superset.views.base import (
     DatasourceFilter,
     DeleteMixin,
     ListWidgetWithCheckboxes,
-    SupersetListWidget,
     SupersetModelView,
     YamlExportMixin,
 )
