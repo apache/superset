@@ -253,10 +253,6 @@ class ReportScheduleNotificationError(CommandException):
     message = _("Alert on grace period")
 
 
-class ReportScheduleUserNotFoundError(CommandException):
-    message = _("Report Schedule user not found")
-
-
 class ReportScheduleStateNotFoundError(CommandException):
     message = _("Report Schedule state not found")
 
