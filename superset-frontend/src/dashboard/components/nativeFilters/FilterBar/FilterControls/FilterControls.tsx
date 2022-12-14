@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useCallback, useMemo, useState } from 'react';
+import React, {
+  FC,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -25,7 +32,9 @@ import {
   css,
   SupersetTheme,
   t,
-  isNativeFilter,
+  isFeatureEnabled,
+  FeatureFlag,
+  isNativeFilterWithDataMask,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -38,32 +47,38 @@ import {
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import DropdownContainer from 'src/components/DropdownContainer';
+import DropdownContainer, {
+  Ref as DropdownContainerRef,
+} from 'src/components/DropdownContainer';
 import Icons from 'src/components/Icons';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
 
 type FilterControlsProps = {
-  directPathToChild?: string[];
+  focusedFilterId?: string;
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
 
 const FilterControls: FC<FilterControlsProps> = ({
-  directPathToChild,
+  focusedFilterId,
   dataMaskSelected,
   onFilterSelectionChange,
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    state => state.dashboardInfo.filterBarOrientation,
+    ({ dashboardInfo }) =>
+      isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR)
+        ? dashboardInfo.filterBarOrientation
+        : FilterBarOrientation.VERTICAL,
   );
 
   const [overflowedIds, setOverflowedIds] = useState<string[]>([]);
+  const popoverRef = useRef<DropdownContainerRef>(null);
 
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
-    directPathToChild,
+    focusedFilterId,
     onFilterSelectionChange,
   );
   const portalNodes = useMemo(() => {
@@ -83,9 +98,17 @@ const FilterControls: FC<FilterControlsProps> = ({
   const showCollapsePanel = dashboardHasTabs && filtersWithValues.length > 0;
 
   const renderer = useCallback(
-    ({ id }: Filter | Divider) => {
-      const index = filtersWithValues.findIndex(f => f.id === id);
-      return <OutPortal node={portalNodes[index]} inView />;
+    ({ id }: Filter | Divider, index: number | undefined) => {
+      const filterIndex = filtersWithValues.findIndex(f => f.id === id);
+      const key = index ?? id;
+      return (
+        // Empty text node is to ensure there's always an element preceding
+        // the OutPortal, otherwise react-reverse-portal crashes
+        <React.Fragment key={key}>
+          {'' /* eslint-disable-line react/jsx-curly-brace-presence */}
+          <OutPortal node={portalNodes[filterIndex]} inView />
+        </React.Fragment>
+      );
     },
     [filtersWithValues, portalNodes],
   );
@@ -105,15 +128,16 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const items = useMemo(
     () =>
-      filtersInScope.map(filter => ({
+      filtersInScope.map((filter, index) => ({
         id: filter.id,
         element: (
           <div
+            className="filter-item-wrapper"
             css={css`
               flex-shrink: 0;
             `}
           >
-            {renderer(filter)}
+            {renderer(filter, index)}
           </div>
         ),
       })),
@@ -127,8 +151,8 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const activeOverflowedFiltersInScope = useMemo(
     () =>
-      overflowedFiltersInScope.filter(
-        filter => isNativeFilter(filter) && filter.dataMask?.filterState?.value,
+      overflowedFiltersInScope.filter(filter =>
+        isNativeFilterWithDataMask(filter),
       ).length,
     [overflowedFiltersInScope],
   );
@@ -137,8 +161,9 @@ const FilterControls: FC<FilterControlsProps> = ({
     <div
       css={(theme: SupersetTheme) =>
         css`
-          padding-left: ${theme.gridUnit * 4}px;
+          padding: 0 ${theme.gridUnit * 4}px;
           min-width: 0;
+          flex: 1;
         `
       }
     >
@@ -169,6 +194,7 @@ const FilterControls: FC<FilterControlsProps> = ({
               )
             : undefined
         }
+        ref={popoverRef}
         onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
           if (
             nextOverflowedIds.length !== overflowedIds.length ||
@@ -197,12 +223,18 @@ const FilterControls: FC<FilterControlsProps> = ({
     );
   }, [filtersOutOfScope, filtersWithValues, overflowedFiltersInScope]);
 
+  useEffect(() => {
+    if (focusedFilterId && overflowedIds.includes(focusedFilterId)) {
+      popoverRef?.current?.open();
+    }
+  }, [focusedFilterId, popoverRef, overflowedIds]);
+
   return (
     <>
       {portalNodes
         .filter((node, index) => filterIds.has(filtersWithValues[index].id))
         .map((node, index) => (
-          <InPortal node={node}>
+          <InPortal node={node} key={filtersWithValues[index].id}>
             {filterControlFactory(
               index,
               filterBarOrientation,

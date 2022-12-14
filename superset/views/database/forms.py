@@ -146,11 +146,19 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         validators=[Optional()],
         widget=BS3TextFieldWidget(),
     )
-    delimiter = StringField(
+    delimiter = SelectField(
         _("Delimiter"),
         description=_("Enter a delimiter for this data"),
+        choices=[
+            (",", _(",")),
+            (".", _(".")),
+            ("other", _("Other")),
+        ],
         validators=[DataRequired()],
-        widget=BS3TextFieldWidget(),
+        default=[","],
+    )
+    otherInput = StringField(
+        _("Other"),
     )
     if_exists = SelectField(
         _("If Table Already Exists"),
