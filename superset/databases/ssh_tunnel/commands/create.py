@@ -24,9 +24,13 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOCreateFailedError
-from superset.databases.dao import DatabaseDAO
-from superset.databases.ssh_tunnel.commands.exceptions import SSHTunnelCreateFailedError
+from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelCreateFailedError,
+    SSHTunnelInvalidError,
+    SSHTunnelRequiredFieldValidationError,
+)
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+from superset.extensions import event_logger
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +55,34 @@ class CreateSSHTunnelCommand(BaseCommand):
         return tunnel
 
     def validate(self) -> None:
-        if is_feature_enabled("SSH_TUNNELING") and self.ssh_tunnel_manager:
-            self.ssh_tunnel_manager.validate(self._properties)
-        return
+        # TODO(hughhh): check to make sure the server port is not localhost
+        # using the config.SSH_TUNNEL_MANAGER
+        exceptions: List[ValidationError] = []
+        database_id: Optional[int] = self._properties.get("database_id")
+        server_address: Optional[str] = self._properties.get("server_address")
+        server_port: Optional[int] = self._properties.get("server_port")
+        username: Optional[str] = self._properties.get("username")
+        private_key: Optional[str] = self._properties.get("private_key")
+        private_key_password: Optional[str] = self._properties.get(
+            "private_key_password"
+        )
+        if not database_id:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("database_id"))
+        if not server_address:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("server_address"))
+        if not server_port:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("server_port"))
+        if not username:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("username"))
+        if private_key_password and private_key is None:
+            exceptions.append(SSHTunnelRequiredFieldValidationError("private_key"))
+        if exceptions:
+            exception = SSHTunnelInvalidError()
+            exception.add_list(exceptions)
+            event_logger.log_with_context(
+                action="ssh_tunnel_creation_failed.{}.{}".format(
+                    exception.__class__.__name__,
+                    ".".join(exception.get_list_classnames()),
+                )
+            )
+            raise exception

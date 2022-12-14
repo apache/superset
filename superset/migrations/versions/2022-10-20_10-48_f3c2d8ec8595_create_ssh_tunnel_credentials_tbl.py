@@ -17,14 +17,14 @@
 """create_ssh_tunnel_credentials_tbl
 
 Revision ID: f3c2d8ec8595
-Revises: deb4c9d4a4ef
+Revises: 4ce1d9b25135
 Create Date: 2022-10-20 10:48:08.722861
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "f3c2d8ec8595"
-down_revision = "deb4c9d4a4ef"
+down_revision = "4ce1d9b25135"
 
 from uuid import uuid4
 
@@ -52,12 +52,12 @@ def upgrade():
         sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
         # SSHTunnelCredentials
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id")),
-        sa.Column("server_address", encrypted_field_factory.create(sa.String(1024))),
-        sa.Column("server_port", encrypted_field_factory.create(sa.INTEGER())),
-        sa.Column("username", encrypted_field_factory.create(sa.String(1024))),
+        sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id"), unique=True),
+        sa.Column("server_address", sa.String(256)),
+        sa.Column("server_port", sa.INTEGER()),
+        sa.Column("username", encrypted_field_factory.create(sa.String(256))),
         sa.Column(
-            "password", encrypted_field_factory.create(sa.String(1024)), nullable=True
+            "password", encrypted_field_factory.create(sa.String(256)), nullable=True
         ),
         sa.Column(
             "private_key",
@@ -66,11 +66,9 @@ def upgrade():
         ),
         sa.Column(
             "private_key_password",
-            encrypted_field_factory.create(sa.String(1024)),
+            encrypted_field_factory.create(sa.String(256)),
             nullable=True,
         ),
-        sa.Column("bind_host", encrypted_field_factory.create(sa.String(1024))),
-        sa.Column("bind_port", encrypted_field_factory.create(sa.INTEGER())),
     )
 
 

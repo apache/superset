@@ -37,42 +37,38 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
   const [titleRef, titleIsTruncated] =
     useCSSTextTruncation<HTMLHeadingElement>();
 
-  const tooltipOverlay = (
-    <>
-      {titleIsTruncated ? (
-        <div>
-          <strong>{title}</strong>
-        </div>
-      ) : null}
-      {description ? <div>{description}</div> : null}
-    </>
-  );
-
   return (
     <div
       css={css`
         display: flex;
         align-items: center;
-        height: ${8 * theme.gridUnit}px;
+        height: ${6 * theme.gridUnit}px;
         border-left: 1px solid ${theme.colors.grayscale.light2};
         padding-left: ${4 * theme.gridUnit}px;
+
+        .filter-item-wrapper:first-child & {
+          border-left: none;
+          padding-left: 0;
+        }
       `}
     >
-      <h3
-        ref={titleRef}
-        css={css`
-          ${truncationCSS}
-          max-width: ${theme.gridUnit * 32.5}px;
-          font-size: ${theme.typography.sizes.m}px;
-          font-weight: ${theme.typography.weights.normal};
-          margin: 0;
-          color: ${theme.colors.grayscale.dark1};
-        `}
-      >
-        {title}
-      </h3>
-      {titleIsTruncated || description ? (
-        <Tooltip overlay={tooltipOverlay}>
+      <Tooltip overlay={titleIsTruncated ? title : null}>
+        <h3
+          ref={titleRef}
+          css={css`
+            ${truncationCSS}
+            max-width: ${theme.gridUnit * 32.5}px;
+            font-size: ${theme.typography.sizes.m}px;
+            font-weight: ${theme.typography.weights.normal};
+            margin: 0;
+            color: ${theme.colors.grayscale.dark1};
+          `}
+        >
+          {title}
+        </h3>
+      </Tooltip>
+      {description ? (
+        <Tooltip overlay={description}>
           <Icons.BookOutlined
             data-test="divider-description-icon"
             iconSize="l"
@@ -118,6 +114,7 @@ const HorizontalOverflowDivider = ({
             font-weight: ${theme.typography.weights.normal};
             font-size: ${theme.typography.sizes.m}px;
             margin: 0 0 ${theme.gridUnit}px 0;
+            line-height: 1;
           `}
         >
           {title}
@@ -133,7 +130,8 @@ const HorizontalOverflowDivider = ({
               display: block;
               font-size: ${theme.typography.sizes.s}px;
               color: ${theme.colors.grayscale.base};
-              margin: 0;
+              margin: ${theme.gridUnit * 2.5}px 0 0 0;
+              line-height: 1;
             `}
           >
             {description}

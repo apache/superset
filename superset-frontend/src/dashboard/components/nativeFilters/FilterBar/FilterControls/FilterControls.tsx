@@ -90,7 +90,14 @@ const FilterControls: FC<FilterControlsProps> = ({
   const renderer = useCallback(
     ({ id }: Filter | Divider) => {
       const index = filtersWithValues.findIndex(f => f.id === id);
-      return <OutPortal node={portalNodes[index]} inView />;
+      return (
+        // Empty text node is to ensure there's always an element preceding
+        // the OutPortal, otherwise react-reverse-portal crashes
+        <React.Fragment key={id}>
+          {'' /* eslint-disable-line react/jsx-curly-brace-presence */}
+          <OutPortal node={portalNodes[index]} inView />
+        </React.Fragment>
+      );
     },
     [filtersWithValues, portalNodes],
   );
@@ -114,6 +121,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         id: filter.id,
         element: (
           <div
+            className="filter-item-wrapper"
             css={css`
               flex-shrink: 0;
             `}
@@ -144,6 +152,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         css`
           padding-left: ${theme.gridUnit * 4}px;
           min-width: 0;
+          flex: 1;
         `
       }
     >
@@ -207,7 +216,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       {portalNodes
         .filter((node, index) => filterIds.has(filtersWithValues[index].id))
         .map((node, index) => (
-          <InPortal node={node}>
+          <InPortal node={node} key={filtersWithValues[index].id}>
             {filterControlFactory(
               index,
               filterBarOrientation,

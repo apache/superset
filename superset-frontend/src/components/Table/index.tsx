@@ -200,14 +200,15 @@ export enum TableSize {
 }
 
 const defaultRowSelection: React.Key[] = [];
-// This accounts for the tables header and pagination if user gives table instance a height. this is a temp solution
-export const HEIGHT_OFFSET = 108;
+
+const PAGINATION_HEIGHT = 40;
+const HEADER_HEIGHT = 68;
 
 const StyledTable: StyledComponent<any> = styled(AntTable)<any>(
   ({ theme, height }) => `
     .ant-table-body {
       overflow: auto;
-      height: ${height ? `${height - HEIGHT_OFFSET}px` : undefined};
+      height: ${height ? `${height}px` : undefined};
     }
 
     th.ant-table-cell {
@@ -348,6 +349,8 @@ export function Table(props: TableProps) {
     setMergedLocale(updatedLocale);
   }, [locale]);
 
+  useEffect(() => setDerivedColumns(columns), [columns]);
+
   useEffect(() => {
     if (interactiveTableUtils.current) {
       interactiveTableUtils.current?.clearListeners();
@@ -403,6 +406,16 @@ export function Table(props: TableProps) {
     paginationSettings.total = recordCount;
   }
 
+  let bodyHeight = height;
+  if (bodyHeight) {
+    bodyHeight -= HEADER_HEIGHT;
+    const hasPagination =
+      usePagination && recordCount && recordCount > pageSize;
+    if (hasPagination) {
+      bodyHeight -= PAGINATION_HEIGHT;
+    }
+  }
+
   const sharedProps = {
     loading: { spinning: loading ?? false, indicator: <Loading /> },
     hasData: hideData ? false : data,
@@ -414,7 +427,7 @@ export function Table(props: TableProps) {
     showSorterTooltip: false,
     onChange,
     theme,
-    height,
+    height: bodyHeight,
   };
 
   return (

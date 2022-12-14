@@ -31,6 +31,7 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
+from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
 from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 
@@ -70,13 +71,25 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             database = DatabaseDAO.create(self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+            db.session.flush()
+
+            ssh_tunnel = None
+            if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
+                ssh_tunnel = SSHTunnelDAO.create(
+                    {
+                        **ssh_tunnel_properties,
+                        "database_id": database.id,
+                    },
+                    commit=False,
+                )
 
             # adding a new database we always want to force refresh schema list
-            schemas = database.get_all_schema_names(cache=False)
+            schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
             for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access", security_manager.get_schema_perm(database, schema)
                 )
+
             db.session.commit()
         except DAOCreateFailedError as ex:
             db.session.rollback()

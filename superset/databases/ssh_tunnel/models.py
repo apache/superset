@@ -18,11 +18,12 @@
 from typing import Any, Dict
 
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import EncryptedType
 
-from superset import app
+from superset.constants import SSH_TUNNELLING_LOCAL_BIND_ADDRESS
 from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -30,7 +31,7 @@ from superset.models.helpers import (
     ImportExportMixin,
 )
 
-app_config = app.config
+app_config = current_app.config
 
 
 class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
@@ -41,15 +42,17 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     __tablename__ = "ssh_tunnels"
 
     id = sa.Column(sa.Integer, primary_key=True)
-    database_id = sa.Column(sa.Integer, sa.ForeignKey("dbs.id"), nullable=False)
+    database_id = sa.Column(
+        sa.Integer, sa.ForeignKey("dbs.id"), nullable=False, unique=True
+    )
     database: Database = relationship(
         "Database",
-        backref=backref("ssh_tunnels", cascade="all, delete-orphan"),
+        backref=backref("ssh_tunnels", uselist=False, cascade="all, delete-orphan"),
         foreign_keys=[database_id],
     )
 
-    server_address = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
-    server_port = sa.Column(EncryptedType(sa.Integer, app_config["SECRET_KEY"]))
+    server_address = sa.Column(sa.Text)
+    server_port = sa.Column(sa.Integer)
     username = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
 
     # basic authentication
@@ -65,22 +68,19 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
 
-    bind_host = sa.Column(EncryptedType(sa.String, app_config["SECRET_KEY"]))
-    bind_port = sa.Column(EncryptedType(sa.Integer, app_config["SECRET_KEY"]))
-
-    def parameters(self) -> Dict[str, Any]:
+    def parameters(self, bind_host: str, bind_port: int) -> Dict[str, Any]:
         params = {
             "ssh_address_or_host": self.server_address,
             "ssh_port": self.server_port,
             "ssh_username": self.username,
-            "remote_bind_address": (self.bind_host, self.bind_port),
-            "local_bind_address": ("127.0.0.1",),
+            "remote_bind_address": (bind_host, bind_port),
+            "local_bind_address": (SSH_TUNNELLING_LOCAL_BIND_ADDRESS,),
         }
 
         if self.password:
             params["ssh_password"] = self.password
         elif self.private_key:
-            params["ssh_pkey"] = self.private_key
-            params["ssh_private_key_password"] = self.private_key_password
+            params["private_key"] = self.private_key
+            params["private_key_password"] = self.private_key_password
 
         return params

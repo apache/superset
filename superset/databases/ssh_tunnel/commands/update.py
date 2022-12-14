@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
@@ -24,7 +24,9 @@ from superset import app, is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAOUpdateFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
+    SSHTunnelRequiredFieldValidationError,
     SSHTunnelUpdateFailedError,
 )
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
@@ -53,6 +55,11 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._model = SSHTunnelDAO.find_by_id(self._model_id)
         if not self._model:
             raise SSHTunnelNotFoundError()
-
-        if is_feature_enabled("SSH_TUNNELING") and self.ssh_tunnel_manager:
-            self.ssh_tunnel_manager.validate(self._properties)
+        private_key: Optional[str] = self._properties.get("private_key")
+        private_key_password: Optional[str] = self._properties.get(
+            "private_key_password"
+        )
+        if private_key_password and private_key is None:
+            exception = SSHTunnelInvalidError()
+            exception.add(SSHTunnelRequiredFieldValidationError("private_key"))
+            raise exception

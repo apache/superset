@@ -92,11 +92,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
             # Generate tunnel if present in the properties
-            ssh_tunnel = None
             if ssh_tunnel := self._properties.get("ssh_tunnel"):
-                url = make_url_safe(database.sqlalchemy_uri_decrypted)
-                ssh_tunnel["bind_host"] = url.host
-                ssh_tunnel["bind_port"] = url.port
                 ssh_tunnel = SSHTunnel(**ssh_tunnel)
 
             event_logger.log_with_context(

@@ -21,7 +21,7 @@ import json
 import logging
 import textwrap
 from ast import literal_eval
-from contextlib import closing, contextmanager
+from contextlib import closing, contextmanager, nullcontext
 from copy import deepcopy
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_CHECKING
@@ -54,8 +54,8 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
-from superset import app, db_engine_specs, is_feature_enabled
-from superset.constants import PASSWORD_MASK
+from superset import app, db_engine_specs
+from superset.constants import PASSWORD_MASK, SSH_TUNNELLING_LOCAL_BIND_ADDRESS
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
@@ -376,7 +376,7 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
-        ssh_params: Dict[str, Any] = {}
+        ssh_params = {}
         from superset.databases.dao import (  # pylint: disable=import-outside-toplevel
             DatabaseDAO,
         )
@@ -386,19 +386,18 @@ class Database(
         ):
             # if ssh_tunnel is available build engine with information
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
-            ssh_tunnel.bind_host = url.host
-            ssh_tunnel.bind_port = url.port
-            ssh_params = ssh_tunnel.parameters()
-            with sshtunnel.open_tunnel(**ssh_params) as server:
-                yield self._get_sqla_engine(
-                    schema=schema,
-                    nullpool=nullpool,
-                    source=source,
-                    ssh_tunnel_server=server,
-                )
-
+            ssh_params = ssh_tunnel.parameters(bind_host=url.host, bind_port=url.port)
+            engine_context = sshtunnel.open_tunnel(**ssh_params)
         else:
-            yield self._get_sqla_engine(schema=schema, nullpool=nullpool, source=source)
+            engine_context = nullcontext()
+
+        with engine_context as server_context:
+            yield self._get_sqla_engine(
+                schema=schema,
+                nullpool=nullpool,
+                source=source,
+                ssh_tunnel_server=server_context,
+            )
 
     def _get_sqla_engine(
         self,
@@ -453,7 +452,8 @@ class Database(
             # update sqlalchemy_url
             url = make_url_safe(sqlalchemy_url)
             sqlalchemy_url = url.set(
-                host="127.0.0.1", port=ssh_tunnel_server.local_bind_port
+                host=SSH_TUNNELLING_LOCAL_BIND_ADDRESS,
+                port=ssh_tunnel_server.local_bind_port,
             )
 
         try:
@@ -642,8 +642,12 @@ class Database(
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
     @contextmanager
-    def get_inspector_with_context(self) -> Inspector:
-        with self.get_sqla_engine_with_context() as engine:
+    def get_inspector_with_context(
+        self, ssh_tunnel: Optional["SSHTunnel"] = None
+    ) -> Inspector:
+        with self.get_sqla_engine_with_context(
+            override_ssh_tunnel=ssh_tunnel
+        ) as engine:
             yield sqla.inspect(engine)
 
     @cache_util.memoized_func(
@@ -655,6 +659,7 @@ class Database(
         cache: bool = False,
         cache_timeout: Optional[int] = None,
         force: bool = False,
+        ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> List[str]:
         """Parameters need to be passed as keyword arguments.
 
@@ -667,7 +672,7 @@ class Database(
         :return: schema list
         """
         try:
-            with self.get_inspector_with_context() as inspector:
+            with self.get_inspector_with_context(ssh_tunnel=ssh_tunnel) as inspector:
                 return self.db_engine_spec.get_schema_names(inspector)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
@@ -731,7 +736,8 @@ class Database(
     def get_table_comment(
         self, table_name: str, schema: Optional[str] = None
     ) -> Optional[str]:
-        return self.db_engine_spec.get_table_comment(self.inspector, table_name, schema)
+        with self.get_inspector_with_context() as inspector:
+            return self.db_engine_spec.get_table_comment(inspector, table_name, schema)
 
     def get_columns(
         self, table_name: str, schema: Optional[str] = None
@@ -744,7 +750,8 @@ class Database(
         table_name: str,
         schema: Optional[str] = None,
     ) -> List[MetricType]:
-        return self.db_engine_spec.get_metrics(self, self.inspector, table_name, schema)
+        with self.get_inspector_with_context() as inspector:
+            return self.db_engine_spec.get_metrics(self, inspector, table_name, schema)
 
     def get_indexes(
         self, table_name: str, schema: Optional[str] = None
