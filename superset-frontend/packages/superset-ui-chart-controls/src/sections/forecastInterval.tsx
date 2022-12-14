@@ -22,6 +22,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
+import { isSectionDisabled, SectionRuleType } from '../utils';
 
 export const FORECAST_DEFAULT_DATA = {
   forecastEnabled: false,
@@ -134,4 +135,9 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
       },
     ],
   ],
+  setDisabled: ({ exploreState }) =>
+    isSectionDisabled(SectionRuleType.X_AXIS_TEMPORAL, exploreState),
+  disabledTooltipText: t(
+    'These controls are only available if a temporal x-axis is selected',
+  ),
 };
