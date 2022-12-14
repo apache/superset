@@ -81,21 +81,21 @@ def CUSTOM_CHART_FUNC(
         ),
         (
             {
-                "id": 2,
-            },
-            [ExecutorType.CURRENT_USER],
-            True,
-            False,
-            "06a4144466dbd5ffad0c3c2225e96296",
-        ),
-        (
-            {
                 "dashboard_title": "My Other Title",
             },
             [ExecutorType.CURRENT_USER],
             True,
             False,
             "209dc060ac19271b8708731e3b8280f5",
+        ),
+        (
+            {
+                "id": 2,
+            },
+            [ExecutorType.CURRENT_USER],
+            True,
+            False,
+            "06a4144466dbd5ffad0c3c2225e96296",
         ),
         (
             {
