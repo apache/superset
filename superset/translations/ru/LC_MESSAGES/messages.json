@@ -160,28 +160,52 @@
       "Add Row level security filter": ["Добавить фильтр на уровне строк"],
       "Add Saved Query": ["Добавить сохраненный запрос"],
       "Add a Plugin": ["Добавить плагин"],
-      "Add a new tab to create SQL Query": [""],
-      "Add annotation": ["Добавить слой аннотации"],
-      "Add annotation layer": ["Добавить слой аннотации"],
-      "Add calculated columns to dataset in \"Edit datasource\" modal": [""],
-      "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
-        ""
+      "Add a dataset": ["Добавьте датасет"],
+      "Add a new tab": ["Новая вкладка"],
+      "Add a new tab to create SQL Query": [
+        "Откройте новую вкладку для создания SQL запроса"
       ],
-      "Add dataset": ["Добавить Базу Данных"],
-      "Add delivery method": ["Добавить метод доставки"],
+      "Add additional custom parameters": [
+        "Добавление дополнительных пользовательских параметров"
+      ],
+      "Add an annotation layer": ["Добавить слой аннотации"],
+      "Add an item": ["Добавить запись"],
+      "Add annotation": ["Добавить аннотацию"],
+      "Add annotation layer": ["Добавить слой аннотации"],
+      "Add calculated columns to dataset in \"Edit datasource\" modal": [
+        "Добавьте новые вычисляемые столбцы в датасет в настройках датасета"
+      ],
+      "Add calculated temporal columns to dataset in \"Edit datasource\" modal": [
+        "Добавьте новые столбцы формата дата/время в датасет в настройках датасета"
+      ],
+      "Add dataset": ["Добавить датасет"],
+      "Add delivery method": ["Добавить способ оповещения"],
       "Add filter": ["Добавить фильтр"],
-      "Add filters and dividers": [""],
-      "Add item": ["Добавить фильтр"],
-      "Add metric": ["Добавить показатель"],
-      "Add metrics to dataset in \"Edit datasource\" modal": [""],
-      "Add new color formatter": [""],
-      "Add new formatter": [""],
-      "Add notification method": ["Добавить слой аннотации"],
-      "Add required control values to preview chart": [""],
-      "Add required control values to save chart": [""],
+      "Add filters and dividers": ["Добавить фильтры и разделители"],
+      "Add item": ["Добавить запись"],
+      "Add metric": ["Добавить меру"],
+      "Add metrics to dataset in \"Edit datasource\" modal": [
+        "Добавьте меры в датасет"
+      ],
+      "Add new color formatter": ["Добавить цветовое форматирование"],
+      "Add new formatter": ["Добавить форматирование"],
+      "Add notification method": ["Добавить способ уведомления"],
+      "Add required control values to preview chart": [
+        "Добавьте обязательные значения для предпросмотра графика"
+      ],
+      "Add required control values to save chart": [
+        "Добавьте обязательные значения для сохранения графика"
+      ],
+      "Add sheet": ["Добавить лист"],
+      "Add the name of the chart": ["Задайте имя графика"],
+      "Add the name of the dashboard": ["Задайте имя дашборда"],
       "Add to dashboard": ["Добавить в дашборд"],
+      "Add/Edit Filters": ["Добавить/изменить фильтры"],
       "Added": ["Добавлено"],
-      "Additional information": ["Дополнительные метаданные"],
+      "Additional Parameters": ["Дополнительные параметры"],
+      "Additional information": ["Дополнительная информация"],
+      "Additional metadata": ["Дополнительные метаданные"],
+      "Additional padding for legend.": ["Дополнительный отступ для легенды"],
       "Additional text to add before or after the value, e.g. unit": [""],
       "Advanced": ["Дополнительно"],
       "Advanced analytics": ["Расширенный анализ"],
@@ -642,8 +666,10 @@
       "Cell Radius": [""],
       "Cell content": ["Созданный контент"],
       "Certification details": ["Детали сертификации"],
-      "Certified by": ["Изменено"],
-      "Certified by %s": ["Сертифицирован: %s"],
+      "Certified": ["Утверждено"],
+      "Certified By": ["Кем утверждено"],
+      "Certified by": ["Кем утверждено"],
+      "Certified by %s": ["Утверждено: %s"],
       "Change order of columns.": [""],
       "Change order of rows.": [""],
       "Changed By": ["Изменено"],
@@ -1091,6 +1117,7 @@
       "Dashboard scheme": ["Схема дашборда"],
       "Dashboard title": ["Название дашборда"],
       "Dashboards": ["Дашборды"],
+      "Dashboards added to": ["Добавлено в дашборды"],
       "Dashboards could not be deleted.": ["Не удалось удалить дашборды."],
       "Dashboards do not exist": ["Дашборды не существуют"],
       "Dashed": ["Штрих"],
@@ -2669,9 +2696,15 @@
       ],
       "Select filter plugin using AntD": [""],
       "Select first filter value by default": [""],
-      "Select or type a value": [""],
+      "Select operator": ["Выбрать оператор"],
+      "Select or type a value": ["Выберите значение"],
       "Select or type dataset name": [""],
-      "Select schema or type schema name": [""],
+      "Select owners": ["Выбрать владельцев"],
+      "Select saved metrics": ["Выберите сохраненные меры"],
+      "Select schema or type schema name": [
+        "Выберите схему или введите ее имя"
+      ],
+      "Select scheme": ["Выберите схему"],
       "Select start and end date": ["Выберите дату начала"],
       "Select subject": [""],
       "Select table or type table name": [""],
@@ -2981,6 +3014,7 @@
       "The database referenced in this query was not found. Please contact an administrator for further assistance or try again.": [
         ""
       ],
+      "The database was deleted.": ["База данных была удалена"],
       "The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.": [
         "Датасет %s привязан к графикам %s, которые используются в дашбордах %s. Вы уверены, что хотите продолжить? Удаление датасета приведёт к неработоспособности этих объектов."
       ],
@@ -2988,8 +3022,13 @@
       "The dataset configuration exposed here\n                affects all the charts using this dataset.\n                Be mindful that changing settings\n                here may affect other charts\n                in undesirable ways.": [
         "Здесь представлена конфигурация датасета\n                влияет на все графики, использующие этот датасет.\n                Помните, что изменение настроек\n                может иметь неожиданный эффект\n                на другие графики."
       ],
-      "The dataset has been saved": ["Источник данных, похоже, был удален"],
-      "The datasource couldn't be loaded": ["Запрос невозможно загрузить"],
+      "The dataset has been saved": ["Датасет сохранен"],
+      "The dataset linked to this chart may have been deleted.": [
+        "Датасет, связанный с этим графиком, похоже, был удален."
+      ],
+      "The datasource couldn't be loaded": [
+        "Невозможно загрузить источник данных"
+      ],
       "The description can be displayed as widget headers in the dashboard view. Supports markdown.": [
         "Описание может быть отображено как заголовок виджета в ракурсе дашбордов. Поддерживает markdown-разметку."
       ],
@@ -3102,12 +3141,15 @@
       "The radius of individual points (ones that are not in a cluster). Either a numerical column or `Auto`, which scales the point based on the largest cluster": [
         ""
       ],
-      "The results backend no longer has the data from the query.": [""],
+      "The report has been created": ["Рассылка создана"],
+      "The results backend no longer has the data from the query.": [
+        "Сервер не сохранил данные из этого запроса."
+      ],
       "The results stored in the backend were stored in a different format, and no longer can be deserialized.": [
-        ""
+        "Данные, сохраненные на сервере, имели другой формат, и не могут быть распознаны."
       ],
       "The rich tooltip shows a list of all series for that point in time": [
-        ""
+        "Расширенная всплывающая подсказка показывает список всех категорий для этой точки."
       ],
       "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query.": [
         ""
@@ -3469,11 +3511,12 @@
       "Try selecting a different schema": [""],
       "Tuesday": ["Вторник"],
       "Type": ["Тип"],
-      "Type \"%s\" to confirm": ["Введите “%s” для подтверждения"],
+      "Type \"%s\" to confirm": ["Введите \"%s\" для подтверждения"],
+      "Type a value": ["Введите значение"],
       "Type a value here": ["Введите значение здесь"],
       "Type is required": ["Тип обязателен"],
-      "Type of Google Sheets allowed": [""],
-      "Type or Select [%s]": ["Выбрать [%s]"],
+      "Type of Google Sheets allowed": ["Допустимый тип Google Таблиц"],
+      "Type or Select [%s]": ["Введите или выберите [%s]"],
       "URL": ["Ссылка (URL)"],
       "URL parameters": ["Параметры"],
       "URL slug": ["Читаемый URL"],

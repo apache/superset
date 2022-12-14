@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2022-12-14 11:25+0300\n"
+"POT-Creation-Date: 2022-12-14 17:38+0300\n"
 "PO-Revision-Date: 2021-04-29 02:41+0300\n"
 "Last-Translator: Artem Shumeiko\n"
 "Language: ru\n"
@@ -108,7 +108,7 @@ msgid " to add metrics"
 msgstr "Добавить показатель"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:381
-#, fuzzy, python-format
+#, fuzzy
 msgid " to edit or add columns and metrics."
 msgstr "Столбцов и показателей: %s"
 
@@ -768,42 +768,37 @@ msgid "Add a Plugin"
 msgstr "Добавить плагин"
 
 #: superset-frontend/src/addSlice/AddSliceContainer.tsx:340
-#, fuzzy
 msgid "Add a dataset"
-msgstr "Добавить Базу Данных"
+msgstr "Добавьте датасет"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx:278
-#, fuzzy
 msgid "Add a new tab"
-msgstr "Запрос в отдельной вкладке"
+msgstr "Новая вкладка"
 
 #: superset-frontend/src/SqlLab/components/TabbedSqlEditors/index.jsx:302
 msgid "Add a new tab to create SQL Query"
-msgstr ""
+msgstr "Откройте новую вкладку для создания SQL запроса"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:220
-#, fuzzy
 msgid "Add additional custom parameters"
-msgstr "Изменить параметры шаблона"
+msgstr "Добавление дополнительных пользовательских параметров"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:116
-#, fuzzy
 msgid "Add an annotation layer"
 msgstr "Добавить слой аннотации"
 
 #: superset-frontend/src/explore/components/controls/CollectionControl/index.jsx:63
-#, fuzzy
 msgid "Add an item"
-msgstr "Добавить фильтр"
+msgstr "Добавить запись"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal.tsx:571
 #, fuzzy
 msgid "Add and edit filters"
-msgstr "Временной фильтр"
+msgstr "Добавить/изменить фильтры"
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:282
 msgid "Add annotation"
-msgstr "Добавить слой аннотации"
+msgstr "Добавить аннотацию"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/index.jsx:214
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/index.jsx:226
@@ -813,19 +808,19 @@ msgstr "Добавить слой аннотации"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:298
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "Добавьте новые вычисляемые столбцы в датасет в настройках датасета"
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:295
 msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "Добавьте новые столбцы формата дата/время в датасет в настройках датасета"
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDatasetModal.tsx:153
 msgid "Add dataset"
-msgstr "Добавить Базу Данных"
+msgstr "Добавить датасет"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:390
 msgid "Add delivery method"
-msgstr "Добавить метод доставки"
+msgstr "Добавить способ оповещения"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/DependencyList.tsx:167
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterControl/index.jsx:355
@@ -834,54 +829,51 @@ msgstr "Добавить фильтр"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FilterTitlePane.tsx:109
 msgid "Add filters and dividers"
-msgstr ""
+msgstr "Добавить фильтры и разделители"
 
 #: superset-frontend/src/components/Datasource/CollectionTable.tsx:458
 msgid "Add item"
-msgstr "Добавить фильтр"
+msgstr "Добавить запись"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/MetricsControl.jsx:336
 msgid "Add metric"
-msgstr "Добавить показатель"
+msgstr "Добавить меру"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:377
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
-msgstr ""
+msgstr "Добавьте меры в датасет"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/ConditionalFormattingControl.tsx:176
 msgid "Add new color formatter"
-msgstr ""
+msgstr "Добавить цветовое форматирование"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/ConditionalFormattingControl.tsx:169
 msgid "Add new formatter"
-msgstr ""
+msgstr "Добавить форматирование"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:389
 msgid "Add notification method"
-msgstr "Добавить слой аннотации"
+msgstr "Добавить способ уведомления"
 
 #: superset-frontend/src/components/Chart/Chart.jsx:268
 msgid "Add required control values to preview chart"
-msgstr ""
+msgstr "Добавьте обязательные значения для предпросмотра графика"
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:254
 msgid "Add required control values to save chart"
-msgstr ""
+msgstr "Добавьте обязательные значения для сохранения графика"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/TableCatalog.tsx:98
-#, fuzzy
 msgid "Add sheet"
-msgstr "Добавить Базу Данных"
+msgstr "Добавить лист"
 
 #: superset-frontend/src/explore/components/ExploreChartHeader/index.jsx:219
-#, fuzzy
 msgid "Add the name of the chart"
-msgstr "Идентификатор активного среза"
+msgstr "Задайте имя графика"
 
 #: superset-frontend/src/dashboard/components/Header/index.jsx:516
-#, fuzzy
 msgid "Add the name of the dashboard"
-msgstr "Сохранить и перейти к дашборду"
+msgstr "Задайте имя дашборда"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:341
 msgid "Add to dashboard"
@@ -889,9 +881,8 @@ msgstr "Добавить в дашборд"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:135
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Horizontal.tsx:115
-#, fuzzy
 msgid "Add/Edit Filters"
-msgstr "Добавить фильтр"
+msgstr "Добавить/изменить фильтры"
 
 #: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:122
 #: superset-frontend/src/dashboard/components/AddSliceCard/AddSliceCard.tsx:149
@@ -904,23 +895,20 @@ msgid "Added to 1 dashboard"
 msgstr "Добавить в дашборд"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/CommonParameters.tsx:218
-#, fuzzy
 msgid "Additional Parameters"
-msgstr "Изменить параметры шаблона"
+msgstr "Дополнительные параметры"
 
 #: superset-frontend/src/views/CRUD/annotation/AnnotationModal.tsx:323
 msgid "Additional information"
-msgstr "Дополнительные метаданные"
+msgstr "Дополнительная информация"
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:95
-#, fuzzy
 msgid "Additional metadata"
 msgstr "Дополнительные метаданные"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:52
-#, fuzzy
 msgid "Additional padding for legend."
-msgstr "Дополнительные метаданные"
+msgstr "Дополнительный отступ для легенды"
 
 #: superset/db_engine_specs/base.py:1707
 #, fuzzy
@@ -2130,7 +2118,7 @@ msgstr "Формат Оси Y"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:63
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:94
-#, fuzzy, python-format
+#, fuzzy
 msgid "Axis Title"
 msgstr "%s - без названия"
 
@@ -2706,14 +2694,12 @@ msgstr "Детали сертификации"
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:666
 #: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:531
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:568
-#, fuzzy
 msgid "Certified"
-msgstr "Изменено"
+msgstr "Утверждено"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:326
-#, fuzzy
 msgid "Certified By"
-msgstr "Изменено"
+msgstr "Кем утверждено"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:331
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1216
@@ -2722,13 +2708,13 @@ msgstr "Изменено"
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:267
 #: superset-frontend/src/explore/components/PropertiesModal/index.tsx:268
 msgid "Certified by"
-msgstr "Изменено"
+msgstr "Кем утверждено"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/CertifiedIconWithTooltip.tsx:46
 #: superset-frontend/src/components/CertifiedBadge/index.tsx:44
 #, python-format
 msgid "Certified by %s"
-msgstr "Сертифицирован: %s"
+msgstr "Утверждено: %s"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:334
 msgid "Change order of columns."
@@ -4318,9 +4304,8 @@ msgstr "Дашборды"
 
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:259
 #: superset-frontend/src/views/CRUD/chart/ChartList.tsx:400
-#, fuzzy
 msgid "Dashboards added to"
-msgstr "дашборд"
+msgstr "Добавлено в дашборды"
 
 #: superset/dashboards/commands/exceptions.py:58
 msgid "Dashboards could not be deleted."
@@ -4850,8 +4835,7 @@ msgstr ""
 msgid ""
 "Define a function that receives the input and outputs the content for a "
 "tooltip"
-msgstr ""
-"Задайте функцию, которая получает на вход содержимое всплывающей подсказки"
+msgstr "Задайте функцию, которая получает на вход содержимое всплывающей подсказки"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:155
 msgid "Define a function that returns a URL to navigate to when user clicks"
@@ -9164,7 +9148,7 @@ msgid "No annotation yet"
 msgstr "Пока нет аннотаций"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx:186
-#, fuzzy, python-format
+#, fuzzy
 msgid "No applied filters"
 msgstr "Применено фильтров (%d)"
 
@@ -9310,7 +9294,7 @@ msgstr "Выражение SQL"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:376
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:384
-#, fuzzy, python-format
+#, fuzzy
 msgid "No saved metrics found"
 msgstr "%s сохранённый показатель(и)"
 
@@ -12330,38 +12314,34 @@ msgid "Select first filter value by default"
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:363
-#, fuzzy
 msgid "Select operator"
-msgstr "%s параметр(ы)"
+msgstr "Выбрать оператор"
 
 #: superset-frontend/src/components/ListView/Filters/Select.tsx:99
 #: superset-frontend/src/components/ListView/Filters/Select.tsx:113
 msgid "Select or type a value"
-msgstr ""
+msgstr "Выберите значение"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:410
 msgid "Select or type dataset name"
 msgstr ""
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:555
-#, fuzzy
 msgid "Select owners"
-msgstr "Выполнить выбранный запрос"
+msgstr "Выбрать владельцев"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:318
-#, fuzzy
 msgid "Select saved metrics"
-msgstr "%s сохранённый показатель(и)"
+msgstr "Выберите сохраненные меры"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:318
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:324
 msgid "Select schema or type schema name"
-msgstr ""
+msgstr "Выберите схему или введите ее имя"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:183
-#, fuzzy
 msgid "Select scheme"
-msgstr "Выберите схему (%s)"
+msgstr "Выберите схему"
 
 #: superset-frontend/src/visualizations/FilterBox/FilterBox.jsx:304
 msgid "Select start and end date"
@@ -13514,7 +13494,7 @@ msgid "TUE"
 msgstr "ВТ"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1144
-#, fuzzy, python-format
+#, fuzzy
 msgid "TYPE \"OVERWRITE\" TO CONFIRM"
 msgstr "Введите “%s” для подтверждения"
 
@@ -13854,9 +13834,8 @@ msgid "The database returned an unexpected error."
 msgstr "Проблема 1002 - База данных вернула непредвиденную ошибку."
 
 #: superset/errors.py:144
-#, fuzzy
 msgid "The database was deleted."
-msgstr "Источник данных, похоже, был удален"
+msgstr "База данных была удалена"
 
 #: superset/datasets/commands/duplicate.py:60 superset/views/core.py:2064
 #, fuzzy
@@ -13896,16 +13875,15 @@ msgstr ""
 #: superset-frontend/src/addSlice/AddSliceContainer.tsx:248
 #: superset-frontend/src/components/Datasource/DatasourceModal.tsx:125
 msgid "The dataset has been saved"
-msgstr "Источник данных, похоже, был удален"
+msgstr "Датасет сохранен"
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:413
-#, fuzzy
 msgid "The dataset linked to this chart may have been deleted."
-msgstr "Источник данных, похоже, был удален"
+msgstr "Датасет, связанный с этим графиком, похоже, был удален."
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1429
 msgid "The datasource couldn't be loaded"
-msgstr "Запрос невозможно загрузить"
+msgstr "Невозможно загрузить источник данных"
 
 #: superset/errors.py:98
 #, fuzzy
@@ -14284,25 +14262,28 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/reports/actions/reports.js:110
-#, fuzzy
 msgid "The report has been created"
-msgstr "Источник данных, похоже, был удален"
+msgstr "Рассылка создана"
 
 #: superset/errors.py:136
 msgid "The results backend no longer has the data from the query."
-msgstr ""
+msgstr "Сервер не сохранил данные из этого запроса."
 
 #: superset/errors.py:138
 msgid ""
 "The results stored in the backend were stored in a different format, and "
 "no longer can be deserialized."
 msgstr ""
+"Данные, сохраненные на сервере, имели другой формат, и не могут быть "
+"распознаны."
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:227
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:96
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:284
 msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr ""
+"Расширенная всплывающая подсказка показывает список всех категорий для "
+"этой точки."
 
 #: superset/db_engine_specs/bigquery.py:181
 #, python-format
@@ -14622,7 +14603,7 @@ msgid "There was an issue deleting: %s"
 msgstr "Произошла ошибка при удалении: %s"
 
 #: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:705
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue duplicating the dataset."
 msgstr "Произошла ошибка при удалении выбранных датасетов: %s"
 
@@ -15536,12 +15517,11 @@ msgstr "Тип"
 #: superset-frontend/src/components/ImportModal/index.tsx:252
 #, python-format
 msgid "Type \"%s\" to confirm"
-msgstr "Введите “%s” для подтверждения"
+msgstr "Введите \"%s\" для подтверждения"
 
 #: superset-frontend/src/components/ListView/Filters/Search.tsx:75
-#, fuzzy
 msgid "Type a value"
-msgstr "Введите значение здесь"
+msgstr "Введите значение"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:379
 msgid "Type a value here"
@@ -15553,12 +15533,12 @@ msgstr "Тип обязателен"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:72
 msgid "Type of Google Sheets allowed"
-msgstr ""
+msgstr "Допустимый тип Google Таблиц"
 
 #: superset-frontend/src/visualizations/FilterBox/FilterBox.jsx:404
 #, python-format
 msgid "Type or Select [%s]"
-msgstr "Выбрать [%s]"
+msgstr "Введите или выберите [%s]"
 
 #: superset-frontend/src/filters/components/GroupBy/controlPanel.ts:51
 #: superset-frontend/src/filters/components/Range/controlPanel.ts:47
