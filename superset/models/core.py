@@ -58,7 +58,12 @@ from superset import app, db_engine_specs
 from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
-from superset.extensions import cache_manager, encrypted_field_factory, security_manager
+from superset.extensions import (
+    cache_manager,
+    encrypted_field_factory,
+    security_manager,
+    ssh_manager,
+)
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
 from superset.utils import cache as cache_util, core as utils
@@ -66,7 +71,6 @@ from superset.utils.core import get_username
 from superset.utils.memoized import memoized
 
 config = app.config
-ssh_manager = config["SSH_TUNNEL_MANAGER"]
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 stats_logger = config["STATS_LOGGER"]
 log_query = config["QUERY_LOGGER"]
@@ -388,7 +392,7 @@ class Database(
             ssh_params = ssh_tunnel.kwarg_parameters(
                 bind_host=url.host, bind_port=url.port
             )
-            engine_context = sshtunnel.open_tunnel(**ssh_params)
+            engine_context = ssh_manager.create_tunnel(**ssh_params)
         else:
             engine_context = nullcontext()
 

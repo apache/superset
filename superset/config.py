@@ -57,7 +57,6 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
-from superset.databases.utils import make_url_safe
 from superset.jinja_context import BaseTemplateProcessor
 from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
@@ -494,20 +493,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 #                          FIREWALL (only port 22 is open)
 
 # ----------------------------------------------------------------------
-class SSHManager:  # pylint: disable=too-few-public-methods
-    local_bind_address = "127.0.0.1"
-
-    @classmethod
-    def mutator(cls, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder) -> str:
-        # override any ssh tunnel configuration object
-        url = make_url_safe(sqlalchemy_url)
-        return url.set(
-            host=cls.local_bind_address,
-            port=server.local_bind_port,
-        )
-
-
-SSH_TUNNEL_MANAGER = SSHManager  # pylint: disable=invalid-name
+SSH_TUNNEL_MANAGER = None
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
