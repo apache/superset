@@ -23,7 +23,6 @@ from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import EncryptedType
 
-from superset.constants import SSH_TUNNELLING_LOCAL_BIND_ADDRESS
 from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -32,6 +31,7 @@ from superset.models.helpers import (
 )
 
 app_config = current_app.config
+ssh_manager = app_config["SSH_TUNNEL_MANAGER"]
 
 
 class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
@@ -74,7 +74,7 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
             "ssh_port": self.server_port,
             "ssh_username": self.username,
             "remote_bind_address": (bind_host, bind_port),
-            "local_bind_address": (SSH_TUNNELLING_LOCAL_BIND_ADDRESS,),
+            "local_bind_address": (ssh_manager.local_bind_address,),
         }
 
         if self.password:

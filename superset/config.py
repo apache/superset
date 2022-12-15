@@ -45,6 +45,7 @@ from typing import (
 )
 
 import pkg_resources
+import sshtunnel
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
@@ -56,6 +57,7 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.databases.utils import make_url_safe
 from superset.jinja_context import BaseTemplateProcessor
 from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
@@ -471,7 +473,41 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DRILL_TO_DETAIL": False,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
     "HORIZONTAL_FILTER_BAR": False,
+    # Allow users to enable ssh tunneling when creating a DB.
+    # Users must check whether the DB engine supports SSH Tunnels
+    # otherwise enabling this flag won't have any effect on the DB.
+    "SSH_TUNNELING": False,
 }
+
+# ------------------------------
+# SSH Tunnel
+# ------------------------------
+# Allow users to set the host used when connecting to the SSH Tunnel
+# as localhost and any other alias (0.0.0.0)
+# ----------------------------------------------------------------------
+#                             |
+# -------------+              |    +----------+
+#     LOCAL    |              |    |  REMOTE  | :22 SSH
+#     CLIENT   | <== SSH ========> |  SERVER  | :8080 web service
+# -------------+              |    +----------+
+#                             |
+#                          FIREWALL (only port 22 is open)
+
+# ----------------------------------------------------------------------
+class SSHManager:  # pylint: disable=too-few-public-methods
+    local_bind_address = "127.0.0.1"
+
+    @classmethod
+    def mutator(cls, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder) -> str:
+        # override any ssh tunnel configuration object
+        url = make_url_safe(sqlalchemy_url)
+        return url.set(
+            host=cls.local_bind_address,
+            port=server.local_bind_port,
+        )
+
+
+SSH_TUNNEL_MANAGER = SSHManager  # pylint: disable=invalid-name
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -1462,7 +1498,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type:ignore
+        from superset_config import *  # type: ignore
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
