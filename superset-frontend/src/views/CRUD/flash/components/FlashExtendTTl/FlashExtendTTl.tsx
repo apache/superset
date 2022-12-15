@@ -33,7 +33,6 @@ import {
   FormErrors,
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
-import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { updateFlash } from '../../services/flash.service';
 import { UPDATE_TYPES } from '../../constants';
@@ -144,18 +143,18 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
 
   const flashTtlService = useCallback(
     (id, type, payload) => {
-      updateFlash(id, type, payload).then(
-        () => {
+      updateFlash(id, type, payload)
+        .then(() => {
           addSuccessToast(t('Your flash object ttl has been extended.'));
           onHide();
           refreshData();
-        },
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t('There was an issue extending the ttl of your Flash %s', errMsg),
-          ),
-        ),
-      );
+        })
+        .catch(error => {
+          const apiError = error?.data?.message
+            ? error?.data?.message
+            : t('There was an issue modifying the ttl of the Flash');
+          addDangerToast(t(apiError));
+        });
     },
     [addSuccessToast, addDangerToast],
   );

@@ -33,7 +33,6 @@ import {
   FormErrors,
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
-import { createErrorHandler } from 'src/views/CRUD/utils';
 import moment from 'moment';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { UPDATE_TYPES } from '../../constants';
@@ -153,21 +152,18 @@ const FlashSchedule: FunctionComponent<FlashSchedulingButtonProps> = ({
 
   const flashScheduleService = useCallback(
     (id, type, payload) => {
-      updateFlash(id, type, payload).then(
-        () => {
+      updateFlash(id, type, payload)
+        .then(() => {
           addSuccessToast(t('Your flash object schedule has been updated.'));
           onHide();
           refreshData();
-        },
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'There was an issue changing the schedule of the Flash %s',
-              errMsg,
-            ),
-          ),
-        ),
-      );
+        })
+        .catch(error => {
+          const apiError = error?.data?.message
+            ? error?.data?.message
+            : t('There was an issue changing the schedule of the Flash');
+          addDangerToast(t(apiError));
+        });
     },
     [addSuccessToast, addDangerToast],
   );

@@ -24,7 +24,6 @@ import {
   FlashUpdateQuery,
 } from 'src/views/CRUD/flash/types';
 import Modal from 'src/components/Modal';
-import { createErrorHandler } from 'src/views/CRUD/utils';
 import Editor from '@monaco-editor/react';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { UPDATE_TYPES } from '../../constants';
@@ -87,21 +86,18 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
 
   const flashSqlQueryService = useCallback(
     (id, type, payload) => {
-      updateFlash(id, type, payload).then(
-        () => {
+      updateFlash(id, type, payload)
+        .then(() => {
           addSuccessToast(t('Your sql query has been modified.'));
           onHide();
           refreshData();
-        },
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'There was an issue updating the sql query of the Flash %s',
-              errMsg,
-            ),
-          ),
-        ),
-      );
+        })
+        .catch(error => {
+          const apiError = error?.data?.message
+            ? error?.data?.message
+            : t('There was an issue updating the sql query of the Flash');
+          addDangerToast(t(apiError));
+        });
     },
     [addSuccessToast, addDangerToast],
   );
@@ -119,7 +115,10 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
         }
       })
       .catch(error => {
-        addDangerToast(t(error?.data?.message));
+        const apiError = error?.data?.message
+          ? error?.data?.message
+          : t('Your sql query is not valid');
+        addDangerToast(t(apiError));
       });
   };
   const renderModalBody = () => (
