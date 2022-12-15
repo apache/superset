@@ -33,8 +33,8 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig, FilterValue } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
-import { Dashboard, Filter, TableTab } from './types';
 import { User } from 'src/types/bootstrapTypes';
+import { Dashboard, Filter, TableTab } from './types';
 import { WelcomeTable } from './welcome/types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.

@@ -17,7 +17,6 @@
  * under the License.
  */
 import React from 'react';
-import { capitalize } from 'lodash';
 import Button from 'src/components/Button';
 import { Empty } from 'src/components';
 import { TableTab } from 'src/views/CRUD/types';
@@ -96,7 +95,7 @@ export default function EmptyState({
         }
         if (tab === TableTab.Other) {
           return t('%(other)s %(tableName)s will appear here', {
-            other: otherTabTitle ? capitalize(otherTabTitle) : t('Other'),
+            other: otherTabTitle || t('Other'),
             tableName: tableName.toLowerCase(),
           });
         }
