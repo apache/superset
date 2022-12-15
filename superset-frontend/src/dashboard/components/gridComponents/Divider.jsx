@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
+import { styled } from '@superset-ui/core';
 
 import DragDroppable from '../dnd/DragDroppable';
 import HoverMenu from '../menu/HoverMenu';
@@ -35,6 +36,24 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
 };
+
+const DividerLine = styled.div`
+  width: 100%;
+  padding: ${({ theme }) => theme.gridUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
+  background-color: transparent;
+
+  &:after {
+    content: '';
+    height: 1px;
+    width: 100%;
+    background-color: ${({ theme }) => theme.colors.grayscale.light2};
+    display: block;
+  }
+
+  div[draggable='true'] & {
+    cursor: move;
+  }
+`;
 
 class Divider extends React.PureComponent {
   constructor(props) {
@@ -75,7 +94,7 @@ class Divider extends React.PureComponent {
               </HoverMenu>
             )}
 
-            <div className="dashboard-component dashboard-component-divider" />
+            <DividerLine className="dashboard-component dashboard-component-divider" />
 
             {dropIndicatorProps && <div {...dropIndicatorProps} />}
           </div>

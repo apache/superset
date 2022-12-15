@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, styled } from '@superset-ui/core';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
@@ -57,6 +57,39 @@ const propTypes = {
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
 };
+
+const GridRow = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  width: 100%;
+  height: fit-content;
+
+  & > :not(:last-child):not(.hover-menu) {
+    margin-right: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
+  &.grid-row--empty {
+    /* this centers the empty note content */
+    align-items: center;
+    height: ${({ theme }) => theme.gridUnit * 25}px;
+
+    &:before {
+      position: absolute;
+      top: 0;
+      left: 0;
+      content: 'Empty row';
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      color: ${({ theme }) => theme.colors.text.label};
+    }
+  }
+`;
 
 class Row extends React.PureComponent {
   constructor(props) {
@@ -201,7 +234,7 @@ class Row extends React.PureComponent {
                 />
               </HoverMenu>
             )}
-            <div
+            <GridRow
               className={cx(
                 'grid-row',
                 rowItems.length === 0 && 'grid-row--empty',
@@ -231,7 +264,7 @@ class Row extends React.PureComponent {
               ))}
 
               {dropIndicatorProps && <div {...dropIndicatorProps} />}
-            </div>
+            </GridRow>
           </WithPopoverMenu>
         )}
       </DragDroppable>

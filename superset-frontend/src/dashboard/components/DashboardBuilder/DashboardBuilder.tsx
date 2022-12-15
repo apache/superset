@@ -164,6 +164,52 @@ const StyledContent = styled.div<{
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
 `;
 
+const DashboardContentWrapper = styled.div`
+  &.dashboard--editing {
+    .grid-row:after,
+    .dashboard-component-tabs > .hover-menu:hover + div:after {
+      border: 1px dashed transparent;
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .resizable-container.resizable-container--resizing:hover > .grid-row:after,
+    .hover-menu:hover + .grid-row:after,
+    .dashboard-component-tabs > .hover-menu:hover + div:after {
+      border: 1px dashed ${({ theme }) => theme.colors.primary.base};
+      z-index: 2;
+    }
+
+    .grid-row:after,
+    .dashboard-component-tabs > .hover-menu + div:after {
+      border: 1px dashed ${({ theme }) => theme.colors.grayscale.light4};
+    }
+
+    /* provide hit area in case row contents is edge to edge */
+    .dashboard-component-tabs-content {
+      .dragdroppable-row {
+        padding-top: ${({ theme }) => theme.gridUnit * 4}px;
+      }
+
+      & > div:not(:last-child):not(.empty-droptarget) {
+        margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+      }
+    }
+  }
+
+  & .dashboard-component-tabs-content {
+    & > div:not(:last-child):not(.empty-droptarget) {
+      margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+    }
+  }
+`;
+
 const StyledDashboardContent = styled.div<{
   dashboardFiltersOpen: boolean;
   editMode: boolean;
@@ -513,8 +559,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               image="dashboard.svg"
             />
           )}
-        <div
-          data-test="dashboard-content"
+        <DashboardContentWrapper
+          data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}
         >
           <StyledDashboardContent
@@ -531,7 +577,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             )}
             {editMode && <BuilderComponentPane topOffset={barTopOffset} />}
           </StyledDashboardContent>
-        </div>
+        </DashboardContentWrapper>
       </StyledContent>
     </StyledDiv>
   );
