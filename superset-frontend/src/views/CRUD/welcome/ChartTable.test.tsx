@@ -62,6 +62,11 @@ describe('ChartTable', () => {
     user: {
       userId: '2',
     },
+    mine: [],
+    otherTabData: [],
+    otherTabFilters: [],
+    otherTabTitle: 'Other',
+    showThumbnails: false,
   };
 
   let wrapper: ReactWrapper;
@@ -93,9 +98,12 @@ describe('ChartTable', () => {
     await act(async () => {
       wrapper = mount(
         <ChartTable
-          chartFilter="Mine"
           user={{ userId: '2' }}
           mine={[]}
+          otherTabData={[]}
+          otherTabFilters={[]}
+          otherTabTitle="Other"
+          showThumbnails={false}
           store={store}
         />,
       );

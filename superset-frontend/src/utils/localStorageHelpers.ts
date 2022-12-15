@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { TableTabTypes } from 'src/views/CRUD/types';
+import { TableTab } from 'src/views/CRUD/types';
 import { SetTabType } from 'src/views/CRUD/welcome/ActivityTable';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 
@@ -65,8 +65,8 @@ export type LocalStorageValues = {
   controls_width: number;
   datasource_width: number;
   is_datapanel_open: boolean;
-  homepage_chart_filter: TableTabTypes;
-  homepage_dashboard_filter: TableTabTypes;
+  homepage_chart_filter: TableTab;
+  homepage_dashboard_filter: TableTab;
   homepage_collapse_state: string[];
   datasetname_set_successful: boolean;
   homepage_activity_filter: SetTabType | null;

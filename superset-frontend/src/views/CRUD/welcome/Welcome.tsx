@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { styled, t, getExtensionsRegistry } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
@@ -41,8 +41,7 @@ import {
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
 import getBootstrapData from 'src/utils/getBootstrapData';
-
-import { Filters } from '../types';
+import { WelcomePageLastTab } from './types';
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
@@ -166,8 +165,6 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     defaultChecked =
       userKey?.thumbnails === undefined ? true : userKey?.thumbnails;
   }
-  const [otherTabTitle, setOtherTabTitle] = useState('');
-  const [otherTabFilters, setOtherTabFilters] = useState<Filters[]>([]);
   const [checked, setChecked] = useState(defaultChecked);
   const [activityData, setActivityData] = useState<ActivityData | null>(null);
   const [chartData, setChartData] = useState<Array<object> | null>(null);
@@ -191,29 +188,34 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     'welcome.main.replacement',
   );
 
-  useEffect(() => {
-    const lastTab = bootstrapData.common?.conf.WELCOME_PAGE_LAST_TAB;
-    const [customTitle, customFilter] =
-      typeof lastTab === 'object' ? lastTab : [undefined, undefined];
+  const [otherTabTitle, otherTabFilters] = useMemo(() => {
+    const lastTab = bootstrapData.common?.conf
+      .WELCOME_PAGE_LAST_TAB as WelcomePageLastTab;
+    const [customTitle, customFilter] = Array.isArray(lastTab)
+      ? lastTab
+      : [undefined, undefined];
     if (customTitle && customFilter) {
-      setOtherTabTitle(t(customTitle));
-      setOtherTabFilters(customFilter);
-    } else if (lastTab === 'all') {
-      setOtherTabTitle(t('All'));
-      setOtherTabFilters([]);
-    } else {
-      setOtherTabTitle(t('Examples'));
-      setOtherTabFilters([
+      return [t(customTitle), customFilter];
+    }
+    if (lastTab === 'all') {
+      return [t('All'), []];
+    }
+    return [
+      t('Examples'),
+      [
         {
           col: 'created_by',
           opr: 'rel_o_m',
           value: 0,
         },
-      ]);
-    }
-  }, [bootstrapData.common?.conf.WELCOME_PAGE_LAST_TAB]);
+      ],
+    ];
+  }, []);
 
   useEffect(() => {
+    if (!otherTabFilters) {
+      return;
+    }
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
     getRecentAcitivtyObjs(user.userId!, recent, addDangerToast, otherTabFilters)
@@ -230,6 +232,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           } else setActiveChild(activeTab || 'Created');
         } else if (!activeTab) setActiveChild('Created');
         else setActiveChild(activeTab);
+        console.log('!!!', data);
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
       .catch(
@@ -283,7 +286,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           t('There was an issues fetching your saved queries: %s', err),
         );
       });
-  }, []);
+  }, [otherTabFilters]);
 
   const handleToggle = () => {
     setChecked(!checked);
@@ -359,6 +362,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   mine={dashboardData}
                   showThumbnails={checked}
                   otherTabData={activityData?.Other}
+                  otherTabFilters={otherTabFilters}
                   otherTabTitle={otherTabTitle}
                 />
               )}
@@ -372,6 +376,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   user={user}
                   mine={chartData}
                   otherTabData={activityData?.Other}
+                  otherTabFilters={otherTabFilters}
                   otherTabTitle={otherTabTitle}
                 />
               )}

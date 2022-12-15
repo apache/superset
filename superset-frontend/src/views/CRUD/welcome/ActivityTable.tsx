@@ -23,6 +23,7 @@ import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
 import ListViewCard from 'src/components/ListViewCard';
 import SubMenu from 'src/views/components/SubMenu';
+import { TableTab } from 'src/views/CRUD/types';
 import { ActivityData, LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import {
   CardContainer,
@@ -148,7 +149,7 @@ export default function ActivityTable({
   };
 
   useEffect(() => {
-    if (activeChild === 'Edited') {
+    if (activeChild === TableTab.Edited) {
       setLoadingState(true);
       getEditedCards();
     }
@@ -214,7 +215,9 @@ export default function ActivityTable({
     <Styles>
       <SubMenu activeChild={activeChild} tabs={tabs} />
       {activityData[activeChild]?.length > 0 ||
-      (activeChild === 'Edited' && editedObjs && editedObjs.length > 0) ? (
+      (activeChild === TableTab.Edited &&
+        editedObjs &&
+        editedObjs.length > 0) ? (
         <CardContainer className="recentCards">
           {renderActivity()}
         </CardContainer>
