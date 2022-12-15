@@ -94,7 +94,7 @@ setup(
         "graphlib-backport",
         "gunicorn>=20.1.0",
         "hashids>=1.3.1, <2",
-        "holidays>=0.16.0, <0.17",
+        "holidays>=0.17.2, <0.18",
         "humanize",
         "isodate",
         "markdown>=3.0",
@@ -120,13 +120,13 @@ setup(
         "sqlparse>=0.4.3, <0.5",
         "tabulate>=0.8.9, <0.9",
         "typing-extensions>=4, <5",
+        "wtforms>=2.3.3, <2.4",
         "wtforms-json",
     ],
     extras_require={
         "athena": ["pyathena[pandas]>=2, <3"],
         "aurora-data-api": ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"],
         "bigquery": [
-            "db-dtypes @ git+https://git@github.com/googleapis/python-db-dtypes-pandas.git@388e082a47d9515a14e20ffd87705c71712087ab#egg=db-dtypes",
             "pandas-gbq>=0.18.1",
             "sqlalchemy-bigquery>=1.5.0",
             "google-cloud-bigquery>=3.4.0",

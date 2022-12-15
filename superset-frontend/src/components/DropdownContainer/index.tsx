@@ -27,6 +27,7 @@ import React, {
   useMemo,
   useState,
   useRef,
+  ReactNode,
 } from 'react';
 import { Global } from '@emotion/react';
 import { css, t, useTheme } from '@superset-ui/core';
@@ -36,6 +37,7 @@ import Badge from '../Badge';
 import Icons from '../Icons';
 import Button from '../Button';
 import Popover from '../Popover';
+import { Tooltip } from '../Tooltip';
 
 const MAX_HEIGHT = 500;
 
@@ -96,6 +98,10 @@ export interface DropdownContainerProps {
    */
   dropdownTriggerText?: string;
   /**
+   * Text of the dropdown trigger tooltip
+   */
+  dropdownTriggerTooltip?: ReactNode | null;
+  /**
    * Main container additional style properties.
    */
   style?: CSSProperties;
@@ -114,6 +120,7 @@ const DropdownContainer = forwardRef(
       dropdownTriggerCount,
       dropdownTriggerIcon,
       dropdownTriggerText = t('More'),
+      dropdownTriggerTooltip = null,
       style,
     }: DropdownContainerProps,
     outerRef: RefObject<Ref>,
@@ -167,24 +174,24 @@ const DropdownContainer = forwardRef(
       [items, overflowingIndex],
     );
 
-    useEffect(() => {
-      if (itemsWidth.length !== items.length) {
-        const container = current?.children.item(0);
-        if (container) {
-          const { children } = container;
-          const childrenArray = Array.from(children);
-          setItemsWidth(
-            childrenArray.map(child => child.getBoundingClientRect().width),
-          );
-        }
-      }
-    }, [current?.children, items.length, itemsWidth.length]);
-
     useLayoutEffect(() => {
       const container = current?.children.item(0);
       if (container) {
         const { children } = container;
         const childrenArray = Array.from(children);
+
+        // If items length change, add all items to the container
+        // and recalculate the widths
+        if (itemsWidth.length !== items.length) {
+          if (childrenArray.length === items.length) {
+            setItemsWidth(
+              childrenArray.map(child => child.getBoundingClientRect().width),
+            );
+          } else {
+            setOverflowingIndex(-1);
+            return;
+          }
+        }
 
         // Calculates the index of the first overflowed element
         // +1 is to give at least one pixel of difference and avoid flakiness
@@ -358,31 +365,38 @@ const DropdownContainer = forwardRef(
               visible={popoverVisible}
               onVisibleChange={visible => setPopoverVisible(visible)}
               placement="bottom"
+              destroyTooltipOnHide
             >
-              <Button
-                buttonStyle="secondary"
-                data-test="dropdown-container-btn"
-              >
-                {dropdownTriggerIcon}
-                {dropdownTriggerText}
-                <Badge
-                  count={dropdownTriggerCount ?? overflowingCount}
-                  css={css`
-                    margin-left: ${dropdownTriggerCount ?? overflowingCount
-                      ? `${theme.gridUnit * 2}px`
-                      : '0'};
-                  `}
-                />
-                <Icons.DownOutlined
-                  iconSize="m"
-                  iconColor={theme.colors.grayscale.light1}
-                  css={css`
-                    .anticon {
-                      display: flex;
+              <Tooltip title={dropdownTriggerTooltip}>
+                <Button
+                  buttonStyle="secondary"
+                  data-test="dropdown-container-btn"
+                >
+                  {dropdownTriggerIcon}
+                  {dropdownTriggerText}
+                  <Badge
+                    count={dropdownTriggerCount ?? overflowingCount}
+                    color={
+                      (dropdownTriggerCount ?? overflowingCount) > 0
+                        ? theme.colors.primary.base
+                        : theme.colors.grayscale.light1
                     }
-                  `}
-                />
-              </Button>
+                    showZero
+                    css={css`
+                      margin-left: ${theme.gridUnit * 2}px;
+                    `}
+                  />
+                  <Icons.DownOutlined
+                    iconSize="m"
+                    iconColor={theme.colors.grayscale.light1}
+                    css={css`
+                      .anticon {
+                        display: flex;
+                      }
+                    `}
+                  />
+                </Button>
+              </Tooltip>
             </Popover>
           </>
         )}

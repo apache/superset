@@ -156,6 +156,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onOpenPopover = noOp,
     onClosePopover = noOp,
     overlayStyle = 'Popover',
+    isOverflowingFilterBar = false,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
@@ -356,6 +357,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       visible={show}
       onVisibleChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
+      getPopupContainer={triggerNode =>
+        isOverflowingFilterBar
+          ? (triggerNode.parentNode as HTMLElement)
+          : document.body
+      }
+      destroyTooltipOnHide
     >
       <Tooltip placement="top" title={tooltipTitle}>
         <DateLabel

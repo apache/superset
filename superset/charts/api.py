@@ -18,7 +18,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
@@ -75,6 +75,7 @@ from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
+from superset.tasks.utils import get_current_user
 from superset.utils.screenshots import ChartScreenshot
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -557,7 +558,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         # Don't shrink the image if thumb_size is not specified
         thumb_size = rison_dict.get("thumb_size") or window_size
 
-        chart = self.datamodel.get(pk, self._base_filters)
+        chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
 
@@ -570,14 +571,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         def trigger_celery() -> WerkzeugResponse:
             logger.info("Triggering screenshot ASYNC")
-            kwargs = {
-                "url": chart_url,
-                "digest": chart.digest,
-                "force": True,
-                "window_size": window_size,
-                "thumb_size": thumb_size,
-            }
-            cache_chart_thumbnail.delay(**kwargs)
+            cache_chart_thumbnail.delay(
+                current_user=get_current_user(),
+                chart_id=chart.id,
+                force=True,
+                window_size=window_size,
+                thumb_size=thumb_size,
+            )
             return self.response(
                 202, cache_key=cache_key, chart_url=chart_url, image_url=image_url
             )
@@ -680,16 +680,21 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        chart = self.datamodel.get(pk, self._base_filters)
+        chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
 
+        current_user = get_current_user()
         url = get_url_path("Superset.slice", slice_id=chart.id, standalone="true")
         if kwargs["rison"].get("force", False):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
-            cache_chart_thumbnail.delay(url, chart.digest, force=True)
+            cache_chart_thumbnail.delay(
+                current_user=current_user,
+                chart_id=chart.id,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # fetch the chart screenshot using the current user and cache if set
         screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
@@ -701,7 +706,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
             )
-            cache_chart_thumbnail.delay(url, chart.digest, force=True)
+            cache_chart_thumbnail.delay(
+                current_user=current_user,
+                chart_id=chart.id,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # If digests
         if chart.digest != digest:

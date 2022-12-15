@@ -163,7 +163,12 @@ class Database(
         "allow_file_upload",
         "extra",
     ]
-    extra_import_fields = ["password", "is_managed_externally", "external_url"]
+    extra_import_fields = [
+        "password",
+        "is_managed_externally",
+        "external_url",
+        "encrypted_extra",
+    ]
     export_children = ["tables"]
 
     def __repr__(self) -> str:
