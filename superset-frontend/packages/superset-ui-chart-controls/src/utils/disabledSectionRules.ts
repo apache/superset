@@ -32,4 +32,3 @@ export function isXAxisTemporal(exploreState: Record<string, any>) {
   }
   return false;
 }
-

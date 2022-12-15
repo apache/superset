@@ -125,7 +125,9 @@ export function ControlPanelSection({
       {isDisabled && disabledMessages && (
         <Tooltip
           id={`${kebabCase('disabled-section')}-tooltip`}
-          title={disabledMessages.map(msg => <div>{msg}</div>)}
+          title={disabledMessages.map(msg => (
+            <div>{msg}</div>
+          ))}
         >
           <Icons.InfoCircleOutlined
             data-test="disabled-section-tooltip"

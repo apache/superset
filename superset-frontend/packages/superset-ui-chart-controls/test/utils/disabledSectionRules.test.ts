@@ -49,15 +49,11 @@ const temporal = {
 };
 
 test('X axis is temporal', () => {
-  expect(
-    isXAxisTemporal(temporal),
-  ).toEqual(true);
+  expect(isXAxisTemporal(temporal)).toEqual(true);
 });
 
 test('X axis is not temporal', () => {
-  expect(
-    isXAxisTemporal(nonTemporal),
-  ).toEqual(false);
+  expect(isXAxisTemporal(nonTemporal)).toEqual(false);
 });
 
 test('X axis is not available', () => {
