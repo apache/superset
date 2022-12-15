@@ -18,15 +18,15 @@ under the License.
 -->
 
 ## Change Log
-### 2.0.1 (Thu Oct 13 09:52:35 2022 -0700)
+### 2.0.1 (Wed Dec 14 18:41:06 2022 -0500)
 **Database Migrations**
 
 **Features**
 
 **Fixes**
-- [#21895](https://github.com/apache/superset/pull/21895) feat: Improves SafeMarkdown HTML sanitization (@michael-s-molina) (security fix)
 - [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina) (security fix)
-- [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina) (security fix)
+- [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina)  (security fix)
+- [#22422](https://github.com/apache/superset/pull/22422) fix: Allow empty CSS in Handlebars (@michael-s-molina)
 - [#21776](https://github.com/apache/superset/pull/21776) fix(CustomFrame): Resolves issue #21731 where date range in explore throws runtime error (@eric-briscoe)
 - [#21637](https://github.com/apache/superset/pull/21637) fix: respect chart cache timeout setting (@mayurnewase)
 - [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
@@ -38,7 +38,6 @@ under the License.
 - [#21761](https://github.com/apache/superset/pull/21761) fix: flash message on database data upload forms (@dpgaspar)
 - [#21759](https://github.com/apache/superset/pull/21759) fix: database schema selector on import data (@dpgaspar)
 - [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
-- [#21549](https://github.com/apache/superset/pull/21549) fix(dashboard): show correct roles for dashboard access dropdown (@mayurnewase)
 - [#21773](https://github.com/apache/superset/pull/21773) fix: remove deprecated ETagResponseMixin (@eschutho)
 - [#21561](https://github.com/apache/superset/pull/21561) fix(report): Fix permission check for set up email report on charts/dashboards. Fixes #21559 (@zhaorui2022)
 - [#20651](https://github.com/apache/superset/pull/20651) fix: annotation broken (@zhaoyongjie)
