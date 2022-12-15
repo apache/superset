@@ -17,7 +17,6 @@
 import logging
 from typing import Any, Dict, List, Optional
 
-from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -38,7 +37,6 @@ class CreateSSHTunnelCommand(BaseCommand):
     def __init__(self, database_id: int, data: Dict[str, Any]):
         self._properties = data.copy()
         self._properties["database_id"] = database_id
-        self.ssh_tunnel_manager = current_app.config["SSH_TUNNEL_MANAGER"]
 
     def run(self) -> Model:
         self.validate()

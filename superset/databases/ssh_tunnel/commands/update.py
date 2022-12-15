@@ -17,7 +17,6 @@
 import logging
 from typing import Any, Dict, Optional
 
-from flask import current_app
 from flask_appbuilder.models.sqla import Model
 
 from superset.commands.base import BaseCommand
@@ -39,7 +38,6 @@ class UpdateSSHTunnelCommand(BaseCommand):
         self._properties = data.copy()
         self._model_id = model_id
         self._model: Optional[SSHTunnel] = None
-        self.ssh_tunnel_manager = current_app.config["SSH_TUNNEL_MANAGER"]
 
     def run(self) -> Model:
         self.validate()

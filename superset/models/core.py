@@ -66,8 +66,7 @@ from superset.utils.core import get_username
 from superset.utils.memoized import memoized
 
 config = app.config
-
-ssh_tunnel_manager = config["SSH_TUNNEL_MANAGER"]
+ssh_manager = config["SSH_TUNNEL_MANAGER"]
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
 stats_logger = config["STATS_LOGGER"]
 log_query = config["QUERY_LOGGER"]
@@ -450,9 +449,11 @@ class Database(
 
         if ssh_tunnel_server:
             # update sqlalchemy_url
+            sqlalchemy_url = ssh_manager.mutate(sqlalchemy_url, ssh_tunnel_server)
             url = make_url_safe(sqlalchemy_url)
+
             sqlalchemy_url = url.set(
-                host=SSH_TUNNELLING_LOCAL_BIND_ADDRESS,
+                host=ssh_tunnel_server.local_bind_address,
                 port=ssh_tunnel_server.local_bind_port,
             )
 

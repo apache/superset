@@ -45,6 +45,7 @@ from typing import (
 )
 
 import pkg_resources
+import sshtunnel
 from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
@@ -496,10 +497,16 @@ class SSHManager:  # pylint: disable=too-few-public-methods
     local_bind_address = "127.0.0.1"
 
     def mutator(  # pylint: disable=no-self-use
-        self, ssh_tunnel_params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder
+    ) -> str:
         # override any ssh tunnel configuration object
-        return ssh_tunnel_params
+        from superset.databases.utils import make_url_safe
+
+        url = make_url_safe(sqlalchemy_url)
+        return url.set(
+            host=self.local_bind_address,
+            port=server.local_bind_port,
+        )
 
 
 SSH_TUNNEL_MANAGER = SSHManager  # pylint: disable=invalid-name
