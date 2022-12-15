@@ -29,7 +29,7 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
-from superset.databases.utils import make_url_safe
+from superset.extensions.ssh import SSHManagerFactory
 from superset.utils.async_query_manager import AsyncQueryManager
 from superset.utils.cache_manager import CacheManager
 from superset.utils.encrypt import EncryptedFieldFactory
@@ -111,31 +111,6 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
         app.wsgi_app = SupersetProfiler(app.wsgi_app, self.interval)  # type: ignore
 
 
-class SSHManager:  # pylint: disable=too-few-public-methods
-    local_bind_address = "127.0.0.1"
-
-    @classmethod
-    def mutator(cls, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder) -> str:
-        # override any ssh tunnel configuration object
-        url = make_url_safe(sqlalchemy_url)
-        return url.set(
-            host=cls.local_bind_address,
-            port=server.local_bind_port,
-        )
-
-    @classmethod
-    def create_tunnel(
-        cls,
-        ssh_address_or_host: str,
-        ssh_port: int,
-        ssh_username: str,
-        remote_bind_address: str,
-        local_bind_address: str,
-        **kwargs: Dict[str, Any],
-    ) -> sshtunnel.SSHTunnelForwarder:
-        return sshtunnel.open_tunnel(**kwargs)
-
-
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
 appbuilder = AppBuilder(update_perms=False)
 async_query_manager = AsyncQueryManager()
@@ -154,4 +129,4 @@ profiling = ProfilingExtension()
 results_backend_manager = ResultsBackendManager()
 security_manager = LocalProxy(lambda: appbuilder.sm)
 talisman = Talisman()
-ssh_manager = SSHManager()
+ssh_manager_factory = SSHManagerFactory()

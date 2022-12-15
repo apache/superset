@@ -62,7 +62,7 @@ from superset.extensions import (
     cache_manager,
     encrypted_field_factory,
     security_manager,
-    ssh_manager,
+    ssh_manager_factory,
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
@@ -379,29 +379,26 @@ class Database(
         source: Optional[utils.QuerySource] = None,
         override_ssh_tunnel: Optional["SSHTunnel"] = None,
     ) -> Engine:
-        ssh_params = {}
         from superset.databases.dao import (  # pylint: disable=import-outside-toplevel
             DatabaseDAO,
         )
 
+        sqlalchemy_uri = self.sqlalchemy_uri_decrypted
+        engine_context = nullcontext()
         if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
             database_id=self.id
         ):
             # if ssh_tunnel is available build engine with information
-            url = make_url_safe(self.sqlalchemy_uri_decrypted)
-            ssh_params = ssh_tunnel.kwarg_parameters(
-                bind_host=url.host, bind_port=url.port
-            )
-            engine_context = ssh_manager.create_tunnel(**ssh_params)
-        else:
-            engine_context = nullcontext()
+            engine_context, sqlalchemy_uri = ssh_manager_factory.instance.create_tunnel(
+                ssh_tunnel=ssh_tunnel,
+                sqlalchemy_database_uri=self.sqlalchemy_uri_decrypted)
 
         with engine_context as server_context:
             yield self._get_sqla_engine(
                 schema=schema,
                 nullpool=nullpool,
                 source=source,
-                ssh_tunnel_server=server_context,
+                sqlalchemy_uri=sqlalchemy_uri
             )
 
     def _get_sqla_engine(
@@ -409,10 +406,10 @@ class Database(
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
-        ssh_tunnel_server: Optional[sshtunnel.SSHTunnelForwarder] = None,
+        sqlalchemy_uri: Optional[str] = None
     ) -> Engine:
         extra = self.get_extra()
-        sqlalchemy_url = make_url_safe(self.sqlalchemy_uri_decrypted)
+        sqlalchemy_url = make_url_safe(sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted)
         sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
@@ -452,10 +449,6 @@ class Database(
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url, params, effective_username, security_manager, source
             )
-
-        if ssh_tunnel_server:
-            # update sqlalchemy_url with ssh tunnel manager info
-            sqlalchemy_url = ssh_manager.mutator(sqlalchemy_url, ssh_tunnel_server)
         try:
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:

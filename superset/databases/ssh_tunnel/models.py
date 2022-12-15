@@ -67,20 +67,3 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     private_key_password = sa.Column(
         EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
-
-    def kwarg_parameters(self, bind_host: str, bind_port: int) -> Dict[str, Any]:
-        params = {
-            "ssh_address_or_host": self.server_address,
-            "ssh_port": self.server_port,
-            "ssh_username": self.username,
-            "remote_bind_address": (bind_host, bind_port),
-            "local_bind_address": (ssh_manager.local_bind_address,),
-        }
-
-        if self.password:
-            params["ssh_password"] = self.password
-        elif self.private_key:
-            params["private_key"] = self.private_key
-            params["private_key_password"] = self.private_key_password
-
-        return params
