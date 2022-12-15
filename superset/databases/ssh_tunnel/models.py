@@ -23,7 +23,6 @@ from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import EncryptedType
 
-from superset.constants import SSH_TUNNELLING_LOCAL_BIND_ADDRESS
 from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,

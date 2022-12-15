@@ -57,6 +57,7 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.databases.utils import make_url_safe
 from superset.jinja_context import BaseTemplateProcessor
 from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
@@ -496,12 +497,8 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 class SSHManager:  # pylint: disable=too-few-public-methods
     local_bind_address = "127.0.0.1"
 
-    def mutator(  # pylint: disable=no-self-use
-        self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder
-    ) -> str:
+    def mutator(self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder) -> str:
         # override any ssh tunnel configuration object
-        from superset.databases.utils import make_url_safe
-
         url = make_url_safe(sqlalchemy_url)
         return url.set(
             host=self.local_bind_address,

@@ -55,7 +55,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import expression, Select
 
 from superset import app, db_engine_specs
-from superset.constants import PASSWORD_MASK, SSH_TUNNELLING_LOCAL_BIND_ADDRESS
+from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
 from superset.extensions import cache_manager, encrypted_field_factory, security_manager
@@ -448,15 +448,8 @@ class Database(
             )
 
         if ssh_tunnel_server:
-            # update sqlalchemy_url
+            # update sqlalchemy_url with ssh tunnel manager info
             sqlalchemy_url = ssh_manager.mutate(sqlalchemy_url, ssh_tunnel_server)
-            url = make_url_safe(sqlalchemy_url)
-
-            sqlalchemy_url = url.set(
-                host=ssh_tunnel_server.local_bind_address,
-                port=ssh_tunnel_server.local_bind_port,
-            )
-
         try:
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:
