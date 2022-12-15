@@ -449,7 +449,7 @@ class Database(
 
         if ssh_tunnel_server:
             # update sqlalchemy_url with ssh tunnel manager info
-            sqlalchemy_url = ssh_manager.mutate(sqlalchemy_url, ssh_tunnel_server)
+            sqlalchemy_url = ssh_manager.mutator(sqlalchemy_url, ssh_tunnel_server)
         try:
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:

@@ -497,11 +497,12 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
 class SSHManager:  # pylint: disable=too-few-public-methods
     local_bind_address = "127.0.0.1"
 
-    def mutator(self, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder) -> str:
+    @classmethod
+    def mutator(cls, sqlalchemy_url: str, server: sshtunnel.SSHTunnelForwarder) -> str:
         # override any ssh tunnel configuration object
         url = make_url_safe(sqlalchemy_url)
         return url.set(
-            host=self.local_bind_address,
+            host=cls.local_bind_address,
             port=server.local_bind_port,
         )
 
