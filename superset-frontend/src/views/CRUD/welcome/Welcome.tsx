@@ -232,7 +232,6 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           } else setActiveChild(activeTab || 'Created');
         } else if (!activeTab) setActiveChild('Created');
         else setActiveChild(activeTab);
-        console.log('!!!', data);
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
       .catch(
