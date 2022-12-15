@@ -35,7 +35,7 @@ const metadata = new ChartMetadata({
     { url: example2, caption: 'Grouped style' },
     { url: example3 },
   ],
-  name: t('Bar Chart'),
+  name: t('Bar Chart (legacy)'),
   tags: [
     t('Additive'),
     t('Bar'),
