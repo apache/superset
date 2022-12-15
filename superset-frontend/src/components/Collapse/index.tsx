@@ -93,6 +93,11 @@ const Collapse = Object.assign(
           `}
       }
     }
+    .ant-collapse-item-disabled {
+      .ant-collapse-content-box {
+        display: none;
+      }
+    }
   `,
   {
     Panel: AntdCollapse.Panel,

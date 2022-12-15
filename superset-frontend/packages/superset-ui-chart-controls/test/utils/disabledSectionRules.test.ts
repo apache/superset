@@ -18,7 +18,7 @@
  */
 
 import { GenericDataType } from '@superset-ui/core';
-import { isSectionDisabled, SectionRuleType } from '../../src';
+import { isXAxisTemporal } from '../../src';
 
 const nonTemporal = {
   datasource: {
@@ -48,28 +48,23 @@ const temporal = {
   },
 };
 
-test('disables the section when X axis is not temporal', () => {
+test('X axis is temporal', () => {
   expect(
-    isSectionDisabled(SectionRuleType.X_AXIS_TEMPORAL, nonTemporal),
+    isXAxisTemporal(temporal),
   ).toEqual(true);
 });
 
-test('enables the section when X axis is not temporal', () => {
-  expect(isSectionDisabled(SectionRuleType.X_AXIS_TEMPORAL, temporal)).toEqual(
-    false,
-  );
+test('X axis is not temporal', () => {
+  expect(
+    isXAxisTemporal(nonTemporal),
+  ).toEqual(false);
 });
 
-test('enables the section when X axis is not available', () => {
+test('X axis is not available', () => {
   expect(
-    isSectionDisabled(SectionRuleType.X_AXIS_TEMPORAL, {
+    isXAxisTemporal({
       ...nonTemporal,
       form_data: {},
     }),
   ).toEqual(false);
-});
-
-test('shows by default', () => {
-  // @ts-ignore
-  expect(isSectionDisabled(undefined, temporal)).toEqual(false);
 });

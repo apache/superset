@@ -370,8 +370,7 @@ export interface ControlPanelSectionConfig {
   expanded?: boolean;
   tabOverride?: TabOverride;
   controlSetRows: ControlSetRow[];
-  setDisabled?: (props: ControlPanelsContainerProps) => boolean;
-  disabledTooltipText?: string;
+  setDisabled?: (props: ControlPanelsContainerProps) => false | string[];
 }
 
 export interface StandardizedControls {

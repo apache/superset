@@ -454,7 +454,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   ) => {
     const { label, setDisabled } = section;
     const { controls, actions } = props;
-    const isDisabled = setDisabled ? setDisabled.call(section, props) : false;
+    const setDisabledResult = setDisabled ? setDisabled.call(section, props) : false;
 
     // Section label can be a ReactNode but in some places we want to
     // have a string ID. Using forced type conversion for now,
@@ -494,7 +494,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         section={section}
         hasErrors={hasErrors}
         errorColor={errorColor}
-        isDisabled={isDisabled}
+        isDisabled={!!setDisabledResult}
+        disabledMessages={setDisabledResult || undefined}
         renderControl={renderControl}
       />
     );

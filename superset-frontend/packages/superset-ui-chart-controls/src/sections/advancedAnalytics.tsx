@@ -21,8 +21,7 @@ import { t, RollingType, ComparisionType } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import {
   formatSelectOptions,
-  isSectionDisabled,
-  SectionRuleType,
+  isXAxisTemporal,
 } from '../utils';
 
 export const advancedAnalyticsControls: ControlPanelSectionConfig = {
@@ -200,9 +199,11 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
     ],
   ],
   expanded: false,
-  setDisabled: ({ exploreState }) =>
-    isSectionDisabled(SectionRuleType.X_AXIS_TEMPORAL, exploreState),
-  disabledTooltipText: t(
-    'These controls are only available if a temporal x-axis is selected',
-  ),
+  setDisabled: ({ exploreState }): false | string[] =>
+    {
+      if(exploreState?.form_data?.x_axis && !isXAxisTemporal(exploreState)) {
+        return ['These controls are only available if a temporal x-axis is selected'];
+      }
+      return false;
+    }
 };

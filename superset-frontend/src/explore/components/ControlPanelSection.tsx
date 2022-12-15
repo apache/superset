@@ -56,6 +56,7 @@ type IControlPanelSectionProps = {
   errorColor: string;
   renderControl: (item: CustomControlItem) => JSX.Element;
   isDisabled?: boolean;
+  disabledMessages?: string[];
 };
 
 export function ControlPanelSection({
@@ -66,9 +67,10 @@ export function ControlPanelSection({
   errorColor,
   renderControl,
   isDisabled,
+  disabledMessages,
   ...restProps // https://github.com/react-component/collapse/issues/73#issuecomment-323626120
 }: IControlPanelSectionProps) {
-  const { label, description, disabledTooltipText } = section;
+  const { label, description } = section;
   const wasDisabled = usePrevious(isDisabled);
   const clearDisabledSectionControls = useCallback(() => {
     ensureIsArray(section.controlSetRows).forEach(controlSets => {
@@ -120,10 +122,10 @@ export function ControlPanelSection({
           />
         </Tooltip>
       )}
-      {isDisabled && disabledTooltipText && (
+      {isDisabled && disabledMessages && (
         <Tooltip
           id={`${kebabCase('disabled-section')}-tooltip`}
-          title={disabledTooltipText}
+          title={disabledMessages.map(msg => <div>{msg}</div>)}
         >
           <Icons.InfoCircleOutlined
             data-test="disabled-section-tooltip"

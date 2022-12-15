@@ -52,10 +52,7 @@ it('should render as disabled if isDisabled is true', () => {
   render(
     setup({
       isDisabled: true,
-      section: {
-        ...defaultProps.section,
-        disabledTooltipText: 'Test tooltip',
-      },
+      disabledMessages: ['Disabled message'],
     }),
   );
   expect(screen.getByTestId('disabled-section-tooltip')).toBeInTheDocument();

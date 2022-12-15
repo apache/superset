@@ -19,26 +19,17 @@
 
 import { ensureIsArray, GenericDataType } from '@superset-ui/core';
 
-export enum SectionRuleType {
-  X_AXIS_TEMPORAL = 'XAxisTemporal',
+export function isXAxisTemporal(exploreState: Record<string, any>) {
+  if (exploreState?.form_data?.x_axis) {
+    const { datasource, form_data } = exploreState;
+    const xAxis = ensureIsArray(form_data?.x_axis)[0];
+    const column = ensureIsArray(datasource.columns).find(
+      (col: { column_name: string }) => col?.column_name === xAxis,
+    );
+    if (column?.type_generic === GenericDataType.TEMPORAL) {
+      return true;
+    }
+  }
+  return false;
 }
 
-export function isSectionDisabled(rule: SectionRuleType, exploreState: any) {
-  switch (rule) {
-    case SectionRuleType.X_AXIS_TEMPORAL: {
-      if (exploreState?.form_data?.x_axis) {
-        const { datasource, form_data } = exploreState;
-        const xAxis = ensureIsArray(form_data?.x_axis)[0];
-        const column = ensureIsArray(datasource.columns).find(
-          (col: { column_name: string }) => col?.column_name === xAxis,
-        );
-        if (column?.type_generic !== GenericDataType.TEMPORAL) {
-          return true;
-        }
-      }
-      return false;
-    }
-    default:
-      return false;
-  }
-}
