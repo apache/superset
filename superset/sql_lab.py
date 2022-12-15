@@ -506,6 +506,12 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
                         log_params,
                         apply_ctas,
                     )
+                    # gets the stop identity attribute
+                    if query.status == QueryStatus.STOPPED or query.extra.get(
+                        'is_stopped'):
+                        payload.update({"status": query.status})
+                        return payload
+
                 except SqlLabQueryStoppedException:
                     payload.update({"status": QueryStatus.STOPPED})
                     return payload

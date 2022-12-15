@@ -107,6 +107,7 @@ WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
+IMPALA_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
 SQLLAB_CTAS_NO_LIMIT = True
 
 #
