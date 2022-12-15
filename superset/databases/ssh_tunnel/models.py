@@ -68,7 +68,7 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
         EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
 
-    def parameters(self, bind_host: str, bind_port: int) -> Dict[str, Any]:
+    def kwarg_parameters(self, bind_host: str, bind_port: int) -> Dict[str, Any]:
         params = {
             "ssh_address_or_host": self.server_address,
             "ssh_port": self.server_port,

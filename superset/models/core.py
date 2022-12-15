@@ -385,7 +385,9 @@ class Database(
         ):
             # if ssh_tunnel is available build engine with information
             url = make_url_safe(self.sqlalchemy_uri_decrypted)
-            ssh_params = ssh_tunnel.parameters(bind_host=url.host, bind_port=url.port)
+            ssh_params = ssh_tunnel.kwarg_parameters(
+                bind_host=url.host, bind_port=url.port
+            )
             engine_context = sshtunnel.open_tunnel(**ssh_params)
         else:
             engine_context = nullcontext()
