@@ -32,9 +32,9 @@ class SSHManager:
         super().__init__()
         self.local_bind_address = app.config["SSH_TUNNEL_LOCAL_BIND_ADDRESS"]
 
-    def build_sqla_url( # pylint: disable=no-self-use
+    def build_sqla_url(  # pylint: disable=no-self-use
         self, sqlalchemy_url: str, server: SSHTunnelForwarder
-    ) -> str:  
+    ) -> str:
         # override any ssh tunnel configuration object
         url = make_url_safe(sqlalchemy_url)
         return url.set(
