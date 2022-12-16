@@ -29,7 +29,6 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, TYPE_C
 import numpy
 import pandas as pd
 import sqlalchemy as sqla
-import sshtunnel
 from flask import g, request
 from flask_appbuilder import Model
 from sqlalchemy import (
@@ -389,9 +388,10 @@ class Database(
             database_id=self.id
         ):
             # if ssh_tunnel is available build engine with information
-            engine_context, sqlalchemy_uri = ssh_manager_factory.instance.create_tunnel(
+            engine_context = ssh_manager_factory.instance.create_tunnel(
                 ssh_tunnel=ssh_tunnel,
                 sqlalchemy_database_uri=self.sqlalchemy_uri_decrypted)
+            sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(sqlalchemy_uri, server_context)
 
         with engine_context as server_context:
             yield self._get_sqla_engine(

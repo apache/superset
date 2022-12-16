@@ -16,36 +16,40 @@
 # under the License.
 
 import importlib
-from typing import Dict
+from typing import TYPE_CHECKING
 
 from flask import Flask
 from sshtunnel import open_tunnel, SSHTunnelForwarder
 
-from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 
+if TYPE_CHECKING:
+    from superset.databases.ssh_tunnel.models import SSHTunnel
 
-class SSHManager:  # pylint: disable=too-few-public-methods
+
+class SSHManager:
     def __init__(self, app: Flask) -> None:
         super().__init__()
         self.local_bind_address = app.config["SSH_TUNNEL_LOCAL_BIND_ADDRESS"]
 
-    def build_sqla_url(self, sqlalchemy_url: str, server: SSHTunnelForwarder) -> str:
+    def build_sqla_url( # pylint: disable=no-self-use
+        self, sqlalchemy_url: str, server: SSHTunnelForwarder
+    ) -> str:  
         # override any ssh tunnel configuration object
         url = make_url_safe(sqlalchemy_url)
         return url.set(
-            host=server.local_bind_address,
+            host=server.local_bind_address[0],
             port=server.local_bind_port,
         )
 
     def create_tunnel(
         self,
-        ssh_tunnel: SSHTunnel,
+        ssh_tunnel: "SSHTunnel",
         sqlalchemy_database_uri: str,
     ) -> SSHTunnelForwarder:
         url = make_url_safe(sqlalchemy_database_uri)
         params = {
-            "ssh_address_or_host": ssh_tunnel.ssh_address_or_host,
+            "ssh_address_or_host": ssh_tunnel.server_address,
             "ssh_port": ssh_tunnel.server_port,
             "ssh_username": ssh_tunnel.username,
             "remote_bind_address": (url.host, url.port),  # bind_port, bind_host
@@ -58,9 +62,7 @@ class SSHManager:  # pylint: disable=too-few-public-methods
             params["private_key"] = ssh_tunnel.private_key
             params["private_key_password"] = ssh_tunnel.private_key_password
 
-        tunnel = open_tunnel(params)
-
-        return tunnel, self.build_sqla_url(sqlalchemy_database_uri, tunnel)
+        return open_tunnel(**params)
 
 
 class SSHManagerFactory:

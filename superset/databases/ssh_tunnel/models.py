@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Dict
-
 import sqlalchemy as sa
 from flask import current_app
 from flask_appbuilder import Model
@@ -31,7 +29,6 @@ from superset.models.helpers import (
 )
 
 app_config = current_app.config
-ssh_manager = app_config["SSH_TUNNEL_MANAGER"]
 
 
 class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):

@@ -20,7 +20,6 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 import celery
-import sshtunnel
 from cachelib.base import BaseCache
 from flask import Flask
 from flask_appbuilder import AppBuilder, SQLA
