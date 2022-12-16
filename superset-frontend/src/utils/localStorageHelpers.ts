@@ -18,7 +18,6 @@
  */
 
 import { TableTab } from 'src/views/CRUD/types';
-import { SetTabType } from 'src/views/CRUD/welcome/ActivityTable';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 
 export enum LocalStorageKeys {
@@ -69,7 +68,7 @@ export type LocalStorageValues = {
   homepage_dashboard_filter: TableTab;
   homepage_collapse_state: string[];
   datasetname_set_successful: boolean;
-  homepage_activity_filter: SetTabType | null;
+  homepage_activity_filter: TableTab | null;
   sqllab__is_autocomplete_enabled: boolean;
   explore__data_table_original_formatted_time_columns: Record<string, string[]>;
   dashboard__custom_filter_bar_widths: Record<string, number>;

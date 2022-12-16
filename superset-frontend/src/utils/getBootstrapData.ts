@@ -21,7 +21,6 @@ import { BootstrapData } from 'src/types/bootstrapTypes';
 
 export default function getBootstrapData(): BootstrapData {
   const appContainer = document.getElementById('app');
-  const dataBootstrap = appContainer?.getAttribute('data-bootstrap') || '{}';
-
-  return JSON.parse(dataBootstrap);
+  const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
+  return dataBootstrap ? JSON.parse(dataBootstrap) : {};
 }

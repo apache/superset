@@ -57,12 +57,6 @@ interface RecentDashboard extends RecentActivity {
   item_type: 'dashboard';
 }
 
-export enum SetTabType {
-  EDITED = 'Edited',
-  CREATED = 'Created',
-  VIEWED = 'Viewed',
-  EXAMPLE = 'Examples',
-}
 /**
  * Recent activity objects fetched by `getRecentAcitivtyObjs`.
  */
@@ -156,54 +150,55 @@ export default function ActivityTable({
 
   const tabs = [
     {
-      name: 'Edited',
+      name: TableTab.Edited,
       label: t('Edited'),
       onClick: () => {
-        setActiveChild('Edited');
-        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.EDITED);
+        setActiveChild(TableTab.Edited);
+        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Edited);
       },
     },
     {
-      name: 'Created',
+      name: TableTab.Created,
       label: t('Created'),
       onClick: () => {
-        setActiveChild('Created');
-        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.CREATED);
+        setActiveChild(TableTab.Created);
+        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Created);
       },
     },
   ];
 
-  if (activityData?.Viewed) {
+  if (activityData?.[TableTab.Viewed]) {
     tabs.unshift({
-      name: 'Viewed',
+      name: TableTab.Viewed,
       label: t('Viewed'),
       onClick: () => {
-        setActiveChild('Viewed');
-        setItem(LocalStorageKeys.homepage_activity_filter, SetTabType.VIEWED);
+        setActiveChild(TableTab.Viewed);
+        setItem(LocalStorageKeys.homepage_activity_filter, TableTab.Viewed);
       },
     });
   }
   const renderActivity = () =>
-    (activeChild !== 'Edited' ? activityData[activeChild] : editedObjs).map(
-      (entity: ActivityObject) => {
-        const url = getEntityUrl(entity);
-        const lastActionOn = getEntityLastActionOn(entity);
-        return (
-          <CardStyles key={url}>
-            <Link to={url}>
-              <ListViewCard
-                cover={<></>}
-                url={url}
-                title={getEntityTitle(entity)}
-                description={lastActionOn}
-                avatar={getEntityIcon(entity)}
-                actions={null}
-              />
-            </Link>
-          </CardStyles>
-        );
-      },
-    );
+    (activeChild !== TableTab.Edited
+      ? activityData[activeChild]
+      : editedObjs
+    ).map((entity: ActivityObject) => {
+      const url = getEntityUrl(entity);
+      const lastActionOn = getEntityLastActionOn(entity);
+      return (
+        <CardStyles key={url}>
+          <Link to={url}>
+            <ListViewCard
+              cover={<></>}
+              url={url}
+              title={getEntityTitle(entity)}
+              description={lastActionOn}
+              avatar={getEntityIcon(entity)}
+              actions={null}
+            />
+          </Link>
+        </CardStyles>
+      );
+    });
 
   const doneFetching = loadedCount < 3;
 

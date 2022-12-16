@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { styled, t, getExtensionsRegistry } from '@superset-ui/core';
+import {
+  getExtensionsRegistry,
+  JsonObject,
+  styled,
+  t,
+} from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
@@ -41,6 +46,7 @@ import {
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { TableTab } from 'src/views/CRUD/types';
 import { WelcomePageLastTab } from './types';
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
@@ -55,10 +61,10 @@ interface WelcomeProps {
 }
 
 export interface ActivityData {
-  Created?: Array<object>;
-  Edited?: Array<object>;
-  Viewed?: Array<object>;
-  Other?: Array<object>;
+  [TableTab.Created]?: JsonObject[];
+  [TableTab.Edited]?: JsonObject[];
+  [TableTab.Viewed]?: JsonObject[];
+  [TableTab.Other]?: JsonObject[];
 }
 
 interface LoadingProps {
@@ -221,22 +227,25 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     getRecentAcitivtyObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
         const data: ActivityData | null = {};
-        data.Other = res.other;
+        data[TableTab.Other] = res.other;
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
-          data.Viewed = filtered;
-          if (!activeTab && data.Viewed) {
-            setActiveChild('Viewed');
-          } else if (!activeTab && !data.Viewed) {
-            setActiveChild('Created');
-          } else setActiveChild(activeTab || 'Created');
-        } else if (!activeTab) setActiveChild('Created');
+          data[TableTab.Viewed] = filtered;
+          if (!activeTab && data[TableTab.Viewed]) {
+            setActiveChild(TableTab.Viewed);
+          } else if (!activeTab && !data[TableTab.Viewed]) {
+            setActiveChild(TableTab.Created);
+          } else setActiveChild(activeTab || TableTab.Created);
+        } else if (!activeTab) setActiveChild(TableTab.Created);
         else setActiveChild(activeTab);
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
       .catch(
         createErrorHandler((errMsg: unknown) => {
-          setActivityData(activityData => ({ ...activityData, Viewed: [] }));
+          setActivityData(activityData => ({
+            ...activityData,
+            [TableTab.Viewed]: [],
+          }));
           addDangerToast(
             t('There was an issue fetching your recent activity: %s', errMsg),
           );
@@ -307,12 +316,13 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   }, [chartData, queryData, dashboardData]);
 
   useEffect(() => {
-    if (!collapseState && activityData?.Viewed?.length) {
+    if (!collapseState && activityData?.[TableTab.Viewed]?.length) {
       setActiveState(activeState => ['1', ...activeState]);
     }
   }, [activityData]);
 
-  const isRecentActivityLoading = !activityData?.Other && !activityData?.Viewed;
+  const isRecentActivityLoading =
+    !activityData?.[TableTab.Other] && !activityData?.[TableTab.Viewed];
   return (
     <WelcomeContainer>
       {WelcomeMessageExtension && <WelcomeMessageExtension />}
@@ -337,9 +347,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           >
             <Collapse.Panel header={t('Recents')} key="1">
               {activityData &&
-              (activityData.Viewed ||
-                activityData.Other ||
-                activityData.Created) &&
+              (activityData[TableTab.Viewed] ||
+                activityData[TableTab.Other] ||
+                activityData[TableTab.Created]) &&
               activeChild !== 'Loading' ? (
                 <ActivityTable
                   user={{ userId: user.userId! }} // user is definitely not a guest user on this page
@@ -360,7 +370,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   user={user}
                   mine={dashboardData}
                   showThumbnails={checked}
-                  otherTabData={activityData?.Other}
+                  otherTabData={activityData?.[TableTab.Other]}
                   otherTabFilters={otherTabFilters}
                   otherTabTitle={otherTabTitle}
                 />
@@ -374,7 +384,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   showThumbnails={checked}
                   user={user}
                   mine={chartData}
-                  otherTabData={activityData?.Other}
+                  otherTabData={activityData?.[TableTab.Other]}
                   otherTabFilters={otherTabFilters}
                   otherTabTitle={otherTabTitle}
                 />
