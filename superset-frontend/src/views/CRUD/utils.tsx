@@ -481,11 +481,20 @@ export function getFilterValues(
       },
     ];
   }
-  if (tab === TableTab.Favorite) {
+  if (welcomeTable === WelcomeTable.Dashboards && tab === TableTab.Favorite) {
     return [
       {
         id: 'id',
         operator: 'dashboard_is_favorite',
+        value: true,
+      },
+    ];
+  }
+  if (welcomeTable === WelcomeTable.Charts && tab === TableTab.Favorite) {
+    return [
+      {
+        id: 'id',
+        operator: 'chart_is_favorite',
         value: true,
       },
     ];
