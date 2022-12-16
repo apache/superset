@@ -166,7 +166,7 @@ function legend({
       if (i === domainValues.length - 1) {
         return `${format(domainValues[i - 1])} - ${format(d)}`;
       }
-      return `${format(domainValues[i - 1])} - ${format(domainValues[i + 1])}`;
+      return `${format(domainValues[i])} - ${format(domainValues[i + 1])}`;
     })
     .attr('font-size', fontSize)
     .attr('font-weight', 'normal')
