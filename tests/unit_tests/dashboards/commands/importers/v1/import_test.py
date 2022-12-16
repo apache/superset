@@ -21,7 +21,7 @@ import copy
 from sqlalchemy.orm.session import Session
 
 
-def test_import_dashboard(app_context: None, session: Session) -> None:
+def test_import_dashboard(session: Session) -> None:
     """
     Test importing a dashboard.
     """
@@ -43,9 +43,7 @@ def test_import_dashboard(app_context: None, session: Session) -> None:
     assert dashboard.external_url is None
 
 
-def test_import_dashboard_managed_externally(
-    app_context: None, session: Session
-) -> None:
+def test_import_dashboard_managed_externally(session: Session) -> None:
     """
     Test importing a dashboard that is managed externally.
     """

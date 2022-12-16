@@ -17,13 +17,18 @@
  * under the License.
  */
 describe('Visualization > Pivot Table', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const PIVOT_TABLE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'pivot_table',
     slice_id: 61,
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
-    time_range: '100+years+ago+:+now',
+    time_range: '100 years ago : now',
     metrics: ['sum__num'],
     adhoc_filters: [],
     groupby: ['name'],
@@ -54,14 +59,9 @@ describe('Visualization > Pivot Table', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'table' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work with single groupby', () => {
     verify(PIVOT_TABLE_FORM_DATA);

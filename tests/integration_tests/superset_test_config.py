@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # type: ignore
+import logging
 import math
 from copy import copy
 from datetime import timedelta
@@ -23,6 +24,12 @@ from superset.config import *
 from tests.integration_tests.superset_test_custom_template_processors import (
     CustomPrestoTemplateProcessor,
 )
+
+logging.getLogger("flask_appbuilder.baseviews").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.base").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.api").setLevel(logging.WARNING)
+logging.getLogger("flask_appbuilder.security.sqla.manager").setLevel(logging.WARNING)
+logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
 
 AUTH_USER_REGISTRATION_ROLE = "alpha"
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(
@@ -63,7 +70,11 @@ FEATURE_FLAGS = {
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ALERT_REPORTS": True,
     "DASHBOARD_NATIVE_FILTERS": True,
+    "DRILL_TO_DETAIL": True,
+    "HORIZONTAL_FILTER_BAR": True,
 }
+
+WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
 
 
 def GET_FEATURE_FLAGS_FUNC(ff):
@@ -114,6 +125,8 @@ EXPLORE_FORM_DATA_CACHE_CONFIG = {
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"
 
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
+
+ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
 
 
 class CeleryConfig(object):

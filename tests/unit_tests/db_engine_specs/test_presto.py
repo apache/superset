@@ -19,7 +19,6 @@ from typing import Optional
 
 import pytest
 import pytz
-from flask.ctx import AppContext
 
 
 @pytest.mark.parametrize(
@@ -45,7 +44,6 @@ from flask.ctx import AppContext
     ],
 )
 def test_convert_dttm(
-    app_context: AppContext,
     target_type: str,
     dttm: datetime,
     result: Optional[str],

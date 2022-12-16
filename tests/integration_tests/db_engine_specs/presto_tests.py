@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import namedtuple
+from textwrap import dedent
 from unittest import mock, skipUnless
 
 import pandas as pd
 from sqlalchemy import types
-from sqlalchemy.engine.result import RowProxy
 from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -34,62 +34,57 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_get_datatype_presto(self):
         self.assertEqual("STRING", PrestoEngineSpec.get_datatype("string"))
 
-    def test_presto_get_view_names_return_empty_list(
-        self,
-    ):  # pylint: disable=invalid-name
-        self.assertEqual(
-            [], PrestoEngineSpec.get_view_names(mock.ANY, mock.ANY, mock.ANY)
-        )
-
-    @mock.patch("superset.db_engine_specs.presto.is_feature_enabled")
-    def test_get_view_names(self, mock_is_feature_enabled):
-        mock_is_feature_enabled.return_value = True
-        mock_execute = mock.MagicMock()
-        mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
+    def test_get_view_names_with_schema(self):
         database = mock.MagicMock()
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+        mock_execute = mock.MagicMock()
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.execute = (
             mock_execute
         )
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.fetchall = (
-            mock_fetchall
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.fetchall = mock.MagicMock(
+            return_value=[["a", "b,", "c"], ["d", "e"]]
         )
-        result = PrestoEngineSpec.get_view_names(database, mock.Mock(), None)
-        mock_execute.assert_called_once_with(
-            "SELECT table_name FROM information_schema.views", {}
-        )
-        assert result == ["a", "d"]
 
-    @mock.patch("superset.db_engine_specs.presto.is_feature_enabled")
-    def test_get_view_names_with_schema(self, mock_is_feature_enabled):
-        mock_is_feature_enabled.return_value = True
-        mock_execute = mock.MagicMock()
-        mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
-        database = mock.MagicMock()
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
-            mock_execute
-        )
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.fetchall = (
-            mock_fetchall
-        )
         schema = "schema"
         result = PrestoEngineSpec.get_view_names(database, mock.Mock(), schema)
         mock_execute.assert_called_once_with(
-            "SELECT table_name FROM information_schema.views "
-            "WHERE table_schema=%(schema)s",
+            dedent(
+                """
+                SELECT table_name FROM information_schema.tables
+                WHERE table_schema = %(schema)s
+                AND table_type = 'VIEW'
+                """
+            ).strip(),
             {"schema": schema},
         )
-        assert result == ["a", "d"]
+        assert result == {"a", "d"}
+
+    def test_get_view_names_without_schema(self):
+        database = mock.MagicMock()
+        mock_execute = mock.MagicMock()
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.execute = (
+            mock_execute
+        )
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.fetchall = mock.MagicMock(
+            return_value=[["a", "b,", "c"], ["d", "e"]]
+        )
+        result = PrestoEngineSpec.get_view_names(database, mock.Mock(), None)
+        mock_execute.assert_called_once_with(
+            dedent(
+                """
+                SELECT table_name FROM information_schema.tables
+                WHERE table_type = 'VIEW'
+                """
+            ).strip(),
+            {},
+        )
+        assert result == {"a", "d"}
 
     def verify_presto_column(self, column, expected_results):
         inspector = mock.Mock()
         inspector.engine.dialect.identifier_preparer.quote_identifier = mock.Mock()
-        keymap = {
-            "Column": (None, None, 0),
-            "Type": (None, None, 1),
-            "Null": (None, None, 2),
-        }
-        row = RowProxy(mock.Mock(), column, [None, None, None, None], keymap)
-        inspector.bind.execute = mock.Mock(return_value=[row])
+        row = mock.Mock()
+        row.Column, row.Type, row.Null = column
+        inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
         results = PrestoEngineSpec.get_columns(inspector, "", "")
         self.assertEqual(len(expected_results), len(results))
         for expected_result, result in zip(expected_results, results):
@@ -668,50 +663,17 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
         assert sqla_type is None
 
-    @mock.patch(
-        "superset.utils.feature_flag_manager.FeatureFlagManager.is_feature_enabled"
-    )
     @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
     @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
-    def test_get_table_names_no_split_views_from_tables(
-        self, mock_get_view_names, mock_get_table_names, mock_is_feature_enabled
+    def test_get_table_names(
+        self,
+        mock_get_view_names,
+        mock_get_table_names,
     ):
-        mock_get_view_names.return_value = ["view1", "view2"]
-        table_names = ["table1", "table2", "view1", "view2"]
-        mock_get_table_names.return_value = table_names
-        mock_is_feature_enabled.return_value = False
+        mock_get_view_names.return_value = {"view1", "view2"}
+        mock_get_table_names.return_value = {"table1", "table2", "view1", "view2"}
         tables = PrestoEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
-        assert tables == table_names
-
-    @mock.patch(
-        "superset.utils.feature_flag_manager.FeatureFlagManager.is_feature_enabled"
-    )
-    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
-    @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
-    def test_get_table_names_split_views_from_tables(
-        self, mock_get_view_names, mock_get_table_names, mock_is_feature_enabled
-    ):
-        mock_get_view_names.return_value = ["view1", "view2"]
-        table_names = ["table1", "table2", "view1", "view2"]
-        mock_get_table_names.return_value = table_names
-        mock_is_feature_enabled.return_value = True
-        tables = PrestoEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
-        assert sorted(tables) == sorted(table_names)
-
-    @mock.patch(
-        "superset.utils.feature_flag_manager.FeatureFlagManager.is_feature_enabled"
-    )
-    @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
-    @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.get_view_names")
-    def test_get_table_names_split_views_from_tables_no_tables(
-        self, mock_get_view_names, mock_get_table_names, mock_is_feature_enabled
-    ):
-        mock_get_view_names.return_value = []
-        table_names = []
-        mock_get_table_names.return_value = table_names
-        mock_is_feature_enabled.return_value = True
-        tables = PrestoEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
-        assert tables == []
+        assert tables == {"table1", "table2"}
 
     def test_get_full_name(self):
         names = [
@@ -749,25 +711,29 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         inspector.engine.dialect.identifier_preparer.quote_identifier = (
             lambda x: f'"{x}"'
         )
-        mock_execute = mock.MagicMock(return_value=["a", "b"])
-        inspector.bind.execute = mock_execute
+        inspector.bind.execute.return_value.fetchall = mock.MagicMock(
+            return_value=["a", "b"]
+        )
         table_name = "table_name"
         result = PrestoEngineSpec._show_columns(inspector, table_name, None)
         assert result == ["a", "b"]
-        mock_execute.assert_called_once_with(f'SHOW COLUMNS FROM "{table_name}"')
+        inspector.bind.execute.assert_called_once_with(
+            f'SHOW COLUMNS FROM "{table_name}"'
+        )
 
     def test_show_columns_with_schema(self):
         inspector = mock.MagicMock()
         inspector.engine.dialect.identifier_preparer.quote_identifier = (
             lambda x: f'"{x}"'
         )
-        mock_execute = mock.MagicMock(return_value=["a", "b"])
-        inspector.bind.execute = mock_execute
+        inspector.bind.execute.return_value.fetchall = mock.MagicMock(
+            return_value=["a", "b"]
+        )
         table_name = "table_name"
         schema = "schema"
         result = PrestoEngineSpec._show_columns(inspector, table_name, schema)
         assert result == ["a", "b"]
-        mock_execute.assert_called_once_with(
+        inspector.bind.execute.assert_called_once_with(
             f'SHOW COLUMNS FROM "{schema}"."{table_name}"'
         )
 
@@ -852,30 +818,17 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "DROP TABLE brth_names", mock_cursor
             )
 
-    def test_get_all_datasource_names(self):
-        df = pd.DataFrame.from_dict(
-            {"table_schema": ["schema1", "schema2"], "table_name": ["name1", "name2"]}
-        )
-        database = mock.MagicMock()
-        database.get_df.return_value = df
-        result = PrestoEngineSpec.get_all_datasource_names(database, "table")
-        expected_result = [
-            DatasourceName(schema="schema1", table="name1"),
-            DatasourceName(schema="schema2", table="name2"),
-        ]
-        assert result == expected_result
-
     def test_get_create_view(self):
         mock_execute = mock.MagicMock()
         mock_fetchall = mock.MagicMock(return_value=[["a", "b,", "c"], ["d", "e"]])
         database = mock.MagicMock()
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.execute = (
             mock_execute
         )
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.fetchall = (
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.fetchall = (
             mock_fetchall
         )
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.poll.return_value = (
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.poll.return_value = (
             False
         )
         schema = "schema"
@@ -887,7 +840,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
     def test_get_create_view_exception(self):
         mock_execute = mock.MagicMock(side_effect=Exception())
         database = mock.MagicMock()
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.execute = (
             mock_execute
         )
         schema = "schema"
@@ -900,7 +853,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
         mock_execute = mock.MagicMock(side_effect=DatabaseError())
         database = mock.MagicMock()
-        database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value.execute = (
+        database.get_sqla_engine_with_context.return_value.__enter__.return_value.raw_connection.return_value.cursor.return_value.execute = (
             mock_execute
         )
         schema = "schema"

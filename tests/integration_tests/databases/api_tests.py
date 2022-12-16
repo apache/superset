@@ -43,7 +43,7 @@ from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.db_engine_specs.hana import HanaEngineSpec
 from superset.errors import SupersetError
 from superset.models.core import Database, ConfigurationMethod
-from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.database import get_example_database, get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -185,7 +185,6 @@ class TestDatabaseApi(SupersetTestCase):
             "allow_cvas",
             "allow_dml",
             "allow_file_upload",
-            "allow_multi_schema_metadata_fetch",
             "allow_run_async",
             "allows_cost_estimate",
             "allows_subquery",
@@ -196,11 +195,13 @@ class TestDatabaseApi(SupersetTestCase):
             "created_by",
             "database_name",
             "disable_data_preview",
+            "engine_information",
             "explore_database_id",
             "expose_in_sqllab",
             "extra",
             "force_ctas_schema",
             "id",
+            "uuid",
         ]
 
         self.assertGreater(response["count"], 0)
@@ -374,7 +375,7 @@ class TestDatabaseApi(SupersetTestCase):
             "database_name": "test-create-database-invalid-json",
             "sqlalchemy_uri": example_db.sqlalchemy_uri_decrypted,
             "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
-            "encrypted_extra": '{"A": "a", "B", "C"}',
+            "masked_encrypted_extra": '{"A": "a", "B", "C"}',
             "extra": '["A": "a", "B", "C"]',
         }
 
@@ -383,7 +384,7 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {
             "message": {
-                "encrypted_extra": [
+                "masked_encrypted_extra": [
                     "Field cannot be decoded by JSON. Expecting ':' "
                     "delimiter: line 1 column 15 (char 14)"
                 ],
@@ -525,11 +526,55 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(username="admin")
         response = self.client.post(uri, json=database_data)
         response_data = json.loads(response.data.decode("utf-8"))
-        expected_response = {
-            "message": "Connection failed, please check your connection settings"
+        superset_error_mysql = SupersetError(
+            message='Either the username "superset" or the password is incorrect.',
+            error_type="CONNECTION_ACCESS_DENIED_ERROR",
+            level="error",
+            extra={
+                "engine_name": "MySQL",
+                "invalid": ["username", "password"],
+                "issue_codes": [
+                    {
+                        "code": 1014,
+                        "message": (
+                            "Issue 1014 - Either the username or the password is wrong."
+                        ),
+                    },
+                    {
+                        "code": 1015,
+                        "message": (
+                            "Issue 1015 - Issue 1015 - Either the database is spelled incorrectly or does not exist."
+                        ),
+                    },
+                ],
+            },
+        )
+        superset_error_postgres = SupersetError(
+            message='The password provided for username "superset" is incorrect.',
+            error_type="CONNECTION_INVALID_PASSWORD_ERROR",
+            level="error",
+            extra={
+                "engine_name": "PostgreSQL",
+                "invalid": ["username", "password"],
+                "issue_codes": [
+                    {
+                        "code": 1013,
+                        "message": (
+                            "Issue 1013 - The password provided when connecting to a database is not valid."
+                        ),
+                    }
+                ],
+            },
+        )
+        expected_response_mysql = {"errors": [dataclasses.asdict(superset_error_mysql)]}
+        expected_response_postgres = {
+            "errors": [dataclasses.asdict(superset_error_postgres)]
         }
-        self.assertEqual(response.status_code, 422)
-        self.assertEqual(response_data, expected_response)
+        self.assertEqual(response.status_code, 500)
+        if example_db.backend == "mysql":
+            self.assertEqual(response_data, expected_response_mysql)
+        else:
+            self.assertEqual(response_data, expected_response_postgres)
 
     def test_update_database(self):
         """
@@ -1353,13 +1398,13 @@ class TestDatabaseApi(SupersetTestCase):
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = {
             "database_name": "examples",
-            "encrypted_extra": "{}",
+            "masked_encrypted_extra": "{}",
             "extra": json.dumps(extra),
             "impersonate_user": False,
             "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 200)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
@@ -1388,7 +1433,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 422)
         self.assertEqual(rv.headers["Content-Type"], "application/json; charset=utf-8")
@@ -1425,7 +1470,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "errors": [
                 {
-                    "message": "Could not load database driver: AzureSynapseSpec",
+                    "message": "Could not load database driver: MssqlEngineSpec",
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
@@ -1454,7 +1499,7 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
         self.assertEqual(rv.status_code, 400)
         response = json.loads(rv.data.decode("utf-8"))
@@ -1513,10 +1558,10 @@ class TestDatabaseApi(SupersetTestCase):
             "impersonate_user": False,
             "server_cert": None,
         }
-        url = "api/v1/database/test_connection"
+        url = "api/v1/database/test_connection/"
         rv = self.post_assert_metric(url, data, "test_connection")
 
-        assert rv.status_code == 422
+        assert rv.status_code == 500
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
         response = json.loads(rv.data.decode("utf-8"))
         expected_response = {"errors": [dataclasses.asdict(superset_error)]}
@@ -1942,6 +1987,9 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": ["bigquery"],
@@ -1961,6 +2009,9 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": ["psycopg2"],
@@ -2009,6 +2060,9 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": ["apsw"],
@@ -2028,6 +2082,9 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
+                    "engine_information": {
+                        "supports_file_upload": False,
+                    },
                 },
                 {
                     "available_drivers": ["mysqlconnector", "mysqldb"],
@@ -2076,12 +2133,18 @@ class TestDatabaseApi(SupersetTestCase):
                     },
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": [""],
                     "engine": "hana",
                     "name": "SAP HANA",
                     "preferred": False,
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
             ]
         }
@@ -2109,19 +2172,25 @@ class TestDatabaseApi(SupersetTestCase):
                     "engine": "mysql",
                     "name": "MySQL",
                     "preferred": True,
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
                 {
                     "available_drivers": [""],
                     "engine": "hana",
                     "name": "SAP HANA",
                     "preferred": False,
+                    "engine_information": {
+                        "supports_file_upload": True,
+                    },
                 },
             ]
         }
 
     def test_validate_parameters_invalid_payload_format(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         rv = self.client.post(url, data="INVALID", content_type="text/plain")
         response = json.loads(rv.data.decode("utf-8"))
 
@@ -2146,7 +2215,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_invalid_payload_schema(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {"foo": "bar"}
         rv = self.client.post(url, json=payload)
         response = json.loads(rv.data.decode("utf-8"))
@@ -2190,7 +2259,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_missing_fields(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "configuration_method": ConfigurationMethod.SQLALCHEMY_FORM,
             "engine": "postgresql",
@@ -2241,7 +2310,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_port_open.return_value = True
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2265,7 +2334,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     def test_validate_parameters_invalid_port(self):
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2324,7 +2393,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_hostname_valid.return_value = False
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2384,7 +2453,7 @@ class TestDatabaseApi(SupersetTestCase):
         is_hostname_valid.return_value = True
 
         self.login(username="admin")
-        url = "api/v1/database/validate_parameters"
+        url = "api/v1/database/validate_parameters/"
         payload = {
             "engine": "postgresql",
             "parameters": defaultdict(dict),
@@ -2467,7 +2536,7 @@ class TestDatabaseApi(SupersetTestCase):
             pytest.skip("Only presto and PG are implemented")
 
         self.login(username="admin")
-        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
@@ -2493,7 +2562,7 @@ class TestDatabaseApi(SupersetTestCase):
             pytest.skip("Only presto and PG are implemented")
 
         self.login(username="admin")
-        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 200)
@@ -2525,7 +2594,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.login(username="admin")
         uri = (
-            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql"
+            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
         )
         rv = self.client.post(uri, json=request_payload)
         self.assertEqual(rv.status_code, 404)
@@ -2546,7 +2615,7 @@ class TestDatabaseApi(SupersetTestCase):
         }
         self.login(username="admin")
         uri = (
-            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql"
+            f"api/v1/database/{self.get_nonexistent_numeric_id(Database)}/validate_sql/"
         )
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
@@ -2571,7 +2640,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         example_db = get_example_database()
 
-        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(rv.status_code, 422)
@@ -2624,7 +2693,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         example_db = get_example_database()
 
-        uri = f"api/v1/database/{example_db.id}/validate_sql"
+        uri = f"api/v1/database/{example_db.id}/validate_sql/"
         rv = self.client.post(uri, json=request_payload)
         response = json.loads(rv.data.decode("utf-8"))
 

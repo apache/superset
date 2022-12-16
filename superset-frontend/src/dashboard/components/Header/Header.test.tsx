@@ -20,6 +20,8 @@ import React from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 import { HeaderProps } from './types';
 import Header from '.';
 
@@ -35,7 +37,12 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+        ],
+      },
     },
   },
   user: {
@@ -75,7 +82,8 @@ const createProps = () => ({
   setEditMode: jest.fn(),
   showBuilderPane: jest.fn(),
   updateCss: jest.fn(),
-  setColorSchemeAndUnsavedChanges: jest.fn(),
+  setColorScheme: jest.fn(),
+  setUnsavedChanges: jest.fn(),
   logEvent: jest.fn(),
   setRefreshFrequency: jest.fn(),
   hasUnsavedChanges: false,
@@ -122,7 +130,7 @@ function setup(props: HeaderProps, initialState = {}) {
 async function openActionsDropdown() {
   const btn = screen.getByRole('img', { name: 'more-horiz' });
   userEvent.click(btn);
-  expect(await screen.findByRole('menu')).toBeInTheDocument();
+  expect(await screen.findByTestId('header-actions-menu')).toBeInTheDocument();
 }
 
 test('should render', () => {
@@ -134,7 +142,9 @@ test('should render', () => {
 test('should render the title', () => {
   const mockedProps = createProps();
   setup(mockedProps);
-  expect(screen.getByText('Dashboard Title')).toBeInTheDocument();
+  expect(screen.getByTestId('editable-title')).toHaveTextContent(
+    'Dashboard Title',
+  );
 });
 
 test('should render the editable title', () => {
@@ -161,21 +171,30 @@ test('should render the "Draft" status', () => {
 });
 
 test('should publish', () => {
-  setup(editableProps);
+  const mockedProps = createProps();
+  const canEditProps = {
+    ...mockedProps,
+    dashboardInfo: {
+      ...mockedProps.dashboardInfo,
+      dash_edit_perm: true,
+      dash_save_perm: true,
+    },
+  };
+  setup(canEditProps);
   const draft = screen.getByText('Draft');
-  expect(editableProps.savePublished).not.toHaveBeenCalled();
+  expect(mockedProps.savePublished).toHaveBeenCalledTimes(0);
   userEvent.click(draft);
-  expect(editableProps.savePublished).toHaveBeenCalledTimes(1);
+  expect(mockedProps.savePublished).toHaveBeenCalledTimes(1);
 });
 
 test('should render the "Undo" action as disabled', () => {
   setup(editableProps);
-  expect(screen.getByTitle('Undo').parentElement).toBeDisabled();
+  expect(screen.getByTestId('undo-action').parentElement).toBeDisabled();
 });
 
 test('should undo', () => {
   setup(undoProps);
-  const undo = screen.getByTitle('Undo');
+  const undo = screen.getByTestId('undo-action');
   expect(undoProps.onUndo).not.toHaveBeenCalled();
   userEvent.click(undo);
   expect(undoProps.onUndo).toHaveBeenCalledTimes(1);
@@ -191,12 +210,12 @@ test('should undo with key listener', () => {
 
 test('should render the "Redo" action as disabled', () => {
   setup(editableProps);
-  expect(screen.getByTitle('Redo').parentElement).toBeDisabled();
+  expect(screen.getByTestId('redo-action').parentElement).toBeDisabled();
 });
 
 test('should redo', () => {
   setup(redoProps);
-  const redo = screen.getByTitle('Redo');
+  const redo = screen.getByTestId('redo-action');
   expect(redoProps.onRedo).not.toHaveBeenCalled();
   userEvent.click(redo);
   expect(redoProps.onRedo).toHaveBeenCalledTimes(1);
@@ -212,7 +231,7 @@ test('should redo with key listener', () => {
 
 test('should render the "Discard changes" button', () => {
   setup(editableProps);
-  expect(screen.getByText('Discard changes')).toBeInTheDocument();
+  expect(screen.getByText('Discard')).toBeInTheDocument();
 });
 
 test('should render the "Save" button as disabled', () => {
@@ -297,8 +316,8 @@ test('should toggle the edit mode', () => {
     },
   };
   setup(canEditProps);
-  const editDashboard = screen.getByTitle('Edit dashboard');
-  expect(screen.queryByTitle('Edit dashboard')).toBeInTheDocument();
+  const editDashboard = screen.getByText('Edit dashboard');
+  expect(screen.queryByText('Edit dashboard')).toBeInTheDocument();
   userEvent.click(editDashboard);
   expect(mockedProps.logEvent).toHaveBeenCalled();
 });
@@ -315,4 +334,18 @@ test('should refresh the charts', async () => {
   await openActionsDropdown();
   userEvent.click(screen.getByText('Refresh dashboard'));
   expect(mockedProps.onRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('should render an extension component if one is supplied', () => {
+  const extensionsRegistry = getExtensionsRegistry();
+  extensionsRegistry.set('dashboard.nav.right', () => (
+    <>dashboard.nav.right extension component</>
+  ));
+  setupExtensions();
+
+  const mockedProps = createProps();
+  setup(mockedProps);
+  expect(
+    screen.getByText('dashboard.nav.right extension component'),
+  ).toBeInTheDocument();
 });

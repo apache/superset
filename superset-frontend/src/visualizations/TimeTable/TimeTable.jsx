@@ -98,12 +98,13 @@ const defaultProps = {
   url: '',
 };
 
+// @z-index-above-dashboard-charts + 1 = 11
 const TimeTableStyles = styled.div`
   height: ${props => props.height}px;
   overflow: auto;
 
   th {
-    z-index: 1; // to cover sparkline
+    z-index: 11 !important; // to cover sparkline
   }
 `;
 

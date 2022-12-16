@@ -64,7 +64,7 @@ import {
   legacyValidateInteger,
   validateNonEmpty,
 } from '@superset-ui/core';
-import { formatSelectOptions } from 'src/modules/utils';
+import { formatSelectOptions } from 'src/explore/exploreUtils';
 import { TIME_FILTER_LABELS } from './constants';
 import { StyledColumnOption } from './components/optionRenderers';
 
@@ -197,7 +197,6 @@ export const controls = {
 
   viz_type: {
     type: 'VizTypeControl',
-    label: t('Visualization type'),
     default: 'table',
     description: t('The type of visualization to display'),
   },
@@ -246,21 +245,6 @@ export const controls = {
     description: t('One or many controls to pivot as columns'),
   },
 
-  druid_time_origin: {
-    type: 'SelectControl',
-    freeForm: true,
-    label: TIME_FILTER_LABELS.druid_time_origin,
-    choices: [
-      ['', 'default'],
-      ['now', 'now'],
-    ],
-    default: null,
-    description: t(
-      'Defines the origin where time buckets start, ' +
-        'accepts natural dates as in `now`, `sunday` or `1970-01-01`',
-    ),
-  },
-
   granularity: {
     type: 'SelectControl',
     freeForm: true,
@@ -286,7 +270,7 @@ export const controls = {
     ],
     description: t(
       'The time granularity for the visualization. Note that you ' +
-        'can type and use simple natural language as in `10 seconds`, ' +
+        'can type and use simple natural language as in `10 seconds`,' +
         '`1 day` or `56 weeks`',
     ),
   },

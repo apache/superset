@@ -110,8 +110,6 @@ def test_resample_after_pivot():
         aggregates={
             "val": {"operator": "sum"},
         },
-        flatten_columns=False,
-        reset_index=False,
     )
     """
                     val

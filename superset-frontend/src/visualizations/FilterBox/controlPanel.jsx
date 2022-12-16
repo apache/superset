@@ -66,6 +66,28 @@ export default {
             },
           },
         ],
+        [
+          {
+            name: 'show_sqla_time_granularity',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show time grain dropdown'),
+              default: false,
+              description: t('Check to include time grain dropdown'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_sqla_time_column',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show time column'),
+              default: false,
+              description: t('Check to include time column dropdown'),
+            },
+          },
+        ],
         ['adhoc_filters'],
       ],
     },

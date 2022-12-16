@@ -31,6 +31,7 @@ from typing import (
     Dict,
     Iterator,
     Optional,
+    Tuple,
     Type,
     TYPE_CHECKING,
     Union,
@@ -41,8 +42,12 @@ from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy.exc import SQLAlchemyError
 from typing_extensions import Literal
 
+from superset.utils.core import get_user_id, LoggerLevel
+
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
+
+logger = logging.getLogger(__name__)
 
 
 def collect_request_payload() -> Dict[str, Any]:
@@ -71,6 +76,24 @@ def collect_request_payload() -> Dict[str, Any]:
         del payload["rison"]
 
     return payload
+
+
+def get_logger_from_status(
+    status: int,
+) -> Tuple[Callable[..., None], str]:
+    """
+    Return logger method by status of exception.
+    Maps logger level to status code level
+    """
+    log_map = {
+        "2": LoggerLevel.INFO,
+        "3": LoggerLevel.INFO,
+        "4": LoggerLevel.WARNING,
+        "5": LoggerLevel.EXCEPTION,
+    }
+    log_level = log_map[str(status)[0]]
+
+    return (getattr(logger, log_level), log_level)
 
 
 class AbstractEventLogger(ABC):
@@ -133,10 +156,7 @@ class AbstractEventLogger(ABC):
         duration_ms = int(duration.total_seconds() * 1000) if duration else None
 
         # Initial try and grab user_id via flask.g.user
-        try:
-            user_id = g.user.get_id()
-        except Exception:  # pylint: disable=broad-except
-            user_id = None
+        user_id = get_user_id()
 
         # Whenever a user is not bounded to a session we
         # need to add them back before logging to capture user_id
@@ -144,7 +164,7 @@ class AbstractEventLogger(ABC):
             try:
                 session = current_app.appbuilder.get_session
                 session.add(g.user)
-                user_id = g.user.get_id()
+                user_id = get_user_id()
             except Exception as ex:  # pylint: disable=broad-except
                 logging.warning(ex)
                 user_id = None

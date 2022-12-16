@@ -27,6 +27,7 @@ import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDasboardComponents';
 import { BootstrapUser, User } from './types/bootstrapTypes';
+import { initFeatureFlags } from './featureFlags';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
@@ -41,13 +42,14 @@ export let bootstrapData: {
     dashboard_id: string;
   };
 } = {};
+
 // Configure translation
 if (typeof window !== 'undefined') {
   const root = document.getElementById('app');
   bootstrapData = root
     ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
     : {};
-  if (bootstrapData.common && bootstrapData.common.language_pack) {
+  if (bootstrapData?.common?.language_pack) {
     const languagePack = bootstrapData.common.language_pack;
     configure({ languagePack });
     moment.locale(bootstrapData.common.locale);
@@ -57,6 +59,9 @@ if (typeof window !== 'undefined') {
 } else {
   configure();
 }
+
+// Configure feature flags
+initFeatureFlags(bootstrapData?.common?.feature_flags);
 
 // Setup SupersetClient
 setupClient();

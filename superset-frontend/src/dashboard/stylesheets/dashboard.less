@@ -19,6 +19,7 @@
 /* header has mysterious extra margin */
 header.top {
   margin-bottom: 2px;
+  z-index: 10;
 }
 
 body {
@@ -148,27 +149,6 @@ body {
 
 .dashboard .title {
   margin: 0 20px;
-}
-
-.dashboard-header .dashboard-component-header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-
-  .editable-title {
-    margin-right: 8px;
-  }
-
-  .favstar {
-    font-size: @font-size-xl;
-    position: relative;
-    margin-left: 8px;
-  }
-
-  .publish {
-    position: relative;
-    margin-left: 8px;
-  }
 }
 
 .slice_container .alert {

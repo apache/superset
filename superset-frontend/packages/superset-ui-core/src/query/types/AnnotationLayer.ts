@@ -125,7 +125,8 @@ export type AnnotationLayer =
   | EventAnnotationLayer
   | IntervalAnnotationLayer
   | FormulaAnnotationLayer
-  | TimeseriesAnnotationLayer;
+  | TimeseriesAnnotationLayer
+  | TableAnnotationLayer;
 
 export function isFormulaAnnotationLayer(
   layer: AnnotationLayer,
@@ -178,9 +179,9 @@ export function isTimeseriesAnnotationResult(
 }
 
 export function isRecordAnnotationResult(
-  result: AnnotationResult,
+  result: any,
 ): result is RecordAnnotationResult {
-  return 'columns' in result && 'records' in result;
+  return Array.isArray(result?.columns) && Array.isArray(result?.records);
 }
 
 export type AnnotationData = { [key: string]: AnnotationResult };

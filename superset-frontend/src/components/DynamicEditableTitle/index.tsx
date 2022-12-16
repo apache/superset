@@ -93,6 +93,10 @@ export const DynamicEditableTitle = ({
   });
 
   useEffect(() => {
+    setCurrentTitle(title);
+  }, [title]);
+
+  useEffect(() => {
     if (isEditing && contentRef?.current) {
       contentRef.current.focus();
       // move cursor and scroll to the end
@@ -193,7 +197,7 @@ export const DynamicEditableTitle = ({
               ${inputWidth &&
               inputWidth > 0 &&
               css`
-                width: ${inputWidth}px;
+                width: ${inputWidth + 1}px;
               `}
             `}
           />
@@ -202,6 +206,7 @@ export const DynamicEditableTitle = ({
             className="dynamic-title"
             aria-label={label ?? t('Title')}
             ref={contentRef}
+            data-test="editable-title"
           >
             {currentTitle}
           </span>

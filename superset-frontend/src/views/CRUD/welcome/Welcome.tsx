@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useEffect, useState } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, getExtensionsRegistry } from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
@@ -45,6 +45,8 @@ import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
 import DashboardTable from './DashboardTable';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 interface WelcomeProps {
   user: User;
@@ -177,6 +179,12 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     setItem(LocalStorageKeys.homepage_collapse_state, state);
   };
 
+  const WelcomeMessageExtension = extensionsRegistry.get('welcome.message');
+  const WelcomeTopExtension = extensionsRegistry.get('welcome.banner');
+  const WelcomeMainExtension = extensionsRegistry.get(
+    'welcome.main.replacement',
+  );
+
   useEffect(() => {
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
@@ -278,70 +286,82 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     !activityData?.Examples && !activityData?.Viewed;
   return (
     <WelcomeContainer>
-      <WelcomeNav>
-        <h1 className="welcome-header">Home</h1>
-        {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
-          <div className="switch">
-            <AntdSwitch checked={checked} onChange={handleToggle} />
-            <span>Thumbnails</span>
-          </div>
-        ) : null}
-      </WelcomeNav>
-      <Collapse activeKey={activeState} onChange={handleCollapse} ghost bigger>
-        <Collapse.Panel header={t('Recents')} key="1">
-          {activityData &&
-          (activityData.Viewed ||
-            activityData.Examples ||
-            activityData.Created) &&
-          activeChild !== 'Loading' ? (
-            <ActivityTable
-              user={{ userId: user.userId! }} // user is definitely not a guest user on this page
-              activeChild={activeChild}
-              setActiveChild={setActiveChild}
-              activityData={activityData}
-              loadedCount={loadedCount}
-            />
-          ) : (
-            <LoadingCards />
-          )}
-        </Collapse.Panel>
-        <Collapse.Panel header={t('Dashboards')} key="2">
-          {!dashboardData || isRecentActivityLoading ? (
-            <LoadingCards cover={checked} />
-          ) : (
-            <DashboardTable
-              user={user}
-              mine={dashboardData}
-              showThumbnails={checked}
-              examples={activityData?.Examples}
-            />
-          )}
-        </Collapse.Panel>
-        <Collapse.Panel header={t('Charts')} key="3">
-          {!chartData || isRecentActivityLoading ? (
-            <LoadingCards cover={checked} />
-          ) : (
-            <ChartTable
-              showThumbnails={checked}
-              user={user}
-              mine={chartData}
-              examples={activityData?.Examples}
-            />
-          )}
-        </Collapse.Panel>
-        <Collapse.Panel header={t('Saved queries')} key="4">
-          {!queryData ? (
-            <LoadingCards cover={checked} />
-          ) : (
-            <SavedQueries
-              showThumbnails={checked}
-              user={user}
-              mine={queryData}
-              featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
-            />
-          )}
-        </Collapse.Panel>
-      </Collapse>
+      {WelcomeMessageExtension && <WelcomeMessageExtension />}
+      {WelcomeTopExtension && <WelcomeTopExtension />}
+      {WelcomeMainExtension && <WelcomeMainExtension />}
+      {(!WelcomeTopExtension || !WelcomeMainExtension) && (
+        <>
+          <WelcomeNav>
+            <h1 className="welcome-header">{t('Home')}</h1>
+            {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
+              <div className="switch">
+                <AntdSwitch checked={checked} onChange={handleToggle} />
+                <span>Thumbnails</span>
+              </div>
+            ) : null}
+          </WelcomeNav>
+          <Collapse
+            activeKey={activeState}
+            onChange={handleCollapse}
+            ghost
+            bigger
+          >
+            <Collapse.Panel header={t('Recents')} key="1">
+              {activityData &&
+              (activityData.Viewed ||
+                activityData.Examples ||
+                activityData.Created) &&
+              activeChild !== 'Loading' ? (
+                <ActivityTable
+                  user={{ userId: user.userId! }} // user is definitely not a guest user on this page
+                  activeChild={activeChild}
+                  setActiveChild={setActiveChild}
+                  activityData={activityData}
+                  loadedCount={loadedCount}
+                />
+              ) : (
+                <LoadingCards />
+              )}
+            </Collapse.Panel>
+            <Collapse.Panel header={t('Dashboards')} key="2">
+              {!dashboardData || isRecentActivityLoading ? (
+                <LoadingCards cover={checked} />
+              ) : (
+                <DashboardTable
+                  user={user}
+                  mine={dashboardData}
+                  showThumbnails={checked}
+                  examples={activityData?.Examples}
+                />
+              )}
+            </Collapse.Panel>
+            <Collapse.Panel header={t('Charts')} key="3">
+              {!chartData || isRecentActivityLoading ? (
+                <LoadingCards cover={checked} />
+              ) : (
+                <ChartTable
+                  showThumbnails={checked}
+                  user={user}
+                  mine={chartData}
+                  examples={activityData?.Examples}
+                />
+              )}
+            </Collapse.Panel>
+            <Collapse.Panel header={t('Saved queries')} key="4">
+              {!queryData ? (
+                <LoadingCards cover={checked} />
+              ) : (
+                <SavedQueries
+                  showThumbnails={checked}
+                  user={user}
+                  mine={queryData}
+                  featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
+                />
+              )}
+            </Collapse.Panel>
+          </Collapse>
+        </>
+      )}
     </WelcomeContainer>
   );
 }

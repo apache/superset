@@ -18,6 +18,10 @@
  */
 import React from 'react';
 import {
+  ensureIsArray,
+  hasGenericChartAxes,
+  isAdhocColumn,
+  isPhysicalColumn,
   QueryFormMetric,
   smartDateFormatter,
   t,
@@ -30,12 +34,14 @@ import {
   sections,
   sharedControls,
   emitFilterControl,
+  Dataset,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    { ...sections.legacyTimeseriesTime, expanded: false },
+    { ...sections.genericTime, expanded: false },
     {
       label: t('Query'),
       expanded: true,
@@ -59,6 +65,39 @@ const config: ControlPanelConfig = {
               description: t('Columns to group by on the rows'),
             },
           },
+        ],
+        [
+          hasGenericChartAxes
+            ? {
+                name: 'time_grain_sqla',
+                config: {
+                  ...sharedControls.time_grain_sqla,
+                  visibility: ({ controls }) => {
+                    const dttmLookup = Object.fromEntries(
+                      ensureIsArray(controls?.groupbyColumns?.options).map(
+                        option => [option.column_name, option.is_dttm],
+                      ),
+                    );
+
+                    return [
+                      ...ensureIsArray(controls?.groupbyColumns.value),
+                      ...ensureIsArray(controls?.groupbyRows.value),
+                    ]
+                      .map(selection => {
+                        if (isAdhocColumn(selection)) {
+                          return true;
+                        }
+                        if (isPhysicalColumn(selection)) {
+                          return !!dttmLookup[selection];
+                        }
+                        return false;
+                      })
+                      .some(Boolean);
+                  },
+                },
+              }
+            : null,
+          hasGenericChartAxes ? 'temporal_columns_lookup' : null,
         ],
         [
           {
@@ -349,7 +388,11 @@ const config: ControlPanelConfig = {
                 const values =
                   (explore?.controls?.metrics?.value as QueryFormMetric[]) ??
                   [];
-                const verboseMap = explore?.datasource?.verbose_map ?? {};
+                const verboseMap = explore?.datasource?.hasOwnProperty(
+                  'verbose_map',
+                )
+                  ? (explore?.datasource as Dataset)?.verbose_map
+                  : explore?.datasource?.columns ?? {};
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
                     return { value, label: verboseMap[value] ?? value };
@@ -367,6 +410,20 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => {
+    const groupbyColumns = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.groupbyRows).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !groupbyColumns.includes(col),
+      );
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupbyColumns,
+    };
+  },
 };
 
 export default config;

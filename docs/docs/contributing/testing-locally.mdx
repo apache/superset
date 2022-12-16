@@ -54,6 +54,20 @@ You can run unit tests found in './tests/unit_tests' for example with pytest. It
 pytest ./link_to_test.py
 ```
 
+#### Testing with local Presto connections
+
+If you happen to change db engine spec for Presto/Trino, you can run a local Presto cluster with Docker:
+
+```bash
+docker run -p 15433:15433 starburstdata/presto:350-e.6
+```
+
+Then update `SUPERSET__SQLALCHEMY_EXAMPLES_URI` to point to local Presto cluster:
+
+```bash
+export SUPERSET__SQLALCHEMY_EXAMPLES_URI=presto://localhost:15433/memory/default
+```
+
 ### Frontend Testing
 
 We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:

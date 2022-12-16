@@ -30,18 +30,20 @@ describe('SqlLab query tabs', () => {
       const initialUntitledCount = Math.max(
         0,
         ...tabs
-          .map((i, tabItem) =>
-            Number(tabItem.textContent?.match(/Untitled Query (\d+)/)?.[1]),
+          .map(
+            (i, tabItem) =>
+              Number(tabItem.textContent?.match(/Untitled Query (\d+)/)?.[1]) ||
+              0,
           )
           .toArray(),
       );
 
       // add two new tabs
-      cy.get('[data-test="add-tab-icon"]:visible:last').click();
+      cy.get('[data-test="add-tab-icon"]:visible:last').click({ force: true });
       cy.contains('[role="tab"]', `Untitled Query ${initialUntitledCount + 1}`);
       cy.get(tabSelector).should('have.length', initialTabCount + 1);
 
-      cy.get('[data-test="add-tab-icon"]:visible:last').click();
+      cy.get('[data-test="add-tab-icon"]:visible:last').click({ force: true });
       cy.contains('[role="tab"]', `Untitled Query ${initialUntitledCount + 2}`);
       cy.get(tabSelector).should('have.length', initialTabCount + 2);
 

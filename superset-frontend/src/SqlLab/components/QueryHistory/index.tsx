@@ -18,19 +18,11 @@
  */
 import React from 'react';
 import { EmptyStateMedium } from 'src/components/EmptyState';
-import { t, styled } from '@superset-ui/core';
-import { Query } from 'src/SqlLab/types';
+import { t, styled, QueryResponse } from '@superset-ui/core';
 import QueryTable from 'src/SqlLab/components/QueryTable';
 
 interface QueryHistoryProps {
-  queries: Query[];
-  actions: {
-    queryEditorSetSql: Function;
-    cloneQueryToNewTab: Function;
-    fetchQueryResults: Function;
-    clearQueryResults: Function;
-    removeQuery: Function;
-  };
+  queries: QueryResponse[];
   displayLimit: number;
   latestQueryId: string | undefined;
 }
@@ -48,7 +40,6 @@ const StyledEmptyStateWrapper = styled.div`
 
 const QueryHistory = ({
   queries,
-  actions,
   displayLimit,
   latestQueryId,
 }: QueryHistoryProps) =>
@@ -65,7 +56,6 @@ const QueryHistory = ({
         'actions',
       ]}
       queries={queries}
-      actions={actions}
       displayLimit={displayLimit}
       latestQueryId={latestQueryId}
     />

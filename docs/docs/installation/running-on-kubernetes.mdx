@@ -63,7 +63,7 @@ superset-worker-75b48bbcc-qrq49         1/1     Running     0          4m12s
 
 The exact list will depend on some of your specific configuration overrides but you should generally expect:
 
-- N `superset-xxxx-yyyy` and `superset-worker-xxxx-yyyy` pods (depending on your `replicaCount` value)
+- N `superset-xxxx-yyyy` and `superset-worker-xxxx-yyyy` pods (depending on your `supersetNode.replicaCount` and `supersetWorker.replicaCount` values)
 - 1 `superset-postgresql-0` depending on your postgres settings
 - 1 `superset-redis-master-0` depending on your redis settings
 - 1 `superset-celerybeat-xxxx-yyyy` pod if you have `supersetCeleryBeat.enabled = true` in your values overrides
@@ -130,9 +130,9 @@ database drivers so that you can connect to those datasources in your Superset i
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  pip install psycopg2==2.8.5 \
+  pip install psycopg2==2.9.1 \
     redis==3.2.1 \
-    pybigquery==2.26.0 \
+    sqlalchemy-bigquery==1.5.0 \
     elasticsearch-dbapi==0.2.5 &&\
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 ```
@@ -239,7 +239,7 @@ configOverrides:
     # This will make sure the redirect_uri is properly computed, even with SSL offloading
     ENABLE_PROXY_FIX = True
 
-    from flask_appbuilder.security.manager import (AUTH_OAUTH, AUTH_DB)
+    from flask_appbuilder.security.manager import AUTH_OAUTH
     AUTH_TYPE = AUTH_OAUTH
     OAUTH_PROVIDERS = [
         {

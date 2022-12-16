@@ -20,7 +20,6 @@ from contextlib import closing
 from typing import Any, Dict, Optional
 
 from flask import current_app as app
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as _
 from func_timeout import func_timeout, FunctionTimedOut
 from sqlalchemy.engine import Engine
@@ -30,28 +29,30 @@ from superset.commands.base import BaseCommand
 from superset.databases.commands.exceptions import (
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
-    DatabaseTestConnectionFailedError,
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
-from superset.exceptions import SupersetSecurityException, SupersetTimeoutException
+from superset.exceptions import (
+    SupersetErrorsException,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.extensions import event_logger
 from superset.models.core import Database
-from superset.utils.core import override_user
 
 logger = logging.getLogger(__name__)
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
-    def __init__(self, user: User, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, data: Dict[str, Any]):
         self._properties = data.copy()
         self._model: Optional[Database] = None
 
-    def run(self) -> None:
+    def run(self) -> None:  # pylint: disable=too-many-statements
         self.validate()
+        ex_str = ""
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
@@ -66,39 +67,45 @@ class TestConnectionDatabaseCommand(BaseCommand):
             "database": url.database,
         }
 
+        serialized_encrypted_extra = self._properties.get(
+            "masked_encrypted_extra",
+            "{}",
+        )
+        if self._model:
+            serialized_encrypted_extra = (
+                self._model.db_engine_spec.unmask_encrypted_extra(
+                    self._model.encrypted_extra,
+                    serialized_encrypted_extra,
+                )
+            )
+
         try:
             database = DatabaseDAO.build_db_for_connection_test(
                 server_cert=self._properties.get("server_cert", ""),
                 extra=self._properties.get("extra", "{}"),
                 impersonate_user=self._properties.get("impersonate_user", False),
-                encrypted_extra=self._properties.get("encrypted_extra", "{}"),
+                encrypted_extra=serialized_encrypted_extra,
             )
 
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
-            with override_user(self._actor):
-                engine = database.get_sqla_engine()
-                event_logger.log_with_context(
-                    action="test_connection_attempt",
-                    engine=database.db_engine_spec.__name__,
-                )
+            event_logger.log_with_context(
+                action="test_connection_attempt",
+                engine=database.db_engine_spec.__name__,
+            )
 
-                def ping(engine: Engine) -> bool:
-                    with closing(engine.raw_connection()) as conn:
-                        return engine.dialect.do_ping(conn)
+            def ping(engine: Engine) -> bool:
+                with closing(engine.raw_connection()) as conn:
+                    return engine.dialect.do_ping(conn)
 
+            with database.get_sqla_engine_with_context() as engine:
                 try:
                     alive = func_timeout(
-                        int(
-                            app.config[
-                                "TEST_DATABASE_CONNECTION_TIMEOUT"
-                            ].total_seconds()
-                        ),
+                        app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds(),
                         ping,
                         args=(engine,),
                     )
-
                 except (sqlite3.ProgrammingError, RuntimeError):
                     # SQLite can't run on a separate thread, so ``func_timeout`` fails
                     # RuntimeError catches the equivalent error from duckdb.
@@ -114,10 +121,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
                         level=ErrorLevel.ERROR,
                         extra={"sqlalchemy_uri": database.sqlalchemy_uri},
                     ) from ex
-                except Exception:  # pylint: disable=broad-except
+                except Exception as ex:  # pylint: disable=broad-except
                     alive = False
-                if not alive:
-                    raise DBAPIError(None, None, None)
+                    # So we stop losing the original message if any
+                    ex_str = str(ex)
+
+            if not alive:
+                raise DBAPIError(ex_str or None, None, None)
 
             # Log succesful connection test with engine
             event_logger.log_with_context(
@@ -142,7 +152,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             )
             # check for custom errors (wrong username, wrong password, etc)
             errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionFailedError(errors) from ex
+            raise SupersetErrorsException(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
                 action=f"test_connection_error.{ex.__class__.__name__}",

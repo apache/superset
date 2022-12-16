@@ -18,6 +18,9 @@
  */
 import { styled } from '@superset-ui/core';
 import { Menu as AntdMenu } from 'antd';
+import { MenuProps as AntdMenuProps } from 'antd/lib/menu';
+
+export type MenuProps = AntdMenuProps;
 
 const MenuItem = styled(AntdMenu.Item)`
   > a {
@@ -25,8 +28,8 @@ const MenuItem = styled(AntdMenu.Item)`
   }
 
   &.ant-menu-item {
-    height: ${({ theme }) => theme.gridUnit * 7}px;
-    line-height: ${({ theme }) => theme.gridUnit * 7}px;
+    height: ${({ theme }) => theme.gridUnit * 8}px;
+    line-height: ${({ theme }) => theme.gridUnit * 8}px;
     a {
       border-bottom: none;
       transition: background-color ${({ theme }) => theme.transitionTiming}s;

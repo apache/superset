@@ -20,6 +20,7 @@
 import { PostProcessingResample } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export const resampleOperator: PostProcessingFactory<PostProcessingResample> = (
   formData,
   queryObject,

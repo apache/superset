@@ -14,14 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import re
-from typing import Any, Dict, Pattern, Tuple
+from typing import Any, Dict, Optional, Pattern, Tuple
 
 from flask_babel import gettext as __
 
 from superset.db_engine_specs.base import BasicParametersMixin
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.models.sql_lab import Query
+
+logger = logging.getLogger()
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
@@ -101,3 +105,39 @@ class RedshiftEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         :return: Conditionally mutated label
         """
         return label.lower()
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get Redshift PID that will be used to cancel all other running
+        queries in the same session.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Redshift PID
+        """
+        cursor.execute("SELECT pg_backend_pid()")
+        row = cursor.fetchone()
+        return row[0]
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: Redshift PID
+        :return: True if query cancelled successfully, False otherwise
+        """
+        try:
+            logger.info("Killing Redshift PID:%s", str(cancel_query_id))
+            cursor.execute(
+                "SELECT pg_cancel_backend(procpid) "
+                "FROM pg_stat_activity "
+                f"WHERE procpid='{cancel_query_id}'"
+            )
+            cursor.close()
+        except Exception:  # pylint: disable=broad-except
+            return False
+        return True

@@ -17,15 +17,16 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
-import Badge from 'src/components/Badge';
 import { t, styled } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { debounce } from 'lodash';
 
+import Badge from 'src/components/Badge';
 import ModalTrigger from 'src/components/ModalTrigger';
 import { ConfigEditor } from 'src/components/AsyncAceEditor';
 import { FAST_DEBOUNCE } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
 const StyledConfigEditor = styled(ConfigEditor)`
   &.ace_editor {
@@ -33,17 +34,22 @@ const StyledConfigEditor = styled(ConfigEditor)`
   }
 `;
 
-function TemplateParamsEditor({
-  code = '{}',
-  language,
-  onChange = () => {},
-}: {
-  code: string;
+export type TemplateParamsEditorProps = {
+  queryEditorId: string;
   language: 'yaml' | 'json';
   onChange: () => void;
-}) {
+};
+
+const TemplateParamsEditor = ({
+  queryEditorId,
+  language,
+  onChange = () => {},
+}: TemplateParamsEditorProps) => {
   const [parsedJSON, setParsedJSON] = useState({});
   const [isValid, setIsValid] = useState(true);
+
+  const { templateParams } = useQueryEditor(queryEditorId, ['templateParams']);
+  const code = templateParams ?? '{}';
 
   useEffect(() => {
     try {
@@ -115,6 +121,6 @@ function TemplateParamsEditor({
       modalBody={modalBody}
     />
   );
-}
+};
 
 export default TemplateParamsEditor;

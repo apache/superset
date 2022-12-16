@@ -24,24 +24,24 @@ import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { FrameComponentProps } from 'src/explore/components/controls/DateFilterControl/types';
 import DateFunctionTooltip from './DateFunctionTooltip';
 
+function getAdvancedRange(value: string): string {
+  if (value.includes(SEPARATOR)) {
+    return value;
+  }
+  if (value.startsWith('Last')) {
+    return [value, ''].join(SEPARATOR);
+  }
+  if (value.startsWith('Next')) {
+    return ['', value].join(SEPARATOR);
+  }
+  return SEPARATOR;
+}
+
 export function AdvancedFrame(props: FrameComponentProps) {
   const advancedRange = getAdvancedRange(props.value || '');
   const [since, until] = advancedRange.split(SEPARATOR);
   if (advancedRange !== props.value) {
     props.onChange(getAdvancedRange(props.value || ''));
-  }
-
-  function getAdvancedRange(value: string): string {
-    if (value.includes(SEPARATOR)) {
-      return value;
-    }
-    if (value.startsWith('Last')) {
-      return [value, ''].join(SEPARATOR);
-    }
-    if (value.startsWith('Next')) {
-      return ['', value].join(SEPARATOR);
-    }
-    return SEPARATOR;
   }
 
   function onChange(control: 'since' | 'until', value: string) {

@@ -17,9 +17,12 @@
  * under the License.
  */
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+
+import { setDatabases, addDangerToast } from 'src/SqlLab/actions/sqlLab';
 import Button from 'src/components/Button';
-import Select from 'src/components/Select';
-import { styled, t, SupersetClient } from '@superset-ui/core';
+import Select from 'src/components/DeprecatedSelect';
+import { styled, t, SupersetClient, QueryResponse } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import Loading from 'src/components/Loading';
 import {
@@ -27,22 +30,12 @@ import {
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
-} from 'src/modules/dates';
+} from 'src/utils/dates';
 import AsyncSelect from 'src/components/AsyncSelect';
-import { Query } from 'src/SqlLab/types';
 import { STATUS_OPTIONS, TIME_OPTIONS } from 'src/SqlLab/constants';
 import QueryTable from '../QueryTable';
 
 interface QuerySearchProps {
-  actions: {
-    addDangerToast: (msg: string) => void;
-    setDatabases: (data: Record<string, any>) => Record<string, any>;
-    queryEditorSetSql: Function;
-    cloneQueryToNewTab: Function;
-    fetchQueryResults: Function;
-    clearQueryResults: Function;
-    removeQuery: Function;
-  };
   displayLimit: number;
 }
 
@@ -78,14 +71,17 @@ const TableStyles = styled.div`
 const StyledTableStylesContainer = styled.div`
   overflow: auto;
 `;
-function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
+
+const QuerySearch = ({ displayLimit }: QuerySearchProps) => {
+  const dispatch = useDispatch();
+
   const [databaseId, setDatabaseId] = useState<string>('');
   const [userId, setUserId] = useState<string>('');
   const [searchText, setSearchText] = useState<string>('');
   const [from, setFrom] = useState<string>('28 days ago');
   const [to, setTo] = useState<string>('now');
   const [status, setStatus] = useState<string>('success');
-  const [queriesArray, setQueriesArray] = useState<Query[]>([]);
+  const [queriesArray, setQueriesArray] = useState<QueryResponse[]>([]);
   const [queriesLoading, setQueriesLoading] = useState<boolean>(true);
 
   const getTimeFromSelection = (selection: string) => {
@@ -134,7 +130,7 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
       const queries = Object.values(response.json);
       setQueriesArray(queries);
     } catch (err) {
-      actions.addDangerToast(t('An error occurred when refreshing queries'));
+      dispatch(addDangerToast(t('An error occurred when refreshing queries')));
     } finally {
       setQueriesLoading(false);
     }
@@ -179,10 +175,10 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
       value: id,
       label: database_name,
     }));
-    actions.setDatabases(result);
+    dispatch(setDatabases(result));
     if (result.length === 0) {
-      actions.addDangerToast(
-        t("It seems you don't have access to any database"),
+      dispatch(
+        addDangerToast(t("It seems you don't have access to any database")),
       );
     }
     return options;
@@ -281,7 +277,6 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
               onUserClicked={onUserClicked}
               onDbClicked={onDbClicked}
               queries={queriesArray}
-              actions={actions}
               displayLimit={displayLimit}
             />
           </TableStyles>
@@ -289,5 +284,6 @@ function QuerySearch({ actions, displayLimit }: QuerySearchProps) {
       </StyledTableStylesContainer>
     </TableWrapper>
   );
-}
+};
+
 export default QuerySearch;

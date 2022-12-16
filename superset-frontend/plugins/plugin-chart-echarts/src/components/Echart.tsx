@@ -22,6 +22,8 @@ import React, {
   useMemo,
   forwardRef,
   useImperativeHandle,
+  useLayoutEffect,
+  useCallback,
 } from 'react';
 import { styled } from '@superset-ui/core';
 import { ECharts, init } from 'echarts';
@@ -40,10 +42,15 @@ function Echart(
     eventHandlers,
     zrEventHandlers,
     selectedValues = {},
+    refs,
   }: EchartsProps,
   ref: React.Ref<EchartsHandler>,
 ) {
   const divRef = useRef<HTMLDivElement>(null);
+  if (refs) {
+    // eslint-disable-next-line no-param-reassign
+    refs.divRef = divRef;
+  }
   const chartRef = useRef<ECharts>();
   const currentSelection = useMemo(
     () => Object.keys(selectedValues) || [],
@@ -92,11 +99,24 @@ function Echart(
     previousSelection.current = currentSelection;
   }, [currentSelection]);
 
+  const handleSizeChange = useCallback(
+    ({ width, height }: { width: number; height: number }) => {
+      if (chartRef.current) {
+        chartRef.current.resize({ width, height });
+      }
+    },
+    [],
+  );
+
+  // did mount
   useEffect(() => {
-    if (chartRef.current) {
-      chartRef.current.resize({ width, height });
-    }
-  }, [width, height]);
+    handleSizeChange({ width, height });
+    return () => chartRef.current?.dispose();
+  }, []);
+
+  useLayoutEffect(() => {
+    handleSizeChange({ width, height });
+  }, [width, height, handleSizeChange]);
 
   return <Styles ref={divRef} height={height} width={width} />;
 }

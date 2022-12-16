@@ -20,7 +20,7 @@ import {
   isPostProcessingBoxplot,
   PostProcessingBoxplot,
 } from '@superset-ui/core';
-import { DEFAULT_TITLE_FORM_DATA } from '../../src/types';
+import { DEFAULT_TITLE_FORM_DATA } from '../../src/constants';
 import buildQuery from '../../src/BoxPlot/buildQuery';
 import { BoxPlotQueryFormData } from '../../src/BoxPlot/types';
 

@@ -26,7 +26,7 @@ import parsedatetime
 from dateutil.parser import parse
 from dateutil.relativedelta import relativedelta
 from flask_babel import lazy_gettext as _
-from holidays import CountryHoliday
+from holidays import country_holidays
 from pyparsing import (
     CaselessKeyword,
     Forward,
@@ -45,7 +45,7 @@ from superset.charts.commands.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
-from superset.utils.core import NO_TIME_RANGE
+from superset.constants import NO_TIME_RANGE
 from superset.utils.memoized import memoized
 
 ParserElement.enablePackrat()
@@ -385,7 +385,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         holiday_year = dttm.year if dttm else parse_human_datetime("today").year
         country = country.eval() if country else "US"
 
-        holiday_lookup = CountryHoliday(country, years=[holiday_year], observed=False)
+        holiday_lookup = country_holidays(country, years=[holiday_year], observed=False)
         searched_result = holiday_lookup.get_named(holiday)
         if len(searched_result) == 1:
             return dttm_from_timetuple(searched_result[0].timetuple())

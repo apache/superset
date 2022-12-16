@@ -23,6 +23,12 @@ import Modal from 'src/components/Modal';
 import TableSelector from 'src/components/TableSelector';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
+import {
+  getItem,
+  LocalStorageKeys,
+  setItem,
+} from 'src/utils/localStorageHelpers';
+import { isEmpty } from 'lodash';
 
 type DatasetAddObject = {
   id: number;
@@ -36,6 +42,7 @@ interface DatasetModalProps {
   onDatasetAdd?: (dataset: DatasetAddObject) => void;
   onHide: () => void;
   show: boolean;
+  history?: any; // So we can render the modal when not using SPA
 }
 
 const TableSelectorContainer = styled.div`
@@ -45,10 +52,10 @@ const TableSelectorContainer = styled.div`
 
 const DatasetModal: FunctionComponent<DatasetModalProps> = ({
   addDangerToast,
-  addSuccessToast,
   onDatasetAdd,
   onHide,
   show,
+  history,
 }) => {
   const [currentDatabase, setCurrentDatabase] = useState<
     DatabaseObject | undefined
@@ -69,6 +76,14 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     setDisableSave(currentDatabase === undefined || currentTableName === '');
   }, [currentTableName, currentDatabase]);
 
+  useEffect(() => {
+    const currentUserSelectedDb = getItem(
+      LocalStorageKeys.db,
+      null,
+    ) as DatabaseObject;
+    if (currentUserSelectedDb) setCurrentDatabase(currentUserSelectedDb);
+  }, []);
+
   const onDbChange = (db: DatabaseObject) => {
     setCurrentDatabase(db);
   };
@@ -88,8 +103,13 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
     setDisableSave(true);
   };
 
-  const hide = () => {
+  const cleanup = () => {
     clearModal();
+    setItem(LocalStorageKeys.db, null);
+  };
+
+  const hide = () => {
+    cleanup();
     onHide();
   };
 
@@ -109,8 +129,16 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       if (onDatasetAdd) {
         onDatasetAdd({ id: response.id, ...response });
       }
-      addSuccessToast(t('The dataset has been saved'));
-      hide();
+      // We need to be able to work with no SPA routes opening the modal
+      // So useHistory wont be available always thus we check for it
+      if (!isEmpty(history)) {
+        history?.push(`/chart/add?dataset=${currentTableName}`);
+        cleanup();
+      } else {
+        window.location.href = `/chart/add?dataset=${currentTableName}`;
+        cleanup();
+        onHide();
+      }
     });
   };
 
@@ -120,7 +148,7 @@ const DatasetModal: FunctionComponent<DatasetModalProps> = ({
       primaryButtonLoading={loading}
       onHandledPrimaryAction={onSave}
       onHide={hide}
-      primaryButtonName={t('Add')}
+      primaryButtonName={t('Add Dataset and Create Chart')}
       show={show}
       title={t('Add dataset')}
     >

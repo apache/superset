@@ -925,21 +925,21 @@ msgid "Alert query returned a non-number value."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr ""
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr ""
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:75
@@ -5907,6 +5907,7 @@ msgid "Histogram"
 msgstr ""
 
 #: superset/initialization/__init__.py:222
+#: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:278
 msgid "Home"
 msgstr ""
 
@@ -7605,6 +7606,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:313
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:35
 #: superset-frontend/src/explore/controls.jsx:342
+#: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:320
 msgid "No filter"
 msgstr ""
 
@@ -14918,4 +14920,12 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 msgid "yellow"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:104
+msgid "Add/Edit Filters"
+msgstr ""
+
+#: superset-frontend/src/views/components/MenuRight.tsx:105
+msgid "Connect database"
 msgstr ""

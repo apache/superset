@@ -51,9 +51,6 @@ interface SliceData {
     granularity_sqla?: string;
     time_grain_sqla?: string;
     time_range?: string;
-    druid_time_origin?: string;
-    show_druid_time_granularity?: boolean;
-    show_druid_time_origin?: boolean;
     show_sqla_time_column?: boolean;
     show_sqla_time_granularity?: boolean;
     viz_type: string;
@@ -102,10 +99,7 @@ enum FILTER_COMPONENT_FILTER_TYPES {
 const getPreselectedValuesFromDashboard =
   (preselectedFilters: PreselectedFiltersMeatadata) =>
   (filterKey: string, column: string) => {
-    if (
-      preselectedFilters[filterKey] &&
-      preselectedFilters[filterKey][column]
-    ) {
+    if (preselectedFilters[filterKey]?.[column]) {
       // overwrite default values by dashboard default_filters
       return preselectedFilters[filterKey][column];
     }
@@ -205,12 +199,8 @@ export default function getNativeFilterConfig(
         adhoc_filters = [],
         datasource = '',
         date_filter = false,
-        druid_time_origin,
         filter_configs = [],
-        granularity,
         granularity_sqla,
-        show_druid_time_granularity = false,
-        show_druid_time_origin = false,
         show_sqla_time_column = false,
         show_sqla_time_granularity = false,
         time_grain_sqla,
@@ -342,96 +332,6 @@ export default function getNativeFilterConfig(
             };
           }
           filterConfig.push(timeColumnFilter);
-        }
-
-        if (show_druid_time_granularity) {
-          const { scope, immune }: FilterScopeType =
-            scopesByChartId[TIME_FILTER_MAP.granularity] ||
-            DASHBOARD_FILTER_SCOPE_GLOBAL;
-          const druidGranularityFilter: Filter = {
-            id: `NATIVE_FILTER-${shortid.generate()}`,
-            description: 'time grain filter',
-            controlValues: {},
-            name: TIME_FILTER_LABELS.granularity,
-            filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIMEGRAIN,
-            targets: [
-              {
-                datasetId: parseInt(datasource.split('__')[0], 10),
-              },
-            ],
-            cascadeParentIds: [],
-            defaultDataMask: {},
-            type: NativeFilterType.NATIVE_FILTER,
-            scope: {
-              rootPath: scope,
-              excluded: immune,
-            },
-          };
-          filterBoxToFilterComponentMap[key][TIME_FILTER_MAP.granularity] =
-            druidGranularityFilter.id;
-          const dashboardDefaultValues = getDashboardDefaultValues(
-            key,
-            TIME_FILTER_MAP.granularity,
-          );
-          if (!isEmpty(dashboardDefaultValues)) {
-            druidGranularityFilter.defaultDataMask = {
-              extraFormData: {
-                granularity_sqla: (dashboardDefaultValues ||
-                  granularity) as string,
-              },
-              filterState: {
-                value: setValuesInArray(dashboardDefaultValues, granularity),
-              },
-            };
-          }
-          filterConfig.push(druidGranularityFilter);
-        }
-
-        if (show_druid_time_origin) {
-          const { scope, immune }: FilterScopeType =
-            scopesByChartId[TIME_FILTER_MAP.druid_time_origin] ||
-            DASHBOARD_FILTER_SCOPE_GLOBAL;
-          const druidOriginFilter: Filter = {
-            id: `NATIVE_FILTER-${shortid.generate()}`,
-            description: 'time column filter',
-            controlValues: {},
-            name: TIME_FILTER_LABELS.druid_time_origin,
-            filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIMECOLUMN,
-            targets: [
-              {
-                datasetId: parseInt(datasource.split('__')[0], 10),
-              },
-            ],
-            cascadeParentIds: [],
-            defaultDataMask: {},
-            type: NativeFilterType.NATIVE_FILTER,
-            scope: {
-              rootPath: scope,
-              excluded: immune,
-            },
-          };
-          filterBoxToFilterComponentMap[key][
-            TIME_FILTER_MAP.druid_time_origin
-          ] = druidOriginFilter.id;
-          const dashboardDefaultValues = getDashboardDefaultValues(
-            key,
-            TIME_FILTER_MAP.druid_time_origin,
-          );
-          if (!isEmpty(dashboardDefaultValues)) {
-            druidOriginFilter.defaultDataMask = {
-              extraFormData: {
-                granularity_sqla: (dashboardDefaultValues ||
-                  druid_time_origin) as string,
-              },
-              filterState: {
-                value: setValuesInArray(
-                  dashboardDefaultValues,
-                  druid_time_origin,
-                ),
-              },
-            };
-          }
-          filterConfig.push(druidOriginFilter);
         }
       }
 

@@ -19,6 +19,7 @@
 
 import { TableTabTypes } from 'src/views/CRUD/types';
 import { SetTabType } from 'src/views/CRUD/welcome/ActivityTable';
+import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 
 export enum LocalStorageKeys {
   /**
@@ -31,6 +32,7 @@ export enum LocalStorageKeys {
    * and therefore should be done in a major release.
    */
   filter_box_transition_snoozed_at = 'filter_box_transition_snoozed_at',
+  db = 'db',
   chart_split_sizes = 'chart_split_sizes',
   controls_width = 'controls_width',
   datasource_width = 'datasource_width',
@@ -39,6 +41,7 @@ export enum LocalStorageKeys {
   homepage_dashboard_filter = 'homepage_dashboard_filter',
   homepage_collapse_state = 'homepage_collapse_state',
   homepage_activity_filter = 'homepage_activity_filter',
+  datasetname_set_successful = 'datasetname_set_successful',
   /** END LEGACY LOCAL STORAGE KEYS */
 
   /**
@@ -49,11 +52,15 @@ export enum LocalStorageKeys {
    * sqllab__is_autocomplete_enabled
    */
   sqllab__is_autocomplete_enabled = 'sqllab__is_autocomplete_enabled',
-  explore__data_table_time_formatted_columns = 'explore__data_table_time_formatted_columns',
+  explore__data_table_original_formatted_time_columns = 'explore__data_table_original_formatted_time_columns',
+  dashboard__custom_filter_bar_widths = 'dashboard__custom_filter_bar_widths',
+  dashboard__explore_context = 'dashboard__explore_context',
+  common__resizable_sidebar_widths = 'common__resizable_sidebar_widths',
 }
 
 export type LocalStorageValues = {
   filter_box_transition_snoozed_at: Record<number, number>;
+  db: object | null;
   chart_split_sizes: [number, number];
   controls_width: number;
   datasource_width: number;
@@ -61,24 +68,14 @@ export type LocalStorageValues = {
   homepage_chart_filter: TableTabTypes;
   homepage_dashboard_filter: TableTabTypes;
   homepage_collapse_state: string[];
+  datasetname_set_successful: boolean;
   homepage_activity_filter: SetTabType | null;
   sqllab__is_autocomplete_enabled: boolean;
-  explore__data_table_time_formatted_columns: Record<string, string[]>;
+  explore__data_table_original_formatted_time_columns: Record<string, string[]>;
+  dashboard__custom_filter_bar_widths: Record<string, number>;
+  dashboard__explore_context: Record<string, DashboardContextForExplore>;
+  common__resizable_sidebar_widths: Record<string, number>;
 };
-
-export function getItem<K extends LocalStorageKeys>(
-  key: K,
-  defaultValue: LocalStorageValues[K],
-): LocalStorageValues[K] {
-  return dangerouslyGetItemDoNotUse(key, defaultValue);
-}
-
-export function setItem<K extends LocalStorageKeys>(
-  key: K,
-  value: LocalStorageValues[K],
-): void {
-  dangerouslySetItemDoNotUse(key, value);
-}
 
 /*
  * This function should not be used directly, as it doesn't provide any type safety or any
@@ -115,4 +112,18 @@ export function dangerouslySetItemDoNotUse(key: string, value: any): void {
   } catch {
     // Catch in case localStorage is unavailable
   }
+}
+
+export function getItem<K extends LocalStorageKeys>(
+  key: K,
+  defaultValue: LocalStorageValues[K],
+): LocalStorageValues[K] {
+  return dangerouslyGetItemDoNotUse(key, defaultValue);
+}
+
+export function setItem<K extends LocalStorageKeys>(
+  key: K,
+  value: LocalStorageValues[K],
+): void {
+  dangerouslySetItemDoNotUse(key, value);
 }

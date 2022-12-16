@@ -20,23 +20,18 @@
 import buildQueryObject from './buildQueryObject';
 import DatasourceKey from './DatasourceKey';
 import { QueryFieldAliases, QueryFormData } from './types/QueryFormData';
-import { QueryContext, QueryObject } from './types/Query';
+import {
+  BinaryQueryObjectFilterClause,
+  QueryContext,
+  QueryObject,
+} from './types/Query';
 import { SetDataMaskHook } from '../chart';
 import { JsonObject } from '../connection';
+import { normalizeTimeColumn } from './normalizeTimeColumn';
+import { hasGenericChartAxes, isXAxisSet } from './getXAxis';
+import { ensureIsArray } from '../utils';
 
-const WRAP_IN_ARRAY = (
-  baseQueryObject: QueryObject,
-  options?: {
-    extras?: {
-      cachedChanges?: any;
-    };
-    ownState?: JsonObject;
-    hooks?: {
-      setDataMask: SetDataMaskHook;
-      setCachedChanges: (newChanges: any) => void;
-    };
-  },
-) => [baseQueryObject];
+const WRAP_IN_ARRAY = (baseQueryObject: QueryObject) => [baseQueryObject];
 
 export type BuildFinalQueryObjects = (
   baseQueryObject: QueryObject,
@@ -53,26 +48,35 @@ export default function buildQueryContext(
       }
     | BuildFinalQueryObjects,
 ): QueryContext {
-  const {
-    queryFields,
-    buildQuery = WRAP_IN_ARRAY,
-    hooks = {},
-    ownState = {},
-  } = typeof options === 'function'
-    ? { buildQuery: options, queryFields: {} }
-    : options || {};
+  const { queryFields, buildQuery = WRAP_IN_ARRAY } =
+    typeof options === 'function'
+      ? { buildQuery: options, queryFields: {} }
+      : options || {};
+  let queries = buildQuery(buildQueryObject(formData, queryFields));
+  // --- query mutator begin ---
+  // todo(Yongjie): move the query mutator into buildQueryObject instead of buildQueryContext
+  queries.forEach(query => {
+    if (Array.isArray(query.post_processing)) {
+      // eslint-disable-next-line no-param-reassign
+      query.post_processing = query.post_processing.filter(Boolean);
+    }
+    if (hasGenericChartAxes && query.time_range) {
+      // eslint-disable-next-line no-param-reassign
+      query.filters = ensureIsArray(query.filters).map(flt =>
+        flt?.op === 'TEMPORAL_RANGE'
+          ? ({ ...flt, val: query.time_range } as BinaryQueryObjectFilterClause)
+          : flt,
+      );
+    }
+  });
+  if (isXAxisSet(formData)) {
+    queries = queries.map(query => normalizeTimeColumn(formData, query));
+  }
+  // --- query mutator end ---
   return {
     datasource: new DatasourceKey(formData.datasource).toObject(),
     force: formData.force || false,
-    queries: buildQuery(buildQueryObject(formData, queryFields), {
-      extras: {},
-      ownState,
-      hooks: {
-        setDataMask: () => {},
-        setCachedChanges: () => {},
-        ...hooks,
-      },
-    }),
+    queries,
     form_data: formData,
     result_format: formData.result_format || 'json',
     result_type: formData.result_type || 'full',

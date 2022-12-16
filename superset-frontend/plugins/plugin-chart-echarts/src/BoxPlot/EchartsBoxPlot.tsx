@@ -18,19 +18,21 @@
  */
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
-import { EventHandlers } from '../types';
+import { allEventHandlers } from '../utils/eventHandlers';
 import { BoxPlotChartTransformedProps } from './types';
 
-export default function EchartsBoxPlot({
-  height,
-  width,
-  echartOptions,
-  setDataMask,
-  labelMap,
-  groupby,
-  selectedValues,
-  formData,
-}: BoxPlotChartTransformedProps) {
+export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
+  const {
+    height,
+    width,
+    echartOptions,
+    setDataMask,
+    labelMap,
+    groupby,
+    selectedValues,
+    formData,
+    refs,
+  } = props;
   const handleChange = useCallback(
     (values: string[]) => {
       if (!formData.emitFilter) {
@@ -67,20 +69,11 @@ export default function EchartsBoxPlot({
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers: EventHandlers = {
-    click: props => {
-      const { name } = props;
-      const values = Object.values(selectedValues);
-      if (values.includes(name)) {
-        handleChange(values.filter(v => v !== name));
-      } else {
-        handleChange([name]);
-      }
-    },
-  };
+  const eventHandlers = allEventHandlers(props, handleChange);
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

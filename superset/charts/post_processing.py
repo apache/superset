@@ -324,12 +324,21 @@ def apply_post_process(
     post_processor = post_processors[viz_type]
 
     for query in result["queries"]:
+        if query["result_format"] not in (rf.value for rf in ChartDataResultFormat):
+            raise Exception(f"Result format {query['result_format']} not supported")
+
+        if not query["data"]:
+            # do not try to process empty data
+            continue
+
         if query["result_format"] == ChartDataResultFormat.JSON:
             df = pd.DataFrame.from_dict(query["data"])
         elif query["result_format"] == ChartDataResultFormat.CSV:
             df = pd.read_csv(StringIO(query["data"]))
-        else:
-            raise Exception(f"Result format {query['result_format']} not supported")
+
+        # convert all columns to verbose (label) name
+        if datasource:
+            df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
         processed_df = post_processor(df, form_data, datasource)
 

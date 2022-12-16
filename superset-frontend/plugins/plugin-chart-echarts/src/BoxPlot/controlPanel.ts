@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import {
+  ensureIsArray,
+  isAdhocColumn,
+  isPhysicalColumn,
+  t,
+  validateNonEmpty,
+} from '@superset-ui/core';
 import {
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -25,20 +31,54 @@ import {
   sections,
   emitFilterControl,
   ControlPanelConfig,
+  getStandardizedControls,
+  ControlState,
+  ControlPanelState,
+  getTemporalColumns,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.legacyRegularTime,
     {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        ['columns'],
+        [
+          {
+            name: 'time_grain_sqla',
+            config: {
+              ...sharedControls.time_grain_sqla,
+              visibility: ({ controls }) => {
+                const dttmLookup = Object.fromEntries(
+                  ensureIsArray(controls?.columns?.options).map(option => [
+                    option.column_name,
+                    option.is_dttm,
+                  ]),
+                );
+
+                return ensureIsArray(controls?.columns.value)
+                  .map(selection => {
+                    if (isAdhocColumn(selection)) {
+                      return true;
+                    }
+                    if (isPhysicalColumn(selection)) {
+                      return !!dttmLookup[selection];
+                    }
+                    return false;
+                  })
+                  .some(Boolean);
+              },
+            },
+          },
+          'temporal_columns_lookup',
+        ],
+        ['groupby'],
         ['metrics'],
         ['adhoc_filters'],
         emitFilterControl,
-        ['groupby'],
-        ['columns'], // TODO: this should be migrated to `series_columns`
         ['series_limit'],
         ['series_limit_metric'],
         [
@@ -131,10 +171,37 @@ const config: ControlPanelConfig = {
     columns: {
       label: t('Distribute across'),
       multi: true,
-      description: t(
-        'Columns to calculate distribution across. Defaults to temporal column if left empty.',
-      ),
+      description: t('Columns to calculate distribution across.'),
+      initialValue: (
+        control: ControlState,
+        state: ControlPanelState | null,
+      ) => {
+        if (
+          state &&
+          (!control?.value ||
+            (Array.isArray(control?.value) && control.value.length === 0))
+        ) {
+          return [getTemporalColumns(state.datasource).defaultTemporalColumn];
+        }
+        return control.value;
+      },
+      validators: [validateNonEmpty],
     },
+  },
+  formDataOverrides: formData => {
+    const groupby = getStandardizedControls().controls.columns.filter(
+      col => !ensureIsArray(formData.columns).includes(col),
+    );
+    getStandardizedControls().controls.columns =
+      getStandardizedControls().controls.columns.filter(
+        col => !groupby.includes(col),
+      );
+
+    return {
+      ...formData,
+      metrics: getStandardizedControls().popAllMetrics(),
+      groupby,
+    };
   },
 };
 export default config;

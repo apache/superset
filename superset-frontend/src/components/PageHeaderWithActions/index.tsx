@@ -19,6 +19,7 @@
 import React, { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { AntdDropdown, AntdDropdownProps } from 'src/components';
+import { TooltipPlacement } from 'src/components/Tooltip';
 import {
   DynamicEditableTitle,
   DynamicEditableTitleProps,
@@ -50,7 +51,21 @@ const headerStyles = (theme: SupersetTheme) => css`
   align-items: center;
   flex-wrap: nowrap;
   justify-content: space-between;
-  height: 100%;
+  background-color: ${theme.colors.grayscale.light5};
+  height: ${theme.gridUnit * 16}px;
+  padding: 0 ${theme.gridUnit * 4}px;
+
+  .editable-title {
+    overflow: hidden;
+
+    & > input[type='button'],
+    & > span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      white-space: nowrap;
+    }
+  }
 
   span[role='button'] {
     display: flex;
@@ -78,7 +93,7 @@ const buttonsStyles = (theme: SupersetTheme) => css`
   & .fave-unfave-icon {
     padding: 0 ${theme.gridUnit}px;
 
-    &:first-child {
+    &:first-of-type {
       padding-left: 0;
     }
   }
@@ -98,6 +113,10 @@ export type PageHeaderWithActionsProps = {
   rightPanelAdditionalItems: ReactNode;
   additionalActionsMenu: ReactElement;
   menuDropdownProps: Omit<AntdDropdownProps, 'overlay'>;
+  tooltipProps?: {
+    text?: string;
+    placement?: TooltipPlacement;
+  };
 };
 
 export const PageHeaderWithActions = ({
@@ -110,10 +129,11 @@ export const PageHeaderWithActions = ({
   rightPanelAdditionalItems,
   additionalActionsMenu,
   menuDropdownProps,
+  tooltipProps,
 }: PageHeaderWithActionsProps) => {
   const theme = useTheme();
   return (
-    <div css={headerStyles}>
+    <div css={headerStyles} className="header-with-actions">
       <div className="title-panel">
         <DynamicEditableTitle {...editableTitleProps} />
         {showTitlePanelItems && (
@@ -138,6 +158,9 @@ export const PageHeaderWithActions = ({
               css={menuTriggerStyles}
               buttonStyle="tertiary"
               aria-label={t('Menu actions trigger')}
+              tooltip={tooltipProps?.text}
+              placement={tooltipProps?.placement}
+              data-test="actions-trigger"
             >
               <Icons.MoreHoriz
                 iconColor={theme.colors.primary.dark2}

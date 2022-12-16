@@ -90,7 +90,6 @@ const StyledPopoverItem = styled.div`
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
-  user,
 }: SavedQueryListProps) {
   const {
     state: {
@@ -210,8 +209,10 @@ function SavedQueryList({
 
   const copyQueryLink = useCallback(
     (id: number) => {
-      copyTextToClipboard(
-        `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+      copyTextToClipboard(() =>
+        Promise.resolve(
+          `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+        ),
       )
         .then(() => {
           addSuccessToast(t('Link Copied!'));
@@ -423,6 +424,7 @@ function SavedQueryList({
     () => [
       {
         Header: t('Database'),
+        key: 'database',
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -444,6 +446,7 @@ function SavedQueryList({
       {
         Header: t('Schema'),
         id: 'schema',
+        key: 'schema',
         input: 'select',
         operator: FilterOperator.equals,
         unfilteredLabel: 'All',
@@ -461,6 +464,7 @@ function SavedQueryList({
       {
         Header: t('Search'),
         id: 'label',
+        key: 'search',
         input: 'search',
         operator: FilterOperator.allText,
       },

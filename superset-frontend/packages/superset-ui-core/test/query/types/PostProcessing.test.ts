@@ -110,8 +110,6 @@ const PIVOT_RULE: PostProcessingPivot = {
     index: ['foo'],
     columns: ['bar'],
     aggregates: AGGREGATES_OPTION,
-    flatten_columns: true,
-    reset_index: true,
   },
 };
 
@@ -149,7 +147,7 @@ const ROLLING_RULE: PostProcessingRolling = {
 const SORT_RULE: PostProcessingSort = {
   operation: 'sort',
   options: {
-    columns: { foo: true },
+    by: 'foo',
   },
 };
 

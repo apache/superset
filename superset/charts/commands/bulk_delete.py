@@ -17,9 +17,9 @@
 import logging
 from typing import List, Optional
 
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
 
+from superset import security_manager
 from superset.charts.commands.exceptions import (
     ChartBulkDeleteFailedError,
     ChartBulkDeleteFailedReportsExistError,
@@ -32,14 +32,12 @@ from superset.commands.exceptions import DeleteFailedError
 from superset.exceptions import SupersetSecurityException
 from superset.models.slice import Slice
 from superset.reports.dao import ReportScheduleDAO
-from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
 class BulkDeleteChartCommand(BaseCommand):
-    def __init__(self, user: User, model_ids: List[int]):
-        self._actor = user
+    def __init__(self, model_ids: List[int]):
         self._model_ids = model_ids
         self._models: Optional[List[Slice]] = None
 
@@ -66,6 +64,6 @@ class BulkDeleteChartCommand(BaseCommand):
         # Check ownership
         for model in self._models:
             try:
-                check_ownership(model)
+                security_manager.raise_for_ownership(model)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex

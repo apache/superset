@@ -109,7 +109,7 @@ const config: ControlPanelConfig = {
               valueKey: 'column_name',
               allowAll: true,
               mapStateToProps: state => ({
-                options: state.datasource ? state.datasource.columns : [],
+                options: state.datasource?.columns || [],
               }),
               commaChoosesOption: false,
               freeForm: true,

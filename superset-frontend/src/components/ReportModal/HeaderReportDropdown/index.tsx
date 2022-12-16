@@ -23,9 +23,11 @@ import {
   t,
   SupersetTheme,
   css,
+  styled,
   useTheme,
   FeatureFlag,
   isFeatureEnabled,
+  getExtensionsRegistry,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Switch } from 'src/components/Switch';
@@ -45,6 +47,8 @@ import {
 } from 'src/reports/actions/reports';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const deleteColor = (theme: SupersetTheme) => css`
   color: ${theme.colors.error.base};
@@ -70,6 +74,21 @@ const onMenuItemHover = (theme: SupersetTheme) => css`
     background-color: ${theme.colors.secondary.light5};
   }
 `;
+
+const StyledDropdownItemWithIcon = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  > *:first-child {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+const DropdownItemExtension = extensionsRegistry.get(
+  'report-modal.dropdown.item.icon',
+);
+
 export enum CreationMethod {
   CHARTS = 'charts',
   DASHBOARDS = 'dashboards',
@@ -104,7 +123,7 @@ export default function HeaderReportDropDown({
   const user: UserWithPermissionsAndRoles = useSelector<
     any,
     UserWithPermissionsAndRoles
-  >(state => state.user || state.explore?.user);
+  >(state => state.user);
   const canAddReports = () => {
     if (!isFeatureEnabled(FeatureFlag.ALERT_REPORTS)) {
       return false;
@@ -120,7 +139,7 @@ export default function HeaderReportDropDown({
         perms => perms[0] === 'menu_access' && perms[1] === 'Manage',
       ),
     );
-    return permissions[0].length > 0;
+    return permissions.some(permission => permission.length > 0);
   };
 
   const [currentReportDeleting, setCurrentReportDeleting] =
@@ -204,7 +223,14 @@ export default function HeaderReportDropDown({
     ) : (
       <Menu selectable={false} css={onMenuHover}>
         <Menu.Item onClick={handleShowMenu}>
-          {t('Set up an email report')}
+          {DropdownItemExtension ? (
+            <StyledDropdownItemWithIcon>
+              <div>{t('Set up an email report')}</div>
+              <DropdownItemExtension />
+            </StyledDropdownItemWithIcon>
+          ) : (
+            t('Set up an email report')
+          )}
         </Menu.Item>
         <Menu.Divider />
       </Menu>
@@ -243,7 +269,11 @@ export default function HeaderReportDropDown({
             triggerNode.closest('.action-button')
           }
         >
-          <span role="button" className="action-button" tabIndex={0}>
+          <span
+            role="button"
+            className="action-button action-schedule-report"
+            tabIndex={0}
+          >
             <Icons.Calendar />
           </span>
         </NoAnimationDropdown>
@@ -253,7 +283,7 @@ export default function HeaderReportDropDown({
         role="button"
         title={t('Schedule email report')}
         tabIndex={0}
-        className="action-button"
+        className="action-button action-schedule-report"
         onClick={() => setShowModal(true)}
       >
         <Icons.Calendar />

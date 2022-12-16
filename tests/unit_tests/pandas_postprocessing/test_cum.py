@@ -83,8 +83,6 @@ def test_cum_after_pivot_with_single_metric():
         index=["dttm"],
         columns=["country"],
         aggregates={"sum_metric": {"operator": "sum"}},
-        flatten_columns=False,
-        reset_index=False,
     )
     """
                sum_metric
@@ -127,8 +125,6 @@ def test_cum_after_pivot_with_multiple_metrics():
             "sum_metric": {"operator": "sum"},
             "count_metric": {"operator": "sum"},
         },
-        flatten_columns=False,
-        reset_index=False,
     )
     """
                    count_metric    sum_metric

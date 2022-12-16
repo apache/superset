@@ -30,8 +30,8 @@ import {
 } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import { Tooltip } from 'src/components/Tooltip';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
-import { styled } from '@superset-ui/core';
-import { ColumnMeta, isAdhocColumn } from '@superset-ui/chart-controls';
+import { styled, isAdhocColumn } from '@superset-ui/core';
+import { ColumnMeta } from '@superset-ui/chart-controls';
 import Option from './Option';
 
 export const OptionLabel = styled.div`
@@ -57,6 +57,7 @@ export default function OptionWrapper(
     clickClose,
     withCaret,
     isExtra,
+    datasourceWarningMessage,
     canDelete = true,
     ...rest
   } = props;
@@ -176,6 +177,7 @@ export default function OptionWrapper(
         clickClose={clickClose}
         withCaret={withCaret}
         isExtra={isExtra}
+        datasourceWarningMessage={datasourceWarningMessage}
         canDelete={canDelete}
       >
         <Label />

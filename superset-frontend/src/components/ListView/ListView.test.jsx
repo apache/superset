@@ -35,6 +35,8 @@ import Pagination from 'src/components/Pagination/Wrapper';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 
+jest.mock('src/components/Icons/Icon', () => () => <span />);
+
 function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
   return {

@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from abc import ABC
+from typing import Optional
 
 from flask import session
 from sqlalchemy.exc import SQLAlchemyError
@@ -23,13 +24,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.utils import check_access
+from superset.explore.form_data.commands.utils import check_access
 from superset.extensions import cache_manager
 from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheDeleteFailedError,
 )
 from superset.temporary_cache.utils import cache_key
+from superset.utils.core import DatasourceType, get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -40,20 +42,20 @@ class DeleteFormDataCommand(BaseCommand, ABC):
 
     def run(self) -> bool:
         try:
-            actor = self._cmd_params.actor
             key = self._cmd_params.key
             state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
                 key
             )
             if state:
-                dataset_id = state["dataset_id"]
-                chart_id = state["chart_id"]
-                check_access(dataset_id, chart_id, actor)
-                if state["owner"] != actor.get_user_id():
+                datasource_id: int = state["datasource_id"]
+                chart_id: Optional[int] = state["chart_id"]
+                datasource_type = DatasourceType(state["datasource_type"])
+                check_access(datasource_id, chart_id, datasource_type)
+                if state["owner"] != get_user_id():
                     raise TemporaryCacheAccessDeniedError()
                 tab_id = self._cmd_params.tab_id
                 contextual_key = cache_key(
-                    session.get("_id"), tab_id, dataset_id, chart_id
+                    session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
                 )
                 cache_manager.explore_form_data_cache.delete(contextual_key)
                 return cache_manager.explore_form_data_cache.delete(key)

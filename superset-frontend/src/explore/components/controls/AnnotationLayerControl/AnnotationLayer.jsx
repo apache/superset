@@ -27,6 +27,7 @@ import {
   getChartMetadataRegistry,
   validateNonEmpty,
   isValidExpression,
+  styled,
   withTheme,
 } from '@superset-ui/core';
 
@@ -43,6 +44,7 @@ import {
 } from 'src/modules/AnnotationTypes';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { EmptyStateSmall } from 'src/components/EmptyState';
 
 const AUTOMATIC_COLOR = '';
 
@@ -97,6 +99,35 @@ const defaultProps = {
   removeAnnotationLayer: () => {},
   close: () => {},
 };
+
+const NotFoundContentWrapper = styled.div`
+  && > div:first-child {
+    padding-left: 0;
+    padding-right: 0;
+  }
+`;
+
+const NotFoundContent = () => (
+  <NotFoundContentWrapper>
+    <EmptyStateSmall
+      title={t('No annotation layers')}
+      description={
+        <span>
+          {t('Add an annotation layer')}{' '}
+          <a
+            href="/annotationlayer/list"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('here')}
+          </a>
+          .
+        </span>
+      }
+      image="empty.svg"
+    />
+  </NotFoundContentWrapper>
+);
 
 class AnnotationLayer extends React.PureComponent {
   constructor(props) {
@@ -269,7 +300,7 @@ class AnnotationLayer extends React.PureComponent {
     if (isLoadingOptions) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
         SupersetClient.get({
-          endpoint: '/annotationlayermodelview/api/read?',
+          endpoint: '/api/v1/annotation_layer/',
         }).then(({ json }) => {
           const layers = json
             ? json.result.map(layer => ({
@@ -382,8 +413,8 @@ class AnnotationLayer extends React.PureComponent {
     let description = '';
     if (requiresQuery(sourceType)) {
       if (sourceType === ANNOTATION_SOURCE_TYPES.NATIVE) {
-        label = 'Annotation layer';
-        description = 'Select the Annotation Layer you would like to use.';
+        label = t('Annotation layer');
+        description = t('Select the Annotation Layer you would like to use.');
       } else {
         label = t('Chart');
         description = t(
@@ -395,10 +426,10 @@ class AnnotationLayer extends React.PureComponent {
         );
       }
     } else if (annotationType === ANNOTATION_TYPES.FORMULA) {
-      label = 'Formula';
-      description = `Expects a formula with depending time parameter 'x'
+      label = t('Formula');
+      description = t(`Expects a formula with depending time parameter 'x'
         in milliseconds since epoch. mathjs is used to evaluate the formulas.
-        Example: '2x+5'`;
+        Example: '2x+5'`);
     }
     if (requiresQuery(sourceType)) {
       return (
@@ -416,6 +447,7 @@ class AnnotationLayer extends React.PureComponent {
           onChange={this.handleValue}
           validationErrors={!value ? ['Mandatory'] : []}
           optionRenderer={this.renderOption}
+          notFoundContent={<NotFoundContent />}
         />
       );
     }
@@ -432,7 +464,7 @@ class AnnotationLayer extends React.PureComponent {
           onChange={this.handleValue}
           validationErrors={
             !this.isValidFormulaAnnotation(value, annotationType)
-              ? ['Bad formula.']
+              ? [t('Bad formula.')]
               : []
           }
         />
@@ -624,10 +656,10 @@ class AnnotationLayer extends React.PureComponent {
           label={t('Style')}
           // see '../../../visualizations/nvd3_vis.css'
           options={[
-            { value: 'solid', label: 'Solid' },
-            { value: 'dashed', label: 'Dashed' },
-            { value: 'longDashed', label: 'Long dashed' },
-            { value: 'dotted', label: 'Dotted' },
+            { value: 'solid', label: t('Solid') },
+            { value: 'dashed', label: t('Dashed') },
+            { value: 'longDashed', label: t('Long dashed') },
+            { value: 'dotted', label: t('Dotted') },
           ]}
           value={style}
           clearable={false}
@@ -639,7 +671,7 @@ class AnnotationLayer extends React.PureComponent {
           label={t('Opacity')}
           // see '../../../visualizations/nvd3_vis.css'
           options={[
-            { value: '', label: 'Solid' },
+            { value: '', label: t('Solid') },
             { value: 'opacityLow', label: '0.2' },
             { value: 'opacityMedium', label: '0.5' },
             { value: 'opacityHigh', label: '0.8' },
@@ -661,7 +693,7 @@ class AnnotationLayer extends React.PureComponent {
               buttonSize="xsmall"
               onClick={() => this.setState({ color: AUTOMATIC_COLOR })}
             >
-              Automatic Color
+              {t('Automatic Color')}
             </Button>
           </div>
         </div>
@@ -760,9 +792,10 @@ class AnnotationLayer extends React.PureComponent {
                   ariaLabel={t('Annotation source type')}
                   hovered
                   description={t('Choose the source of your annotations')}
-                  label={t('Annotation Source')}
+                  label={t('Annotation source')}
                   name="annotation-source-type"
                   options={supportedSourceTypes}
+                  notFoundContent={<NotFoundContent />}
                   value={sourceType}
                   onChange={this.handleAnnotationSourceType}
                   validationErrors={!sourceType ? [t('Mandatory')] : []}

@@ -33,6 +33,14 @@ interface CRUDCollectionProps {
   expandFieldset?: ReactNode;
   extraButtons?: ReactNode;
   itemGenerator?: () => any;
+  itemCellProps?: ((
+    val: unknown,
+    label: string,
+    record: any,
+  ) => React.DetailedHTMLProps<
+    React.TdHTMLAttributes<HTMLTableCellElement>,
+    HTMLTableCellElement
+  >)[];
   itemRenderers?: ((
     val: unknown,
     onChange: () => void,
@@ -130,6 +138,13 @@ const CrudButtonWrapper = styled.div`
   ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
 `;
 
+const StyledButtonWrapper = styled.span`
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
+`;
+
 export default class CRUDCollection extends React.PureComponent<
   CRUDCollectionProps,
   CRUDCollectionState
@@ -199,7 +214,7 @@ export default class CRUDCollection extends React.PureComponent<
 
   getLabel(col: any) {
     const { columnLabels } = this.props;
-    let label = columnLabels && columnLabels[col] ? columnLabels[col] : col;
+    let label = columnLabels?.[col] ? columnLabels[col] : col;
     if (label.startsWith('__')) {
       // special label-free columns (ie: caret for expand, delete cross)
       label = '';
@@ -328,8 +343,14 @@ export default class CRUDCollection extends React.PureComponent<
     );
   }
 
+  getCellProps(record: any, col: any) {
+    const cellPropsFn = this.props.itemCellProps?.[col];
+    const val = record[col];
+    return cellPropsFn ? cellPropsFn(val, this.getLabel(col), record) : {};
+  }
+
   renderCell(record: any, col: any) {
-    const renderer = this.props.itemRenderers && this.props.itemRenderers[col];
+    const renderer = this.props.itemRenderers?.[col];
     const val = record[col];
     const onChange = this.onCellChange.bind(this, record.id, col);
     return renderer ? renderer(val, onChange, this.getLabel(col), record) : val;
@@ -359,7 +380,9 @@ export default class CRUDCollection extends React.PureComponent<
     }
     tds = tds.concat(
       tableColumns.map(col => (
-        <td key={col}>{this.renderCell(record, col)}</td>
+        <td {...this.getCellProps(record, col)} key={col}>
+          {this.renderCell(record, col)}
+        </td>
       )),
     );
     if (allowAddItem) {
@@ -424,7 +447,7 @@ export default class CRUDCollection extends React.PureComponent<
       <>
         <CrudButtonWrapper>
           {this.props.allowAddItem && (
-            <span className="m-t-10 m-r-10">
+            <StyledButtonWrapper>
               <Button
                 buttonSize="small"
                 buttonStyle="tertiary"
@@ -434,7 +457,7 @@ export default class CRUDCollection extends React.PureComponent<
                 <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
                 {t('Add item')}
               </Button>
-            </span>
+            </StyledButtonWrapper>
           )}
         </CrudButtonWrapper>
         <CrudTableWrapper

@@ -17,6 +17,12 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
+import {
+  AxisType,
+  DataRecordValue,
+  DTTM_ALIAS,
+  BinaryQueryObjectFilterClause,
+} from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -34,6 +40,10 @@ export default function EchartsMixedTimeseries({
   selectedValues,
   formData,
   seriesBreakdown,
+  onContextMenu,
+  xValueFormatter,
+  xAxis,
+  refs,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -52,7 +62,7 @@ export default function EchartsMixedTimeseries({
       const currentGroupBy = isFirstQuery(seriesIndex) ? groupby : groupbyB;
       const currentLabelMap = isFirstQuery(seriesIndex) ? labelMap : labelMapB;
       const groupbyValues = values
-        .map(value => currentLabelMap[value])
+        .map(value => currentLabelMap?.[value])
         .filter(value => !!value);
 
       setDataMask({
@@ -63,7 +73,9 @@ export default function EchartsMixedTimeseries({
               ? []
               : [
                   ...currentGroupBy.map((col, idx) => {
-                    const val = groupbyValues.map(v => v[idx]);
+                    const val: DataRecordValue[] = groupbyValues.map(
+                      v => v[idx],
+                    );
                     if (val === null || val === undefined)
                       return {
                         col,
@@ -89,7 +101,7 @@ export default function EchartsMixedTimeseries({
   const eventHandlers: EventHandlers = {
     click: props => {
       const { seriesName, seriesIndex } = props;
-      const values: string[] = Object.values(selectedValues);
+      const values: string[] = Object.values(selectedValues || {});
       if (values.includes(seriesName)) {
         handleChange(
           values.filter(v => v !== seriesName),
@@ -105,10 +117,53 @@ export default function EchartsMixedTimeseries({
     mouseover: params => {
       currentSeries.name = params.seriesName;
     },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const { data, seriesIndex } = eventParams;
+        if (data) {
+          const pointerEvent = eventParams.event.event;
+          const values = [
+            ...(eventParams.name ? [eventParams.name] : []),
+            ...(isFirstQuery(seriesIndex) ? labelMap : labelMapB)[
+              eventParams.seriesName
+            ],
+          ];
+          const filters: BinaryQueryObjectFilterClause[] = [];
+          if (xAxis.type === AxisType.time) {
+            filters.push({
+              col:
+                xAxis.label === DTTM_ALIAS
+                  ? formData.granularitySqla
+                  : xAxis.label,
+              grain: formData.timeGrainSqla,
+              op: '==',
+              val: data[0],
+              formattedVal: xValueFormatter(data[0]),
+            });
+          }
+          [
+            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
+            ...(isFirstQuery(seriesIndex)
+              ? formData.groupby
+              : formData.groupbyB),
+          ].forEach((dimension, i) =>
+            filters.push({
+              col: dimension,
+              op: '==',
+              val: values[i],
+              formattedVal: String(values[i]),
+            }),
+          );
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+        }
+      }
+    },
   };
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

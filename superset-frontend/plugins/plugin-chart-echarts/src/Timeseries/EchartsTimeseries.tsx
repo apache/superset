@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  DTTM_ALIAS,
+  BinaryQueryObjectFilterClause,
+  AxisType,
+} from '@superset-ui/core';
 import { ViewRootGroup } from 'echarts/types/src/util/types';
 import GlobalModel from 'echarts/types/src/model/Global';
 import ComponentModel from 'echarts/types/src/model/Component';
@@ -24,8 +29,10 @@ import { EchartsHandler, EventHandlers } from '../types';
 import Echart from '../components/Echart';
 import { TimeseriesChartTransformedProps } from './types';
 import { currentSeries } from '../utils/series';
+import { ExtraControls } from '../components/ExtraControls';
 
 const TIMER_DURATION = 300;
+
 // @ts-ignore
 export default function EchartsTimeseries({
   formData,
@@ -36,13 +43,26 @@ export default function EchartsTimeseries({
   labelMap,
   selectedValues,
   setDataMask,
+  setControlValue,
   legendData = [],
+  onContextMenu,
+  xValueFormatter,
+  xAxis,
+  refs,
 }: TimeseriesChartTransformedProps) {
   const { emitFilter, stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
+  // eslint-disable-next-line no-param-reassign
+  refs.echartRef = echartRef;
   const lastTimeRef = useRef(Date.now());
   const lastSelectedLegend = useRef('');
   const clickTimer = useRef<ReturnType<typeof setTimeout>>();
+  const extraControlRef = useRef<HTMLDivElement>(null);
+  const [extraControlHeight, setExtraControlHeight] = useState(0);
+  useEffect(() => {
+    const updatedHeight = extraControlRef.current?.offsetHeight || 0;
+    setExtraControlHeight(updatedHeight);
+  }, [formData.showExtraControls]);
 
   const handleDoubleClickChange = useCallback(
     (name?: string) => {
@@ -120,7 +140,7 @@ export default function EchartsTimeseries({
         },
       });
     },
-    [groupby, labelMap, setDataMask],
+    [groupby, labelMap, setDataMask, emitFilter],
   );
 
   const eventHandlers: EventHandlers = {
@@ -164,6 +184,45 @@ export default function EchartsTimeseries({
         handleDoubleClickChange();
       }
     },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const { data } = eventParams;
+        if (data) {
+          const pointerEvent = eventParams.event.event;
+          const values = [
+            ...(eventParams.name ? [eventParams.name] : []),
+            ...labelMap[eventParams.seriesName],
+          ];
+          const filters: BinaryQueryObjectFilterClause[] = [];
+          if (xAxis.type === AxisType.time) {
+            filters.push({
+              col:
+                // if the xAxis is '__timestamp', granularity_sqla will be the column of filter
+                xAxis.label === DTTM_ALIAS
+                  ? formData.granularitySqla
+                  : xAxis.label,
+              grain: formData.timeGrainSqla,
+              op: '==',
+              val: data[0],
+              formattedVal: xValueFormatter(data[0]),
+            });
+          }
+          [
+            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
+            ...formData.groupby,
+          ].forEach((dimension, i) =>
+            filters.push({
+              col: dimension,
+              op: '==',
+              val: values[i],
+              formattedVal: String(values[i]),
+            }),
+          );
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+        }
+      }
+    },
   };
 
   const zrEventHandlers: EventHandlers = {
@@ -195,14 +254,19 @@ export default function EchartsTimeseries({
   };
 
   return (
-    <Echart
-      ref={echartRef}
-      height={height}
-      width={width}
-      echartOptions={echartOptions}
-      eventHandlers={eventHandlers}
-      zrEventHandlers={zrEventHandlers}
-      selectedValues={selectedValues}
-    />
+    <>
+      <div ref={extraControlRef}>
+        <ExtraControls formData={formData} setControlValue={setControlValue} />
+      </div>
+      <Echart
+        refs={refs}
+        height={height - extraControlHeight}
+        width={width}
+        echartOptions={echartOptions}
+        eventHandlers={eventHandlers}
+        zrEventHandlers={zrEventHandlers}
+        selectedValues={selectedValues}
+      />
+    </>
   );
 }

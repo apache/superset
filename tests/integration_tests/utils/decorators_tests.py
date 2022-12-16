@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import call, Mock
+from unittest.mock import call, Mock, patch
+
+import pytest
+from flask import current_app
 
 from superset.utils import decorators
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -41,3 +44,18 @@ class UtilsDecoratorsTests(SupersetTestCase):
         result = myfunc(1, 0, kwarg1="haha", kwarg2=2)
         mock.assert_has_calls([call(1, "abc"), call(1, "haha")])
         self.assertEqual(result, 3)
+
+    def test_statsd_gauge(self):
+        @decorators.statsd_gauge("custom.prefix")
+        def my_func(fail: bool, *args, **kwargs):
+            if fail:
+                raise ValueError("Error")
+            return "OK"
+
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as mock:
+            my_func(False, 1, 2)
+            mock.assert_called_once_with("custom.prefix.ok", 1)
+
+            with pytest.raises(ValueError):
+                my_func(True, 1, 2)
+                mock.assert_called_once_with("custom.prefix.error", 1)

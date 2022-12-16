@@ -36,41 +36,28 @@ DATA_CACHE_CONFIG = {
 
 Both of these libraries can be installed using pip.
 
-For chart data, Superset goes up a “timeout search path”, from a slice's configuration
-to the datasource’s, the database’s, then ultimately falls back to the global default
+For chart data, Superset goes up a “timeout search path”, from a slice's (chart's) configuration
+to the dataset’s, the database’s, then ultimately falls back to the global default
 defined in `DATA_CACHE_CONFIG`.
 
 ## Celery beat
 
-Superset has a Celery task that will periodically warm up the cache based on different strategies.
-To use it, add the following to the `CELERYBEAT_SCHEDULE` section in `config.py`:
-
-```python
-CELERYBEAT_SCHEDULE = {
-    'cache-warmup-hourly': {
-        'task': 'cache-warmup',
-        'schedule': crontab(minute=0, hour='*'),  # hourly
-        'kwargs': {
-            'strategy_name': 'top_n_dashboards',
-            'top_n': 5,
-            'since': '7 days ago',
-        },
-    },
-}
-```
-
-This will cache all the charts in the top 5 most popular dashboards every hour. For other
-strategies, check the `superset/tasks/cache.py` file.
-
 ### Caching Thumbnails
 
-This is an optional feature that can be turned on by activating it’s feature flag on config:
+This is an optional feature that can be turned on by activating it’s [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) on config:
 
 ```
 FEATURE_FLAGS = {
     "THUMBNAILS": True,
     "THUMBNAILS_SQLA_LISTENERS": True,
 }
+```
+
+By default thumbnails are rendered using the `THUMBNAIL_SELENIUM_USER` user account. To render thumbnails as the
+logged in user (e.g. in environments that are using user impersonation), use the following configuration:
+
+```python
+THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
 ```
 
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache

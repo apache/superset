@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
 
@@ -104,7 +104,6 @@ class DashboardPermalinkRestApi(BaseApi):
         try:
             state = self.add_model_schema.load(request.json)
             key = CreateDashboardPermalinkCommand(
-                actor=g.user,
                 dashboard_id=pk,
                 state=state,
             ).run()
@@ -162,7 +161,7 @@ class DashboardPermalinkRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            value = GetDashboardPermalinkCommand(actor=g.user, key=key).run()
+            value = GetDashboardPermalinkCommand(key=key).run()
             if not value:
                 return self.response_404()
             return self.response(200, **value)

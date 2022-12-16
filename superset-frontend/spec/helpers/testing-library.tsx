@@ -22,30 +22,41 @@ import { render, RenderOptions } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import {
+  combineReducers,
+  createStore,
+  applyMiddleware,
+  compose,
+  Store,
+} from 'redux';
 import thunk from 'redux-thunk';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
+import QueryProvider from 'src/views/QueryProvider';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
   useDnd?: boolean;
   useQueryParams?: boolean;
   useRouter?: boolean;
+  useQuery?: boolean;
   initialState?: {};
   reducers?: {};
+  store?: Store;
 };
 
-function createWrapper(options?: Options) {
+export function createWrapper(options?: Options) {
   const {
     useDnd,
     useRedux,
     useQueryParams,
+    useQuery = true,
     useRouter,
     initialState,
     reducers,
+    store,
   } = options || {};
 
   return ({ children }: { children?: ReactNode }) => {
@@ -58,13 +69,15 @@ function createWrapper(options?: Options) {
     }
 
     if (useRedux) {
-      const store = createStore(
-        combineReducers(reducers || reducerIndex),
-        initialState || {},
-        compose(applyMiddleware(thunk)),
-      );
+      const mockStore =
+        store ??
+        createStore(
+          combineReducers(reducers || reducerIndex),
+          initialState || {},
+          compose(applyMiddleware(thunk)),
+        );
 
-      result = <Provider store={store}>{result}</Provider>;
+      result = <Provider store={mockStore}>{result}</Provider>;
     }
 
     if (useQueryParams) {
@@ -73,6 +86,10 @@ function createWrapper(options?: Options) {
 
     if (useRouter) {
       result = <BrowserRouter>{result}</BrowserRouter>;
+    }
+
+    if (useQuery) {
+      result = <QueryProvider>{result}</QueryProvider>;
     }
 
     return result;

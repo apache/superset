@@ -19,10 +19,10 @@
 import {
   ControlPanelConfig,
   emitFilterControl,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
-import { addLocaleData, t } from '@superset-ui/core';
-import i18n from '../i18n';
+import { t } from '@superset-ui/core';
 import { allColumnsControlSetItem } from './controls/columns';
 import { groupByControlSetItem } from './controls/groupBy';
 import { handlebarsTemplateControlSetItem } from './controls/handlebarTemplate';
@@ -47,11 +47,9 @@ import {
 import { queryModeControlSetItem } from './controls/queryMode';
 import { styleControlSetItem } from './controls/style';
 
-addLocaleData(i18n);
-
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.genericTime,
     {
       label: t('Query'),
       expanded: true,
@@ -61,9 +59,10 @@ const config: ControlPanelConfig = {
         [metricsControlSetItem, allColumnsControlSetItem],
         [percentMetricsControlSetItem],
         [timeSeriesLimitMetricControlSetItem, orderByControlSetItem],
+        [orderDescendingControlSetItem],
         serverPaginationControlSetRow,
         [rowLimitControlSetItem, serverPageLengthControlSetItem],
-        [includeTimeControlSetItem, orderDescendingControlSetItem],
+        [includeTimeControlSetItem],
         [showTotalsControlSetItem],
         ['adhoc_filters'],
         emitFilterControl,
@@ -78,6 +77,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+    metrics: getStandardizedControls().popAllMetrics(),
+  }),
 };
 
 export default config;

@@ -31,10 +31,11 @@ from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
 
+from superset.constants import PASSWORD_MASK
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.exceptions import SupersetDBAPIDisconnectionError
+from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
 from superset.utils import core as utils
@@ -45,8 +46,8 @@ if TYPE_CHECKING:
 
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
-    "Access Denied: Project User does not have bigquery.jobs.create "
-    + "permission in project (?P<project>.+?)"
+    "Access Denied: Project (?P<project_name>.+?): User does not have "
+    + "bigquery.jobs.create permission in project (?P<project>.+?)"
 )
 
 TABLE_DOES_NOT_EXIST_REGEX = re.compile(
@@ -104,13 +105,13 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
-    raw_connections bypass the pybigquery query execution context and deal with
+    raw_connections bypass the sqlalchemy-bigquery query execution context and deal with
     raw dbapi connection directly.
     If this value is not set, the default value is set to 1, as described here,
     https://googlecloudplatform.github.io/google-cloud-python/latest/_modules/google/cloud/bigquery/dbapi/cursor.html#Cursor
 
-    The default value of 5000 is derived from the pybigquery.
-    https://github.com/mxmzdlv/pybigquery/blob/d214bb089ca0807ca9aaa6ce4d5a01172d40264e/pybigquery/sqlalchemy_bigquery.py#L102
+    The default value of 5000 is derived from the sqlalchemy-bigquery.
+    https://github.com/googleapis/python-bigquery-sqlalchemy/blob/4e17259088f89eac155adc19e0985278a29ecf9c/sqlalchemy_bigquery/base.py#L762
     """
     arraysize = 5000
 
@@ -123,8 +124,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        "PT1S": "{func}({col}, SECOND)",
-        "PT1M": "{func}({col}, MINUTE)",
+        "PT1S": "CAST(TIMESTAMP_SECONDS("
+        "UNIX_SECONDS(CAST({col} AS TIMESTAMP))"
+        ") AS {type})",
+        "PT1M": "CAST(TIMESTAMP_SECONDS("
+        "60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 60)"
+        ") AS {type})",
         "PT5M": "CAST(TIMESTAMP_SECONDS("
         "5*60 * DIV(UNIX_SECONDS(CAST({col} AS TIMESTAMP)), 5*60)"
         ") AS {type})",
@@ -140,6 +145,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "PT1H": "{func}({col}, HOUR)",
         "P1D": "{func}({col}, DAY)",
         "P1W": "{func}({col}, WEEK)",
+        "1969-12-29T00:00:00Z/P1W": "{func}({col}, ISOWEEK)",
         "P1M": "{func}({col}, MONTH)",
         "P3M": "{func}({col}, QUARTER)",
         "P1Y": "{func}({col}, YEAR)",
@@ -148,9 +154,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
     custom_errors: Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
         CONNECTION_DATABASE_PERMISSIONS_REGEX: (
             __(
-                "We were unable to connect to your database. Please "
-                "confirm that your service account has the Viewer "
-                "and Job User roles on the project."
+                "Unable to connect. Verify that the following roles are set "
+                'on the service account: "BigQuery Data Viewer", '
+                '"BigQuery Metadata Viewer", "BigQuery Job User" '
+                "and the following permissions are set "
+                '"bigquery.readsessions.create", '
+                '"bigquery.readsessions.getData"'
             ),
             SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
             {},
@@ -331,8 +340,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         if not table.schema:
             raise Exception("The table schema must be defined")
 
-        engine = cls.get_engine(database)
-        to_gbq_kwargs = {"destination_table": str(table), "project_id": engine.url.host}
+        to_gbq_kwargs = {}
+        with cls.get_engine(database) as engine:
+            to_gbq_kwargs = {
+                "destination_table": str(table),
+                "project_id": engine.url.host,
+            }
 
         # Add credentials if they are set on the SQLAlchemy dialect.
         creds = engine.dialect.credentials_info
@@ -375,26 +388,77 @@ class BigQueryEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, encrypted_extra: Optional[Dict[str, str]] = None
+        cls,
+        uri: str,
+        encrypted_extra: Optional[Dict[str, Any]] = None,
     ) -> Any:
         value = make_url_safe(uri)
 
         # Building parameters from encrypted_extra and uri
         if encrypted_extra:
-            return {**encrypted_extra, "query": value.query}
+            # ``value.query`` needs to be explicitly converted into a dict (from an
+            # ``immutabledict``) so that it can be JSON serialized
+            return {**encrypted_extra, "query": dict(value.query)}
 
         raise ValidationError("Invalid service credentials")
+
+    @classmethod
+    def mask_encrypted_extra(cls, encrypted_extra: Optional[str]) -> Optional[str]:
+        if encrypted_extra is None:
+            return encrypted_extra
+
+        try:
+            config = json.loads(encrypted_extra)
+        except (json.JSONDecodeError, TypeError):
+            return encrypted_extra
+
+        try:
+            config["credentials_info"]["private_key"] = PASSWORD_MASK
+        except KeyError:
+            pass
+
+        return json.dumps(config)
+
+    @classmethod
+    def unmask_encrypted_extra(
+        cls, old: Optional[str], new: Optional[str]
+    ) -> Optional[str]:
+        """
+        Reuse ``private_key`` if available and unchanged.
+        """
+        if old is None or new is None:
+            return new
+
+        try:
+            old_config = json.loads(old)
+            new_config = json.loads(new)
+        except (TypeError, json.JSONDecodeError):
+            return new
+
+        if "credentials_info" not in new_config:
+            return new
+
+        if "private_key" not in new_config["credentials_info"]:
+            return new
+
+        if new_config["credentials_info"]["private_key"] == PASSWORD_MASK:
+            new_config["credentials_info"]["private_key"] = old_config[
+                "credentials_info"
+            ]["private_key"]
+
+        return json.dumps(new_config)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         # pylint: disable=import-outside-toplevel
         from google.auth.exceptions import DefaultCredentialsError
 
-        return {DefaultCredentialsError: SupersetDBAPIDisconnectionError}
+        return {DefaultCredentialsError: SupersetDBAPIConnectionError}
 
     @classmethod
     def validate_parameters(
-        cls, parameters: BigQueryParametersType  # pylint: disable=unused-argument
+        cls,
+        properties: BasicPropertiesType,  # pylint: disable=unused-argument
     ) -> List[SupersetError]:
         return []
 
@@ -518,3 +582,12 @@ class BigQueryEngineSpec(BaseEngineSpec):
         "author__name" and "author__email", respectively.
         """
         return [column(c["name"]).label(c["name"].replace(".", "__")) for c in cols]
+
+    @classmethod
+    def parse_error_exception(cls, exception: Exception) -> Exception:
+        try:
+            return Exception(str(exception).splitlines()[0].strip())
+        except Exception:  # pylint: disable=broad-except
+            # If for some reason we get an exception, for example, no new line
+            # We will return the original exception
+            return exception

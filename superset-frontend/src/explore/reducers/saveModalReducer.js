@@ -18,9 +18,13 @@
  */
 /* eslint camelcase: 0 */
 import * as actions from '../actions/saveModalActions';
+import { HYDRATE_EXPLORE } from '../actions/hydrateExplore';
 
 export default function saveModalReducer(state = {}, action) {
   const actionHandlers = {
+    [actions.SET_SAVE_CHART_MODAL_VISIBILITY]() {
+      return { ...state, isVisible: action.isVisible };
+    },
     [actions.FETCH_DASHBOARDS_SUCCEEDED]() {
       return { ...state, dashboards: action.choices };
     },
@@ -38,6 +42,9 @@ export default function saveModalReducer(state = {}, action) {
     },
     [actions.REMOVE_SAVE_MODAL_ALERT]() {
       return { ...state, saveModalAlert: null };
+    },
+    [HYDRATE_EXPLORE]() {
+      return { ...action.data.saveModal };
     },
   };
 

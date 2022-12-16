@@ -68,7 +68,7 @@ function mapStateToProps(state: RootState) {
         chartConfiguration: dashboardInfo.metadata?.chart_configuration,
         nativeFilters: nativeFilters.filters,
         dataMask,
-        layout: dashboardLayout.present,
+        allSliceIds: dashboardState.sliceIds,
       }),
     },
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,

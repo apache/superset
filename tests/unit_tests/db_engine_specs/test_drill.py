@@ -16,13 +16,12 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 
-from flask.ctx import AppContext
 from pytest import raises
 
 
-def test_odbc_impersonation(app_context: AppContext) -> None:
+def test_odbc_impersonation() -> None:
     """
-    Test ``modify_url_for_impersonation`` method when driver == odbc.
+    Test ``get_url_for_impersonation`` method when driver == odbc.
 
     The method adds the parameter ``DelegationUID`` to the query string.
     """
@@ -32,13 +31,13 @@ def test_odbc_impersonation(app_context: AppContext) -> None:
 
     url = URL("drill+odbc")
     username = "DoAsUser"
-    DrillEngineSpec.modify_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["DelegationUID"] == username
 
 
-def test_jdbc_impersonation(app_context: AppContext) -> None:
+def test_jdbc_impersonation() -> None:
     """
-    Test ``modify_url_for_impersonation`` method when driver == jdbc.
+    Test ``get_url_for_impersonation`` method when driver == jdbc.
 
     The method adds the parameter ``impersonation_target`` to the query string.
     """
@@ -48,13 +47,13 @@ def test_jdbc_impersonation(app_context: AppContext) -> None:
 
     url = URL("drill+jdbc")
     username = "DoAsUser"
-    DrillEngineSpec.modify_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["impersonation_target"] == username
 
 
-def test_sadrill_impersonation(app_context: AppContext) -> None:
+def test_sadrill_impersonation() -> None:
     """
-    Test ``modify_url_for_impersonation`` method when driver == sadrill.
+    Test ``get_url_for_impersonation`` method when driver == sadrill.
 
     The method adds the parameter ``impersonation_target`` to the query string.
     """
@@ -64,13 +63,13 @@ def test_sadrill_impersonation(app_context: AppContext) -> None:
 
     url = URL("drill+sadrill")
     username = "DoAsUser"
-    DrillEngineSpec.modify_url_for_impersonation(url, True, username)
+    url = DrillEngineSpec.get_url_for_impersonation(url, True, username)
     assert url.query["impersonation_target"] == username
 
 
-def test_invalid_impersonation(app_context: AppContext) -> None:
+def test_invalid_impersonation() -> None:
     """
-    Test ``modify_url_for_impersonation`` method when driver == foobar.
+    Test ``get_url_for_impersonation`` method when driver == foobar.
 
     The method raises an exception because impersonation is not supported
     for drill+foobar.
@@ -84,4 +83,4 @@ def test_invalid_impersonation(app_context: AppContext) -> None:
     username = "DoAsUser"
 
     with raises(SupersetDBAPIProgrammingError):
-        DrillEngineSpec.modify_url_for_impersonation(url, True, username)
+        DrillEngineSpec.get_url_for_impersonation(url, True, username)

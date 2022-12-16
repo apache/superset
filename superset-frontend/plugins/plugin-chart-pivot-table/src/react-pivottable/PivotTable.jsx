@@ -18,7 +18,6 @@
  */
 
 import React from 'react';
-import { PivotData } from './utilities';
 import { TableRenderer } from './TableRenderers';
 
 class PivotTable extends React.PureComponent {
@@ -27,7 +26,7 @@ class PivotTable extends React.PureComponent {
   }
 }
 
-PivotTable.propTypes = PivotData.propTypes;
-PivotTable.defaultProps = PivotData.defaultProps;
+PivotTable.propTypes = TableRenderer.propTypes;
+PivotTable.defaultProps = TableRenderer.defaultProps;
 
 export default PivotTable;

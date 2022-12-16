@@ -19,13 +19,14 @@
 
 /* eslint sort-keys: 'off' */
 /** The form data defined here is based on default visualizations packaged with Apache Superset */
+import { TimeGranularity } from '@superset-ui/core';
 
 export const bigNumberFormData = {
   datasource: '3__table',
   viz_type: 'big_number',
   slice_id: 54,
   granularity_sqla: 'ds',
-  time_grain_sqla: 'P1D',
+  time_grain_sqla: TimeGranularity.DAY,
   time_range: '100 years ago : now',
   metric: 'sum__num',
   adhoc_filters: [],

@@ -57,6 +57,19 @@ docker build --target lean \
   .
 
 #
+# Build the "websocket" image
+#
+docker build \
+  -t "${REPO_NAME}:${SHA}-websocket" \
+  -t "${REPO_NAME}:${REFSPEC}-websocket" \
+  -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
+  --label "sha=${SHA}" \
+  --label "built_at=$(date)" \
+  --label "target=lean" \
+  --label "build_actor=${GITHUB_ACTOR}" \
+  superset-websocket
+
+#
 # Build the dev image
 #
 docker build --target dev \

@@ -204,7 +204,11 @@ const transformProps = (
     queriesData = [],
     filterState,
     ownState: serverPaginationData,
-    hooks: { onAddFilter: onChangeFilter, setDataMask = () => {} },
+    hooks: {
+      onAddFilter: onChangeFilter,
+      setDataMask = () => {},
+      onContextMenu,
+    },
   } = chartProps;
 
   const {
@@ -220,6 +224,7 @@ const transformProps = (
     query_mode: queryMode,
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
+    allow_rearrange_columns: allowRearrangeColumns,
   } = formData;
   const timeGrain = extractTimegrain(formData);
 
@@ -272,6 +277,8 @@ const transformProps = (
     onChangeFilter,
     columnColorFormatters,
     timeGrain,
+    allowRearrangeColumns,
+    onContextMenu,
   };
 };
 

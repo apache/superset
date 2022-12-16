@@ -28,13 +28,14 @@ import { TAB_TYPE } from '../util/componentTypes';
 
 const propTypes = {
   depth: PropTypes.number.isRequired,
-  editMode: PropTypes.bool.isRequired,
-  gridComponent: componentShape.isRequired,
+  editMode: PropTypes.bool,
+  gridComponent: componentShape,
   handleComponentDrop: PropTypes.func.isRequired,
   isComponentVisible: PropTypes.bool.isRequired,
   resizeComponent: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
   width: PropTypes.number.isRequired,
+  dashboardId: PropTypes.number,
 };
 
 const defaultProps = {};
@@ -143,6 +144,7 @@ class DashboardGrid extends React.PureComponent {
       editMode,
       canEdit,
       setEditMode,
+      dashboardId,
     } = this.props;
     const columnPlusGutterWidth =
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
@@ -167,7 +169,11 @@ class DashboardGrid extends React.PureComponent {
           </>
         }
         buttonAction={() => {
-          window.open('/chart/add', '_blank', 'noopener noreferrer');
+          window.open(
+            `/chart/add?dashboard_id=${dashboardId}`,
+            '_blank',
+            'noopener noreferrer',
+          );
         }}
         image="chart.svg"
       />
@@ -186,7 +192,11 @@ class DashboardGrid extends React.PureComponent {
           </>
         }
         buttonAction={() => {
-          window.open('/chart/add', '_blank', 'noopener noreferrer');
+          window.open(
+            `/chart/add?dashboard_id=${dashboardId}`,
+            '_blank',
+            'noopener noreferrer',
+          );
         }}
         image="chart.svg"
       />

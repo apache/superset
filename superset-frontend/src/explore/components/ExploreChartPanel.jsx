@@ -26,15 +26,21 @@ import {
   SupersetClient,
   t,
   useTheme,
+  getChartMetadataRegistry,
+  DatasourceType,
 } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
+import Alert from 'src/components/Alert';
+import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
 import { DataTablesPane } from './DataTablesPane';
 import { buildV1ChartDataPayload } from '../exploreUtils';
 import { ChartPills } from './ChartPills';
@@ -57,7 +63,7 @@ const propTypes = {
   vizType: PropTypes.string.isRequired,
   form_data: PropTypes.object,
   ownState: PropTypes.object,
-  standalone: PropTypes.number,
+  standalone: PropTypes.bool,
   force: PropTypes.bool,
   timeout: PropTypes.number,
   chartIsStale: PropTypes.bool,
@@ -93,6 +99,7 @@ const Styles = styled.div`
   }
 
   .gutter.gutter-vertical {
+    display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
   }
 
@@ -142,12 +149,27 @@ const ExploreChartPanel = ({
     refreshRate: 300,
   });
   const [splitSizes, setSplitSizes] = useState(
-    getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? INITIAL_SIZES
+      : getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+  );
+  const [showSplite, setShowSplit] = useState(
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? false
+      : getItem(LocalStorageKeys.is_datapanel_open, false),
   );
 
+  const [showDatasetModal, setShowDatasetModal] = useState(false);
+
+  const metaDataRegistry = getChartMetadataRegistry();
+  const { useLegacyApi } = metaDataRegistry.get(vizType) ?? {};
+  const vizTypeNeedsDataset =
+    useLegacyApi && datasource.type !== DatasourceType.Table;
+  // added boolean column to below show boolean so that the errors aren't overlapping
   const showAlertBanner =
     !chartAlert &&
     chartIsStale &&
+    !vizTypeNeedsDataset &&
     chart.chartStatus !== 'failed' &&
     ensureIsArray(chart.queriesResponse).length > 0;
 
@@ -198,6 +220,7 @@ const ExploreChartPanel = ({
       undefined,
       ownState,
     );
+    actions.updateQueryFormData(formData, chart.id);
   }, [actions, chart.id, formData, ownState, timeout]);
 
   const onCollapseChange = useCallback(isOpen => {
@@ -211,6 +234,7 @@ const ExploreChartPanel = ({
       ];
     }
     setSplitSizes(splitSizes);
+    setShowSplit(isOpen);
   }, []);
 
   const renderChart = useCallback(
@@ -219,6 +243,7 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
+          overflow: auto;
         `}
         ref={chartPanelRef}
       >
@@ -284,6 +309,31 @@ const ExploreChartPanel = ({
           flex-direction: column;
         `}
       >
+        {vizTypeNeedsDataset && (
+          <Alert
+            message={t('Chart type requires a dataset')}
+            type="error"
+            css={theme => css`
+              margin: 0 0 ${theme.gridUnit * 4}px 0;
+            `}
+            description={
+              <>
+                {t(
+                  'This chart type is not supported when using an unsaved query as a chart source. ',
+                )}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowDatasetModal(true)}
+                  css={{ textDecoration: 'underline' }}
+                >
+                  {t('Create a dataset')}
+                </span>
+                {t(' to visualize your data.')}
+              </>
+            }
+          />
+        )}
         {showAlertBanner && (
           <ExploreAlert
             title={
@@ -371,7 +421,10 @@ const ExploreChartPanel = ({
   }
 
   return (
-    <Styles className="panel panel-default chart-container">
+    <Styles
+      className="panel panel-default chart-container"
+      showSplite={showSplite}
+    >
       {vizType === 'filter_box' ? (
         panelBody
       ) : (
@@ -388,13 +441,25 @@ const ExploreChartPanel = ({
           <DataTablesPane
             ownState={ownState}
             queryFormData={queryFormData}
+            datasource={datasource}
             queryForce={force}
             onCollapseChange={onCollapseChange}
             chartStatus={chart.chartStatus}
             errorMessage={errorMessage}
-            queriesResponse={chart.queriesResponse}
+            actions={actions}
           />
         </Split>
+      )}
+      {showDatasetModal && (
+        <SaveDatasetModal
+          visible={showDatasetModal}
+          onHide={() => setShowDatasetModal(false)}
+          buttonTextOnSave={t('Save')}
+          buttonTextOnOverwrite={t('Overwrite')}
+          datasource={getDatasourceAsSaveableDataset(datasource)}
+          openWindow={false}
+          formData={formData}
+        />
       )}
     </Styles>
   );

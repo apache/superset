@@ -24,6 +24,8 @@ import Button from 'src/components/Button';
 import { AntdForm } from 'src/components';
 import { setChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
 import { ChartConfiguration } from 'src/dashboard/reducers/types';
+import { ChartsState, Layout, RootState } from 'src/dashboard/types';
+import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import CrossFilterScopingForm from './CrossFilterScopingForm';
 import { CrossFilterScopingFormType } from './types';
 import { StyledForm } from '../nativeFilters/FiltersConfigModal/FiltersConfigModal';
@@ -44,14 +46,24 @@ const CrossFilterScopingModal: FC<CrossFilterScopingModalProps> = ({
   const chartConfig = useSelector<any, ChartConfiguration>(
     ({ dashboardInfo }) => dashboardInfo?.metadata?.chart_configuration,
   );
+  const charts = useSelector<RootState, ChartsState>(state => state.charts);
+  const layout = useSelector<RootState, Layout>(
+    state => state.dashboardLayout.present,
+  );
   const scope = chartConfig?.[chartId]?.crossFilters?.scope;
   const handleSave = () => {
+    const chartsInScope = getChartIdsInFilterScope(
+      form.getFieldValue('scope'),
+      charts,
+      layout,
+    );
+
     dispatch(
       setChartConfiguration({
         ...chartConfig,
         [chartId]: {
           id: chartId,
-          crossFilters: { scope: form.getFieldValue('scope') },
+          crossFilters: { scope: form.getFieldValue('scope'), chartsInScope },
         },
       }),
     );

@@ -30,6 +30,7 @@ import {
   ChartDataResponseResult,
   QueryFormData,
   SetDataMaskHook,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { ColorFormatters, ColumnConfig } from '@superset-ui/chart-controls';
 
@@ -71,6 +72,7 @@ export type TableChartFormData = QueryFormData & {
   emit_filter?: boolean;
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, ColumnConfig>;
+  allow_rearrange_columns?: boolean;
 };
 
 export interface TableChartProps extends ChartProps {
@@ -109,6 +111,12 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   emitFilter?: boolean;
   onChangeFilter?: ChartProps['hooks']['onAddFilter'];
   columnColorFormatters?: ColorFormatters;
+  allowRearrangeColumns?: boolean;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
+  ) => void;
 }
 
 export default {};

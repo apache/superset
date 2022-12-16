@@ -34,7 +34,7 @@ import {
 const propTypes = {
   children: PropTypes.func,
   className: PropTypes.string,
-  component: componentShape.isRequired,
+  component: componentShape,
   parentComponent: componentShape,
   depth: PropTypes.number.isRequired,
   disableDragDrop: PropTypes.bool,
@@ -42,16 +42,17 @@ const propTypes = {
   index: PropTypes.number.isRequired,
   style: PropTypes.object,
   onDrop: PropTypes.func,
-  editMode: PropTypes.bool.isRequired,
+  onHover: PropTypes.func,
+  editMode: PropTypes.bool,
   useEmptyDragPreview: PropTypes.bool,
 
   // from react-dnd
-  isDragging: PropTypes.bool.isRequired,
-  isDraggingOver: PropTypes.bool.isRequired,
-  isDraggingOverShallow: PropTypes.bool.isRequired,
-  droppableRef: PropTypes.func.isRequired,
-  dragSourceRef: PropTypes.func.isRequired,
-  dragPreviewRef: PropTypes.func.isRequired,
+  isDragging: PropTypes.bool,
+  isDraggingOver: PropTypes.bool,
+  isDraggingOverShallow: PropTypes.bool,
+  droppableRef: PropTypes.func,
+  dragSourceRef: PropTypes.func,
+  dragPreviewRef: PropTypes.func,
 };
 
 const defaultProps = {
@@ -61,8 +62,15 @@ const defaultProps = {
   disableDragDrop: false,
   children() {},
   onDrop() {},
+  onHover() {},
   orientation: 'row',
   useEmptyDragPreview: false,
+  isDragging: false,
+  isDraggingOver: false,
+  isDraggingOverShallow: false,
+  droppableRef() {},
+  dragSourceRef() {},
+  dragPreviewRef() {},
 };
 
 // export unwrapped component for testing
@@ -95,7 +103,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
     } else {
       this.props.dragPreviewRef(ref);
     }
-    this.props.droppableRef(ref);
+    this.props.droppableRef?.(ref);
   }
 
   render() {

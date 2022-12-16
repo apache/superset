@@ -23,12 +23,14 @@ import React, {
   HTMLProps,
   MutableRefObject,
   CSSProperties,
+  MouseEvent,
 } from 'react';
 import {
   useTable,
   usePagination,
   useSortBy,
   useGlobalFilter,
+  useColumnOrder,
   PluginHook,
   TableOptions,
   FilterType,
@@ -64,6 +66,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   sticky?: boolean;
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
+  onColumnOrderChange: () => void;
+  onContextMenu?: (value: D, clientX: number, clientY: number) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -95,12 +99,15 @@ export default typedMemo(function DataTable<D extends object>({
   hooks,
   serverPagination,
   wrapperRef: userWrapperRef,
+  onColumnOrderChange,
+  onContextMenu,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
     useGlobalFilter,
     useSortBy,
     usePagination,
+    useColumnOrder,
     doSticky ? useSticky : [],
     hooks || [],
   ].flat();
@@ -172,6 +179,8 @@ export default typedMemo(function DataTable<D extends object>({
     setGlobalFilter,
     setPageSize: setPageSize_,
     wrapStickyTable,
+    setColumnOrder,
+    allColumns,
     state: { pageIndex, pageSize, globalFilter: filterValue, sticky = {} },
   } = useTable<D>(
     {
@@ -211,6 +220,33 @@ export default typedMemo(function DataTable<D extends object>({
 
   const shouldRenderFooter = columns.some(x => !!x.Footer);
 
+  let columnBeingDragged = -1;
+
+  const onDragStart = (e: React.DragEvent) => {
+    const el = e.target as HTMLTableCellElement;
+    columnBeingDragged = allColumns.findIndex(
+      col => col.id === el.dataset.columnName,
+    );
+    e.dataTransfer.setData('text/plain', `${columnBeingDragged}`);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    const el = e.target as HTMLTableCellElement;
+    const newPosition = allColumns.findIndex(
+      col => col.id === el.dataset.columnName,
+    );
+
+    if (newPosition !== -1) {
+      const currentCols = allColumns.map(c => c.id);
+      const colToBeMoved = currentCols.splice(columnBeingDragged, 1);
+      currentCols.splice(newPosition, 0, colToBeMoved[0]);
+      setColumnOrder(currentCols);
+      // toggle value in TableChart to trigger column width recalc
+      onColumnOrderChange();
+    }
+    e.preventDefault();
+  };
+
   const renderTable = () => (
     <table {...getTableProps({ className: tableClassName })}>
       <thead>
@@ -223,6 +259,8 @@ export default typedMemo(function DataTable<D extends object>({
                 column.render('Header', {
                   key: column.id,
                   ...column.getSortByToggleProps(),
+                  onDragStart,
+                  onDrop,
                 }),
               )}
             </tr>
@@ -235,7 +273,21 @@ export default typedMemo(function DataTable<D extends object>({
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
             return (
-              <tr key={rowKey || row.id} {...rowProps}>
+              <tr
+                key={rowKey || row.id}
+                {...rowProps}
+                onContextMenu={(e: MouseEvent) => {
+                  if (onContextMenu) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onContextMenu(
+                      row.original,
+                      e.nativeEvent.clientX,
+                      e.nativeEvent.clientY,
+                    );
+                  }
+                }}
+              >
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
                 )}

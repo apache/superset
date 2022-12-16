@@ -19,123 +19,120 @@
 import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { styledShallow as shallow } from 'spec/helpers/theming';
-import { render, screen, act } from 'spec/helpers/testing-library';
-import SouthPaneContainer from 'src/SqlLab/components/SouthPane/state';
-import ResultSet from 'src/SqlLab/components/ResultSet';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import SouthPane from 'src/SqlLab/components/SouthPane';
 import '@testing-library/jest-dom/extend-expect';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
-import { initialState } from 'src/SqlLab/fixtures';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-
-const NOOP = () => {};
+import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 
 const mockedProps = {
-  editorQueries: [
-    {
-      cached: false,
-      changedOn: Date.now(),
-      db: 'main',
-      dbId: 1,
-      id: 'LCly_kkIN',
-      startDttm: Date.now(),
-    },
-    {
-      cached: false,
-      changedOn: 1559238500401,
-      db: 'main',
-      dbId: 1,
-      id: 'lXJa7F9_r',
-      startDttm: 1559238500401,
-    },
-    {
-      cached: false,
-      changedOn: 1559238506925,
-      db: 'main',
-      dbId: 1,
-      id: '2g2_iRFMl',
-      startDttm: 1559238506925,
-    },
-    {
-      cached: false,
-      changedOn: 1559238516395,
-      db: 'main',
-      dbId: 1,
-      id: 'erWdqEWPm',
-      startDttm: 1559238516395,
-    },
-  ],
+  queryEditorId: defaultQueryEditor.id,
   latestQueryId: 'LCly_kkIN',
-  dataPreviewQueries: [],
-  actions: {},
-  activeSouthPaneTab: '',
   height: 1,
   displayLimit: 1,
-  databases: {},
-  offline: false,
-};
-
-const mockedEmptyProps = {
-  editorQueries: [],
-  latestQueryId: '',
-  dataPreviewQueries: [],
-  actions: {
-    queryEditorSetSql: NOOP,
-    cloneQueryToNewTab: NOOP,
-    fetchQueryResults: NOOP,
-    clearQueryResults: NOOP,
-    removeQuery: NOOP,
-    setActiveSouthPaneTab: NOOP,
-  },
-  activeSouthPaneTab: '',
-  height: 100,
-  databases: '',
-  offline: false,
-  displayLimit: 100,
-  user: UserWithPermissionsAndRoles,
   defaultQueryLimit: 100,
 };
 
+const mockedEmptyProps = {
+  queryEditorId: 'random_id',
+  latestQueryId: '',
+  height: 100,
+  displayLimit: 100,
+  defaultQueryLimit: 100,
+};
+
+const latestQueryProgressMsg = 'LATEST QUERY MESSAGE - LCly_kkIN';
+
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
-const store = mockStore(initialState);
-const setup = (overrides = {}) => (
-  <SouthPaneContainer store={store} {...mockedProps} {...overrides} />
-);
-
-describe('SouthPane - Enzyme', () => {
-  const getWrapper = () => shallow(setup()).dive();
-
-  let wrapper;
-
-  it('should render offline when the state is offline', () => {
-    wrapper = getWrapper().dive();
-    wrapper.setProps({ offline: true });
-    expect(wrapper.childAt(0).text()).toBe(STATUS_OPTIONS.offline);
-  });
-
-  it('should pass latest query down to ResultSet component', () => {
-    wrapper = getWrapper().dive();
-    expect(wrapper.find(ResultSet)).toExist();
-    expect(wrapper.find(ResultSet).props().query.id).toEqual(
-      mockedProps.latestQueryId,
-    );
-  });
+const store = mockStore({
+  ...initialState,
+  sqlLab: {
+    ...initialState,
+    offline: false,
+    tables: [
+      {
+        ...table,
+        dataPreviewQueryId: '2g2_iRFMl',
+        queryEditorId: defaultQueryEditor.id,
+      },
+    ],
+    databases: {},
+    queries: {
+      LCly_kkIN: {
+        cached: false,
+        changedOn: Date.now(),
+        db: 'main',
+        dbId: 1,
+        id: 'LCly_kkIN',
+        startDttm: Date.now(),
+        sqlEditorId: defaultQueryEditor.id,
+        extra: { progress: latestQueryProgressMsg },
+      },
+      lXJa7F9_r: {
+        cached: false,
+        changedOn: 1559238500401,
+        db: 'main',
+        dbId: 1,
+        id: 'lXJa7F9_r',
+        startDttm: 1559238500401,
+        sqlEditorId: defaultQueryEditor.id,
+      },
+      '2g2_iRFMl': {
+        cached: false,
+        changedOn: 1559238506925,
+        db: 'main',
+        dbId: 1,
+        id: '2g2_iRFMl',
+        startDttm: 1559238506925,
+        sqlEditorId: defaultQueryEditor.id,
+      },
+      erWdqEWPm: {
+        cached: false,
+        changedOn: 1559238516395,
+        db: 'main',
+        dbId: 1,
+        id: 'erWdqEWPm',
+        startDttm: 1559238516395,
+        sqlEditorId: defaultQueryEditor.id,
+      },
+    },
+  },
 });
+const setup = (props, store) =>
+  render(<SouthPane {...props} />, {
+    useRedux: true,
+    ...(store && { store }),
+  });
 
-describe('SouthPane - RTL', () => {
-  const renderAndWait = overrides => {
-    const mounted = act(async () => {
-      render(setup(overrides));
-    });
+describe('SouthPane', () => {
+  const renderAndWait = (props, store) =>
+    waitFor(async () => setup(props, store));
 
-    return mounted;
-  };
   it('Renders an empty state for results', async () => {
-    await renderAndWait(mockedEmptyProps);
-
+    await renderAndWait(mockedEmptyProps, store);
     const emptyStateText = screen.getByText(/run a query to display results/i);
-
     expect(emptyStateText).toBeVisible();
+  });
+
+  it('should render offline when the state is offline', async () => {
+    await renderAndWait(
+      mockedEmptyProps,
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          offline: true,
+        },
+      }),
+    );
+
+    expect(screen.getByText(STATUS_OPTIONS.offline)).toBeVisible();
+  });
+
+  it('should pass latest query down to ResultSet component', async () => {
+    await renderAndWait(mockedProps, store);
+
+    expect(screen.getByText(latestQueryProgressMsg)).toBeVisible();
   });
 });

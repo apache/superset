@@ -17,6 +17,8 @@
  * under the License.
  */
 import { buildQueryContext } from '@superset-ui/core';
+import * as queryModule from '../../src/query/normalizeTimeColumn';
+import * as getXAxisModule from '../../src/query/getXAxis';
 
 describe('buildQueryContext', () => {
   it('should build datasource for table sources and apply defaults', () => {
@@ -30,17 +32,6 @@ describe('buildQueryContext', () => {
     expect(queryContext.force).toBe(false);
     expect(queryContext.result_format).toBe('json');
     expect(queryContext.result_type).toBe('full');
-  });
-  it('should build datasource for druid sources and set force to true', () => {
-    const queryContext = buildQueryContext({
-      datasource: '5__druid',
-      granularity: 'ds',
-      viz_type: 'table',
-      force: true,
-    });
-    expect(queryContext.datasource.id).toBe(5);
-    expect(queryContext.datasource.type).toBe('druid');
-    expect(queryContext.force).toBe(true);
   });
   it('should build datasource for table sources with columns', () => {
     const queryContext = buildQueryContext(
@@ -107,5 +98,107 @@ describe('buildQueryContext', () => {
         }),
       ]),
     );
+  });
+  // todo(Yongjie): move these test case into buildQueryObject.test.ts
+  it('should remove undefined value in post_processing', () => {
+    const queryContext = buildQueryContext(
+      {
+        datasource: '5__table',
+        viz_type: 'table',
+      },
+      () => [
+        {
+          post_processing: [
+            undefined,
+            undefined,
+            {
+              operation: 'flatten',
+            },
+            undefined,
+          ],
+        },
+      ],
+    );
+    expect(queryContext.queries[0].post_processing).toEqual([
+      {
+        operation: 'flatten',
+      },
+    ]);
+  });
+  it('should call normalizeTimeColumn if GENERIC_CHART_AXES is enabled and has x_axis', () => {
+    Object.defineProperty(getXAxisModule, 'hasGenericChartAxes', {
+      value: true,
+    });
+    const spyNormalizeTimeColumn = jest.spyOn(
+      queryModule,
+      'normalizeTimeColumn',
+    );
+
+    buildQueryContext(
+      {
+        datasource: '5__table',
+        viz_type: 'table',
+        x_axis: 'axis',
+      },
+      () => [{}],
+    );
+    expect(spyNormalizeTimeColumn).toBeCalled();
+    spyNormalizeTimeColumn.mockRestore();
+  });
+  it("shouldn't call normalizeTimeColumn if GENERIC_CHART_AXES is disabled", () => {
+    Object.defineProperty(getXAxisModule, 'hasGenericChartAxes', {
+      value: false,
+    });
+    const spyNormalizeTimeColumn = jest.spyOn(
+      queryModule,
+      'normalizeTimeColumn',
+    );
+
+    buildQueryContext(
+      {
+        datasource: '5__table',
+        viz_type: 'table',
+      },
+      () => [{}],
+    );
+    expect(spyNormalizeTimeColumn).not.toBeCalled();
+    spyNormalizeTimeColumn.mockRestore();
+  });
+  it('should orverride time filter if GENERIC_CHART_AXES is enabled', () => {
+    Object.defineProperty(getXAxisModule, 'hasGenericChartAxes', {
+      value: true,
+    });
+
+    const queryContext = buildQueryContext(
+      {
+        datasource: '5__table',
+        viz_type: 'table',
+      },
+      () => [
+        {
+          filters: [
+            {
+              col: 'col1',
+              op: 'TEMPORAL_RANGE',
+              val: '2001 : 2002',
+            },
+            {
+              col: 'col2',
+              op: 'IN',
+              val: ['a', 'b'],
+            },
+          ],
+          time_range: '1990 : 1991',
+        },
+      ],
+    );
+    expect(queryContext.queries[0].filters).toEqual([
+      { col: 'col1', op: 'TEMPORAL_RANGE', val: '1990 : 1991' },
+      {
+        col: 'col2',
+        op: 'IN',
+        val: ['a', 'b'],
+      },
+    ]);
   });
 });

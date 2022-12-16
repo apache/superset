@@ -40,6 +40,7 @@ Join our growing community!
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
 ### Gaming
@@ -48,6 +49,7 @@ Join our growing community!
 
 ### E-Commerce
 - [AiHello](https://www.aihello.com) [@ganeshkrishnan1]
+- [Bazaar Technologies](https://www.bazaartech.com) [@umair-abro]
 - [Dragonpass](https://www.dragonpass.com.cn/) [@zhxjdwh]
 - [Fanatics](https://www.fanatics.com) [@coderfender]
 - [Fordeal](http://www.fordeal.com) [@Renkai]
@@ -88,6 +90,7 @@ Join our growing community!
 - [Myra Labs](http://www.myralabs.com/) [@viksit]
 - [Nielsen](http://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
+- [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [Preset, Inc.](https://preset.io)
@@ -120,10 +123,12 @@ Join our growing community!
 
 ### Education
 - [Brilliant.org](https://brilliant.org/)
+- [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
 - [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
+- [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
@@ -133,17 +138,23 @@ Join our growing community!
 
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
+- [Beans](https://www.beans.fi) [@kakoni]
 - [Care](https://www.getcare.io/)[@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
 - [QPID Health](http://www.qpidhealth.com/)
+- [REDCap Cloud](https://www.redcapcloud.com/)
 - [TrustMedis](https://trustmedis.com) [@famasya]
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
 - [Symmetrics](https://www.symmetrics.fyi)
 
+### News
+- [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
+
 ### Others
+- [AI inside](https://inside.ai/en/)
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]

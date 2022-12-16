@@ -2415,13 +2415,13 @@ msgstr "Waarde moet groter zijn dan 0"
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr ""
 "Alert query heeft meer dan één rij geretourneerd. %s rijen geretourneerd"
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr "Alert query retourneerde meer dan één kolom. %s kolommen geretourneerd"
 
 #: superset/reports/commands/exceptions.py:44
@@ -2506,7 +2506,7 @@ msgid "Report Schedule reached a working timeout."
 msgstr "Rapportage planning heeft een werk time-out bereikt."
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "Alert query retourneerde meer dan één rij."
 
 #: superset/reports/commands/exceptions.py:182
@@ -2514,7 +2514,7 @@ msgid "Alert validator config error."
 msgstr "Waarschuwing validator configuratiefout."
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "Alert query heeft meer dan één kolom geretourneerd."
 
 #: superset/reports/commands/exceptions.py:190

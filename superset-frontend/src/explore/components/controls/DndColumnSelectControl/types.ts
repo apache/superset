@@ -30,6 +30,7 @@ export interface OptionProps {
   clickClose: (index: number) => void;
   withCaret?: boolean;
   isExtra?: boolean;
+  datasourceWarningMessage?: string;
   canDelete?: boolean;
 }
 
@@ -46,6 +47,7 @@ export type DndControlProps<ValueType extends JsonValue> =
     multi?: boolean;
     canDelete?: boolean;
     ghostButtonText?: string;
+    clickEnabledGhostButtonText?: string;
     onChange: (value: ValueType | ValueType[] | null | undefined) => void;
   };
 

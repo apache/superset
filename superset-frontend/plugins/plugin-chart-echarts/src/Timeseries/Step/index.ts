@@ -21,18 +21,17 @@ import {
   Behavior,
   ChartMetadata,
   ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
+import {
+  EchartsTimeseriesChartProps,
+  EchartsTimeseriesFormData,
+} from '@superset-ui/plugin-chart-echarts';
 import buildQuery from '../buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
-import {
-  EchartsTimeseriesChartProps,
-  EchartsTimeseriesFormData,
-} from '../types';
 import example1 from './images/Step1.png';
 import example2 from './images/Step2.png';
 
@@ -46,10 +45,10 @@ export default class EchartsTimeseriesStepChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('../EchartsTimeseries'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        description: hasGenericChartAxes
           ? t(
               'Stepped-line graph (also called step chart) is a variation of line chart but with the line forming a series of steps between data points. A step chart can be useful when you want to show the changes that occur at irregular intervals.',
             )
@@ -63,7 +62,7 @@ export default class EchartsTimeseriesStepChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        name: hasGenericChartAxes
           ? t('Stepped Line')
           : t('Time-series Stepped Line'),
         tags: [

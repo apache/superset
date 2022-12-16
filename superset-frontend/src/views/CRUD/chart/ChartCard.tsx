@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import { t, useTheme } from '@superset-ui/core';
+import { Link, useHistory } from 'react-router-dom';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
@@ -43,7 +44,7 @@ interface ChartCardProps {
   saveFavoriteStatus: (id: number, isStarred: boolean) => void;
   favoriteStatus: boolean;
   chartFilter?: string;
-  userId?: number;
+  userId?: string | number;
   showThumbnails?: boolean;
   handleBulkChartExport: (chartsToExport: Chart[]) => void;
 }
@@ -64,6 +65,7 @@ export default function ChartCard({
   userId,
   handleBulkChartExport,
 }: ChartCardProps) {
+  const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport =
@@ -136,7 +138,7 @@ export default function ChartCard({
     <CardStyles
       onClick={() => {
         if (!bulkSelectEnabled && chart.url) {
-          window.location.href = chart.url;
+          history.push(chart.url);
         }
       }}
     >
@@ -158,6 +160,7 @@ export default function ChartCard({
         coverRight={
           <Label type="secondary">{chart.datasource_name_text}</Label>
         }
+        linkComponent={Link}
         actions={
           <ListViewCard.Actions
             onClick={e => {
@@ -165,11 +168,13 @@ export default function ChartCard({
               e.preventDefault();
             }}
           >
-            <FaveStar
-              itemId={chart.id}
-              saveFaveStar={saveFavoriteStatus}
-              isStarred={favoriteStatus}
-            />
+            {userId && (
+              <FaveStar
+                itemId={chart.id}
+                saveFaveStar={saveFavoriteStatus}
+                isStarred={favoriteStatus}
+              />
+            )}
             <AntdDropdown overlay={menu}>
               <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
             </AntdDropdown>

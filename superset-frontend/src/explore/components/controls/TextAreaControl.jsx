@@ -45,6 +45,16 @@ const propTypes = {
   ]),
   aboveEditorSection: PropTypes.node,
   readOnly: PropTypes.bool,
+  resize: PropTypes.oneOf([
+    null,
+    'block',
+    'both',
+    'horizontal',
+    'inline',
+    'none',
+    'vertical',
+  ]),
+  textAreaStyles: PropTypes.object,
 };
 
 const defaultProps = {
@@ -55,6 +65,8 @@ const defaultProps = {
   maxLines: 10,
   offerEditInModal: true,
   readOnly: false,
+  resize: null,
+  textAreaStyles: {},
 };
 
 class TextAreaControl extends React.Component {
@@ -72,18 +84,23 @@ class TextAreaControl extends React.Component {
     if (this.props.language) {
       const style = {
         border: `1px solid ${this.props.theme.colors.grayscale.light1}`,
+        minHeight: `${minLines}em`,
+        width: 'auto',
+        ...this.props.textAreaStyles,
       };
+      if (this.props.resize) {
+        style.resize = this.props.resize;
+      }
       if (this.props.readOnly) {
         style.backgroundColor = '#f2f2f2';
       }
+
       return (
         <TextAreaEditor
           mode={this.props.language}
           style={style}
           minLines={minLines}
           maxLines={inModal ? 1000 : this.props.maxLines}
-          width="100%"
-          height={`${minLines}em`}
           editorProps={{ $blockScrolling: true }}
           defaultValue={this.props.initialValue}
           readOnly={this.props.readOnly}
@@ -106,10 +123,10 @@ class TextAreaControl extends React.Component {
 
   renderModalBody() {
     return (
-      <div>
+      <>
         <div>{this.props.aboveEditorSection}</div>
         {this.renderEditor(true)}
-      </div>
+      </>
     );
   }
 

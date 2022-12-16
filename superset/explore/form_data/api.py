@@ -15,21 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from abc import ABC
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
 
-from superset.charts.commands.exceptions import (
-    ChartAccessDeniedError,
-    ChartNotFoundError,
-)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.datasets.commands.exceptions import (
-    DatasetAccessDeniedError,
-    DatasetNotFoundError,
-)
 from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.delete import DeleteFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
@@ -37,13 +28,16 @@ from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.update import UpdateFormDataCommand
 from superset.explore.form_data.schemas import FormDataPostSchema, FormDataPutSchema
 from superset.extensions import event_logger
-from superset.temporary_cache.commands.exceptions import TemporaryCacheAccessDeniedError
+from superset.temporary_cache.commands.exceptions import (
+    TemporaryCacheAccessDeniedError,
+    TemporaryCacheResourceNotFoundError,
+)
 from superset.views.base_api import requires_json
 
 logger = logging.getLogger(__name__)
 
 
-class ExploreFormDataRestApi(BaseApi, ABC):
+class ExploreFormDataRestApi(BaseApi):
     add_model_schema = FormDataPostSchema()
     edit_model_schema = FormDataPutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -108,8 +102,8 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             item = self.add_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
-                actor=g.user,
-                dataset_id=item["dataset_id"],
+                datasource_id=item["datasource_id"],
+                datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 form_data=item["form_data"],
@@ -118,13 +112,9 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             return self.response(201, key=key)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
-        except (
-            ChartAccessDeniedError,
-            DatasetAccessDeniedError,
-            TemporaryCacheAccessDeniedError,
-        ) as ex:
+        except TemporaryCacheAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DatasetNotFoundError) as ex:
+        except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=["PUT"])
@@ -132,7 +122,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put",
-        log_to_statsd=False,
+        log_to_statsd=True,
     )
     @requires_json
     def put(self, key: str) -> Response:
@@ -182,8 +172,8 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             item = self.edit_model_schema.load(request.json)
             tab_id = request.args.get("tab_id")
             args = CommandParameters(
-                actor=g.user,
-                dataset_id=item["dataset_id"],
+                datasource_id=item["datasource_id"],
+                datasource_type=item["datasource_type"],
                 chart_id=item.get("chart_id"),
                 tab_id=tab_id,
                 key=key,
@@ -195,13 +185,9 @@ class ExploreFormDataRestApi(BaseApi, ABC):
             return self.response(200, key=result)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
-        except (
-            ChartAccessDeniedError,
-            DatasetAccessDeniedError,
-            TemporaryCacheAccessDeniedError,
-        ) as ex:
+        except TemporaryCacheAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DatasetNotFoundError) as ex:
+        except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=["GET"])
@@ -209,7 +195,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
-        log_to_statsd=False,
+        log_to_statsd=True,
     )
     def get(self, key: str) -> Response:
         """Retrives a form_data.
@@ -245,18 +231,14 @@ class ExploreFormDataRestApi(BaseApi, ABC):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(actor=g.user, key=key)
+            args = CommandParameters(key=key)
             form_data = GetFormDataCommand(args).run()
             if not form_data:
                 return self.response_404()
             return self.response(200, form_data=form_data)
-        except (
-            ChartAccessDeniedError,
-            DatasetAccessDeniedError,
-            TemporaryCacheAccessDeniedError,
-        ) as ex:
+        except TemporaryCacheAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DatasetNotFoundError) as ex:
+        except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))
 
     @expose("/form_data/<string:key>", methods=["DELETE"])
@@ -264,7 +246,7 @@ class ExploreFormDataRestApi(BaseApi, ABC):
     @safe
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
-        log_to_statsd=False,
+        log_to_statsd=True,
     )
     def delete(self, key: str) -> Response:
         """Deletes a form_data.
@@ -301,16 +283,12 @@ class ExploreFormDataRestApi(BaseApi, ABC):
               $ref: '#/components/responses/500'
         """
         try:
-            args = CommandParameters(actor=g.user, key=key)
+            args = CommandParameters(key=key)
             result = DeleteFormDataCommand(args).run()
             if not result:
                 return self.response_404()
             return self.response(200, message="Deleted successfully")
-        except (
-            ChartAccessDeniedError,
-            DatasetAccessDeniedError,
-            TemporaryCacheAccessDeniedError,
-        ) as ex:
+        except TemporaryCacheAccessDeniedError as ex:
             return self.response(403, message=str(ex))
-        except (ChartNotFoundError, DatasetNotFoundError) as ex:
+        except TemporaryCacheResourceNotFoundError as ex:
             return self.response(404, message=str(ex))

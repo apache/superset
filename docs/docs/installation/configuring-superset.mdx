@@ -149,7 +149,11 @@ Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the 
 First, configure authorization in Superset `superset_config.py`.
 
 ```python
+from flask_appbuilder.security.manager import AUTH_OAUTH
+
+# Set the authentication type to OAuth
 AUTH_TYPE = AUTH_OAUTH
+
 OAUTH_PROVIDERS = [
     {   'name':'egaSSO',
         'token_key':'access_token', # Name of the token in the response of access_token_url

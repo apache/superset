@@ -19,18 +19,9 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
-import { formatSelectOptions } from 'src/modules/utils';
-
-export const druidTimeSeries: ControlPanelSectionConfig = {
-  label: t('Time'),
-  expanded: true,
-  description: t('Time related form attributes'),
-  controlSetRows: [['time_range']],
-};
+import { formatSelectOptions } from 'src/explore/exploreUtils';
 
 export const datasourceAndVizType: ControlPanelSectionConfig = {
-  label: t('Chart type'),
-  expanded: true,
   controlSetRows: [
     ['datasource'],
     ['viz_type'],

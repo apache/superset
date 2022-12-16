@@ -96,8 +96,13 @@ def handle_query_error(
     msg = f"{prefix_message} {str(ex)}".strip()
     troubleshooting_link = config["TROUBLESHOOTING_LINK"]
     query.error_message = msg
-    query.status = QueryStatus.FAILED
     query.tmp_table_name = None
+    query.status = QueryStatus.FAILED
+    # TODO: re-enable this after updating the frontend to properly display timeout status
+    # if query.status != QueryStatus.TIMED_OUT:
+    #   query.status = QueryStatus.FAILED
+    if not query.end_time:
+        query.end_time = now_as_float()
 
     # extract DB-specific errors (invalid column, eg)
     if isinstance(ex, SupersetErrorException):
@@ -208,7 +213,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                     parsed_query._parsed[0],  # pylint: disable=protected-access
                     database.id,
                     query.schema,
-                    username=get_username(),
                 )
             )
         )
@@ -287,6 +291,8 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
                 # return 1 row less than increased_query
                 data = data[:-1]
     except SoftTimeLimitExceeded as ex:
+        query.status = QueryStatus.TIMED_OUT
+
         logger.warning("Query %d: Time limit exceeded", query.id)
         logger.debug("Query %d: %s", query.id, ex)
         raise SupersetErrorException(
@@ -307,7 +313,6 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
         if query.status == QueryStatus.STOPPED:
             raise SqlLabQueryStoppedException() from ex
 
-        logger.error("Query %d: %s", query.id, type(ex), exc_info=True)
         logger.debug("Query %d: %s", query.id, ex)
         raise SqlLabException(db_engine_spec.extract_error_message(ex)) from ex
 
@@ -458,66 +463,72 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             )
         )
 
-    engine = database.get_sqla_engine(query.schema, source=QuerySource.SQL_LAB)
-    # Sharing a single connection and cursor across the
-    # execution of all statements (if many)
-    with closing(engine.raw_connection()) as conn:
-        # closing the connection closes the cursor as well
-        cursor = conn.cursor()
-        cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
-        if cancel_query_id is not None:
-            query.set_extra_json_key(cancel_query_key, cancel_query_id)
-            session.commit()
-        statement_count = len(statements)
-        for i, statement in enumerate(statements):
-            # Check if stopped
-            session.refresh(query)
-            if query.status == QueryStatus.STOPPED:
-                payload.update({"status": query.status})
-                return payload
+    with database.get_sqla_engine_with_context(
+        query.schema, source=QuerySource.SQL_LAB
+    ) as engine:
+        # Sharing a single connection and cursor across the
+        # execution of all statements (if many)
+        with closing(engine.raw_connection()) as conn:
+            # closing the connection closes the cursor as well
+            cursor = conn.cursor()
+            cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
+            if cancel_query_id is not None:
+                query.set_extra_json_key(cancel_query_key, cancel_query_id)
+                session.commit()
+            statement_count = len(statements)
+            for i, statement in enumerate(statements):
+                # Check if stopped
+                session.refresh(query)
+                if query.status == QueryStatus.STOPPED:
+                    payload.update({"status": query.status})
+                    return payload
 
-            # For CTAS we create the table only on the last statement
-            apply_ctas = query.select_as_cta and (
-                query.ctas_method == CtasMethod.VIEW
-                or (query.ctas_method == CtasMethod.TABLE and i == len(statements) - 1)
-            )
+                # For CTAS we create the table only on the last statement
+                apply_ctas = query.select_as_cta and (
+                    query.ctas_method == CtasMethod.VIEW
+                    or (
+                        query.ctas_method == CtasMethod.TABLE
+                        and i == len(statements) - 1
+                    )
+                )
 
-            # Run statement
-            msg = f"Running statement {i+1} out of {statement_count}"
-            logger.info("Query %s: %s", str(query_id), msg)
-            query.set_extra_json_key("progress", msg)
-            session.commit()
-            try:
-                result_set = execute_sql_statement(
-                    statement,
-                    query,
-                    session,
-                    cursor,
-                    log_params,
-                    apply_ctas,
-                )
-            except SqlLabQueryStoppedException:
-                payload.update({"status": QueryStatus.STOPPED})
-                return payload
-            except Exception as ex:  # pylint: disable=broad-except
-                msg = str(ex)
-                prefix_message = (
-                    f"[Statement {i+1} out of {statement_count}]"
-                    if statement_count > 1
-                    else ""
-                )
-                payload = handle_query_error(
-                    ex, query, session, payload, prefix_message
-                )
-                return payload
+                # Run statement
+                msg = f"Running statement {i+1} out of {statement_count}"
+                logger.info("Query %s: %s", str(query_id), msg)
+                query.set_extra_json_key("progress", msg)
+                session.commit()
+                try:
+                    result_set = execute_sql_statement(
+                        statement,
+                        query,
+                        session,
+                        cursor,
+                        log_params,
+                        apply_ctas,
+                    )
+                except SqlLabQueryStoppedException:
+                    payload.update({"status": QueryStatus.STOPPED})
+                    return payload
+                except Exception as ex:  # pylint: disable=broad-except
+                    msg = str(ex)
+                    prefix_message = (
+                        f"[Statement {i+1} out of {statement_count}]"
+                        if statement_count > 1
+                        else ""
+                    )
+                    payload = handle_query_error(
+                        ex, query, session, payload, prefix_message
+                    )
+                    return payload
 
-        # Commit the connection so CTA queries will create the table.
-        conn.commit()
+            # Commit the connection so CTA queries will create the table.
+            conn.commit()
 
     # Success, updating the query entry in database
     query.rows = result_set.size
     query.progress = 100
     query.set_extra_json_key("progress", None)
+    query.set_extra_json_key("columns", result_set.columns)
     if query.select_as_cta:
         query.select_sql = database.select_star(
             query.tmp_table_name,
@@ -548,6 +559,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
 
     if store_results and results_backend:
         key = str(uuid.uuid4())
+        payload["query"]["resultsKey"] = key
         logger.info(
             "Query %s: Storing results in results backend, key: %s", str(query_id), key
         )
@@ -615,10 +627,11 @@ def cancel_query(query: Query) -> bool:
     if cancel_query_id is None:
         return False
 
-    engine = query.database.get_sqla_engine(query.schema, source=QuerySource.SQL_LAB)
-
-    with closing(engine.raw_connection()) as conn:
-        with closing(conn.cursor()) as cursor:
-            return query.database.db_engine_spec.cancel_query(
-                cursor, query, cancel_query_id
-            )
+    with query.database.get_sqla_engine_with_context(
+        query.schema, source=QuerySource.SQL_LAB
+    ) as engine:
+        with closing(engine.raw_connection()) as conn:
+            with closing(conn.cursor()) as cursor:
+                return query.database.db_engine_spec.cancel_query(
+                    cursor, query, cancel_query_id
+                )

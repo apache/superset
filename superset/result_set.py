@@ -63,12 +63,34 @@ def stringify(obj: Any) -> str:
 
 
 def stringify_values(array: np.ndarray) -> np.ndarray:
-    vstringify = np.vectorize(stringify)
-    return vstringify(array)
+    result = np.copy(array)
+
+    with np.nditer(result, flags=["refs_ok"], op_flags=["readwrite"]) as it:
+        for obj in it:
+            if pd.isna(obj):
+                # pandas <NA> type cannot be converted to string
+                obj[pd.isna(obj)] = None
+            else:
+                obj[...] = stringify(obj)
+
+    return result
 
 
 def destringify(obj: str) -> Any:
     return json.loads(obj)
+
+
+def convert_to_string(value: Any) -> str:
+    """
+    Used to ensure column names from the cursor description are strings.
+    """
+    if isinstance(value, str):
+        return value
+
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+
+    return str(value)
 
 
 class SupersetResultSet:
@@ -88,7 +110,9 @@ class SupersetResultSet:
 
         if cursor_description:
             # get deduped list of column names
-            column_names = dedup([col[0] for col in cursor_description])
+            column_names = dedup(
+                [convert_to_string(col[0]) for col in cursor_description]
+            )
 
             # fix cursor descriptor with the deduped names
             deduped_cursor_desc = [
@@ -145,6 +169,9 @@ class SupersetResultSet:
                                 )
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)
+
+        if not pa_data:
+            column_names = []
 
         self.table = pa.Table.from_arrays(pa_data, names=column_names)
         self._type_dict: Dict[str, Any] = {}

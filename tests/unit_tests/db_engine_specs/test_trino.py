@@ -14,43 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
-from typing import Optional
-
-import pytest
-import pytz
-from flask.ctx import AppContext
+# pylint: disable=unused-argument, import-outside-toplevel, protected-access
+from unittest import mock
 
 
-@pytest.mark.parametrize(
-    "target_type,dttm,result",
-    [
-        ("VARCHAR", datetime(2022, 1, 1), None),
-        ("DATE", datetime(2022, 1, 1), "DATE '2022-01-01'"),
-        (
-            "TIMESTAMP",
-            datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
-        ),
-        (
-            "TIMESTAMP WITH TIME ZONE",
-            datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01 01:23:45.600000'",
-        ),
-        (
-            "TIMESTAMP WITH TIME ZONE",
-            datetime(2022, 1, 1, 1, 23, 45, 600000, tzinfo=pytz.UTC),
-            "TIMESTAMP '2022-01-01 01:23:45.600000+00:00'",
-        ),
-    ],
-)
-def test_convert_dttm(
-    app_context: AppContext,
-    target_type: str,
-    dttm: datetime,
-    result: Optional[str],
-) -> None:
+@mock.patch("sqlalchemy.engine.Engine.connect")
+def test_cancel_query_success(engine_mock: mock.Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
 
-    for case in (str.lower, str.upper):
-        assert TrinoEngineSpec.convert_dttm(case(target_type), dttm) == result
+    query = Query()
+    cursor_mock = engine_mock.return_value.__enter__.return_value
+    assert TrinoEngineSpec.cancel_query(cursor_mock, query, "123") is True
+
+
+@mock.patch("sqlalchemy.engine.Engine.connect")
+def test_cancel_query_failed(engine_mock: mock.Mock) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    cursor_mock = engine_mock.raiseError.side_effect = Exception()
+    assert TrinoEngineSpec.cancel_query(cursor_mock, query, "123") is False

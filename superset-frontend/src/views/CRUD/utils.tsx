@@ -32,7 +32,7 @@ import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FetchDataConfig } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
-import findPermission from 'src/dashboard/util/findPermission';
+import { findPermission } from 'src/utils/findPermission';
 import { Dashboard, Filters } from './types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
@@ -92,8 +92,9 @@ const createFetchResourceMethod =
       : undefined;
 
     const data: { label: string; value: string | number }[] = [];
-    json?.result?.forEach(
-      ({ text, value }: { text: string; value: string | number }) => {
+    json?.result
+      ?.filter(({ text }: { text: string }) => text.trim().length > 0)
+      .forEach(({ text, value }: { text: string; value: string | number }) => {
         if (
           loggedUser &&
           value === loggedUser.value &&
@@ -106,8 +107,7 @@ const createFetchResourceMethod =
             value,
           });
         }
-      },
-    );
+      });
 
     if (loggedUser && (!filterValue || fetchedLoggedUser)) {
       data.unshift(loggedUser);
@@ -227,10 +227,8 @@ export function createErrorHandler(
     const errorsArray = parsedError?.errors;
     const config = await SupersetText;
     if (
-      errorsArray &&
-      errorsArray.length &&
-      config &&
-      config.ERRORS &&
+      errorsArray?.length &&
+      config?.ERRORS &&
       errorsArray[0].error_type in config.ERRORS
     ) {
       parsedError.message = config.ERRORS[errorsArray[0].error_type];
@@ -246,7 +244,7 @@ export function handleChartDelete(
   addDangerToast: (arg0: string) => void,
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
-  userId?: number,
+  userId?: string | number,
 ) {
   const filters = {
     pageIndex: 0,

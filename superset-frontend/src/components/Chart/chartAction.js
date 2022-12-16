@@ -19,7 +19,7 @@
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, isDefined } from '@superset-ui/core';
 import { getControlsState } from 'src/explore/store';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import {
@@ -27,7 +27,6 @@ import {
   getExploreUrl,
   getLegacyEndpointType,
   buildV1ChartDataPayload,
-  postForm,
   shouldUseLegacyApi,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
@@ -40,6 +39,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { safeStringify } from 'src/utils/safeStringify';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
@@ -139,6 +139,7 @@ const legacyChartDataRequest = async (
     ...requestParams,
     url,
     postPayload: { form_data: formData },
+    parseMethod: 'json-bigint',
   };
 
   const clientMethod =
@@ -196,6 +197,7 @@ const v1ChartDataRequest = async (
     url,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    parseMethod: 'json-bigint',
   };
 
   return SupersetClient.post(querySettings);
@@ -563,7 +565,9 @@ export function redirectSQLLab(formData) {
           datasourceKey: formData.datasource,
           sql: json.result[0].query,
         };
-        postForm(redirectUrl, payload);
+        SupersetClient.postForm(redirectUrl, {
+          form_data: safeStringify(payload),
+        });
       })
       .catch(() =>
         dispatch(addDangerToast(t('An error occurred while loading the SQL'))),
@@ -595,3 +599,39 @@ export function refreshChart(chartKey, force, dashboardId) {
     );
   };
 }
+
+export const getDatasourceSamples = async (
+  datasourceType,
+  datasourceId,
+  force,
+  jsonPayload,
+  perPage,
+  page,
+) => {
+  try {
+    const searchParams = {
+      force,
+      datasource_type: datasourceType,
+      datasource_id: datasourceId,
+    };
+
+    if (isDefined(perPage) && isDefined(page)) {
+      searchParams.per_page = perPage;
+      searchParams.page = page;
+    }
+
+    const response = await SupersetClient.post({
+      endpoint: '/datasource/samples',
+      jsonPayload,
+      searchParams,
+    });
+
+    return response.json.result;
+  } catch (err) {
+    const clientError = await getClientErrorObject(err);
+    throw new Error(
+      clientError.message || clientError.error || t('Sorry, an error occurred'),
+      { cause: err },
+    );
+  }
+};

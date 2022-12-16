@@ -25,6 +25,7 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   formatSelectOptions,
+  getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
 import OptionDescription from './OptionDescription';
@@ -39,7 +40,8 @@ const config: ControlPanelConfig = {
         ['metrics'],
         ['adhoc_filters'],
         ['groupby'],
-        ['limit', 'timeseries_limit_metric'],
+        ['limit'],
+        ['timeseries_limit_metric'],
         ['order_desc'],
         [
           {
@@ -52,7 +54,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['row_limit', null],
+        ['row_limit'],
       ],
     },
     {
@@ -328,10 +330,10 @@ const config: ControlPanelConfig = {
               label: t('Calculation type'),
               default: 'values',
               choices: [
-                ['values', 'Actual Values'],
-                ['absolute', 'Difference'],
-                ['percentage', 'Percentage change'],
-                ['ratio', 'Ratio'],
+                ['values', t('Actual Values')],
+                ['absolute', t('Difference')],
+                ['percentage', t('Percentage change')],
+                ['ratio', t('Ratio')],
               ],
               description: t(
                 'How to display time shifts: as individual lines; as the ' +
@@ -383,6 +385,11 @@ const config: ControlPanelConfig = {
       ],
     },
   ],
+  formDataOverrides: formData => ({
+    ...formData,
+    groupby: getStandardizedControls().popAllColumns(),
+    metrics: getStandardizedControls().popAllMetrics(),
+  }),
 };
 
 export default config;

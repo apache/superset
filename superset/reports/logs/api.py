@@ -25,8 +25,8 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import is_feature_enabled
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.models.reports import ReportExecutionLog
 from superset.reports.logs.schemas import openapi_spec_methods_override
+from superset.reports.models import ReportExecutionLog
 from superset.views.base_api import BaseSupersetModelRestApi
 
 logger = logging.getLogger(__name__)

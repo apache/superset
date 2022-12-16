@@ -35,10 +35,14 @@ export default function RowCountLabel(props: RowCountLabelProps) {
     limitReached || (rowcount === 0 && !loading) ? 'danger' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const label = (
-    <Label type={type} data-test="row-count-label">
-      {loading
-        ? t('Loading...')
-        : tn('%s row', '%s rows', rowcount, formattedRowCount)}
+    <Label type={type}>
+      {loading ? (
+        t('Loading...')
+      ) : (
+        <span data-test="row-count-label">
+          {tn('%s row', '%s rows', rowcount, formattedRowCount)}
+        </span>
+      )}
     </Label>
   );
   return limitReached ? (

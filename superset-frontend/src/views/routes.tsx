@@ -21,6 +21,12 @@ import React, { lazy } from 'react';
 // not lazy loaded since this is the home page.
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 
+const AddSliceContainer = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "AddSliceContainer" */ 'src/addSlice/AddSliceContainer'
+    ),
+);
 const AnnotationLayersList = lazy(
   () =>
     import(
@@ -75,11 +81,22 @@ const DatasetList = lazy(
       /* webpackChunkName: "DatasetList" */ 'src/views/CRUD/data/dataset/DatasetList'
     ),
 );
+
+const AddDataset = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatasetEditor" */ 'src/views/CRUD/data/dataset/AddDataset/index'
+    ),
+);
+
 const ExecutionLog = lazy(
   () =>
     import(
       /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
     ),
+);
+const ExplorePage = lazy(
+  () => import(/* webpackChunkName: "ExplorePage" */ 'src/explore/ExplorePage'),
 );
 const QueryList = lazy(
   () =>
@@ -115,6 +132,10 @@ export const routes: Routes = [
     Component: DashboardRoute,
   },
   {
+    path: '/chart/add',
+    Component: AddSliceContainer,
+  },
+  {
     path: '/chart/list/',
     Component: ChartList,
   },
@@ -135,11 +156,11 @@ export const routes: Routes = [
     Component: CssTemplatesList,
   },
   {
-    path: '/annotationlayermodelview/list/',
+    path: '/annotationlayer/list/',
     Component: AnnotationLayersList,
   },
   {
-    path: '/annotationmodelview/:annotationLayerId/annotation/',
+    path: '/annotationlayer/:annotationLayerId/annotation/',
     Component: AnnotationList,
   },
   {
@@ -167,6 +188,22 @@ export const routes: Routes = [
     props: {
       isReportEnabled: true,
     },
+  },
+  {
+    path: '/explore/',
+    Component: ExplorePage,
+  },
+  {
+    path: '/superset/explore/p',
+    Component: ExplorePage,
+  },
+  {
+    path: '/dataset/add/',
+    Component: AddDataset,
+  },
+  {
+    path: '/dataset/:datasetId',
+    Component: AddDataset,
   },
 ];
 

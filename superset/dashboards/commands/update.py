@@ -19,9 +19,9 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.utils import populate_roles
 from superset.dao.exceptions import DAOUpdateFailedError
@@ -36,14 +36,12 @@ from superset.dashboards.dao import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
-from superset.views.base import check_ownership
 
 logger = logging.getLogger(__name__)
 
 
 class UpdateDashboardCommand(UpdateMixin, BaseCommand):
-    def __init__(self, user: User, model_id: int, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, model_id: int, data: Dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[Dashboard] = None
@@ -77,7 +75,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             raise DashboardNotFoundError()
         # Check ownership
         try:
-            check_ownership(self._model)
+            security_manager.raise_for_ownership(self._model)
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
 
@@ -89,7 +87,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if owners_ids is None:
             owners_ids = [owner.id for owner in self._model.owners]
         try:
-            owners = self.populate_owners(self._actor, owners_ids)
+            owners = self.populate_owners(owners_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)

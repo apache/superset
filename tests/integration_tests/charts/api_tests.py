@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 import json
+import logging
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 
@@ -30,7 +31,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import cache_manager, db
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
-from superset.models.reports import ReportSchedule, ReportScheduleType
+from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
 from superset.utils.core import get_example_default_schema
 
@@ -98,6 +99,19 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 db.session.delete(chart)
             for fav_chart in fav_charts:
                 db.session.delete(fav_chart)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_charts_created_by_gamma(self):
+        with self.create_app().app_context():
+            charts = []
+            user = self.get_user("gamma")
+            for cx in range(CHARTS_FIXTURE_COUNT - 1):
+                charts.append(self.insert_chart(f"gamma{cx}", [user.id], 1))
+            yield charts
+            # rollback changes
+            for chart in charts:
+                db.session.delete(chart)
             db.session.commit()
 
     @pytest.fixture()
@@ -520,7 +534,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {
+                "message": {
+                    "datasource_type": [
+                        "Must be one of: sl_table, table, dataset, query, saved_query, view."
+                    ]
+                }
+            },
         )
         chart_data = {
             "slice_name": "title1",
@@ -531,7 +551,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            response, {"message": {"datasource_id": ["Datasource does not exist"]}}
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -686,7 +706,13 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
-            {"message": {"datasource_type": ["Must be one of: druid, table, view."]}},
+            {
+                "message": {
+                    "datasource_type": [
+                        "Must be one of: sl_table, table, dataset, query, saved_query, view."
+                    ]
+                }
+            },
         )
 
         chart_data = {"datasource_id": 0, "datasource_type": "table"}
@@ -694,7 +720,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 422)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
-            response, {"message": {"datasource_id": ["Dataset does not exist"]}}
+            response, {"message": {"datasource_id": ["Datasource does not exist"]}}
         )
 
         db.session.delete(chart)
@@ -750,7 +776,19 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
             "is_managed_externally": False,
         }
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["result"], expected_result)
+        self.assertIn("changed_on_delta_humanized", data["result"])
+        self.assertIn("id", data["result"])
+        self.assertIn("thumbnail_url", data["result"])
+        self.assertIn("url", data["result"])
+        for key, value in data["result"].items():
+            # We can't assert timestamp values or id/urls
+            if key not in (
+                "changed_on_delta_humanized",
+                "id",
+                "thumbnail_url",
+                "url",
+            ):
+                self.assertEqual(value, expected_result[key])
         db.session.delete(chart)
         db.session.commit()
 
@@ -795,6 +833,51 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(data["count"], 34)
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
+    def test_get_charts_dashboards(self):
+        """
+        Chart API: Test get charts with related dashboards
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {"col": "slice_name", "opr": "eq", "value": self.chart.slice_name}
+            ]
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"][0]["dashboards"] == [
+            {
+                "id": self.original_dashboard.id,
+                "dashboard_title": self.original_dashboard.dashboard_title,
+            }
+        ]
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice", "add_dashboard_to_chart")
+    def test_get_charts_dashboard_filter(self):
+        """
+        Chart API: Test get charts with dashboard filter
+        """
+        self.login(username="admin")
+        arguments = {
+            "filters": [
+                {
+                    "col": "dashboards",
+                    "opr": "rel_m_m",
+                    "value": self.original_dashboard.id,
+                }
+            ]
+        }
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert len(result) == 1
+        assert result[0]["slice_name"] == self.chart.slice_name
 
     def test_get_charts_changed_on(self):
         """
@@ -921,15 +1004,27 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 }
             ],
             "keys": ["none"],
-            "columns": ["slice_name"],
+            "columns": ["slice_name", "description", "table.table_name"],
         }
         self.login(username="admin")
 
         uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
-        self.assertEqual(rv.status_code, 200)
-        data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 8)
+        data = rv.json
+        assert rv.status_code == 200
+        assert data["count"] > 0
+        for chart in data["result"]:
+            print(chart)
+            assert (
+                "energy"
+                in " ".join(
+                    [
+                        chart["slice_name"] or "",
+                        chart["description"] or "",
+                        chart["table"]["table_name"] or "",
+                    ]
+                ).lower()
+            )
 
     @pytest.mark.usefixtures("create_certified_charts")
     def test_gets_certified_charts_filter(self):
@@ -1041,6 +1136,33 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert len(expected_models) == data["count"]
+
+    @pytest.mark.usefixtures("create_charts_created_by_gamma")
+    def test_get_charts_created_by_me_filter(self):
+        """
+        Chart API: Test get charts with created by me special filter
+        """
+        gamma_user = self.get_user("gamma")
+        expected_models = (
+            db.session.query(Slice).filter(Slice.created_by_fk == gamma_user.id).all()
+        )
+        arguments = {
+            "filters": [
+                {"col": "created_by", "opr": "chart_created_by_me", "value": "me"}
+            ],
+            "order_column": "slice_name",
+            "order_direction": "asc",
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="gamma")
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 200
+        assert len(expected_models) == data["count"]
+        for i, expected_model in enumerate(expected_models):
+            assert expected_model.slice_name == data["result"][i]["slice_name"]
 
     @pytest.mark.usefixtures("create_charts")
     def test_get_current_user_favorite_status(self):
@@ -1320,3 +1442,31 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
                 }
             ]
         }
+
+    def test_gets_created_by_user_charts_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_has_created_by", "value": True}],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 8)
+
+    def test_gets_not_created_by_user_charts_filter(self):
+        arguments = {
+            "filters": [{"col": "id", "opr": "chart_has_created_by", "value": False}],
+            "keys": ["none"],
+            "columns": ["slice_name"],
+        }
+        self.login(username="admin")
+
+        uri = f"api/v1/chart/?q={prison.dumps(arguments)}"
+        rv = self.get_assert_metric(uri, "get_list")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(data["count"], 8)

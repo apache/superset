@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 // TODO: refactor this with `import { AsyncSelect } from src/components/Select`
-import { Select } from 'src/components/Select';
+import { Select } from 'src/components/DeprecatedSelect';
 import { t, SupersetClient } from '@superset-ui/core';
 import { getClientErrorObject } from '../../utils/getClientErrorObject';
 

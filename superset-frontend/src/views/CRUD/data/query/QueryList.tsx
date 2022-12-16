@@ -80,7 +80,7 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
+function QueryList({ addDangerToast }: QueryListProps) {
   const {
     state: { loading, resourceCount: queryCount, resourceCollection: queries },
     fetchData,
@@ -329,6 +329,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     () => [
       {
         Header: t('Database'),
+        key: 'database',
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -346,6 +347,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         Header: t('State'),
+        key: 'state',
         id: 'status',
         input: 'select',
         operator: FilterOperator.equals,
@@ -363,6 +365,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         Header: t('User'),
+        key: 'user',
         id: 'user',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -380,12 +383,14 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         Header: t('Time range'),
+        key: 'start_time',
         id: 'start_time',
         input: 'datetime_range',
         operator: FilterOperator.between,
       },
       {
         Header: t('Search by query text'),
+        key: 'sql',
         id: 'sql',
         input: 'search',
         operator: FilterOperator.contains,

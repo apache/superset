@@ -25,21 +25,22 @@ import {
   ensureIsArray,
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
+  SupersetClient,
 } from '@superset-ui/core';
-import { omit } from 'lodash';
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
+import { optionLabel } from 'src/utils/common';
 import { URL_PARAMS } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  UNSAVED_CHART_ID,
 } from 'src/explore/constants';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
-import { optionLabel } from '../../utils/common';
 
 export function getChartKey(explore) {
-  const { slice } = explore;
-  return slice ? slice.slice_id : 0;
+  const { slice, form_data } = explore;
+  return slice?.slice_id ?? form_data?.slice_id ?? UNSAVED_CHART_ID;
 }
 
 let requestCounter = 0;
@@ -86,7 +87,7 @@ export function getURIDirectory(endpointType = 'base') {
   ) {
     return '/superset/explore_json/';
   }
-  return '/superset/explore/';
+  return '/explore/';
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -216,7 +217,7 @@ export const buildV1ChartDataPayload = ({
           ...baseQueryObject,
         },
       ]));
-  const payload = buildQuery(
+  return buildQuery(
     {
       ...formData,
       force,
@@ -230,42 +231,10 @@ export const buildV1ChartDataPayload = ({
       },
     },
   );
-  if (resultType === 'samples') {
-    // remove row limit and offset to fall back to defaults
-    payload.queries = payload.queries.map(query =>
-      omit(query, ['row_limit', 'row_offset']),
-    );
-  }
-  return payload;
 };
 
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
-
-export function postForm(url, payload, target = '_blank') {
-  if (!url) {
-    return;
-  }
-
-  const hiddenForm = document.createElement('form');
-  hiddenForm.action = url;
-  hiddenForm.method = 'POST';
-  hiddenForm.target = target;
-  const token = document.createElement('input');
-  token.type = 'hidden';
-  token.name = 'csrf_token';
-  token.value = (document.getElementById('csrf_token') || {}).value;
-  hiddenForm.appendChild(token);
-  const data = document.createElement('input');
-  data.type = 'hidden';
-  data.name = 'form_data';
-  data.value = safeStringify(payload);
-  hiddenForm.appendChild(data);
-
-  document.body.appendChild(hiddenForm);
-  hiddenForm.submit();
-  document.body.removeChild(hiddenForm);
-}
 
 export const exportChart = ({
   formData,
@@ -294,16 +263,18 @@ export const exportChart = ({
       ownState,
     });
   }
-  postForm(url, payload);
+
+  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
 };
 
-export const exploreChart = formData => {
+export const exploreChart = (formData, requestParams) => {
   const url = getExploreUrl({
     formData,
     endpointType: 'base',
     allowDomainSharding: false,
+    requestParams,
   });
-  postForm(url, formData);
+  SupersetClient.postForm(url, { form_data: safeStringify(formData) });
 };
 
 export const useDebouncedEffect = (effect, delay, deps) => {
@@ -348,3 +319,7 @@ export const getSimpleSQLExpression = (subject, operator, comparator) => {
   }
   return expression;
 };
+
+export function formatSelectOptions(options) {
+  return options.map(opt => [opt, opt.toString()]);
+}

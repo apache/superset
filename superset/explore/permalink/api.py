@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 from marshmallow import ValidationError
 
@@ -100,7 +100,7 @@ class ExplorePermalinkRestApi(BaseApi):
         """
         try:
             state = self.add_model_schema.load(request.json)
-            key = CreateExplorePermalinkCommand(actor=g.user, state=state).run()
+            key = CreateExplorePermalinkCommand(state=state).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
             url = f"{http_origin}/superset/explore/p/{key}/"
             return self.response(201, key=key, url=url)
@@ -156,7 +156,7 @@ class ExplorePermalinkRestApi(BaseApi):
               $ref: '#/components/responses/500'
         """
         try:
-            value = GetExplorePermalinkCommand(actor=g.user, key=key).run()
+            value = GetExplorePermalinkCommand(key=key).run()
             if not value:
                 return self.response_404()
             return self.response(200, **value)

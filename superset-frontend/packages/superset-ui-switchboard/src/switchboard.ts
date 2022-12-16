@@ -23,6 +23,63 @@ export type Params = {
   debug?: boolean;
 };
 
+// Each message we send on the channel specifies an action we want the other side to cooperate with.
+enum Actions {
+  GET = 'get',
+  REPLY = 'reply',
+  EMIT = 'emit',
+  ERROR = 'error',
+}
+
+type Method<A extends {}, R> = (args: A) => R | Promise<R>;
+
+// helper types/functions for making sure wires don't get crossed
+
+interface Message {
+  switchboardAction: Actions;
+}
+
+interface GetMessage<T = any> extends Message {
+  switchboardAction: Actions.GET;
+  method: string;
+  messageId: string;
+  args: T;
+}
+
+function isGet(message: Message): message is GetMessage {
+  return message.switchboardAction === Actions.GET;
+}
+
+interface ReplyMessage<T = any> extends Message {
+  switchboardAction: Actions.REPLY;
+  messageId: string;
+  result: T;
+}
+
+function isReply(message: Message): message is ReplyMessage {
+  return message.switchboardAction === Actions.REPLY;
+}
+
+interface EmitMessage<T = any> extends Message {
+  switchboardAction: Actions.EMIT;
+  method: string;
+  args: T;
+}
+
+function isEmit(message: Message): message is EmitMessage {
+  return message.switchboardAction === Actions.EMIT;
+}
+
+interface ErrorMessage extends Message {
+  switchboardAction: Actions.ERROR;
+  messageId: string;
+  error: string;
+}
+
+function isError(message: Message): message is ErrorMessage {
+  return message.switchboardAction === Actions.ERROR;
+}
+
 /**
  * A utility for communications between an iframe and its parent, used by the Superset embedded SDK.
  * This builds useful patterns on top of the basic functionality offered by MessageChannel.
@@ -33,7 +90,7 @@ export type Params = {
 export class Switchboard {
   port: MessagePort;
 
-  name: string;
+  name = '';
 
   methods: Record<string, Method<any, unknown>> = {};
 
@@ -42,7 +99,23 @@ export class Switchboard {
 
   debugMode: boolean;
 
-  constructor({ port, name = 'switchboard', debug = false }: Params) {
+  private isInitialised: boolean;
+
+  constructor(params?: Params) {
+    if (!params) {
+      return;
+    }
+    this.init(params);
+  }
+
+  init(params: Params) {
+    if (this.isInitialised) {
+      this.logError('already initialized');
+      return;
+    }
+
+    const { port, name = 'switchboard', debug = false } = params;
+
     this.port = port;
     this.name = name;
     this.debugMode = debug;
@@ -65,6 +138,8 @@ export class Switchboard {
         }
       }
     });
+
+    this.isInitialised = true;
   }
 
   private async getMethodResult({
@@ -121,6 +196,10 @@ export class Switchboard {
    */
   get<T = unknown>(method: string, args: unknown = undefined): Promise<T> {
     return new Promise((resolve, reject) => {
+      if (!this.isInitialised) {
+        reject(new Error('Switchboard not initialised'));
+        return;
+      }
       // In order to "call a method" on the other side of the port,
       // we will send a message with a unique id
       const messageId = this.getNewMessageId();
@@ -158,6 +237,10 @@ export class Switchboard {
    * @param args
    */
   emit(method: string, args: unknown = undefined) {
+    if (!this.isInitialised) {
+      this.logError('Switchboard not initialised');
+      return;
+    }
     const message: EmitMessage = {
       switchboardAction: Actions.EMIT,
       method,
@@ -167,6 +250,10 @@ export class Switchboard {
   }
 
   start() {
+    if (!this.isInitialised) {
+      this.logError('Switchboard not initialised');
+      return;
+    }
     this.port.start();
   }
 
@@ -186,59 +273,4 @@ export class Switchboard {
   }
 }
 
-type Method<A extends {}, R> = (args: A) => R | Promise<R>;
-
-// Each message we send on the channel specifies an action we want the other side to cooperate with.
-enum Actions {
-  GET = 'get',
-  REPLY = 'reply',
-  EMIT = 'emit',
-  ERROR = 'error',
-}
-
-// helper types/functions for making sure wires don't get crossed
-
-interface Message {
-  switchboardAction: Actions;
-}
-
-interface GetMessage<T = any> extends Message {
-  switchboardAction: Actions.GET;
-  method: string;
-  messageId: string;
-  args: T;
-}
-
-function isGet(message: Message): message is GetMessage {
-  return message.switchboardAction === Actions.GET;
-}
-
-interface ReplyMessage<T = any> extends Message {
-  switchboardAction: Actions.REPLY;
-  messageId: string;
-  result: T;
-}
-
-function isReply(message: Message): message is ReplyMessage {
-  return message.switchboardAction === Actions.REPLY;
-}
-
-interface EmitMessage<T = any> extends Message {
-  switchboardAction: Actions.EMIT;
-  method: string;
-  args: T;
-}
-
-function isEmit(message: Message): message is EmitMessage {
-  return message.switchboardAction === Actions.EMIT;
-}
-
-interface ErrorMessage extends Message {
-  switchboardAction: Actions.ERROR;
-  messageId: string;
-  error: string;
-}
-
-function isError(message: Message): message is ErrorMessage {
-  return message.switchboardAction === Actions.ERROR;
-}
+export default new Switchboard();

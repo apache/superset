@@ -24,7 +24,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.utils import check_access
+from superset.explore.form_data.commands.utils import check_access
 from superset.extensions import cache_manager
 from superset.key_value.utils import random_key
 from superset.temporary_cache.commands.exceptions import (
@@ -32,6 +32,7 @@ from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheUpdateFailedError,
 )
 from superset.temporary_cache.utils import cache_key
+from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.schema import validate_json
 
 logger = logging.getLogger(__name__)
@@ -47,24 +48,24 @@ class UpdateFormDataCommand(BaseCommand, ABC):
     def run(self) -> Optional[str]:
         self.validate()
         try:
-            dataset_id = self._cmd_params.dataset_id
+            datasource_id = self._cmd_params.datasource_id
             chart_id = self._cmd_params.chart_id
-            actor = self._cmd_params.actor
+            datasource_type = self._cmd_params.datasource_type
             key = self._cmd_params.key
             form_data = self._cmd_params.form_data
-            check_access(dataset_id, chart_id, actor)
+            check_access(datasource_id, chart_id, datasource_type)
             state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
                 key
             )
+            owner = get_user_id()
             if state and form_data:
-                user_id = actor.get_user_id()
-                if state["owner"] != user_id:
+                if state["owner"] != owner:
                     raise TemporaryCacheAccessDeniedError()
 
                 # Generate a new key if tab_id changes or equals 0
                 tab_id = self._cmd_params.tab_id
                 contextual_key = cache_key(
-                    session.get("_id"), tab_id, dataset_id, chart_id
+                    session.get("_id"), tab_id, datasource_id, chart_id, datasource_type
                 )
                 key = cache_manager.explore_form_data_cache.get(contextual_key)
                 if not key or not tab_id:
@@ -72,8 +73,9 @@ class UpdateFormDataCommand(BaseCommand, ABC):
                     cache_manager.explore_form_data_cache.set(contextual_key, key)
 
                 new_state: TemporaryExploreState = {
-                    "owner": actor.get_user_id(),
-                    "dataset_id": dataset_id,
+                    "owner": owner,
+                    "datasource_id": datasource_id,
+                    "datasource_type": DatasourceType(datasource_type),
                     "chart_id": chart_id,
                     "form_data": form_data,
                 }

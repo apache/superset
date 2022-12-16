@@ -114,3 +114,29 @@ export const SEVEN_DAYS_AGO = moment()
   .subtract(7, 'days')
   .format(MOMENT_FORMAT);
 export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
+
+export const LOCALE_MAPPING = {
+  en: 'en_US',
+  fr: 'fr_FR',
+  es: 'es_ES',
+  it: 'it_IT',
+  zh: 'zh_CN',
+  ja: 'ja_JP',
+  de: 'de_DE',
+  pt: 'pt_PT',
+  pt_BR: 'pt_BR',
+  ru: 'ru_RU',
+  ko: 'ko_KR',
+  sk: 'sk_SK',
+  sl: 'sl_SI',
+  nl: 'nl_NL',
+};
+
+export enum DATE_FILTER_TEST_KEY {
+  commonFrame = 'common-frame',
+  modalOverlay = 'modal-overlay',
+  popoverOverlay = 'time-range-trigger',
+  noFilter = 'no-filter',
+  cancelButton = 'cancel-button',
+  applyButton = 'date-filter-control__apply-button',
+}

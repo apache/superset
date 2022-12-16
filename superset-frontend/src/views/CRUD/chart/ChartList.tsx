@@ -17,12 +17,14 @@
  * under the License.
  */
 import {
+  ensureIsArray,
   getChartMetadataRegistry,
+  JsonResponse,
   styled,
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
 import { uniqBy } from 'lodash';
 import moment from 'moment';
@@ -41,6 +43,7 @@ import handleResourceExport from 'src/utils/export';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import FaveStar from 'src/components/FaveStar';
+import { Link, useHistory } from 'react-router-dom';
 import ListView, {
   Filter,
   FilterOperator,
@@ -48,6 +51,7 @@ import ListView, {
   ListViewProps,
   SelectOption,
 } from 'src/components/ListView';
+import CrossLinks from 'src/components/ListView/CrossLinks';
 import Loading from 'src/components/Loading';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -60,6 +64,9 @@ import { nativeFilterGate } from 'src/dashboard/components/nativeFilters/utils';
 import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
+import { GenericLink } from 'src/components/GenericLink/GenericLink';
+import { bootstrapData } from 'src/preamble';
+import Owner from 'src/types/Owner';
 import ChartCard from './ChartCard';
 
 const FlexRowContainer = styled.div`
@@ -141,12 +148,23 @@ interface ChartListProps {
   };
 }
 
+type ChartLinkedDashboard = {
+  id: number;
+  dashboard_title: string;
+};
+
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
 function ChartList(props: ChartListProps) {
-  const { addDangerToast, addSuccessToast } = props;
+  const {
+    addDangerToast,
+    addSuccessToast,
+    user: { userId },
+  } = props;
+
+  const history = useHistory();
 
   const {
     state: {
@@ -180,7 +198,6 @@ function ChartList(props: ChartListProps) {
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
 
-  const { userId } = props.user;
   // TODO: Fix usage of localStorage keying on the user id
   const userSettings = dangerouslyGetItemDoNotUse(userId?.toString(), null) as {
     thumbnails: boolean;
@@ -206,7 +223,8 @@ function ChartList(props: ChartListProps) {
   const canExport =
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
-
+  const enableBroadUserAccess =
+    bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {
@@ -214,6 +232,10 @@ function ChartList(props: ChartListProps) {
     });
     setPreparingExport(true);
   };
+  const changedByName = (lastSavedBy: Owner) =>
+    lastSavedBy?.first_name
+      ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
+      : null;
 
   function handleBulkChartDelete(chartsToDelete: Chart[]) {
     SupersetClient.delete({
@@ -232,30 +254,78 @@ function ChartList(props: ChartListProps) {
       ),
     );
   }
+  const fetchDashboards = async (
+    filterValue = '',
+    page: number,
+    pageSize: number,
+  ) => {
+    // add filters if filterValue
+    const filters = filterValue
+      ? {
+          filters: [
+            {
+              col: 'dashboards',
+              opr: FilterOperator.relationManyMany,
+              value: filterValue,
+            },
+          ],
+        }
+      : {};
+    const queryParams = rison.encode({
+      columns: ['dashboard_title', 'id'],
+      keys: ['none'],
+      order_column: 'dashboard_title',
+      order_direction: 'asc',
+      page,
+      page_size: pageSize,
+      ...filters,
+    });
+    const response: void | JsonResponse = await SupersetClient.get({
+      endpoint: !filterValue
+        ? `/api/v1/dashboard/?q=${queryParams}`
+        : `/api/v1/chart/?q=${queryParams}`,
+    }).catch(() =>
+      addDangerToast(t('An error occurred while fetching dashboards')),
+    );
+    const dashboards = response?.json?.result?.map(
+      ({
+        dashboard_title: dashboardTitle,
+        id,
+      }: {
+        dashboard_title: string;
+        id: number;
+      }) => ({
+        label: dashboardTitle,
+        value: id,
+      }),
+    );
+    return {
+      data: uniqBy<SelectOption>(dashboards, 'value'),
+      totalCount: response?.json?.count,
+    };
+  };
 
   const columns = useMemo(
     () => [
-      ...(props.user.userId
-        ? [
-            {
-              Cell: ({
-                row: {
-                  original: { id },
-                },
-              }: any) => (
-                <FaveStar
-                  itemId={id}
-                  saveFaveStar={saveFavoriteStatus}
-                  isStarred={favoriteStatus[id]}
-                />
-              ),
-              Header: '',
-              id: 'id',
-              disableSortBy: true,
-              size: 'sm',
-            },
-          ]
-        : []),
+      {
+        Cell: ({
+          row: {
+            original: { id },
+          },
+        }: any) =>
+          userId && (
+            <FaveStar
+              itemId={id}
+              saveFaveStar={saveFavoriteStatus}
+              isStarred={favoriteStatus[id]}
+            />
+          ),
+        Header: '',
+        id: 'id',
+        disableSortBy: true,
+        size: 'xs',
+        hidden: !userId,
+      },
       {
         Cell: ({
           row: {
@@ -269,7 +339,7 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <FlexRowContainer>
-            <a href={url} data-test={`${sliceName}-list-chart-title`}>
+            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
               {certifiedBy && (
                 <>
                   <CertifiedBadge
@@ -279,7 +349,7 @@ function ChartList(props: ChartListProps) {
                 </>
               )}
               {sliceName}
-            </a>
+            </Link>
             {description && (
               <InfoTooltip tooltip={description} viewBox="0 -1 24 24" />
             )}
@@ -306,11 +376,31 @@ function ChartList(props: ChartListProps) {
               datasource_url: dsUrl,
             },
           },
-        }: any) => <a href={dsUrl}>{dsNameTxt}</a>,
+        }: any) => <GenericLink to={dsUrl}>{dsNameTxt}</GenericLink>,
         Header: t('Dataset'),
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
+      },
+      {
+        Cell: ({
+          row: {
+            original: { dashboards },
+          },
+        }: any) => (
+          <CrossLinks
+            crossLinks={ensureIsArray(dashboards).map(
+              (d: ChartLinkedDashboard) => ({
+                title: d.dashboard_title,
+                id: d.id,
+              }),
+            )}
+          />
+        ),
+        Header: t('Dashboards added to'),
+        accessor: 'dashboards',
+        disableSortBy: true,
+        size: 'xxl',
       },
       {
         Cell: ({
@@ -320,13 +410,12 @@ function ChartList(props: ChartListProps) {
               changed_by_url: changedByUrl,
             },
           },
-        }: any) => (
-          <a href={changedByUrl}>
-            {lastSavedBy?.first_name
-              ? `${lastSavedBy?.first_name} ${lastSavedBy?.last_name}`
-              : null}
-          </a>
-        ),
+        }: any) =>
+          enableBroadUserAccess ? (
+            <a href={changedByUrl}>{changedByName(lastSavedBy)}</a>
+          ) : (
+            <>{changedByName(lastSavedBy)}</>
+          ),
         Header: t('Modified by'),
         accessor: 'last_saved_by.first_name',
         size: 'xl',
@@ -451,16 +540,22 @@ function ChartList(props: ChartListProps) {
       },
     ],
     [
+      userId,
       canEdit,
       canDelete,
       canExport,
-      ...(props.user.userId ? [favoriteStatus] : []),
+      saveFavoriteStatus,
+      favoriteStatus,
+      refreshData,
+      addSuccessToast,
+      addDangerToast,
     ],
   );
 
   const favoritesFilter: Filter = useMemo(
     () => ({
       Header: t('Favorite'),
+      key: 'favorite',
       id: 'id',
       urlDisplay: 'favorite',
       input: 'select',
@@ -478,6 +573,7 @@ function ChartList(props: ChartListProps) {
     () => [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -499,6 +595,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -520,6 +617,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Chart type'),
+        key: 'viz_type',
         id: 'viz_type',
         input: 'select',
         operator: FilterOperator.equals,
@@ -545,6 +643,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Dataset'),
+        key: 'dataset',
         id: 'datasource_id',
         input: 'select',
         operator: FilterOperator.equals,
@@ -552,9 +651,20 @@ function ChartList(props: ChartListProps) {
         fetchSelects: createFetchDatasets,
         paginate: true,
       },
-      ...(props.user.userId ? [favoritesFilter] : []),
+      {
+        Header: t('Dashboards'),
+        key: 'dashboards',
+        id: 'dashboards',
+        input: 'select',
+        operator: FilterOperator.relationManyMany,
+        unfilteredLabel: t('All'),
+        fetchSelects: fetchDashboards,
+        paginate: true,
+      },
+      ...(userId ? [favoritesFilter] : []),
       {
         Header: t('Certified'),
+        key: 'certified',
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
@@ -567,6 +677,7 @@ function ChartList(props: ChartListProps) {
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'slice_name',
         input: 'search',
         operator: FilterOperator.chartAllText,
@@ -596,8 +707,8 @@ function ChartList(props: ChartListProps) {
     },
   ];
 
-  function renderCard(chart: Chart) {
-    return (
+  const renderCard = useCallback(
+    (chart: Chart) => (
       <ChartCard
         chart={chart}
         showThumbnails={
@@ -611,13 +722,23 @@ function ChartList(props: ChartListProps) {
         addDangerToast={addDangerToast}
         addSuccessToast={addSuccessToast}
         refreshData={refreshData}
+        userId={userId}
         loading={loading}
         favoriteStatus={favoriteStatus[chart.id]}
         saveFavoriteStatus={saveFavoriteStatus}
         handleBulkChartExport={handleBulkChartExport}
       />
-    );
-  }
+    ),
+    [
+      addDangerToast,
+      addSuccessToast,
+      bulkSelectEnabled,
+      favoriteStatus,
+      hasPerm,
+      loading,
+    ],
+  );
+
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete || canExport) {
     subMenuButtons.push({
@@ -636,7 +757,7 @@ function ChartList(props: ChartListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        window.location.assign('/chart/add');
+        history.push('/chart/add');
       },
     });
 
@@ -656,6 +777,7 @@ function ChartList(props: ChartListProps) {
       });
     }
   }
+
   return (
     <>
       <SubMenu name={t('Charts')} buttons={subMenuButtons} />

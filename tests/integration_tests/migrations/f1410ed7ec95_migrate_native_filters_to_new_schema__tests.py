@@ -15,11 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 from copy import deepcopy
+from importlib import import_module
 
-from superset.migrations.versions.f1410ed7ec95_migrate_native_filters_to_new_schema import (
-    downgrade_dashboard,
-    upgrade_dashboard,
+migrate_native_filters_to_new_schema = import_module(
+    "superset.migrations.versions."
+    "2021-04-29_15-32_f1410ed7ec95_migrate_native_filters_to_new_schema",
 )
+downgrade_dashboard = migrate_native_filters_to_new_schema.downgrade_dashboard
+upgrade_dashboard = migrate_native_filters_to_new_schema.upgrade_dashboard
 
 dashboard_v1 = {
     "native_filter_configuration": [

@@ -23,13 +23,14 @@ import pytz
 
 import pytest
 import prison
+from parameterized import parameterized
 from sqlalchemy.sql import func
 
-from superset import db
+from superset import db, security_manager
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.models.dashboard import Dashboard
-from superset.models.reports import (
+from superset.reports.models import (
     ReportSchedule,
     ReportCreationMethod,
     ReportRecipients,
@@ -45,15 +46,98 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
 from tests.integration_tests.reports.utils import insert_report_schedule
 
 REPORTS_COUNT = 10
+REPORTS_ROLE_NAME = "reports_role"
+REPORTS_GAMMA_USER = "reports_gamma"
 
 
 class TestReportSchedulesApi(SupersetTestCase):
     @pytest.fixture()
-    def create_working_report_schedule(self):
+    def gamma_user_with_alerts_role(self):
+        with self.create_app().app_context():
+            user = self.create_user(
+                REPORTS_GAMMA_USER,
+                "general",
+                "Gamma",
+                email=f"{REPORTS_GAMMA_USER}@superset.org",
+            )
+
+            security_manager.add_role(REPORTS_ROLE_NAME)
+            read_perm = security_manager.find_permission_view_menu(
+                "can_read",
+                "ReportSchedule",
+            )
+            write_perm = security_manager.find_permission_view_menu(
+                "can_write",
+                "ReportSchedule",
+            )
+            reports_role = security_manager.find_role(REPORTS_ROLE_NAME)
+            security_manager.add_permission_role(reports_role, read_perm)
+            security_manager.add_permission_role(reports_role, write_perm)
+            user.roles.append(reports_role)
+
+            yield user
+
+            # rollback changes (assuming cascade delete)
+            db.session.delete(reports_role)
+            db.session.delete(user)
+            db.session.commit()
+
+    @pytest.fixture()
+    def create_working_admin_report_schedule(self):
+        with self.create_app().app_context():
+
+            admin_user = self.get_user("admin")
+            chart = db.session.query(Slice).first()
+            example_db = get_example_database()
+
+            report_schedule = insert_report_schedule(
+                type=ReportScheduleType.ALERT,
+                name="name_admin_working",
+                crontab="* * * * *",
+                sql="SELECT value from table",
+                description="Report working",
+                chart=chart,
+                database=example_db,
+                owners=[admin_user],
+                last_state=ReportState.WORKING,
+            )
+
+            yield
+
+            db.session.delete(report_schedule)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
+    @pytest.fixture()
+    def create_working_gamma_report_schedule(self, gamma_user_with_alerts_role):
+        with self.create_app().app_context():
+
+            chart = db.session.query(Slice).first()
+            example_db = get_example_database()
+
+            report_schedule = insert_report_schedule(
+                type=ReportScheduleType.ALERT,
+                name="name_gamma_working",
+                crontab="* * * * *",
+                sql="SELECT value from table",
+                description="Report working",
+                chart=chart,
+                database=example_db,
+                owners=[gamma_user_with_alerts_role],
+                last_state=ReportState.WORKING,
+            )
+
+            yield
+
+            db.session.delete(report_schedule)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
+    @pytest.fixture()
+    def create_working_shared_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
 
             admin_user = self.get_user("admin")
@@ -63,13 +147,13 @@ class TestReportSchedulesApi(SupersetTestCase):
 
             report_schedule = insert_report_schedule(
                 type=ReportScheduleType.ALERT,
-                name="name_working",
+                name="name_shared_working",
                 crontab="* * * * *",
                 sql="SELECT value from table",
                 description="Report working",
                 chart=chart,
                 database=example_db,
-                owners=[admin_user, alpha_user],
+                owners=[admin_user, alpha_user, gamma_user_with_alerts_role],
                 last_state=ReportState.WORKING,
             )
 
@@ -281,6 +365,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "crontab_humanized",
             "dashboard_id",
             "description",
+            "extra",
             "id",
             "last_eval_dttm",
             "last_state",
@@ -304,6 +389,61 @@ class TestReportSchedulesApi(SupersetTestCase):
         expected_recipients_fields = ["id", "type"]
         data_keys = sorted(list(data["result"][1]["recipients"][0].keys()))
         assert expected_recipients_fields == data_keys
+
+    @parameterized.expand(
+        [
+            (
+                "admin",
+                {
+                    "name_admin_working",
+                    "name_gamma_working",
+                    "name_shared_working",
+                },
+            ),
+            (
+                "alpha",
+                {
+                    "name_admin_working",
+                    "name_gamma_working",
+                    "name_shared_working",
+                },
+            ),
+            (
+                REPORTS_GAMMA_USER,
+                {
+                    "name_gamma_working",
+                    "name_shared_working",
+                },
+            ),
+        ],
+    )
+    @pytest.mark.usefixtures(
+        "create_working_admin_report_schedule",
+        "create_working_gamma_report_schedule",
+        "create_working_shared_report_schedule",
+        "gamma_user_with_alerts_role",
+    )
+    def test_get_list_report_schedule_perms(self, username, report_names):
+        """
+        ReportSchedule Api: Test get list report schedules for different roles
+        """
+        self.login(username=username)
+        uri = f"api/v1/report/"
+        rv = self.get_assert_metric(uri, "get_list")
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert {report["name"] for report in data["result"]} == report_names
+
+    def test_get_list_report_schedule_gamma(self):
+        """
+        ReportSchedule Api: Test get list report schedules for regular gamma user
+        """
+        self.login(username="gamma")
+        uri = f"api/v1/report/"
+        rv = self.client.get(uri)
+
+        assert rv.status_code == 403
 
     @pytest.mark.usefixtures("create_report_schedules")
     def test_get_list_report_schedule_sorting(self):
@@ -471,7 +611,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
         created_model = db.session.query(ReportSchedule).get(data.get("id"))
@@ -507,7 +647,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"name": ['An alert named "name3" already exists']}}
@@ -554,7 +694,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 400
 
         # Test that report can be created with null grace period
@@ -579,7 +719,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 201
 
         # Test that grace period and working timeout cannot be < 1
@@ -604,7 +744,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 400
 
         report_schedule_data = {
@@ -629,7 +769,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 400
 
         # Test that report can be created with null dashboard
@@ -655,7 +795,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 201
 
         # Test that report can be created with null chart
@@ -681,7 +821,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 201
 
         # Test that report cannot be created with null timezone
@@ -706,7 +846,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "dashboard": dashboard.id,
             "database": example_db.id,
         }
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 400
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"timezone": ["Field may not be null."]}}
@@ -733,7 +873,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "dashboard": dashboard.id,
             "database": example_db.id,
         }
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 400
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {
@@ -765,7 +905,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"]["timezone"] == "America/Los_Angeles"
         assert rv.status_code == 201
@@ -791,7 +931,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "chart": 0,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         assert (
@@ -818,7 +958,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "crontab": "0 9 * * *",
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         assert (
@@ -847,7 +987,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "chart": chart.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
 
@@ -863,7 +1003,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "chart": chart.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 409
         assert data == {
@@ -905,7 +1045,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "dashboard": dashboard.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
 
@@ -921,7 +1061,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "dashboard": dashboard.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 409
         assert data == {
@@ -964,7 +1104,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"chart": "Choose a chart or dashboard not both"}}
@@ -987,7 +1127,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "chart": chart.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"database": "Database is required for alerts"}}
@@ -1014,7 +1154,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": database_max_id + 1,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {
@@ -1036,7 +1176,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": examples_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
@@ -1110,7 +1250,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = "api/v1/report/"
-        rv = self.client.post(uri, json=report_schedule_data)
+        rv = self.post_assert_metric(uri, report_schedule_data, "post")
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {
             "message": {"creation_method": ["Invalid enum value BAD_CREATION_METHOD"]}
@@ -1148,7 +1288,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         uri = f"api/v1/report/{report_schedule.id}"
 
-        rv = self.client.put(uri, json=report_schedule_data)
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
         assert rv.status_code == 200
         updated_model = db.session.query(ReportSchedule).get(report_schedule.id)
         assert updated_model is not None
@@ -1159,25 +1299,25 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_model.chart_id == report_schedule_data["chart"]
         assert updated_model.database_id == report_schedule_data["database"]
 
-    @pytest.mark.usefixtures("create_working_report_schedule")
+    @pytest.mark.usefixtures("create_working_shared_report_schedule")
     def test_update_report_schedule_state_working(self):
         """
         ReportSchedule Api: Test update state in a working report
         """
         report_schedule = (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.name == "name_working")
+            .filter(ReportSchedule.name == "name_shared_working")
             .one_or_none()
         )
 
         self.login(username="admin")
         report_schedule_data = {"active": False}
         uri = f"api/v1/report/{report_schedule.id}"
-        rv = self.client.put(uri, json=report_schedule_data)
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
         assert rv.status_code == 200
         report_schedule = (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.name == "name_working")
+            .filter(ReportSchedule.name == "name_shared_working")
             .one_or_none()
         )
         assert report_schedule.last_state == ReportState.NOOP
@@ -1196,7 +1336,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         self.login(username="admin")
         report_schedule_data = {"name": "name3", "description": "changed_description"}
         uri = f"api/v1/report/{report_schedule.id}"
-        rv = self.client.put(uri, json=report_schedule_data)
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         assert data == {"message": {"name": ['An alert named "name3" already exists']}}
@@ -1238,7 +1378,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": example_db.id,
         }
         uri = f"api/v1/report/{report_schedule.id}"
-        rv = self.client.put(uri, json=report_schedule_data)
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"chart": "Choose a chart or dashboard not both"}}
@@ -1272,7 +1412,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": database_max_id + 1,
         }
         uri = f"api/v1/report/{report_schedule.id}"
-        rv = self.client.put(uri, json=report_schedule_data)
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {
@@ -1293,7 +1433,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "database": examples_db.id,
         }
         uri = f"api/v1/report/{report_schedule.id}"
-        rv = self.client.put(uri, json=report_schedule_data)
+        rv = self.put_assert_metric(uri, report_schedule_data, "put")
         assert rv.status_code == 422
         data = json.loads(rv.data.decode("utf-8"))
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
@@ -1330,7 +1470,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         )
         self.login(username="admin")
         uri = f"api/v1/report/{report_schedule.id}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         assert rv.status_code == 200
         deleted_report_schedule = db.session.query(ReportSchedule).get(
             report_schedule.id
@@ -1357,7 +1497,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         max_id = db.session.query(func.max(ReportSchedule.id)).scalar()
         self.login(username="admin")
         uri = f"api/v1/report/{max_id + 1}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_report_schedules")
@@ -1374,7 +1514,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         self.login(username="alpha2", password="password")
         uri = f"api/v1/report/{report_schedule.id}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("create_report_schedules")
@@ -1390,7 +1530,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         ]
         self.login(username="admin")
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         deleted_report_schedules = query_report_schedules.all()
         assert deleted_report_schedules == []
@@ -1413,7 +1553,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         report_schedules_ids.append(max_id + 1)
         self.login(username="admin")
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_report_schedules")
@@ -1431,7 +1571,7 @@ class TestReportSchedulesApi(SupersetTestCase):
 
         self.login(username="alpha2", password="password")
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
-        rv = self.client.delete(uri)
+        rv = self.delete_assert_metric(uri, "bulk_delete")
         self.assertEqual(rv.status_code, 403)
 
     @pytest.mark.usefixtures("create_report_schedules")
@@ -1528,80 +1668,3 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 405
         rv = self.client.delete(uri)
         assert rv.status_code == 405
-
-    @pytest.mark.usefixtures("create_report_schedules")
-    @pytest.mark.usefixtures("tabbed_dashboard")
-    def test_when_invalid_tab_ids_are_given_it_raises_bad_request(self):
-        """
-        when tab ids are specified in the extra argument, make sure that the
-        tab ids are valid.
-        """
-        self.login(username="admin")
-        dashboard = (
-            db.session.query(Dashboard)
-            .filter(Dashboard.slug == "tabbed-dash-test")
-            .first()
-        )
-        example_db = get_example_database()
-        report_schedule_data = {
-            "type": ReportScheduleType.ALERT,
-            "name": "new3",
-            "description": "description",
-            "crontab": "0 9 * * *",
-            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
-            "recipients": [
-                {
-                    "type": ReportRecipientType.EMAIL,
-                    "recipient_config_json": {"target": "target@superset.org"},
-                },
-            ],
-            "grace_period": 14400,
-            "working_timeout": 3600,
-            "chart": None,
-            "dashboard": dashboard.id,
-            "database": example_db.id,
-            "extra": {"dashboard_tab_ids": ["INVALID-TAB-ID-1", "TABS-IpViLohnyP"]},
-        }
-        response = self.client.post("api/v1/report/", json=report_schedule_data)
-        assert response.status_code == 422
-        assert response.json == {
-            "message": {"extra": ["Invalid tab IDs selected: ['INVALID-TAB-ID-1']"]}
-        }
-
-    @pytest.mark.usefixtures("create_report_schedules")
-    @pytest.mark.usefixtures("tabbed_dashboard")
-    def test_when_tab_ids_are_given_it_gets_added_to_extra(self):
-        self.login(username="admin")
-        dashboard = (
-            db.session.query(Dashboard)
-            .filter(Dashboard.slug == "tabbed-dash-test")
-            .first()
-        )
-        example_db = get_example_database()
-        report_schedule_data = {
-            "type": ReportScheduleType.ALERT,
-            "name": "new3",
-            "description": "description",
-            "crontab": "0 9 * * *",
-            "creation_method": ReportCreationMethod.ALERTS_REPORTS,
-            "recipients": [
-                {
-                    "type": ReportRecipientType.EMAIL,
-                    "recipient_config_json": {"target": "target@superset.org"},
-                },
-            ],
-            "grace_period": 14400,
-            "working_timeout": 3600,
-            "chart": None,
-            "dashboard": dashboard.id,
-            "database": example_db.id,
-            "extra": {"dashboard_tab_ids": ["TABS-IpViLohnyP"]},
-        }
-        response = self.client.post("api/v1/report/", json=report_schedule_data)
-        assert response.status_code == 201
-        assert json.loads(
-            db.session.query(ReportSchedule)
-            .filter(ReportSchedule.id == response.json["id"])
-            .first()
-            .extra
-        ) == {"dashboard_tab_ids": ["TABS-IpViLohnyP"]}

@@ -20,27 +20,31 @@
 import {
   AnnotationLayer,
   CategoricalColorNamespace,
-  DataRecordValue,
-  DTTM_ALIAS,
   GenericDataType,
-  getColumnLabel,
   getNumberFormatter,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
   isTimeseriesAnnotationLayer,
   TimeseriesChartDataResponseResult,
+  t,
+  AxisType,
+  getXAxisLabel,
+  isPhysicalColumn,
+  isDefined,
 } from '@superset-ui/core';
+import { isDerivedSeries } from '@superset-ui/chart-controls';
 import { EChartsCoreOption, SeriesOption } from 'echarts';
+import { ZRLineType } from 'echarts/types/src/util/types';
 import {
-  DEFAULT_FORM_DATA,
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
   TimeseriesChartTransformedProps,
   OrientationType,
 } from './types';
-import { ForecastSeriesEnum, ForecastValue } from '../types';
+import { DEFAULT_FORM_DATA } from './constants';
+import { ForecastSeriesEnum, ForecastValue, Refs } from '../types';
 import { parseYAxisBound } from '../utils/controls';
 import {
   currentSeries,
@@ -49,8 +53,13 @@ import {
   getAxisType,
   getColtypesMapping,
   getLegendProps,
+  extractDataTotalValues,
+  extractShowValueIndexes,
 } from '../utils/series';
-import { extractAnnotationLabels } from '../utils/annotation';
+import {
+  extractAnnotationLabels,
+  getAnnotationData,
+} from '../utils/annotation';
 import {
   extractForecastSeriesContext,
   extractForecastSeriesContexts,
@@ -59,7 +68,7 @@ import {
   rebaseForecastDatum,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
-import { defaultGrid, defaultTooltip, defaultYAxis } from '../defaults';
+import { defaultGrid, defaultYAxis } from '../defaults';
 import {
   getPadding,
   getTooltipTimeFormatter,
@@ -70,7 +79,12 @@ import {
   transformSeries,
   transformTimeseriesAnnotation,
 } from './transformers';
-import { TIMESERIES_CONSTANTS, TIMEGRAIN_TO_TIMESTAMP } from '../constants';
+import {
+  AreaChartExtraControlsValue,
+  TIMESERIES_CONSTANTS,
+  TIMEGRAIN_TO_TIMESTAMP,
+} from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -84,13 +98,14 @@ export default function transformProps(
     queriesData,
     datasource,
     theme,
+    inContextMenu,
   } = chartProps;
   const { verboseMap = {} } = datasource;
   const [queryData] = queriesData;
-  const { annotation_data: annotationData_, data = [] } =
+  const { data = [], label_map: labelMap } =
     queryData as TimeseriesChartDataResponseResult;
   const dataTypes = getColtypesMapping(queryData);
-  const annotationData = annotationData_ || {};
+  const annotationData = getAnnotationData(chartProps);
 
   const {
     area,
@@ -133,54 +148,55 @@ export default function transformProps(
     timeGrainSqla,
     orientation,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  const refs: Refs = {};
 
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
-  const xAxisCol =
-    verboseMap[xAxisOrig] || getColumnLabel(xAxisOrig || DTTM_ALIAS);
+  let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
+  if (
+    isPhysicalColumn(chartProps.rawFormData?.x_axis) &&
+    isDefined(verboseMap[xAxisLabel])
+  ) {
+    xAxisLabel = verboseMap[xAxisLabel];
+  }
   const isHorizontal = orientation === OrientationType.horizontal;
+  const { totalStackedValues, thresholdValues } = extractDataTotalValues(
+    rebasedData,
+    {
+      stack,
+      percentageThreshold,
+      xAxisCol: xAxisLabel,
+    },
+  );
   const rawSeries = extractSeries(rebasedData, {
     fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
-    xAxis: xAxisCol,
+    xAxis: xAxisLabel,
     removeNulls: seriesType === EchartsTimeseriesSeriesType.Scatter,
+    stack,
+    totalStackedValues,
+    isHorizontal,
+  });
+  const showValueIndexes = extractShowValueIndexes(rawSeries, {
+    stack,
+    onlyTotal,
     isHorizontal,
   });
   const seriesContexts = extractForecastSeriesContexts(
     Object.values(rawSeries).map(series => series.name as string),
   );
-  const xAxisDataType = dataTypes?.[xAxisCol];
+  const isAreaExpand = stack === AreaChartExtraControlsValue.Expand;
+  const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
+
   const xAxisType = getAxisType(xAxisDataType);
   const series: SeriesOption[] = [];
-  const formatter = getNumberFormatter(contributionMode ? ',.0%' : yAxisFormat);
-
-  const totalStackedValues: number[] = [];
-  const showValueIndexes: number[] = [];
-  const thresholdValues: number[] = [];
-
-  rebasedData.forEach(data => {
-    const values = Object.keys(data).reduce((prev, curr) => {
-      if (curr === xAxisCol) {
-        return prev;
-      }
-      const value = data[curr] || 0;
-      return prev + (value as number);
-    }, 0);
-    totalStackedValues.push(values);
-    thresholdValues.push(((percentageThreshold || 0) / 100) * values);
-  });
-
-  if (stack) {
-    rawSeries.forEach((entry, seriesIndex) => {
-      const { data = [] } = entry;
-      (data as [Date, number][]).forEach((datum, dataIndex) => {
-        if (datum[1] !== null) {
-          showValueIndexes[dataIndex] = seriesIndex;
-        }
-      });
-    });
-  }
+  const formatter = getNumberFormatter(
+    contributionMode || isAreaExpand ? ',.0%' : yAxisFormat,
+  );
 
   rawSeries.forEach(entry => {
+    const lineStyle = isDerivedSeries(entry, chartProps.rawFormData)
+      ? { type: 'dashed' as ZRLineType }
+      : {};
     const transformedSeries = transformSeries(entry, colorScale, {
       area,
       filterState,
@@ -199,6 +215,7 @@ export default function transformProps(
       richTooltip,
       sliceId,
       isHorizontal,
+      lineStyle,
     });
     if (transformedSeries) series.push(transformedSeries);
   });
@@ -219,7 +236,14 @@ export default function transformProps(
     .forEach((layer: AnnotationLayer) => {
       if (isFormulaAnnotationLayer(layer))
         series.push(
-          transformFormulaAnnotation(layer, data, colorScale, sliceId),
+          transformFormulaAnnotation(
+            layer,
+            data,
+            xAxisLabel,
+            xAxisType,
+            colorScale,
+            sliceId,
+          ),
         );
       else if (isIntervalAnnotationLayer(layer)) {
         series.push(
@@ -261,7 +285,7 @@ export default function transformProps(
   let [min, max] = (yAxisBounds || []).map(parseYAxisBound);
 
   // default to 0-100% range when doing row-level contribution chart
-  if (contributionMode === 'row' && stack) {
+  if ((contributionMode === 'row' || isAreaExpand) && stack) {
     if (min === undefined) min = 0;
     if (max === undefined) max = 1;
   }
@@ -275,18 +299,11 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat)
       : String;
 
-  const labelMap = series.reduce(
-    (acc: Record<string, DataRecordValue[]>, datum) => {
-      const name: string = datum.name as string;
-      return {
-        ...acc,
-        [name]: [name],
-      };
-    },
-    {},
-  );
-
-  const { setDataMask = () => {} } = hooks;
+  const {
+    setDataMask = () => {},
+    setControlValue = () => {},
+    onContextMenu,
+  } = hooks;
 
   const addYAxisLabelOffset = !!yAxisTitle;
   const addXAxisLabelOffset = !!xAxisTitle;
@@ -322,13 +339,23 @@ export default function transformProps(
       rotate: xAxisLabelRotation,
     },
     minInterval:
-      xAxisType === 'time' && timeGrainSqla
+      xAxisType === AxisType.time && timeGrainSqla
         ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
         : 0,
   };
+
+  if (xAxisType === AxisType.time) {
+    /**
+     * Overriding default behavior (false) for time axis regardless of the granilarity.
+     * Not including this in the initial declaration above so if echarts changes the default
+     * behavior for other axist types we won't unintentionally override it
+     */
+    xAxis.axisLabel.showMaxLabel = null;
+  }
+
   let yAxis: any = {
     ...defaultYAxis,
-    type: logAxis ? 'log' : 'value',
+    type: logAxis ? AxisType.log : AxisType.value,
     min,
     max,
     minorTick: { show: true },
@@ -354,8 +381,8 @@ export default function transformProps(
     xAxis,
     yAxis,
     tooltip: {
-      ...defaultTooltip,
-      appendToBody: true,
+      ...getDefaultTooltip(refs),
+      show: !inContextMenu,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
@@ -401,8 +428,8 @@ export default function transformProps(
         dataZoom: {
           yAxisIndex: false,
           title: {
-            zoom: 'zoom area',
-            back: 'restore zoom',
+            zoom: t('zoom area'),
+            back: t('restore zoom'),
           },
         },
       },
@@ -428,7 +455,15 @@ export default function transformProps(
     labelMap,
     selectedValues,
     setDataMask,
+    setControlValue,
     width,
     legendData,
+    onContextMenu,
+    xValueFormatter: tooltipFormatter,
+    xAxis: {
+      label: xAxisLabel,
+      type: xAxisType,
+    },
+    refs,
   };
 }

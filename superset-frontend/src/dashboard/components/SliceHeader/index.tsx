@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  FC,
+  ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
@@ -29,6 +37,8 @@ import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import FilterIndicator from 'src/dashboard/components/FiltersBadge/FilterIndicator';
+import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
+import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { clearDataMask } from 'src/dataMask/actions';
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
@@ -60,7 +70,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
-  onExploreChart,
   exportCSV = () => ({}),
   editMode = false,
   annotationQuery = {},
@@ -89,7 +98,8 @@ const SliceHeader: FC<SliceHeaderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
-  const [headerTooltip, setHeaderTooltip] = useState<string | null>(null);
+  const dashboardPageId = useContext(DashboardPageIdContext);
+  const [headerTooltip, setHeaderTooltip] = useState<ReactNode | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   // TODO: change to indicator field after it will be implemented
   const crossFilterValue = useSelector<RootState, any>(
@@ -104,9 +114,13 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     [crossFilterValue],
   );
 
+  const canExplore = !editMode && supersetCanExplore;
+
   useEffect(() => {
     const headerElement = headerRef.current;
-    if (
+    if (canExplore) {
+      setHeaderTooltip(getSliceHeaderTooltip(sliceName));
+    } else if (
       headerElement &&
       (headerElement.scrollWidth > headerElement.offsetWidth ||
         headerElement.scrollHeight > headerElement.offsetHeight)
@@ -115,7 +129,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     } else {
       setHeaderTooltip(null);
     }
-  }, [sliceName, width, height]);
+  }, [sliceName, width, height, canExplore]);
+
+  const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   return (
     <div className="chart-header" data-test="slice-header" ref={innerRef}>
@@ -129,9 +145,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 : '')
             }
             canEdit={editMode}
-            emptyText=""
             onSaveTitle={updateSliceName}
             showTooltip={false}
+            url={canExplore ? exploreUrl : undefined}
           />
         </Tooltip>
         {!!Object.values(annotationQuery).length && (
@@ -192,7 +208,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 toggleExpandSlice={toggleExpandSlice}
                 forceRefresh={forceRefresh}
                 logExploreChart={logExploreChart}
-                onExploreChart={onExploreChart}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
                 supersetCanExplore={supersetCanExplore}
@@ -208,6 +223,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 isDescriptionExpanded={isExpanded}
                 chartStatus={chartStatus}
                 formData={formData}
+                exploreUrl={exploreUrl}
               />
             )}
           </>

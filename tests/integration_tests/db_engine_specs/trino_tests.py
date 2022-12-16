@@ -19,45 +19,31 @@ from typing import Any, Dict
 from unittest.mock import Mock, patch
 
 import pytest
-from sqlalchemy.engine.url import URL
+from sqlalchemy import types
 
 import superset.config
+from superset.constants import USER_AGENT
 from superset.db_engine_specs.trino import TrinoEngineSpec
+from superset.utils.core import GenericDataType
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
 
 class TestTrinoDbEngineSpec(TestDbEngineSpec):
-    def test_adjust_database_uri(self):
-        url = URL(drivername="trino", database="hive")
-        TrinoEngineSpec.adjust_database_uri(url, selected_schema="foobar")
-        self.assertEqual(url.database, "hive/foobar")
-
-    def test_adjust_database_uri_when_database_contain_schema(self):
-        url = URL(drivername="trino", database="hive/default")
-        TrinoEngineSpec.adjust_database_uri(url, selected_schema="foobar")
-        self.assertEqual(url.database, "hive/foobar")
-
-    def test_adjust_database_uri_when_selected_schema_is_none(self):
-        url = URL(drivername="trino", database="hive")
-        TrinoEngineSpec.adjust_database_uri(url, selected_schema=None)
-        self.assertEqual(url.database, "hive")
-
-        url.database = "hive/default"
-        TrinoEngineSpec.adjust_database_uri(url, selected_schema=None)
-        self.assertEqual(url.database, "hive/default")
-
     def test_get_extra_params(self):
         database = Mock()
 
         database.extra = json.dumps({})
         database.server_cert = None
         extra = TrinoEngineSpec.get_extra_params(database)
-        expected = {"engine_params": {"connect_args": {}}}
+        expected = {"engine_params": {"connect_args": {"source": USER_AGENT}}}
         self.assertEqual(extra, expected)
 
         expected = {
             "first": 1,
-            "engine_params": {"second": "two", "connect_args": {"third": "three"}},
+            "engine_params": {
+                "second": "two",
+                "connect_args": {"source": "foobar", "third": "three"},
+            },
         }
         database.extra = json.dumps(expected)
         database.server_cert = None
@@ -88,7 +74,7 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
         )
 
         params: Dict[str, Any] = {}
-        TrinoEngineSpec.update_encrypted_extra_params(database, params)
+        TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
         connect_args = params.setdefault("connect_args", {})
         self.assertEqual(connect_args.get("http_scheme"), "https")
         auth.assert_called_once_with(**auth_params)
@@ -107,7 +93,22 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
         )
 
         params: Dict[str, Any] = {}
-        TrinoEngineSpec.update_encrypted_extra_params(database, params)
+        TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
+        connect_args = params.setdefault("connect_args", {})
+        self.assertEqual(connect_args.get("http_scheme"), "https")
+        auth.assert_called_once_with(**auth_params)
+
+    @patch("trino.auth.CertificateAuthentication")
+    def test_auth_certificate(self, auth: Mock):
+        database = Mock()
+
+        auth_params = {"cert": "/path/to/cert.pem", "key": "/path/to/key.pem"}
+        database.encrypted_extra = json.dumps(
+            {"auth_method": "certificate", "auth_params": auth_params}
+        )
+
+        params: Dict[str, Any] = {}
+        TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
         connect_args = params.setdefault("connect_args", {})
         self.assertEqual(connect_args.get("http_scheme"), "https")
         auth.assert_called_once_with(**auth_params)
@@ -122,7 +123,7 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
         )
 
         params: Dict[str, Any] = {}
-        TrinoEngineSpec.update_encrypted_extra_params(database, params)
+        TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
         connect_args = params.setdefault("connect_args", {})
         self.assertEqual(connect_args.get("http_scheme"), "https")
         auth.assert_called_once_with(**auth_params)
@@ -143,7 +144,7 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
             clear=True,
         ):
             params: Dict[str, Any] = {}
-            TrinoEngineSpec.update_encrypted_extra_params(database, params)
+            TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
 
             connect_args = params.setdefault("connect_args", {})
             self.assertEqual(connect_args.get("http_scheme"), "https")
@@ -161,9 +162,37 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
         superset.config.ALLOWED_EXTRA_AUTHENTICATIONS = {}
 
         with pytest.raises(ValueError) as excinfo:
-            TrinoEngineSpec.update_encrypted_extra_params(database, {})
+            TrinoEngineSpec.update_params_from_encrypted_extra(database, {})
 
         assert str(excinfo.value) == (
             f"For security reason, custom authentication '{auth_method}' "
             f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
+        )
+
+    def test_convert_dttm(self):
+        dttm = self.get_dttm()
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("TIMESTAMP", dttm),
+            "TIMESTAMP '2019-01-02 03:04:05.678900'",
+        )
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("TIMESTAMP(3)", dttm),
+            "TIMESTAMP '2019-01-02 03:04:05.678900'",
+        )
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("TIMESTAMP WITH TIME ZONE", dttm),
+            "TIMESTAMP '2019-01-02 03:04:05.678900'",
+        )
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("TIMESTAMP(3) WITH TIME ZONE", dttm),
+            "TIMESTAMP '2019-01-02 03:04:05.678900'",
+        )
+
+        self.assertEqual(
+            TrinoEngineSpec.convert_dttm("DATE", dttm),
+            "DATE '2019-01-02'",
         )

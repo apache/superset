@@ -16,51 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
-import moment from 'moment';
-import { RadioChangeEvent } from 'src/components';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import rison from 'rison';
-import {
-  styled,
-  t,
-  makeApi,
-  SupersetClient,
-  JsonResponse,
-} from '@superset-ui/core';
-import { debounce } from 'lodash';
+import { styled, t, QueryResponse } from '@superset-ui/core';
+import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDatasource,
+  ISimpleColumn,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
 import ProgressBar from 'src/components/ProgressBar';
 import Loading from 'src/components/Loading';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
 } from 'src/components/FilterableTable';
 import CopyToClipboard from 'src/components/CopyToClipboard';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
-import { exploreChart } from 'src/explore/exploreUtils';
-import { CtasEnum } from 'src/SqlLab/actions/sqlLab';
-import { Query } from 'src/SqlLab/types';
+import {
+  CtasEnum,
+  clearQueryResults,
+  addQueryEditor,
+  fetchQueryResults,
+  reFetchQueryResults,
+  reRunQuery,
+} from 'src/SqlLab/actions/sqlLab';
+import { URL_PARAMS } from 'src/constants';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
 import QueryStateLabel from '../QueryStateLabel';
-
-enum DatasetRadioState {
-  SAVE_NEW = 1,
-  OVERWRITE_DATASET = 2,
-}
-
-const EXPLORE_CHART_DEFAULT = {
-  metrics: [],
-  groupby: [],
-  time_range: 'No filter',
-  viz_type: 'table',
-};
 
 enum LIMITING_FACTOR {
   QUERY = 'QUERY',
@@ -69,30 +63,13 @@ enum LIMITING_FACTOR {
   NOT_LIMITED = 'NOT_LIMITED',
 }
 
-const LOADING_STYLES: CSSProperties = { position: 'relative', minHeight: 100 };
-
-interface DatasetOwner {
-  first_name: string;
-  id: number;
-  last_name: string;
-  username: string;
-}
-
-interface DatasetOptionAutocomplete {
-  value: string;
-  datasetId: number;
-  owners: [DatasetOwner];
-}
-
-interface ResultSetProps {
-  showControls?: boolean;
-  actions: Record<string, any>;
+export interface ResultSetProps {
   cache?: boolean;
   csv?: boolean;
   database?: Record<string, any>;
   displayLimit: number;
   height: number;
-  query: Query;
+  query: QueryResponse;
   search?: boolean;
   showSql?: boolean;
   visualize?: boolean;
@@ -100,19 +77,16 @@ interface ResultSetProps {
   defaultQueryLimit: number;
 }
 
-interface ResultSetState {
-  searchText: string;
-  showExploreResultsButton: boolean;
-  data: Record<string, any>[];
-  showSaveDatasetModal: boolean;
-  newSaveDatasetName: string;
-  saveDatasetRadioBtnState: number;
-  shouldOverwriteDataSet: boolean;
-  datasetToOverwrite: Record<string, any>;
-  saveModalAutocompleteValue: string;
-  userDatasetOptions: DatasetOptionAutocomplete[];
-  alertIsOpen: boolean;
-}
+const ResultlessStyles = styled.div`
+  position: relative;
+  min-height: ${({ theme }) => theme.gridUnit * 25}px;
+  [role='alert'] {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+  .sql-result-track-job {
+    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  }
+`;
 
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
@@ -125,13 +99,10 @@ const MonospaceDiv = styled.div`
 `;
 
 const ReturnedRows = styled.div`
-  font-size: 13px;
-  line-height: 24px;
-  .limitMessage {
-    color: ${({ theme }) => theme.colors.secondary.light1};
-    margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  }
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  line-height: ${({ theme }) => theme.gridUnit * 6}px;
 `;
+
 const ResultSetControls = styled.div`
   display: flex;
   justify-content: space-between;
@@ -144,404 +115,142 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
-const ResultSetErrorMessage = styled.div`
-  padding-top: ${({ theme }) => 4 * theme.gridUnit}px;
+const LimitMessage = styled.span`
+  color: ${({ theme }) => theme.colors.secondary.light1};
+  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-const updateDataset = async (
-  dbId: number,
-  datasetId: number,
-  sql: string,
-  columns: Array<Record<string, any>>,
-  owners: [number],
-  overrideColumns: boolean,
-) => {
-  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
-  const headers = { 'Content-Type': 'application/json' };
-  const body = JSON.stringify({
-    sql,
-    columns,
-    owners,
-    database_id: dbId,
-  });
+const ResultSet = ({
+  cache = false,
+  csv = true,
+  database = {},
+  displayLimit,
+  height,
+  query,
+  search = true,
+  showSql = false,
+  visualize = true,
+  user,
+  defaultQueryLimit,
+}: ResultSetProps) => {
+  const [searchText, setSearchText] = useState('');
+  const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
+  const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
+  const [alertIsOpen, setAlertIsOpen] = useState(false);
 
-  const data: JsonResponse = await SupersetClient.put({
-    endpoint,
-    headers,
-    body,
-  });
-  return data.json.result;
-};
+  const dispatch = useDispatch();
 
-export default class ResultSet extends React.PureComponent<
-  ResultSetProps,
-  ResultSetState
-> {
-  static defaultProps = {
-    cache: false,
-    csv: true,
-    database: {},
-    search: true,
-    showSql: false,
-    visualize: true,
-  };
-
-  constructor(props: ResultSetProps) {
-    super(props);
-    this.state = {
-      searchText: '',
-      showExploreResultsButton: false,
-      data: [],
-      showSaveDatasetModal: false,
-      newSaveDatasetName: this.getDefaultDatasetName(),
-      saveDatasetRadioBtnState: DatasetRadioState.SAVE_NEW,
-      shouldOverwriteDataSet: false,
-      datasetToOverwrite: {},
-      saveModalAutocompleteValue: '',
-      userDatasetOptions: [],
-      alertIsOpen: false,
-    };
-    this.changeSearch = this.changeSearch.bind(this);
-    this.fetchResults = this.fetchResults.bind(this);
-    this.popSelectStar = this.popSelectStar.bind(this);
-    this.reFetchQueryResults = this.reFetchQueryResults.bind(this);
-    this.toggleExploreResultsButton =
-      this.toggleExploreResultsButton.bind(this);
-    this.handleSaveInDataset = this.handleSaveInDataset.bind(this);
-    this.handleHideSaveModal = this.handleHideSaveModal.bind(this);
-    this.handleDatasetNameChange = this.handleDatasetNameChange.bind(this);
-    this.handleSaveDatasetRadioBtnState =
-      this.handleSaveDatasetRadioBtnState.bind(this);
-    this.handleOverwriteCancel = this.handleOverwriteCancel.bind(this);
-    this.handleOverwriteDataset = this.handleOverwriteDataset.bind(this);
-    this.handleOverwriteDatasetOption =
-      this.handleOverwriteDatasetOption.bind(this);
-    this.handleSaveDatasetModalSearch = debounce(
-      this.handleSaveDatasetModalSearch.bind(this),
-      1000,
-    );
-    this.handleFilterAutocompleteOption =
-      this.handleFilterAutocompleteOption.bind(this);
-    this.handleOnChangeAutoComplete =
-      this.handleOnChangeAutoComplete.bind(this);
-    this.handleExploreBtnClick = this.handleExploreBtnClick.bind(this);
-  }
-
-  async componentDidMount() {
-    // only do this the first time the component is rendered/mounted
-    this.reRunQueryIfSessionTimeoutErrorOnMount();
-    const userDatasetsOwned = await this.getUserDatasets();
-    this.setState({ userDatasetOptions: userDatasetsOwned });
-  }
-
-  UNSAFE_componentWillReceiveProps(nextProps: ResultSetProps) {
-    // when new results comes in, save them locally and clear in store
-    if (
-      this.props.cache &&
-      !nextProps.query.cached &&
-      nextProps.query.results &&
-      nextProps.query.results.data &&
-      nextProps.query.results.data.length > 0
-    ) {
-      this.setState({ data: nextProps.query.results.data }, () =>
-        this.clearQueryResults(nextProps.query),
-      );
-    }
-    if (
-      nextProps.query.resultsKey &&
-      nextProps.query.resultsKey !== this.props.query.resultsKey
-    ) {
-      this.fetchResults(nextProps.query);
-    }
-  }
-
-  calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
-    if (alertElement) {
-      this.setState({ alertIsOpen: true });
-    } else {
-      this.setState({ alertIsOpen: false });
-    }
-  };
-
-  getDefaultDatasetName = () =>
-    `${this.props.query.tab} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
-
-  handleOnChangeAutoComplete = () => {
-    this.setState({ datasetToOverwrite: {} });
-  };
-
-  handleOverwriteDataset = async () => {
-    const { sql, results, dbId } = this.props.query;
-    const { datasetToOverwrite } = this.state;
-
-    await updateDataset(
-      dbId,
-      datasetToOverwrite.datasetId,
-      sql,
-      results.selected_columns.map(d => ({
-        column_name: d.name,
-        type: d.type,
-        is_dttm: d.is_dttm,
-      })),
-      datasetToOverwrite.owners.map((o: DatasetOwner) => o.id),
-      true,
-    );
-
-    this.setState({
-      showSaveDatasetModal: false,
-      shouldOverwriteDataSet: false,
-      datasetToOverwrite: {},
-      newSaveDatasetName: this.getDefaultDatasetName(),
-    });
-
-    exploreChart({
-      ...EXPLORE_CHART_DEFAULT,
-      datasource: `${datasetToOverwrite.datasetId}__table`,
-      all_columns: results.selected_columns.map(d => d.name),
-    });
-  };
-
-  handleSaveInDataset = () => {
-    // if user wants to overwrite a dataset we need to prompt them
-    if (
-      this.state.saveDatasetRadioBtnState ===
-      DatasetRadioState.OVERWRITE_DATASET
-    ) {
-      this.setState({ shouldOverwriteDataSet: true });
-      return;
-    }
-
-    const { schema, sql, dbId } = this.props.query;
-    let { templateParams } = this.props.query;
-    const selectedColumns = this.props.query?.results?.selected_columns || [];
-
-    // The filters param is only used to test jinja templates.
-    // Remove the special filters entry from the templateParams
-    // before saving the dataset.
-    if (templateParams) {
-      const p = JSON.parse(templateParams);
-      /* eslint-disable-next-line no-underscore-dangle */
-      if (p._filters) {
-        /* eslint-disable-next-line no-underscore-dangle */
-        delete p._filters;
-        templateParams = JSON.stringify(p);
-      }
-    }
-
-    this.props.actions
-      .createDatasource({
-        schema,
-        sql,
-        dbId,
-        templateParams,
-        datasourceName: this.state.newSaveDatasetName,
-        columns: selectedColumns,
-      })
-      .then((data: { table_id: number }) => {
-        exploreChart({
-          datasource: `${data.table_id}__table`,
-          metrics: [],
-          groupby: [],
-          time_range: 'No filter',
-          viz_type: 'table',
-          all_columns: selectedColumns.map(c => c.name),
-          row_limit: 1000,
-        });
-      })
-      .catch(() => {
-        this.props.actions.addDangerToast(
-          t('An error occurred saving dataset'),
-        );
-      });
-
-    this.setState({
-      showSaveDatasetModal: false,
-      newSaveDatasetName: this.getDefaultDatasetName(),
-    });
-  };
-
-  handleOverwriteDatasetOption = (
-    _data: string,
-    option: Record<string, any>,
-  ) => {
-    this.setState({ datasetToOverwrite: option });
-  };
-
-  handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
-    // @ts-expect-error
-    this.setState({ newSaveDatasetName: e.target.value });
-  };
-
-  handleHideSaveModal = () => {
-    this.setState({
-      showSaveDatasetModal: false,
-      shouldOverwriteDataSet: false,
-    });
-  };
-
-  handleSaveDatasetRadioBtnState = (e: RadioChangeEvent) => {
-    this.setState({ saveDatasetRadioBtnState: Number(e.target.value) });
-  };
-
-  handleOverwriteCancel = () => {
-    this.setState({ shouldOverwriteDataSet: false, datasetToOverwrite: {} });
-  };
-
-  handleExploreBtnClick = () => {
-    this.setState({
-      showSaveDatasetModal: true,
-    });
-  };
-
-  getUserDatasets = async (searchText = '') => {
-    // Making sure that autocomplete input has a value before rendering the dropdown
-    // Transforming the userDatasetsOwned data for SaveModalComponent)
-    const { userId } = this.props.user;
-    if (userId) {
-      const queryParams = rison.encode({
-        filters: [
-          {
-            col: 'table_name',
-            opr: 'ct',
-            value: searchText,
-          },
-          {
-            col: 'owners',
-            opr: 'rel_m_m',
-            value: userId,
-          },
-        ],
-        order_column: 'changed_on_delta_humanized',
-        order_direction: 'desc',
-      });
-
-      const response = await makeApi({
-        method: 'GET',
-        endpoint: '/api/v1/dataset',
-      })(`q=${queryParams}`);
-
-      return response.result.map(
-        (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
-          value: r.table_name,
-          datasetId: r.id,
-          owners: r.owners,
-        }),
-      );
-    }
-
-    return null;
-  };
-
-  handleSaveDatasetModalSearch = async (searchText: string) => {
-    const userDatasetsOwned = await this.getUserDatasets(searchText);
-    this.setState({ userDatasetOptions: userDatasetsOwned });
-  };
-
-  handleFilterAutocompleteOption = (
-    inputValue: string,
-    option: { value: string; datasetId: number },
-  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
-
-  clearQueryResults(query: Query) {
-    this.props.actions.clearQueryResults(query);
-  }
-
-  popSelectStar(tempSchema: string | null, tempTable: string) {
-    const qe = {
-      id: shortid.generate(),
-      title: tempTable,
-      autorun: false,
-      dbId: this.props.query.dbId,
-      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
-    };
-    this.props.actions.addQueryEditor(qe);
-  }
-
-  toggleExploreResultsButton() {
-    this.setState(prevState => ({
-      showExploreResultsButton: !prevState.showExploreResultsButton,
-    }));
-  }
-
-  changeSearch(event: React.ChangeEvent<HTMLInputElement>) {
-    this.setState({ searchText: event.target.value });
-  }
-
-  fetchResults(query: Query) {
-    this.props.actions.fetchQueryResults(query, this.props.displayLimit);
-  }
-
-  reFetchQueryResults(query: Query) {
-    this.props.actions.reFetchQueryResults(query);
-  }
-
-  reRunQueryIfSessionTimeoutErrorOnMount() {
-    const { query } = this.props;
+  const reRunQueryIfSessionTimeoutErrorOnMount = useCallback(() => {
     if (
       query.errorMessage &&
       query.errorMessage.indexOf('session timed out') > 0
     ) {
-      this.props.actions.reRunQuery(query);
+      dispatch(reRunQuery(query));
     }
-  }
+  }, []);
 
-  renderControls() {
-    if (this.props.search || this.props.visualize || this.props.csv) {
-      let { data } = this.props.query.results;
-      if (this.props.cache && this.props.query.cached) {
-        ({ data } = this.state);
+  useEffect(() => {
+    // only do this the first time the component is rendered/mounted
+    reRunQueryIfSessionTimeoutErrorOnMount();
+  }, [reRunQueryIfSessionTimeoutErrorOnMount]);
+
+  const fetchResults = (query: QueryResponse) => {
+    dispatch(fetchQueryResults(query, displayLimit));
+  };
+
+  const prevQuery = usePrevious(query);
+  useEffect(() => {
+    if (cache && query.cached && query?.results?.data?.length > 0) {
+      setCachedData(query.results.data);
+      dispatch(clearQueryResults(query));
+    }
+    if (query.resultsKey && query.resultsKey !== prevQuery?.resultsKey) {
+      fetchResults(query);
+    }
+  }, [query, cache]);
+
+  const calculateAlertRefHeight = (alertElement: HTMLElement | null) => {
+    if (alertElement) {
+      setAlertIsOpen(true);
+    } else {
+      setAlertIsOpen(false);
+    }
+  };
+
+  const popSelectStar = (tempSchema: string | null, tempTable: string) => {
+    const qe = {
+      id: shortid.generate(),
+      name: tempTable,
+      autorun: false,
+      dbId: query.dbId,
+      sql: `SELECT * FROM ${tempSchema ? `${tempSchema}.` : ''}${tempTable}`,
+    };
+    dispatch(addQueryEditor(qe));
+  };
+
+  const changeSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchText(event.target.value);
+  };
+
+  const createExploreResultsOnClick = async () => {
+    const { results } = query;
+
+    if (results?.query_id) {
+      const key = await postFormData(results.query_id, 'query', {
+        ...EXPLORE_CHART_DEFAULT,
+        datasource: `${results.query_id}__query`,
+        ...{
+          all_columns: results.columns.map(column => column.name),
+        },
+      });
+      const url = mountExploreUrl(null, {
+        [URL_PARAMS.formDataKey.name]: key,
+      });
+      window.open(url, '_blank', 'noreferrer');
+    } else {
+      addDangerToast(t('Unable to create chart without a query id.'));
+    }
+  };
+
+  const renderControls = () => {
+    if (search || visualize || csv) {
+      let { data } = query.results;
+      if (cache && query.cached) {
+        data = cachedData;
       }
-      const { columns } = this.props.query.results;
+      const { columns } = query.results;
       // Added compute logic to stop user from being able to Save & Explore
-      const {
-        saveDatasetRadioBtnState,
-        newSaveDatasetName,
-        datasetToOverwrite,
-        saveModalAutocompleteValue,
-        shouldOverwriteDataSet,
-        userDatasetOptions,
-        showSaveDatasetModal,
-      } = this.state;
-      const disableSaveAndExploreBtn =
-        (saveDatasetRadioBtnState === DatasetRadioState.SAVE_NEW &&
-          newSaveDatasetName.length === 0) ||
-        (saveDatasetRadioBtnState === DatasetRadioState.OVERWRITE_DATASET &&
-          Object.keys(datasetToOverwrite).length === 0 &&
-          saveModalAutocompleteValue.length === 0);
+
+      const datasource: ISaveableDatasource = {
+        columns: query.results.columns as ISimpleColumn[],
+        name: query?.tab || 'Untitled',
+        dbId: query?.dbId,
+        sql: query?.sql,
+        templateParams: query?.templateParams,
+        schema: query?.schema,
+      };
 
       return (
         <ResultSetControls>
           <SaveDatasetModal
             visible={showSaveDatasetModal}
-            onOk={this.handleSaveInDataset}
-            saveDatasetRadioBtnState={saveDatasetRadioBtnState}
-            shouldOverwriteDataset={shouldOverwriteDataSet}
-            defaultCreateDatasetValue={newSaveDatasetName}
-            userDatasetOptions={userDatasetOptions}
-            disableSaveAndExploreBtn={disableSaveAndExploreBtn}
-            onHide={this.handleHideSaveModal}
-            handleDatasetNameChange={this.handleDatasetNameChange}
-            handleSaveDatasetRadioBtnState={this.handleSaveDatasetRadioBtnState}
-            handleOverwriteCancel={this.handleOverwriteCancel}
-            handleOverwriteDataset={this.handleOverwriteDataset}
-            handleOverwriteDatasetOption={this.handleOverwriteDatasetOption}
-            handleSaveDatasetModalSearch={this.handleSaveDatasetModalSearch}
-            filterAutocompleteOption={this.handleFilterAutocompleteOption}
-            onChangeAutoComplete={this.handleOnChangeAutoComplete}
+            onHide={() => setShowSaveDatasetModal(false)}
+            buttonTextOnSave={t('Save & Explore')}
+            buttonTextOnOverwrite={t('Overwrite & Explore')}
+            modalDescription={t(
+              'Save this query as a virtual dataset to continue exploring',
+            )}
+            datasource={datasource}
           />
           <ResultSetButtons>
-            {this.props.visualize &&
-              this.props.database?.allows_virtual_table_explore && (
-                <ExploreResultsButton
-                  database={this.props.database}
-                  onClick={this.handleExploreBtnClick}
-                />
-              )}
-            {this.props.csv && (
-              <Button
-                buttonSize="small"
-                href={`/superset/csv/${this.props.query.id}`}
-              >
+            {visualize && database?.allows_virtual_table_explore && (
+              <ExploreResultsButton
+                database={database}
+                onClick={createExploreResultsOnClick}
+              />
+            )}
+            {csv && (
+              <Button buttonSize="small" href={`/superset/csv/${query.id}`}>
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
@@ -557,11 +266,11 @@ export default class ResultSet extends React.PureComponent<
               hideTooltip
             />
           </ResultSetButtons>
-          {this.props.search && (
+          {search && (
             <input
               type="text"
-              onChange={this.changeSearch}
-              value={this.state.searchText}
+              onChange={changeSearch}
+              value={searchText}
               className="form-control input-sm"
               disabled={columns.length > MAX_COLUMNS_FOR_TABLE}
               placeholder={
@@ -575,18 +284,14 @@ export default class ResultSet extends React.PureComponent<
       );
     }
     return <div />;
-  }
-
-  onAlertClose = () => {
-    this.setState({ alertIsOpen: false });
   };
 
-  renderRowsReturned() {
-    const { results, rows, queryLimit, limitingFactor } = this.props.query;
+  const renderRowsReturned = () => {
+    const { results, rows, queryLimit, limitingFactor } = query;
     let limitMessage;
     const limitReached = results?.displayLimitReached;
     const limit = queryLimit || results.query.limit;
-    const isAdmin = !!this.props.user?.roles?.Admin;
+    const isAdmin = !!user?.roles?.Admin;
     const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
 
     const displayMaxRowsReachedMessage = {
@@ -604,53 +309,49 @@ export default class ResultSet extends React.PureComponent<
       ),
     };
     const shouldUseDefaultDropdownAlert =
-      limit === this.props.defaultQueryLimit &&
+      limit === defaultQueryLimit &&
       limitingFactor === LIMITING_FACTOR.DROPDOWN;
 
-    if (limitingFactor === LIMITING_FACTOR.QUERY && this.props.csv) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the query',
-            { rows },
-          )}
-        </span>
+    if (limitingFactor === LIMITING_FACTOR.QUERY && csv) {
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the query',
+        { rows },
       );
     } else if (
       limitingFactor === LIMITING_FACTOR.DROPDOWN &&
       !shouldUseDefaultDropdownAlert
     ) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
-            { rows },
-          )}
-        </span>
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the limit dropdown.',
+        { rows },
       );
     } else if (limitingFactor === LIMITING_FACTOR.QUERY_AND_DROPDOWN) {
-      limitMessage = (
-        <span className="limitMessage">
-          {t(
-            'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
-            { rows },
-          )}
-        </span>
+      limitMessage = t(
+        'The number of rows displayed is limited to %(rows)d by the query and limit dropdown.',
+        { rows },
       );
     }
+
+    const rowsReturnedMessage = t('%(rows)d rows returned', {
+      rows,
+    });
+
+    const tooltipText = `${rowsReturnedMessage}. ${limitMessage}`;
+
     return (
       <ReturnedRows>
         {!limitReached && !shouldUseDefaultDropdownAlert && (
-          <span>
-            {t('%(rows)d rows returned', { rows })} {limitMessage}
+          <span title={tooltipText}>
+            {rowsReturnedMessage}
+            <LimitMessage>{limitMessage}</LimitMessage>
           </span>
         )}
         {!limitReached && shouldUseDefaultDropdownAlert && (
-          <div ref={this.calculateAlertRefHeight}>
+          <div ref={calculateAlertRefHeight}>
             <Alert
               type="warning"
               message={t('%(rows)d rows returned', { rows })}
-              onClose={this.onAlertClose}
+              onClose={() => setAlertIsOpen(false)}
               description={t(
                 'The number of rows displayed is limited to %s by the dropdown.',
                 rows,
@@ -659,10 +360,10 @@ export default class ResultSet extends React.PureComponent<
           </div>
         )}
         {limitReached && (
-          <div ref={this.calculateAlertRefHeight}>
+          <div ref={calculateAlertRefHeight}>
             <Alert
               type="warning"
-              onClose={this.onAlertClose}
+              onClose={() => setAlertIsOpen(false)}
               message={t('%(rows)d rows returned', { rows: rowsCount })}
               description={
                 isAdmin
@@ -674,179 +375,191 @@ export default class ResultSet extends React.PureComponent<
         )}
       </ReturnedRows>
     );
+  };
+
+  const limitReached = query?.results?.displayLimitReached;
+  let sql;
+  let exploreDBId = query.dbId;
+  if (database?.explore_database_id) {
+    exploreDBId = database.explore_database_id;
   }
 
-  render() {
-    const { query } = this.props;
-    let sql;
-    let exploreDBId = query.dbId;
-    if (this.props.database && this.props.database.explore_database_id) {
-      exploreDBId = this.props.database.explore_database_id;
-    }
+  let trackingUrl;
+  if (
+    query.trackingUrl &&
+    query.state !== 'success' &&
+    query.state !== 'fetching'
+  ) {
+    trackingUrl = (
+      <Button
+        className="sql-result-track-job"
+        buttonSize="small"
+        href={query.trackingUrl}
+        target="_blank"
+      >
+        {query.state === 'running' ? t('Track job') : t('See query details')}
+      </Button>
+    );
+  }
 
-    if (this.props.showSql) {
-      sql = <HighlightedSql sql={query.sql} />;
-    }
+  if (showSql) {
+    sql = <HighlightedSql sql={query.sql} />;
+  }
 
-    if (query.state === 'stopped') {
-      return <Alert type="warning" message={t('Query was stopped')} />;
-    }
-    if (query.state === 'failed') {
-      return (
-        <ResultSetErrorMessage>
-          <ErrorMessageWithStackTrace
-            title={t('Database error')}
-            error={query?.errors?.[0]}
-            subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
-            copyText={query.errorMessage || undefined}
-            link={query.link}
-            source="sqllab"
-          />
-        </ResultSetErrorMessage>
-      );
-    }
-    if (query.state === 'success' && query.ctas) {
-      const { tempSchema, tempTable } = query;
-      let object = 'Table';
-      if (query.ctas_method === CtasEnum.VIEW) {
-        object = 'View';
-      }
-      return (
-        <div>
-          <Alert
-            type="info"
-            message={
-              <>
-                {t(object)} [
-                <strong>
-                  {tempSchema ? `${tempSchema}.` : ''}
-                  {tempTable}
-                </strong>
-                ] {t('was created')} &nbsp;
-                <ButtonGroup>
-                  <Button
-                    buttonSize="small"
-                    className="m-r-5"
-                    onClick={() => this.popSelectStar(tempSchema, tempTable)}
-                  >
-                    {t('Query in a new tab')}
-                  </Button>
-                  <ExploreCtasResultsButton
-                    // @ts-ignore Redux types are difficult to work with, ignoring for now
-                    actions={this.props.actions}
-                    table={tempTable}
-                    schema={tempSchema}
-                    dbId={exploreDBId}
-                  />
-                </ButtonGroup>
-              </>
-            }
-          />
-        </div>
-      );
-    }
-    if (query.state === 'success' && query.results) {
-      const { results } = query;
-      const height = this.state.alertIsOpen
-        ? this.props.height - 70
-        : this.props.height;
-      let data;
-      if (this.props.cache && query.cached) {
-        ({ data } = this.state);
-      } else if (results && results.data) {
-        ({ data } = results);
-      }
-      if (data && data.length > 0) {
-        const expandedColumns = results.expanded_columns
-          ? results.expanded_columns.map(col => col.name)
-          : [];
-        return (
-          <>
-            {this.renderControls()}
-            {this.renderRowsReturned()}
-            {sql}
-            <FilterableTable
-              data={data}
-              orderedColumnKeys={results.columns.map(col => col.name)}
-              height={height}
-              filterText={this.state.searchText}
-              expandedColumns={expandedColumns}
-            />
-          </>
-        );
-      }
-      if (data && data.length === 0) {
-        return (
-          <Alert type="warning" message={t('The query returned no data')} />
-        );
-      }
-    }
-    if (query.cached || (query.state === 'success' && !query.results)) {
-      if (query.isDataPreview) {
-        return (
-          <Button
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={() =>
-              this.reFetchQueryResults({
-                ...query,
-                isDataPreview: true,
-              })
-            }
-          >
-            {t('Fetch data preview')}
-          </Button>
-        );
-      }
-      if (query.resultsKey) {
-        return (
-          <Button
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={() => this.fetchResults(query)}
-          >
-            {t('Refetch results')}
-          </Button>
-        );
-      }
-    }
-    let trackingUrl;
-    let progressBar;
-    if (query.progress > 0) {
-      progressBar = (
-        <ProgressBar
-          percent={parseInt(query.progress.toFixed(0), 10)}
-          striped
-        />
-      );
-    }
-    if (query.trackingUrl) {
-      trackingUrl = (
-        <Button
-          buttonSize="small"
-          onClick={() => query.trackingUrl && window.open(query.trackingUrl)}
-        >
-          {t('Track job')}
-        </Button>
-      );
-    }
-    const progressMsg =
-      query && query.extra && query.extra.progress
-        ? query.extra.progress
-        : null;
+  if (query.state === 'stopped') {
+    return <Alert type="warning" message={t('Query was stopped')} />;
+  }
 
+  if (query.state === 'failed') {
     return (
-      <div style={LOADING_STYLES}>
-        <div>{!progressBar && <Loading position="normal" />}</div>
-        {/* show loading bar whenever progress bar is completed but needs time to render */}
-        <div>{query.progress === 100 && <Loading position="normal" />}</div>
-        <QueryStateLabel query={query} />
-        <div>
-          {progressMsg && <Alert type="success" message={progressMsg} />}
-        </div>
-        <div>{query.progress !== 100 && progressBar}</div>
-        <div>{trackingUrl}</div>
+      <ResultlessStyles>
+        <ErrorMessageWithStackTrace
+          title={t('Database error')}
+          error={query?.errors?.[0]}
+          subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
+          copyText={query.errorMessage || undefined}
+          link={query.link}
+          source="sqllab"
+        />
+        {trackingUrl}
+      </ResultlessStyles>
+    );
+  }
+
+  if (query.state === 'success' && query.ctas) {
+    const { tempSchema, tempTable } = query;
+    let object = 'Table';
+    if (query.ctas_method === CtasEnum.VIEW) {
+      object = 'View';
+    }
+    return (
+      <div>
+        <Alert
+          type="info"
+          message={
+            <>
+              {t(object)} [
+              <strong>
+                {tempSchema ? `${tempSchema}.` : ''}
+                {tempTable}
+              </strong>
+              ] {t('was created')} &nbsp;
+              <ButtonGroup>
+                <Button
+                  buttonSize="small"
+                  className="m-r-5"
+                  onClick={() => popSelectStar(tempSchema, tempTable)}
+                >
+                  {t('Query in a new tab')}
+                </Button>
+                <ExploreCtasResultsButton
+                  table={tempTable}
+                  schema={tempSchema}
+                  dbId={exploreDBId}
+                />
+              </ButtonGroup>
+            </>
+          }
+        />
       </div>
     );
   }
-}
+
+  if (query.state === 'success' && query.results) {
+    const { results } = query;
+    // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
+    const rowMessageHeight = !limitReached ? 32 : 0;
+    // Accounts for offset needed for height of Alert if this.state.alertIsOpen
+    const alertContainerHeight = 70;
+    // We need to calculate the height of this.renderRowsReturned()
+    // if we want results panel to be proper height because the
+    // FilterTable component needs an explicit height to render
+    // react-virtualized Table component
+    const rowsHeight = alertIsOpen
+      ? height - alertContainerHeight
+      : height - rowMessageHeight;
+    let data;
+    if (cache && query.cached) {
+      data = cachedData;
+    } else if (results?.data) {
+      ({ data } = results);
+    }
+    if (data && data.length > 0) {
+      const expandedColumns = results.expanded_columns
+        ? results.expanded_columns.map(col => col.name)
+        : [];
+      return (
+        <>
+          {renderControls()}
+          {renderRowsReturned()}
+          {sql}
+          <FilterableTable
+            data={data}
+            orderedColumnKeys={results.columns.map(col => col.name)}
+            height={rowsHeight}
+            filterText={searchText}
+            expandedColumns={expandedColumns}
+          />
+        </>
+      );
+    }
+    if (data && data.length === 0) {
+      return <Alert type="warning" message={t('The query returned no data')} />;
+    }
+  }
+
+  if (query.cached || (query.state === 'success' && !query.results)) {
+    if (query.isDataPreview) {
+      return (
+        <Button
+          buttonSize="small"
+          buttonStyle="primary"
+          onClick={() =>
+            dispatch(
+              reFetchQueryResults({
+                ...query,
+                isDataPreview: true,
+              }),
+            )
+          }
+        >
+          {t('Fetch data preview')}
+        </Button>
+      );
+    }
+    if (query.resultsKey) {
+      return (
+        <Button
+          buttonSize="small"
+          buttonStyle="primary"
+          onClick={() => fetchResults(query)}
+        >
+          {t('Refetch results')}
+        </Button>
+      );
+    }
+  }
+
+  let progressBar;
+  if (query.progress > 0) {
+    progressBar = (
+      <ProgressBar percent={parseInt(query.progress.toFixed(0), 10)} striped />
+    );
+  }
+
+  const progressMsg = query?.extra?.progress ?? null;
+
+  return (
+    <ResultlessStyles>
+      <div>{!progressBar && <Loading position="normal" />}</div>
+      {/* show loading bar whenever progress bar is completed but needs time to render */}
+      <div>{query.progress === 100 && <Loading position="normal" />}</div>
+      <QueryStateLabel query={query} />
+      <div>{progressMsg && <Alert type="success" message={progressMsg} />}</div>
+      <div>{query.progress !== 100 && progressBar}</div>
+      {trackingUrl && <div>{trackingUrl}</div>}
+    </ResultlessStyles>
+  );
+};
+
+export default ResultSet;

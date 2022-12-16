@@ -17,12 +17,14 @@
  * under the License.
  */
 import React, { useState, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import Collapse from 'src/components/Collapse';
 import Card from 'src/components/Card';
 import ButtonGroup from 'src/components/ButtonGroup';
 import { t, styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 
+import { removeDataPreview, removeTables } from 'src/SqlLab/actions/sqlLab';
 import { Tooltip } from 'src/components/Tooltip';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { IconTooltip } from 'src/components/IconTooltip';
@@ -55,10 +57,6 @@ export interface Table {
 
 export interface TableElementProps {
   table: Table;
-  actions: {
-    removeDataPreview: (table: Table) => void;
-    removeTable: (table: Table) => void;
-  };
 }
 
 const StyledSpan = styled.span`
@@ -74,7 +72,9 @@ const Fade = styled.div`
   opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
 `;
 
-const TableElement = ({ table, actions, ...props }: TableElementProps) => {
+const TableElement = ({ table, ...props }: TableElementProps) => {
+  const dispatch = useDispatch();
+
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
   const tableNameRef = useRef<HTMLInputElement>(null);
@@ -84,8 +84,8 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
   };
 
   const removeTable = () => {
-    actions.removeDataPreview(table);
-    actions.removeTable(table);
+    dispatch(removeDataPreview(table));
+    dispatch(removeTables([table]));
   };
 
   const toggleSortColumns = () => {
@@ -152,11 +152,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
     if (table?.indexes?.length) {
       keyLink = (
         <ModalTrigger
-          modalTitle={
-            <div>
-              {t('Keys for table')} <strong>{table.name}</strong>
-            </div>
-          }
+          modalTitle={`${t('Keys for table')} ${table.name}`}
           modalBody={table.indexes.map((ix, i) => (
             <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
           ))}
@@ -274,6 +270,7 @@ const TableElement = ({ table, actions, ...props }: TableElementProps) => {
 
     const metadata = (
       <div
+        data-test="table-element"
         onMouseEnter={() => setHover(true)}
         onMouseLeave={() => setHover(false)}
         css={{ paddingTop: 6 }}

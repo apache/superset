@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Optional
 
-from flask import g, request, Response
+from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -29,7 +29,7 @@ from superset.charts.filters import ChartFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
-from superset.models.reports import ReportSchedule
+from superset.extensions import event_logger
 from superset.reports.commands.bulk_delete import BulkDeleteReportScheduleCommand
 from superset.reports.commands.create import CreateReportScheduleCommand
 from superset.reports.commands.delete import DeleteReportScheduleCommand
@@ -43,7 +43,8 @@ from superset.reports.commands.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.reports.commands.update import UpdateReportScheduleCommand
-from superset.reports.filters import ReportScheduleAllTextFilter
+from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
+from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (
     get_delete_ids_schema,
     openapi_spec_methods_override,
@@ -56,7 +57,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     resource_name = "report"
     allow_browser_login = True
 
+    base_filters = [
+        ["id", ReportScheduleFilter, lambda: []],
+    ]
+
     show_columns = [
         "id",
         "active",
@@ -93,6 +98,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "database.database_name",
         "database.id",
         "description",
+        "extra",
         "force_screenshot",
         "grace_period",
         "last_eval_dttm",
@@ -134,6 +140,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "crontab_humanized",
         "dashboard_id",
         "description",
+        "extra",
         "id",
         "last_eval_dttm",
         "last_state",
@@ -155,6 +162,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "dashboard",
         "database",
         "description",
+        "extra",
         "force_screenshot",
         "grace_period",
         "log_retention",
@@ -200,10 +208,13 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     ]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
+
     filter_rel_fields = {
         "chart": [["id", ChartFilter, lambda: []]],
         "dashboard": [["id", DashboardAccessFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     text_field_rel_fields = {
         "dashboard": "dashboard_title",
@@ -227,8 +238,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @expose("/<int:pk>", methods=["DELETE"])
     @protect()
     @safe
-    @statsd_metrics
     @permission_name("delete")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
+        log_to_statsd=False,
+    )
     def delete(self, pk: int) -> Response:
         """Delete a Report Schedule
         ---
@@ -261,7 +276,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteReportScheduleCommand(g.user, pk).run()
+            DeleteReportScheduleCommand(pk).run()
             return self.response(200, message="OK")
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -281,7 +296,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @permission_name("post")
     @requires_json
-    def post(self) -> Response:
+    def post(
+        self,
+    ) -> Response:
         """Creates a new Report Schedule
         ---
         post:
@@ -319,11 +336,21 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.add_model_schema.load(request.json)
+            # normally this would be covered by a decorator, however
+            # due to this model being formatted incorrectly the data
+            # needed some manipulation.
+            event_logger.log_with_context(
+                action="ReportScheduleRestApi.post",
+                dashboard_id=request.json.get("dashboard", None),
+                chart_id=request.json.get("chart", None),
+                report_format=request.json.get("report_format", None),
+                active=request.json.get("active", None),
+            )
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateReportScheduleCommand(g.user, item).run()
+            new_model = CreateReportScheduleCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except ReportScheduleNotFoundError as ex:
             return self.response_400(message=str(ex))
@@ -390,11 +417,21 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             item = self.edit_model_schema.load(request.json)
+            # normally this would be covered by a decorator, however
+            # due to this model being formatted incorrectly the data
+            # needed some manipulation.
+            event_logger.log_with_context(
+                action="ReportScheduleRestApi.put",
+                dashboard_id=request.json.get("dashboard", None),
+                chart_id=request.json.get("chart", None),
+                report_format=request.json.get("report_format", None),
+                active=request.json.get("active", None),
+            )
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = UpdateReportScheduleCommand(g.user, pk, item).run()
+            new_model = UpdateReportScheduleCommand(pk, item).run()
             return self.response(200, id=new_model.id, result=item)
         except ReportScheduleNotFoundError:
             return self.response_404()
@@ -416,6 +453,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @rison(get_delete_ids_schema)
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
+        log_to_statsd=False,
+    )
     def bulk_delete(self, **kwargs: Any) -> Response:
         """Delete bulk Report Schedule layers
         ---
@@ -452,7 +493,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteReportScheduleCommand(g.user, item_ids).run()
+            BulkDeleteReportScheduleCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(

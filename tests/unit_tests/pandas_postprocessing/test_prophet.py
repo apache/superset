@@ -17,6 +17,7 @@
 from datetime import datetime
 from importlib.util import find_spec
 
+import pandas as pd
 import pytest
 
 from superset.exceptions import InvalidPostProcessingError
@@ -49,6 +50,66 @@ def test_prophet_valid():
     assert df[DTTM_ALIAS].iloc[0].to_pydatetime() == datetime(2018, 12, 31)
     assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 5, 31)
     assert len(df) == 9
+
+    df = prophet(
+        df=pd.DataFrame(
+            {
+                "__timestamp": [datetime(2022, 1, 2), datetime(2022, 1, 9)],
+                "x": [1, 1],
+            }
+        ),
+        time_grain="P1W",
+        periods=1,
+        confidence_interval=0.9,
+    )
+
+    assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 1, 16)
+    assert len(df) == 3
+
+    df = prophet(
+        df=pd.DataFrame(
+            {
+                "__timestamp": [datetime(2022, 1, 2), datetime(2022, 1, 9)],
+                "x": [1, 1],
+            }
+        ),
+        time_grain="1969-12-28T00:00:00Z/P1W",
+        periods=1,
+        confidence_interval=0.9,
+    )
+
+    assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 1, 16)
+    assert len(df) == 3
+
+    df = prophet(
+        df=pd.DataFrame(
+            {
+                "__timestamp": [datetime(2022, 1, 3), datetime(2022, 1, 10)],
+                "x": [1, 1],
+            }
+        ),
+        time_grain="1969-12-29T00:00:00Z/P1W",
+        periods=1,
+        confidence_interval=0.9,
+    )
+
+    assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 1, 17)
+    assert len(df) == 3
+
+    df = prophet(
+        df=pd.DataFrame(
+            {
+                "__timestamp": [datetime(2022, 1, 8), datetime(2022, 1, 15)],
+                "x": [1, 1],
+            }
+        ),
+        time_grain="P1W/1970-01-03T00:00:00Z",
+        periods=1,
+        confidence_interval=0.9,
+    )
+
+    assert df[DTTM_ALIAS].iloc[-1].to_pydatetime() == datetime(2022, 1, 22)
+    assert len(df) == 3
 
 
 def test_prophet_valid_zero_periods():

@@ -18,10 +18,26 @@
  */
 
 import ColorSchemeRegistry from '../../src/color/ColorSchemeRegistry';
+import schemes from '../../src/color/colorSchemes/categorical/d3';
+import CategoricalScheme from '../../src/color/CategoricalScheme';
 
 describe('ColorSchemeRegistry', () => {
   it('exists', () => {
     expect(ColorSchemeRegistry).toBeDefined();
     expect(ColorSchemeRegistry).toBeInstanceOf(Function);
+  });
+  it('returns undefined', () => {
+    const registry = new ColorSchemeRegistry();
+    expect(registry.get('something')).toBeUndefined();
+  });
+  it('returns default', () => {
+    const registry = new ColorSchemeRegistry();
+    registry.registerValue('SUPERSET_DEFAULT', schemes[0]);
+    expect(registry.get('something')).toBeInstanceOf(CategoricalScheme);
+  });
+  it('returns undefined in strict mode', () => {
+    const registry = new ColorSchemeRegistry();
+    registry.registerValue('SUPERSET_DEFAULT', schemes[0]);
+    expect(registry.get('something', true)).toBeUndefined();
   });
 });

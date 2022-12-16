@@ -15,12 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from functools import partial
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Callable, Dict, Sequence
 
 import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
-from pandas import DataFrame, NamedAgg, Timestamp
+from pandas import DataFrame, NamedAgg
 
 from superset.exceptions import InvalidPostProcessingError
 
@@ -86,10 +86,10 @@ PROPHET_TIME_GRAIN_MAP = {
     "P1M": "M",
     "P3M": "Q",
     "P1Y": "A",
-    "1969-12-28T00:00:00Z/P1W": "W",
-    "1969-12-29T00:00:00Z/P1W": "W",
-    "P1W/1970-01-03T00:00:00Z": "W",
-    "P1W/1970-01-04T00:00:00Z": "W",
+    "1969-12-28T00:00:00Z/P1W": "W-SUN",
+    "1969-12-29T00:00:00Z/P1W": "W-MON",
+    "P1W/1970-01-03T00:00:00Z": "W-SAT",
+    "P1W/1970-01-04T00:00:00Z": "W-SUN",
 }
 
 RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum")
@@ -97,32 +97,16 @@ RESAMPLE_METHOD = ("asfreq", "bfill", "ffill", "linear", "median", "mean", "sum"
 FLAT_COLUMN_SEPARATOR = ", "
 
 
-def _flatten_column_after_pivot(
-    column: Union[float, Timestamp, str, Tuple[str, ...]],
-    aggregates: Dict[str, Dict[str, Any]],
-) -> str:
-    """
-    Function for flattening column names into a single string. This step is necessary
-    to be able to properly serialize a DataFrame. If the column is a string, return
-    element unchanged. For multi-element columns, join column elements with a comma,
-    with the exception of pivots made with a single aggregate, in which case the
-    aggregate column name is omitted.
-
-    :param column: single element from `DataFrame.columns`
-    :param aggregates: aggregates
-    :return:
-    """
-    if not isinstance(column, tuple):
-        column = (column,)
-    if len(aggregates) == 1 and len(column) > 1:
-        # drop aggregate for single aggregate pivots with multiple groupings
-        # from column name (aggregates always come first in column name)
-        column = column[1:]
-    return FLAT_COLUMN_SEPARATOR.join([str(col) for col in column])
-
-
 def _is_multi_index_on_columns(df: DataFrame) -> bool:
     return isinstance(df.columns, pd.MultiIndex)
+
+
+def scalar_to_sequence(val: Any) -> Sequence[str]:
+    if val is None:
+        return []
+    if isinstance(val, str):
+        return [val]
+    return val
 
 
 def validate_column_args(*argnames: str) -> Callable[..., Any]:
@@ -135,7 +119,7 @@ def validate_column_args(*argnames: str) -> Callable[..., Any]:
                 columns = df.columns.tolist()
             for name in argnames:
                 if name in options and not all(
-                    elem in columns for elem in options.get(name) or []
+                    elem in columns for elem in scalar_to_sequence(options.get(name))
                 ):
                     raise InvalidPostProcessingError(
                         _("Referenced columns not available in DataFrame.")
@@ -222,3 +206,13 @@ def _append_columns(
         return _base_df
     append_df = append_df.rename(columns=columns)
     return pd.concat([base_df, append_df], axis="columns")
+
+
+def escape_separator(plain_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:
+    char = sep.strip()
+    return plain_str.replace(char, "\\" + char)
+
+
+def unescape_separator(escaped_str: str, sep: str = FLAT_COLUMN_SEPARATOR) -> str:
+    char = sep.strip()
+    return escaped_str.replace("\\" + char, char)

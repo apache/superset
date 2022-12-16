@@ -47,7 +47,7 @@ export interface ChartDataResponseResult {
   /**
    * Data for the annotation layer.
    */
-  annotation_data: AnnotationData[] | null;
+  annotation_data: AnnotationData | null;
   cache_key: string | null;
   cache_timeout: number | null;
   cached_dttm: string | null;
@@ -83,6 +83,7 @@ export interface ChartDataResponseResult {
 export interface TimeseriesChartDataResponseResult
   extends ChartDataResponseResult {
   data: TimeseriesDataRecord[];
+  label_map: Record<string, string[]>;
 }
 
 /**
