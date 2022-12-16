@@ -384,16 +384,19 @@ class Database(
 
         sqlalchemy_uri = self.sqlalchemy_uri_decrypted
         engine_context = nullcontext()
-        if ssh_tunnel := override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
+        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
             database_id=self.id
-        ):
+        )
+
+        if ssh_tunnel:
             # if ssh_tunnel is available build engine with information
             engine_context = ssh_manager_factory.instance.create_tunnel(
                 ssh_tunnel=ssh_tunnel,
                 sqlalchemy_database_uri=self.sqlalchemy_uri_decrypted)
-            sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(sqlalchemy_uri, server_context)
 
         with engine_context as server_context:
+            if ssh_tunnel:
+                sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(sqlalchemy_uri, server_context)
             yield self._get_sqla_engine(
                 schema=schema,
                 nullpool=nullpool,
