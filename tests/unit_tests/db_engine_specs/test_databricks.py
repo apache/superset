@@ -18,8 +18,9 @@
 
 import json
 
+from pytest_mock import MockerFixture
+
 from superset.utils.core import GenericDataType
-from tests.integration_tests.db_engine_specs.base_tests import assert_generic_types
 
 
 def test_get_parameters_from_uri() -> None:
@@ -110,6 +111,7 @@ def test_generic_type() -> None:
     assert that generic types match
     """
     from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+    from tests.integration_tests.db_engine_specs.base_tests import assert_generic_types
 
     type_expectations = (
         # Numeric
@@ -133,3 +135,43 @@ def test_generic_type() -> None:
         ("BOOLEAN", GenericDataType.BOOLEAN),
     )
     assert_generic_types(DatabricksNativeEngineSpec, type_expectations)
+
+
+def test_get_extra_params(mocker: MockerFixture) -> None:
+    """
+    Test the ``get_extra_params`` method.
+    """
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    database = mocker.MagicMock()
+
+    database.extra = {}
+    assert DatabricksNativeEngineSpec.get_extra_params(database) == {
+        "engine_params": {
+            "connect_args": {
+                "http_headers": [("User-Agent", "Apache Superset")],
+                "_user_agent_entry": "Apache Superset",
+            }
+        }
+    }
+
+    database.extra = json.dumps(
+        {
+            "engine_params": {
+                "connect_args": {
+                    "http_headers": [("User-Agent", "Custom user agent")],
+                    "_user_agent_entry": "Custom user agent",
+                    "foo": "bar",
+                }
+            }
+        }
+    )
+    assert DatabricksNativeEngineSpec.get_extra_params(database) == {
+        "engine_params": {
+            "connect_args": {
+                "http_headers": [["User-Agent", "Custom user agent"]],
+                "_user_agent_entry": "Custom user agent",
+                "foo": "bar",
+            }
+        }
+    }
