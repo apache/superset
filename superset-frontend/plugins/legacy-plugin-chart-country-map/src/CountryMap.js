@@ -190,11 +190,6 @@ function CountryMap(element, props) {
     const result = data.filter(
       region => region.country_id.toString() === d.properties.ISO.toString(),
     );
-    console.info({
-      result,
-      d,
-      data,
-    });
     updateMetrics(result);
   };
 
