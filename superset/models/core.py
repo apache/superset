@@ -392,16 +392,19 @@ class Database(
             # if ssh_tunnel is available build engine with information
             engine_context = ssh_manager_factory.instance.create_tunnel(
                 ssh_tunnel=ssh_tunnel,
-                sqlalchemy_database_uri=self.sqlalchemy_uri_decrypted)
+                sqlalchemy_database_uri=self.sqlalchemy_uri_decrypted,
+            )
 
         with engine_context as server_context:
             if ssh_tunnel:
-                sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(sqlalchemy_uri, server_context)
+                sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
+                    sqlalchemy_uri, server_context
+                )
             yield self._get_sqla_engine(
                 schema=schema,
                 nullpool=nullpool,
                 source=source,
-                sqlalchemy_uri=sqlalchemy_uri
+                sqlalchemy_uri=sqlalchemy_uri,
             )
 
     def _get_sqla_engine(
@@ -409,10 +412,12 @@ class Database(
         schema: Optional[str] = None,
         nullpool: bool = True,
         source: Optional[utils.QuerySource] = None,
-        sqlalchemy_uri: Optional[str] = None
+        sqlalchemy_uri: Optional[str] = None,
     ) -> Engine:
         extra = self.get_extra()
-        sqlalchemy_url = make_url_safe(sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted)
+        sqlalchemy_url = make_url_safe(
+            sqlalchemy_uri if sqlalchemy_uri else self.sqlalchemy_uri_decrypted
+        )
         sqlalchemy_url = self.db_engine_spec.adjust_database_uri(sqlalchemy_url, schema)
         effective_username = self.get_effective_user(sqlalchemy_url)
         # If using MySQL or Presto for example, will set url.username
