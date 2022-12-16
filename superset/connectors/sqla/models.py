@@ -845,7 +845,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         mutate_after_split = config["MUTATE_AFTER_SPLIT"]
         if sql_query_mutator and not mutate_after_split:
-            username = utils.get_username()
             sql = sql_query_mutator(
                 sql,
                 # TODO(john-bodley): Deprecate in 3.0.
