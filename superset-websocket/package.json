@@ -17,7 +17,7 @@
   "dependencies": {
     "cookie": "^0.5.0",
     "hot-shots": "^9.3.0",
-    "ioredis": "^4.28.0",
+    "ioredis": "^5.2.4",
     "jsonwebtoken": "^8.5.1",
     "uuid": "^9.0.0",
     "winston": "^3.3.3",
@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@types/cookie": "^0.5.1",
-    "@types/ioredis": "^4.27.8",
+    "@types/ioredis": "^5.0.0",
     "@types/jest": "^27.0.2",
     "@types/jsonwebtoken": "^8.5.9",
     "@types/node": "^18.11.13",
