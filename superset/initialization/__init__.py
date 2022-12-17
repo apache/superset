@@ -47,6 +47,7 @@ from superset.extensions import (
     results_backend_manager,
     talisman,
 )
+
 from superset.security import SupersetSecurityManager
 from superset.superset_typing import FlaskResponse
 from superset.tags.core import register_sqla_event_listeners
@@ -184,7 +185,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         from superset.views.tags import TagView
         from superset.views.users.api import CurrentUserRestApi
-
+        from superset.quotron.api import QuotronRestApi
         #
         # Setup API views
         #
@@ -215,6 +216,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(SavedQueryRestApi)
+        appbuilder.add_api(QuotronRestApi)
         #
         # Setup regular views
         #
