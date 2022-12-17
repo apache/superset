@@ -314,6 +314,9 @@ class BaseReportState:
         if self._report_schedule.chart:
             report_source = ReportSourceFormat.CHART
             chart_id = self._report_schedule.chart_id
+        elif self._report_schedule.msg_content:
+            report_source = ReportSourceFormat.TEXT_MESSAGE
+            msg_content = self._report_schedule.msg_content
         else:
             report_source = ReportSourceFormat.DASHBOARD
             dashboard_id = self._report_schedule.dashboard_id
@@ -324,6 +327,7 @@ class BaseReportState:
             "notification_format": self._report_schedule.report_format,
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
+            "msg_content": msg_content,
             "owners": self._report_schedule.owners,
             "error_text": None,
         }
@@ -374,6 +378,10 @@ class BaseReportState:
             name = (
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.chart.slice_name}"
+            )
+        elif self._report_schedule.msg_content:
+            name = (
+                f"{self._report_schedule.name}: " f"{self._report_schedule.msg_content}"
             )
         else:
             name = (

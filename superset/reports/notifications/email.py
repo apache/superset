@@ -79,6 +79,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     type = ReportRecipientType.EMAIL
 
+    logger.info("SAMRA EMAIL")
+
     @staticmethod
     def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
