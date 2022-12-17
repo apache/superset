@@ -18,23 +18,13 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import RowLevelSecurityList from 'src/views/CRUD/rowlevelsecurity/RowLevelSecurityList';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import { act } from 'react-dom/test-utils';
-import { MemoryRouter } from 'react-router-dom';
-import { QueryParamProvider } from 'use-query-params';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import ListView from 'src/components/ListView/ListView';
 import userEvent from '@testing-library/user-event';
 import RowLevelSecurityModal, {
   RowLevelSecurityModalProps,
 } from './RowLevelSecurityModal';
 import { FilterType } from './types';
-import { t } from '@superset-ui/core';
 
 const getRuleEndpoint = 'glob:*/api/v1/rowlevelsecurity/1';
 const getRelatedRolesEndpoint =
