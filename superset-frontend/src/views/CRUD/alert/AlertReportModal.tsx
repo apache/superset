@@ -840,15 +840,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('database', value || []);
   };
 
+  const onMsgChange = (value: string) => {
+    updateAlertState('msg_content', value || undefined);
+    updateAlertState('dashboard', null);
+    updateAlertState('chart', null);
+  };
+
   const onDashboardChange = (dashboard: SelectValue) => {
     updateAlertState('dashboard', dashboard || undefined);
     updateAlertState('chart', null);
+    updateAlertState('msg_content', null);
   };
 
   const onChartChange = (chart: SelectValue) => {
     getChartVisualizationType(chart);
     updateAlertState('chart', chart || undefined);
     updateAlertState('dashboard', null);
+    updateAlertState('msg_content', null);
   };
 
   const onActiveSwitch = (checked: boolean) => {
@@ -930,7 +938,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       currentAlert.crontab?.length &&
       currentAlert.working_timeout !== undefined &&
       ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
-        (contentType === 'chart' && !!currentAlert.chart)) &&
+        (contentType === 'chart' && !!currentAlert.chart) ||
+        (contentType === 'text_message' && !!currentAlert.msg_content)) &&
       checkNotificationSettings()
     ) {
       if (isReport) {
@@ -993,7 +1002,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ? 'hidden'
           : 'active',
       );
-      setContentType(resource.chart ? 'chart' : 'dashboard');
+      setContentType(
+        resource.chart
+          ? 'chart'
+          : resource.msg_content
+          ? 'text_message'
+          : 'dashboard',
+      );
       setReportFormat(
         resource.chart
           ? resource.report_format || DEFAULT_NOTIFICATION_FORMAT
@@ -1025,6 +1040,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               label: (resource.dashboard as DashboardObject).dashboard_title,
             }
           : undefined,
+        msg_content: resource?.msg_content ? resource.msg_content : null,
         database: resource.database
           ? getSourceData(resource.database) || {
               value: (resource.database as DatabaseObject).id,
@@ -1062,6 +1078,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     currentAlertSafe.working_timeout,
     currentAlertSafe.dashboard,
     currentAlertSafe.chart,
+    currentAlertSafe.msg_content,
     contentType,
     notificationSettings,
     conditionNotNull,
@@ -1343,6 +1360,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             <Radio.Group onChange={onContentTypeChange} value={contentType}>
               <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
               <StyledRadio value="chart">{t('Chart')}</StyledRadio>
+              <StyledRadio value="text_message">
+                {t('Text Message')}
+              </StyledRadio>
             </Radio.Group>
             <AsyncSelect
               ariaLabel={t('Chart')}
@@ -1378,6 +1398,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               options={loadDashboardOptions}
               onChange={onDashboardChange}
             />
+            <StyledInputContainer
+              css={{
+                display: contentType === 'text_message' ? 'inline' : 'none',
+              }}
+            >
+              <div className="control-label">
+                {t('Message')}
+                <span className="required">*</span>
+              </div>
+              <TextAreaControl
+                name="msg_content"
+                language="text-area"
+                offerEditInModal={false}
+                minLines={6}
+                maxLines={15}
+                onChange={onMsgChange}
+                readOnly={false}
+                initialValue={currentAlert?.msg_content}
+                key={currentAlert?.id}
+              />
+            </StyledInputContainer>
             {formatOptionEnabled && (
               <>
                 <div className="inline-container">
