@@ -231,7 +231,6 @@ describe('Rule modal', () => {
 
     expect(addButton).toBeDisabled();
 
-    // const tableDropdown = screen.getByRole('combobox', {name: t('Tables')});
     const getSelect = () => screen.getByRole('combobox', { name: 'Tables' });
     const getElementByClassName = (className: string) =>
       document.querySelector(className)! as HTMLElement;
