@@ -99,7 +99,7 @@ const StyledInputContainer = styled.div`
   }
 `;
 
-interface RowLevelSecurityModalProps {
+export interface RowLevelSecurityModalProps {
   rule: RLSObject | null;
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
@@ -373,6 +373,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange={onFilterChange}
                 value={currentRule?.filter_type}
                 options={FilterOptions}
+                data-test="rule-filter-type-test"
               />
             </div>
           </StyledInputContainer>
@@ -464,6 +465,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 name="description"
                 value={currentRule ? currentRule.description : ''}
                 onChange={event => onTextChange(event.target)}
+                data-test="description-test"
               />
             </div>
           </StyledInputContainer>
