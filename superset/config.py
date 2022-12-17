@@ -1462,7 +1462,7 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
 # )
 WELCOME_PAGE_LAST_TAB: Union[
     Literal["examples", "all"], Tuple[str, List[Dict[str, Any]]]
-] = "all"
+] = "examples"
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
