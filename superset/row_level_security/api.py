@@ -25,9 +25,13 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 
 from superset import app
+from superset.commands.exceptions import (
+    DatasourceNotFoundValidationError,
+    RolesNotFoundValidationError,
+)
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.dao.exceptions import DAOCreateFailedError, DAOUpdateFailedError
 from superset.extensions import event_logger
 from superset.row_level_security.commands.bulk_delete import BulkDeleteRLSRuleCommand
 from superset.row_level_security.commands.create import CreateRLSRuleCommand
@@ -166,6 +170,22 @@ class RLSRestApi(BaseSupersetModelRestApi):
         try:
             new_model = CreateRLSRuleCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
+        except RolesNotFoundValidationError as ex:
+            logger.error(
+                "Role not found while creating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        except DatasourceNotFoundValidationError as ex:
+            logger.error(
+                "Table not found while creating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
         except DAOCreateFailedError as ex:
             logger.error(
                 "Error creating RLS rule %s: %s",
@@ -237,7 +257,23 @@ class RLSRestApi(BaseSupersetModelRestApi):
         try:
             new_model = UpdateRLSRuleCommand(pk, item).run()
             return self.response(201, id=new_model.id, result=item)
-        except DAOCreateFailedError as ex:
+        except RolesNotFoundValidationError as ex:
+            logger.error(
+                "Role not found while updating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        except DatasourceNotFoundValidationError as ex:
+            logger.error(
+                "Table not found while updating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        except DAOUpdateFailedError as ex:
             logger.error(
                 "Error updating RLS rule %s: %s",
                 self.__class__.__name__,

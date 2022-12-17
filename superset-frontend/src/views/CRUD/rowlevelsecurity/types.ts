@@ -26,11 +26,27 @@ export type RLSObject = {
   id?: number;
   name: string;
   filter_type: FilterType;
-  tables?: MetaObject[];
-  roles?: MetaObject[];
+  tables?: TableObject[];
+  roles?: RoleObject[];
   group_key?: string;
   clause?: string;
   description?: string;
+};
+
+export type TableObject = {
+  key: any;
+  id?: number;
+  label?: string;
+  value?: number | string;
+  table_name?: string;
+};
+
+export type RoleObject = {
+  key: any;
+  id?: number;
+  label?: string;
+  value?: number | string;
+  name?: string;
 };
 
 export type MetaObject = {

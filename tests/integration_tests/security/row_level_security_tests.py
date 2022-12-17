@@ -30,6 +30,7 @@ from superset.security.guest_token import (
     GuestTokenResourceType,
     GuestUser,
 )
+from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla import filters
 from ..conftest import with_config
 from ..base_tests import SupersetTestCase
@@ -306,7 +307,228 @@ class TestRowLevelSecurity(SupersetTestCase):
         assert not self.BASE_FILTER_REGEX.search(sql)
 
 
-class TestRowLevelSecurityWithRelatedFilters(SupersetTestCase):
+class TestRowLevelSecurityCreateAPI(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_invalid_role_failure(self):
+        self.login("Admin")
+        payload = {
+            "name": "rls 1",
+            "clause": "1=1",
+            "filter_type": "Base",
+            "tables": [1],
+            "roles": [999999],
+        }
+        rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(status_code, 422)
+        self.assertEqual(data["message"], "[l'Some roles do not exist']")
+
+    def test_invalid_table_failure(self):
+        self.login("Admin")
+        payload = {
+            "name": "rls 1",
+            "clause": "1=1",
+            "filter_type": "Base",
+            "tables": [999999],
+            "roles": [1],
+        }
+        rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(status_code, 422)
+        self.assertEqual(data["message"], "[l'Datasource does not exist']")
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_success(self):
+        table = db.session.query(SqlaTable).first()
+        self.login("Admin")
+        payload = {
+            "name": "rls 1",
+            "clause": "1=1",
+            "filter_type": "Base",
+            "tables": [table.id],
+            "roles": [1],
+        }
+        rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(status_code, 201)
+
+        rls = (
+            db.session.query(RowLevelSecurityFilter)
+            .filter(RowLevelSecurityFilter.id == data["id"])
+            .one_or_none()
+        )
+
+        assert rls
+        self.assertEqual(rls.name, "rls 1")
+        self.assertEqual(rls.clause, "1=1")
+        self.assertEqual(rls.filter_type, "Base")
+        self.assertEqual(rls.tables[0].id, table.id)
+        self.assertEqual(rls.roles[0].id, 1)
+
+        db.session.delete(rls)
+        db.session.commit()
+
+
+class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
+    def test_invalid_id_failure(self):
+        self.login("Admin")
+        payload = {
+            "name": "rls 1",
+            "clause": "1=1",
+            "filter_type": "Base",
+            "tables": [1],
+            "roles": [1],
+        }
+        rv = self.client.put("/api/v1/rowlevelsecurity/99999999", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data["message"], "Not found")
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_invalid_role_failure(self):
+        table = db.session.query(SqlaTable).first()
+
+        rls = RowLevelSecurityFilter(
+            name="rls test invalid role",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[table],
+        )
+        db.session.add(rls)
+        db.session.commit()
+
+        self.login("Admin")
+        payload = {
+            "roles": [999999],
+        }
+        rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(status_code, 422)
+        self.assertEqual(data["message"], "[l'Some roles do not exist']")
+
+        db.session.delete(rls)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_invalid_table_failure(self):
+        table = db.session.query(SqlaTable).first()
+
+        rls = RowLevelSecurityFilter(
+            name="rls test invalid role",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[table],
+        )
+        db.session.add(rls)
+        db.session.commit()
+
+        self.login("Admin")
+        payload = {
+            "name": "rls 1",
+            "clause": "1=1",
+            "filter_type": "Base",
+            "tables": [999999],
+            "roles": [1],
+        }
+        rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(status_code, 422)
+        self.assertEqual(data["message"], "[l'Datasource does not exist']")
+
+        db.session.delete(rls)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_put_success(self):
+        tables = db.session.query(SqlaTable).limit(2).all()
+        roles = db.session.query(security_manager.role_model).limit(2).all()
+
+        rls = RowLevelSecurityFilter(
+            name="rls 1",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[tables[0]],
+            roles=[roles[0]],
+        )
+        db.session.add(rls)
+        db.session.commit()
+
+        self.login("Admin")
+        payload = {
+            "name": "rls put success",
+            "clause": "2=2",
+            "filter_type": "Base",
+            "tables": [tables[1].id],
+            "roles": [roles[1].id],
+        }
+        rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(status_code, 201)
+
+        rls = (
+            db.session.query(RowLevelSecurityFilter)
+            .filter(RowLevelSecurityFilter.id == rls.id)
+            .one_or_none()
+        )
+
+        self.assertEqual(rls.name, "rls put success")
+        self.assertEqual(rls.clause, "2=2")
+        self.assertEqual(rls.filter_type, "Base")
+        self.assertEqual(rls.tables[0].id, tables[1].id)
+        self.assertEqual(rls.roles[0].id, roles[1].id)
+
+        db.session.delete(rls)
+        db.session.commit()
+
+
+class TestRowLevelSecurityBulkDeleteAPI(SupersetTestCase):
+    def test_invalid_id_failure(self):
+        self.login("Admin")
+
+        ids_to_delete = prison.dumps([10000, 10001, 100002])
+        rv = self.client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(status_code, 404)
+        self.assertEqual(data["message"], "Not found")
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_bulk_delete_success(self):
+        tables = db.session.query(SqlaTable).limit(2).all()
+        roles = db.session.query(security_manager.role_model).limit(2).all()
+
+        rls_1 = RowLevelSecurityFilter(
+            name="rls 1",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[tables[0]],
+            roles=[roles[0]],
+        )
+        rls_2 = RowLevelSecurityFilter(
+            name="rls 2",
+            clause="2=2",
+            filter_type="Base",
+            tables=[tables[1]],
+            roles=[roles[1]],
+        )
+        db.session.add_all([rls_1, rls_2])
+        db.session.commit()
+
+        self.login("Admin")
+
+        ids_to_delete = prison.dumps([rls_1.id, rls_2.id])
+        rv = self.client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+
+        self.assertEqual(status_code, 200)
+        self.assertEqual(data["message"], "Deleted 2 rules")
+
+
+class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_data")
     @pytest.mark.usefixtures("load_energy_table_data")
     def test_rls_tables_related_api(self):

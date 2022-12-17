@@ -26,4 +26,4 @@ class RLSRuleNotFoundError(CommandException):
 
 
 class RuleBulkDeleteFailedError(DeleteFailedError):
-    message = _("Report Schedule could not be deleted.")
+    message = _("RLS Rule could not be deleted.")

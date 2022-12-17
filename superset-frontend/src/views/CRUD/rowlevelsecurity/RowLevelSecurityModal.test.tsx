@@ -142,8 +142,6 @@ const addNewRuleDefaultProps: RowLevelSecurityModalProps = {
   onHide: NOOP,
 };
 
-const openSelectDropDown = () => {};
-
 describe('Rule modal', () => {
   async function renderAndWait(props: RowLevelSecurityModalProps) {
     const mounted = act(async () => {

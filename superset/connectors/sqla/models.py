@@ -2279,10 +2279,6 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), unique=True, nullable=False)
     description = Column(Text)
-    # filter_type = Column(
-    #     Enum(utils.RowLevelSecurityFilterType),
-    #     info={"enum_class": utils.RowLevelSecurityFilterType},
-    # )
     filter_type = Column(
         Enum(*[filter_type.value for filter_type in utils.RowLevelSecurityFilterType])
     )

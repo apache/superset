@@ -20,8 +20,10 @@ import logging
 from typing import Any, Dict, Optional
 
 from superset.commands.base import BaseCommand
+from superset.commands.exceptions import DatasourceNotFoundValidationError
+from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
-from superset.dao.exceptions import DAOCreateFailedError
+from superset.dao.exceptions import DAOUpdateFailedError
 from superset.extensions import appbuilder, db, security_manager
 from superset.row_level_security.commands.exceptions import RLSRuleNotFoundError
 from superset.row_level_security.dao import RLSDAO
@@ -33,28 +35,29 @@ class UpdateRLSRuleCommand(BaseCommand):
     def __init__(self, model_id: int, data: Dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
+        self._tables = self._properties.get("tables", [])
+        self._roles = self._properties.get("roles", [])
         self._model: Optional[RowLevelSecurityFilter] = None
 
     def run(self) -> Any:
         self.validate()
         try:
             rule = RLSDAO.update(self._model, self._properties)
-        except DAOCreateFailedError as ex:
+        except DAOUpdateFailedError as ex:
             logger.exception(ex.exception)
-            raise DAOCreateFailedError
+            raise DAOUpdateFailedError
 
         return rule
 
     def validate(self) -> None:
-        self._model = RLSDAO.find_by_id(self._model_id)
+        self._model = RLSDAO.find_by_id(int(self._model_id))
         if not self._model:
             raise RLSRuleNotFoundError()
-
-        roles = security_manager.find_roles_by_id(self._properties.get("roles", []))
+        roles = populate_roles(self._roles)
         tables = (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.id.in_(self._properties.get("tables", [])))
-            .all()
+            db.session.query(SqlaTable).filter(SqlaTable.id.in_(self._tables)).all()
         )
+        if len(tables) != len(self._tables):
+            raise DatasourceNotFoundValidationError()
         self._properties["roles"] = roles
         self._properties["tables"] = tables

@@ -215,8 +215,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
-        appbuilder.add_api(SavedQueryRestApi)
         appbuilder.add_api(RLSRestApi)
+        appbuilder.add_api(SavedQueryRestApi)
         #
         # Setup regular views
         #
