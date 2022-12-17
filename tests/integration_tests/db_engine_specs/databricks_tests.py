@@ -44,16 +44,17 @@ class TestDatabricksDbEngineSpec(TestDbEngineSpec):
         db.extra = default_db_extra
         db.server_cert = None
         extras = DatabricksNativeEngineSpec.get_extra_params(db)
-        assert "connect_args" not in extras["engine_params"]
-
-    def test_extras_with_user_agent(self):
-        db = mock.Mock()
-        db.extra = default_db_extra
-        extras = DatabricksNativeEngineSpec.get_extra_params(db)
-        _, user_agent = extras["http_headers"][0]
-        user_agent_entry = extras["_user_agent_entry"]
-        assert user_agent == USER_AGENT
-        assert user_agent_entry == USER_AGENT
+        assert extras == {
+            "engine_params": {
+                "connect_args": {
+                    "_user_agent_entry": "Apache Superset",
+                    "http_headers": [("User-Agent", "Apache Superset")],
+                },
+            },
+            "metadata_cache_timeout": {},
+            "metadata_params": {},
+            "schemas_allowed_for_file_upload": [],
+        }
 
     def test_extras_with_ssl_custom(self):
         db = mock.Mock()
