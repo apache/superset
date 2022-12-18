@@ -566,6 +566,80 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert len(result) == len(db_role_names)
         assert db_role_names == received_roles
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch(
+        "superset.row_level_security.api.RLSRestApi.filter_rel_fields",
+        {"tables": [["table_name", filters.FilterStartsWith, "birth"]]},
+    )
+    def test_table_related_filter(self):
+        self.login("Admin")
+
+        params = prison.dumps({"page": 0, "page_size": 10})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_tables = set([table["text"].split(".")[-1] for table in result])
+
+        assert data["count"] == 1
+        assert len(result) == 1
+        assert {"birth_names"} == received_tables
+
+    @mock.patch(
+        "superset.row_level_security.api.RLSRestApi.filter_rel_fields",
+        {"roles": [["name", filters.FilterEqual, "Admin"]]},
+    )
+    def test_role_related_filter(self):
+        self.login("Admin")
+
+        params = prison.dumps({"page": 0, "page_size": 10})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_roles = set([role["text"] for role in result])
+
+        assert data["count"] == 1
+        assert len(result) == 1
+        assert {"Admin"} == received_roles
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch(
+        "superset.row_level_security.api.RLSRestApi.filter_rel_fields",
+        {
+            "tables": [["table_name", filters.FilterStartsWith, "birth"]],
+            "roles": [["name", filters.FilterEqual, "Admin"]],
+        },
+    )
+    def test_table_and_role_related_filter(self):
+        self.login("Admin")
+
+        params = prison.dumps({"page": 0, "page_size": 10})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_tables = set([table["text"].split(".")[-1] for table in result])
+
+        assert data["count"] == 1
+        assert len(result) == 1
+        assert {"birth_names"} == received_tables
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
+        self.assertEqual(rv.status_code, 200)
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_roles = set([role["text"] for role in result])
+
+        assert data["count"] == 1
+        assert len(result) == 1
+        assert {"Admin"} == received_roles
+
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")
 RLS_GENDER_REGEX = re.compile(r"AND \(gender = 'girl'\)")
