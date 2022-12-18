@@ -445,7 +445,10 @@ export function getFilterValues(
   user?: User,
   otherTabFilters?: Filter[],
 ): FilterValue[] {
-  if (welcomeTable === WelcomeTable.SavedQueries && tab === TableTab.Mine) {
+  if (
+    tab === TableTab.Created ||
+    (welcomeTable === WelcomeTable.SavedQueries && tab === TableTab.Mine)
+  ) {
     return [
       {
         id: 'created_by',
@@ -454,21 +457,12 @@ export function getFilterValues(
       },
     ];
   }
-  if (welcomeTable === WelcomeTable.SavedQueries) {
+  if (welcomeTable === WelcomeTable.SavedQueries && tab === TableTab.Favorite) {
     return [
       {
         id: 'id',
         operator: 'saved_query_is_fav',
         value: true,
-      },
-    ];
-  }
-  if (tab === TableTab.Created && user) {
-    return [
-      {
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: `${user.userId}`,
       },
     ];
   }
@@ -481,20 +475,17 @@ export function getFilterValues(
       },
     ];
   }
-  if (welcomeTable === WelcomeTable.Dashboards && tab === TableTab.Favorite) {
+  if (
+    tab === TableTab.Favorite &&
+    [WelcomeTable.Dashboards, WelcomeTable.Charts].includes(welcomeTable)
+  ) {
     return [
       {
         id: 'id',
-        operator: 'dashboard_is_favorite',
-        value: true,
-      },
-    ];
-  }
-  if (welcomeTable === WelcomeTable.Charts && tab === TableTab.Favorite) {
-    return [
-      {
-        id: 'id',
-        operator: 'chart_is_favorite',
+        operator:
+          welcomeTable === WelcomeTable.Dashboards
+            ? 'dashboard_is_favorite'
+            : 'chart_is_favorite',
         value: true,
       },
     ];

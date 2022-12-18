@@ -246,15 +246,6 @@ const SavedQueries = ({
       <SubMenu
         activeChild={activeTab}
         tabs={[
-          /* @TODO uncomment when fav functionality is implemented
-          {
-            name: 'Favorite',
-            label: t('Favorite'),
-            onClick: () => {
-              getData('Favorite').then(() => setQueryFilter('Favorite'));
-            },
-          },
-          */
           {
             name: TableTab.Mine,
             label: t('Mine'),
