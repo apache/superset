@@ -16,8 +16,10 @@
 # under the License.
 import json
 from typing import Any, Dict
+from unittest import mock
 from unittest.mock import Mock, patch
 
+import pandas as pd
 import pytest
 from sqlalchemy import types
 
@@ -196,3 +198,17 @@ class TestTrinoDbEngineSpec(TestDbEngineSpec):
             TrinoEngineSpec.convert_dttm("DATE", dttm),
             "DATE '2019-01-02'",
         )
+
+    def test_extra_table_metadata(self):
+        db = mock.Mock()
+        db.get_indexes = mock.Mock(
+            return_value=[{"column_names": ["ds", "hour"], "name": "partition"}]
+        )
+        db.get_extra = mock.Mock(return_value={})
+        db.has_view_by_name = mock.Mock(return_value=None)
+        db.get_df = mock.Mock(
+            return_value=pd.DataFrame({"ds": ["01-01-19"], "hour": [1]})
+        )
+        result = TrinoEngineSpec.extra_table_metadata(db, "test_table", "test_schema")
+        assert result["partitions"]["cols"] == ["ds", "hour"]
+        assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
