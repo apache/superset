@@ -81,7 +81,6 @@ describe('LabeledErrorBoundInput', () => {
     defaultProps.visibilityToggle = true;
     render(<LabeledErrorBoundInput {...defaultProps} />);
 
-    // screen.logTestingPlaygroundURL();
     expect(await screen.findByRole('img', { name: /eye/i })).toBeVisible();
   });
 
