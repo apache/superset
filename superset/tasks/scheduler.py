@@ -29,6 +29,8 @@ from superset.reports.commands.log_prune import AsyncPruneReportScheduleLogComma
 from superset.reports.dao import ReportScheduleDAO
 from superset.tasks.cron_util import cron_schedule_window
 from superset.utils.celery import session_scope
+from superset.utils.core import LoggerLevel
+from superset.utils.log import get_logger_from_status
 
 logger = logging.getLogger(__name__)
 
@@ -92,11 +94,13 @@ def execute(self: Celery.task, report_schedule_id: int, scheduled_dttm: str) -> 
             "An unexpected occurred while executing the report: %s", task_id
         )
         self.update_state(state="FAILURE")
-    except CommandException:
-        logger.exception(
-            "A downstream exception occurred while generating" " a report: %s", task_id
+    except CommandException as ex:
+        logger_func, level = get_logger_from_status(ex.status)
+        logger_func(
+            "A downstream %s occurred while generating a report: %s", level, task_id
         )
-        self.update_state(state="FAILURE")
+        if level == LoggerLevel.EXCEPTION:
+            self.update_state(state="FAILURE")
 
 
 @celery_app.task(name="reports.prune_log")

@@ -29,7 +29,6 @@ import {
   SupersetClient,
   css,
   SupersetTheme,
-  useTheme,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -452,7 +451,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   isReport = false,
   addSuccessToast,
 }) => {
-  const theme = useTheme();
   const conf = useCommonConf();
   const allowedNotificationMethods: NotificationMethodOption[] =
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
@@ -1376,41 +1374,38 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledRadio>
               <StyledRadio value="chart">{TRANSLATIONS.CHART_TEXT}</StyledRadio>
             </Radio.Group>
-            <AsyncSelect
-              ariaLabel={TRANSLATIONS.CHART_TEXT}
-              css={{
-                display: contentType === 'chart' ? 'inline' : 'none',
-              }}
-              name="chart"
-              value={
-                currentAlert?.chart?.label && currentAlert?.chart?.value
-                  ? {
-                      value: currentAlert.chart.value,
-                      label: currentAlert.chart.label,
-                    }
-                  : undefined
-              }
-              options={loadChartOptions}
-              onChange={onChartChange}
-            />
-            <AsyncSelect
-              ariaLabel={TRANSLATIONS.DASHBOARD_TEXT}
-              css={{
-                display: contentType === 'dashboard' ? 'inline' : 'none',
-                margin: `${theme.gridUnit * 2}px 0`,
-              }}
-              name="dashboard"
-              value={
-                currentAlert?.dashboard?.label && currentAlert?.dashboard?.value
-                  ? {
-                      value: currentAlert.dashboard.value,
-                      label: currentAlert.dashboard.label,
-                    }
-                  : undefined
-              }
-              options={loadDashboardOptions}
-              onChange={onDashboardChange}
-            />
+            {contentType === 'chart' ? (
+              <AsyncSelect
+                ariaLabel={t('Chart')}
+                name="chart"
+                value={
+                  currentAlert?.chart?.label && currentAlert?.chart?.value
+                    ? {
+                        value: currentAlert.chart.value,
+                        label: currentAlert.chart.label,
+                      }
+                    : undefined
+                }
+                options={loadChartOptions}
+                onChange={onChartChange}
+              />
+            ) : (
+              <AsyncSelect
+                ariaLabel={t('Dashboard')}
+                name="dashboard"
+                value={
+                  currentAlert?.dashboard?.label &&
+                  currentAlert?.dashboard?.value
+                    ? {
+                        value: currentAlert.dashboard.value,
+                        label: currentAlert.dashboard.label,
+                      }
+                    : undefined
+                }
+                options={loadDashboardOptions}
+                onChange={onDashboardChange}
+              />
+            )}
             {formatOptionEnabled && (
               <>
                 <div className="inline-container">

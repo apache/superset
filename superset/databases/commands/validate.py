@@ -101,21 +101,22 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)
 
-        engine = database.get_sqla_engine()
-        try:
-            with closing(engine.raw_connection()) as conn:
-                alive = engine.dialect.do_ping(conn)
-        except Exception as ex:
-            url = make_url_safe(sqlalchemy_uri)
-            context = {
-                "hostname": url.host,
-                "password": url.password,
-                "port": url.port,
-                "username": url.username,
-                "database": url.database,
-            }
-            errors = database.db_engine_spec.extract_errors(ex, context)
-            raise DatabaseTestConnectionFailedError(errors) from ex
+        alive = False
+        with database.get_sqla_engine_with_context() as engine:
+            try:
+                with closing(engine.raw_connection()) as conn:
+                    alive = engine.dialect.do_ping(conn)
+            except Exception as ex:
+                url = make_url_safe(sqlalchemy_uri)
+                context = {
+                    "hostname": url.host,
+                    "password": url.password,
+                    "port": url.port,
+                    "username": url.username,
+                    "database": url.database,
+                }
+                errors = database.db_engine_spec.extract_errors(ex, context)
+                raise DatabaseTestConnectionFailedError(errors) from ex
 
         if not alive:
             raise DatabaseOfflineError(

@@ -25,6 +25,7 @@ import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transform
 import {
   BigNumberDatum,
   BigNumberWithTrendlineChartProps,
+  BigNumberWithTrendlineFormData,
 } from '../../src/BigNumber/types';
 
 const formData = {
@@ -44,7 +45,8 @@ const formData = {
   datasource: 'test_datasource',
 };
 
-const rawFormData = {
+const rawFormData: BigNumberWithTrendlineFormData = {
+  colorPicker: { b: 0, g: 0, r: 0 },
   datasource: '1__table',
   metric: 'value',
   color_picker: {
@@ -129,7 +131,8 @@ describe('BigNumberWithTrendline', () => {
       expect(transformed.bigNumber).toStrictEqual(1.2345);
       expect(transformed.bigNumberFallback).not.toBeNull();
 
-      // should successfully formatTime by ganularity
+      // should successfully formatTime by granularity
+      // @ts-ignore
       expect(transformed.formatTime(new Date('2020-01-01'))).toStrictEqual(
         '2020-01-01 00:00:00',
       );
@@ -150,6 +153,7 @@ describe('BigNumberWithTrendline', () => {
         },
       };
       const transformed = transformProps(propsWithDatasource);
+      // @ts-ignore
       expect(transformed.headerFormatter(transformed.bigNumber)).toStrictEqual(
         '1.23',
       );
