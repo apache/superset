@@ -28,7 +28,7 @@ import {
   validateNonEmpty,
   isValidExpression,
   styled,
-  getMetricLabel,
+  getColumnLabel,
   withTheme,
 } from '@superset-ui/core';
 
@@ -334,8 +334,8 @@ class AnnotationLayer extends React.PureComponent {
                     ...x,
                     data: {
                       ...x.data,
-                      groupby: x.data.groupby.map(metricOrColumn =>
-                        getMetricLabel(metricOrColumn),
+                      groupby: x.data.groupby.map(column =>
+                        getColumnLabel(column),
                       ),
                     },
                   },
