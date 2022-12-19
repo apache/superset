@@ -35,7 +35,7 @@ import { noBottomMargin } from 'src/components/ReportModal/styles';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from '../hooks';
 import { FilterOptions } from './constants';
-import { FilterType, MetaObject, RLSObject } from './types';
+import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
@@ -164,8 +164,8 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     if (!resource) {
       return null;
     }
-    const tables: MetaObject[] = [];
-    const roles: MetaObject[] = [];
+    const tables: TableObject[] = [];
+    const roles: RoleObject[] = [];
 
     resource.tables?.forEach(selectedTable => {
       tables.push({

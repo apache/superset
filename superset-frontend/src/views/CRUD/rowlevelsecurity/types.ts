@@ -48,12 +48,3 @@ export type RoleObject = {
   value?: number | string;
   name?: string;
 };
-
-export type MetaObject = {
-  key: any;
-  id?: number;
-  label?: string;
-  value?: number | string;
-  table_name?: string;
-  name?: string;
-};
