@@ -202,6 +202,7 @@ function openVerticalFilterBar() {
 
 function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   cy.getBySel('filterbar-orientation-icon').click();
+  cy.wait(250);
   cy.getBySel('dropdown-selectable-info')
     .contains('Orientation of filter bar')
     .should('exist');
