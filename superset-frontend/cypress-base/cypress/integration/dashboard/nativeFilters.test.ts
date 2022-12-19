@@ -82,7 +82,7 @@ function prepareDashboardFilters(
   }).then(res => {
     const { body } = res;
     const dashboardId = body.result.id;
-    const allFilters: Record<string, any>[] = [];
+    const allFilters: Record<string, unknown>[] = [];
     filters.forEach((f, i) => {
       allFilters.push({
         id: `NATIVE_FILTER-fLH0pxFQ${i}`,
