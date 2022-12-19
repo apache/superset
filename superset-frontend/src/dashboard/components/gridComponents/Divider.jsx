@@ -53,6 +53,11 @@ const DividerLine = styled.div`
   div[draggable='true'] & {
     cursor: move;
   }
+
+  .dashboard-component-tabs & {
+    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+  }
 `;
 
 class Divider extends React.PureComponent {
