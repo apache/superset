@@ -225,7 +225,8 @@ class BaseReportState:
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
         try:
-            image = screenshot.get_screenshot(user=user)
+            if not self._report_schedule.msg_content:
+                image = screenshot.get_screenshot(user=user)
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while taking a screenshot.")
             raise ReportScheduleScreenshotTimeout() from ex
@@ -296,7 +297,8 @@ class BaseReportState:
         context.
         """
         try:
-            self._get_screenshots()
+            if not self._report_schedule.msg_content:
+                self._get_screenshots()
         except (
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
