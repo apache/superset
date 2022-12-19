@@ -49,7 +49,7 @@ def upgrade():
         # ExtraJSONMixin
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
-        sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4),
+        sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4, unique=True, index=True),
         # SSHTunnelCredentials
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id"), unique=True),
