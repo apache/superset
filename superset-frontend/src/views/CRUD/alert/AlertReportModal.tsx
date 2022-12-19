@@ -1376,7 +1376,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             </Radio.Group>
             {contentType === 'chart' ? (
               <AsyncSelect
-                ariaLabel={t('Chart')}
+                ariaLabel={TRANSLATIONS.CHART_TEXT}
                 name="chart"
                 value={
                   currentAlert?.chart?.label && currentAlert?.chart?.value
@@ -1391,7 +1391,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               />
             ) : (
               <AsyncSelect
-                ariaLabel={t('Dashboard')}
+                ariaLabel={TRANSLATIONS.DASHBOARD_TEXT}
                 name="dashboard"
                 value={
                   currentAlert?.dashboard?.label &&
