@@ -40,7 +40,6 @@ import {
   emptyStateComponent,
 } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { emptyStateComponent } from 'src/SqlLab/components/SqlEditorLeftBar';
 import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
