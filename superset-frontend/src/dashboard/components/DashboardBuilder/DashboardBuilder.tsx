@@ -179,6 +179,33 @@ const DashboardContentWrapper = styled.div`
       pointer-events: none;
     }
 
+    .resizable-container {
+      & .dashboard-component-chart-holder {
+        .dashboard-chart {
+          .chart-container {
+            cursor: move;
+            opacity: 0.2;
+          }
+
+          .slice_container {
+            /* disable chart interactions in edit mode */
+            pointer-events: none;
+          }
+        }
+
+        &:hover .dashboard-chart .chart-container {
+          opacity: 0.7;
+        }
+      }
+
+      &:hover,
+      &.resizable-container--resizing:hover {
+        & > .dashboard-component-chart-holder:after {
+          border: 1px dashed ${({ theme }) => theme.colors.primary.base};
+        }
+      }
+    }
+
     .resizable-container.resizable-container--resizing:hover > .grid-row:after,
     .hover-menu:hover + .grid-row:after,
     .dashboard-component-tabs > .hover-menu:hover + div:after {
@@ -188,7 +215,7 @@ const DashboardContentWrapper = styled.div`
 
     .grid-row:after,
     .dashboard-component-tabs > .hover-menu + div:after {
-      border: 1px dashed ${({ theme }) => theme.colors.grayscale.light4};
+      border: 1px dashed ${({ theme }) => theme.colors.grayscale.light2};
     }
 
     /* provide hit area in case row contents is edge to edge */
@@ -199,6 +226,25 @@ const DashboardContentWrapper = styled.div`
 
       & > div:not(:last-child):not(.empty-droptarget) {
         margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+      }
+    }
+
+    .dashboard-component-chart-holder {
+      &:after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        pointer-events: none;
+        border: 1px solid transparent;
+      }
+
+      &:hover:after {
+        border: 1px dashed ${({ theme }) => theme.colors.primary.base};
+        z-index: 2;
       }
     }
   }
@@ -268,11 +314,42 @@ const StyledDashboardContent = styled.div<{
   }
 
   .dashboard-component-chart-holder {
+    width: 100%;
+    height: 100%;
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    position: relative;
+    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    overflow-y: visible;
+
     // transitionable traits to show filter relevance
-    transition: opacity ${({ theme }) => theme.transitionTiming}s,
-      border-color ${({ theme }) => theme.transitionTiming}s,
-      box-shadow ${({ theme }) => theme.transitionTiming}s;
-    border: 0 solid transparent;
+    transition: opacity ${({ theme }) => theme.transitionTiming}s ease-in-out,
+      border-color ${({ theme }) => theme.transitionTiming}s ease-in-out,
+      box-shadow ${({ theme }) => theme.transitionTiming}s ease-in-out;
+
+    &.fade-in {
+      border-radius: 4px;
+      box-shadow: inset 0 0 0 2px ${({ theme }) => theme.colors.primary.base},
+        0 0 0 3px fade(${({ theme }) => theme.colors.primary.base}, 10%);
+    }
+
+    &.fade-out {
+      border-radius: 4px;
+      box-shadow: none;
+    }
+
+    & .missing-chart-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      justify-content: center;
+
+      .missing-chart-body {
+        font-size: ${({ theme }) => theme.typography.sizes.s}px;
+        position: relative;
+        display: flex;
+      }
+    }
   }
 `;
 

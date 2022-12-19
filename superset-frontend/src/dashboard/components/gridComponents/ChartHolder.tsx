@@ -20,7 +20,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
-
+import { css, styled } from '@superset-ui/core';
 import { LayoutItem, RootState } from 'src/dashboard/types';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/containers/Chart';
@@ -68,6 +68,17 @@ interface ChartHolderProps {
   setFullSizeChartId: (chartId: number | null) => void;
   isInView: boolean;
 }
+
+const FullSizeWrapper = styled.div<{ isFullSize: boolean }>`
+  ${({ isFullSize }) =>
+    isFullSize &&
+    css`
+      position: fixed;
+      z-index: 3000;
+      left: 0;
+      top: 0;
+    `};
+`;
 
 const ChartHolder: React.FC<ChartHolderProps> = ({
   id,
@@ -261,17 +272,17 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
           onResizeStop={onResizeStop}
           editMode={editMode}
         >
-          <div
+          <FullSizeWrapper
             ref={dragSourceRef}
             data-test="dashboard-component-chart-holder"
             style={focusHighlightStyles}
+            isFullSize={isFullSize}
             className={cx(
               'dashboard-component',
               'dashboard-component-chart-holder',
               // The following class is added to support custom dashboard styling via the CSS editor
               `dashboard-chart-id-${chartId}`,
               outlinedComponentId ? 'fade-in' : 'fade-out',
-              isFullSize && 'full-size',
             )}
           >
             {!editMode && (
@@ -314,7 +325,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
                 </div>
               </HoverMenu>
             )}
-          </div>
+          </FullSizeWrapper>
           {dropIndicatorProps && <div {...dropIndicatorProps} />}
         </ResizableContainer>
       )}
