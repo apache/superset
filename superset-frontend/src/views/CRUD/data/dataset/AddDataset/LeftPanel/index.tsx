@@ -35,9 +35,11 @@ import Loading from 'src/components/Loading';
 import DatabaseSelector, {
   DatabaseObject,
 } from 'src/components/DatabaseSelector';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import {
+  EmptyStateMedium,
+  emptyStateComponent,
+} from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { emptyStateComponent } from 'src/SqlLab/components/SqlEditorLeftBar';
 import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {

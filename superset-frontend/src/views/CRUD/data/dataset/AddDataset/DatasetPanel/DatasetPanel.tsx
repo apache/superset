@@ -177,6 +177,7 @@ export const COLUMN_TITLE = t('Table columns');
 export const ALT_LOADING = t('Loading');
 
 const pageSizeOptions = ['5', '10', '15', '25'];
+const DEFAULT_PAGE_SIZE = 25;
 
 // Define the columns for Table instance
 export const tableColumnDefinition: ColumnsType<ITableColumn> = [
@@ -293,7 +294,7 @@ const DatasetPanel = ({
                   columns={tableColumnDefinition}
                   data={columnList}
                   pageSizeOptions={pageSizeOptions}
-                  defaultPageSize={25}
+                  defaultPageSize={DEFAULT_PAGE_SIZE}
                 />
               </TableScrollContainer>
             </TableContainerWithBanner>
@@ -306,7 +307,7 @@ const DatasetPanel = ({
                   columns={tableColumnDefinition}
                   data={columnList}
                   pageSizeOptions={pageSizeOptions}
-                  defaultPageSize={25}
+                  defaultPageSize={DEFAULT_PAGE_SIZE}
                 />
               </TableScrollContainer>
             </TableContainerWithoutBanner>

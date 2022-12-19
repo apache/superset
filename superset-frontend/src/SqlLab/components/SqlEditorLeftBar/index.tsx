@@ -49,7 +49,7 @@ import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { emptyStateComponent } from 'src/components/EmptyState';
 import {
   getItem,
   LocalStorageKeys,
@@ -94,28 +94,6 @@ const collapseStyles = (theme: SupersetTheme) => css`
     }
   }
 `;
-
-const NO_DATABASES_MATCH_TITLE = t('No databases match your search');
-const NO_DATABASES_AVAILABLE_TITLE = t('There are no databases available');
-const MANAGE_YOUR_DATABASES_TEXT = t('Manage your databases');
-const HERE_TEXT = t('here');
-
-export const emptyStateComponent = (emptyResultsWithSearch: boolean) => (
-  <EmptyStateSmall
-    image="empty.svg"
-    title={
-      emptyResultsWithSearch
-        ? NO_DATABASES_MATCH_TITLE
-        : NO_DATABASES_AVAILABLE_TITLE
-    }
-    description={
-      <p>
-        {MANAGE_YOUR_DATABASES_TEXT}{' '}
-        <a href="/databaseview/list">{HERE_TEXT}</a>
-      </p>
-    }
-  />
-);
 
 const SqlEditorLeftBar = ({
   database,
