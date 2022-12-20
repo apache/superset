@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/core",
-  "version": "0.18.25",
+  "version": "0.19.0",
   "description": "Superset UI core",
   "keywords": [
     "superset"
@@ -72,7 +72,7 @@
     "@types/react": "*",
     "@types/react-loadable": "*",
     "@types/tinycolor2": "*",
-    "react": "^16.13.1",
+    "react": "^18.0.2",
     "react-loadable": "^5.5.0",
     "tinycolor2": "*"
   },

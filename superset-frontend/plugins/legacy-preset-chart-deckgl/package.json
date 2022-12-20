@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-preset-chart-deckgl",
-  "version": "0.4.13",
+  "version": "0.5.0",
   "description": "Superset Legacy Chart - deck.gl",
   "keywords": [
     "superset"
@@ -45,8 +45,8 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "mapbox-gl": "*",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
+    "react": "^18.0.2",
+    "react-dom": "^18.0.2",
     "react-map-gl": "^6.1.19"
   },
   "publishConfig": {
