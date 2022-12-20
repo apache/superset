@@ -223,6 +223,47 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ValidateSQLResponse,
     )
 
+    @expose("/<int:pk>", methods=["GET"])
+    @protect()
+    @safe
+    def get(self, pk: int, **kwargs: Any) -> Response:
+        """Get a database
+        ---
+        get:
+          description: >-
+            Get a database with its SSH Tunnel if any
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The database id
+            name: pk
+          responses:
+            200:
+              description: Database
+              content:
+                application/json:
+                  schema:
+                    type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        data = self.get_headless(pk, **kwargs)
+        try:
+            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
+                payload = data.json
+                payload["result"]["ssh_tunnel"] = ssh_tunnel.data
+                return payload
+            return data
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
+
     @expose("/", methods=["POST"])
     @protect()
     @safe
