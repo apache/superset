@@ -110,6 +110,9 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     export_fields = [
         "slice_name",
+        "description",
+        "certified_by",
+        "certification_details",
         "datasource_type",
         "datasource_name",
         "viz_type",
