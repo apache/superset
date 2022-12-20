@@ -1020,6 +1020,8 @@ def test_time_grain_and_time_offset_on_legacy_query(app_context, physical_datase
     )
 
 
+# TODO: We can keep this test case as it's a valid use case but we should also create one
+# for testing with a default temporal column
 def test_time_offset_with_temporal_range_filter(app_context, physical_dataset):
     qc = QueryContextFactory().create(
         datasource={

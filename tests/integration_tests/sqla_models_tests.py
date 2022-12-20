@@ -866,6 +866,8 @@ def test__normalize_prequery_result_type(
         assert normalized == result
 
 
+# TODO: We can keep this test case as it's a valid use case but we should also create one
+# for testing with a default temporal column
 def test__temporal_range_operator_in_adhoc_filter(app_context, physical_dataset):
     result = physical_dataset.query(
         {

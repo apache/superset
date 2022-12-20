@@ -75,6 +75,8 @@ def test__since_until_from_time_range(dummy_query_object):
     )
 
 
+# TODO: We can keep this test case as it's a valid use case but we should also create one
+# for testing with a default temporal column
 @pytest.mark.query_object(
     {
         "filters": [{"col": "dttm", "op": "TEMPORAL_RANGE", "val": "2001 : 2002"}],

@@ -61,6 +61,7 @@ def get_since_until_from_query_object(
             extras=query_object.extras,
         )
 
+    # TODO: This needs to change
     time_range = None
     for flt in query_object.filter:
         if (
