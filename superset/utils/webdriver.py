@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from enum import Enum
 from time import sleep
-from typing import Any, Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from flask import current_app
 from selenium.common.exceptions import (
@@ -49,6 +49,62 @@ class DashboardStandaloneMode(Enum):
     HIDE_NAV = 1
     HIDE_NAV_AND_TITLE = 2
     REPORT = 3
+
+
+def find_unexpected_errors(driver: WebDriver) -> List[str]:
+    error_messages = []
+
+    try:
+        alert_divs = driver.find_elements(By.XPATH, "//div[@role = 'alert']")
+        logger.debug(
+            "%i alert elements have been found in the screenshot", len(alert_divs)
+        )
+
+        for alert_div in alert_divs:
+            # See More button
+            alert_div.find_element(By.XPATH, ".//*[@role = 'button']").click()
+
+            # wait for modal to show up
+            modal = WebDriverWait(
+                driver, current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"]
+            ).until(
+                EC.visibility_of_any_elements_located(
+                    (By.CLASS_NAME, "ant-modal-content")
+                )
+            )[
+                0
+            ]
+
+            err_msg_div = modal.find_element(By.CLASS_NAME, "ant-modal-body")
+
+            # collect error message
+            error_messages.append(err_msg_div.text)
+
+            # close modal after collecting error messages
+            modal.find_element(By.CLASS_NAME, "ant-modal-close").click()
+
+            # wait until the modal becomes invisible
+            WebDriverWait(
+                driver, current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE"]
+            ).until(EC.invisibility_of_element(modal))
+
+            # Use HTML so that error messages are shown in the same style (color)
+            error_as_html = err_msg_div.get_attribute("innerHTML").replace("'", "\\'")
+
+            try:
+                # Even if some errors can't be updated in the screenshot,
+                # keep all the errors in the server log and do not fail the loop
+                driver.execute_script(
+                    f"arguments[0].innerHTML = '{error_as_html}'", alert_div
+                )
+            except WebDriverException:
+                logger.warning(
+                    "Failed to update error messages using alert_div", exc_info=True
+                )
+    except WebDriverException:
+        logger.warning("Failed to capture unexpected errors", exc_info=True)
+
+    return error_messages
 
 
 class WebDriverProxy:
@@ -141,7 +197,19 @@ class WebDriverProxy:
                 url,
                 user.username,
             )
+
+            if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:
+                unexpected_errors = find_unexpected_errors(driver)
+                if unexpected_errors:
+                    logger.warning(
+                        "%i errors found in the screenshot. URL: %s. Errors are: %s",
+                        len(unexpected_errors),
+                        url,
+                        unexpected_errors,
+                    )
+
             img = element.screenshot_as_png
+
         except TimeoutException:
             logger.warning("Selenium timed out requesting url %s", url, exc_info=True)
         except StaleElementReferenceException:
