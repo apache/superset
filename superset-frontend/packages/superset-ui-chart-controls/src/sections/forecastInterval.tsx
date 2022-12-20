@@ -17,12 +17,13 @@
  * under the License.
  */
 import {
+  isAdhocColumn,
   legacyValidateInteger,
   legacyValidateNumber,
   t,
 } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
-import { isXAxisTemporal } from '../utils';
+import { isTemporalColumn } from '../utils';
 
 export const FORECAST_DEFAULT_DATA = {
   forecastEnabled: false,
@@ -136,10 +137,18 @@ export const forecastIntervalControls: ControlPanelSectionConfig = {
     ],
   ],
   setDisabled: ({ exploreState }): false | string[] => {
-    if (exploreState?.form_data?.x_axis && !isXAxisTemporal(exploreState)) {
-      return [
-        'These controls are only available if a temporal x-axis is selected',
-      ];
+    if (exploreState) {
+      const { datasource } = exploreState;
+      const column = exploreState?.form_data?.x_axis;
+      if (
+        column &&
+        !isAdhocColumn(column) &&
+        !isTemporalColumn(column, datasource)
+      ) {
+        return [
+          'These controls are only available if a temporal x-axis is selected',
+        ];
+      }
     }
     return false;
   },

@@ -19,7 +19,7 @@
 import React from 'react';
 import { t, RollingType, ComparisionType } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
-import { formatSelectOptions, isXAxisTemporal } from '../utils';
+import { formatSelectOptions } from '../utils';
 
 export const advancedAnalyticsControls: ControlPanelSectionConfig = {
   label: t('Advanced analytics'),
@@ -196,12 +196,4 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
     ],
   ],
   expanded: false,
-  setDisabled: ({ exploreState }): false | string[] => {
-    if (exploreState?.form_data?.x_axis && !isXAxisTemporal(exploreState)) {
-      return [
-        'These controls are only available if a temporal x-axis is selected',
-      ];
-    }
-    return false;
-  },
 };
