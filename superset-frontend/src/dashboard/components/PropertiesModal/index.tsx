@@ -111,6 +111,7 @@ const PropertiesModal = ({
     const selectTags = tags.map(tag => ({
       value: tag.name,
       label: tag.name,
+      key: tag.name,
     }));
     return selectTags;
   }, [tags.length]);
