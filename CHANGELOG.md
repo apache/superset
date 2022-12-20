@@ -18,12 +18,21 @@ under the License.
 -->
 
 ## Change Log
+- [2.0.1](#201-fri-nov-4-103402-2022--0400)
+- [2.0.0](#200-tue-jun-28-085302-2022--0400)
+- [1.5.2 (LTS)](#152-wed-sep-14-171151-2022-0530)
+- [1.5.1](#151-thu-may-26-144520-2022-0300)
+- [1.5.0](#150-fri-apr-22-172330-2022--0400)
+- [1.4.2](#142-sat-mar-19-000806-2022-0200)
+- [1.4.1](#141)
+
 ### 2.0.1 (Fri Nov 4 10:34:02 2022 -0400)
 **Database Migrations**
 
 **Features**
 
 **Fixes**
+- [#22417](https://github.com/apache/superset/pull/22417) fix: fix: Force configuration for SafeMarkdown component in Handlebars(@geido)
 - [#21895](https://github.com/apache/superset/pull/21895) feat: Improves SafeMarkdown HTML sanitization (@michael-s-molina) (security-improvement)
 - [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina)(security-improvement)
 - [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina)(security-improvement)
@@ -38,7 +47,6 @@ under the License.
 - [#21761](https://github.com/apache/superset/pull/21761) fix: flash message on database data upload forms (@dpgaspar)
 - [#21759](https://github.com/apache/superset/pull/21759) fix: database schema selector on import data (@dpgaspar)
 - [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
-- [#21549](https://github.com/apache/superset/pull/21549) fix(dashboard): show correct roles for dashboard access dropdown (@mayurnewase)
 - [#21773](https://github.com/apache/superset/pull/21773) fix: remove deprecated ETagResponseMixin (@eschutho)
 - [#21561](https://github.com/apache/superset/pull/21561) fix(report): Fix permission check for set up email report on charts/dashboards. Fixes #21559 (@zhaorui2022)
 - [#20651](https://github.com/apache/superset/pull/20651) fix: annotation broken (@zhaoyongjie)
