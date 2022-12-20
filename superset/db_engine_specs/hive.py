@@ -225,22 +225,23 @@ class HiveEngineSpec(PrestoEngineSpec):
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
-            engine.execute(
-                text(
-                    f"""
-                    CREATE TABLE {str(table)} ({schema_definition})
-                    STORED AS PARQUET
-                    LOCATION :location
-                    """
-                ),
-                location=upload_to_s3(
-                    filename=file.name,
-                    upload_prefix=current_app.config[
-                        "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                    ](database, g.user, table.schema),
-                    table=table,
-                ),
-            )
+            with cls.get_engine(database) as engine:
+                engine.execute(
+                    text(
+                        f"""
+                        CREATE TABLE {str(table)} ({schema_definition})
+                        STORED AS PARQUET
+                        LOCATION :location
+                        """
+                    ),
+                    location=upload_to_s3(
+                        filename=file.name,
+                        upload_prefix=current_app.config[
+                            "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
+                        ](database, g.user, table.schema),
+                        table=table,
+                    ),
+                )
 
     @classmethod
     def convert_dttm(

@@ -65,19 +65,31 @@ export const FooterRow = styled(Row)`
 `;
 
 export const StyledLayoutHeader = styled.div`
+  ${({ theme }) => `
   flex: 0 0 auto;
-  height: ${({ theme }) => theme.gridUnit * 16}px;
-  border-bottom: 2px solid ${({ theme }) => theme.colors.grayscale.light2};
+  height: ${theme.gridUnit * 16}px;
+  border-bottom: 2px solid ${theme.colors.grayscale.light2};
 
   .header-with-actions {
-    height: ${({ theme }) => theme.gridUnit * 15.5}px;
+    height: ${theme.gridUnit * 15.5}px;
   }
+  `}
+`;
+
+export const StyledCreateDatasetTitle = styled.div`
+  ${({ theme }) => `
+  margin: ${theme.gridUnit * 4}px;
+  font-size: ${theme.typography.sizes.xl}px;
+  font-weight: ${theme.typography.weights.bold};
+  `}
 `;
 
 export const StyledLayoutLeftPanel = styled.div`
-  width: ${({ theme }) => theme.gridUnit * 80}px;
+  ${({ theme }) => `
+  width: ${theme.gridUnit * 80}px;
   height: 100%;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border-right: 1px solid ${theme.colors.grayscale.light2};
+  `}
 `;
 
 export const StyledLayoutDatasetPanel = styled.div`
@@ -86,21 +98,27 @@ export const StyledLayoutDatasetPanel = styled.div`
 `;
 
 export const StyledLayoutRightPanel = styled.div`
-  border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  color: ${({ theme }) => theme.colors.success.base};
+  ${({ theme }) => `
+  border-left: 1px solid ${theme.colors.grayscale.light2};
+  color: ${theme.colors.success.base};
+  `}
 `;
 
 export const StyledLayoutFooter = styled.div`
-  height: ${({ theme }) => theme.gridUnit * 16}px;
+  ${({ theme }) => `
+  height: ${theme.gridUnit * 16}px;
   width: 100%;
-  border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  color: ${({ theme }) => theme.colors.info.base};
-  border-top: ${({ theme }) => theme.gridUnit / 4}px solid
-    ${({ theme }) => theme.colors.grayscale.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  border-top: 1px solid ${theme.colors.grayscale.light2};
+  border-bottom: 1px solid ${theme.colors.grayscale.light2};
+  color: ${theme.colors.info.base};
+  border-top: ${theme.gridUnit / 4}px solid
+    ${theme.colors.grayscale.light2};
+  padding: ${theme.gridUnit * 4}px;
   display: flex;
   justify-content: flex-end;
+  background-color: ${theme.colors.grayscale.light5};
+  z-index: ${theme.zIndex.max}
+  `}
 `;
 
 export const HeaderComponentStyles = styled.div`
