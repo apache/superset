@@ -34,8 +34,6 @@ PASSWORD_MASK = "X" * 10
 
 NO_TIME_RANGE = "No filter"
 
-SSH_TUNNELLING_LOCAL_BIND_ADDRESS = "127.0.0.1"
-
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """
