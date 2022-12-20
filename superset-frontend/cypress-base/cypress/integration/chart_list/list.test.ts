@@ -58,7 +58,7 @@ describe('Charts list', () => {
     cy.preserveLogin();
   });
 
-  describe('Cross-referenced dashboards', () => {
+  describe.skip('Cross-referenced dashboards', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.createSampleCharts([0]);
@@ -105,6 +105,8 @@ describe('Charts list', () => {
 
   describe('list mode', () => {
     before(() => {
+      cy.createSampleDashboards([0, 1, 2, 3]);
+      cy.createSampleCharts([0]);
       visitChartList();
       setGridMode('list');
     });
