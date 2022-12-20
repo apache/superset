@@ -48,7 +48,6 @@ assists people when migrating to a new version.
 ## Breaking Changes
 
 ## Potential Downtime
-
 ## Other
 
 ## 2.0.0
