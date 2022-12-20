@@ -165,6 +165,43 @@ const StyledContent = styled.div<{
 `;
 
 const DashboardContentWrapper = styled.div`
+  &.dashboard {
+    position: relative;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    /* only top-level tabs have popover, give it more padding to match header + tabs */
+    & > .with-popover-menu > .popover-menu {
+      left: ${({ theme }) => theme.gridUnit * 6}px;
+    }
+
+    /* drop shadow for top-level tabs only */
+    & .dashboard-component-tabs {
+      box-shadow: 0 ${({ theme }) => theme.gridUnit}px
+        ${({ theme }) => theme.gridUnit}px 0
+        fade(
+          ${({ theme }) => theme.colors.grayscale.dark2},
+          ${({ theme }) => theme.opacity.light}
+        );
+      padding-left: ${({ theme }) =>
+        theme.gridUnit *
+        2}px; /* note this is added to tab-level padding, to match header */
+    }
+
+    .dropdown-toggle.btn.btn-primary .caret {
+      color: ${({ theme }) => theme.colors.grayscale.light5};
+    }
+
+    .background--transparent {
+      background-color: transparent;
+    }
+
+    .background--white {
+      background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    }
+  }
   &.dashboard--editing {
     .grid-row:after,
     .dashboard-component-tabs > .hover-menu:hover + div:after {
