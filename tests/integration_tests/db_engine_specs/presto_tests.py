@@ -657,7 +657,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         assert isinstance(column_spec.sqla_type, types.TIMESTAMP)
         self.assertEqual(column_spec.generic_type, GenericDataType.TEMPORAL)
 
-        sqla_type = PrestoEngineSpec.get_sqla_column_type(None)
+        sqla_type = PrestoEngineSpec.get_column_types(None)
         assert sqla_type is None
 
     @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")

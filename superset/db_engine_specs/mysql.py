@@ -233,23 +233,6 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
         return message
 
     @classmethod
-    def get_column_spec(
-        cls,
-        native_type: Optional[str],
-        db_extra: Optional[Dict[str, Any]] = None,
-        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
-        column_type_mappings: Tuple[ColumnTypeMapping, ...] = column_type_mappings,
-    ) -> Optional[ColumnSpec]:
-
-        column_spec = super().get_column_spec(native_type)
-        if column_spec:
-            return column_spec
-
-        return super().get_column_spec(
-            native_type, column_type_mappings=column_type_mappings
-        )
-
-    @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
         """
         Get MySQL connection ID that will be used to cancel all other running

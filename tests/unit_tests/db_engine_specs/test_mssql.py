@@ -50,7 +50,7 @@ def test_mssql_column_types(
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     if type_expected is None:
-        type_assigned = MssqlEngineSpec.get_sqla_column_type(type_string)
+        type_assigned = MssqlEngineSpec.get_column_types(type_string)
         assert type_assigned is None
     else:
         column_spec = MssqlEngineSpec.get_column_spec(type_string)
@@ -65,13 +65,13 @@ def test_where_clause_n_prefix() -> None:
     dialect = mssql.dialect()
 
     # non-unicode col
-    sqla_column_type = MssqlEngineSpec.get_sqla_column_type("VARCHAR(10)")
+    sqla_column_type = MssqlEngineSpec.get_column_types("VARCHAR(10)")
     assert sqla_column_type is not None
     type_, _ = sqla_column_type
     str_col = column("col", type_=type_)
 
     # unicode col
-    sqla_column_type = MssqlEngineSpec.get_sqla_column_type("NTEXT")
+    sqla_column_type = MssqlEngineSpec.get_column_types("NTEXT")
     assert sqla_column_type is not None
     type_, _ = sqla_column_type
     unicode_col = column("unicode_col", type_=type_)
