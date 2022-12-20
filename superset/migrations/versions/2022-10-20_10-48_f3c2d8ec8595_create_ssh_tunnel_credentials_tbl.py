@@ -49,10 +49,23 @@ def upgrade():
         # ExtraJSONMixin
         sa.Column("extra_json", sa.Text(), nullable=True),
         # ImportExportMixin
-        sa.Column("uuid", UUIDType(binary=True), primary_key=False, default=uuid4, unique=True, index=True),
+        sa.Column(
+            "uuid",
+            UUIDType(binary=True),
+            primary_key=False,
+            default=uuid4,
+            unique=True,
+            index=True,
+        ),
         # SSHTunnelCredentials
         sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("database_id", sa.INTEGER(), sa.ForeignKey("dbs.id"), unique=True, index=True),
+        sa.Column(
+            "database_id",
+            sa.INTEGER(),
+            sa.ForeignKey("dbs.id"),
+            unique=True,
+            index=True,
+        ),
         sa.Column("server_address", sa.String(256)),
         sa.Column("server_port", sa.INTEGER()),
         sa.Column("username", encrypted_field_factory.create(sa.String(256))),
