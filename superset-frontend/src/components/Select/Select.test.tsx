@@ -65,8 +65,6 @@ const defaultProps = {
   showSearch: true,
 };
 
-const selectAllTagLabel = (numOptions: number) => `${numOptions} selected`;
-
 const selectAllOptionLabel = (numOptions: number) =>
   `${String(SELECT_ALL_VALUE)} (${numOptions})`;
 
@@ -95,9 +93,11 @@ const findSelectValue = () =>
   waitFor(() => getElementByClassName('.ant-select-selection-item'));
 
 const findAllSelectValues = () =>
+  waitFor(() => [...getElementsByClassName('.ant-select-selection-item')]);
+
+const findAllCheckedValues = () =>
   waitFor(() => [
-    ...getElementsByClassName('.ant-tag'),
-    ...getElementsByClassName('.ant-select-selection-item'),
+    ...getElementsByClassName('.ant-select-item-option-selected'),
   ]);
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
@@ -643,22 +643,35 @@ test('keeps "Select all" at the top after a selection', async () => {
 });
 
 test('selects all values', async () => {
-  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  render(
+    <Select
+      {...defaultProps}
+      options={OPTIONS}
+      mode="multiple"
+      maxTagCount={0}
+    />,
+  );
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
   const values = await findAllSelectValues();
-  expect(values.length).toBe(2);
-  expect(values[0]).toHaveTextContent(selectAllTagLabel(OPTIONS.length));
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(`+ ${OPTIONS.length} ...`);
 });
 
 test('unselects all values', async () => {
-  render(<Select {...defaultProps} options={OPTIONS} mode="multiple" />);
+  render(
+    <Select
+      {...defaultProps}
+      options={OPTIONS}
+      mode="multiple"
+      maxTagCount={0}
+    />,
+  );
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
   let values = await findAllSelectValues();
-  expect(values.length).toBe(2);
-  expect(values[0]).toHaveTextContent(selectAllTagLabel(OPTIONS.length));
-  // const options = await findAllSelectOptions();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(`+ ${OPTIONS.length} ...`);
   userEvent.click(await findSelectOption(selectAllOptionLabel(OPTIONS.length)));
   values = await findAllSelectValues();
   expect(values.length).toBe(0);
@@ -666,20 +679,30 @@ test('unselects all values', async () => {
 
 test('deselecting a value also deselects "Select all"', async () => {
   render(
-    <Select {...defaultProps} options={OPTIONS.slice(0, 10)} mode="multiple" />,
+    <Select
+      {...defaultProps}
+      options={OPTIONS.slice(0, 10)}
+      mode="multiple"
+      maxTagCount={0}
+    />,
   );
   await open();
   userEvent.click(await findSelectOption(selectAllOptionLabel(10)));
-  let values = await findAllSelectValues();
-  expect(values[0]).toHaveTextContent(selectAllTagLabel(10));
+  let values = await findAllCheckedValues();
+  expect(values[0]).toHaveTextContent(selectAllOptionLabel(10));
   userEvent.click(await findSelectOption(OPTIONS[0].label));
-  values = await findAllSelectValues();
-  expect(values[0]).toHaveTextContent(OPTIONS[1].label);
+  values = await findAllCheckedValues();
+  expect(values[0]).not.toHaveTextContent(selectAllOptionLabel(10));
 });
 
 test('selecting all values also selects "Select all"', async () => {
   render(
-    <Select {...defaultProps} options={OPTIONS.slice(0, 10)} mode="multiple" />,
+    <Select
+      {...defaultProps}
+      options={OPTIONS.slice(0, 10)}
+      mode="multiple"
+      maxTagCount={0}
+    />,
   );
   await open();
   const options = await findAllSelectOptions();
@@ -690,7 +713,9 @@ test('selecting all values also selects "Select all"', async () => {
     }
   });
   const values = await findAllSelectValues();
-  expect(values[0]).toHaveTextContent(selectAllTagLabel(10));
+  expect(values[0]).toHaveTextContent(`+ 10 ...`);
+});
+
 test('Renders only 1 tag and an overflow tag in oneLine mode', () => {
   render(
     <Select
@@ -737,6 +762,61 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.queryByText(OPTIONS[1].label)).not.toBeInTheDocument();
   expect(withinSelector.queryByText(OPTIONS[2].label)).not.toBeInTheDocument();
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+});
+
+test('+N tag does not count the "Select All" option', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      options={OPTIONS.slice(0, 10)}
+      mode="multiple"
+      maxTagCount={0}
+    />,
+  );
+  await open();
+  userEvent.click(await findSelectOption(selectAllOptionLabel(10)));
+  const values = await findAllSelectValues();
+  // maxTagCount is 0 so the +N tag should be + 10 ...
+  expect(values[0]).toHaveTextContent('+ 10 ...');
+});
+
+test('"Select All" is checked when unchecking a newly added option and all the other options are still selected', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      options={OPTIONS.slice(0, 10)}
+      mode="multiple"
+      allowNewOptions
+    />,
+  );
+  await open();
+  userEvent.click(await findSelectOption(selectAllOptionLabel(10)));
+  expect(await findSelectOption(selectAllOptionLabel(10))).toBeInTheDocument();
+  // add a new option
+  await type(`${NEW_OPTION}{enter}`);
+  expect(await findSelectOption(selectAllOptionLabel(11))).toBeInTheDocument();
+  expect(await findSelectOption(NEW_OPTION)).toBeInTheDocument();
+  // select all should be selected
+  let values = await findAllCheckedValues();
+  expect(values[0]).toHaveTextContent(selectAllOptionLabel(11));
+  // remove new option
+  userEvent.click(await findSelectOption(NEW_OPTION));
+  // select all should still be selected
+  values = await findAllCheckedValues();
+  expect(values[0]).toHaveTextContent(selectAllOptionLabel(10));
+  expect(await findSelectOption(selectAllOptionLabel(10))).toBeInTheDocument();
+});
+
+test('does not render "Select All" when there are 0 or 1 options', async () => {
+  render(
+    <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
+  );
+  await open();
+  expect(screen.queryByText(selectAllOptionLabel(0))).not.toBeInTheDocument();
+  await type(`${NEW_OPTION}{enter}`);
+  expect(screen.queryByText(selectAllOptionLabel(1))).not.toBeInTheDocument();
+  await type(`Kyle2{enter}`);
+  expect(screen.queryByText(selectAllOptionLabel(2))).toBeInTheDocument();
 });
 
 /*

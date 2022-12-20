@@ -48,13 +48,11 @@ import {
 } from './utils';
 import { SelectOptionsType, SelectProps } from './types';
 import {
-  NoElement,
   StyledCheckOutlined,
   StyledContainer,
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
-  StyledTag,
 } from './styles';
 import {
   EMPTY_OPTIONS,
@@ -62,7 +60,7 @@ import {
   TOKEN_SEPARATORS,
   DEFAULT_SORT_COMPARATOR,
 } from './constants';
-import { oneLineTagRender } from './CustomTag';
+import { customTagRender } from './CustomTag';
 
 /**
  * This component is a customized version of the Antdesign 4.X Select component
@@ -180,8 +178,13 @@ const Select = forwardRef(
     }, [selectOptions, selectValue]);
 
     const selectAllEnabled = useMemo(
-      () => !isSingleMode && fullSelectOptions.length > 0 && !inputValue,
+      () => !isSingleMode && fullSelectOptions.length > 1 && !inputValue,
       [fullSelectOptions, isSingleMode, inputValue],
+    );
+
+    const selectAllMode = useMemo(
+      () => ensureIsArray(selectValue).length === fullSelectOptions.length + 1,
+      [selectValue, fullSelectOptions],
     );
 
     const handleOnSelect = (
@@ -195,12 +198,15 @@ const Select = forwardRef(
           const value = getValue(selectedItem);
           // Tokenized values can contain duplicated values
           if (value === getValue(SELECT_ALL_VALUE)) {
-            if (labelInValue) {
-              return [selectAllOption, ...selectOptions] as AntdLabeledValue[];
+            if (isLabeledValue(selectedItem)) {
+              return [
+                ...fullSelectOptions,
+                selectAllOption,
+              ] as AntdLabeledValue[];
             }
             return [
               SELECT_ALL_VALUE,
-              ...selectOptions.map(opt => opt.value),
+              ...fullSelectOptions.map(opt => opt.value),
             ] as AntdLabeledValue[];
           }
           if (!hasOption(value, array)) {
@@ -209,9 +215,9 @@ const Select = forwardRef(
               result.length === fullSelectOptions.length &&
               selectAllEnabled
             ) {
-              return labelInValue
-                ? ([selectAllOption, ...result] as AntdLabeledValue[])
-                : ([SELECT_ALL_VALUE, ...result] as AntdLabeledValue[]);
+              return isLabeledValue(selectedItem)
+                ? ([...result, selectAllOption] as AntdLabeledValue[])
+                : ([...result, SELECT_ALL_VALUE] as (string | number)[]);
             }
             return result as AntdLabeledValue[];
           }
@@ -230,10 +236,17 @@ const Select = forwardRef(
         } else {
           let array = selectValue as AntdLabeledValue[];
           array = array.filter(
-            element =>
-              getValue(element) !== getValue(value) &&
-              getValue(element) !== SELECT_ALL_VALUE,
+            element => getValue(element) !== getValue(value),
           );
+          // if this was not a new item, deselect select all option
+          if (
+            selectAllMode &&
+            selectOptions.some(opt => opt.value === getValue(value))
+          ) {
+            array = array.filter(
+              element => getValue(element) !== SELECT_ALL_VALUE,
+            );
+          }
           setSelectValue(array);
         }
       }
@@ -307,11 +320,6 @@ const Select = forwardRef(
       }
     }, [isLoading, loading]);
 
-    const selectAllMode = useMemo(
-      () => ensureIsArray(selectValue).length === fullSelectOptions.length + 1,
-      [selectValue, fullSelectOptions],
-    );
-
     useEffect(() => {
       // if all values are selected, add select all to value
       if (
@@ -321,16 +329,17 @@ const Select = forwardRef(
       ) {
         setSelectValue(
           labelInValue
-            ? ([selectAllOption, ...ensureIsArray(value)] as AntdLabeledValue[])
+            ? ([...ensureIsArray(value), selectAllOption] as AntdLabeledValue[])
             : ([
-                SELECT_ALL_VALUE,
                 ...ensureIsArray(value),
+                SELECT_ALL_VALUE,
               ] as AntdLabeledValue[]),
         );
       } else {
         setSelectValue(value);
       }
-    }, [value]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value, isSingleMode, labelInValue]);
 
     useEffect(() => {
       const checkSelectAll = ensureIsArray(selectValue).some(
@@ -339,8 +348,8 @@ const Select = forwardRef(
       if (checkSelectAll && !selectAllMode) {
         setSelectValue(
           labelInValue
-            ? ([selectAllOption, ...fullSelectOptions] as AntdLabeledValue[])
-            : ([SELECT_ALL_VALUE, ...fullSelectOptions] as AntdLabeledValue[]),
+            ? ([...fullSelectOptions, selectAllOption] as AntdLabeledValue[])
+            : ([...fullSelectOptions, SELECT_ALL_VALUE] as AntdLabeledValue[]),
         );
       }
     }, [selectValue, selectAllMode, labelInValue, fullSelectOptions]);
@@ -351,22 +360,8 @@ const Select = forwardRef(
           NumberFormats.INTEGER,
           fullSelectOptions.length,
         )})`,
-      [fullSelectOptions],
+      [fullSelectOptions.length],
     );
-
-    const SelectAllModeTagRenderer = (props: any) => {
-      const { value } = props;
-      // skip plus elements placeholder
-      if (!value) {
-        return <NoElement />; // doesn't accept null
-      }
-      return (
-        <StyledTag {...props}>{`${formatNumber(
-          NumberFormats.INTEGER,
-          ensureIsArray(selectValue).length - 1,
-        )} ${t('selected')}`}</StyledTag>
-      );
-    };
 
     const handleOnChange = (values: any, options: any) => {
       // intercept onChange call to handle the select all case
@@ -411,6 +406,11 @@ const Select = forwardRef(
       onChange?.(newValues, newOptions);
     };
 
+    const customMaxTagPlaceholder = (ommitedValues: AntdLabeledValue[]) =>
+      selectAllMode
+        ? `+ ${ommitedValues.length - 1} ...`
+        : `+ ${ommitedValues.length} ...`;
+
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -428,6 +428,7 @@ const Select = forwardRef(
           headerPosition={headerPosition}
           labelInValue={labelInValue}
           maxTagCount={maxTagCount}
+          maxTagPlaceholder={customMaxTagPlaceholder}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onDeselect={handleOnDeselect}
@@ -437,11 +438,9 @@ const Select = forwardRef(
           onSelect={handleOnSelect}
           onClear={handleClear}
           onChange={handleOnChange}
-          options={undefined}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           showArrow
-          tagRender={selectAllMode ? SelectAllModeTagRenderer : undefined}
           tokenSeparators={tokenSeparators || TOKEN_SEPARATORS}
           value={selectValue}
           suffixIcon={getSuffixIcon(
@@ -457,7 +456,7 @@ const Select = forwardRef(
             )
           }
           oneLine={oneLine}
-          tagRender={oneLine ? oneLineTagRender : undefined}
+          tagRender={customTagRender}
           {...props}
           ref={ref}
         >

@@ -94,7 +94,7 @@ test('table should be visible when expanded is true', async () => {
     expect(dbSelect).toBeInTheDocument();
     expect(schemaSelect).toBeInTheDocument();
     expect(dropdown).toBeInTheDocument();
-    expect(abUser).toHaveLength(1);
+    expect(abUser).toHaveLength(2);
     expect(
       container.querySelector('.ant-collapse-content-active'),
     ).toBeInTheDocument();
@@ -105,7 +105,7 @@ test('should toggle the table when the header is clicked', async () => {
   const store = mockStore(initialState);
   await renderAndWait(mockedProps, store);
 
-  const header = (await screen.findAllByText(/ab_user/))[0];
+  const header = (await screen.findAllByText(/ab_user/))[1];
   expect(header).toBeInTheDocument();
   userEvent.click(header);
 

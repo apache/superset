@@ -213,4 +213,5 @@ export interface AsyncSelectProps extends BaseSelectProps {
 export type CustomTagProps = HTMLSpanElement &
   TagProps & {
     label: ReactNode;
+    value: string;
   };
