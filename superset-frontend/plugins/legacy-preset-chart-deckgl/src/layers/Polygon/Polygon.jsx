@@ -58,7 +58,11 @@ function setTooltipContent(formData) {
     return (
       <div className="deckgl-tooltip">
         {o.object.name && (
-          <TooltipRow label={t('name: ')} value={`${o.object.name}`} />
+          <TooltipRow
+            // eslint-disable-next-line prefer-template
+            label={t('name') + ': '}
+            value={`${o.object.name}`}
+          />
         )}
         {o.object[formData.line_column] && (
           <TooltipRow

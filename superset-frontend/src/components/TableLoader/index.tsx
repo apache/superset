@@ -68,7 +68,7 @@ const TableLoader = (props: TableLoaderProps) => {
     return tableColumns
       ? tableColumns.map((column: string) => ({
           accessor: column,
-          Header: column,
+          Header: t('column'),
         }))
       : [];
   }, [columns, data]);

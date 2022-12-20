@@ -102,7 +102,7 @@ const AdhocMetricEditPopoverTitle: React.FC<AdhocMetricEditPopoverTitleProps> =
     }
 
     return (
-      <Tooltip placement="top" title="Click to edit label">
+      <Tooltip placement="top" title={t('Click to edit label')}>
         <span
           className="AdhocMetricEditPopoverTitle inline-editable"
           data-test="AdhocMetricEditTitle#trigger"

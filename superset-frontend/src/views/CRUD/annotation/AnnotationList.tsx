@@ -259,11 +259,9 @@ function AnnotationList({
             <span>{t('Annotation Layer %s', annotationLayerName)}</span>
             <span>
               {hasHistory ? (
-                <Link to="/annotationlayermodelview/list/">
-                  {t('Back to all')}
-                </Link>
+                <Link to="/annotationlayer/list/">{t('Back to all')}</Link>
               ) : (
-                <a href="/annotationlayermodelview/list/">{t('Back to all')}</a>
+                <a href="/annotationlayer/list/">{t('Back to all')}</a>
               )}
             </span>
           </StyledHeader>

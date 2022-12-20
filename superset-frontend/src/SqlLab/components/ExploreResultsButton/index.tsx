@@ -44,7 +44,7 @@ const ExploreResultsButton = ({
       <InfoTooltipWithTrigger
         icon="line-chart"
         placement="top"
-        label="explore"
+        label={t('explore')}
       />{' '}
       {t('Create Chart')}
     </Button>

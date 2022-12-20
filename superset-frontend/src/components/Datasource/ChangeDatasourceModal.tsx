@@ -266,7 +266,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
                   buttonStyle="primary"
                   onClick={handleChangeConfirm}
                 >
-                  Proceed
+                  {t('Proceed')}
                 </Button>
               </div>
             </ConfirmModalStyled>

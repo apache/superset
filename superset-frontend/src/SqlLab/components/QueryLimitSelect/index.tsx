@@ -98,7 +98,7 @@ const QueryLimitSelect = ({
         trigger={['click']}
       >
         <button type="button" onClick={e => e.preventDefault()}>
-          <span>{t('LIMIT:')}</span>
+          <span>{t('LIMIT')}:</span>
           <span className="limitDropdown">
             {convertToNumWithSpaces(queryLimit)}
           </span>
