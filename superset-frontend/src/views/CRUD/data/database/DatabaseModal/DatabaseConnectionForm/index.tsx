@@ -67,6 +67,8 @@ export interface FieldPropTypes {
   } & { onParametersUploadFileChange: (value: any) => string } & {
     onAddTableCatalog: () => void;
     onRemoveTableCatalog: (idx: number) => void;
+  } & {
+    onSSHTunnelParametersChange: (value: any) => string;
   };
   validationErrors: JsonObject | null;
   getValidation: () => void;

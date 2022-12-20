@@ -26,6 +26,15 @@ export type CatalogObject = {
   value: string;
 };
 
+export type SSHTunnelObject = {
+  server_address?: string;
+  server_port?: number;
+  username?: string;
+  password?: string;
+  private_key?: string;
+  private_key_password?: string;
+};
+
 export type DatabaseObject = {
   // Connection + general
   backend?: string;
@@ -87,6 +96,9 @@ export type DatabaseObject = {
   engine_information?: {
     supports_file_upload?: boolean;
   };
+
+  // SSH Tunnel information
+  ssh_tunnel?: SSHTunnelObject;
 };
 
 export type DatabaseForm = {
@@ -128,6 +140,40 @@ export type DatabaseForm = {
         type: string;
       };
       service_account_info: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+    };
+    required: string[];
+    type: string;
+  };
+  ssh_tunnel: {
+    properties: {
+      ssh_address: {
+        description: string;
+        type: string;
+      };
+      ssh_port: {
+        description: string;
+        format: string;
+        type: string;
+      };
+      username: {
+        description: string;
+        type: string;
+      };
+      password: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+      private_key: {
+        description: string;
+        nullable: boolean;
+        type: string;
+      };
+      private_key_password: {
         description: string;
         nullable: boolean;
         type: string;
