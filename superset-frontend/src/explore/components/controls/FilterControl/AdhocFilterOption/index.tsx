@@ -52,6 +52,7 @@ export default function AdhocFilterOption({
   sections,
   operators,
 }: AdhocFilterOptionProps) {
+  // TODO: This needs to change
   const { actualTimeRange, title } = useGetTimeRangeLabel(adhocFilter);
 
   return (

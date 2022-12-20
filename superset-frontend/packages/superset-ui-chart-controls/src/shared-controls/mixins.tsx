@@ -66,6 +66,7 @@ export const temporalColumnMixin: Pick<BaseControlConfig, 'mapStateToProps'> = {
   },
 };
 
+// TODO: This needs to change
 export const datePickerInAdhocFilterMixin: Pick<
   BaseControlConfig,
   'initialValue'

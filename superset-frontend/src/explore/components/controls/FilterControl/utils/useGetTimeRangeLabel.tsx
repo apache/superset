@@ -27,6 +27,7 @@ interface Results {
   title?: string;
 }
 
+// TODO: This needs to change
 export const useGetTimeRangeLabel = (adhocFilter: AdhocFilter): Results => {
   const [actualTimeRange, setActualTimeRange] = useState<Results>({});
 

@@ -46,6 +46,7 @@ export default function DndAdhocFilterOption({
   partitionColumn,
   index,
 }: DndAdhocFilterOptionProps) {
+  // TODO: This needs to change
   const { actualTimeRange, title } = useGetTimeRangeLabel(adhocFilter);
 
   return (

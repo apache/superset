@@ -23,6 +23,8 @@ import * as FetchTimeRangeModule from 'src/explore/components/controls/DateFilte
 import { useGetTimeRangeLabel } from './useGetTimeRangeLabel';
 import AdhocFilter, { CLAUSES, EXPRESSION_TYPES } from '../AdhocFilter';
 
+// TODO: The tests will change
+
 test('should return empty object if operator is not TEMPORAL_RANGE', () => {
   const adhocFilter = new AdhocFilter({
     expressionType: EXPRESSION_TYPES.SIMPLE,

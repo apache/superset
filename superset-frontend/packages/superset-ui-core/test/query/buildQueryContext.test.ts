@@ -164,6 +164,8 @@ describe('buildQueryContext', () => {
     expect(spyNormalizeTimeColumn).not.toBeCalled();
     spyNormalizeTimeColumn.mockRestore();
   });
+  // TODO: We can keep this test case as it's a valid use case but we should also create one
+  // for testing with a default temporal column
   it('should orverride time filter if GENERIC_CHART_AXES is enabled', () => {
     Object.defineProperty(getXAxisModule, 'hasGenericChartAxes', {
       value: true,
