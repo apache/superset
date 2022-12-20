@@ -29,10 +29,10 @@ const EXPLORE_URL_SEARCH_PARAMS = {
     parser: (formData: string) => {
       const formDataObject = JSON.parse(formData);
       if (formDataObject.datasource) {
-        const [dataset_id, dataset_type] =
+        const [datasource_id, datasource_type] =
           formDataObject.datasource.split('__');
-        formDataObject.dataset_id = dataset_id;
-        formDataObject.dataset_type = dataset_type;
+        formDataObject.datasource_id = datasource_id;
+        formDataObject.datasource_type = datasource_type;
         delete formDataObject.datasource;
       }
       return formDataObject;
@@ -41,17 +41,17 @@ const EXPLORE_URL_SEARCH_PARAMS = {
   slice_id: {
     name: 'slice_id',
   },
-  dataset_id: {
-    name: 'dataset_id',
+  datasource_id: {
+    name: 'datasource_id',
   },
-  dataset_type: {
-    name: 'dataset_type',
+  datasource_type: {
+    name: 'datasource_type',
   },
   datasource: {
     name: 'datasource',
     parser: (datasource: string) => {
-      const [dataset_id, dataset_type] = datasource.split('__');
-      return { dataset_id, dataset_type };
+      const [datasource_id, datasouce_type] = datasource.split('__');
+      return { datasource_id, datasouce_type };
     },
   },
   form_data_key: {
