@@ -343,6 +343,11 @@ const StyledDashboardContent = styled.div<{
         BUILDER_SIDEPANEL_WIDTH + theme.gridUnit * 16
       }px);
     `}
+
+    /* this is the ParentSize wrapper */
+    & > div:first-child {
+      height: inherit !important;
+    }
   }
 
   .dashboard-builder-sidepane {
