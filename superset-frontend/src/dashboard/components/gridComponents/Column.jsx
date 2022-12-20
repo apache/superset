@@ -19,6 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -58,6 +59,52 @@ const propTypes = {
 
 const defaultProps = {};
 
+const ColumnStyles = styled.div`
+  &.grid-column {
+    width: 100%;
+    position: relative;
+
+    & > :not(.hover-menu):not(:last-child) {
+      margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+    }
+  }
+
+  &.grid-column--empty {
+    min-height: ${({ theme }) => theme.gridUnit * 25}px;
+
+    &:before {
+      content: 'Empty column';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: ${({ theme }) => theme.colors.grayscale.light2};
+    }
+  }
+
+  .dashboard--editing &:after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    pointer-events: none;
+    border: 1px dashed ${({ theme }) => theme.colors.grayscale.light2};
+  }
+  .dashboard--editing
+    .resizable-container.resizable-container--resizing:hover
+    > &:after,
+  .dashboard--editing .hover-menu:hover + &:after {
+    border: 1px dashed ${({ theme }) => theme.colors.primary.base};
+    z-index: 2;
+  }
+`;
 class Column extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -172,7 +219,7 @@ class Column extends React.PureComponent {
                   />
                 </HoverMenu>
               )}
-              <div
+              <ColumnStyles
                 className={cx(
                   'grid-column',
                   columnItems.length === 0 && 'grid-column--empty',
@@ -197,7 +244,7 @@ class Column extends React.PureComponent {
                 ))}
 
                 {dropIndicatorProps && <div {...dropIndicatorProps} />}
-              </div>
+              </ColumnStyles>
             </WithPopoverMenu>
           </ResizableContainer>
         )}
