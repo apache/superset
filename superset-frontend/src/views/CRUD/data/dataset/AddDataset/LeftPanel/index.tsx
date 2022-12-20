@@ -35,7 +35,10 @@ import Loading from 'src/components/Loading';
 import DatabaseSelector, {
   DatabaseObject,
 } from 'src/components/DatabaseSelector';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import {
+  EmptyStateMedium,
+  emptyStateComponent,
+} from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DatasetActionType } from '../types';
 
@@ -63,7 +66,7 @@ const LeftPanelStyle = styled.div`
     }
     .refresh {
       position: absolute;
-      top: ${theme.gridUnit * 37.25}px;
+      top: ${theme.gridUnit * 38.75}px;
       left: ${theme.gridUnit * 16.75}px;
       span[role="button"]{
         font-size: ${theme.gridUnit * 4.25}px;
@@ -86,6 +89,10 @@ const LeftPanelStyle = styled.div`
       top: ${theme.gridUnit * 92.25}px;
       left: ${theme.gridUnit * 3.25}px;
       right: 0;
+
+      .no-scrollbar {
+        margin-right: ${theme.gridUnit * 4}px;
+      }
 
       .options {
         cursor: pointer;
@@ -112,7 +119,7 @@ const LeftPanelStyle = styled.div`
     }
     form > span[aria-label="refresh"] {
       position: absolute;
-      top: ${theme.gridUnit * 67.5}px;
+      top: ${theme.gridUnit * 69}px;
       left: ${theme.gridUnit * 42.75}px;
       font-size: ${theme.gridUnit * 4.25}px;
     }
@@ -121,13 +128,13 @@ const LeftPanelStyle = styled.div`
     }
     .loading-container {
       position: absolute;
-      top: 359px;
+      top: ${theme.gridUnit * 89.75}px;
       left: 0;
       right: 0;
       text-align: center;
       img {
         width: ${theme.gridUnit * 20}px;
-        margin-bottom: 10px;
+        margin-bottom: ${theme.gridUnit * 2.5}px;
       }
       p {
         color: ${theme.colors.grayscale.light1};
@@ -240,6 +247,15 @@ export default function LeftPanel({
   const REFRESH_TABLES_TEXT = t('Refresh tables');
   const SEARCH_TABLES_PLACEHOLDER_TEXT = t('Search tables');
 
+  const optionsList = document.getElementsByClassName('options-list');
+  const scrollableOptionsList =
+    optionsList[0]?.scrollHeight > optionsList[0]?.clientHeight;
+  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+
+  const onEmptyResults = (searchText?: string) => {
+    setEmptyResultsWithSearch(!!searchText);
+  };
+
   return (
     <LeftPanelStyle>
       <p className="section-title db-schema">
@@ -249,6 +265,8 @@ export default function LeftPanel({
         handleError={addDangerToast}
         onDbChange={setDatabase}
         onSchemaChange={setSchema}
+        emptyState={emptyStateComponent(emptyResultsWithSearch)}
+        onEmptyResults={onEmptyResults}
       />
       {loadTables && !refresh && Loader(TABLE_LOADING_TEXT)}
       {schema && !loadTables && !tableOptions.length && !searchVal && (
@@ -291,7 +309,13 @@ export default function LeftPanel({
               filteredOptions.map((option, i) => (
                 <div
                   className={
-                    selectedTable === i ? 'options-highlighted' : 'options'
+                    selectedTable === i
+                      ? scrollableOptionsList
+                        ? 'options-highlighted'
+                        : 'options-highlighted no-scrollbar'
+                      : scrollableOptionsList
+                      ? 'options'
+                      : 'options no-scrollbar'
                   }
                   key={i}
                   role="button"
@@ -308,7 +332,7 @@ export default function LeftPanel({
                       }
                       iconSize="m"
                       css={css`
-                        margin-right: ${theme.gridUnit * 6}px;
+                        margin-right: ${theme.gridUnit * 2}px;
                       `}
                     />
                   )}
