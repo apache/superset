@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/demo",
-  "version": "0.18.25",
+  "version": "0.19.0",
   "description": "Storybook for Superset UI ✨",
   "private": true,
   "main": "index.js",
