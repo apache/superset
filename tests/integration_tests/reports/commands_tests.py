@@ -41,13 +41,11 @@ from superset.reports.commands.exceptions import (
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
     ReportScheduleCsvTimeout,
-    ReportScheduleForbiddenError,
     ReportScheduleNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
     ReportScheduleSystemErrorsException,
-    ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
 from superset.reports.commands.execute import (
@@ -67,7 +65,7 @@ from superset.reports.notifications.exceptions import (
     NotificationError,
     NotificationParamException,
 )
-from superset.reports.types import ReportScheduleExecutor
+from superset.tasks.types import ExecutorType
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -686,7 +684,7 @@ def test_email_chart_report_schedule_alpha_owner(
     """
     config_key = "ALERT_REPORTS_EXECUTE_AS"
     original_config_value = app.config[config_key]
-    app.config[config_key] = [ReportScheduleExecutor.OWNER]
+    app.config[config_key] = [ExecutorType.OWNER]
 
     # setup screenshot mock
     username = ""

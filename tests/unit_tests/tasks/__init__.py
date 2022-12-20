@@ -14,10 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import TypedDict
-
-from superset.dashboards.permalink.types import DashboardPermalinkState
-
-
-class ReportScheduleExtra(TypedDict):
-    dashboard: DashboardPermalinkState

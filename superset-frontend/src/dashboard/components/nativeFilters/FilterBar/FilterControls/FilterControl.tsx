@@ -17,6 +17,11 @@
  * under the License.
  */
 import React, { useContext, useMemo, useState } from 'react';
+import {
+  createHtmlPortalNode,
+  InPortal,
+  OutPortal,
+} from 'react-reverse-portal';
 import { styled, SupersetTheme } from '@superset-ui/core';
 import { FormItem as StyledFormItem, Form } from 'src/components/Form';
 import { Tooltip } from 'src/components/Tooltip';
@@ -224,6 +229,7 @@ const FilterControl = ({
   orientation = FilterBarOrientation.VERTICAL,
   overflow = false,
 }: FilterControlProps) => {
+  const portalNode = useMemo(() => createHtmlPortalNode(), []);
   const [isFilterActive, setIsFilterActive] = useState(false);
 
   const { name = '<undefined>' } = filter;
@@ -276,40 +282,45 @@ const FilterControl = ({
   }, [orientation, overflow]);
 
   return (
-    <FilterControlContainer
-      layout={
-        orientation === FilterBarOrientation.HORIZONTAL && !overflow
-          ? 'horizontal'
-          : 'vertical'
-      }
-    >
-      <FilterCard
-        filter={filter}
-        isVisible={!isFilterActive && !isScrolling}
-        placement={filterCardPlacement}
+    <>
+      <InPortal node={portalNode}>
+        <FilterValue
+          dataMaskSelected={dataMaskSelected}
+          filter={filter}
+          showOverflow={showOverflow}
+          focusedFilterId={focusedFilterId}
+          onFilterSelectionChange={onFilterSelectionChange}
+          inView={inView}
+          parentRef={parentRef}
+          setFilterActive={setIsFilterActive}
+          orientation={orientation}
+          overflow={overflow}
+        />
+      </InPortal>
+      <FilterControlContainer
+        layout={
+          orientation === FilterBarOrientation.HORIZONTAL && !overflow
+            ? 'horizontal'
+            : 'vertical'
+        }
       >
-        <div>
-          <FormItem
-            label={label}
-            required={filter?.controlValues?.enableEmptyFilter}
-            validateStatus={isMissingRequiredValue ? 'error' : undefined}
-          >
-            <FilterValue
-              dataMaskSelected={dataMaskSelected}
-              filter={filter}
-              showOverflow={showOverflow}
-              focusedFilterId={focusedFilterId}
-              onFilterSelectionChange={onFilterSelectionChange}
-              inView={inView}
-              parentRef={parentRef}
-              setFilterActive={setIsFilterActive}
-              orientation={orientation}
-              overflow={overflow}
-            />
-          </FormItem>
-        </div>
-      </FilterCard>
-    </FilterControlContainer>
+        <FilterCard
+          filter={filter}
+          isVisible={!isFilterActive && !isScrolling}
+          placement={filterCardPlacement}
+        >
+          <div>
+            <FormItem
+              label={label}
+              required={filter?.controlValues?.enableEmptyFilter}
+              validateStatus={isMissingRequiredValue ? 'error' : undefined}
+            >
+              <OutPortal node={portalNode} />
+            </FormItem>
+          </div>
+        </FilterCard>
+      </FilterControlContainer>
+    </>
   );
 };
 

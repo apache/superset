@@ -339,7 +339,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Time-series Bar Chart V2', () => {
+    describe('Time-series Bar Chart', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -591,7 +591,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe('Treemap V2', () => {
+    describe('Treemap', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
