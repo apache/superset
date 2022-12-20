@@ -41,7 +41,7 @@ describe('DatasetLayout', () => {
   it('renders a Header when passed in', async () => {
     await waitForRender();
 
-    expect(screen.getByTestId('editable-title')).toBeVisible();
+    expect(screen.getByText(/new dataset/i)).toBeVisible();
   });
 
   it('renders a LeftPanel when passed in', async () => {
