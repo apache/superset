@@ -57,6 +57,7 @@ import {
   D3_TIME_FORMAT_DOCS,
   DEFAULT_TIME_FORMAT,
   DEFAULT_NUMBER_FORMAT,
+  getTemporalColumns,
 } from '../utils';
 import { TIME_FILTER_LABELS } from '../constants';
 import {
@@ -248,6 +249,30 @@ const row_limit: SharedControlConfig<'SelectControl'> = {
   description: t('Limits the number of rows that get displayed.'),
 };
 
+const defaultTemporalColumn: SharedControlConfig<'SelectControl'> = {
+  type: 'SelectControl',
+  label: t('Default Temporal Column'),
+  mapStateToProps: state => {
+    const { datasource, form_data } = state;
+    const { default_temporal_column } = form_data;
+    const { temporalColumns, defaultTemporalColumn } =
+      getTemporalColumns(datasource);
+    const choices = temporalColumns.map(column => [
+      column.column_name ?? column.name,
+      column.column_name ?? column.name,
+    ]);
+    return {
+      choices,
+      clearable: false,
+      freeForm: false,
+      value: default_temporal_column || defaultTemporalColumn,
+    };
+  },
+  description: t(
+    'Default temporal column is used for time-based filtering in the dashboard.',
+  ),
+};
+
 const order_desc: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Sort Descending'),
@@ -401,4 +426,5 @@ export default {
   x_axis: dndXAxisControl,
   show_empty_columns,
   temporal_columns_lookup,
+  default_temporal_column: defaultTemporalColumn,
 };

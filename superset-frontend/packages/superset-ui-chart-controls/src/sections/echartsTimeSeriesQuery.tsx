@@ -25,11 +25,16 @@ import {
   xAxisSortAscControl,
 } from '../shared-controls';
 
-const controlsWithoutXAxis: ControlSetRow[] = [
+const assembleControls = (xAxisSort: boolean): ControlSetRow[] => [
+  [hasGenericChartAxes ? 'x_axis' : null],
+  [hasGenericChartAxes ? 'time_grain_sqla' : null],
+  [hasGenericChartAxes && xAxisSort ? xAxisSortControl : null],
+  [hasGenericChartAxes && xAxisSort ? xAxisSortAscControl : null],
   ['metrics'],
   ['groupby'],
   [contributionModeControl],
   ['adhoc_filters'],
+  [hasGenericChartAxes ? 'default_temporal_column' : null],
   emitFilterControl,
   ['limit'],
   ['timeseries_limit_metric'],
@@ -42,21 +47,11 @@ const controlsWithoutXAxis: ControlSetRow[] = [
 export const echartsTimeSeriesQuery: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
-  controlSetRows: [
-    [hasGenericChartAxes ? 'x_axis' : null],
-    [hasGenericChartAxes ? 'time_grain_sqla' : null],
-    ...controlsWithoutXAxis,
-  ],
+  controlSetRows: assembleControls(false),
 };
 
 export const echartsTimeSeriesQueryWithXAxisSort: ControlPanelSectionConfig = {
   label: t('Query'),
   expanded: true,
-  controlSetRows: [
-    [hasGenericChartAxes ? 'x_axis' : null],
-    [hasGenericChartAxes ? 'time_grain_sqla' : null],
-    [hasGenericChartAxes ? xAxisSortControl : null],
-    [hasGenericChartAxes ? xAxisSortAscControl : null],
-    ...controlsWithoutXAxis,
-  ],
+  controlSetRows: assembleControls(true),
 };
