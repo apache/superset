@@ -14,6 +14,7 @@
 
 /superset-frontend/src/components/Select/ @michael-s-molina @geido @ktmud
 /superset-frontend/src/components/MetadataBar/ @michael-s-molina
+/superset-frontend/src/components/DropdownContainer/ @michael-s-molina
 
 # Notify Helm Chart maintainers about changes in it
 
@@ -21,4 +22,4 @@
 
 # Notify E2E test maintainers of changes
 
-/superset-frontend/cypress-base/ @jinghua-qa @geido
+/superset-frontend/cypress-base/ @jinghua-qa @geido @eschutho @rusackas @betodealmeida

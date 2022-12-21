@@ -17,7 +17,21 @@
  * under the License.
  */
 
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import {
+  ContributionType,
+  ensureIsArray,
+  FeatureFlag,
+  getColumnLabel,
+  getMetricLabel,
+  isDefined,
+  isEqualArray,
+  isFeatureEnabled,
+  QueryFormColumn,
+  QueryFormMetric,
+  t,
+} from '@superset-ui/core';
+import { ControlPanelState, ControlState, ControlStateMapping } from '../types';
+import { isTemporalColumn } from '../utils';
 
 export const emitFilterControl = isFeatureEnabled(
   FeatureFlag.DASHBOARD_CROSS_FILTERS,
@@ -35,3 +49,93 @@ export const emitFilterControl = isFeatureEnabled(
       },
     ]
   : [];
+
+export const contributionModeControl = {
+  name: 'contributionMode',
+  config: {
+    type: 'SelectControl',
+    label: t('Contribution Mode'),
+    default: null,
+    choices: [
+      [null, t('None')],
+      [ContributionType.Row, t('Row')],
+      [ContributionType.Column, t('Series')],
+    ],
+    description: t('Calculate contribution per series or row'),
+  },
+};
+
+const xAxisSortVisibility = ({ controls }: { controls: ControlStateMapping }) =>
+  isDefined(controls?.x_axis?.value) &&
+  !isTemporalColumn(
+    getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+    controls?.datasource?.datasource,
+  ) &&
+  Array.isArray(controls?.groupby?.value) &&
+  controls.groupby.value.length === 0;
+
+export const xAxisSortControl = {
+  name: 'x_axis_sort',
+  config: {
+    type: 'XAxisSortControl',
+    label: t('X-Axis Sort By'),
+    description: t('Whether to sort descending or ascending on the X-Axis.'),
+    shouldMapStateToProps: (
+      prevState: ControlPanelState,
+      state: ControlPanelState,
+    ) => {
+      const prevOptions = [
+        getColumnLabel(prevState?.controls?.x_axis?.value as QueryFormColumn),
+        ...ensureIsArray(prevState?.controls?.metrics?.value).map(metric =>
+          getMetricLabel(metric as QueryFormMetric),
+        ),
+      ];
+      const currOptions = [
+        getColumnLabel(state?.controls?.x_axis?.value as QueryFormColumn),
+        ...ensureIsArray(state?.controls?.metrics?.value).map(metric =>
+          getMetricLabel(metric as QueryFormMetric),
+        ),
+      ];
+      return !isEqualArray(prevOptions, currOptions);
+    },
+    mapStateToProps: (
+      { controls }: { controls: ControlStateMapping },
+      controlState: ControlState,
+    ) => {
+      const choices = [
+        getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+        ...ensureIsArray(controls?.metrics?.value).map(metric =>
+          getMetricLabel(metric as QueryFormMetric),
+        ),
+      ].filter(Boolean);
+      const shouldReset = !(
+        typeof controlState.value === 'string' &&
+        choices.includes(controlState.value) &&
+        !isTemporalColumn(
+          getColumnLabel(controls?.x_axis?.value as QueryFormColumn),
+          controls?.datasource?.datasource,
+        )
+      );
+
+      return {
+        shouldReset,
+        options: choices.map(entry => ({
+          value: entry,
+          label: entry,
+        })),
+      };
+    },
+    visibility: xAxisSortVisibility,
+  },
+};
+
+export const xAxisSortAscControl = {
+  name: 'x_axis_sort_asc',
+  config: {
+    type: 'CheckboxControl',
+    label: t('X-Axis Sort Ascending'),
+    default: true,
+    description: t('Whether to sort descending or ascending on the X-Axis.'),
+    visibility: xAxisSortVisibility,
+  },
+};

@@ -26,22 +26,20 @@ import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDasboardComponents';
-import { BootstrapUser, User } from './types/bootstrapTypes';
+import { BootstrapData, User } from './types/bootstrapTypes';
 import { initFeatureFlags } from './featureFlags';
+import { DEFAULT_COMMON_BOOTSTRAP_DATA } from './constants';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
 // eslint-disable-next-line import/no-mutable-exports
-export let bootstrapData: {
-  user?: BootstrapUser;
-  common?: any;
-  config?: any;
-  embedded?: {
-    dashboard_id: string;
-  };
-} = {};
+export let bootstrapData: BootstrapData = {
+  common: {
+    ...DEFAULT_COMMON_BOOTSTRAP_DATA,
+  },
+};
 
 // Configure translation
 if (typeof window !== 'undefined') {

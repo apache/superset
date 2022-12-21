@@ -38,7 +38,10 @@ import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  MenuObjectProps,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
@@ -48,7 +51,6 @@ import {
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
-import { MenuObjectProps } from './Menu';
 import AddDatasetModal from '../CRUD/data/dataset/AddDatasetModal';
 
 const extensionsRegistry = getExtensionsRegistry();

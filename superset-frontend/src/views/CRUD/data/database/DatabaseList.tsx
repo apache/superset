@@ -38,7 +38,7 @@ import ListView, { FilterOperator, Filters } from 'src/components/ListView';
 import handleResourceExport from 'src/utils/export';
 import { ExtentionConfigs } from 'src/views/components/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import type { MenuObjectProps } from 'src/views/components/Menu';
+import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
