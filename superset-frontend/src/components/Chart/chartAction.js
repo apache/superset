@@ -290,7 +290,6 @@ export function runAnnotationQuery({
         : undefined;
     }
 
-    const isNative = annotation.sourceType === ANNOTATION_SOURCE_TYPES.NATIVE;
     const url = getAnnotationJsonUrl(annotation.value, force);
     const controller = new AbortController();
     const { signal } = controller;
