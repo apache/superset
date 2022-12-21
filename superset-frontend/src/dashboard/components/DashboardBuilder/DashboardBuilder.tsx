@@ -82,52 +82,95 @@ import { useNativeFilters } from './state';
 type DashboardBuilderProps = {};
 
 const StyledDiv = styled.div`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto 1fr;
-  flex: 1;
-  /* Special cases */
+  ${({ theme }) => css`
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto 1fr;
+    flex: 1;
+    /* Special cases */
 
-  /* A row within a column has inset hover menu */
-  .dragdroppable-column .dragdroppable-row .hover-menu--left {
-    left: -12px;
-    background: ${({ theme }) => theme.colors.grayscale.light5};
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  }
+    /* A row within a column has inset hover menu */
+    .dragdroppable-column .dragdroppable-row .hover-menu--left {
+      left: ${theme.gridUnit * -3}px;
+      background: ${theme.colors.grayscale.light5};
+      border: 1px solid ${theme.colors.grayscale.light2};
+    }
 
-  .dashboard-component-tabs {
-    position: relative;
-  }
+    .dashboard-component-tabs {
+      position: relative;
+    }
 
-  /* A column within a column or tabs has inset hover menu */
-  .dragdroppable-column .dragdroppable-column .hover-menu--top,
-  .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
-    top: -12px;
-    background: ${({ theme }) => theme.colors.grayscale.light5};
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-  }
+    /* A column within a column or tabs has inset hover menu */
+    .dragdroppable-column .dragdroppable-column .hover-menu--top,
+    .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
+      top: ${theme.gridUnit * -3}px;
+      background: ${theme.colors.grayscale.light5};
+      border: 1px solid ${theme.colors.grayscale.light2};
+    }
 
-  /* move Tabs hover menu to top near actual Tabs */
-  .dashboard-component-tabs > .hover-menu-container > .hover-menu--left {
-    top: 0;
-    transform: unset;
-    background: transparent;
-  }
+    /* move Tabs hover menu to top near actual Tabs */
+    .dashboard-component-tabs > .hover-menu-container > .hover-menu--left {
+      top: 0;
+      transform: unset;
+      background: transparent;
+    }
 
-  /* push Chart actions to upper right */
-  .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
-  .dragdroppable .dashboard-component-header .hover-menu--top {
-    right: 8px;
-    top: 8px;
-    background: transparent;
-    border: none;
-    transform: unset;
-    left: unset;
-  }
-  div:hover > .hover-menu-container .hover-menu,
-  .hover-menu-container .hover-menu:hover {
-    opacity: 1;
-  }
+    /* push Chart actions to upper right */
+    .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
+    .dragdroppable .dashboard-component-header .hover-menu--top {
+      right: ${theme.gridUnit * 2}px;
+      top: ${theme.gridUnit * 2}px;
+      background: transparent;
+      border: none;
+      transform: unset;
+      left: unset;
+    }
+    div:hover > .hover-menu-container .hover-menu,
+    .hover-menu-container .hover-menu:hover {
+      opacity: 1;
+    }
+
+    h1 {
+      font-weight: ${theme.typography.weights.bold};
+      line-height: 1.4;
+      font-size: ${theme.typography.sizes.xxl}px;
+      letter-spacing: -0.2px;
+      margin-top: ${theme.gridUnit * 3}px;
+      margin-bottom: ${theme.gridUnit * 3}px;
+    }
+
+    h2 {
+      font-weight: ${theme.typography.weights.bold};
+      line-height: 1.4;
+      font-size: ${theme.typography.sizes.xl}px;
+      margin-top: ${theme.gridUnit * 3}px;
+      margin-bottom: ${theme.gridUnit * 2}px;
+    }
+
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: ${theme.typography.weights.bold};
+      line-height: 1.4;
+      font-size: ${theme.typography.sizes.l}px;
+      letter-spacing: 0.2px;
+      margin-top: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.gridUnit}px;
+    }
+
+    p {
+      margin: 0 0 ${theme.gridUnit * 2}px 0;
+    }
+
+    i.danger {
+      color: ${theme.colors.error.base};
+    }
+
+    i.warning {
+      color: ${theme.colors.alert.base};
+    }
+  `}
 `;
 
 // @z-index-above-dashboard-charts + 1 = 11
