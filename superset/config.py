@@ -513,7 +513,9 @@ FLASH_TTL = {
         "ui:order": [
             "ttl",
         ],
-        "ttl": {"ui:help": "Flash object validity"},
+        "ttl": {
+            "ui:help": "Flash object validity (can extend TTL up to 7 days for SHORT TERM and 90 days for LONG TERM"
+        },
     },
     "VALIDATION": [],
 }
