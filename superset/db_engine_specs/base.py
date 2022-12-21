@@ -1592,6 +1592,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
         return None
 
+    # pylint: disable=unused-argument
     @classmethod
     def prepare_cancel_query(cls, query: Query, session: Session) -> None:
         """
