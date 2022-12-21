@@ -317,6 +317,7 @@ class TestDatabaseApi(SupersetTestCase):
             .filter(SSHTunnel.database_id == response.get("id"))
             .one()
         )
+        self.assertEqual(response.get("result")["ssh_tunnel"]["password"], "XXXXXXXXXX")
         self.assertEqual(model_ssh_tunnel.database_id, response.get("id"))
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
@@ -403,6 +404,7 @@ class TestDatabaseApi(SupersetTestCase):
             "server_address": "123.132.123.1",
             "server_port": 8080,
             "username": "Test",
+            "password": "new_bar",
         }
         database_data_with_ssh_tunnel = {
             "database_name": "test-db-with-ssh-tunnel",
@@ -436,6 +438,9 @@ class TestDatabaseApi(SupersetTestCase):
             .one()
         )
         self.assertEqual(model_ssh_tunnel.database_id, response_update.get("id"))
+        self.assertEqual(
+            response_update.get("result")["ssh_tunnel"]["password"], "XXXXXXXXXX"
+        )
         self.assertEqual(model_ssh_tunnel.username, "Test")
         self.assertEqual(model_ssh_tunnel.server_address, "123.132.123.1")
         self.assertEqual(model_ssh_tunnel.server_port, 8080)
@@ -570,6 +575,7 @@ class TestDatabaseApi(SupersetTestCase):
             "server_address": "123.132.123.1",
             "server_port": 8080,
             "username": "foo",
+            "password": "XXXXXXXXXX",
         }
 
         uri = "api/v1/database/"

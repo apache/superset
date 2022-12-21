@@ -34,7 +34,11 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.constants import (
+    MODEL_API_RW_METHOD_PERMISSION_MAP,
+    PASSWORD_MASK,
+    RouteMethod,
+)
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
@@ -328,8 +332,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
                 item["ssh_tunnel"] = new_model.ssh_tunnel  # pylint: disable=no-member
-                item["ssh_tunnel"].pop("password", None)
-                item["ssh_tunnel"].pop("private_key_password", None)
+                if item["ssh_tunnel"].pop("password", None) is not None:
+                    item["ssh_tunnel"]["password"] = PASSWORD_MASK
+                if item["ssh_tunnel"].pop("private_key", None) is not None:
+                    item["ssh_tunnel"]["private_key"] = PASSWORD_MASK
+                if item["ssh_tunnel"].pop("private_key_password", None) is not None:
+                    item["ssh_tunnel"]["private_key_password"] = PASSWORD_MASK
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
@@ -415,8 +423,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
                 item["ssh_tunnel"] = changed_model.ssh_tunnel
-                item["ssh_tunnel"].pop("password", None)
-                item["ssh_tunnel"].pop("private_key_password", None)
+                if item["ssh_tunnel"].pop("password", None) is not None:
+                    item["ssh_tunnel"]["password"] = PASSWORD_MASK
+                if item["ssh_tunnel"].pop("private_key", None) is not None:
+                    item["ssh_tunnel"]["private_key"] = PASSWORD_MASK
+                if item["ssh_tunnel"].pop("private_key_password", None) is not None:
+                    item["ssh_tunnel"]["private_key_password"] = PASSWORD_MASK
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()
