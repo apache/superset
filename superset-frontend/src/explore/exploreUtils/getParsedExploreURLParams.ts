@@ -70,7 +70,7 @@ const EXPLORE_URL_SEARCH_PARAMS = {
 
 const EXPLORE_URL_PATH_PARAMS = {
   p: 'permalink_key', // permalink
-  table: 'dataset_id',
+  table: 'datasource_id',
 };
 
 // search params can be placed in form_data object
