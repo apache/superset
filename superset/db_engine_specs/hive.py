@@ -558,8 +558,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     @classmethod
     def has_implicit_cancel(cls) -> bool:
         """
-        Return True if the live cursor handles the implicit cancelation of the query,
-        False otherise.
+        Return True if the live cursor handles the implicit cancellation of the query,
+        False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query
         :see: handle_cursor

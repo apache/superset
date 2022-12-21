@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryState } from '@superset-ui/core';
 import { User } from 'src/types/bootstrapTypes';
 import Database from 'src/types/Database';
 import Owner from 'src/types/Owner';
@@ -94,14 +95,7 @@ export interface QueryObject {
   sql: string;
   executed_sql: string | null;
   sql_tables?: { catalog?: string; schema: string; table: string }[];
-  status:
-    | 'success'
-    | 'failed'
-    | 'stopped'
-    | 'running'
-    | 'timed_out'
-    | 'scheduled'
-    | 'pending';
+  status: QueryState;
   tab_name: string;
   user: {
     first_name: string;
