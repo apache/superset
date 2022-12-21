@@ -47,12 +47,12 @@ type Dataset = {
   datasource_type: string;
 };
 
-export interface AddSliceContainerProps extends RouteComponentProps {
+export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
 }
 
-export type AddSliceContainerState = {
+export type ChartCreationState = {
   datasource?: { label: string; value: string };
   datasetName?: string | string[] | null;
   vizType: string | null;
@@ -211,11 +211,11 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-export class AddSliceContainer extends React.PureComponent<
-  AddSliceContainerProps,
-  AddSliceContainerState
+export class ChartCreation extends React.PureComponent<
+  ChartCreationProps,
+  ChartCreationState
 > {
-  constructor(props: AddSliceContainerProps) {
+  constructor(props: ChartCreationProps) {
     super(props);
     this.state = {
       vizType: null,
@@ -423,4 +423,4 @@ export class AddSliceContainer extends React.PureComponent<
   }
 }
 
-export default withRouter(withToasts(AddSliceContainer));
+export default withRouter(withToasts(ChartCreation));

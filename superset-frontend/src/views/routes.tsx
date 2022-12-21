@@ -21,10 +21,10 @@ import React, { lazy } from 'react';
 // not lazy loaded since this is the home page.
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 
-const AddSliceContainer = lazy(
+const ChartCreation = lazy(
   () =>
     import(
-      /* webpackChunkName: "AddSliceContainer" */ 'src/addSlice/AddSliceContainer'
+      /* webpackChunkName: "ChartCreation" */ 'src/pages/charts/creation/ChartCreation'
     ),
 );
 const AnnotationLayersList = lazy(
@@ -48,7 +48,7 @@ const AnnotationList = lazy(
 const ChartList = lazy(
   () =>
     import(
-      /* webpackChunkName: "ChartList" */ 'src/views/CRUD/chart/ChartList'
+      /* webpackChunkName: "ChartList" */ 'src/pages/charts/list/ChartList'
     ),
 );
 const CssTemplatesList = lazy(
@@ -133,7 +133,7 @@ export const routes: Routes = [
   },
   {
     path: '/chart/add',
-    Component: AddSliceContainer,
+    Component: ChartCreation,
   },
   {
     path: '/chart/list/',

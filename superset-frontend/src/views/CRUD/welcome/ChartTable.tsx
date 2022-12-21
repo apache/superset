@@ -36,7 +36,7 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
 import { CardContainer, PAGE_SIZE } from 'src/views/CRUD/utils';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
-import ChartCard from 'src/views/CRUD/chart/ChartCard';
+import ChartCard from 'src/pages/charts/list/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
