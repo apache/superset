@@ -189,10 +189,6 @@ const config = {
                 to: '/docs/intro',
               },
               {
-                label: 'Tutorial',
-                to: '/docs/intro',
-              },
-              {
                 label: 'FAQ',
                 to: '/docs/frequently-asked-questions',
               },
