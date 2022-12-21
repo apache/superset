@@ -184,6 +184,7 @@ function DashboardList(props: DashboardListProps) {
                 url = '',
                 certified_by = '',
                 certification_details = '',
+                owners,
               } = json.result;
               return {
                 ...dashboard,
@@ -197,6 +198,7 @@ function DashboardList(props: DashboardListProps) {
                 url,
                 certified_by,
                 certification_details,
+                owners,
               };
             }
             return dashboard;

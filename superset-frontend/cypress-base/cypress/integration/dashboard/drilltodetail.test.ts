@@ -172,13 +172,13 @@ describe('Drill to detail modal', () => {
         openModalFromMenu('big_number_total');
         // checking the data
         cy.getBySel('row-count-label').should('contain', '75.7k rows');
-        cy.get('.virtual-table-cell').then($rows => {
+        cy.get('.virtual-table-cell').should($rows => {
           expect($rows).to.contain('Amy');
         });
         // checking the paginated data
         cy.get('.ant-pagination-item')
           .should('have.length', 6)
-          .then($pages => {
+          .should($pages => {
             expect($pages).to.contain('1');
             expect($pages).to.contain('1514');
           });
@@ -186,7 +186,7 @@ describe('Drill to detail modal', () => {
         // skips error on pagination
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
-        cy.get('.virtual-table-cell').then($rows => {
+        cy.get('.virtual-table-cell').should($rows => {
           expect($rows).to.contain('Kelly');
         });
 

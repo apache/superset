@@ -26,6 +26,7 @@ import { TooltipPlacement } from 'src/components/Tooltip';
 import {
   HeaderComponentStyles,
   disabledSaveBtnStyles,
+  StyledCreateDatasetTitle,
 } from 'src/views/CRUD/data/dataset/styles';
 import {
   DatasetActionType,
@@ -62,10 +63,12 @@ const renderOverlay = () => (
 export default function Header({
   setDataset,
   title = DEFAULT_TITLE,
+  editing = false,
 }: {
   setDataset: React.Dispatch<DSReducerActionType>;
   title?: string | null | undefined;
   schema?: string | null | undefined;
+  editing?: boolean;
 }) {
   const editableTitleProps = {
     title: title ?? DEFAULT_TITLE,
@@ -82,19 +85,25 @@ export default function Header({
 
   return (
     <HeaderComponentStyles>
-      <PageHeaderWithActions
-        editableTitleProps={editableTitleProps}
-        showTitlePanelItems={false}
-        showFaveStar={false}
-        faveStarProps={{ itemId: 1, saveFaveStar: () => {} }}
-        titlePanelAdditionalItems={<></>}
-        rightPanelAdditionalItems={renderDisabledSaveButton()}
-        additionalActionsMenu={renderOverlay()}
-        menuDropdownProps={{
-          disabled: true,
-        }}
-        tooltipProps={tooltipProps}
-      />
+      {editing ? (
+        <PageHeaderWithActions
+          editableTitleProps={editableTitleProps}
+          showTitlePanelItems={false}
+          showFaveStar={false}
+          faveStarProps={{ itemId: 1, saveFaveStar: () => {} }}
+          titlePanelAdditionalItems={<></>}
+          rightPanelAdditionalItems={renderDisabledSaveButton()}
+          additionalActionsMenu={renderOverlay()}
+          menuDropdownProps={{
+            disabled: true,
+          }}
+          tooltipProps={tooltipProps}
+        />
+      ) : (
+        <StyledCreateDatasetTitle>
+          {title || DEFAULT_TITLE}
+        </StyledCreateDatasetTitle>
+      )}
     </HeaderComponentStyles>
   );
 }
