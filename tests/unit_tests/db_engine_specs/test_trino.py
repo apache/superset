@@ -53,7 +53,7 @@ def test_prepare_cancel_query(mocker: MockerFixture) -> None:
     assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
 
 
-@pytest.mark.parametrize("cancel_early", [(True,), (False,)])
+@pytest.mark.parametrize("cancel_early", [True, False])
 @mock.patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
 @mock.patch("sqlalchemy.engine.Engine.connect")
 def test_handle_cursor_early_cancel(
