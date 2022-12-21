@@ -25,6 +25,7 @@ import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import ActivityTable from 'src/views/CRUD/welcome/ActivityTable';
+import { TableTab } from 'src/views/CRUD/types';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -33,7 +34,7 @@ const chartsEndpoint = 'glob:*/api/v1/chart/?*';
 const dashboardsEndpoint = 'glob:*/api/v1/dashboard/?*';
 
 const mockData = {
-  Viewed: [
+  [TableTab.Viewed]: [
     {
       slice_name: 'ChartyChart',
       changed_on_utc: '24 Feb 2014 10:13:14',
@@ -42,7 +43,7 @@ const mockData = {
       table: {},
     },
   ],
-  Created: [
+  [TableTab.Created]: [
     {
       dashboard_title: 'Dashboard_Test',
       changed_on_utc: '24 Feb 2014 10:13:14',
@@ -77,7 +78,7 @@ fetchMock.get(dashboardsEndpoint, {
 
 describe('ActivityTable', () => {
   const activityProps = {
-    activeChild: 'Created',
+    activeChild: TableTab.Created,
     activityData: mockData,
     setActiveChild: jest.fn(),
     user: { userId: '1' },
@@ -122,7 +123,7 @@ describe('ActivityTable', () => {
   });
   it('show empty state if there is no data', () => {
     const activityProps = {
-      activeChild: 'Created',
+      activeChild: TableTab.Created,
       activityData: {},
       setActiveChild: jest.fn(),
       user: { userId: '1' },
