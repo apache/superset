@@ -73,10 +73,12 @@ const FullSizeWrapper = styled.div<{ isFullSize: boolean }>`
   ${({ isFullSize }) =>
     isFullSize &&
     css`
-      position: fixed;
-      z-index: 3000;
-      left: 0;
-      top: 0;
+      && {
+        position: fixed;
+        z-index: 3000;
+        left: 0;
+        top: 0;
+      }
     `};
 `;
 
