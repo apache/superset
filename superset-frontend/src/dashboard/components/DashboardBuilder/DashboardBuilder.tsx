@@ -284,12 +284,36 @@ const DashboardContentWrapper = styled.div`
         z-index: 2;
       }
     }
+
+    .contract-trigger:before {
+      display: none;
+    }
   }
 
   & .dashboard-component-tabs-content {
     & > div:not(:last-child):not(.empty-droptarget) {
       margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
     }
+
+    & > .empty-droptarget {
+      position: absolute;
+      width: 100%;
+    }
+
+    & > .empty-droptarget:first-child {
+      height: ${({ theme }) => theme.gridUnit * 4}px;
+      top: -2px;
+      z-index: 10;
+    }
+
+    & > .empty-droptarget:last-child {
+      height: ${({ theme }) => theme.gridUnit * 3}px;
+      bottom: 0;
+    }
+  }
+
+  .empty-droptarget:first-child .drop-indicator--bottom {
+    top: ${({ theme }) => theme.gridUnit * 6}px;
   }
 `;
 

@@ -97,9 +97,7 @@ const ColumnStyles = styled.div`
     pointer-events: none;
     border: 1px dashed ${({ theme }) => theme.colors.grayscale.light2};
   }
-  .dashboard--editing
-    .resizable-container.resizable-container--resizing:hover
-    > &:after,
+  .dashboard--editing .resizable-container--resizing:hover > &:after,
   .dashboard--editing .hover-menu:hover + &:after {
     border: 1px dashed ${({ theme }) => theme.colors.primary.base};
     z-index: 2;

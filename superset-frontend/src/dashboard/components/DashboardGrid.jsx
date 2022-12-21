@@ -59,13 +59,30 @@ const DashboardEmptyStateContainer = styled.div`
 `;
 
 const GridContent = styled.div`
-  display: flex;
-  flex-direction: column;
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
 
-  /* gutters between rows */
-  & > div:not(:last-child):not(.empty-droptarget) {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-  }
+    /* gutters between rows */
+    & > div:not(:last-child):not(.empty-droptarget) {
+      margin-bottom: ${theme.gridUnit * 4}px;
+    }
+
+    & > .empty-droptarget {
+      width: 100%;
+      height: 100%;
+    }
+
+    & > .empty-droptarget:first-child {
+      height: ${theme.gridUnit * 12}px;
+      margin-top: ${theme.gridUnit * -6}px;
+      margin-bottom: ${theme.gridUnit * -6}px;
+    }
+
+    & > .empty-droptarget:only-child {
+      height: 80vh;
+    }
+  `}
 `;
 
 const GridColumnGuide = styled.div`
