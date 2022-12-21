@@ -59,6 +59,7 @@ const SSHTunnelForm = ({
   sshTunneling,
   onSSHTunnelParametersChange,
   setSSHTunnelLoginMethod,
+  removeSSHTunnelConfig,
 }: {
   db: DatabaseObject | null;
   dbFetched: DatabaseObject | null;
@@ -68,6 +69,7 @@ const SSHTunnelForm = ({
     ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   >;
   setSSHTunnelLoginMethod: (method: AuthType) => void;
+  removeSSHTunnelConfig: () => void;
 }) => {
   const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(
     !isEmpty(db?.ssh_tunnel),
@@ -84,6 +86,7 @@ const SSHTunnelForm = ({
           checked={useSSHTunneling}
           onChange={changed => {
             setUseSSHTunneling(changed);
+            if (!changed) removeSSHTunnelConfig();
           }}
         />
         <span css={toggleStyle}>SSH Tunnel</span>

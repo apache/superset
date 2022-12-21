@@ -148,6 +148,7 @@ export enum ActionType {
   queryChange,
   parametersSSHTunnelChange,
   setSSHTunnelLoginMethod,
+  removeSSHTunnelConfig,
 }
 
 export enum AuthType {
@@ -191,7 +192,10 @@ export type DBReducerActionType =
       };
     }
   | {
-      type: ActionType.reset | ActionType.addTableCatalogSheet;
+      type:
+        | ActionType.reset
+        | ActionType.addTableCatalogSheet
+        | ActionType.removeSSHTunnelConfig;
     }
   | {
       type: ActionType.removeTableCatalogSheet;
@@ -363,7 +367,11 @@ export function dbReducer(
       return {
         ...trimmedState,
       };
-
+    case ActionType.removeSSHTunnelConfig:
+      return {
+        ...trimmedState,
+        ssh_tunnel: undefined,
+      };
     case ActionType.addTableCatalogSheet:
       if (trimmedState.catalog !== undefined) {
         return {
@@ -1456,6 +1464,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     setDB({
                       type: ActionType.setSSHTunnelLoginMethod,
                       payload: { login_method: method },
+                    })
+                  }
+                  removeSSHTunnelConfig={() =>
+                    setDB({
+                      type: ActionType.removeSSHTunnelConfig,
                     })
                   }
                 />
