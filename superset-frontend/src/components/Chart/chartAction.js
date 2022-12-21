@@ -30,10 +30,7 @@ import {
   shouldUseLegacyApi,
   getChartDataUri,
 } from 'src/explore/exploreUtils';
-import {
-  requiresQuery,
-  ANNOTATION_SOURCE_TYPES,
-} from 'src/modules/AnnotationTypes';
+import { requiresQuery } from 'src/modules/AnnotationTypes';
 
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
@@ -303,7 +300,7 @@ export function runAnnotationQuery({
       fd.annotation_layers[annotationIndex].overrides = sliceFormData;
     }
 
-    SupersetClient.post({
+    return SupersetClient.post({
       url,
       signal,
       timeout: timeout * 1000,
