@@ -26,7 +26,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { css, JsonObject, styled, t } from '@superset-ui/core';
+import { addAlpha, css, JsonObject, styled, t } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -208,109 +208,46 @@ const StyledContent = styled.div<{
 `;
 
 const DashboardContentWrapper = styled.div`
-  &.dashboard {
-    position: relative;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-
-    /* only top-level tabs have popover, give it more padding to match header + tabs */
-    & > .with-popover-menu > .popover-menu {
-      left: ${({ theme }) => theme.gridUnit * 6}px;
-    }
-
-    /* drop shadow for top-level tabs only */
-    & .dashboard-component-tabs {
-      box-shadow: 0 ${({ theme }) => theme.gridUnit}px
-        ${({ theme }) => theme.gridUnit}px 0
-        fade(
-          ${({ theme }) => theme.colors.grayscale.dark2},
-          ${({ theme }) => theme.opacity.light}
-        );
-      padding-left: ${({ theme }) =>
-        theme.gridUnit *
-        2}px; /* note this is added to tab-level padding, to match header */
-    }
-
-    .dropdown-toggle.btn.btn-primary .caret {
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-    }
-
-    .background--transparent {
-      background-color: transparent;
-    }
-
-    .background--white {
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
-    }
-  }
-  &.dashboard--editing {
-    .grid-row:after,
-    .dashboard-component-tabs > .hover-menu:hover + div:after {
-      border: 1px dashed transparent;
-      content: '';
-      position: absolute;
-      width: 100%;
+  ${({ theme }) => css`
+    &.dashboard {
+      position: relative;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
       height: 100%;
-      top: 0;
-      left: 0;
-      z-index: 1;
-      pointer-events: none;
-    }
 
-    .resizable-container {
-      & .dashboard-component-chart-holder {
-        .dashboard-chart {
-          .chart-container {
-            cursor: move;
-            opacity: 0.2;
-          }
-
-          .slice_container {
-            /* disable chart interactions in edit mode */
-            pointer-events: none;
-          }
-        }
-
-        &:hover .dashboard-chart .chart-container {
-          opacity: 0.7;
-        }
+      /* only top-level tabs have popover, give it more padding to match header + tabs */
+      & > .with-popover-menu > .popover-menu {
+        left: ${theme.gridUnit * 6}px;
       }
 
-      &:hover,
-      &.resizable-container--resizing:hover {
-        & > .dashboard-component-chart-holder:after {
-          border: 1px dashed ${({ theme }) => theme.colors.primary.base};
-        }
-      }
-    }
-
-    .resizable-container.resizable-container--resizing:hover > .grid-row:after,
-    .hover-menu:hover + .grid-row:after,
-    .dashboard-component-tabs > .hover-menu:hover + div:after {
-      border: 1px dashed ${({ theme }) => theme.colors.primary.base};
-      z-index: 2;
-    }
-
-    .grid-row:after,
-    .dashboard-component-tabs > .hover-menu + div:after {
-      border: 1px dashed ${({ theme }) => theme.colors.grayscale.light2};
-    }
-
-    /* provide hit area in case row contents is edge to edge */
-    .dashboard-component-tabs-content {
-      .dragdroppable-row {
-        padding-top: ${({ theme }) => theme.gridUnit * 4}px;
+      /* drop shadow for top-level tabs only */
+      & .dashboard-component-tabs {
+        box-shadow: 0 ${theme.gridUnit}px ${theme.gridUnit}px 0
+          ${addAlpha(
+            theme.colors.grayscale.dark2,
+            parseFloat(theme.opacity.light) / 100,
+          )};
+        padding-left: ${theme.gridUnit *
+        2}px; /* note this is added to tab-level padding, to match header */
       }
 
-      & > div:not(:last-child):not(.empty-droptarget) {
-        margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+      .dropdown-toggle.btn.btn-primary .caret {
+        color: ${theme.colors.grayscale.light5};
+      }
+
+      .background--transparent {
+        background-color: transparent;
+      }
+
+      .background--white {
+        background-color: ${theme.colors.grayscale.light5};
       }
     }
-
-    .dashboard-component-chart-holder {
-      &:after {
+    &.dashboard--editing {
+      .grid-row:after,
+      .dashboard-component-tabs > .hover-menu:hover + div:after {
+        border: 1px dashed transparent;
         content: '';
         position: absolute;
         width: 100%;
@@ -319,45 +256,108 @@ const DashboardContentWrapper = styled.div`
         left: 0;
         z-index: 1;
         pointer-events: none;
-        border: 1px solid transparent;
       }
 
-      &:hover:after {
-        border: 1px dashed ${({ theme }) => theme.colors.primary.base};
+      .resizable-container {
+        & .dashboard-component-chart-holder {
+          .dashboard-chart {
+            .chart-container {
+              cursor: move;
+              opacity: 0.2;
+            }
+
+            .slice_container {
+              /* disable chart interactions in edit mode */
+              pointer-events: none;
+            }
+          }
+
+          &:hover .dashboard-chart .chart-container {
+            opacity: 0.7;
+          }
+        }
+
+        &:hover,
+        &.resizable-container--resizing:hover {
+          & > .dashboard-component-chart-holder:after {
+            border: 1px dashed ${theme.colors.primary.base};
+          }
+        }
+      }
+
+      .resizable-container--resizing:hover > .grid-row:after,
+      .hover-menu:hover + .grid-row:after,
+      .dashboard-component-tabs > .hover-menu:hover + div:after {
+        border: 1px dashed ${theme.colors.primary.base};
         z-index: 2;
       }
+
+      .grid-row:after,
+      .dashboard-component-tabs > .hover-menu + div:after {
+        border: 1px dashed ${theme.colors.grayscale.light2};
+      }
+
+      /* provide hit area in case row contents is edge to edge */
+      .dashboard-component-tabs-content {
+        .dragdroppable-row {
+          padding-top: ${theme.gridUnit * 4}px;
+        }
+
+        & > div:not(:last-child):not(.empty-droptarget) {
+          margin-bottom: ${theme.gridUnit * 4}px;
+        }
+      }
+
+      .dashboard-component-chart-holder {
+        &:after {
+          content: '';
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          top: 0;
+          left: 0;
+          z-index: 1;
+          pointer-events: none;
+          border: 1px solid transparent;
+        }
+
+        &:hover:after {
+          border: 1px dashed ${theme.colors.primary.base};
+          z-index: 2;
+        }
+      }
+
+      .contract-trigger:before {
+        display: none;
+      }
     }
 
-    .contract-trigger:before {
-      display: none;
-    }
-  }
+    & .dashboard-component-tabs-content {
+      & > div:not(:last-child):not(.empty-droptarget) {
+        margin-bottom: ${theme.gridUnit * 4}px;
+      }
 
-  & .dashboard-component-tabs-content {
-    & > div:not(:last-child):not(.empty-droptarget) {
-      margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+      & > .empty-droptarget {
+        position: absolute;
+        width: 100%;
+      }
+
+      & > .empty-droptarget:first-child {
+        height: ${theme.gridUnit * 4}px;
+        top: -2px;
+        z-index: 10;
+      }
+
+      & > .empty-droptarget:last-child {
+        height: ${theme.gridUnit * 3}px;
+        bottom: 0;
+      }
     }
 
-    & > .empty-droptarget {
-      position: absolute;
-      width: 100%;
+    .empty-droptarget:first-child .drop-indicator--bottom {
+      top: ${theme.gridUnit * 6}px;
     }
-
-    & > .empty-droptarget:first-child {
-      height: ${({ theme }) => theme.gridUnit * 4}px;
-      top: -2px;
-      z-index: 10;
-    }
-
-    & > .empty-droptarget:last-child {
-      height: ${({ theme }) => theme.gridUnit * 3}px;
-      bottom: 0;
-    }
-  }
-
-  .empty-droptarget:first-child .drop-indicator--bottom {
-    top: ${({ theme }) => theme.gridUnit * 6}px;
-  }
+  `}
 `;
 
 const StyledDashboardContent = styled.div<{
@@ -366,100 +366,100 @@ const StyledDashboardContent = styled.div<{
   nativeFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
 }>`
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  height: auto;
-  flex: 1;
-
-  .grid-container .dashboard-component-tabs {
-    box-shadow: none;
-    padding-left: 0;
-  }
-
-  .grid-container {
-    /* without this, the grid will not get smaller upon toggling the builder panel on */
-    width: 0;
+  ${({
+    theme,
+    dashboardFiltersOpen,
+    editMode,
+    nativeFiltersEnabled,
+    filterBarOrientation,
+  }) => css`
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    height: auto;
     flex: 1;
-    position: relative;
-    margin-top: ${({ theme }) => theme.gridUnit * 6}px;
-    margin-right: ${({ theme }) => theme.gridUnit * 8}px;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 6}px;
-    margin-left: ${({
-      theme,
-      dashboardFiltersOpen,
-      editMode,
-      nativeFiltersEnabled,
-      filterBarOrientation,
-    }) => {
-      if (
-        !dashboardFiltersOpen &&
-        !editMode &&
-        nativeFiltersEnabled &&
-        filterBarOrientation !== FilterBarOrientation.HORIZONTAL
-      ) {
-        return 0;
-      }
-      return theme.gridUnit * 8;
-    }}px;
 
-    ${({ editMode, theme }) =>
-      editMode &&
+    .grid-container .dashboard-component-tabs {
+      box-shadow: none;
+      padding-left: 0;
+    }
+
+    .grid-container {
+      /* without this, the grid will not get smaller upon toggling the builder panel on */
+      width: 0;
+      flex: 1;
+      position: relative;
+      margin-top: ${theme.gridUnit * 6}px;
+      margin-right: ${theme.gridUnit * 8}px;
+      margin-bottom: ${theme.gridUnit * 6}px;
+      margin-left: ${!dashboardFiltersOpen &&
+      !editMode &&
+      nativeFiltersEnabled &&
+      filterBarOrientation !== FilterBarOrientation.HORIZONTAL
+        ? 0
+        : theme.gridUnit * 8}px;
+
+      ${editMode &&
       `
       max-width: calc(100% - ${
         BUILDER_SIDEPANEL_WIDTH + theme.gridUnit * 16
       }px);
     `}
 
-    /* this is the ParentSize wrapper */
+      /* this is the ParentSize wrapper */
     & > div:first-child {
-      height: inherit !important;
-    }
-  }
-
-  .dashboard-builder-sidepane {
-    width: ${BUILDER_SIDEPANEL_WIDTH}px;
-    z-index: 1;
-  }
-
-  .dashboard-component-chart-holder {
-    width: 100%;
-    height: 100%;
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
-    position: relative;
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
-    overflow-y: visible;
-
-    // transitionable traits to show filter relevance
-    transition: opacity ${({ theme }) => theme.transitionTiming}s ease-in-out,
-      border-color ${({ theme }) => theme.transitionTiming}s ease-in-out,
-      box-shadow ${({ theme }) => theme.transitionTiming}s ease-in-out;
-
-    &.fade-in {
-      border-radius: 4px;
-      box-shadow: inset 0 0 0 2px ${({ theme }) => theme.colors.primary.base},
-        0 0 0 3px fade(${({ theme }) => theme.colors.primary.base}, 10%);
-    }
-
-    &.fade-out {
-      border-radius: 4px;
-      box-shadow: none;
-    }
-
-    & .missing-chart-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      overflow-y: auto;
-      justify-content: center;
-
-      .missing-chart-body {
-        font-size: ${({ theme }) => theme.typography.sizes.s}px;
-        position: relative;
-        display: flex;
+        height: inherit !important;
       }
     }
-  }
+
+    .dashboard-builder-sidepane {
+      width: ${BUILDER_SIDEPANEL_WIDTH}px;
+      z-index: 1;
+    }
+
+    .dashboard-component-chart-holder {
+      width: 100%;
+      height: 100%;
+      background-color: ${theme.colors.grayscale.light5};
+      position: relative;
+      padding: ${theme.gridUnit * 4}px;
+      overflow-y: visible;
+
+      // transitionable traits to show filter relevance
+      transition: opacity ${theme.transitionTiming}s ease-in-out,
+        border-color ${theme.transitionTiming}s ease-in-out,
+        box-shadow ${theme.transitionTiming}s ease-in-out;
+
+      &.fade-in {
+        border-radius: ${theme.borderRadius}px;
+        box-shadow: inset 0 0 0 2px ${theme.colors.primary.base},
+          0 0 0 3px
+            ${addAlpha(
+              theme.colors.primary.base,
+              parseFloat(theme.opacity.light) / 100,
+            )};
+      }
+
+      &.fade-out {
+        border-radius: ${theme.borderRadius}px;
+        box-shadow: none;
+      }
+
+      & .missing-chart-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-y: auto;
+        justify-content: center;
+
+        .missing-chart-body {
+          font-size: ${theme.typography.sizes.s}px;
+          position: relative;
+          display: flex;
+        }
+      }
+    }
+  `}
 `;
 
 const DashboardBuilder: FC<DashboardBuilderProps> = () => {
