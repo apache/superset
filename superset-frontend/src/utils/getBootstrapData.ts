@@ -17,28 +17,10 @@
  * under the License.
  */
 
-import { NavBarProps, MenuObjectProps } from 'src/types/bootstrapTypes';
+import { BootstrapData } from 'src/types/bootstrapTypes';
 
-export interface ExtentionConfigs {
-  ALLOWED_EXTENSIONS: Array<any>;
-  CSV_EXTENSIONS: Array<any>;
-  COLUMNAR_EXTENSIONS: Array<any>;
-  EXCEL_EXTENSIONS: Array<any>;
-  HAS_GSHEETS_INSTALLED: boolean;
-}
-export interface RightMenuProps {
-  align: 'flex-start' | 'flex-end';
-  settings: MenuObjectProps[];
-  navbarRight: NavBarProps;
-  isFrontendRoute: (path?: string) => boolean;
-  environmentTag: {
-    text: string;
-    color: string;
-  };
-}
-
-export enum GlobalMenuDataOptions {
-  GOOGLE_SHEETS = 'gsheets',
-  DB_CONNECTION = 'dbconnection',
-  DATASET_CREATION = 'datasetCreation',
+export default function getBootstrapData(): BootstrapData {
+  const appContainer = document.getElementById('app');
+  const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
+  return dataBootstrap ? JSON.parse(dataBootstrap) : {};
 }

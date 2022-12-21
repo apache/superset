@@ -1,5 +1,14 @@
-import { JsonObject, Locale } from '@superset-ui/core';
+import {
+  ColorSchemeConfig,
+  FeatureFlagMap,
+  JsonObject,
+  LanguagePack,
+  Locale,
+  SequentialSchemeConfig,
+} from '@superset-ui/core';
 import { isPlainObject } from 'lodash';
+import { FlashMessage } from '../components/FlashProvider';
+import { Languages } from '../views/components/LanguagePicker';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -74,11 +83,78 @@ export type ChartResponse = {
   result: ChartData[];
 };
 
+export interface BrandProps {
+  path: string;
+  icon: string;
+  alt: string;
+  tooltip: string;
+  text: string;
+}
+
+export interface NavBarProps {
+  show_watermark: boolean;
+  bug_report_url?: string;
+  version_string?: string;
+  version_sha?: string;
+  build_number?: string;
+  documentation_url?: string;
+  languages: Languages;
+  show_language_picker: boolean;
+  user_is_anonymous: boolean;
+  user_info_url: string;
+  user_login_url: string;
+  user_logout_url: string;
+  user_profile_url: string | null;
+  locale: string;
+}
+
+export interface MenuObjectChildProps {
+  label: string;
+  name?: string;
+  icon?: string;
+  index?: number;
+  url?: string;
+  isFrontendRoute?: boolean;
+  perm?: string | boolean;
+  view?: string;
+  disable?: boolean;
+}
+
+export interface MenuObjectProps extends MenuObjectChildProps {
+  childs?: (MenuObjectChildProps | string)[];
+  isHeader?: boolean;
+}
+
+export interface MenuData {
+  menu: MenuObjectProps[];
+  brand: BrandProps;
+  navbar_right: NavBarProps;
+  settings: MenuObjectProps[];
+  environment_tag: {
+    text: string;
+    color: string;
+  };
+}
+
 export interface CommonBootstrapData {
-  flash_messages: string[][];
+  flash_messages: FlashMessage[];
   conf: JsonObject;
   locale: Locale;
-  feature_flags: Record<string, boolean>;
+  feature_flags: FeatureFlagMap;
+  language_pack: LanguagePack;
+  extra_categorical_color_schemes: ColorSchemeConfig[];
+  extra_sequential_color_schemes: SequentialSchemeConfig[];
+  theme_overrides: JsonObject;
+  menu_data: MenuData;
+}
+
+export interface BootstrapData {
+  user?: BootstrapUser;
+  common: CommonBootstrapData;
+  config?: any;
+  embedded?: {
+    dashboard_id: string;
+  };
 }
 
 export function isUser(user: any): user is User {
