@@ -38,7 +38,6 @@ import {
 } from '../../logger/LogUtils';
 import { areObjectsEqual } from '../../reduxUtils';
 
-import '../stylesheets/index.less';
 import getLocationHash from '../util/getLocationHash';
 import isDashboardEmpty from '../util/isDashboardEmpty';
 import { getAffectedOwnDataCharts } from '../util/charts/getOwnDataCharts';
