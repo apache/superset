@@ -25,6 +25,7 @@ import { Radio } from 'src/components/Radio';
 import { Input, TextArea } from 'src/components/Input';
 import { Input as AntdInput, Tooltip } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
+import { isEmpty } from 'lodash';
 import { infoTooltip, toggleStyle } from './styles';
 
 import { DatabaseObject } from '../types';
@@ -53,12 +54,14 @@ const StyledInputPassword = styled(AntdInput.Password)`
 
 const SSHTunnelForm = ({
   db,
+  dbFetched,
   isEditMode,
   sshTunneling,
   onSSHTunnelParametersChange,
   setSSHTunnelLoginMethod,
 }: {
   db: DatabaseObject | null;
+  dbFetched: DatabaseObject | null;
   isEditMode: boolean;
   sshTunneling: boolean;
   onSSHTunnelParametersChange: EventHandler<
@@ -66,14 +69,18 @@ const SSHTunnelForm = ({
   >;
   setSSHTunnelLoginMethod: (method: AuthType) => void;
 }) => {
-  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(false);
+  const [useSSHTunneling, setUseSSHTunneling] = useState<boolean>(
+    !isEmpty(db?.ssh_tunnel),
+  );
   const [usePassword, setUsePassword] = useState<AuthType>(AuthType.password);
 
   return (
     <Form>
       <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
         <AntdSwitch
-          disabled={!sshTunneling}
+          disabled={
+            !sshTunneling || (isEditMode && !isEmpty(dbFetched?.ssh_tunnel))
+          }
           checked={useSSHTunneling}
           onChange={changed => {
             setUseSSHTunneling(changed);

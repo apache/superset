@@ -1437,9 +1437,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testInProgress={testInProgress}
               >
                 <SSHTunnelForm
-                  isEditMode
+                  isEditMode={isEditMode}
                   sshTunneling={sshTunneling}
                   db={db as DatabaseObject}
+                  dbFetched={dbFetched as DatabaseObject}
                   onSSHTunnelParametersChange={({
                     target,
                   }: {

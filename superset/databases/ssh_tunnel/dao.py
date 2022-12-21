@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Any, Dict
 
+from superset.constants import PASSWORD_MASK
 from superset.dao.base import BaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 
@@ -24,3 +26,27 @@ logger = logging.getLogger(__name__)
 
 class SSHTunnelDAO(BaseDAO):
     model_cls = SSHTunnel
+
+    @classmethod
+    def update(
+        cls,
+        model: SSHTunnel,
+        properties: Dict[str, Any],
+        commit: bool = True,
+    ) -> SSHTunnel:
+        """
+        Unmask ``password``, ``private_key`` and ``private_key_password`` before updating.
+
+        When a database is edited the user sees a masked version of
+        the aforementioned fields.
+
+        The masked values should be unmasked before the ssh tunnel is updated.
+        """
+        if properties.get("password") == PASSWORD_MASK:
+            properties["password"] = model.password
+        if properties.get("private_key") == PASSWORD_MASK:
+            properties["private_key"] = model.private_key
+        if properties.get("private_key_password") == PASSWORD_MASK:
+            properties["private_key_password"] = model.private_key_password
+
+        return super().update(model, properties, commit)
