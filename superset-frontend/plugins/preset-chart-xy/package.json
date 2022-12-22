@@ -29,10 +29,10 @@
     "access": "public"
   },
   "dependencies": {
+    "@visx/axis": "^2.17.0",
+    "@visx/legend": "^2.17.0",
+    "@visx/scale": "^2.17.0",
     "@visx/xychart": "^2.16.0",
-    "@vx/axis": "^0.0.198",
-    "@vx/legend": "^0.0.198",
-    "@vx/scale": "^0.0.197",
     "csstype": "^2.6.3",
     "encodable": "^0.7.6",
     "lodash": "^4.17.11",

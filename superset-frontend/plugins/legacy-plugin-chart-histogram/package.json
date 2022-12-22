@@ -30,9 +30,9 @@
   "dependencies": {
     "@data-ui/histogram": "^0.0.84",
     "@data-ui/theme": "^0.0.84",
-    "@vx/legend": "^0.0.198",
-    "@vx/responsive": "^0.0.199",
-    "@vx/scale": "^0.0.197",
+    "@visx/legend": "^2.17.0",
+    "@visx/responsive": "^2.10.0",
+    "@visx/scale": "^2.17.0",
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
