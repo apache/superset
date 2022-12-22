@@ -17,9 +17,13 @@
  * under the License.
  */
 
+import { Filter } from '../types';
+
 export enum WelcomeTable {
   Charts = 'CHARTS',
   Dashboards = 'DASHBOARDS',
   Recents = 'RECENTS',
   SavedQueries = 'SAVED_QUERIES',
 }
+
+export type WelcomePageLastTab = 'examples' | 'all' | [string, Filter[]];

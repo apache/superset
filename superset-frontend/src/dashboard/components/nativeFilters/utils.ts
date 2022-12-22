@@ -146,7 +146,7 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
 const isComponentATab = (
   dashboardLayout: DashboardLayout,
   componentId: string,
-) => dashboardLayout[componentId]?.type === TAB_TYPE;
+) => dashboardLayout?.[componentId]?.type === TAB_TYPE;
 
 const findTabsWithChartsInScopeHelper = (
   dashboardLayout: DashboardLayout,
@@ -156,13 +156,13 @@ const findTabsWithChartsInScopeHelper = (
   tabsToHighlight: Set<string>,
 ) => {
   if (
-    dashboardLayout[componentId]?.type === CHART_TYPE &&
+    dashboardLayout?.[componentId]?.type === CHART_TYPE &&
     chartsInScope.includes(dashboardLayout[componentId]?.meta?.chartId)
   ) {
     tabIds.forEach(tabsToHighlight.add, tabsToHighlight);
   }
   if (
-    dashboardLayout[componentId]?.children?.length === 0 ||
+    dashboardLayout?.[componentId]?.children?.length === 0 ||
     (isComponentATab(dashboardLayout, componentId) &&
       tabsToHighlight.has(componentId))
   ) {

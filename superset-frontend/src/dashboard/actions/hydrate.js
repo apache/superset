@@ -430,7 +430,9 @@ export const hydrateDashboard =
             conf: common?.conf,
           },
           filterBarOrientation:
-            metadata.filter_bar_orientation ?? FilterBarOrientation.VERTICAL,
+            (isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR) &&
+              metadata.filter_bar_orientation) ||
+            FilterBarOrientation.VERTICAL,
         },
         dataMask,
         dashboardFilters,

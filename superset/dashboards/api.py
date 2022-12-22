@@ -20,7 +20,7 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, Optional
+from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import make_response, redirect, request, Response, send_file, url_for
@@ -83,6 +83,7 @@ from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
+from superset.tasks.utils import get_current_user
 from superset.utils.cache import etag_cache
 from superset.utils.screenshots import DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -879,7 +880,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        dashboard = self.datamodel.get(pk, self._base_filters)
+        dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
 
@@ -887,8 +888,13 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         )
         # If force, request a screenshot from the workers
+        current_user = get_current_user()
         if kwargs["rison"].get("force", False):
-            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
+            cache_dashboard_thumbnail.delay(
+                current_user=current_user,
+                dashboard_id=dashboard.id,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # fetch the dashboard screenshot using the current user and cache if set
         screenshot = DashboardScreenshot(
@@ -897,7 +903,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # If the screenshot does not exist, request one from the workers
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
-            cache_dashboard_thumbnail.delay(dashboard_url, dashboard.digest, force=True)
+            cache_dashboard_thumbnail.delay(
+                current_user=current_user,
+                dashboard_id=dashboard.id,
+                force=True,
+            )
             return self.response(202, message="OK Async")
         # If digests
         if dashboard.digest != digest:
