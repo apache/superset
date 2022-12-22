@@ -18,7 +18,7 @@ import re
 import uuid
 from typing import Any, Optional, Union
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
@@ -33,8 +33,6 @@ from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
-
-DAR_REGEX = re.compile("DAR-.+")
 
 
 class DashboardTitleOrSlugFilter(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -202,14 +200,15 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Role")
     arg_name = "roles"
 
-    def apply(self, query: Query, value: Optional[Any]) -> Query:
-        role_model = security_manager.role_model
-        role_filters = [
-            role_model.name.ilike(f"{role}%")
-            for role in security_manager.get_user_roles()
-            if DAR_REGEX.match(role.name)
-        ]
-        return query.filter(or_(*role_filters))
+    def apply(self, query: Query, value: Optional[str]) -> Query:
+        if base_filter := current_app.config["RBAC_BASE_FILTERS"].get("role"):
+            query = base_filter(query, security_manager)
+
+        if value:
+            role_model = security_manager.role_model
+            query = query.filter(role_model.name.like(f"{value}%"))
+
+        return query
 
 
 class DashboardCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-methods

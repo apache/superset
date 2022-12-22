@@ -43,15 +43,23 @@ class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
     arg_name = "owners"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        user_model = security_manager.user_model
-        like_value = "%" + cast(str, value) + "%"
-        return query.filter(
-            or_(
-                # could be made to handle spaces between names more gracefully
-                (user_model.first_name + " " + user_model.last_name).ilike(like_value),
-                user_model.username.ilike(like_value),
+        if base_filter := current_app.config["RBAC_BASE_FILTERS"].get("user"):
+            query = base_filter(query, security_manager)
+
+        if value:
+            user_model = security_manager.user_model
+            like_value = "%" + cast(str, value) + "%"
+            return query.filter(
+                or_(
+                    # could be made to handle spaces between names more gracefully
+                    (user_model.first_name + " " + user_model.last_name).ilike(
+                        like_value
+                    ),
+                    user_model.username.ilike(like_value),
+                )
             )
-        )
+
+        return query
 
 
 class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-methods

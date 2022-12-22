@@ -44,6 +44,7 @@ from typing import (
     Tuple,
     Type,
     TYPE_CHECKING,
+    TypedDict,
     Union,
 )
 
@@ -54,6 +55,7 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from sqlalchemy.orm.query import Query
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -77,6 +79,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
+    from superset.security import SupersetSecurityManager
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -1479,6 +1482,30 @@ ENVIRONMENT_TAG_CONFIG = {
         },
     },
 }
+
+
+# RBAC base filters make it possible to limit which objects are shown in the UI.
+# For examples, to only show "admin" or users starting with the letter "b" in the
+# "Onwers" dropdowns, you could add the following in your config:
+# def user_filter(query, security_manager):
+#     user_model = security_manager.user_model
+#     filters = [
+#         user_model.username == "admin",
+#         user_model.username.ilike("b%"),
+#     ]
+#     return query.filter(or_(*filters))
+#
+#  RBAC_BASE_FILTERS = {"user": user_filter}
+#
+# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
+# filter callback for the "role" key.
+class RbacBaseFilters(TypedDict, total=False):
+    role: Callable[[Query, SupersetSecurityManager], Query]
+    user: Callable[[Query, SupersetSecurityManager], Query]
+
+
+RBAC_BASE_FILTERS: RbacBaseFilters = {}
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
