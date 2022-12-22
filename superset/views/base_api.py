@@ -204,11 +204,11 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """
 
-    filter_rel_fields: Dict[str, BaseFilter] = {}
+    base_related_field_filters: Dict[str, BaseFilter] = {}
     """
     Declare the related field base filter::
 
-        filter_rel_fields_field = {
+        base_related_field_filters = {
             "<RELATED_FIELD>": "<FILTER>")
         }
     """
@@ -299,7 +299,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         filter_field = cast(RelatedFieldFilter, filter_field)
         search_columns = [filter_field.field_name] if filter_field else None
         filters = datamodel.get_filters(search_columns)
-        base_filters = self.filter_rel_fields.get(column_name)
+        base_filters = self.base_related_field_filters.get(column_name)
         if base_filters:
             filters.add_filter_list(base_filters)
         if value and filter_field:
