@@ -31,15 +31,8 @@ cachelib==0.4.1
     # via apache-superset
 celery==5.2.2
     # via apache-superset
-<<<<<<< HEAD
-cffi==1.14.6
-    # via
-    #   cryptography
-    #   pynacl
-=======
 cffi==1.15.1
     # via cryptography
->>>>>>> 630c129e3e3e8a48c22d754e5d9943583ac0dae4
 click==8.0.4
     # via
     #   apache-superset
