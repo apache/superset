@@ -201,8 +201,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def prepare_cancel_query(cls, query: Query, session: Session) -> None:
-        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-        session.commit()
+        if QUERY_CANCEL_KEY not in query.extra:
+            query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+            session.commit()
 
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:

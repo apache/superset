@@ -15,12 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
+import json
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.constants import QUERY_EARLY_CANCEL_KEY
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 
 
 @mock.patch("sqlalchemy.engine.Engine.connect")
@@ -43,14 +45,25 @@ def test_cancel_query_failed(engine_mock: mock.Mock) -> None:
     assert TrinoEngineSpec.cancel_query(cursor_mock, query, "123") is False
 
 
-def test_prepare_cancel_query(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize(
+    "initial_extra,final_extra",
+    [
+        ({}, {QUERY_EARLY_CANCEL_KEY: True}),
+        ({QUERY_CANCEL_KEY: "my_key"}, {QUERY_CANCEL_KEY: "my_key"}),
+    ],
+)
+def test_prepare_cancel_query(
+    initial_extra: Dict[str, Any],
+    final_extra: Dict[str, Any],
+    mocker: MockerFixture,
+) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.models.sql_lab import Query
 
     session_mock = mocker.MagicMock()
-    query = Query()
+    query = Query(extra_json=json.dumps(initial_extra))
     TrinoEngineSpec.prepare_cancel_query(query=query, session=session_mock)
-    assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
+    assert query.extra == final_extra
 
 
 @pytest.mark.parametrize("cancel_early", [True, False])
