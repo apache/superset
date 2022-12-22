@@ -49,7 +49,7 @@ describe('Dashboards filters', () => {
       cy.getBySel('styled-card').should('exist');
     });
 
-    xit('should filter by published correctly', () => {
+    it('should filter by published correctly', () => {
       setFilter('Status', 'Published');
       cy.getBySel('styled-card').should('have.length', 3);
       setFilter('Status', 'Draft');
