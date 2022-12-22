@@ -129,7 +129,6 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xl',
       },
       {
         accessor: 'filter_type',
@@ -144,7 +143,6 @@ function RowLevelSecurityList(props: RLSProps) {
       {
         accessor: 'clause',
         Header: t('Clause'),
-        size: 'xl',
       },
       {
         Cell: ({
@@ -277,7 +275,7 @@ function RowLevelSecurityList(props: RLSProps) {
     [user],
   );
 
-  const initialSort = [{ id: 'modified', desc: true }];
+  const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const PAGE_SIZE = 25;
 
   const subMenuButtons: SubMenuProps['buttons'] = [];

@@ -77,7 +77,13 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "changed_on_delta_humanized",
         "group_key",
     ]
-    order_columns = ["name", "filter_type", "clause", "modified"]
+    order_columns = [
+        "name",
+        "filter_type",
+        "clause",
+        "changed_on_delta_humanized",
+        "group_key",
+    ]
     add_columns = [
         "name",
         "description",
@@ -92,6 +98,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "description",
         "filter_type",
         "tables.id",
+        "tables.schema",
         "tables.table_name",
         "roles.id",
         "roles.name",

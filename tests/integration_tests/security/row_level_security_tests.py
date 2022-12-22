@@ -543,8 +543,8 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
 
         db_tables = db.session.query(SqlaTable).all()
 
-        db_table_names = set([t.table_name for t in db_tables])
-        received_tables = set([table["text"].split(".")[-1] for table in result])
+        db_table_names = set([t.name for t in db_tables])
+        received_tables = set([table["text"] for table in result])
 
         assert data["count"] == len(db_tables)
         assert len(result) == len(db_tables)

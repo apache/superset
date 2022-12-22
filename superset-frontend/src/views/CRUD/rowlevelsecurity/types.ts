@@ -38,6 +38,7 @@ export type TableObject = {
   id?: number;
   label?: string;
   value?: number | string;
+  schema?: string;
   table_name?: string;
 };
 

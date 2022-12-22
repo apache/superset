@@ -170,7 +170,9 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     resource.tables?.forEach(selectedTable => {
       tables.push({
         key: selectedTable.id,
-        label: selectedTable.table_name,
+        label: selectedTable.schema
+          ? `${selectedTable.schema}.${selectedTable.table_name}`
+          : selectedTable.table_name,
         value: selectedTable.id,
       });
     });

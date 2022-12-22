@@ -40,6 +40,7 @@ class RolesSchema(Schema):
 
 
 class TablesSchema(Schema):
+    schema = fields.String()
     table_name = fields.String()
     id = fields.Integer()
 

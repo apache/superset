@@ -134,7 +134,7 @@ describe('RulesList Enzyme', () => {
     const apiCalls = fetchMock.calls(/rowlevelsecurity\/\?q/);
     expect(apiCalls).toHaveLength(1);
     expect(apiCalls[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:modified,order_direction:desc,page:0,page_size:25)"`,
+      `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
     );
   });
 });
