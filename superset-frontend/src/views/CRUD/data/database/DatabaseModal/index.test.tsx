@@ -25,12 +25,13 @@ import {
   within,
   cleanup,
   act,
+  waitFor,
 } from 'spec/helpers/testing-library';
-import * as hooks from 'src/views/CRUD/hooks';
 import {
   DatabaseObject,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import * as hooks from 'src/views/CRUD/hooks';
 import DatabaseModal, {
   dbReducer,
   DBReducerActionType,
@@ -47,6 +48,20 @@ const dbProps = {
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
 const VALIDATE_PARAMS_ENDPOINT = 'glob:*/api/v1/database/validate_parameters*';
+const DATABASE_CONNECT_ENDPOINT = 'glob:*/api/v1/database/';
+
+fetchMock.post(DATABASE_CONNECT_ENDPOINT, {
+  id: 10,
+  result: {
+    configuration_method: 'sqlalchemy_form',
+    database_name: 'Other2',
+    driver: 'apsw',
+    expose_in_sqllab: true,
+    extra: '{"allows_virtual_table_explore":true}',
+    sqlalchemy_uri: 'gsheets://',
+  },
+  json: 'foo',
+});
 
 fetchMock.config.overwriteRoutes = true;
 fetchMock.get(DATABASE_FETCH_ENDPOINT, {
@@ -226,6 +241,37 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         supports_file_upload: false,
       },
     },
+    {
+      available_drivers: ['connector'],
+      default_driver: 'connector',
+      engine: 'databricks',
+      name: 'Databricks',
+      parameters: {
+        properties: {
+          access_token: {
+            type: 'string',
+          },
+          database: {
+            type: 'string',
+          },
+          host: {
+            type: 'string',
+          },
+          http_path: {
+            type: 'string',
+          },
+          port: {
+            format: 'int32',
+            type: 'integer',
+          },
+        },
+        required: ['access_token', 'database', 'host', 'http_path', 'port'],
+        type: 'object',
+      },
+      preferred: true,
+      sqlalchemy_uri_placeholder:
+        'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
+    },
   ],
 });
 fetchMock.post(VALIDATE_PARAMS_ENDPOINT, {
@@ -238,6 +284,7 @@ const databaseFixture: DatabaseObject = {
   database_name: 'Postgres',
   name: 'PostgresDB',
   is_managed_externally: false,
+  driver: 'psycopg2',
 };
 
 describe('DatabaseModal', () => {
@@ -355,8 +402,9 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer[0]).toBeEmptyDOMElement();
+
       // This is how many preferred databases are rendered
-      expect(preferredDbIcon).toHaveLength(4);
+      expect(preferredDbIcon).toHaveLength(5);
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -1145,6 +1193,7 @@ describe('DatabaseModal', () => {
         const databaseNameField = textboxes[1];
         const usernameField = textboxes[2];
         const passwordField = textboxes[3];
+        const connectButton = screen.getByRole('button', { name: 'Connect' });
 
         expect(hostField).toHaveValue('');
         expect(portField).toHaveValue(null);
@@ -1165,19 +1214,10 @@ describe('DatabaseModal', () => {
         expect(usernameField).toHaveValue('testdb');
         expect(passwordField).toHaveValue('demoPassword');
 
-        /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
-
-        // Mock useSingleViewResource
-        const mockUseSingleViewResource = jest.fn();
-        mockUseSingleViewResource.mockImplementation(useSingleViewResource);
-
-        const { fetchResource } = mockUseSingleViewResource('database');
-
-        // Invalid hook call?
-        userEvent.click(screen.getByRole('button', { name: 'Connect' }));
-        expect(fetchResource).toHaveBeenCalled();
-
-        */
+        userEvent.click(connectButton);
+        await waitFor(() => {
+          expect(fetchMock.calls(VALIDATE_PARAMS_ENDPOINT).length).toEqual(6);
+        });
       });
     });
 
@@ -1292,23 +1332,6 @@ describe('DatabaseModal', () => {
       ...jest.requireActual('src/views/CRUD/hooks'),
       useSingleViewResource: jest.fn(),
     }));
-    const useSingleViewResourceMock = jest.spyOn(
-      hooks,
-      'useSingleViewResource',
-    );
-
-    useSingleViewResourceMock.mockReturnValue({
-      state: {
-        loading: false,
-        resource: null,
-        error: { _schema: 'Test Error With Object' },
-      },
-      fetchResource: jest.fn(),
-      createResource: jest.fn(),
-      updateResource: jest.fn(),
-      clearError: jest.fn(),
-      setResource: jest.fn(),
-    });
 
     const renderAndWait = async () => {
       const mounted = act(async () => {
@@ -1372,10 +1395,14 @@ describe('DatabaseModal', () => {
     test('Error displays when it is a string', async () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
+      const button = screen.getByText('See more');
+      userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
+      expect(errorMessage).toBeVisible();
+      const closeButton = screen.getByText('Close');
+      userEvent.click(closeButton);
       expect(step2of3text).toBeVisible();
       expect(errorTitleMessage).toBeVisible();
-      expect(errorMessage).toBeVisible();
     });
   });
 });
@@ -1405,7 +1432,7 @@ describe('dbReducer', () => {
   test('it will set state to payload from extra editor', () => {
     const action: DBReducerActionType = {
       type: ActionType.extraEditorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     const currentState = dbReducer(databaseFixture, action);
     // extra should be serialized
@@ -1418,20 +1445,20 @@ describe('dbReducer', () => {
   test('it will set state to payload from editor', () => {
     const action: DBReducerActionType = {
       type: ActionType.editorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     const currentState = dbReducer(databaseFixture, action);
     // extra should be serialized
     expect(currentState).toEqual({
       ...databaseFixture,
-      foo: { bar: 1 },
+      foo: JSON.stringify({ bar: 1 }),
     });
   });
 
   test('it will add extra payload to existing extra data', () => {
     const action: DBReducerActionType = {
       type: ActionType.extraEditorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     // extra should be a string
     const currentState = dbReducer(
@@ -1747,6 +1774,36 @@ describe('dbReducer', () => {
     expect(currentState).toEqual({
       ...databaseFixture,
       catalog: [],
+    });
+  });
+
+  test('it will add db information when one is selected', () => {
+    const { backend, ...db } = databaseFixture;
+    const action: DBReducerActionType = {
+      type: ActionType.dbSelected,
+      payload: {
+        engine_information: {
+          supports_file_upload: true,
+        },
+        ...db,
+        driver: db.driver,
+        engine: backend,
+      },
+    };
+    const currentState = dbReducer({}, action);
+
+    expect(currentState).toEqual({
+      database_name: db.database_name,
+      engine: backend,
+      configuration_method: db.configuration_method,
+      engine_information: {
+        supports_file_upload: true,
+      },
+      driver: db.driver,
+      expose_in_sqllab: true,
+      extra: '{"allows_virtual_table_explore":true}',
+      is_managed_externally: false,
+      name: 'PostgresDB',
     });
   });
 

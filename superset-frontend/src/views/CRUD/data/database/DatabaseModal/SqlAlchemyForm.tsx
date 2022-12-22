@@ -104,7 +104,7 @@ const SqlAlchemyTab = ({
       {children}
       <Button
         onClick={testConnection}
-        disabled={testInProgress}
+        loading={testInProgress}
         cta
         buttonStyle="link"
         css={(theme: SupersetTheme) => wideButton(theme)}

@@ -125,6 +125,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     base_filters = [["id", DatabaseFilter, lambda: []]]
     show_columns = [
         "id",
+        "uuid",
         "database_name",
         "cache_timeout",
         "expose_in_sqllab",
@@ -167,6 +168,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_ctas_schema",
         "id",
+        "uuid",
         "disable_data_preview",
         "engine_information",
     ]

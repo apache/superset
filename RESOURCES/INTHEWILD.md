@@ -143,6 +143,7 @@ Join our growing community!
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
 - [QPID Health](http://www.qpidhealth.com/)
+- [REDCap Cloud](https://www.redcapcloud.com/)
 - [TrustMedis](https://trustmedis.com) [@famasya]
 - [WeSure](https://www.wesure.cn/)
 

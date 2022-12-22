@@ -31,10 +31,15 @@ cachelib==0.4.1
     # via apache-superset
 celery==5.2.2
     # via apache-superset
+<<<<<<< HEAD
 cffi==1.14.6
     # via
     #   cryptography
     #   pynacl
+=======
+cffi==1.15.1
+    # via cryptography
+>>>>>>> 630c129e3e3e8a48c22d754e5d9943583ac0dae4
 click==8.0.4
     # via
     #   apache-superset
@@ -120,7 +125,7 @@ hashids==1.3.1
     # via apache-superset
 hijri-converter==2.2.4
     # via holidays
-holidays==0.16.0
+holidays==0.17.2
     # via apache-superset
 humanize==3.11.0
     # via apache-superset
@@ -162,7 +167,7 @@ marshmallow-sqlalchemy==0.23.1
     # via flask-appbuilder
 msgpack==1.0.2
     # via apache-superset
-numpy==1.22.1
+numpy==1.23.5
     # via
     #   apache-superset
     #   pandas
@@ -171,7 +176,7 @@ packaging==21.3
     # via
     #   bleach
     #   deprecation
-pandas==1.4.4
+pandas==1.5.2
     # via apache-superset
 paramiko==2.11.0
     # via sshtunnel
@@ -185,7 +190,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.28
     # via click-repl
-pyarrow==6.0.1
+pyarrow==10.0.1
     # via apache-superset
 pycparser==2.20
     # via cffi
@@ -286,6 +291,7 @@ werkzeug==2.0.3
     #   flask-jwt-extended
 wtforms==2.3.3
     # via
+    #   apache-superset
     #   flask-appbuilder
     #   flask-wtf
     #   wtforms-json

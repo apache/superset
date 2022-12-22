@@ -38,7 +38,7 @@ const metadata = new ChartMetadata({
     { url: example3, caption: t('Video game consoles') },
     { url: example4, caption: t('Vehicle Types') },
   ],
-  name: t('Area Chart'),
+  name: t('Area Chart (legacy)'),
   supportedAnnotationTypes: [ANNOTATION_TYPES.INTERVAL, ANNOTATION_TYPES.EVENT],
   tags: [
     t('Aesthetic'),

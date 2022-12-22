@@ -43,6 +43,7 @@ export type DatabaseObject = {
   configuration_method: CONFIGURATION_METHOD;
   created_by?: null | DatabaseUser;
   database_name: string;
+  driver: string;
   engine?: string;
   extra?: string;
   id?: number;
@@ -50,6 +51,7 @@ export type DatabaseObject = {
   paramProperties?: Record<string, any>;
   sqlalchemy_uri?: string;
   parameters?: {
+    access_token?: string;
     database_name?: string;
     host?: string;
     port?: number;
@@ -102,6 +104,7 @@ export type DatabaseObject = {
 };
 
 export type DatabaseForm = {
+  default_driver: string;
   engine: string;
   name: string;
   parameters: {

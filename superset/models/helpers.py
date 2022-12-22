@@ -65,6 +65,7 @@ from sqlalchemy_utils import UUIDType
 from superset import app, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -1236,8 +1237,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_time_filter(
         self,
         time_col: Dict[str, Any],
-        start_dttm: sa.DateTime,
-        end_dttm: sa.DateTime,
+        start_dttm: Optional[sa.DateTime],
+        end_dttm: Optional[sa.DateTime],
     ) -> ColumnElement:
         label = "__time"
         col = time_col.get("column_name")
@@ -1779,6 +1780,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         where_clause_and.append(sqla_col.like(eq))
                     elif op == utils.FilterOperator.ILIKE.value:
                         where_clause_and.append(sqla_col.ilike(eq))
+                    elif (
+                        op == utils.FilterOperator.TEMPORAL_RANGE.value
+                        and isinstance(eq, str)
+                        and col_obj is not None
+                    ):
+                        _since, _until = get_since_until_from_time_range(
+                            time_range=eq,
+                            time_shift=time_shift,
+                            extras=extras,
+                        )
+                        where_clause_and.append(
+                            self.get_time_filter(
+                                time_col=col_obj,
+                                start_dttm=_since,
+                                end_dttm=_until,
+                            )
+                        )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)

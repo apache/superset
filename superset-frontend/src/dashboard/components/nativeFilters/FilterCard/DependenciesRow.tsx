@@ -19,9 +19,9 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { css, t, useTheme } from '@superset-ui/core';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import Icons from 'src/components/Icons';
 import { useTruncation } from 'src/hooks/useTruncation';
+import { setFocusedNativeFilter } from 'src/dashboard/actions/nativeFilters';
 import {
   DependencyItem,
   Row,
@@ -40,7 +40,7 @@ const DependencyValue = ({
 }: DependencyValueProps) => {
   const dispatch = useDispatch();
   const handleClick = useCallback(() => {
-    dispatch(setDirectPathToChild([dependency.id]));
+    dispatch(setFocusedNativeFilter(dependency.id));
   }, [dependency.id, dispatch]);
   return (
     <span>
@@ -106,6 +106,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
         <RowValue ref={dependenciesRef}>
           {dependencies.map((dependency, index) => (
             <DependencyValue
+              key={dependency.id}
               dependency={dependency}
               hasSeparator={index !== 0}
             />
