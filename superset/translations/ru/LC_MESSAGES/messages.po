@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2022-12-14 17:38+0300\n"
+"POT-Creation-Date: 2022-12-22 13:06+0300\n"
 "PO-Revision-Date: 2021-04-29 02:41+0300\n"
 "Last-Translator: Artem Shumeiko\n"
 "Language: ru\n"
@@ -49,6 +49,9 @@ msgid ""
 "            Error: %(text)s\n"
 "            "
 msgstr ""
+"\n"
+"            Ошибка: %(text)s\n"
+"            "
 
 #: superset-frontend/src/filters/components/Select/SelectFilterPlugin.tsx:129
 msgid " (excluded)"
@@ -98,19 +101,16 @@ msgid ""
 msgstr ""
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:332
-#, fuzzy
 msgid " to add calculated columns"
-msgstr "Расчётные столбцы"
+msgstr " для добавления вычисляемых столбцов"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:397
-#, fuzzy
 msgid " to add metrics"
-msgstr "Добавить показатель"
+msgstr " для добавления мер"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:381
-#, fuzzy
 msgid " to edit or add columns and metrics."
-msgstr "Столбцов и показателей: %s"
+msgstr " для редактирования или добавления столбцов и мер."
 
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:321
 #: superset-frontend/src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover.tsx:356
@@ -2232,36 +2232,35 @@ msgstr "Принудительное обновление"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:37
 #: superset/viz.py:1283
 msgid "Big Number"
-msgstr "Big Number"
+msgstr "Карточка"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:28
 msgid "Big Number Font Size"
-msgstr ""
+msgstr "Размер шрифта числа"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:36
 #: superset/viz.py:1249
 msgid "Big Number with Trendline"
-msgstr "Big Number with Trendline"
+msgstr "Карточка с трендовой линией"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:84
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:355
-#, fuzzy
 msgid "Bottom"
-msgstr "dttm"
+msgstr "Снизу"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:227
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:187
 msgid "Bottom Margin"
-msgstr ""
+msgstr "Нижний отступ"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:239
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:191
 msgid "Bottom margin, in pixels, allowing for more room for axis labels"
-msgstr ""
+msgstr "Нижний отступ (в пикселях), дает больше пространства меткам оси"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:141
 msgid "Bottom to Top"
-msgstr ""
+msgstr "Снизу вверх"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:241
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:257
@@ -2276,6 +2275,10 @@ msgid ""
 "defined based on the min/max of the data. Note that this feature will "
 "only expand the axis range. It won't narrow the data's extent."
 msgstr ""
+"Границы для оси Y. Если оставить поле пустым, границы динамически "
+"определяются на основе минимального/максимального значения данных. "
+"Обратите внимание, что эта функция только расширит диапазон осей. Она не "
+"изменит размер графика."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:244
 msgid ""
@@ -2283,6 +2286,10 @@ msgid ""
 "based on the min/max of the data. Note that this feature will only expand"
 " the axis range. It won't narrow the data's extent."
 msgstr ""
+"Границы для оси. Если оставить поле пустым, границы динамически "
+"определяются на основе минимального/максимального значения данных. "
+"Обратите внимание, что эта функция только расширит диапазон осей. Она не "
+"изменит размер графика."
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/BoxPlot/index.js:26
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:54
@@ -2876,25 +2883,22 @@ msgstr "График"
 #: superset-frontend/src/explore/fixtures.tsx:34
 #: superset-frontend/src/explore/fixtures.tsx:77
 #: superset-frontend/src/explore/fixtures.tsx:86
-#, fuzzy
 msgid "Chart Options"
-msgstr "Редактирование свойств"
+msgstr "Свойства графика"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:267
-#, fuzzy
 msgid "Chart Orientation"
-msgstr "Удалить аннотацию"
+msgstr "Ориентация графика"
 
 #: superset-frontend/src/components/ErrorMessage/DatabaseErrorMessage.tsx:70
 #: superset-frontend/src/components/ErrorMessage/TimeoutErrorMessage.tsx:83
 #, python-format
 msgid "Chart Owner: %s"
-msgstr "Параметры графика: %s"
+msgstr "Владелец графика: %s"
 
 #: superset-frontend/src/explore/components/ExploreViewContainer/index.jsx:611
-#, fuzzy
 msgid "Chart Source"
-msgstr "Источник данных"
+msgstr "Источник данных графика"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/chartTitle.tsx:29
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:289
@@ -4634,6 +4638,8 @@ msgid ""
 "Datasets can be created from database tables or SQL queries. Select a "
 "database table to the left or "
 msgstr ""
+"Датасеты могут быть созданы как таблицы базы данных или SQL запросы. "
+"Выберите таблицу из базы данных слева или "
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:779
 msgid "Datasets do not contain a temporal column"
@@ -5280,13 +5286,12 @@ msgid "Display row level total"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:38
-#, fuzzy
 msgid "Display settings"
-msgstr "Настройки расписания"
+msgstr "Настройки отображения"
 
 #: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:79
 msgid "Display total row/column"
-msgstr ""
+msgstr "Отобразить общую строку/столбец"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/index.ts:34
 msgid ""
@@ -5305,13 +5310,12 @@ msgstr "Выполнить выбранный запрос"
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/index.js:26
 #: superset-frontend/plugins/plugin-chart-echarts/src/BoxPlot/index.ts:48
 #: superset-frontend/plugins/preset-chart-xy/src/BoxPlot/createMetadata.ts:25
-#, fuzzy
 msgid "Distribution"
-msgstr "Доля"
+msgstr "Распределение"
 
 #: superset/viz.py:1798
 msgid "Distribution - Bar Chart"
-msgstr "Distribution - Bar Chart"
+msgstr "Распределение - Столбчатая диаграмма"
 
 #: superset-frontend/src/dashboard/components/gridComponents/new/NewDivider.jsx:31
 msgid "Divider"
@@ -5320,7 +5324,7 @@ msgstr "Разделитель"
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:86
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:225
 msgid "Do you want a donut or a pie?"
-msgstr ""
+msgstr "Круговая/кольцевая диаграмма"
 
 #: superset-frontend/src/views/components/RightMenu.tsx:544
 #, fuzzy
@@ -8561,14 +8565,14 @@ msgstr "Метод"
 #: superset-frontend/src/explore/controls.jsx:168
 #: superset/connectors/sqla/views.py:251
 msgid "Metric"
-msgstr "Показатель"
+msgstr "Мера"
 
 #: superset/connectors/sqla/models.py:1228
 #: superset/connectors/sqla/models.py:1783 superset/models/helpers.py:1173
 #: superset/models/helpers.py:1429
 #, python-format
 msgid "Metric '%(metric)s' does not exist"
-msgstr "Показатель ‘%(metric)s’ не существует"
+msgstr "Мера '%(metric)s' не существует"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:40
 #, fuzzy
@@ -8668,7 +8672,7 @@ msgstr ""
 #: superset-frontend/src/explore/controls.jsx:152
 #: superset/connectors/sqla/views.py:208
 msgid "Metrics"
-msgstr "Показатели"
+msgstr "Меры"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/metrics.tsx:34
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:127
@@ -9214,9 +9218,8 @@ msgstr "В избранном нет дашбордов. Нажмите звёз
 
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:35
 #: superset-frontend/src/explore/controls.jsx:326
-#, fuzzy
 msgid "No filter"
-msgstr "Добавить фильтр"
+msgstr "Без фильтрации"
 
 #: superset-frontend/src/dashboard/components/filterscope/FilterScopeSelector.jsx:484
 msgid "No filter is selected."
@@ -10745,28 +10748,25 @@ msgstr "Запрос"
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:364
 #, python-format
 msgid "Query %s: %s"
-msgstr ""
+msgstr "Запрос %s: %s"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:297
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:308
-#, fuzzy
 msgid "Query A"
-msgstr "запрос"
+msgstr "Запрос А"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:299
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:309
-#, fuzzy
 msgid "Query B"
-msgstr "запрос"
+msgstr "Запрос Б"
 
 #: superset/initialization/__init__.py:354
 msgid "Query History"
 msgstr "История запросов"
 
 #: superset/commands/exceptions.py:138
-#, fuzzy
 msgid "Query does not exist"
-msgstr "График не существует"
+msgstr "Запрос не существует"
 
 #: superset-frontend/src/SqlLab/components/SouthPane/index.tsx:243
 #: superset-frontend/src/views/CRUD/data/common.ts:32
@@ -10775,9 +10775,8 @@ msgid "Query history"
 msgstr "История запросов"
 
 #: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:129
-#, fuzzy
 msgid "Query imported"
-msgstr "Имя запроса"
+msgstr "Запрос импортирован"
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:453
 msgid "Query in a new tab"
@@ -11700,27 +11699,25 @@ msgid "SUN"
 msgstr "ВС"
 
 #: superset-frontend/src/explore/components/DataTablesPane/DataTablesPane.tsx:231
-#, fuzzy
 msgid "Samples"
-msgstr "Посмотреть примеры"
+msgstr "Примеры данных"
 
 #: superset/datasets/commands/exceptions.py:177
-#, fuzzy
 msgid "Samples for dataset could not be retrieved."
-msgstr "Датасет не может быть создан."
+msgstr "Не удалось получить примеры записей датасета."
 
 #: superset/explore/exceptions.py:45
 #, fuzzy
 msgid "Samples for datasource could not be retrieved."
-msgstr "Датасет не может быть создан."
+msgstr ""
 
 #: superset/viz.py:1932
 msgid "Sankey"
-msgstr "Sankey"
+msgstr "Санкей"
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:36
 msgid "Sankey Diagram"
-msgstr ""
+msgstr "Диаграмма Санкей"
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey-loop/src/index.js:27
 msgid "Sankey Diagram with Loops"
@@ -12044,21 +12041,19 @@ msgstr "Поиск / Фильтр"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:361
 msgid "Search Metrics & Columns"
-msgstr "Столбцы Временных Рядов"
+msgstr "Поиск по мерам и столбцам"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:777
-#, fuzzy
 msgid "Search all charts"
-msgstr "Все графики"
+msgstr "Поиск по всем графикам"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:232
 msgid "Search all filter options"
-msgstr "Поиск / Фильтр"
+msgstr "Поиск по всем фильтрам"
 
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:416
-#, fuzzy
 msgid "Search box"
-msgstr "Поиск"
+msgstr "Строка поиска"
 
 #: superset-frontend/src/views/CRUD/data/query/QueryList.tsx:392
 msgid "Search by query text"
@@ -12148,9 +12143,8 @@ msgstr "Выберите схему (%s)"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:353
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:132
-#, fuzzy
 msgid "Select"
-msgstr "Множественный выбор"
+msgstr "Выбрать"
 
 #: superset-frontend/src/components/AsyncSelect/index.jsx:41
 #: superset-frontend/src/components/Select/AsyncSelect.tsx:123
@@ -12158,71 +12152,61 @@ msgstr "Множественный выбор"
 #: superset-frontend/src/explore/components/controls/SelectAsyncControl/index.tsx:106
 #: superset-frontend/src/explore/components/controls/SelectControl.jsx:230
 msgid "Select ..."
-msgstr "Выбрать …"
+msgstr "Выбрать ..."
 
 #: superset-frontend/src/views/CRUD/alert/components/NotificationMethod.tsx:127
-#, fuzzy
 msgid "Select Delivery Method"
-msgstr "Добавить метод доставки"
+msgstr "Выберите способ оповещения"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/FastVizSwitcher.tsx:94
-#, fuzzy
 msgid "Select Viz Type"
 msgstr "Выберите тип визуализации"
 
 #: superset/views/database/forms.py:415
-#, fuzzy
 msgid "Select a Columnar file to be uploaded to a database."
-msgstr "Выберите файл CSV, который будет загружен в БД."
+msgstr "Выберите файл столбчатого формата, который будет загружен в базу данных."
 
 #: superset/views/database/forms.py:279
 msgid "Select a Excel file to be uploaded to a database."
-msgstr "Выберите файл CSV, который будет загружен в БД."
+msgstr "Выберите Excel файл для загрузки в базу данных"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/ColumnSelect.tsx:132
-#, fuzzy
 msgid "Select a column"
-msgstr "Выберите базу данных"
+msgstr "Выберите столбец"
 
 #: superset-frontend/src/explore/components/SaveModal.tsx:347
-#, fuzzy
 msgid "Select a dashboard"
-msgstr "Дашборд Superset"
+msgstr "Выбрать дашборд"
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDataset/Header/index.tsx:38
 msgid "Select a database table and create dataset"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDataset/Footer/index.tsx:91
-#, fuzzy
 msgid "Select a database table."
-msgstr "Выберите базу данных"
+msgstr "Выберите таблицу из базы данных."
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ModalHeader.tsx:144
-#, fuzzy
 msgid "Select a database to connect"
-msgstr "Выберите любые столбцы для проверки метаданных"
+msgstr "Выберите базу данных для подключения"
 
 #: superset/views/database/forms.py:138
 msgid "Select a database to upload the file to"
-msgstr ""
+msgstr "Выберите базу данных для загрузки файла"
 
 #: superset-frontend/src/SqlLab/components/SqlEditor/index.jsx:668
 msgid "Select a database to write a query"
-msgstr ""
+msgstr "Выберите базу данных для написания запроса"
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:111
-#, fuzzy
 msgid "Select a dimension"
-msgstr "Измерение"
+msgstr "Выберете измерение"
 
 #: superset/views/database/forms.py:110
-#, fuzzy
 msgid "Select a file to be uploaded to the database"
-msgstr "Выберите файл CSV, который будет загружен в БД."
+msgstr "Выберите файл, который будет загружен в БД."
 
 #: superset/views/database/forms.py:145
-#, fuzzy
 msgid "Select a schema if the database supports this"
 msgstr "Укажите схему (если это поддерживается базой данных)."
 
@@ -12235,14 +12219,12 @@ msgid "Select aggregate options"
 msgstr "Выберите настройки агрегации"
 
 #: superset-frontend/src/components/Table/index.tsx:265
-#, fuzzy
 msgid "Select all data"
-msgstr "Выберите базу данных"
+msgstr "Выбрать все данные"
 
 #: superset-frontend/src/components/Table/index.tsx:259
-#, fuzzy
 msgid "Select all items"
-msgstr "Выберите базу данных"
+msgstr "Выбрать все элементы"
 
 #: superset-frontend/plugins/legacy-plugin-chart-event-flow/src/controlPanel.tsx:106
 msgid "Select any columns for metadata inspection"
@@ -12251,21 +12233,18 @@ msgstr ""
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/Multi/controlPanel.js:45
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:103
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/LineMulti/controlPanel.ts:138
-#, fuzzy
 msgid "Select charts"
-msgstr "Все графики"
+msgstr "Выберите графики"
 
 #: superset-frontend/src/explore/components/controls/ColorSchemeControl/index.tsx:177
-#, fuzzy
 msgid "Select color scheme"
-msgstr "Цветовая схема"
+msgstr "Выберите цветовую схему"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:208
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSqlTabContent/index.jsx:63
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:300
-#, fuzzy
 msgid "Select column"
-msgstr "Столбец с временем"
+msgstr "Выберите столбец"
 
 #: superset-frontend/src/components/Table/index.tsx:262
 #, fuzzy
@@ -12273,19 +12252,17 @@ msgid "Select current page"
 msgstr "Выберите дату окончания"
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:234
-#, fuzzy
 msgid "Select database & schema"
-msgstr "Выберите схему (%s)"
+msgstr "Выберите базу данных и схему"
 
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:293
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:301
 msgid "Select database or type database name"
-msgstr ""
+msgstr "Выбери базу данных или введите ее имя"
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDataset/LeftPanel/index.tsx:238
-#, fuzzy
 msgid "Select database table"
-msgstr "Выберите базу данных"
+msgstr "Выберите таблицу из базы данных"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:1514
 msgid ""
@@ -12293,17 +12270,18 @@ msgid ""
 "Advanced tab to successfully connect the database. Learn what "
 "requirements your databases has "
 msgstr ""
+"Некоторые базы данных требуют ручной настройки во вкладке Продвинутая "
+"настройка для успешного подключения. Вы можете ознакомиться с "
+"требованиями к вашей базе данных "
 
 #: superset-frontend/src/views/CRUD/data/dataset/AddDataset/DatasetPanel/MessageContent.tsx:66
-#, fuzzy
 msgid "Select dataset source"
-msgstr "Использовать старый редактор"
+msgstr "Выберите источник данных датасета"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:302
 #: superset-frontend/src/filters/components/Select/index.ts:28
-#, fuzzy
 msgid "Select filter"
-msgstr "Выберите дату окончания"
+msgstr "Селектор"
 
 #: superset-frontend/src/filters/components/Select/index.ts:29
 msgid "Select filter plugin using AntD"
@@ -12311,7 +12289,7 @@ msgstr ""
 
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:104
 msgid "Select first filter value by default"
-msgstr ""
+msgstr "Сделать первое значение фильтра значением по умолчанию"
 
 #: superset-frontend/src/explore/components/controls/FilterControl/AdhocFilterEditPopoverSimpleTabContent/index.tsx:363
 msgid "Select operator"
@@ -12324,7 +12302,7 @@ msgstr "Выберите значение"
 
 #: superset-frontend/src/SqlLab/components/SaveDatasetModal/index.tsx:410
 msgid "Select or type dataset name"
-msgstr ""
+msgstr "Выберите/введите имя датасета"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:555
 msgid "Select owners"
@@ -12354,26 +12332,24 @@ msgstr ""
 #: superset-frontend/src/components/TableSelector/index.tsx:318
 #: superset-frontend/src/components/TableSelector/index.tsx:329
 msgid "Select table or type table name"
-msgstr ""
+msgstr "Выберите таблицу или введите ее имя"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:417
-#, fuzzy
 msgid "Select the Annotation Layer you would like to use."
-msgstr "Выбрать тип слоя аннотации"
+msgstr "Выбрать слой аннотации, который вы хотите использовать."
 
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/Shared_DeckGL.jsx:392
 #: superset-frontend/plugins/legacy-preset-chart-deckgl/src/utilities/sharedDndControls.jsx:37
-#, fuzzy
 msgid "Select the geojson column"
-msgstr "Выберите базу данных"
+msgstr "Выберите geojson столбец"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:84
 msgid "Select the number of bins for the histogram"
-msgstr ""
+msgstr "Выберите количество столбцов для гистограммы"
 
 #: superset-frontend/plugins/legacy-plugin-chart-histogram/src/controlPanel.ts:34
 msgid "Select the numeric columns to draw the histogram"
-msgstr ""
+msgstr "Выберите числовые столбцы для отрисовки гистограммы"
 
 #: superset-frontend/src/utils/getChartRequiredFieldsMissingMessage.ts:23
 #, python-format
@@ -12381,18 +12357,20 @@ msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
 "query by clicking on the %s button."
 msgstr ""
+"Выберите значения в обязательных полях на панели управления. Затем "
+"запустите запрос, нажав на кнопку %s."
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1357
 msgid "Send as CSV"
-msgstr ""
+msgstr "Отправить в формате CSV"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1356
 msgid "Send as PNG"
-msgstr ""
+msgstr "Отправить в формате PNG"
 
 #: superset-frontend/src/views/CRUD/alert/AlertReportModal.tsx:1360
 msgid "Send as text"
-msgstr ""
+msgstr "Отправить текстом"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Line/controlPanel.ts:62
 msgid "Send range filter events to other charts"
@@ -12405,21 +12383,19 @@ msgstr "Сентябрь"
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:58
 #: superset-frontend/plugins/plugin-chart-table/src/index.ts:49
 msgid "Sequential"
-msgstr ""
+msgstr "Последовательность"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/customControls.tsx:62
 msgid "Series"
-msgstr "Ряд данных"
+msgstr "Ряд"
 
 #: superset-frontend/plugins/legacy-plugin-chart-horizon/src/controlPanel.ts:63
-#, fuzzy
 msgid "Series Height"
-msgstr "Лимит кол-ва рядов"
+msgstr "Высота рядов"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:54
-#, fuzzy
 msgid "Series Limit Sort By"
-msgstr "Лимит кол-ва рядов"
+msgstr "Сортировка категорий по"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Bar/controlPanel.ts:73
 #, fuzzy
@@ -12428,9 +12404,8 @@ msgstr "Сортировать"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:71
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Line/controlPanel.tsx:70
-#, fuzzy
 msgid "Series Style"
-msgstr "Таблица временных рядов"
+msgstr "Стиль категорий"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:158
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Area/controlPanel.tsx:81
@@ -12442,7 +12417,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/sharedControls.tsx:281
 #: superset-frontend/src/explore/controls.jsx:350
 msgid "Series limit"
-msgstr "Лимит кол-ва рядов"
+msgstr "Лимит кол-ва категорий"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:146
 #, fuzzy
@@ -12452,12 +12427,12 @@ msgstr "Тип"
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/pagination.tsx:50
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:322
 msgid "Server Page Length"
-msgstr ""
+msgstr "Серверный размер страницы"
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/pagination.tsx:35
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:299
 msgid "Server pagination"
-msgstr ""
+msgstr "Серверная пагинация"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:114
 msgid "Service Account"
@@ -12465,7 +12440,7 @@ msgstr ""
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:397
 msgid "Set auto-refresh interval"
-msgstr "Интервал обновления"
+msgstr "Задать интервал обновления"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:383
 msgid "Set filter mapping"
@@ -12473,9 +12448,8 @@ msgstr "Установить действие фильтра"
 
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:228
 #: superset-frontend/src/components/ReportModal/HeaderReportDropdown/index.tsx:232
-#, fuzzy
 msgid "Set up an email report"
-msgstr "Оповещения и рассылки"
+msgstr "Запланировать рассылку по почте"
 
 #: superset-frontend/src/components/Datasource/DatasourceEditor.jsx:1430
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:264
@@ -12486,7 +12460,7 @@ msgstr "Настройки"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:127
 msgid "Settings for time series"
-msgstr ""
+msgstr "Настройки временных рядов"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:328
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:477
@@ -12497,27 +12471,24 @@ msgstr "Поделиться"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:482
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:311
-#, fuzzy
 msgid "Share chart by email"
-msgstr "Поделиться графиком"
+msgstr "Поделиться графиком по email"
 
 #: superset-frontend/src/dashboard/components/Header/HeaderActionsDropdown/index.jsx:333
-#, fuzzy
 msgid "Share permalink by email"
-msgstr "Поделиться графиком"
+msgstr "Поделиться ссылкой по email"
 
 #: superset-frontend/src/SqlLab/actions/sqlLab.js:1363
 msgid "Shared query"
-msgstr "Общий запрос"
+msgstr "Общедоступный запрос"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:292
-#, fuzzy
 msgid "Shared query fields"
-msgstr "Сохраненные запросы"
+msgstr "Поля общегодоступного запроса"
 
 #: superset/views/database/forms.py:298
 msgid "Sheet Name"
-msgstr "Полное имя"
+msgstr "Имя листа"
 
 #: superset/annotation_layers/annotations/commands/exceptions.py:46
 msgid "Short description must be unique for this layer"
@@ -12528,23 +12499,28 @@ msgid ""
 "Should daily seasonality be applied. An integer value will specify "
 "Fourier order of seasonality."
 msgstr ""
+"Применяется дневная сезонность. Целочисленное значение будет указывать "
+"порядок сезонности Фурье."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:111
 msgid ""
 "Should weekly seasonality be applied. An integer value will specify "
 "Fourier order of seasonality."
 msgstr ""
+"Применяется недельная сезонность. Целочисленное значение будет указывать "
+"порядок сезонности Фурье."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/sections/forecastInterval.tsx:92
 msgid ""
 "Should yearly seasonality be applied. An integer value will specify "
 "Fourier order of seasonality."
 msgstr ""
+"Применяется годовая сезонность. Целочисленное значение будет указывать "
+"порядок сезонности Фурье."
 
 #: superset-frontend/plugins/legacy-plugin-chart-world-map/src/controlPanel.ts:82
-#, fuzzy
 msgid "Show Bubbles"
-msgstr "Показать таблицу"
+msgstr "Показать пузыри"
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:200
 msgid "Show CREATE VIEW statement"
@@ -12552,7 +12528,7 @@ msgstr "Показать выражение CREATE VIEW"
 
 #: superset/views/css_templates.py:39
 msgid "Show CSS Template"
-msgstr "Шаблоны CSS"
+msgstr "Показать CSS шаблон"
 
 #: superset/views/chart/mixin.py:27
 msgid "Show Chart"
@@ -12568,46 +12544,43 @@ msgstr "Показать дашборд"
 
 #: superset/views/database/mixins.py:34
 msgid "Show Database"
-msgstr "Показать Базу Данных"
+msgstr "Показать базу данных"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/Pie/controlPanel.ts:96
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/controlPanel.tsx:128
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:151
 #: superset-frontend/plugins/plugin-chart-echarts/src/Radar/controlPanel.tsx:95
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:72
-#, fuzzy
 msgid "Show Labels"
-msgstr "Показать таблицу"
+msgstr "Показывать метки"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:459
 msgid "Show Less..."
-msgstr ""
+msgstr "Показать меньше..."
 
 #: superset/views/log/__init__.py:22
 msgid "Show Log"
-msgstr "Показать итоги"
+msgstr "Показать запись"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:64
 msgid "Show Markers"
-msgstr ""
+msgstr "Показать маркеры"
 
 #: superset/connectors/sqla/views.py:209
 msgid "Show Metric"
-msgstr "Показать показатель"
+msgstr "Показатель меру"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:179
-#, fuzzy
 msgid "Show Metric Names"
-msgstr "Показать показатель"
+msgstr "Показать имена мер"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:132
-#, fuzzy
 msgid "Show Range Filter"
-msgstr "Фильтр результатов"
+msgstr "Показать фильтр Диапазон"
 
 #: superset/connectors/sqla/views.py:292
 msgid "Show Row level security filter"
-msgstr "Показать фильтр на уровне строк"
+msgstr "Показать фильтр Безопасность на уровне строк"
 
 #: superset/views/sql_lab/views.py:53
 msgid "Show Saved Query"
@@ -12619,60 +12592,55 @@ msgstr "Показать таблицу"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:78
 msgid "Show Timestamp"
-msgstr ""
+msgstr "Показать метку времени"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Pie/controlPanel.tsx:193
-#, fuzzy
 msgid "Show Total"
-msgstr "Показать столбец"
+msgstr "Показать общий итог"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:90
 msgid "Show Trend Line"
-msgstr ""
+msgstr "Показать трендовую линию"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:84
 msgid "Show Upper Labels"
-msgstr ""
+msgstr "Показать верхние метки"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:108
-#, fuzzy
 msgid "Show Value"
-msgstr "Показать таблицу"
+msgstr "Показать значение"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:165
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:316
 #: superset-frontend/plugins/plugin-chart-echarts/src/MixedTimeseries/controlPanel.tsx:193
-#, fuzzy
 msgid "Show Values"
-msgstr "Показать таблицу"
+msgstr "Показать значения"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/ColumnConfigControl.tsx:173
-#, fuzzy
 msgid "Show all columns"
-msgstr "Показать столбец"
+msgstr "Показать все столбцы"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:422
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:459
 msgid "Show all..."
-msgstr ""
+msgstr "Показать все..."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:204
 msgid "Show axis line ticks"
-msgstr ""
+msgstr "Показывать деления на оси"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:120
 msgid "Show cell bars"
-msgstr ""
+msgstr "Наложить гистограммы на ячейки"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:397
 #, fuzzy
 msgid "Show chart description"
-msgstr "Изменить описание графика"
+msgstr "Показать описание графика"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:226
-#, fuzzy
 msgid "Show columns total"
-msgstr "Показать столбец"
+msgstr "Показать общий итог по столбцам"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:67
 msgid "Show data points as circle markers on the lines"
@@ -12689,15 +12657,16 @@ msgid ""
 "Show hierarchical relationships of data, with with the value represented "
 "by area, showing proportion and contribution to the whole."
 msgstr ""
+"Показывает иерархические взаимосвязи данных со значением, представленным "
+"областью, показывая пропорцию и вклад в целое."
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/components/InfoTooltipWithTrigger.tsx:52
 msgid "Show info tooltip"
-msgstr ""
+msgstr "Показать информационную подсказку"
 
 #: superset-frontend/src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.jsx:773
-#, fuzzy
 msgid "Show label"
-msgstr "Показать таблицу"
+msgstr "Показывать метку"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Treemap/controlPanel.tsx:87
 msgid "Show labels when the node has children."
@@ -12705,55 +12674,52 @@ msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:37
 msgid "Show legend"
-msgstr ""
+msgstr "Показывать легенду"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/ColumnConfigControl.tsx:168
-#, fuzzy
 msgid "Show less columns"
-msgstr "Показать колонку Druid"
+msgstr "Показать меньше столбцов"
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:422
 msgid "Show less..."
-msgstr ""
+msgstr "Показать меньше..."
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/controlPanel.tsx:302
 msgid "Show percentage"
-msgstr ""
+msgstr "Показывать долю"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:177
 msgid "Show pointer"
-msgstr ""
+msgstr "Показывать указатель"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:243
-#, fuzzy
 msgid "Show progress"
-msgstr "Свойства дашборда"
+msgstr "Показывать прогресс"
 
 #: superset-frontend/plugins/plugin-chart-pivot-table/src/plugin/controlPanel.tsx:214
 msgid "Show rows total"
-msgstr ""
+msgstr "Показать общий итог по строкам"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:111
 msgid "Show series values on the chart"
-msgstr ""
+msgstr "Показать значения категорий на графике"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Gauge/controlPanel.tsx:216
 msgid "Show split lines"
-msgstr ""
+msgstr "Показывать разделительные линии"
 
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:297
 msgid "Show the value on top of the bar"
-msgstr ""
+msgstr "Показать значение в верхней части столбца"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:85
-#, fuzzy
 msgid "Show time column"
-msgstr "Показать колонку Druid"
+msgstr "Показать столбец времени"
 
 #: superset-frontend/src/visualizations/FilterBox/controlPanel.jsx:74
 #, fuzzy
 msgid "Show time grain dropdown"
-msgstr "Включить фильтр на определенный интервал/диапазон времени"
+msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/metrics.tsx:107
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:364
@@ -12761,12 +12727,14 @@ msgid ""
 "Show total aggregations of selected metrics. Note that row limit does not"
 " apply to the result."
 msgstr ""
+"Показать общие итоговые значения выбранных показателей. Обратите "
+"внимание, что ограничение количества строк не применяется к результату."
 
 #: superset-frontend/plugins/legacy-plugin-chart-pivot-table/src/controlPanel.ts:77
 #: superset-frontend/plugins/plugin-chart-handlebars/src/plugin/controls/metrics.tsx:105
 #: superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx:362
 msgid "Show totals"
-msgstr ""
+msgstr "Показывать общий итог"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/index.ts:30
 msgid ""
@@ -12774,6 +12742,8 @@ msgid ""
 "call attention to a KPI or the one thing you want your audience to focus "
 "on."
 msgstr ""
+"Отображает один показатель по центру. Карточку лучше всего использовать, "
+"чтобы привлечь внимание к KPI."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/index.ts:32
 msgid ""
@@ -12781,6 +12751,9 @@ msgid ""
 "attention to an important metric along with its change over time or other"
 " dimension."
 msgstr ""
+"Отображает один показатель, сопровождаемый простой линейной диаграммой, "
+"чтобы привлечь внимание к KPI наряду с его изменением с течением времени "
+"или другим измерением."
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Funnel/index.ts:49
 msgid ""
@@ -12788,6 +12761,9 @@ msgid ""
 "chart is useful for visualizing drop-off between stages in a pipeline or "
 "lifecycle."
 msgstr ""
+"Отображает изменение показателя по мере сужения воронки. Эта классическая"
+" диаграмма полезна для визуализации перехода между этапами процесса или "
+"жизненного цикла."
 
 #: superset-frontend/plugins/legacy-plugin-chart-chord/src/index.js:28
 msgid ""
@@ -12800,16 +12776,18 @@ msgid ""
 "Showcases the progress of a single metric against a given target. The "
 "higher the fill, the closer the metric is to the target."
 msgstr ""
+"Демонстрирует прогресс одного показателя по отношению к заданной цели. "
+"Чем больше заполнение, тем ближе показатель к целевому показателю."
 
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:398
 #: superset-frontend/src/explore/components/DatasourcePanel/index.tsx:435
 #, python-format
 msgid "Showing %s of %s"
-msgstr ""
+msgstr "Отображено %s из %s"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/controls.tsx:178
 msgid "Shows a list of all series available at that point in time"
-msgstr ""
+msgstr "Показывает список всех данных, доступных в определенный момент времени"
 
 #: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:31
 msgid ""
@@ -12828,36 +12806,32 @@ msgstr ""
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:412
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:415
 msgid "Simple"
-msgstr "Простые"
+msgstr "Столбец"
 
 #: superset-frontend/src/explore/components/controls/MetricControl/AdhocMetricEditPopover/index.jsx:408
 msgid "Simple ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Graph/controlPanel.tsx:187
-#, fuzzy
 msgid "Single"
-msgstr "Мои"
+msgstr "Один"
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:45
 #: superset-frontend/plugins/plugin-chart-word-cloud/src/plugin/index.ts:46
-#, fuzzy
 msgid "Single Metric"
-msgstr "Список показателей"
+msgstr "Одна мера"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1054
-#, fuzzy
 msgid "Single Value"
-msgstr "Значение фильтра"
+msgstr "Единственное значение"
 
 #: superset-frontend/src/filters/components/Range/controlPanel.ts:67
-#, fuzzy
 msgid "Single value"
-msgstr "Значение фильтра"
+msgstr "Единственное значение"
 
 #: superset-frontend/src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigForm/FiltersConfigForm.tsx:1071
 msgid "Single value type"
-msgstr ""
+msgstr "Тип единственного значения"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Tree/controlPanel.tsx:262
 msgid "Size of edge symbols"
@@ -12870,7 +12844,7 @@ msgstr ""
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/controlPanel.tsx:86
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Step/controlPanel.tsx:141
 msgid "Size of marker. Also applies to forecast observations."
-msgstr ""
+msgstr "Размер маркера. Также применяется к прогнозным значениям."
 
 #: superset-frontend/plugins/legacy-plugin-chart-heatmap/src/index.js:34
 msgid "Sizes of vehicles"
@@ -12878,25 +12852,23 @@ msgstr ""
 
 #: superset/views/database/forms.py:177
 msgid "Skip Blank Lines"
-msgstr "Пропустить пустые строки"
+msgstr "Пропуск пустых строк"
 
 #: superset/views/database/forms.py:174
 msgid "Skip Initial Space"
-msgstr "Убрать пробелы"
+msgstr "Пропуск начального пробела"
 
 #: superset/views/database/forms.py:260 superset/views/database/forms.py:354
 msgid "Skip Rows"
-msgstr "Игнорировать"
+msgstr "Пропуск строк"
 
 #: superset/views/database/forms.py:178
-#, fuzzy
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
-msgstr "Пропустите пустые строки, а не интерпретировать их как значения NaN."
+msgstr "Пропускайте пустые строки, вместо их перевода в пустые строки (NaN)"
 
 #: superset/views/database/forms.py:174
-#, fuzzy
 msgid "Skip spaces after delimiter"
-msgstr "Пропустить пробелы после разделителя."
+msgstr "Пропускать пробелы после разделителя"
 
 #: superset/views/dashboard/mixin.py:80
 msgid "Slug"
@@ -12906,15 +12878,15 @@ msgstr "Читаемый URL"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:73
 #: superset-frontend/src/dashboard/util/headerStyleOptions.ts:25
 msgid "Small"
-msgstr ""
+msgstr "Маленький"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/components/ColumnConfigControl/constants.tsx:162
 msgid "Small number format"
-msgstr ""
+msgstr "Форматирование маленьких чисел"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:75
 msgid "Smooth Line"
-msgstr ""
+msgstr "Гладкая линия"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/SmoothLine/index.ts:61
 msgid ""
@@ -13343,13 +13315,12 @@ msgid "Subdomain"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberTotal/controlPanel.ts:47
-#, fuzzy
 msgid "Subheader"
-msgstr "Строка заголовков"
+msgstr "Подзаголовок"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/sharedControls.ts:62
 msgid "Subheader Font Size"
-msgstr ""
+msgstr "Размер шрифта подзаголовка"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:114
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:63
@@ -13359,7 +13330,7 @@ msgstr "Успешно"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberWithTrendline/controlPanel.tsx:69
 msgid "Suffix to apply after the percentage display"
-msgstr ""
+msgstr "Текст после отображения процентной доли"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:92
 msgid "Sum of values over specified period"
@@ -14994,19 +14965,16 @@ msgstr "Столбец с временем"
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:297
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:179
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/NVD3Controls.tsx:426
-#, fuzzy
 msgid "Time Comparison"
-msgstr "Столбец с датой"
+msgstr "Сравнение по времени"
 
 #: superset-frontend/plugins/legacy-plugin-chart-calendar/src/controlPanel.ts:142
-#, fuzzy
 msgid "Time Format"
-msgstr "Формат Datetime"
+msgstr "Формат даты/времени"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:33
-#, fuzzy
 msgid "Time Grain"
-msgstr "Гранулярность времени"
+msgstr "Единица времени"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:34
 #, fuzzy
@@ -15015,15 +14983,13 @@ msgstr "Гранулярность времени"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/constants.ts:31
 #: superset-frontend/src/explore/components/controls/FilterControl/utils/useDatePickerInAdhocFilter.tsx:43
-#, fuzzy
 msgid "Time Range"
-msgstr "Период времени"
+msgstr "Временной интервал"
 
 #: superset-frontend/plugins/legacy-plugin-chart-partition/src/controlPanel.tsx:80
 #: superset-frontend/plugins/legacy-preset-chart-nvd3/src/vendor/superset/AnnotationTypes.js:47
-#, fuzzy
 msgid "Time Series"
-msgstr "Столбцы Временных Рядов"
+msgstr "Временной ряд"
 
 #: superset/viz.py:1667
 msgid "Time Series - Bar Chart"
@@ -16115,19 +16081,17 @@ msgid "View Dataset"
 msgstr "Редактировать датасет"
 
 #: superset-frontend/src/explore/components/controls/VizTypeControl/index.tsx:125
-#, fuzzy
 msgid "View all charts"
-msgstr "Все графики"
+msgstr "Показать все графики"
 
 #: superset-frontend/src/dashboard/components/SliceHeaderControls/index.tsx:436
-#, fuzzy
 msgid "View as table"
-msgstr "Посмотреть примеры"
+msgstr "Показать в виде таблицы"
 
 #: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:307
 #: superset-frontend/src/explore/components/controls/DatasourceControl/index.jsx:336
 msgid "View in SQL Lab"
-msgstr "Открыть в лаборатории SQL"
+msgstr "Открыть в Лаборатории SQL"
 
 #: superset-frontend/src/SqlLab/components/TableElement/index.tsx:162
 #, python-format
@@ -16139,7 +16103,7 @@ msgstr "Посмотреть ключи и индексы (%s)"
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:362
 #: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/index.jsx:364
 msgid "View query"
-msgstr "Скопировать запрос"
+msgstr "Показать SQL запрос"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:179
 msgid "Viewed"

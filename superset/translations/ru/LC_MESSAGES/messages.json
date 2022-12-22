@@ -10,7 +10,9 @@
       "\n                This filter was inherited from the dashboard's context.\n                It won't be saved when saving the chart.\n              ": [
         "\n                Фильтр был наследован из контекста дашборда.\n                Это не будет сохранено при сохранении графика.\n              "
       ],
-      "\n            Error: %(text)s\n            ": [""],
+      "\n            Error: %(text)s\n            ": [
+        "\n            Ошибка: %(text)s\n            "
+      ],
       " (excluded)": [""],
       " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON": [
         ""
@@ -19,6 +21,11 @@
       " source code of Superset's sandboxed parser": [""],
       " standard to ensure that the lexicographical ordering\n                      coincides with the chronological ordering. If the\n                      timestamp format does not adhere to the ISO 8601 standard\n                      you will need to define an expression and type for\n                      transforming the string into a date or timestamp. Note\n                      currently time zones are not supported. If time is stored\n                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\n                      is specified we fall back to using the optional defaults on a per\n                      database/column name level via the extra parameter.": [
         ""
+      ],
+      " to add calculated columns": [" для добавления вычисляемых столбцов"],
+      " to add metrics": [" для добавления мер"],
+      " to edit or add columns and metrics.": [
+        " для редактирования или добавления столбцов и мер."
       ],
       " to mark a column as a time column": [""],
       " to open SQL Lab. From there you can save the query as a dataset.": [""],
@@ -576,17 +583,20 @@
       "Batch editing %d filters:": [""],
       "Battery level over time": [""],
       "Be careful.": ["Будьте осторожны."],
-      "Big Number": ["Big Number"],
-      "Big Number Font Size": [""],
-      "Big Number with Trendline": ["Big Number with Trendline"],
-      "Bottom Margin": [""],
-      "Bottom margin, in pixels, allowing for more room for axis labels": [""],
-      "Bottom to Top": [""],
+      "Big Number": ["Карточка"],
+      "Big Number Font Size": ["Размер шрифта числа"],
+      "Big Number with Trendline": ["Карточка с трендовой линией"],
+      "Bottom": ["Снизу"],
+      "Bottom Margin": ["Нижний отступ"],
+      "Bottom margin, in pixels, allowing for more room for axis labels": [
+        "Нижний отступ (в пикселях), дает больше пространства меткам оси"
+      ],
+      "Bottom to Top": ["Снизу вверх"],
       "Bounds for the Y-axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
-        ""
+        "Границы для оси Y. Если оставить поле пустым, границы динамически определяются на основе минимального/максимального значения данных. Обратите внимание, что эта функция только расширит диапазон осей. Она не изменит размер графика."
       ],
       "Bounds for the axis. When left empty, the bounds are dynamically defined based on the min/max of the data. Note that this feature will only expand the axis range. It won't narrow the data's extent.": [
-        ""
+        "Границы для оси. Если оставить поле пустым, границы динамически определяются на основе минимального/максимального значения данных. Обратите внимание, что эта функция только расширит диапазон осей. Она не изменит размер графика."
       ],
       "Box Plot": ["Box Plot"],
       "Bubble Chart": ["Bubble Chart"],
@@ -699,7 +709,10 @@
       "Chart %(id)s not found": ["График %(id)s не найден"],
       "Chart Cache Timeout": ["Тайм-аут Кэша"],
       "Chart ID": ["График"],
-      "Chart Owner: %s": ["Параметры графика: %s"],
+      "Chart Options": ["Свойства графика"],
+      "Chart Orientation": ["Ориентация графика"],
+      "Chart Owner: %s": ["Владелец графика: %s"],
+      "Chart Source": ["Источник данных графика"],
       "Chart [%s] has been overwritten": ["График \"[%s]\" перезаписан"],
       "Chart [%s] has been saved": ["График \"[%s]\" сохранен"],
       "Chart [{}] has been overwritten": ["График [{}] был перезаписан"],
@@ -1205,7 +1218,7 @@
       ],
       "Datasets": ["Датасеты"],
       "Datasets can be created from database tables or SQL queries. Select a database table to the left or ": [
-        ""
+        "Датасеты могут быть созданы как таблицы базы данных или SQL запросы. Выберите таблицу из базы данных слева или "
       ],
       "Datasets do not contain a temporal column": [
         "Датасет не содержит столбца формата дата/время"
@@ -1385,13 +1398,15 @@
         ""
       ],
       "Display row level total": [""],
-      "Display total row/column": [""],
+      "Display settings": ["Настройки отображения"],
+      "Display total row/column": ["Отобразить общую строку/столбец"],
       "Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.": [
         ""
       ],
-      "Distribution - Bar Chart": ["Distribution - Bar Chart"],
+      "Distribution": ["Распределение"],
+      "Distribution - Bar Chart": ["Распределение - Столбчатая диаграмма"],
       "Divider": ["Разделитель"],
-      "Do you want a donut or a pie?": [""],
+      "Do you want a donut or a pie?": ["Круговая/кольцевая диаграмма"],
       "Domain": [""],
       "Download as image": ["Сохранить как изображение"],
       "Download to CSV": [""],
@@ -1980,10 +1995,8 @@
       "Message content": ["Содержимое сообщения"],
       "Metadata has been synced": ["Метаданные синхронизированы"],
       "Method": ["Метод"],
-      "Metric": ["Показатель"],
-      "Metric '%(metric)s' does not exist": [
-        "Показатель ‘%(metric)s’ не существует"
-      ],
+      "Metric": ["Мера"],
+      "Metric '%(metric)s' does not exist": ["Мера '%(metric)s' не существует"],
       "Metric assigned to the [X] axis": ["Показатель, отраженный на оси X"],
       "Metric assigned to the [Y] axis": ["Показатель, отраженный на оси Y"],
       "Metric change in value from `since` to `until`": [""],
@@ -2007,7 +2020,7 @@
       "Metric used to order the limit if a series limit is present. If undefined reverts to the first metric (where appropriate).": [
         ""
       ],
-      "Metrics": ["Показатели"],
+      "Metrics": ["Меры"],
       "Metrics for which percentage of total are to be displayed. Calculated from only data within the row limit.": [
         ""
       ],
@@ -2102,6 +2115,7 @@
       "No favorite dashboards yet, go click on stars!": [
         "В избранном нет дашбордов. Нажмите звёздочку для добавления!"
       ],
+      "No filter": ["Без фильтрации"],
       "No filter is selected.": ["Не выбраны фильтры."],
       "No filters are currently added": [""],
       "No form settings were maintained": [""],
@@ -2427,9 +2441,13 @@
       "Python datetime string pattern": [""],
       "QUERY DATA IN SQL LAB": [""],
       "Query": ["Запрос"],
-      "Query %s: %s": [""],
+      "Query %s: %s": ["Запрос %s: %s"],
+      "Query A": ["Запрос А"],
+      "Query B": ["Запрос Б"],
       "Query History": ["История запросов"],
+      "Query does not exist": ["Запрос не существует"],
       "Query history": ["История запросов"],
+      "Query imported": ["Запрос импортирован"],
       "Query in a new tab": ["Запрос в отдельной вкладке"],
       "Query is too complex and takes too long to run.": [""],
       "Query name": ["Имя запроса"],
@@ -2613,8 +2631,12 @@
       "SSL Mode \"require\" will be used.": [""],
       "START (INCLUSIVE)": [""],
       "SUN": ["ВС"],
-      "Sankey": ["Sankey"],
-      "Sankey Diagram": [""],
+      "Samples": ["Примеры данных"],
+      "Samples for dataset could not be retrieved.": [
+        "Не удалось получить примеры записей датасета."
+      ],
+      "Sankey": ["Санкей"],
+      "Sankey Diagram": ["Диаграмма Санкей"],
       "Sankey Diagram with Loops": [""],
       "Saturday": ["Суббота"],
       "Save": ["Сохранить"],
@@ -2662,8 +2684,10 @@
       "Scroll down to the bottom to enable overwriting changes. ": [""],
       "Search": ["Поиск"],
       "Search / Filter": ["Поиск / Фильтр"],
-      "Search Metrics & Columns": ["Столбцы Временных Рядов"],
-      "Search all filter options": ["Поиск / Фильтр"],
+      "Search Metrics & Columns": ["Поиск по мерам и столбцам"],
+      "Search all charts": ["Поиск по всем графикам"],
+      "Search all filter options": ["Поиск по всем фильтрам"],
+      "Search box": ["Строка поиска"],
       "Search by query text": ["Поиск по тексту запроса"],
       "Search...": ["Поиск..."],
       "Second": ["Секунда"],
@@ -2680,25 +2704,59 @@
       "See less": ["Скрыть подробности"],
       "See more": ["Подробнее"],
       "See table schema": ["Выберите схему (%s)"],
-      "Select ...": ["Выбрать …"],
-      "Select a Excel file to be uploaded to a database.": [
-        "Выберите файл CSV, который будет загружен в БД."
+      "Select": ["Выбрать"],
+      "Select ...": ["Выбрать ..."],
+      "Select Delivery Method": ["Выберите способ оповещения"],
+      "Select Viz Type": ["Выберите тип визуализации"],
+      "Select a Columnar file to be uploaded to a database.": [
+        "Выберите файл столбчатого формата, который будет загружен в базу данных."
       ],
+      "Select a Excel file to be uploaded to a database.": [
+        "Выберите Excel файл для загрузки в базу данных"
+      ],
+      "Select a column": ["Выберите столбец"],
+      "Select a dashboard": ["Выбрать дашборд"],
       "Select a database table and create dataset": [""],
-      "Select a database to upload the file to": [""],
-      "Select a database to write a query": [""],
+      "Select a database table.": ["Выберите таблицу из базы данных."],
+      "Select a database to connect": ["Выберите базу данных для подключения"],
+      "Select a database to upload the file to": [
+        "Выберите базу данных для загрузки файла"
+      ],
+      "Select a database to write a query": [
+        "Выберите базу данных для написания запроса"
+      ],
+      "Select a dimension": ["Выберете измерение"],
+      "Select a file to be uploaded to the database": [
+        "Выберите файл, который будет загружен в БД."
+      ],
+      "Select a schema if the database supports this": [
+        "Укажите схему (если это поддерживается базой данных)."
+      ],
       "Select a visualization type": ["Выберите тип визуализации"],
       "Select aggregate options": ["Выберите настройки агрегации"],
+      "Select all data": ["Выбрать все данные"],
+      "Select all items": ["Выбрать все элементы"],
       "Select any columns for metadata inspection": [""],
-      "Select database or type database name": [""],
-      "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
-        ""
+      "Select charts": ["Выберите графики"],
+      "Select color scheme": ["Выберите цветовую схему"],
+      "Select column": ["Выберите столбец"],
+      "Select database & schema": ["Выберите базу данных и схему"],
+      "Select database or type database name": [
+        "Выбери базу данных или введите ее имя"
       ],
+      "Select database table": ["Выберите таблицу из базы данных"],
+      "Select databases require additional fields to be completed in the Advanced tab to successfully connect the database. Learn what requirements your databases has ": [
+        "Некоторые базы данных требуют ручной настройки во вкладке Продвинутая настройка для успешного подключения. Вы можете ознакомиться с требованиями к вашей базе данных "
+      ],
+      "Select dataset source": ["Выберите источник данных датасета"],
+      "Select filter": ["Селектор"],
       "Select filter plugin using AntD": [""],
-      "Select first filter value by default": [""],
+      "Select first filter value by default": [
+        "Сделать первое значение фильтра значением по умолчанию"
+      ],
       "Select operator": ["Выбрать оператор"],
       "Select or type a value": ["Выберите значение"],
-      "Select or type dataset name": [""],
+      "Select or type dataset name": ["Выберите/введите имя датасета"],
       "Select owners": ["Выбрать владельцев"],
       "Select saved metrics": ["Выберите сохраненные меры"],
       "Select schema or type schema name": [
@@ -2707,114 +2765,162 @@
       "Select scheme": ["Выберите схему"],
       "Select start and end date": ["Выберите дату начала"],
       "Select subject": [""],
-      "Select table or type table name": [""],
-      "Select the number of bins for the histogram": [""],
-      "Select the numeric columns to draw the histogram": [""],
-      "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
-        ""
+      "Select table or type table name": [
+        "Выберите таблицу или введите ее имя"
       ],
-      "Send as CSV": [""],
-      "Send as PNG": [""],
-      "Send as text": [""],
+      "Select the Annotation Layer you would like to use.": [
+        "Выбрать слой аннотации, который вы хотите использовать."
+      ],
+      "Select the geojson column": ["Выберите geojson столбец"],
+      "Select the number of bins for the histogram": [
+        "Выберите количество столбцов для гистограммы"
+      ],
+      "Select the numeric columns to draw the histogram": [
+        "Выберите числовые столбцы для отрисовки гистограммы"
+      ],
+      "Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.": [
+        "Выберите значения в обязательных полях на панели управления. Затем запустите запрос, нажав на кнопку %s."
+      ],
+      "Send as CSV": ["Отправить в формате CSV"],
+      "Send as PNG": ["Отправить в формате PNG"],
+      "Send as text": ["Отправить текстом"],
       "Send range filter events to other charts": [""],
       "September": ["Сентябрь"],
-      "Sequential": [""],
-      "Series": ["Ряд данных"],
+      "Sequential": ["Последовательность"],
+      "Series": ["Ряд"],
+      "Series Height": ["Высота рядов"],
+      "Series Limit Sort By": ["Сортировка категорий по"],
+      "Series Style": ["Стиль категорий"],
       "Series chart type (line, bar etc)": [""],
-      "Series limit": ["Лимит кол-ва рядов"],
-      "Server Page Length": [""],
-      "Server pagination": [""],
+      "Series limit": ["Лимит кол-ва категорий"],
+      "Server Page Length": ["Серверный размер страницы"],
+      "Server pagination": ["Серверная пагинация"],
       "Service Account": [""],
-      "Set auto-refresh interval": ["Интервал обновления"],
+      "Set auto-refresh interval": ["Задать интервал обновления"],
       "Set filter mapping": ["Установить действие фильтра"],
+      "Set up an email report": ["Запланировать рассылку по почте"],
       "Settings": ["Настройки"],
-      "Settings for time series": [""],
+      "Settings for time series": ["Настройки временных рядов"],
       "Share": ["Поделиться"],
-      "Shared query": ["Общий запрос"],
-      "Sheet Name": ["Полное имя"],
+      "Share chart by email": ["Поделиться графиком по email"],
+      "Share permalink by email": ["Поделиться ссылкой по email"],
+      "Shared query": ["Общедоступный запрос"],
+      "Shared query fields": ["Поля общегодоступного запроса"],
+      "Sheet Name": ["Имя листа"],
       "Short description must be unique for this layer": [
         "Краткое описание должно быть уникальным для этого слоя"
       ],
       "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality.": [
-        ""
+        "Применяется дневная сезонность. Целочисленное значение будет указывать порядок сезонности Фурье."
       ],
       "Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality.": [
-        ""
+        "Применяется недельная сезонность. Целочисленное значение будет указывать порядок сезонности Фурье."
       ],
       "Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality.": [
-        ""
+        "Применяется годовая сезонность. Целочисленное значение будет указывать порядок сезонности Фурье."
       ],
+      "Show Bubbles": ["Показать пузыри"],
       "Show CREATE VIEW statement": ["Показать выражение CREATE VIEW"],
-      "Show CSS Template": ["Шаблоны CSS"],
+      "Show CSS Template": ["Показать CSS шаблон"],
       "Show Chart": ["Показать график"],
       "Show Column": ["Показать столбец"],
       "Show Dashboard": ["Показать дашборд"],
-      "Show Database": ["Показать Базу Данных"],
-      "Show Less...": [""],
-      "Show Log": ["Показать итоги"],
-      "Show Markers": [""],
-      "Show Metric": ["Показать показатель"],
-      "Show Row level security filter": ["Показать фильтр на уровне строк"],
+      "Show Database": ["Показать базу данных"],
+      "Show Labels": ["Показывать метки"],
+      "Show Less...": ["Показать меньше..."],
+      "Show Log": ["Показать запись"],
+      "Show Markers": ["Показать маркеры"],
+      "Show Metric": ["Показатель меру"],
+      "Show Metric Names": ["Показать имена мер"],
+      "Show Range Filter": ["Показать фильтр Диапазон"],
+      "Show Row level security filter": [
+        "Показать фильтр Безопасность на уровне строк"
+      ],
       "Show Saved Query": ["Показать сохраненный запрос"],
       "Show Table": ["Показать таблицу"],
-      "Show Timestamp": [""],
-      "Show Trend Line": [""],
-      "Show Upper Labels": [""],
-      "Show all...": [""],
-      "Show axis line ticks": [""],
-      "Show cell bars": [""],
+      "Show Timestamp": ["Показать метку времени"],
+      "Show Total": ["Показать общий итог"],
+      "Show Trend Line": ["Показать трендовую линию"],
+      "Show Upper Labels": ["Показать верхние метки"],
+      "Show Value": ["Показать значение"],
+      "Show Values": ["Показать значения"],
+      "Show all columns": ["Показать все столбцы"],
+      "Show all...": ["Показать все..."],
+      "Show axis line ticks": ["Показывать деления на оси"],
+      "Show cell bars": ["Наложить гистограммы на ячейки"],
+      "Show columns total": ["Показать общий итог по столбцам"],
       "Show data points as circle markers on the lines": [""],
       "Show hierarchical relationships of data, with with the value represented by area, showing proportion and contribution to the whole.": [
-        ""
+        "Показывает иерархические взаимосвязи данных со значением, представленным областью, показывая пропорцию и вклад в целое."
       ],
-      "Show info tooltip": [""],
+      "Show info tooltip": ["Показать информационную подсказку"],
+      "Show label": ["Показывать метку"],
       "Show labels when the node has children.": [""],
-      "Show legend": [""],
-      "Show less...": [""],
-      "Show percentage": [""],
-      "Show pointer": [""],
-      "Show rows total": [""],
-      "Show series values on the chart": [""],
-      "Show split lines": [""],
-      "Show the value on top of the bar": [""],
-      "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": [
-        ""
+      "Show legend": ["Показывать легенду"],
+      "Show less columns": ["Показать меньше столбцов"],
+      "Show less...": ["Показать меньше..."],
+      "Show percentage": ["Показывать долю"],
+      "Show pointer": ["Показывать указатель"],
+      "Show progress": ["Показывать прогресс"],
+      "Show rows total": ["Показать общий итог по строкам"],
+      "Show series values on the chart": [
+        "Показать значения категорий на графике"
       ],
-      "Show totals": [""],
+      "Show split lines": ["Показывать разделительные линии"],
+      "Show the value on top of the bar": [
+        "Показать значение в верхней части столбца"
+      ],
+      "Show time column": ["Показать столбец времени"],
+      "Show total aggregations of selected metrics. Note that row limit does not apply to the result.": [
+        "Показать общие итоговые значения выбранных показателей. Обратите внимание, что ограничение количества строк не применяется к результату."
+      ],
+      "Show totals": ["Показывать общий итог"],
       "Showcases a single metric front-and-center. Big number is best used to call attention to a KPI or the one thing you want your audience to focus on.": [
-        ""
+        "Отображает один показатель по центру. Карточку лучше всего использовать, чтобы привлечь внимание к KPI."
       ],
       "Showcases a single number accompanied by a simple line chart, to call attention to an important metric along with its change over time or other dimension.": [
-        ""
+        "Отображает один показатель, сопровождаемый простой линейной диаграммой, чтобы привлечь внимание к KPI наряду с его изменением с течением времени или другим измерением."
       ],
       "Showcases how a metric changes as the funnel progresses. This classic chart is useful for visualizing drop-off between stages in a pipeline or lifecycle.": [
-        ""
+        "Отображает изменение показателя по мере сужения воронки. Эта классическая диаграмма полезна для визуализации перехода между этапами процесса или жизненного цикла."
       ],
       "Showcases the flow or link between categories using thickness of chords. The value and corresponding thickness can be different for each side.": [
         ""
       ],
       "Showcases the progress of a single metric against a given target. The higher the fill, the closer the metric is to the target.": [
-        ""
+        "Демонстрирует прогресс одного показателя по отношению к заданной цели. Чем больше заполнение, тем ближе показатель к целевому показателю."
       ],
-      "Showing %s of %s": [""],
-      "Shows a list of all series available at that point in time": [""],
+      "Showing %s of %s": ["Отображено %s из %s"],
+      "Shows a list of all series available at that point in time": [
+        "Показывает список всех данных, доступных в определенный момент времени"
+      ],
       "Shows the composition of a dataset by segmenting a given rectangle as smaller rectangles with areas proportional to their value or contribution to the whole. Those rectangles may also, in turn, be further segmented hierarchically.": [
         ""
       ],
       "Significance Level": [""],
-      "Simple": ["Простые"],
+      "Simple": ["Столбец"],
       "Simple ad-hoc metrics are not enabled for this dataset": [""],
-      "Single value type": [""],
+      "Single": ["Один"],
+      "Single Metric": ["Одна мера"],
+      "Single Value": ["Единственное значение"],
+      "Single value": ["Единственное значение"],
+      "Single value type": ["Тип единственного значения"],
       "Size of edge symbols": [""],
-      "Size of marker. Also applies to forecast observations.": [""],
+      "Size of marker. Also applies to forecast observations.": [
+        "Размер маркера. Также применяется к прогнозным значениям."
+      ],
       "Sizes of vehicles": [""],
-      "Skip Blank Lines": ["Пропустить пустые строки"],
-      "Skip Initial Space": ["Убрать пробелы"],
-      "Skip Rows": ["Игнорировать"],
+      "Skip Blank Lines": ["Пропуск пустых строк"],
+      "Skip Initial Space": ["Пропуск начального пробела"],
+      "Skip Rows": ["Пропуск строк"],
+      "Skip blank lines rather than interpreting them as Not A Number values": [
+        "Пропускайте пустые строки, вместо их перевода в пустые строки (NaN)"
+      ],
+      "Skip spaces after delimiter": ["Пропускать пробелы после разделителя"],
       "Slug": ["Читаемый URL"],
-      "Small": [""],
-      "Small number format": [""],
-      "Smooth Line": [""],
+      "Small": ["Маленький"],
+      "Small number format": ["Форматирование маленьких чисел"],
+      "Smooth Line": ["Гладкая линия"],
       "Smooth-line is a variation of the line chart. Without angles and hard edges, Smooth-line sometimes looks smarter and more professional.": [
         ""
       ],
@@ -2904,9 +3010,12 @@
       "Style": ["Стиль"],
       "Style the ends of the progress bar with a round cap": [""],
       "Subdomain": [""],
-      "Subheader Font Size": [""],
+      "Subheader": ["Подзаголовок"],
+      "Subheader Font Size": ["Размер шрифта подзаголовка"],
       "Success": ["Успешно"],
-      "Suffix to apply after the percentage display": [""],
+      "Suffix to apply after the percentage display": [
+        "Текст после отображения процентной доли"
+      ],
       "Sum of values over specified period": [""],
       "Sunburst": ["Sunburst"],
       "Sunday": ["Воскресенье"],
@@ -3414,6 +3523,11 @@
       "Threshold value should be double precision number": [""],
       "Thursday": ["Четверг"],
       "Time": ["Время"],
+      "Time Comparison": ["Сравнение по времени"],
+      "Time Format": ["Формат даты/времени"],
+      "Time Grain": ["Единица времени"],
+      "Time Range": ["Временной интервал"],
+      "Time Series": ["Временной ряд"],
       "Time Series - Bar Chart": ["Time Series - Bar Chart"],
       "Time Series - Dual Axis Line Chart": [
         "Time Series - Dual Axis Line Chart"
@@ -3666,9 +3780,11 @@
       "Vertical (Left)": [""],
       "Video game consoles": [""],
       "View All »": [""],
-      "View in SQL Lab": ["Открыть в лаборатории SQL"],
+      "View all charts": ["Показать все графики"],
+      "View as table": ["Показать в виде таблицы"],
+      "View in SQL Lab": ["Открыть в Лаборатории SQL"],
       "View keys & indexes (%s)": ["Посмотреть ключи и индексы (%s)"],
-      "View query": ["Скопировать запрос"],
+      "View query": ["Показать SQL запрос"],
       "Viewed": ["Просмотрено"],
       "Viewed %s": ["Просмотрено %s"],
       "Viewport": ["Область просмотра"],
