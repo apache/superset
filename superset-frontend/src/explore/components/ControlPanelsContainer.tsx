@@ -46,6 +46,7 @@ import {
   Dataset,
   ExpandedControlItem,
   sections,
+  sharedControls,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { rgba } from 'emotion-rgba';
@@ -61,7 +62,9 @@ import { getSectionsToRender } from 'src/explore/controlUtils';
 import { ExploreActions } from 'src/explore/actions/exploreActions';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { Tooltip } from 'src/components/Tooltip';
+import Modal from 'src/components/Modal';
 import Icons from 'src/components/Icons';
+import Button from 'src/components/Button';
 import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
@@ -260,13 +263,40 @@ function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
   return value;
 }
 
+const DEFAULT_TEMPORAL_COLUMN: keyof typeof sharedControls =
+  'default_temporal_column';
+
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
+  const [showXAxisModal, setShowXAxisModal] = useState(false);
   const { colors } = useTheme();
   const pluginContext = useContext(PluginContext);
+  const {
+    exploreState,
+    chart,
+    controls,
+    actions,
+    form_data,
+    datasource_type,
+    errorMessage,
+    onQuery,
+    onStop,
+    canStopQuery,
+    chartIsStale,
+  } = props;
 
-  const prevState = usePrevious(props.exploreState);
-  const prevDatasource = usePrevious(props.exploreState.datasource);
-  const prevChartStatus = usePrevious(props.chart.chartStatus);
+  // If the X-axis does not match the default temporal column,
+  // ask the user if they wish to apply the X-axis into the
+  // default temporal column
+  const { x_axis, default_temporal_column } = form_data;
+  useEffect(() => {
+    if (x_axis && x_axis !== default_temporal_column) {
+      setShowXAxisModal(true);
+    }
+  }, [default_temporal_column, x_axis]);
+
+  const prevState = usePrevious(exploreState);
+  const prevDatasource = usePrevious(exploreState.datasource);
+  const prevChartStatus = usePrevious(chart.chartStatus);
 
   const [showDatasourceAlert, setShowDatasourceAlert] = useState(false);
 
@@ -293,48 +323,43 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       }
       return value;
     };
-    if (
-      props.chart.chartStatus === 'success' &&
-      prevChartStatus !== 'success'
-    ) {
+    if (chart.chartStatus === 'success' && prevChartStatus !== 'success') {
       controlsTransferred?.forEach(controlName => {
         shouldUpdateControls = false;
-        if (!isDefined(props.controls[controlName])) {
+        if (!isDefined(controls[controlName])) {
           return;
         }
-        const alteredControls = Array.isArray(props.controls[controlName].value)
-          ? ensureIsArray(props.controls[controlName].value)?.map(
+        const alteredControls = Array.isArray(controls[controlName].value)
+          ? ensureIsArray(controls[controlName].value)?.map(
               removeDatasourceWarningFromControl,
             )
-          : removeDatasourceWarningFromControl(
-              props.controls[controlName].value,
-            );
+          : removeDatasourceWarningFromControl(controls[controlName].value);
         if (shouldUpdateControls) {
-          props.actions.setControlValue(controlName, alteredControls);
+          actions.setControlValue(controlName, alteredControls);
         }
       });
     }
   }, [
     controlsTransferred,
     prevChartStatus,
-    props.actions,
-    props.chart.chartStatus,
-    props.controls,
+    actions,
+    chart.chartStatus,
+    controls,
   ]);
 
   useEffect(() => {
     if (
       prevDatasource &&
       prevDatasource.type !== DatasourceType.Query &&
-      (props.exploreState.datasource?.id !== prevDatasource.id ||
-        props.exploreState.datasource?.type !== prevDatasource.type)
+      (exploreState.datasource?.id !== prevDatasource.id ||
+        exploreState.datasource?.type !== prevDatasource.type)
     ) {
       setShowDatasourceAlert(true);
       containerRef.current?.scrollTo(0, 0);
     }
   }, [
-    props.exploreState.datasource?.id,
-    props.exploreState.datasource?.type,
+    exploreState.datasource?.id,
+    exploreState.datasource?.type,
     prevDatasource,
   ]);
 
@@ -345,26 +370,15 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     customizeSections,
   } = useMemo(
     () =>
-      getState(
-        props.form_data.viz_type,
-        props.exploreState.datasource,
-        props.datasource_type,
-      ),
-    [
-      props.exploreState.datasource,
-      props.form_data.viz_type,
-      props.datasource_type,
-    ],
+      getState(form_data.viz_type, exploreState.datasource, datasource_type),
+    [exploreState.datasource, form_data.viz_type, datasource_type],
   );
 
   const resetTransferredControls = useCallback(() => {
-    ensureIsArray(props.exploreState.controlsTransferred).forEach(controlName =>
-      props.actions.setControlValue(
-        controlName,
-        props.controls[controlName].default,
-      ),
+    ensureIsArray(exploreState.controlsTransferred).forEach(controlName =>
+      actions.setControlValue(controlName, controls[controlName].default),
     );
-  }, [props.actions, props.exploreState.controlsTransferred, props.controls]);
+  }, [actions, exploreState.controlsTransferred, controls]);
 
   const handleClearFormClick = useCallback(() => {
     resetTransferredControls();
@@ -378,10 +392,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const shouldRecalculateControlState = ({
     name,
     config,
-  }: CustomControlItem): boolean => {
-    const { controls, chart, exploreState } = props;
-
-    return Boolean(
+  }: CustomControlItem): boolean =>
+    Boolean(
       config.shouldMapStateToProps?.(
         prevState || exploreState,
         exploreState,
@@ -389,10 +401,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         chart,
       ),
     );
-  };
 
   const renderControl = ({ name, config }: CustomControlItem) => {
-    const { controls, chart, exploreState } = props;
     const { visibility } = config;
 
     // If the control item is not an object, we have to look up the control data from
@@ -438,7 +448,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         label={label}
         description={description}
         validationErrors={validationErrors}
-        actions={props.actions}
+        actions={actions}
         isVisible={isVisible}
         {...restProps}
       />
@@ -447,13 +457,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const sectionHasHadNoErrors = useResetOnChangeRef(
     () => ({}),
-    props.form_data.viz_type,
+    form_data.viz_type,
   );
 
   const renderControlPanelSection = (
     section: ExpandedControlPanelSectionConfig,
   ) => {
-    const { controls } = props;
     const { label, description } = section;
 
     // Section label can be a ReactNode but in some places we want to
@@ -583,7 +592,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   };
 
   const hasControlsTransferred =
-    ensureIsArray(props.exploreState.controlsTransferred).length > 0;
+    ensureIsArray(exploreState.controlsTransferred).length > 0;
 
   const DatasourceAlert = useCallback(
     () =>
@@ -615,11 +624,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const dataTabHasHadNoErrors = useResetOnChangeRef(
     () => false,
-    props.form_data.viz_type,
+    form_data.viz_type,
   );
 
   const dataTabTitle = useMemo(() => {
-    if (!props.errorMessage) {
+    if (!errorMessage) {
       dataTabHasHadNoErrors.current = true;
     }
 
@@ -630,7 +639,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     return (
       <>
         <span>{t('Data')}</span>
-        {props.errorMessage && (
+        {errorMessage && (
           <span
             css={(theme: SupersetTheme) => css`
               margin-left: ${theme.gridUnit * 2}px;
@@ -640,7 +649,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             <Tooltip
               id="query-error-tooltip"
               placement="right"
-              title={props.errorMessage}
+              title={errorMessage}
             >
               <Icons.ExclamationCircleOutlined
                 css={css`
@@ -657,14 +666,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     colors.error.base,
     colors.alert.base,
     dataTabHasHadNoErrors,
-    props.errorMessage,
+    errorMessage,
   ]);
 
   const controlPanelRegistry = getChartControlPanelRegistry();
-  if (
-    !controlPanelRegistry.has(props.form_data.viz_type) &&
-    pluginContext.loading
-  ) {
+  if (!controlPanelRegistry.has(form_data.viz_type) && pluginContext.loading) {
     return <Loading />;
   }
 
@@ -702,15 +708,49 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </ControlPanelsTabs>
       <div css={actionButtonsContainerStyles}>
         <RunQueryButton
-          onQuery={props.onQuery}
-          onStop={props.onStop}
-          errorMessage={props.errorMessage}
-          loading={props.chart.chartStatus === 'loading'}
-          isNewChart={!props.chart.queriesResponse}
-          canStopQuery={props.canStopQuery}
-          chartIsStale={props.chartIsStale}
+          onQuery={onQuery}
+          onStop={onStop}
+          errorMessage={errorMessage}
+          loading={chart.chartStatus === 'loading'}
+          isNewChart={!chart.queriesResponse}
+          canStopQuery={canStopQuery}
+          chartIsStale={chartIsStale}
         />
       </div>
+      <Modal
+        title={t(
+          'Do you want to change the default temporal column to match the x-axis column?',
+        )}
+        footer={
+          <>
+            <Button
+              htmlType="button"
+              cta
+              onClick={() => setShowXAxisModal(false)}
+            >
+              {t('No')}
+            </Button>
+            <Button
+              htmlType="button"
+              cta
+              buttonStyle="primary"
+              onClick={() => {
+                actions.setControlValue(DEFAULT_TEMPORAL_COLUMN, x_axis);
+                setShowXAxisModal(false);
+              }}
+            >
+              {t('Yes')}
+            </Button>
+          </>
+        }
+        onHide={() => setShowXAxisModal(false)}
+        show={showXAxisModal}
+      >
+        {t(
+          `The column defined in the X-axis control is different than the one defined in the
+          Default Temporal Column control, which is used for time-based filters in dashboards.`,
+        )}
+      </Modal>
     </Styles>
   );
 };
