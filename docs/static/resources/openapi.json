@@ -8440,6 +8440,17 @@
         },
         "type": "object"
       },
+      "database_tables_query_schema": {
+        "properties": {
+          "force": {
+            "type": "boolean"
+          },
+          "schema_name": {
+            "type": "str"
+          }
+        },
+        "type": "object"
+      },
       "get_delete_ids_schema": {
         "items": {
           "type": "integer"

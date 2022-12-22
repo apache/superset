@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any, Dict, cast
+from typing import Any, cast, Dict
 
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable

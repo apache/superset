@@ -526,7 +526,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               application/json:
                 schema:
                   $ref: '#/components/schemas/database_tables_query_schema'
-            responses:
+          responses:
             200:
               description: Tables list
               content:

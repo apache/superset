@@ -51,7 +51,7 @@ fetchMock.get('glob:*/api/v1/database/*/tables/*', {
       },
     ],
     tableLength: 1,
-  }
+  },
 });
 
 const renderAndWait = (props, store) =>
