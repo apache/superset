@@ -42,7 +42,7 @@ const mockStore = configureStore(middlewares);
 const store = mockStore(initialState);
 
 fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: [] });
-fetchMock.get('glob:*/superset/tables/**', {
+fetchMock.get('glob:*/api/v1/database/*/tables/*', {
   options: [
     {
       label: 'ab_user',

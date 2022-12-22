@@ -40,6 +40,14 @@ from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
     "type": "object",
+    "properties": {
+        "force": {"type": "boolean"},
+        "schema_name": {"type": "string"},
+    },
+}
+
+database_tables_query_schema = {
+    "type": "object",
     "properties": {"force": {"type": "boolean"}},
 }
 
@@ -553,6 +561,12 @@ class SelectStarResponseSchema(Schema):
 
 class SchemasResponseSchema(Schema):
     result = fields.List(fields.String(description="A database schema name"))
+
+
+class DatabaseTablesResponse(Schema):
+    extra = (fields.Dict(),)
+    type = (fields.String(),)
+    value = (fields.String(),)
 
 
 class ValidateSQLRequest(Schema):
