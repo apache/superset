@@ -18,8 +18,8 @@
  */
 import React, { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { FileOutlined, FileImageOutlined } from '@ant-design/icons';
 import { css, styled, t, useTheme } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Button from 'src/components/Button';
@@ -90,6 +90,13 @@ export const MenuTrigger = styled(Button)`
       color: ${theme.colors.primary.light1};
     }
   `}
+`;
+
+const iconReset = css`
+  .ant-dropdown-menu-item > & > .anticon:first-child {
+    margin-right: 0;
+    vertical-align: 0;
+  }
 `;
 
 export const useExploreAdditionalActionsMenu = (
@@ -271,14 +278,14 @@ export const useExploreAdditionalActionsMenu = (
             <>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV}
-                icon={<FileOutlined />}
+                icon={<Icons.FileOutlined css={iconReset} />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to original .CSV')}
               </Menu.Item>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
-                icon={<FileOutlined />}
+                icon={<Icons.FileOutlined css={iconReset} />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to pivoted .CSV')}
@@ -287,18 +294,21 @@ export const useExploreAdditionalActionsMenu = (
           ) : (
             <Menu.Item
               key={MENU_KEYS.EXPORT_TO_CSV}
-              icon={<FileOutlined />}
+              icon={<Icons.FileOutlined css={iconReset} />}
               disabled={!canDownloadCSV}
             >
               {t('Export to .CSV')}
             </Menu.Item>
           )}
-          <Menu.Item key={MENU_KEYS.EXPORT_TO_JSON} icon={<FileOutlined />}>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_JSON}
+            icon={<Icons.FileOutlined css={iconReset} />}
+          >
             {t('Export to .JSON')}
           </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            icon={<FileImageOutlined />}
+            icon={<Icons.FileImageOutlined css={iconReset} />}
           >
             {t('Download as image')}
           </Menu.Item>
