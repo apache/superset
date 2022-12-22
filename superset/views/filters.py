@@ -42,13 +42,13 @@ class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
     name = lazy_gettext("Owner")
     arg_name = "owners"
 
-    def apply(self, query: Query, value: Optional[Any]) -> Query:
-        if base_filter := current_app.config["RBAC_BASE_FILTERS"].get("user"):
-            query = base_filter(query, security_manager)
+    def apply(self, query: Query, value: Optional[str]) -> Query:
+        if base_filter := current_app.config["RELATED_QUERY_MUTATORS"].get("user"):
+            query = base_filter(query)
 
         if value:
             user_model = security_manager.user_model
-            like_value = "%" + cast(str, value) + "%"
+            like_value = f"%{value}%"
             return query.filter(
                 or_(
                     # could be made to handle spaces between names more gracefully

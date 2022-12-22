@@ -201,12 +201,12 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
     arg_name = "roles"
 
     def apply(self, query: Query, value: Optional[str]) -> Query:
-        if base_filter := current_app.config["RBAC_BASE_FILTERS"].get("role"):
-            query = base_filter(query, security_manager)
+        if base_filter := current_app.config["RELATED_QUERY_MUTATORS"].get("role"):
+            query = base_filter(query)
 
         if value:
             role_model = security_manager.role_model
-            query = query.filter(role_model.name.like(f"{value}%"))
+            return query.filter(role_model.name.like(f"{value}%"))
 
         return query
 
