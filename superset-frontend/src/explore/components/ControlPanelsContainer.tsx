@@ -718,21 +718,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         />
       </div>
       <Modal
+        width="480px"
         title={t(
           'Do you want to change the default temporal column to match the x-axis column?',
         )}
         footer={
           <>
-            <Button
-              htmlType="button"
-              cta
-              onClick={() => setShowXAxisModal(false)}
-            >
+            <Button htmlType="button" onClick={() => setShowXAxisModal(false)}>
               {t('No')}
             </Button>
             <Button
               htmlType="button"
-              cta
               buttonStyle="primary"
               onClick={() => {
                 actions.setControlValue(DEFAULT_TEMPORAL_COLUMN, x_axis);
