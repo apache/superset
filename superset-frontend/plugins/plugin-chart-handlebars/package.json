@@ -35,9 +35,9 @@
     "ace-builds": "^1.4.14",
     "lodash": "^4.17.11",
     "moment": "^2.26.0",
-    "react": "^18.0.2",
+    "react": "^18.2.0",
     "react-ace": "^10.1.0",
-    "react-dom": "^18.0.2"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.0",

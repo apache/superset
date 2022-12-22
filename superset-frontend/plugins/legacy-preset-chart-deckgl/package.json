@@ -45,8 +45,8 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "mapbox-gl": "*",
-    "react": "^18.0.2",
-    "react-dom": "^18.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-map-gl": "^6.1.19"
   },
   "publishConfig": {

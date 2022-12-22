@@ -30,7 +30,7 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "enzyme": "*",
-    "react": "^18.0.2"
+    "react": "^18.2.0"
   },
   "publishConfig": {
     "access": "public"
