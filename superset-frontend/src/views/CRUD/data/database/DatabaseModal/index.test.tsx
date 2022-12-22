@@ -1749,4 +1749,77 @@ describe('dbReducer', () => {
       catalog: [],
     });
   });
+
+  test('it will add a SSH Tunnel config parameter', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersSSHTunnelChange,
+      payload: { name: 'server_address', value: '127.0.0.1' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      ssh_tunnel: {
+        server_address: '127.0.0.1',
+      },
+    });
+  });
+
+  test('it will add a SSH Tunnel config parameter with existing configs', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersSSHTunnelChange,
+      payload: { name: 'server_port', value: '22' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        ssh_tunnel: {
+          server_address: '127.0.0.1',
+        },
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      ssh_tunnel: {
+        server_address: '127.0.0.1',
+        server_port: '22',
+      },
+    });
+  });
+
+  test('it will change a SSH Tunnel config parameter with existing configs', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersSSHTunnelChange,
+      payload: { name: 'server_address', value: 'localhost' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        ssh_tunnel: {
+          server_address: '127.0.0.1',
+        },
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      ssh_tunnel: {
+        server_address: 'localhost',
+      },
+    });
+  });
+
+  test('it will remove the SSH Tunnel config parameters', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.removeSSHTunnelConfig,
+    };
+    const currentState = dbReducer(databaseFixture, action);
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      ssh_tunnel: undefined,
+    });
+  });
 });
