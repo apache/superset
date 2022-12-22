@@ -409,7 +409,10 @@ export default function sqlLabReducer(state = {}, action) {
     },
     [actions.QUERY_SUCCESS]() {
       // prevent race condition where query succeeds shortly after being canceled
-      if (action.query.state === QueryState.STOPPED) {
+      if (
+        action.query.state === QueryState.STOPPED ||
+        action.results.status !== QueryState.SUCCESS
+      ) {
         return state;
       }
       const alts = {
