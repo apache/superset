@@ -167,7 +167,7 @@
     "react-dom": "^18.2.0",
     "react-draggable": "^4.4.3",
     "react-gravatar": "^2.6.1",
-    "react-intersection-observer": "^8.26.2",
+    "react-intersection-observer": "^8.34.0",
     "react-js-cron": "^1.2.0",
     "react-json-tree": "^0.11.2",
     "react-jsonschema-form": "^1.2.0",
