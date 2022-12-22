@@ -195,21 +195,24 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """
 
+    base_related_field_filters: Dict[str, BaseFilter] = {}
+    """
+    This is used to specify a base filter for related fields
+    when they are accessed through the '/related/<column_name>' endpoint.
+    When combined with the `related_field_filters` attribute, 
+    this filter will be applied in addition to the latest::
+    
+        base_related_field_filters = {
+            "<RELATED_FIELD>": "<FILTER>")
+        }
+    """
+
     related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
     Declare the filters for related fields::
 
         related_fields = {
             "<RELATED_FIELD>": <RelatedFieldFilter>)
-        }
-    """
-
-    base_related_field_filters: Dict[str, BaseFilter] = {}
-    """
-    Declare the related field base filter::
-
-        base_related_field_filters = {
-            "<RELATED_FIELD>": "<FILTER>")
         }
     """
     allowed_rel_fields: Set[str] = set()
