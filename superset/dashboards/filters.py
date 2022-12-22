@@ -14,11 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import re
 import uuid
 from typing import Any, Optional, Union
 
-from flask import current_app, g
+from flask import g
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
@@ -200,14 +199,12 @@ class FilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
     name = _("Role")
     arg_name = "roles"
 
-    def apply(self, query: Query, value: Optional[str]) -> Query:
-        if base_filter := current_app.config["RELATED_QUERY_MUTATORS"].get("role"):
-            query = base_filter(query)
-
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        role_model = security_manager.role_model
         if value:
-            role_model = security_manager.role_model
-            return query.filter(role_model.name.like(f"{value}%"))
-
+            return query.filter(
+                role_model.name.ilike(f"%{value}%"),
+            )
         return query
 
 

@@ -1484,9 +1484,9 @@ ENVIRONMENT_TAG_CONFIG = {
 }
 
 
-# RBAC base filters make it possible to limit which objects are shown in the UI.
-# For examples, to only show "admin" or users starting with the letter "b" in the
-# "Onwers" dropdowns, you could add the following in your config:
+# Extra related query filters make it possible to limit which objects are shown
+# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
+# the "Owners" dropdowns, you could add the following in your config:
 # def user_filter(query: Query, *args, *kwargs):
 #     from superset import security_manager
 #
@@ -1497,16 +1497,16 @@ ENVIRONMENT_TAG_CONFIG = {
 #     ]
 #     return query.filter(or_(*filters))
 #
-#  RELATED_QUERY_MUTATORS = {"user": user_filter}
+#  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
 #
 # Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
 # filter callback for the "role" key.
-class RelatedQueryMutators(TypedDict, total=False):
+class ExtraRelatedQueryFilters(TypedDict, total=False):
     role: Callable[[Query], Query]
     user: Callable[[Query], Query]
 
 
-RELATED_QUERY_MUTATORS: RelatedQueryMutators = {}
+EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 
 
 # -------------------------------------------------------------------

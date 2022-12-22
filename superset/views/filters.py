@@ -42,24 +42,16 @@ class FilterRelatedOwners(BaseFilter):  # pylint: disable=too-few-public-methods
     name = lazy_gettext("Owner")
     arg_name = "owners"
 
-    def apply(self, query: Query, value: Optional[str]) -> Query:
-        if base_filter := current_app.config["RELATED_QUERY_MUTATORS"].get("user"):
-            query = base_filter(query)
-
-        if value:
-            user_model = security_manager.user_model
-            like_value = f"%{value}%"
-            return query.filter(
-                or_(
-                    # could be made to handle spaces between names more gracefully
-                    (user_model.first_name + " " + user_model.last_name).ilike(
-                        like_value
-                    ),
-                    user_model.username.ilike(like_value),
-                )
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        user_model = security_manager.user_model
+        like_value = "%" + cast(str, value) + "%"
+        return query.filter(
+            or_(
+                # could be made to handle spaces between names more gracefully
+                (user_model.first_name + " " + user_model.last_name).ilike(like_value),
+                user_model.username.ilike(like_value),
             )
-
-        return query
+        )
 
 
 class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-methods
@@ -80,11 +72,35 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
     arg_name = "username"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        user_model = security_manager.user_model
+        if extra_filters := current_app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
+            "user",
+        ):
+            query = extra_filters(query)
+
         exclude_users = (
             security_manager.get_exclude_users_from_lists()
             if current_app.config["EXCLUDE_USERS_FROM_LISTS"] is None
             else current_app.config["EXCLUDE_USERS_FROM_LISTS"]
         )
-        query_ = query.filter(and_(user_model.username.not_in(exclude_users)))
-        return query_
+        if exclude_users:
+            user_model = security_manager.user_model
+            return query.filter(and_(user_model.username.not_in(exclude_users)))
+
+        return query
+
+
+class BaseFilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Filter to apply on related roles.
+    """
+
+    name = lazy_gettext("role")
+    arg_name = "role"
+
+    def apply(self, query: Query, value: Optional[Any]) -> Query:
+        if extra_filters := current_app.config["EXTRA_RELATED_QUERY_FILTERS"].get(
+            "role",
+        ):
+            return extra_filters(query)
+
+        return query

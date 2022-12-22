@@ -230,7 +230,7 @@ class ApiOwnersTestCaseMixin:
 
         with patch.dict(
             "superset.dashboards.filters.current_app.config",
-            {"RELATED_QUERY_MUTATORS": {"user": _base_filter}},
+            {"EXTRA_RELATED_QUERY_FILTERS": {"user": _base_filter}},
         ):
             uri = f"api/v1/{self.resource_name}/related/owners"
             rv = self.client.get(uri)

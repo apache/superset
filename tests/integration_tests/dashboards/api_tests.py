@@ -1839,7 +1839,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         with patch.dict(
             "superset.dashboards.filters.current_app.config",
-            {"RELATED_QUERY_MUTATORS": {"role": _base_filter}},
+            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
             uri = f"api/v1/dashboard/related/roles"
             rv = self.client.get(uri)
