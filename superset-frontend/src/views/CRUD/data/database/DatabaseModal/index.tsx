@@ -543,8 +543,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
-  // TODO: Change to check SSH_TUNNELING feature flag once rebased
-  const sshTunneling = true;
+  const sshTunneling = isFeatureEnabled(FeatureFlag.SSH_TUNNELING);
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
