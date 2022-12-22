@@ -23,47 +23,51 @@ import { useTables } from './tables';
 
 const fakeApiResult = {
   json: {
-    options: [
-      {
-        id: 1,
-        name: 'fake api result1',
-        label: 'fake api label1',
-      },
-      {
-        id: 2,
-        name: 'fake api result2',
-        label: 'fake api label2',
-      },
-    ],
-    tableLength: 2,
+    result: {
+      options: [
+        {
+          id: 1,
+          name: 'fake api result1',
+          label: 'fake api label1',
+        },
+        {
+          id: 2,
+          name: 'fake api result2',
+          label: 'fake api label2',
+        },
+      ],
+      tableLength: 2,
+    },
   },
 };
 
 const fakeHasMoreApiResult = {
   json: {
-    options: [
-      {
-        id: 1,
-        name: 'fake api result1',
-        label: 'fake api label1',
-      },
-      {
-        id: 2,
-        name: 'fake api result2',
-        label: 'fake api label2',
-      },
-    ],
-    tableLength: 4,
+    result: {
+      options: [
+        {
+          id: 1,
+          name: 'fake api result1',
+          label: 'fake api label1',
+        },
+        {
+          id: 2,
+          name: 'fake api result2',
+          label: 'fake api label2',
+        },
+      ],
+      tableLength: 4,
+    },
   },
 };
 
 const expectedData = {
-  ...fakeApiResult.json,
+  ...fakeApiResult.json.result,
   hasMore: false,
 };
 
 const expectedHasMoreData = {
-  ...fakeHasMoreApiResult.json,
+  ...fakeHasMoreApiResult.json.result,
   hasMore: true,
 };
 

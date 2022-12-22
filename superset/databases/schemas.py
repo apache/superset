@@ -40,15 +40,15 @@ from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
     "type": "object",
-    "properties": {
-        "force": {"type": "boolean"},
-        "schema_name": {"type": "string"},
-    },
+    "properties": {"force": {"type": "boolean"}},
 }
 
 database_tables_query_schema = {
     "type": "object",
-    "properties": {"force": {"type": "boolean"}},
+    "properties": {
+        "force": {"type": "boolean"},
+        "schema_name": {"type": "str"},
+    },
 }
 
 database_name_description = "A database name to identify this connection."
@@ -564,9 +564,9 @@ class SchemasResponseSchema(Schema):
 
 
 class DatabaseTablesResponse(Schema):
-    extra = (fields.Dict(),)
-    type = (fields.String(),)
-    value = (fields.String(),)
+    extra = fields.Dict(required=False)
+    type = fields.String()
+    value = fields.String()
 
 
 class ValidateSQLRequest(Schema):

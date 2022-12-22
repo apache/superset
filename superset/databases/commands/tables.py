@@ -17,8 +17,6 @@
 import logging
 from typing import Any, Dict, cast
 
-from flask_babel import gettext as _
-
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.databases.commands.exceptions import (
@@ -107,8 +105,7 @@ class TablesDatabaseCommand(BaseCommand):
         except SupersetException as ex:
             raise ex
         except Exception as ex:
-            logger.error(ex)
-            raise DatabaseTablesUnexpectedError(ex)
+            raise DatabaseTablesUnexpectedError(ex) from ex
 
     def validate(self) -> None:
         self._model = cast(Database, DatabaseDAO.find_by_id(self._db_id))

@@ -500,7 +500,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/<int:pk>/tables/", methods=["GET"])
+    @expose("/<int:pk>/tables/")
     @protect()
     @safe
     @rison(database_tables_query_schema)
