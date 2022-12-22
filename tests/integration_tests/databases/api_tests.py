@@ -1381,6 +1381,56 @@ class TestDatabaseApi(SupersetTestCase):
         )
         self.assertEqual(rv.status_code, 400)
 
+    def test_database_tables(self):
+        """
+        Database API: Test database tables
+        """
+        self.login(username="admin")
+        database = db.session.query(Database).filter_by(database_name="examples").one()
+
+        schema_name = self.default_schema_backend_map[database.backend]
+        rv = self.client.get(
+            f"api/v1/database/{database.id}/tables/?q={prison.dumps({'schema_name': schema_name})}"
+        )
+
+        self.assertEqual(rv.status_code, 200)
+
+    def test_database_tables_not_found(self):
+        """
+        Database API: Test database tables not found
+        """
+        self.logout()
+        self.login(username="gamma")
+        example_db = get_example_database()
+        uri = f"api/v1/database/{example_db.id}/tables/?q={prison.dumps({'schema_name': 'non_existent'})}"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 404)
+
+    def test_database_tables_invalid_query(self):
+        """
+        Database API: Test database tables with invalid query
+        """
+        self.login("admin")
+        database = db.session.query(Database).first()
+        rv = self.client.get(
+            f"api/v1/database/{database.id}/tables/?q={prison.dumps({'force': 'nop'})}"
+        )
+        self.assertEqual(rv.status_code, 400)
+
+    @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
+    def test_database_tables_unexpected_error(self, mock_can_access_database):
+        """
+        Database API: Test database tables with unexpected error
+        """
+        self.login(username="admin")
+        database = db.session.query(Database).filter_by(database_name="examples").one()
+        mock_can_access_database.side_effect = Exception("Test Error")
+
+        rv = self.client.get(
+            f"api/v1/database/{database.id}/tables/?q={prison.dumps({'schema_name': 'main'})}"
+        )
+        self.assertEqual(rv.status_code, 500)
+
     def test_test_connection(self):
         """
         Database API: Test test connection

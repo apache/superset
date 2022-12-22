@@ -47,7 +47,7 @@ database_tables_query_schema = {
     "type": "object",
     "properties": {
         "force": {"type": "boolean"},
-        "schema_name": {"type": "str"},
+        "schema_name": {"type": "string"},
     },
 }
 
