@@ -23,6 +23,14 @@ import { Global } from '@emotion/react';
 export const GlobalStyles = () => (
   <Global
     styles={theme => css`
+      body {
+        min-height: max(
+          100vh,
+          ${theme.gridUnit * 125}px
+        ); // Set a min height so the gutter is always visible when resizing
+        overflow: hidden;
+      }
+
       h1,
       h2,
       h3,
@@ -32,6 +40,10 @@ export const GlobalStyles = () => (
       strong,
       th {
         font-weight: ${theme.typography.weights.bold};
+      }
+
+      .cost-estimate {
+        font-size: ${theme.typography.sizes.s};
       }
     `}
   />
