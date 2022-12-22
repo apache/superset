@@ -209,7 +209,10 @@ class BaseSupersetModelRestApi(ModelRestApi):
 
     related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
-    Declare the filters for related fields::
+    Specify a filter for related fields when they are accessed
+    through the '/related/<column_name>' endpoint.
+    When combined with the `base_related_field_filters` attribute,
+    this filter will be applied in prior to the latest::
 
         related_fields = {
             "<RELATED_FIELD>": <RelatedFieldFilter>)
