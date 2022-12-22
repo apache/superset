@@ -487,10 +487,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             {t('Close')}
           </Button>
           <Button
-            disabled={!stateIsValid}
-            buttonStyle={
-              hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
-            }
+            disabled={!stateIsValid || !hasUnsavedChanges}
+            buttonStyle="primary"
             buttonSize="small"
             data-test="AdhocMetricEdit#save"
             onClick={this.onSave}

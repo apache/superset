@@ -27,6 +27,7 @@ import React, {
   useMemo,
   useState,
   useRef,
+  ReactNode,
 } from 'react';
 import { Global } from '@emotion/react';
 import { css, t, useTheme } from '@superset-ui/core';
@@ -36,6 +37,7 @@ import Badge from '../Badge';
 import Icons from '../Icons';
 import Button from '../Button';
 import Popover from '../Popover';
+import { Tooltip } from '../Tooltip';
 
 const MAX_HEIGHT = 500;
 
@@ -96,6 +98,10 @@ export interface DropdownContainerProps {
    */
   dropdownTriggerText?: string;
   /**
+   * Text of the dropdown trigger tooltip
+   */
+  dropdownTriggerTooltip?: ReactNode | null;
+  /**
    * Main container additional style properties.
    */
   style?: CSSProperties;
@@ -114,6 +120,7 @@ const DropdownContainer = forwardRef(
       dropdownTriggerCount,
       dropdownTriggerIcon,
       dropdownTriggerText = t('More'),
+      dropdownTriggerTooltip = null,
       style,
     }: DropdownContainerProps,
     outerRef: RefObject<Ref>,
@@ -134,50 +141,6 @@ const DropdownContainer = forwardRef(
     }
 
     const [showOverflow, setShowOverflow] = useState(false);
-
-    useLayoutEffect(() => {
-      const container = current?.children.item(0);
-      if (container) {
-        const { children } = container;
-        const childrenArray = Array.from(children);
-
-        // Stores items width once
-        if (itemsWidth.length === 0) {
-          setItemsWidth(
-            childrenArray.map(child => child.getBoundingClientRect().width),
-          );
-        }
-
-        // Calculates the index of the first overflowed element
-        const index = childrenArray.findIndex(
-          child =>
-            child.getBoundingClientRect().right >
-            container.getBoundingClientRect().right,
-        );
-        setOverflowingIndex(index === -1 ? children.length : index);
-
-        if (width > previousWidth && overflowingIndex !== -1) {
-          // Calculates remaining space in the container
-          const button = current?.children.item(1);
-          const buttonRight = button?.getBoundingClientRect().right || 0;
-          const containerRight = current?.getBoundingClientRect().right || 0;
-          const remainingSpace = containerRight - buttonRight;
-          // Checks if the first element in the dropdown fits in the remaining space
-          const fitsInRemainingSpace = remainingSpace >= itemsWidth[0];
-          if (fitsInRemainingSpace && overflowingIndex < items.length) {
-            // Moves element from dropdown to container
-            setOverflowingIndex(overflowingIndex + 1);
-          }
-        }
-      }
-    }, [
-      current,
-      items.length,
-      itemsWidth,
-      overflowingIndex,
-      previousWidth,
-      width,
-    ]);
 
     const reduceItems = (items: Item[]): [Item[], string[]] =>
       items.reduce(
@@ -206,10 +169,75 @@ const DropdownContainer = forwardRef(
     const [overflowedItems, overflowedIds] = useMemo(
       () =>
         overflowingIndex !== -1
-          ? reduceItems(items.slice(overflowingIndex, items.length))
+          ? reduceItems(items.slice(overflowingIndex))
           : [[], []],
       [items, overflowingIndex],
     );
+
+    useLayoutEffect(() => {
+      const container = current?.children.item(0);
+      if (container) {
+        const { children } = container;
+        const childrenArray = Array.from(children);
+
+        // If items length change, add all items to the container
+        // and recalculate the widths
+        if (itemsWidth.length !== items.length) {
+          if (childrenArray.length === items.length) {
+            setItemsWidth(
+              childrenArray.map(child => child.getBoundingClientRect().width),
+            );
+          } else {
+            setOverflowingIndex(-1);
+            return;
+          }
+        }
+
+        // Calculates the index of the first overflowed element
+        // +1 is to give at least one pixel of difference and avoid flakiness
+        const index = childrenArray.findIndex(
+          child =>
+            child.getBoundingClientRect().right >
+            container.getBoundingClientRect().right + 1,
+        );
+
+        // If elements fit (-1) and there's overflowed items
+        // then preserve the overflow index. We can't use overflowIndex
+        // directly because the items may have been modified
+        let newOverflowingIndex =
+          index === -1 && overflowedItems.length > 0
+            ? items.length - overflowedItems.length
+            : index;
+
+        if (width > previousWidth) {
+          // Calculates remaining space in the container
+          const button = current?.children.item(1);
+          const buttonRight = button?.getBoundingClientRect().right || 0;
+          const containerRight = current?.getBoundingClientRect().right || 0;
+          const remainingSpace = containerRight - buttonRight;
+
+          // Checks if some elements in the dropdown fits in the remaining space
+          let sum = 0;
+          for (let i = childrenArray.length; i < items.length; i += 1) {
+            sum += itemsWidth[i];
+            if (sum <= remainingSpace) {
+              newOverflowingIndex = i + 1;
+            } else {
+              break;
+            }
+          }
+        }
+
+        setOverflowingIndex(newOverflowingIndex);
+      }
+    }, [
+      current,
+      items.length,
+      itemsWidth,
+      overflowedItems.length,
+      previousWidth,
+      width,
+    ]);
 
     useEffect(() => {
       if (onOverflowingStateChange) {
@@ -295,8 +323,8 @@ const DropdownContainer = forwardRef(
             display: flex;
             align-items: center;
             gap: ${theme.gridUnit * 4}px;
-            margin-right: ${theme.gridUnit * 3}px;
-            min-width: 100px;
+            margin-right: ${theme.gridUnit * 4}px;
+            min-width: 0px;
           `}
           data-test="container"
           style={style}
@@ -337,28 +365,38 @@ const DropdownContainer = forwardRef(
               visible={popoverVisible}
               onVisibleChange={visible => setPopoverVisible(visible)}
               placement="bottom"
+              destroyTooltipOnHide
             >
-              <Button buttonStyle="secondary">
-                {dropdownTriggerIcon}
-                {dropdownTriggerText}
-                <Badge
-                  count={dropdownTriggerCount ?? overflowingCount}
-                  css={css`
-                    margin-left: ${dropdownTriggerCount ?? overflowingCount
-                      ? `${theme.gridUnit * 2}px`
-                      : '0'};
-                  `}
-                />
-                <Icons.DownOutlined
-                  iconSize="m"
-                  iconColor={theme.colors.grayscale.light1}
-                  css={css`
-                    .anticon {
-                      display: flex;
+              <Tooltip title={dropdownTriggerTooltip}>
+                <Button
+                  buttonStyle="secondary"
+                  data-test="dropdown-container-btn"
+                >
+                  {dropdownTriggerIcon}
+                  {dropdownTriggerText}
+                  <Badge
+                    count={dropdownTriggerCount ?? overflowingCount}
+                    color={
+                      (dropdownTriggerCount ?? overflowingCount) > 0
+                        ? theme.colors.primary.base
+                        : theme.colors.grayscale.light1
                     }
-                  `}
-                />
-              </Button>
+                    showZero
+                    css={css`
+                      margin-left: ${theme.gridUnit * 2}px;
+                    `}
+                  />
+                  <Icons.DownOutlined
+                    iconSize="m"
+                    iconColor={theme.colors.grayscale.light1}
+                    css={css`
+                      .anticon {
+                        display: flex;
+                      }
+                    `}
+                  />
+                </Button>
+              </Tooltip>
             </Popover>
           </>
         )}

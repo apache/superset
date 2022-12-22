@@ -67,7 +67,11 @@ def stringify_values(array: np.ndarray) -> np.ndarray:
 
     with np.nditer(result, flags=["refs_ok"], op_flags=["readwrite"]) as it:
         for obj in it:
-            obj[...] = stringify(obj)
+            if pd.isna(obj):
+                # pandas <NA> type cannot be converted to string
+                obj[pd.isna(obj)] = None
+            else:
+                obj[...] = stringify(obj)
 
     return result
 
