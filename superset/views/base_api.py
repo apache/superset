@@ -199,9 +199,9 @@ class BaseSupersetModelRestApi(ModelRestApi):
     """
     This is used to specify a base filter for related fields
     when they are accessed through the '/related/<column_name>' endpoint.
-    When combined with the `related_field_filters` attribute, 
+    When combined with the `related_field_filters` attribute,
     this filter will be applied in addition to the latest::
-    
+
         base_related_field_filters = {
             "<RELATED_FIELD>": "<FILTER>")
         }
