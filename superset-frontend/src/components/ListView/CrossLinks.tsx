@@ -67,11 +67,7 @@ export default function CrossLinks({
   linkPrefix = '/superset/dashboard/',
 }: CrossLinksProps) {
   const crossLinksRef = useRef<HTMLDivElement>(null);
-  const plusRef = useRef<HTMLDivElement>(null);
-  const [elementsTruncated, hasHiddenElements] = useTruncation(
-    crossLinksRef,
-    plusRef,
-  );
+  const [isTruncated, hiddenElementCount] = useTruncation(crossLinksRef);
   const hasMoreItems = useMemo(
     () =>
       crossLinks.length > maxLinks ? crossLinks.length - maxLinks : undefined,
@@ -108,12 +104,12 @@ export default function CrossLinks({
       <CrossLinksTooltip
         moreItems={hasMoreItems}
         crossLinks={tooltipLinks}
-        show={!!elementsTruncated}
+        show={!!isTruncated}
       >
         {links}
-        {hasHiddenElements && (
-          <span ref={plusRef} className="count" data-test="count-crosslinks">
-            +{elementsTruncated}
+        {hiddenElementCount && (
+          <span className="count" data-test="count-crosslinks">
+            +{hiddenElementCount}
           </span>
         )}
       </CrossLinksTooltip>

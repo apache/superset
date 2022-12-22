@@ -46,14 +46,10 @@ const getTooltipSection = (items: string[] | undefined, label: string) =>
 export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
   const scope = useFilterScope(filter);
   const scopeRef = useRef<HTMLDivElement>(null);
-  const plusRef = useRef<HTMLDivElement>(null);
 
-  const [elementsTruncated, hasHiddenElements] = useTruncation(
-    scopeRef,
-    plusRef,
-  );
+  const [isTruncated, hiddenElementCount] = useTruncation(scopeRef);
   const tooltipText = useMemo(() => {
-    if (elementsTruncated === 0 || !scope) {
+    if (!isTruncated || !scope) {
       return null;
     }
     if (scope.all) {
@@ -65,7 +61,7 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
         {getTooltipSection(scope.charts, t('Charts'))}
       </div>
     );
-  }, [elementsTruncated, scope]);
+  }, [isTruncated, scope]);
 
   return (
     <Row>
@@ -82,10 +78,8 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
                 ))
             : t('None')}
         </RowValue>
-        {hasHiddenElements > 0 && (
-          <RowTruncationCount ref={plusRef}>
-            +{elementsTruncated}
-          </RowTruncationCount>
+        {hiddenElementCount && (
+          <RowTruncationCount>+{hiddenElementCount}</RowTruncationCount>
         )}
       </TooltipWithTruncation>
     </Row>

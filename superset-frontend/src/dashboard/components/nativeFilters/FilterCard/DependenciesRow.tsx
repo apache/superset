@@ -55,16 +55,12 @@ const DependencyValue = ({
 export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
   const dependencies = useFilterDependencies(filter);
   const dependenciesRef = useRef<HTMLDivElement>(null);
-  const plusRef = useRef<HTMLDivElement>(null);
-  const [elementsTruncated, hasHiddenElements] = useTruncation(
-    dependenciesRef,
-    plusRef,
-  );
+  const [isTruncated, hiddenElementCount] = useTruncation(dependenciesRef);
   const theme = useTheme();
 
   const tooltipText = useMemo(
     () =>
-      elementsTruncated > 0 && dependencies ? (
+      isTruncated && dependencies ? (
         <TooltipList>
           {dependencies.map(dependency => (
             <li>
@@ -73,7 +69,7 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
           ))}
         </TooltipList>
       ) : null,
-    [elementsTruncated, dependencies],
+    [isTruncated, dependencies],
   );
 
   if (!Array.isArray(dependencies) || dependencies.length === 0) {
@@ -112,10 +108,8 @@ export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
             />
           ))}
         </RowValue>
-        {hasHiddenElements && (
-          <RowTruncationCount ref={plusRef}>
-            +{elementsTruncated}
-          </RowTruncationCount>
+        {hiddenElementCount && (
+          <RowTruncationCount>+{hiddenElementCount}</RowTruncationCount>
         )}
       </TooltipWithTruncation>
     </Row>

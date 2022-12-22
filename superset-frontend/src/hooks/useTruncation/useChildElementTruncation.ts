@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject, useLayoutEffect, useState, useRef } from 'react';
+import { RefObject, useLayoutEffect, useState } from 'react';
 
 /**
  * This hook encapsulates logic to support truncation of child HTML
@@ -27,92 +27,65 @@ import { RefObject, useLayoutEffect, useState, useRef } from 'react';
  * (including those completely hidden) and whether any elements
  * are completely hidden.
  */
-const useChildElementTruncation = (
-  elementRef: RefObject<HTMLElement>,
-  plusRef?: RefObject<HTMLElement>,
-) => {
-  const [elementsTruncated, setElementsTruncated] = useState(0);
-  const [hasHiddenElements, setHasHiddenElements] = useState(false);
+// Using DEFAULT_ARRAY the dependency array is not getting a new array every time this runs for
+// an null / undefined elementRef or elementRef with no childeNodes
+const DEFAULT_ARRAY: HTMLElement[] = [];
 
-  const previousEffectInfoRef = useRef({
+/**
+ * Evaluates if an HTMLElement has truncated (clipped / partialy visible / hidden) content
+ * and calculates the number of child elements that are completely hidden.
+ * NOTE: Any child element that has at least 1px of visible content
+ * will be excluded from the hiddenElementCount.
+ * @param elementRef HTMLElement that will be checked to see if the sum of child element widths
+ * exceeds the visible clientWidth of the elementRef.
+ * @returns [isTruncated: boolean, hiddenElementCount: number]
+ */
+const useChildElementTruncation = (elementRef: RefObject<HTMLElement>) => {
+  const [isTruncated, setIsTruncated] = useState<boolean>(false);
+  const [hiddenElementCount, setHiddenElementCount] = useState<number>(0);
+
+  const { scrollWidth, clientWidth, childNodes } = elementRef?.current ?? {
     scrollWidth: 0,
-    parentElementWidth: 0,
-    plusRefWidth: 0,
-  });
+    clientWidth: 0,
+    childNodes: DEFAULT_ARRAY,
+  };
 
   useLayoutEffect(() => {
-    const currentElement = elementRef.current;
-    const plusRefElement = plusRef?.current;
-
-    if (!currentElement) {
-      return;
-    }
-
-    const { scrollWidth, clientWidth, childNodes } = currentElement;
-
-    // By using the result of this effect to truncate content
-    // we're effectively changing it's size.
-    // That will trigger another pass at this effect.
-    // Depending on the content elements width, that second rerender could
-    // yield a different truncate count, thus potentially leading to a
-    // rendering loop.
-    // There's only a need to recompute if the parent width or the width of
-    // the child nodes changes.
-    const previousEffectInfo = previousEffectInfoRef.current;
-    const parentElementWidth = currentElement.parentElement?.clientWidth || 0;
-    const plusRefWidth = plusRefElement?.offsetWidth || 0;
-    previousEffectInfoRef.current = {
-      scrollWidth,
-      parentElementWidth,
-      plusRefWidth,
-    };
-
-    if (
-      previousEffectInfo.parentElementWidth === parentElementWidth &&
-      previousEffectInfo.scrollWidth === scrollWidth &&
-      previousEffectInfo.plusRefWidth === plusRefWidth
-    ) {
-      return;
-    }
-
     if (scrollWidth > clientWidth) {
-      // "..." is around 6px wide
-      const truncationWidth = 6;
-      const plusSize = plusRefElement?.offsetWidth || 0;
-      const maxWidth = clientWidth - truncationWidth;
       const elementsCount = childNodes.length;
 
       let width = 0;
-      let hiddenElements = 0;
-      for (let i = 0; i < elementsCount; i += 1) {
-        const itemWidth = (childNodes[i] as HTMLElement).offsetWidth;
-        const remainingWidth = maxWidth - truncationWidth - width - plusSize;
-
-        // assures it shows +{number} only when the item is not visible
+      let hiddenElementCounter = 0;
+      childNodes.forEach((node: HTMLElement) => {
+        const itemWidth = node?.offsetWidth;
+        const remainingWidth = clientWidth - width;
+        /**
+         * Evaluate if hiddenElementCounter should increment before adding to width
+         * to ensure we do not count partially hidden / clipped / truncated element as a hidden item
+         */
         if (remainingWidth <= 0) {
-          hiddenElements += 1;
+          hiddenElementCounter += 1;
         }
         width += itemWidth;
-      }
-
-      if (elementsCount > 1 && hiddenElements) {
-        setHasHiddenElements(true);
-        setElementsTruncated(hiddenElements);
+      });
+      if (elementsCount > 1 && hiddenElementCounter) {
+        // The last element is partially visible (truncated)
+        // and some elements are fully hidden
+        setHiddenElementCount(hiddenElementCounter);
+        setIsTruncated(true);
       } else {
-        setHasHiddenElements(false);
-        setElementsTruncated(1);
+        // The last element is partially visible (truncated)
+        setHiddenElementCount(0);
+        setIsTruncated(true);
       }
     } else {
-      setHasHiddenElements(false);
-      setElementsTruncated(0);
+      // All items are fully visible
+      setHiddenElementCount(0);
+      setIsTruncated(false);
     }
-  }, [
-    elementRef.current?.offsetWidth,
-    elementRef.current?.clientWidth,
-    elementRef,
-  ]);
+  }, [scrollWidth, clientWidth, childNodes]);
 
-  return [elementsTruncated, hasHiddenElements];
+  return [isTruncated, hiddenElementCount];
 };
 
 export default useChildElementTruncation;
