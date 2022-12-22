@@ -30,6 +30,7 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
+import { QueryState } from '@superset-ui/core';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
@@ -502,6 +503,7 @@ describe('async actions', () => {
         const results = {
           data: mockBigNumber,
           query: { sqlEditorId: 'abcd' },
+          status: QueryState.SUCCESS,
           query_id: 'efgh',
         };
         fetchMock.get(fetchQueryEndpoint, JSON.stringify(results), {

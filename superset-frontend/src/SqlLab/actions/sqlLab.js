@@ -17,7 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
-import { QueryState, SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -299,12 +299,6 @@ export function requestQueryResults(query) {
   return { type: REQUEST_QUERY_RESULTS, query };
 }
 
-function dispatchQueryResults(dispatch, query, json) {
-  if (json.status === QueryState.SUCCESS) {
-    dispatch(querySuccess(query, json));
-  }
-}
-
 export function fetchQueryResults(query, displayLimit) {
   return function (dispatch) {
     dispatch(requestQueryResults(query));
@@ -313,9 +307,7 @@ export function fetchQueryResults(query, displayLimit) {
       endpoint: `/superset/results/${query.resultsKey}/?rows=${displayLimit}`,
       parseMethod: 'json-bigint',
     })
-      .then(({ json }) => {
-        dispatchQueryResults(dispatch, query, json);
-      })
+      .then(({ json }) => dispatch(querySuccess(query, json)))
       .catch(response =>
         getClientErrorObject(response).then(error => {
           const message =
@@ -360,7 +352,7 @@ export function runQuery(query) {
     })
       .then(({ json }) => {
         if (!query.runAsync) {
-          dispatchQueryResults(dispatch, query, json);
+          dispatch(querySuccess(query, json));
         }
       })
       .catch(response =>
