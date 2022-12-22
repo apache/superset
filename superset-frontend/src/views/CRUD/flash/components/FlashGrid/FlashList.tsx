@@ -21,6 +21,7 @@ import { t } from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { useHistory } from 'react-router-dom';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
 import SubMenu, {
   SubMenuProps,
@@ -219,6 +220,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
+          const history = useHistory();
           const handleSqlQuery = () => {
             changeSqlQuery(original);
           };
@@ -227,6 +229,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           const handleChangeTtl = () => changeTtl(original);
           const handleDelete = () => setDeleteFlash(original);
           const handleView = () => changeViewFlash(original);
+          const handleGotoAuditLog = () =>
+            history.push(`/flash/auditlogs/${original.id}`);
 
           const actions: ActionProps[] | [] = [
             (original?.owner === user?.email || user?.roles?.Admin) && {
@@ -271,6 +275,13 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
               placement: 'bottom' as TooltipPlacement,
               icon: 'Eye',
               onClick: handleView,
+            },
+            {
+              label: 'execution-log-action',
+              tooltip: t('Audit logs'),
+              placement: 'bottom',
+              icon: 'Note',
+              onClick: handleGotoAuditLog,
             },
           ].filter(item => !!item);
 

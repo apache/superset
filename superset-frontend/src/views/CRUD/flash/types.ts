@@ -83,6 +83,17 @@ export type FlashServiceObject = {
   ttl: string;
 };
 
+export type FlashAuditLogs = {
+  description: string;
+  flashId: number;
+  id: number;
+  newValue: string;
+  oldValue: string;
+  flashType: string;
+  timestamp: string;
+  user: string;
+};
+
 export interface FormErrors {
   message: string;
   name: string;
