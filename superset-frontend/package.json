@@ -184,7 +184,6 @@
     "react-syntax-highlighter": "^15.4.5",
     "react-table": "^7.6.3",
     "react-transition-group": "^2.5.3",
-    "react-virtualized": "9.19.1",
     "react-window": "^1.8.5",
     "redux": "^4.0.5",
     "redux-localstorage": "^0.4.1",
