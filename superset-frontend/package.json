@@ -184,7 +184,7 @@
     "react-syntax-highlighter": "^15.4.5",
     "react-table": "^7.6.3",
     "react-transition-group": "^2.5.3",
-    "react-window": "^1.8.5",
+    "react-window": "^1.8.8",
     "redux": "^4.0.5",
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
