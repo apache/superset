@@ -36,7 +36,7 @@
     "lodash": "^4.17.11",
     "moment": "^2.26.0",
     "react": "^18.0.2",
-    "react-ace": "^9.4.4",
+    "react-ace": "^10.1.0",
     "react-dom": "^18.0.2"
   },
   "devDependencies": {
