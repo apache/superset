@@ -16,23 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import AddDataset from 'src/views/CRUD/data/dataset/AddDataset';
 
-describe('AddDataset', () => {
-  it('renders a blank state AddDataset', async () => {
-    render(<AddDataset />, { useRedux: true });
+import { BootstrapData } from 'src/types/bootstrapTypes';
 
-    const blankeStateImgs = screen.getAllByRole('img', { name: /empty/i });
-
-    // Header
-    expect(await screen.findByText(/new dataset/i)).toBeVisible();
-    // Left panel
-    expect(blankeStateImgs[0]).toBeVisible();
-    // Footer
-    expect(screen.getByText(/Cancel/i)).toBeVisible();
-
-    expect(blankeStateImgs.length).toBe(1);
-  });
-});
+export default function getBootstrapData(): BootstrapData {
+  const appContainer = document.getElementById('app');
+  const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
+  return dataBootstrap ? JSON.parse(dataBootstrap) : {};
+}

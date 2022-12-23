@@ -18,47 +18,48 @@
  */
 import React from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
-import EmptyState from 'src/views/CRUD/welcome/EmptyState';
+import { TableTab } from 'src/views/CRUD/types';
+import EmptyState, { EmptyStateProps } from 'src/views/CRUD/welcome/EmptyState';
 import { WelcomeTable } from './types';
 
 describe('EmptyState', () => {
-  const variants = [
+  const variants: EmptyStateProps[] = [
     {
-      tab: 'Favorite',
+      tab: TableTab.Favorite,
       tableName: WelcomeTable.Dashboards,
     },
     {
-      tab: 'Mine',
+      tab: TableTab.Mine,
       tableName: WelcomeTable.Dashboards,
     },
     {
-      tab: 'Favorite',
+      tab: TableTab.Favorite,
       tableName: WelcomeTable.Charts,
     },
     {
-      tab: 'Mine',
+      tab: TableTab.Mine,
       tableName: WelcomeTable.Charts,
     },
     {
-      tab: 'Favorite',
+      tab: TableTab.Favorite,
       tableName: WelcomeTable.SavedQueries,
     },
     {
-      tab: 'Mine',
+      tab: TableTab.Mine,
       tableName: WelcomeTable.SavedQueries,
     },
   ];
-  const recents = [
+  const recents: EmptyStateProps[] = [
     {
-      tab: 'Viewed',
+      tab: TableTab.Viewed,
       tableName: WelcomeTable.Recents,
     },
     {
-      tab: 'Edited',
+      tab: TableTab.Edited,
       tableName: WelcomeTable.Recents,
     },
     {
-      tab: 'Created',
+      tab: TableTab.Created,
       tableName: WelcomeTable.Recents,
     },
   ];
@@ -68,10 +69,10 @@ describe('EmptyState', () => {
       expect(wrapper).toExist();
       const textContainer = wrapper.find('.ant-empty-description');
       expect(textContainer.text()).toEqual(
-        variant.tab === 'Favorite'
+        variant.tab === TableTab.Favorite
           ? "You don't have any favorites yet!"
           : `No ${
-              variant.tableName === 'SAVED_QUERIES'
+              variant.tableName === WelcomeTable.SavedQueries
                 ? 'saved queries'
                 : variant.tableName.toLowerCase()
             } yet`,
@@ -80,13 +81,13 @@ describe('EmptyState', () => {
     });
   });
   recents.forEach(recent => {
-    it(`it renders an ${recent.tab} ${recent.tableName} empty state`, () => {
+    it(`it renders a ${recent.tab} ${recent.tableName} empty state`, () => {
       const wrapper = mount(<EmptyState {...recent} />);
       expect(wrapper).toExist();
       const textContainer = wrapper.find('.ant-empty-description');
       expect(wrapper.find('.ant-empty-image').children()).toHaveLength(1);
       expect(textContainer.text()).toContain(
-        `Recently ${recent.tab.toLowerCase()} charts, dashboards, and saved queries will appear here`,
+        `Recently ${recent.tab?.toLowerCase()} charts, dashboards, and saved queries will appear here`,
       );
     });
   });

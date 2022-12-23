@@ -68,7 +68,7 @@ def _create_dashboards():
 
     from superset.examples.birth_names import create_dashboard, create_slices
 
-    slices, _ = create_slices(table, admin_owner=False)
+    slices, _ = create_slices(table)
     dash = create_dashboard(slices)
     slices_ids_to_delete = [slice.id for slice in slices]
     dash_id_to_delete = dash.id

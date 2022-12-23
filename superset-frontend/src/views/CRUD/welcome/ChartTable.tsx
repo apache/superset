@@ -26,15 +26,19 @@ import {
 } from 'src/views/CRUD/hooks';
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useHistory } from 'react-router-dom';
-import { TableTabTypes } from 'src/views/CRUD/types';
+import { Filter, TableTab } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
-import { CardContainer, PAGE_SIZE } from 'src/views/CRUD/utils';
+import {
+  CardContainer,
+  getFilterValues,
+  PAGE_SIZE,
+} from 'src/views/CRUD/utils';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
 import ChartCard from 'src/views/CRUD/chart/ChartCard';
 import Chart from 'src/types/Chart';
@@ -48,12 +52,12 @@ import { WelcomeTable } from './types';
 interface ChartTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
-  search: string;
-  chartFilter?: string;
   user?: User;
   mine: Array<any>;
   showThumbnails: boolean;
-  examples?: Array<object>;
+  otherTabData?: Array<object>;
+  otherTabFilters: Filter[];
+  otherTabTitle: string;
 }
 
 function ChartTable({
@@ -62,16 +66,17 @@ function ChartTable({
   addSuccessToast,
   mine,
   showThumbnails,
-  examples,
+  otherTabData,
+  otherTabFilters,
+  otherTabTitle,
 }: ChartTableProps) {
   const history = useHistory();
-  const filterStore = getItem(
+  const initialTab = getItem(
     LocalStorageKeys.homepage_chart_filter,
-    TableTabTypes.EXAMPLES,
+    TableTab.Other,
   );
-  const initialFilter = filterStore;
 
-  const filteredExamples = filter(examples, obj => 'viz_type' in obj);
+  const filteredOtherTabData = filter(otherTabData, obj => 'viz_type' in obj);
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -84,7 +89,7 @@ function ChartTable({
     t('chart'),
     addDangerToast,
     true,
-    initialFilter === 'Mine' ? mine : filteredExamples,
+    initialTab === TableTab.Mine ? mine : filteredOtherTabData,
     [],
     false,
   );
@@ -102,36 +107,11 @@ function ChartTable({
     closeChartEditModal,
   } = useChartEditModal(setCharts, charts);
 
-  const [chartFilter, setChartFilter] = useState(initialFilter);
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
-  const getFilters = (filterName: string) => {
-    const filters = [];
-
-    if (filterName === 'Mine') {
-      filters.push({
-        id: 'owners',
-        operator: 'rel_m_m',
-        value: `${user?.userId}`,
-      });
-    } else if (filterName === 'Favorite') {
-      filters.push({
-        id: 'id',
-        operator: 'chart_is_favorite',
-        value: true,
-      });
-    } else if (filterName === 'Examples') {
-      filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: 0,
-      });
-    }
-    return filters;
-  };
-
-  const getData = (filter: string) =>
+  const getData = (tab: TableTab) =>
     fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
@@ -141,15 +121,15 @@ function ChartTable({
           desc: true,
         },
       ],
-      filters: getFilters(filter),
+      filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
     });
 
   useEffect(() => {
-    if (loaded || chartFilter === 'Favorite') {
-      getData(chartFilter);
+    if (loaded || activeTab === TableTab.Favorite) {
+      getData(activeTab);
     }
     setLoaded(true);
-  }, [chartFilter]);
+  }, [activeTab]);
 
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
@@ -161,29 +141,29 @@ function ChartTable({
 
   const menuTabs = [
     {
-      name: 'Favorite',
+      name: TableTab.Favorite,
       label: t('Favorite'),
       onClick: () => {
-        setChartFilter(TableTabTypes.FAVORITE);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTabTypes.FAVORITE);
+        setActiveTab(TableTab.Favorite);
+        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Favorite);
       },
     },
     {
-      name: 'Mine',
+      name: TableTab.Mine,
       label: t('Mine'),
       onClick: () => {
-        setChartFilter(TableTabTypes.MINE);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTabTypes.MINE);
+        setActiveTab(TableTab.Mine);
+        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Mine);
       },
     },
   ];
-  if (examples) {
+  if (otherTabData) {
     menuTabs.push({
-      name: 'Examples',
-      label: t('Examples'),
+      name: TableTab.Other,
+      label: otherTabTitle,
       onClick: () => {
-        setChartFilter(TableTabTypes.EXAMPLES);
-        setItem(LocalStorageKeys.homepage_chart_filter, TableTabTypes.EXAMPLES);
+        setActiveTab(TableTab.Other);
+        setItem(LocalStorageKeys.homepage_chart_filter, TableTab.Other);
       },
     });
   }
@@ -201,7 +181,7 @@ function ChartTable({
       )}
 
       <SubMenu
-        activeChild={chartFilter}
+        activeChild={activeTab}
         tabs={menuTabs}
         buttons={[
           {
@@ -221,7 +201,7 @@ function ChartTable({
             buttonStyle: 'link',
             onClick: () => {
               const target =
-                chartFilter === 'Favorite'
+                activeTab === TableTab.Favorite
                   ? `/chart/list/?filters=(favorite:(label:${t(
                       'Yes',
                     )},value:!t))`
@@ -237,7 +217,7 @@ function ChartTable({
             <ChartCard
               key={`${e.id}`}
               openChartEditModal={openChartEditModal}
-              chartFilter={chartFilter}
+              chartFilter={activeTab}
               chart={e}
               userId={user?.userId}
               hasPerm={hasPerm}
@@ -253,7 +233,11 @@ function ChartTable({
           ))}
         </CardContainer>
       ) : (
-        <EmptyState tableName={WelcomeTable.Charts} tab={chartFilter} />
+        <EmptyState
+          tableName={WelcomeTable.Charts}
+          tab={activeTab}
+          otherTabTitle={otherTabTitle}
+        />
       )}
       {preparingExport && <Loading />}
     </ErrorBoundary>
