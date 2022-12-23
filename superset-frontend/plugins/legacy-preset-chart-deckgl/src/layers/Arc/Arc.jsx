@@ -37,11 +37,13 @@ function setTooltipContent(formData) {
   return o => (
     <div className="deckgl-tooltip">
       <TooltipRow
-        label={t('Start (Longitude, Latitude): ')}
+        // eslint-disable-next-line prefer-template
+        label={t('Start (Longitude, Latitude)' + ': ')}
         value={`${o.object.sourcePosition[0]}, ${o.object.sourcePosition[1]}`}
       />
       <TooltipRow
-        label={t('End (Longitude, Latitude): ')}
+        // eslint-disable-next-line prefer-template
+        label={t('End (Longitude, Latitude)' + ': ')}
         value={`${o.object.targetPosition[0]}, ${o.object.targetPosition[1]}`}
       />
       {formData.dimension && (
