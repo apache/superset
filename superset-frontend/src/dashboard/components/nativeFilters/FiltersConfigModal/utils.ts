@@ -120,7 +120,7 @@ export const createHandleSave =
         }
         const target: Partial<NativeFilterTarget> = {};
         if (formInputs.dataset) {
-          target.datasetId = formInputs.dataset.value;
+          target.datasourceId = formInputs.dataset.value;
         }
         if (formInputs.dataset && formInputs.column) {
           target.column = { name: formInputs.column };

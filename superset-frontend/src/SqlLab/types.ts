@@ -122,7 +122,7 @@ export interface DatasetOwner {
 
 export interface DatasetOptionAutocomplete {
   value: string;
-  datasetId: number;
+  datasourceId: number;
   owners: [DatasetOwner];
 }
 

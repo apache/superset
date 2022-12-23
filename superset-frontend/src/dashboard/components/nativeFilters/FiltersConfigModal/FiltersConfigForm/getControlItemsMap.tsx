@@ -44,7 +44,7 @@ import {
 import { ColumnSelect } from './ColumnSelect';
 
 export interface ControlItemsProps {
-  datasetId: number;
+  datasourceId: number;
   disabled: boolean;
   forceUpdate: Function;
   form: FormInstance<NativeFiltersForm>;
@@ -60,7 +60,7 @@ const CleanFormItem = styled(FormItem)`
 `;
 
 export default function getControlItemsMap({
-  datasetId,
+  datasourceId,
   disabled,
   forceUpdate,
   form,
@@ -124,7 +124,7 @@ export default function getControlItemsMap({
               mode={mainControlItem.config?.multiple && 'multiple'}
               form={form}
               filterId={filterId}
-              datasetId={datasetId}
+              datasourceId={datasourceId}
               filterValues={column =>
                 doesColumnMatchFilterType(formFilter?.filterType || '', column)
               }

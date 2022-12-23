@@ -73,7 +73,7 @@ function visitDashboard(createSample = true) {
 }
 
 function prepareDashboardFilters(
-  filters: { name: string; column: string; datasetId: number }[],
+  filters: { name: string; column: string; datasourceId: number }[],
 ) {
   cy.createSampleDashboards([0]);
   cy.request({
@@ -97,7 +97,7 @@ function prepareDashboardFilters(
         filterType: 'filter_select',
         targets: [
           {
-            datasetId: f.datasetId,
+            datasourceId: f.datasourceId,
             column: { name: f.column },
           },
         ],
@@ -270,9 +270,9 @@ describe('Horizontal FilterBar', () => {
 
   it('should show all filters in available space on load', () => {
     prepareDashboardFilters([
-      { name: 'test_1', column: 'country_name', datasetId: 2 },
-      { name: 'test_2', column: 'country_code', datasetId: 2 },
-      { name: 'test_3', column: 'region', datasetId: 2 },
+      { name: 'test_1', column: 'country_name', datasourceId: 2 },
+      { name: 'test_2', column: 'country_code', datasourceId: 2 },
+      { name: 'test_3', column: 'region', datasourceId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
     cy.get('.filter-item-wrapper').should('have.length', 3);
@@ -280,9 +280,9 @@ describe('Horizontal FilterBar', () => {
 
   it('should show "more filters" on window resizing up and down', () => {
     prepareDashboardFilters([
-      { name: 'test_1', column: 'country_name', datasetId: 2 },
-      { name: 'test_2', column: 'country_code', datasetId: 2 },
-      { name: 'test_3', column: 'region', datasetId: 2 },
+      { name: 'test_1', column: 'country_name', datasourceId: 2 },
+      { name: 'test_2', column: 'country_code', datasourceId: 2 },
+      { name: 'test_3', column: 'region', datasourceId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
 
@@ -305,18 +305,18 @@ describe('Horizontal FilterBar', () => {
 
   it('should show "more filters" and scroll', () => {
     prepareDashboardFilters([
-      { name: 'test_1', column: 'country_name', datasetId: 2 },
-      { name: 'test_2', column: 'country_code', datasetId: 2 },
-      { name: 'test_3', column: 'region', datasetId: 2 },
-      { name: 'test_4', column: 'year', datasetId: 2 },
-      { name: 'test_5', column: 'country_name', datasetId: 2 },
-      { name: 'test_6', column: 'country_code', datasetId: 2 },
-      { name: 'test_7', column: 'region', datasetId: 2 },
-      { name: 'test_8', column: 'year', datasetId: 2 },
-      { name: 'test_9', column: 'country_name', datasetId: 2 },
-      { name: 'test_10', column: 'country_code', datasetId: 2 },
-      { name: 'test_11', column: 'region', datasetId: 2 },
-      { name: 'test_12', column: 'year', datasetId: 2 },
+      { name: 'test_1', column: 'country_name', datasourceId: 2 },
+      { name: 'test_2', column: 'country_code', datasourceId: 2 },
+      { name: 'test_3', column: 'region', datasourceId: 2 },
+      { name: 'test_4', column: 'year', datasourceId: 2 },
+      { name: 'test_5', column: 'country_name', datasourceId: 2 },
+      { name: 'test_6', column: 'country_code', datasourceId: 2 },
+      { name: 'test_7', column: 'region', datasourceId: 2 },
+      { name: 'test_8', column: 'year', datasourceId: 2 },
+      { name: 'test_9', column: 'country_name', datasourceId: 2 },
+      { name: 'test_10', column: 'country_code', datasourceId: 2 },
+      { name: 'test_11', column: 'region', datasourceId: 2 },
+      { name: 'test_12', column: 'year', datasourceId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
     cy.get('.filter-item-wrapper').should('have.length', 3);
@@ -344,18 +344,18 @@ describe('Horizontal FilterBar', () => {
   it('should spot changes in "more filters" and apply their values', () => {
     cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
     prepareDashboardFilters([
-      { name: 'test_1', column: 'country_name', datasetId: 2 },
-      { name: 'test_2', column: 'country_code', datasetId: 2 },
-      { name: 'test_3', column: 'region', datasetId: 2 },
-      { name: 'test_4', column: 'year', datasetId: 2 },
-      { name: 'test_5', column: 'country_name', datasetId: 2 },
-      { name: 'test_6', column: 'country_code', datasetId: 2 },
-      { name: 'test_7', column: 'region', datasetId: 2 },
-      { name: 'test_8', column: 'year', datasetId: 2 },
-      { name: 'test_9', column: 'country_name', datasetId: 2 },
-      { name: 'test_10', column: 'country_code', datasetId: 2 },
-      { name: 'test_11', column: 'region', datasetId: 2 },
-      { name: 'test_12', column: 'year', datasetId: 2 },
+      { name: 'test_1', column: 'country_name', datasourceId: 2 },
+      { name: 'test_2', column: 'country_code', datasourceId: 2 },
+      { name: 'test_3', column: 'region', datasourceId: 2 },
+      { name: 'test_4', column: 'year', datasourceId: 2 },
+      { name: 'test_5', column: 'country_name', datasourceId: 2 },
+      { name: 'test_6', column: 'country_code', datasourceId: 2 },
+      { name: 'test_7', column: 'region', datasourceId: 2 },
+      { name: 'test_8', column: 'year', datasourceId: 2 },
+      { name: 'test_9', column: 'country_name', datasourceId: 2 },
+      { name: 'test_10', column: 'country_code', datasourceId: 2 },
+      { name: 'test_11', column: 'region', datasourceId: 2 },
+      { name: 'test_12', column: 'year', datasourceId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
     openMoreFilters();
@@ -371,18 +371,18 @@ describe('Horizontal FilterBar', () => {
 
   it('should focus filter and open "more filters" programmatically', () => {
     prepareDashboardFilters([
-      { name: 'test_1', column: 'country_name', datasetId: 2 },
-      { name: 'test_2', column: 'country_code', datasetId: 2 },
-      { name: 'test_3', column: 'region', datasetId: 2 },
-      { name: 'test_4', column: 'year', datasetId: 2 },
-      { name: 'test_5', column: 'country_name', datasetId: 2 },
-      { name: 'test_6', column: 'country_code', datasetId: 2 },
-      { name: 'test_7', column: 'region', datasetId: 2 },
-      { name: 'test_8', column: 'year', datasetId: 2 },
-      { name: 'test_9', column: 'country_name', datasetId: 2 },
-      { name: 'test_10', column: 'country_code', datasetId: 2 },
-      { name: 'test_11', column: 'region', datasetId: 2 },
-      { name: 'test_12', column: 'year', datasetId: 2 },
+      { name: 'test_1', column: 'country_name', datasourceId: 2 },
+      { name: 'test_2', column: 'country_code', datasourceId: 2 },
+      { name: 'test_3', column: 'region', datasourceId: 2 },
+      { name: 'test_4', column: 'year', datasourceId: 2 },
+      { name: 'test_5', column: 'country_name', datasourceId: 2 },
+      { name: 'test_6', column: 'country_code', datasourceId: 2 },
+      { name: 'test_7', column: 'region', datasourceId: 2 },
+      { name: 'test_8', column: 'year', datasourceId: 2 },
+      { name: 'test_9', column: 'country_name', datasourceId: 2 },
+      { name: 'test_10', column: 'country_code', datasourceId: 2 },
+      { name: 'test_11', column: 'region', datasourceId: 2 },
+      { name: 'test_12', column: 'year', datasourceId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
     cy.getBySel('slice-header').within(() => {
@@ -395,7 +395,7 @@ describe('Horizontal FilterBar', () => {
 
   it('should show tag count and one plain tag on focus and only count on blur in select ', () => {
     prepareDashboardFilters([
-      { name: 'test_1', column: 'country_name', datasetId: 2 },
+      { name: 'test_1', column: 'country_name', datasourceId: 2 },
     ]);
     setFilterBarOrientation('horizontal');
     enterNativeFilterEditModal();
@@ -423,7 +423,7 @@ describe('Native filters', () => {
 
     it('Verify that default value is respected after revisit', () => {
       prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
@@ -447,8 +447,8 @@ describe('Native filters', () => {
 
     it('User can create parent filters using "Values are dependent on other filters"', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'region', column: 'region', datasourceId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
@@ -481,8 +481,8 @@ describe('Native filters', () => {
 
     it('user can delete dependent filter', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'region', column: 'region', datasourceId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
@@ -517,9 +517,9 @@ describe('Native filters', () => {
 
     it('User can create filter depend on 2 other filters', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
-        { name: 'country_code', column: 'country_code', datasetId: 2 },
+        { name: 'region', column: 'region', datasourceId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
+        { name: 'country_code', column: 'country_code', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       selectFilter(2);
@@ -570,8 +570,8 @@ describe('Native filters', () => {
 
     it('User can remove parent filters', () => {
       prepareDashboardFilters([
-        { name: 'region', column: 'region', datasetId: 2 },
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'region', column: 'region', datasourceId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       selectFilter(1);
@@ -660,7 +660,7 @@ describe('Native filters', () => {
   describe('Nativefilters initial state not required', () => {
     it("User can check 'Filter has default value'", () => {
       prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);
@@ -693,7 +693,7 @@ describe('Native filters', () => {
 
     it('User can restore a deleted native filter', () => {
       prepareDashboardFilters([
-        { name: 'country_code', column: 'country_code', datasetId: 2 },
+        { name: 'country_code', column: 'country_code', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       cy.get(nativeFilters.filtersList.removeIcon).first().click();
@@ -802,7 +802,7 @@ describe('Native filters', () => {
 
     it('User can undo deleting a native filter', () => {
       prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       undoDeleteNativeFilter();
@@ -813,7 +813,7 @@ describe('Native filters', () => {
 
     it('User can cancel changes in native filter', () => {
       prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       cy.getBySel('filters-config-modal__name-input').type('|EDITED', {
@@ -838,7 +838,7 @@ describe('Native filters', () => {
 
     it('User can apply value filter with selected values', () => {
       prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       applyNativeFilterValueWithIndex(0, testItems.filterDefaultValue);
       cy.get(nativeFilters.applyFilter).click();
@@ -850,7 +850,7 @@ describe('Native filters', () => {
 
     it('User can stop filtering when filter is removed', () => {
       prepareDashboardFilters([
-        { name: 'country_name', column: 'country_name', datasetId: 2 },
+        { name: 'country_name', column: 'country_name', datasourceId: 2 },
       ]);
       enterNativeFilterEditModal();
       inputNativeFilterDefaultValue(testItems.filterDefaultValue);

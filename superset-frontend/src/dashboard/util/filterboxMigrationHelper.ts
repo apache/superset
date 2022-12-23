@@ -254,7 +254,7 @@ export default function getNativeFilterConfig(
             filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIMEGRAIN,
             targets: [
               {
-                datasetId: parseInt(datasource.split('__')[0], 10),
+                datasourceId: parseInt(datasource.split('__')[0], 10),
               },
             ],
             cascadeParentIds: [],
@@ -300,7 +300,7 @@ export default function getNativeFilterConfig(
             filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_TIMECOLUMN,
             targets: [
               {
-                datasetId: parseInt(datasource.split('__')[0], 10),
+                datasourceId: parseInt(datasource.split('__')[0], 10),
               },
             ],
             cascadeParentIds: [],
@@ -352,7 +352,7 @@ export default function getNativeFilterConfig(
           filterType: FILTER_COMPONENT_FILTER_TYPES.FILTER_SELECT,
           targets: [
             {
-              datasetId: parseInt(datasource.split('__')[0], 10),
+              datasourceId: parseInt(datasource.split('__')[0], 10),
               column: {
                 name: config.column,
               },

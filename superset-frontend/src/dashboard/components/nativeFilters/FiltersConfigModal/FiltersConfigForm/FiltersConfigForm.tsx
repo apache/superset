@@ -391,14 +391,14 @@ const FiltersConfigForm = (
     // @ts-ignore
     !!nativeFilterItems[formFilter?.filterType]?.value?.datasourceCount;
 
-  const datasetId =
+  const datasourceId =
     formFilter?.dataset?.value ??
-    filterToEdit?.targets[0]?.datasetId ??
+    filterToEdit?.targets[0]?.datasourceId ??
     mostUsedDataset(loadedDatasets, charts);
 
   const { controlItems = {}, mainControlItems = {} } = formFilter
     ? getControlItemsMap({
-        datasetId,
+        datasourceId,
         disabled: false,
         forceUpdate,
         form,
@@ -418,7 +418,7 @@ const FiltersConfigForm = (
   const hasMetrics = hasColumn && !!metrics.length;
 
   const hasFilledDataset =
-    !hasDataset || (datasetId && (formFilter?.column || !hasColumn));
+    !hasDataset || (datasourceId && (formFilter?.column || !hasColumn));
 
   const hasAdditionalFilters = FILTERS_WITH_ADHOC_FILTERS.includes(
     formFilter?.filterType,
@@ -466,7 +466,7 @@ const FiltersConfigForm = (
         return;
       }
       const formData = getFormData({
-        datasetId: formFilter?.dataset?.value,
+        datasourceId: formFilter?.dataset?.value,
         groupby: formFilter?.column,
         ...formFilter,
       });
@@ -530,7 +530,7 @@ const FiltersConfigForm = (
   useEffect(() => refreshHandler(), [dependenciesText]);
 
   const newFormData = getFormData({
-    datasetId,
+    datasourceId,
     groupby: hasColumn ? formFilter?.column : undefined,
     ...formFilter,
   });
@@ -540,7 +540,7 @@ const FiltersConfigForm = (
     useDefaultValue(formFilter, filterToEdit);
 
   const showDataset =
-    !datasetId || datasetDetails || formFilter?.dataset?.label;
+    !datasourceId || datasetDetails || formFilter?.dataset?.label;
 
   const formChanged = useCallback(() => {
     form.setFields([
@@ -643,9 +643,9 @@ const FiltersConfigForm = (
   const hasAvailableFilters = availableFilters.length > 0;
 
   useEffect(() => {
-    if (datasetId) {
+    if (datasourceId) {
       cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}`,
+        endpoint: `/api/v1/dataset/${datasourceId}`,
       })
         .then((response: JsonResponse) => {
           setMetrics(response.json?.result?.metrics);
@@ -659,7 +659,7 @@ const FiltersConfigForm = (
           addDangerToast(response.message);
         });
     }
-  }, [datasetId]);
+  }, [datasourceId]);
 
   useImperativeHandle(ref, () => ({
     changeTab(tab: 'configuration' | 'scoping') {
@@ -817,7 +817,7 @@ const FiltersConfigForm = (
                 <DatasetSelect
                   onChange={(value: { label: string; value: number }) => {
                     // We need to reset the column when the dataset has changed
-                    if (value.value !== datasetId) {
+                    if (value.value !== datasourceId) {
                       setNativeFilterFieldValues(form, filterId, {
                         dataset: value,
                         defaultDataMask: null,
@@ -966,7 +966,7 @@ const FiltersConfigForm = (
                           formField="granularity_sqla"
                           filterId={filterId}
                           filterValues={(column: Column) => !!column.is_dttm}
-                          datasetId={datasetId}
+                          datasourceId={datasourceId}
                           onChange={column => {
                             // We need reset default value when when column changed
                             setNativeFilterFieldValues(form, filterId, {
@@ -1199,7 +1199,7 @@ const FiltersConfigForm = (
                           formData={newFormData}
                           enableNoResults={enableNoResults}
                         />
-                        {hasDataset && datasetId && (
+                        {hasDataset && datasourceId && (
                           <Tooltip title={t('Refresh the default values')}>
                             <RefreshIcon onClick={() => refreshHandler(true)} />
                           </Tooltip>

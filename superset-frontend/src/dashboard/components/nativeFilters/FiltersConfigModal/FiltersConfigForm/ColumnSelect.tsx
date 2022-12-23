@@ -32,7 +32,7 @@ interface ColumnSelectProps {
   form: FormInstance<NativeFiltersForm>;
   formField?: string;
   filterId: string;
-  datasetId?: number;
+  datasourceId?: number;
   value?: string | string[];
   onChange?: (value: string) => void;
   mode?: 'multiple';
@@ -54,7 +54,7 @@ export function ColumnSelect({
   form,
   formField = 'column',
   filterId,
-  datasetId,
+  datasourceId,
   value,
   onChange,
   mode,
@@ -92,13 +92,13 @@ export function ColumnSelect({
     }
   }, [currentColumn, currentFilterType, resetColumnField]);
 
-  useChangeEffect(datasetId, previous => {
+  useChangeEffect(datasourceId, previous => {
     if (previous != null) {
       resetColumnField();
     }
-    if (datasetId != null) {
+    if (datasourceId != null) {
       cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}`,
+        endpoint: `/api/v1/dataset/${datasourceId}`,
       }).then(
         ({ json: { result } }) => {
           const lookupValue = Array.isArray(value) ? value : [value];

@@ -146,7 +146,7 @@ describe('FilterBar', () => {
               "id":"${filterId}",
               "name":"${FILTER_NAME}",
               "filterType":"filter_time",
-              "targets":[{"datasetId":11,"column":{"name":"color"}}],
+              "targets":[{"datasourceId":11,"column":{"name":"color"}}],
               "defaultDataMask":{"filterState":{"value":null}},
               "controlValues":{},
               "cascadeParentIds":[],

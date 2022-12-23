@@ -147,9 +147,9 @@ def import_dashboard(
             return
         for native_filter in native_filter_configuration:
             for target in native_filter.get("targets", []):
-                old_dataset_id = target.get("datasetId")
+                old_dataset_id = target.get("datasourceId")
                 if dataset_id_mapping and old_dataset_id is not None:
-                    target["datasetId"] = dataset_id_mapping.get(
+                    target["datasourceId"] = dataset_id_mapping.get(
                         old_dataset_id,
                         old_dataset_id,
                     )

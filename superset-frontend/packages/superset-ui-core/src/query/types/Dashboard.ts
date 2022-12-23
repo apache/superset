@@ -31,7 +31,7 @@ export interface NativeFilterScope {
 
 /** The target of a filter is the datasource/column being filtered */
 export interface NativeFilterTarget {
-  datasetId: number;
+  datasourceId: number;
   column: NativeFilterColumn;
 
   // maybe someday support this?

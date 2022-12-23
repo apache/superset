@@ -37,7 +37,7 @@ const baseInitialState = {
         filterType: 'filter_select',
         targets: [
           {
-            datasetId: 1,
+            datasourceId: 1,
             column: {
               name: 'gender',
             },
@@ -59,7 +59,7 @@ const baseInitialState = {
         filterType: 'filter_select',
         targets: [
           {
-            datasetId: 1,
+            datasourceId: 1,
             column: {
               name: 'gender',
             },
@@ -176,7 +176,7 @@ const baseFilter: Filter = {
   filterType: 'filter_select',
   targets: [
     {
-      datasetId: 1,
+      datasourceId: 1,
       column: {
         name: 'gender',
       },

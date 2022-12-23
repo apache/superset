@@ -160,7 +160,7 @@ class TestCreatePermalinkDataCommand(SupersetTestCase):
         decode_id_mock.return_value = "123456"
         get_kv_command_mock.return_value = {
             "chartId": slice.id,
-            "datasetId": dataset.id,
+            "datasourceId": dataset.id,
             "datasource": datasource_string,
             "state": {
                 "formData": {"datasource": datasource_string, "slice_id": slice.id}

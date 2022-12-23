@@ -402,7 +402,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
             for native_filter in native_filter_configuration:
                 session = db.session()
                 for target in native_filter.get("targets", []):
-                    id_ = target.get("datasetId")
+                    id_ = target.get("datasourceId")
                     if id_ is None:
                         continue
                     datasource = DatasourceDAO.get_datasource(

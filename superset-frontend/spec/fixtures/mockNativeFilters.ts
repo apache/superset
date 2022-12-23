@@ -32,7 +32,7 @@ export const nativeFilters: NativeFiltersState = {
       filterType: 'filter_select',
       targets: [
         {
-          datasetId: 2,
+          datasourceId: 2,
           column: {
             name: 'region',
           },
@@ -63,7 +63,7 @@ export const nativeFilters: NativeFiltersState = {
       filterType: 'filter_select',
       targets: [
         {
-          datasetId: 2,
+          datasourceId: 2,
           column: {
             name: 'country_code',
           },
@@ -134,7 +134,7 @@ export const singleNativeFiltersState = {
       id: [NATIVE_FILTER_ID],
       name: 'eth',
       type: 'text',
-      targets: [{ datasetId: 13, column: { name: 'ethnic_minority' } }],
+      targets: [{ datasourceId: 13, column: { name: 'ethnic_minority' } }],
       defaultDataMask: {
         filterState: {
           value: null,
@@ -473,7 +473,7 @@ export const buildNativeFilter = (
   filterType: 'filter_select',
   targets: [
     {
-      datasetId: 1,
+      datasourceId: 1,
       column: {
         name,
       },

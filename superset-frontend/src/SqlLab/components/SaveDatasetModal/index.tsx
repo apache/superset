@@ -122,13 +122,13 @@ const Styles = styled.div`
 
 const updateDataset = async (
   dbId: number,
-  datasetId: number,
+  datasourceId: number,
   sql: string,
   columns: Array<Record<string, any>>,
   owners: [number],
   overrideColumns: boolean,
 ) => {
-  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
+  const endpoint = `api/v1/dataset/${datasourceId}?override_columns=${overrideColumns}`;
   const headers = { 'Content-Type': 'application/json' };
   const body = JSON.stringify({
     sql,
@@ -200,7 +200,7 @@ export const SaveDatasetModal = ({
     const [, key] = await Promise.all([
       updateDataset(
         datasource?.dbId,
-        datasetToOverwrite?.datasetid,
+        datasetToOverwrite?.datasourceId,
         datasource?.sql,
         datasource?.columns?.map(
           (d: { name: string; type: string; is_dttm: boolean }) => ({
@@ -212,9 +212,9 @@ export const SaveDatasetModal = ({
         datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
         true,
       ),
-      postFormData(datasetToOverwrite.datasetid, 'table', {
+      postFormData(datasetToOverwrite.datasourceId, 'table', {
         ...formDataWithDefaults,
-        datasource: `${datasetToOverwrite.datasetid}__table`,
+        datasource: `${datasetToOverwrite.datasourceId}__table`,
         ...(defaultVizType === 'table' && {
           all_columns: datasource?.columns?.map(column => column.name),
         }),
@@ -258,7 +258,7 @@ export const SaveDatasetModal = ({
           (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
             value: r.table_name,
             label: r.table_name,
-            datasetid: r.id,
+            datasourceId: r.id,
             owners: r.owners,
           }),
         ),
@@ -341,7 +341,7 @@ export const SaveDatasetModal = ({
 
   const filterAutocompleteOption = (
     inputValue: string,
-    option: { value: string; datasetid: number },
+    option: { value: string; datasourceId: number },
   ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
 
   return (

@@ -107,7 +107,7 @@ test('should convert filter_box config to dashboard native filter config', () =>
   expect(filterConfig[0].filterType).toBe('filter_select');
   expect(filterConfig[0].name).toBe('region');
   expect(filterConfig[0].targets).toEqual([
-    { column: { name: 'region' }, datasetId: 1 },
+    { column: { name: 'region' }, datasourceId: 1 },
   ]);
   expect(filterConfig[0].scope).toEqual({
     excluded: [],
@@ -118,7 +118,7 @@ test('should convert filter_box config to dashboard native filter config', () =>
   expect(filterConfig[1].filterType).toBe('filter_select');
   expect(filterConfig[1].name).toBe('country_name');
   expect(filterConfig[1].targets).toEqual([
-    { column: { name: 'country_name' }, datasetId: 1 },
+    { column: { name: 'country_name' }, datasourceId: 1 },
   ]);
   expect(filterConfig[1].scope).toEqual({
     excluded: [],

@@ -52,7 +52,7 @@ fetchMock.get('glob:*/api/v1/dataset/789', { status: 404 });
 const createProps = (extraProps: JsonObject = {}) => ({
   filterId: 'filterId',
   form: { getFieldValue: jest.fn(), setFields: jest.fn() },
-  datasetId: 123,
+  datasourceId: 123,
   value: 'column_name_01',
   onChange: jest.fn(),
   ...extraProps,
@@ -80,14 +80,14 @@ test('Should render', async () => {
   });
 });
 
-test('Should call "setFields" when "datasetId" changes', () => {
+test('Should call "setFields" when "datasourceId" changes', () => {
   const props = createProps();
   const { rerender } = render(<ColumnSelect {...(props as any)} />, {
     useRedux: true,
   });
   expect(props.form.setFields).not.toBeCalled();
 
-  props.datasetId = 456;
+  props.datasourceId = 456;
   rerender(<ColumnSelect {...(props as any)} />);
 
   expect(props.form.setFields).toBeCalled();
@@ -96,7 +96,7 @@ test('Should call "setFields" when "datasetId" changes', () => {
 test('Should call "getClientErrorObject" when api returns an error', async () => {
   const props = createProps();
 
-  props.datasetId = 789;
+  props.datasourceId = 789;
   const spy = jest.spyOn(utils, 'getClientErrorObject');
 
   expect(spy).not.toBeCalled();

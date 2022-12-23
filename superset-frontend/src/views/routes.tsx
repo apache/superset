@@ -202,7 +202,7 @@ export const routes: Routes = [
     Component: AddDataset,
   },
   {
-    path: '/dataset/:datasetId',
+    path: '/dataset/:datasourceId',
     Component: AddDataset,
   },
 ];

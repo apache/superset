@@ -40,7 +40,7 @@ native_filters_v1 = [
         "isInstant": True,
         "name": "Region",
         "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-        "targets": [{"column": {"name": "region"}, "datasetId": 2}],
+        "targets": [{"column": {"name": "region"}, "datasourceId": 2}],
     },
     {
         "cascadeParentIds": [],
@@ -67,7 +67,7 @@ native_filters_v1 = [
         "isInstant": True,
         "name": "Country",
         "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-        "targets": [{"column": {"name": "country_name"}, "datasetId": 2}],
+        "targets": [{"column": {"name": "country_name"}, "datasourceId": 2}],
     },
 ]
 native_filters_v2 = [
@@ -86,7 +86,7 @@ native_filters_v2 = [
         "isInstant": True,
         "name": "Region",
         "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-        "targets": [{"column": {"name": "region"}, "datasetId": 2}],
+        "targets": [{"column": {"name": "region"}, "datasourceId": 2}],
     },
     {
         "cascadeParentIds": [],
@@ -113,7 +113,7 @@ native_filters_v2 = [
         "isInstant": True,
         "name": "Country",
         "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-        "targets": [{"column": {"name": "country_name"}, "datasetId": 2}],
+        "targets": [{"column": {"name": "country_name"}, "datasourceId": 2}],
     },
 ]
 
@@ -145,7 +145,7 @@ filter_sets_v1 = {
             "isInstant": False,
             "name": "Platform",
             "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-            "targets": [{"column": {"name": "platform"}, "datasetId": 33}],
+            "targets": [{"column": {"name": "platform"}, "datasourceId": 33}],
         },
         "NATIVE_FILTER-B2PFYVIUw": {
             "cascadeParentIds": [],
@@ -161,7 +161,7 @@ filter_sets_v1 = {
             "isInstant": False,
             "name": "Genre",
             "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-            "targets": [{"column": {"name": "genre"}, "datasetId": 33}],
+            "targets": [{"column": {"name": "genre"}, "datasourceId": 33}],
         },
         "NATIVE_FILTER-VDLd4Wq-v": {
             "cascadeParentIds": [],
@@ -177,7 +177,7 @@ filter_sets_v1 = {
             "isInstant": False,
             "name": "Publisher",
             "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-            "targets": [{"column": {"name": "publisher"}, "datasetId": 33}],
+            "targets": [{"column": {"name": "publisher"}, "datasourceId": 33}],
         },
     },
     "dataMask": {
@@ -255,7 +255,7 @@ filter_sets_v2 = {
             "isInstant": False,
             "name": "Platform",
             "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-            "targets": [{"column": {"name": "platform"}, "datasetId": 33}],
+            "targets": [{"column": {"name": "platform"}, "datasourceId": 33}],
         },
         "NATIVE_FILTER-B2PFYVIUw": {
             "cascadeParentIds": [],
@@ -272,7 +272,7 @@ filter_sets_v2 = {
             "isInstant": False,
             "name": "Genre",
             "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-            "targets": [{"column": {"name": "genre"}, "datasetId": 33}],
+            "targets": [{"column": {"name": "genre"}, "datasourceId": 33}],
         },
         "NATIVE_FILTER-VDLd4Wq-v": {
             "cascadeParentIds": [],
@@ -289,7 +289,7 @@ filter_sets_v2 = {
             "isInstant": False,
             "name": "Publisher",
             "scope": {"excluded": [], "rootPath": ["ROOT_ID"]},
-            "targets": [{"column": {"name": "publisher"}, "datasetId": 33}],
+            "targets": [{"column": {"name": "publisher"}, "datasourceId": 33}],
         },
     },
     "dataMask": {

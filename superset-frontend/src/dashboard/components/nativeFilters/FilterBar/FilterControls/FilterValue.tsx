@@ -102,11 +102,11 @@ const FilterValue: React.FC<FilterControlProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [target] = targets;
   const {
-    datasetId,
+    datasourceId,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target;
+  }: Partial<{ datasourceId: number; column: { name?: string } }> = target;
   const { name: groupby } = column;
-  const hasDataSource = !!datasetId;
+  const hasDataSource = !!datasourceId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const dispatch = useDispatch();
@@ -131,7 +131,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
     }
     const newFormData = getFormData({
       ...filter,
-      datasetId,
+      datasourceId,
       dependencies,
       groupby,
       adhoc_filters,
@@ -202,7 +202,7 @@ const FilterValue: React.FC<FilterControlProps> = ({
   }, [
     inViewFirstTime,
     dependencies,
-    datasetId,
+    datasourceId,
     groupby,
     handleFilterLoadFinish,
     JSON.stringify(filter),

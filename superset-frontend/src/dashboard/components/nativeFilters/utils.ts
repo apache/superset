@@ -35,7 +35,7 @@ import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../../util/constants';
 
 export const getFormData = ({
-  datasetId,
+  datasourceId,
   dependencies = {},
   groupby,
   defaultDataMask,
@@ -47,7 +47,7 @@ export const getFormData = ({
   granularity_sqla,
   type,
 }: Partial<Filter> & {
-  datasetId?: number;
+  datasourceId?: number;
   dependencies?: object;
   groupby?: string;
   adhoc_filters?: AdhocFilter[];
@@ -58,8 +58,8 @@ export const getFormData = ({
     groupby?: string[];
     sortMetric?: string;
   } = {};
-  if (datasetId) {
-    otherProps.datasource = `${datasetId}__table`;
+  if (datasourceId) {
+    otherProps.datasource = `${datasourceId}__table`;
   }
   if (groupby) {
     otherProps.groupby = [groupby];

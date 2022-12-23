@@ -137,7 +137,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             "native_filter_configuration", []
         ):
             for target in native_filter.get("targets", []):
-                dataset_id = target.pop("datasetId", None)
+                dataset_id = target.pop("datasourceId", None)
                 if dataset_id is not None:
                     dataset = DatasetDAO.find_by_id(dataset_id)
                     if dataset:

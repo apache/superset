@@ -48,7 +48,7 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
                 chart_id: Optional[int] = value.get("chartId")
                 # keep this backward compatible for old permalinks
                 datasource_id: int = (
-                    value.get("datasourceId") or value.get("datasetId") or 0
+                    value.get("datasourceId") or value.get("datasourceId") or 0
                 )
                 datasource_type = DatasourceType(
                     value.get("datasourceType", DatasourceType.TABLE)

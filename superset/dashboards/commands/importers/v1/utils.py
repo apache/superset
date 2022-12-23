@@ -132,7 +132,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
         for target in targets:
             dataset_uuid = target.pop("datasetUuid", None)
             if dataset_uuid:
-                target["datasetId"] = dataset_info[dataset_uuid]["datasource_id"]
+                target["datasourceId"] = dataset_info[dataset_uuid]["datasource_id"]
 
         scope_excluded = native_filter.get("scope", {}).get("excluded", [])
         if scope_excluded:

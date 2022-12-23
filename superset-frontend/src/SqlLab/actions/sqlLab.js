@@ -1410,9 +1410,9 @@ export function popQuery(queryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
-    const datasetId = datasourceKey.split('__')[0];
+    const datasourceId = datasourceKey.split('__')[0];
     return SupersetClient.get({
-      endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
+      endpoint: `/api/v1/dataset/${datasourceId}?q=(keys:!(none))`,
     })
       .then(({ json }) =>
         dispatch(

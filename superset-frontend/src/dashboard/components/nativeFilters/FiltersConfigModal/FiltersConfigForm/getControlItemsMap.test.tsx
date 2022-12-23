@@ -65,7 +65,7 @@ const filterMock: Filter = {
 };
 
 const createProps: () => ControlItemsProps = () => ({
-  datasetId: 1,
+  datasourceId: 1,
   disabled: false,
   forceUpdate: jest.fn(),
   form: formMock,

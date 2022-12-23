@@ -49,7 +49,7 @@ export const nativeFiltersInfo: NativeFiltersState = {
       filterType: 'filter_select',
       targets: [
         {
-          datasetId: 0,
+          datasourceId: 0,
           column: {
             name: 'test column',
             displayName: 'test column',
