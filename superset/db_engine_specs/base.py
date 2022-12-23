@@ -1596,17 +1596,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def prepare_cancel_query(cls, query: Query, session: Session) -> None:
         """
-        Some databases may acquire the query cancellation id after the query
-        cancellation request has been received. For those cases, the db engine spec
-        can record the cancellation intent so that the query can be cancelled once the
-        query id is acquired.
+        Some databases may acquire the query cancelation id after the query
+        cancelation request has been received. For those cases, the db engine spec
+        can record the cancelation intent so that the query can be either be stopped
+        prior to execution, or canceled once the query id is acquired.
         """
         return None
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:
         """
-        Return True if the live cursor handles the implicit cancellation of the query,
+        Return True if the live cursor handles the implicit cancelation of the query,
         False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query

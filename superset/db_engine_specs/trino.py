@@ -188,8 +188,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         session.commit()
 
-        # if query cancellation was requested prior to the handle_cursor call, but
-        # the query was still executed, trigger the actual query cancellation now
+        # if query cancelation was requested prior to the handle_cursor call, but
+        # the query was still executed, trigger the actual query cancelation now
         if query.extra.get(QUERY_EARLY_CANCEL_KEY):
             cls.cancel_query(
                 cursor=cursor,
