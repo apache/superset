@@ -35,14 +35,14 @@ describe('Dashboards filters', () => {
       setGridMode('card');
     });
 
-    it('should filter by owners correctly', () => {
+    xit('should filter by owners correctly', () => {
       setFilter('Owner', 'alpha user');
       cy.getBySel('styled-card').should('not.exist');
       setFilter('Owner', 'admin user');
       cy.getBySel('styled-card').should('exist');
     });
 
-    it('should filter by created by correctly', () => {
+    xit('should filter by created by correctly', () => {
       setFilter('Created by', 'alpha user');
       cy.getBySel('styled-card').should('not.exist');
       setFilter('Created by', 'admin user');
@@ -62,14 +62,14 @@ describe('Dashboards filters', () => {
       setGridMode('list');
     });
 
-    it('should filter by created by correctly', () => {
+    xit('should filter by owners correctly', () => {
       setFilter('Owner', 'alpha user');
       cy.getBySel('table-row').should('not.exist');
       setFilter('Owner', 'admin user');
       cy.getBySel('table-row').should('exist');
     });
 
-    it('should filter by created by correctly', () => {
+    xit('should filter by created by correctly', () => {
       setFilter('Created by', 'alpha user');
       cy.getBySel('table-row').should('not.exist');
       setFilter('Created by', 'admin user');

@@ -82,7 +82,7 @@ function prepareDashboardFilters(
   }).then(res => {
     const { body } = res;
     const dashboardId = body.result.id;
-    const allFilters: Record<string, any>[] = [];
+    const allFilters: Record<string, unknown>[] = [];
     filters.forEach((f, i) => {
       allFilters.push({
         id: `NATIVE_FILTER-fLH0pxFQ${i}`,
@@ -202,6 +202,7 @@ function openVerticalFilterBar() {
 
 function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   cy.getBySel('filterbar-orientation-icon').click();
+  cy.wait(250);
   cy.getBySel('dropdown-selectable-info')
     .contains('Orientation of filter bar')
     .should('exist');

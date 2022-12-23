@@ -82,6 +82,7 @@ export function saveChartToDashboard(dashboardName: string) {
   cy.wait('@update');
   cy.wait('@get');
   cy.wait('@getExplore');
+  cy.contains(`was added to dashboard [${dashboardName}]`);
 }
 
 export function visitSampleChartFromList(chartName: string) {
