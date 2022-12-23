@@ -325,16 +325,25 @@ class BaseReportState:
             report_source = ReportSourceFormat.DASHBOARD
             dashboard_id = self._report_schedule.dashboard_id
 
-        log_data: HeaderDataType = {
-            "notification_type": self._report_schedule.type,
-            "notification_source": report_source,
-            "notification_format": self._report_schedule.report_format,
-            "chart_id": chart_id,
-            "dashboard_id": dashboard_id,
-            "msg_content": msg_content,
-            "owners": self._report_schedule.owners,
-            "error_text": None,
-        }
+        if self._report_schedule.msg_content:
+            log_data: HeaderDataType = {
+                "notification_type": self._report_schedule.type,
+                "notification_source": report_source,
+                "notification_format": self._report_schedule.report_format,
+                "msg_content": msg_content,
+                "owners": self._report_schedule.owners,
+            }
+        else:
+            log_data: HeaderDataType = {
+                "notification_type": self._report_schedule.type,
+                "notification_source": report_source,
+                "notification_format": self._report_schedule.report_format,
+                "chart_id": chart_id,
+                "dashboard_id": dashboard_id,
+                "msg_content": msg_content,
+                "owners": self._report_schedule.owners,
+                "error_text": None,
+            }
         return log_data
 
     def _get_notification_content(self) -> NotificationContent:
