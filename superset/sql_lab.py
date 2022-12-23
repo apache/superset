@@ -628,7 +628,9 @@ def cancel_query(query: Query) -> bool:
     query.database.db_engine_spec.prepare_cancel_query(query, db.session)
 
     if query.extra.get(QUERY_EARLY_CANCEL_KEY):
-        # query has been cancelled prior to being able to set the cancel key
+        # Query has been cancelled prior to being able to set the cancel key.
+        # This can happen if the query cancellation key can only be acquired after the
+        # query has been executed
         return True
 
     cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
