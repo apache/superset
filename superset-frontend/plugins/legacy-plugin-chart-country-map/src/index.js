@@ -29,7 +29,7 @@ const metadata = new ChartMetadata({
   description: t(
     "Visualizes how a single metric varies across a country's principal subdivisions (states, provinces, etc) on a chloropleth map. Each subdivision's value is elevated when you hover over the corresponding geographic boundary.",
   ),
-  exampleGallery: [{ url: exampleUsa }, { url: exampleGermany } ],
+  exampleGallery: [{ url: exampleUsa }, { url: exampleGermany }],
   name: t('Country Map'),
   tags: [
     t('2D'),
