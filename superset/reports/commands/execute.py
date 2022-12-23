@@ -313,6 +313,8 @@ class BaseReportState:
         chart_id = None
         dashboard_id = None
         report_source = None
+        msg_content = None
+
         if self._report_schedule.chart:
             report_source = ReportSourceFormat.CHART
             chart_id = self._report_schedule.chart_id
@@ -346,6 +348,15 @@ class BaseReportState:
         error_text = None
         screenshot_data = []
         header_data = self._get_log_data()
+        if self._report_schedule.msg_content:
+            name = (
+                f"{self._report_schedule.name}: " f"{self._report_schedule.msg_content}"
+            )
+            return NotificationContent(
+                name=name,
+                description=self._report_schedule.description,
+                header_data=header_data,
+            )
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
@@ -380,10 +391,6 @@ class BaseReportState:
             name = (
                 f"{self._report_schedule.name}: "
                 f"{self._report_schedule.chart.slice_name}"
-            )
-        elif self._report_schedule.msg_content:
-            name = (
-                f"{self._report_schedule.name}: " f"{self._report_schedule.msg_content}"
             )
         else:
             name = (
