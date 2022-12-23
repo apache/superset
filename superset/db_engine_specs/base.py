@@ -1598,7 +1598,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Some databases may acquire the query cancelation id after the query
         cancelation request has been received. For those cases, the db engine spec
-        can record the cancelation intent so that the query can be either be stopped
+        can record the cancelation intent so that the query can either be stopped
         prior to execution, or canceled once the query id is acquired.
         """
         return None
