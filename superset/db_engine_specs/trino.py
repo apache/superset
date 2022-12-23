@@ -83,11 +83,34 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         indexes = database.get_indexes(table_name, schema_name)
         if indexes:
-            partitions_columns = []
-            for index in indexes:
-                if index.get("name") == "partition":
-                    partitions_columns += index.get("column_names", [])
-            metadata["partitions"] = {"cols": partitions_columns}
+            col_names, latest_parts = cls.latest_partition(
+                table_name, schema_name, database, show_first=True
+            )
+
+            if not latest_parts:
+                latest_parts = tuple([None] * len(col_names))
+
+            metadata["partitions"] = {
+                "cols": sorted(
+                    list(
+                        set(
+                            column_name
+                            for index in indexes
+                            if index.get("name") == "partition"
+                            for column_name in index.get("column_names", [])
+                        )
+                    )
+                ),
+                "latest": dict(zip(col_names, latest_parts)),
+                "partitionQuery": cls._partition_query(
+                    table_name=(
+                        f"{schema_name}.{table_name}"
+                        if schema_name and "." not in table_name
+                        else table_name
+                    ),
+                    database=database,
+                ),
+            }
 
         if database.has_view_by_name(table_name, schema_name):
             metadata["view"] = database.inspector.get_view_definition(

@@ -1419,7 +1419,7 @@ class TestCore(SupersetTestCase):
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
             "/superset/profile/admin/",
-            f"/explore/?dataset_type=table&dataset_id={tbl_id}",
+            f"/explore/?datasource_type=table&datasource_id={tbl_id}",
         ]
         for url in urls:
             data = self.get_resp(url)
