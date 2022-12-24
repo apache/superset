@@ -21,7 +21,6 @@ from sqlalchemy.dialects.mysql import DATE, NVARCHAR, TEXT, VARCHAR
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.models.sql_lab import Query
 from superset.utils.core import GenericDataType
 from tests.integration_tests.db_engine_specs.base_tests import (
     assert_generic_types,
@@ -37,19 +36,6 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
         """Tests related to datatype mapping for MySQL"""
         self.assertEqual("TINY", MySQLEngineSpec.get_datatype(1))
         self.assertEqual("VARCHAR", MySQLEngineSpec.get_datatype(15))
-
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
-
-        self.assertEqual(
-            MySQLEngineSpec.convert_dttm("DATE", dttm),
-            "STR_TO_DATE('2019-01-02', '%Y-%m-%d')",
-        )
-
-        self.assertEqual(
-            MySQLEngineSpec.convert_dttm("DATETIME", dttm),
-            "STR_TO_DATE('2019-01-02 03:04:05.678900', '%Y-%m-%d %H:%i:%s.%f')",
-        )
 
     def test_column_datatype_to_string(self):
         test_cases = (
@@ -239,22 +225,3 @@ class TestMySQLEngineSpecsDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
-
-    @unittest.mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_get_cancel_query_id(self, engine_mock):
-        query = Query()
-        cursor_mock = engine_mock.return_value.__enter__.return_value
-        cursor_mock.fetchone.return_value = [123]
-        assert MySQLEngineSpec.get_cancel_query_id(cursor_mock, query) == 123
-
-    @unittest.mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_cancel_query(self, engine_mock):
-        query = Query()
-        cursor_mock = engine_mock.return_value.__enter__.return_value
-        assert MySQLEngineSpec.cancel_query(cursor_mock, query, 123) is True
-
-    @unittest.mock.patch("sqlalchemy.engine.Engine.connect")
-    def test_cancel_query_failed(self, engine_mock):
-        query = Query()
-        cursor_mock = engine_mock.raiseError.side_effect = Exception()
-        assert MySQLEngineSpec.cancel_query(cursor_mock, query, 123) is False

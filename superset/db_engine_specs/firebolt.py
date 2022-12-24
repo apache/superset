@@ -17,6 +17,8 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
+from sqlalchemy import types
+
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.utils import core as utils
 
@@ -44,13 +46,15 @@ class FireboltEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        column_spec = cls.get_column_spec(target_type)
+        sqla_type = column_spec.sqla_type if column_spec else None
+
+        if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == utils.TemporalType.DATETIME:
-            return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS TIMESTAMP)"""
+        if isinstance(sqla_type, types.DateTime):
+            return f"""CAST('{dttm.isoformat(timespec="seconds")}' AS DATETIME)"""
         return None
 
     @classmethod

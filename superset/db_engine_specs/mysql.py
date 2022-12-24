@@ -20,6 +20,7 @@ from typing import Any, Dict, Optional, Pattern, Tuple
 from urllib import parse
 
 from flask_babel import gettext as __
+from sqlalchemy import types
 from sqlalchemy.dialects.mysql import (
     BIT,
     DECIMAL,
@@ -182,10 +183,12 @@ class MySQLEngineSpec(BaseEngineSpec, BasicParametersMixin):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        column_spec = cls.get_column_spec(target_type)
+        sqla_type = column_spec.sqla_type if column_spec else None
+
+        if isinstance(sqla_type, types.Date):
             return f"STR_TO_DATE('{dttm.date().isoformat()}', '%Y-%m-%d')"
-        if tt == utils.TemporalType.DATETIME:
+        if isinstance(sqla_type, types.DateTime):
             datetime_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
             return f"""STR_TO_DATE('{datetime_formatted}', '%Y-%m-%d %H:%i:%s.%f')"""
         return None
