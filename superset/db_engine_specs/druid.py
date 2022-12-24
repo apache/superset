@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
@@ -71,12 +74,12 @@ class DruidEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def alter_new_orm_column(cls, orm_col: "TableColumn") -> None:
+    def alter_new_orm_column(cls, orm_col: TableColumn) -> None:
         if orm_col.column_name == "__time":
             orm_col.is_dttm = True
 
     @staticmethod
-    def get_extra_params(database: "Database") -> Dict[str, Any]:
+    def get_extra_params(database: Database) -> Dict[str, Any]:
         """
         For Druid, the path to a SSL certificate is placed in `connect_args`.
 

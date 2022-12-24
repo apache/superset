@@ -23,7 +23,6 @@ from sqlalchemy.engine.url import URL
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
-from superset.utils import core as utils
 
 
 class DrillEngineSpec(BaseEngineSpec):

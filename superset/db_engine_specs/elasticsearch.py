@@ -27,7 +27,6 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.utils import core as utils
 
 logger = logging.getLogger()
 

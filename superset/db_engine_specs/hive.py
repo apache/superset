@@ -43,7 +43,6 @@ from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, Table
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports

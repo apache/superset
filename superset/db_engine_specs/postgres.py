@@ -21,21 +21,16 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy import types
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
-from sqlalchemy.types import String
+from sqlalchemy.types import Date, DateTime, String
 
-from superset.db_engine_specs.base import (
-    BaseEngineSpec,
-    BasicParametersMixin,
-    ColumnTypeMapping,
-)
+from superset.db_engine_specs.base import BaseEngineSpec, BasicParametersMixin
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -242,9 +237,9 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         column_spec = cls.get_column_spec(target_type)
         sqla_type = column_spec.sqla_type if column_spec else None
 
-        if isinstance(sqla_type, types.Date):
+        if isinstance(sqla_type, Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
-        if isinstance(sqla_type, types.DateTime):
+        if isinstance(sqla_type, DateTime):
             dttm_formatted = dttm.isoformat(sep=" ", timespec="microseconds")
             return f"""TO_TIMESTAMP('{dttm_formatted}', 'YYYY-MM-DD HH24:MI:SS.US')"""
         return None

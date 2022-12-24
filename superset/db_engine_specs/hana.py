@@ -21,7 +21,6 @@ from sqlalchemy import types
 
 from superset.db_engine_specs.base import LimitMethod
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
-from superset.utils import core as utils
 
 
 class HanaEngineSpec(PostgresBaseEngineSpec):

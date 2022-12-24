@@ -20,7 +20,6 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy import types
 
 from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
-from superset.utils import core as utils
 
 
 class OracleEngineSpec(BaseEngineSpec):

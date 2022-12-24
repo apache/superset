@@ -54,7 +54,7 @@ from sqlalchemy.sql.expression import ColumnClause, Select
 from superset import cache_manager, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec, ColumnTypeMapping
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetTemplateException
 from superset.models.sql_lab import Query
@@ -70,7 +70,7 @@ from superset.models.sql_types.presto_sql_types import (
 from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -285,15 +285,14 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         Superset only defines time zone naive `datetime` objects, though this method
         handles both time zone naive and aware conversions.
         """
-        if not (column_spec := cls.get_column_spec(target_type)):
-            return None
+        column_spec = cls.get_column_spec(target_type)
+        sqla_type = column_spec.sqla_type if column_spec else None
 
-        sqla_type, _, _, _ = column_spec
         if isinstance(sqla_type, types.Date):
             return f"DATE '{dttm.date().isoformat()}'"
         if isinstance(sqla_type, types.TIMESTAMP):
             return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
-        raise Exception(column_spec)
+
         return None
 
     @classmethod

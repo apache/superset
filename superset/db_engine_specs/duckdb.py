@@ -26,7 +26,6 @@ from sqlalchemy.engine.reflection import Inspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     # prevent circular imports

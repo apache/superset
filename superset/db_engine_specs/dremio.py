@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional
 from sqlalchemy import types
 
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils import core as utils
 
 
 class DremioEngineSpec(BaseEngineSpec):

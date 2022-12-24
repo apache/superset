@@ -21,7 +21,6 @@ from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils import core as utils
 
 
 class ImpalaEngineSpec(BaseEngineSpec):

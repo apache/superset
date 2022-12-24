@@ -20,7 +20,6 @@ from typing import Any, Dict, Optional, TYPE_CHECKING
 from sqlalchemy import types
 
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.utils import core as utils
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
