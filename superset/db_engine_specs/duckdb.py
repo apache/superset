@@ -21,6 +21,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
+from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -67,8 +68,10 @@ class DuckDBEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt in (utils.TemporalType.TEXT, utils.TemporalType.DATETIME):
+        column_spec = cls.get_column_spec(target_type)
+        sqla_type = column_spec.sqla_type if column_spec else None
+
+        if isinstance(sqla_type, (types.String, types.DateTime)):
             return f"""'{dttm.isoformat(sep=" ", timespec="microseconds")}'"""
         return None
 

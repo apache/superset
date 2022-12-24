@@ -17,6 +17,9 @@
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 import re
 from datetime import datetime
+from typing import Optional
+
+import pytest
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from tests.unit_tests.fixtures.common import dttm
@@ -26,19 +29,21 @@ SYNTAX_ERROR_REGEX = re.compile(
 )
 
 
-def test_convert_dttm(dttm: datetime) -> None:
-    """
-    Test that date objects are converted correctly.
-    """
-
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "DATE '2019-01-02'"),
+        ("TimeStamp", "TIMESTAMP '2019-01-02 03:04:05.678'"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
     from superset.db_engine_specs.athena import AthenaEngineSpec
 
-    assert AthenaEngineSpec.convert_dttm("DATE", dttm) == "DATE '2019-01-02'"
-
-    assert (
-        AthenaEngineSpec.convert_dttm("TIMESTAMP", dttm)
-        == "TIMESTAMP '2019-01-02 03:04:05.678'"
-    )
+    for target in (target_type, target_type.upper(), target_type.lower()):
+        assert AthenaEngineSpec.convert_dttm(target, dttm) == expected_result
 
 
 def test_extract_errors() -> None:

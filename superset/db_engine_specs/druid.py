@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
 
+from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import is_feature_enabled
@@ -102,10 +103,12 @@ class DruidEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        column_spec = cls.get_column_spec(target_type)
+        sqla_type = column_spec.sqla_type if column_spec else None
+
+        if isinstance(sqla_type, types.Date):
             return f"CAST(TIME_PARSE('{dttm.date().isoformat()}') AS DATE)"
-        if tt in (utils.TemporalType.DATETIME, utils.TemporalType.TIMESTAMP):
+        if isinstance(sqla_type, (types.DateTime, types.TIMESTAMP)):
             return f"""TIME_PARSE('{dttm.isoformat(timespec="seconds")}')"""
         return None
 

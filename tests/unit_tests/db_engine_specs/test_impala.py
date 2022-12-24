@@ -14,19 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.db_engine_specs.impala import ImpalaEngineSpec
-from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
+
+from datetime import datetime
+from typing import Optional
+
+import pytest
+
+from tests.unit_tests.fixtures.common import dttm
 
 
-class TestImpalaDbEngineSpec(TestDbEngineSpec):
-    def test_convert_dttm(self):
-        dttm = self.get_dttm()
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "CAST('2019-01-02' AS DATE)"),
+        ("TimeStamp", "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
 
-        self.assertEqual(
-            ImpalaEngineSpec.convert_dttm("DATE", dttm), "CAST('2019-01-02' AS DATE)"
-        )
-
-        self.assertEqual(
-            ImpalaEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)",
-        )
+    for target in (target_type, target_type.upper(), target_type.lower()):
+        assert ImpalaEngineSpec.convert_dttm(target, dttm) == expected_result
