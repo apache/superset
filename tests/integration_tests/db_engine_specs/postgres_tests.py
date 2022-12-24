@@ -100,29 +100,6 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         result = str(expr.compile(None, dialect=postgresql.dialect()))
         self.assertEqual(result, "DATE_TRUNC('year', \"MixedCase\")")
 
-    def test_convert_dttm(self):
-        """
-        DB Eng Specs (postgres): Test conversion to date time
-        """
-        dttm = self.get_dttm()
-
-        self.assertEqual(
-            PostgresEngineSpec.convert_dttm("DATE", dttm),
-            "TO_DATE('2019-01-02', 'YYYY-MM-DD')",
-        )
-
-        self.assertEqual(
-            PostgresEngineSpec.convert_dttm("TIMESTAMP", dttm),
-            "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
-        )
-
-        self.assertEqual(
-            PostgresEngineSpec.convert_dttm("DATETIME", dttm),
-            "TO_TIMESTAMP('2019-01-02 03:04:05.678900', 'YYYY-MM-DD HH24:MI:SS.US')",
-        )
-
-        self.assertEqual(PostgresEngineSpec.convert_dttm("TIME", dttm), None)
-
     def test_empty_dbapi_cursor_description(self):
         """
         DB Eng Specs (postgres): Test empty cursor description (no columns)
