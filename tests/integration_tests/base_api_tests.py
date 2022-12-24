@@ -219,9 +219,9 @@ class ApiOwnersTestCaseMixin:
         for expected_user in expected_users:
             assert expected_user in response_users
 
-    def test_get_related_owners_with_query_mutator(self):
+    def test_get_related_owners_with_extra_filters(self):
         """
-        API: Test get related owners with query mutator
+        API: Test get related owners with extra related query filters
         """
         self.login(username="admin")
 
@@ -229,18 +229,13 @@ class ApiOwnersTestCaseMixin:
             return query.filter_by(username="alpha")
 
         with patch.dict(
-            "superset.dashboards.filters.current_app.config",
+            "superset.views.filters.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"user": _base_filter}},
         ):
             uri = f"api/v1/{self.resource_name}/related/owners"
             rv = self.client.get(uri)
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
-            users = db.session.query(security_manager.user_model).all()
-            expected_users = [str(user) for user in users]
-            assert response["count"] == 1
-            # This needs to be implemented like this, because ordering varies between
-            # postgres and mysql
             response_users = [result["text"] for result in response["result"]]
             assert response_users == ["alpha user"]
 

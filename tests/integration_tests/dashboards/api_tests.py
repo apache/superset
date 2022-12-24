@@ -1828,9 +1828,9 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response_roles = [result["text"] for result in response["result"]]
         assert "Alpha" in response_roles
 
-    def test_get_all_related_roles_with_query_mutator(self):
+    def test_get_all_related_roles_with_with_extra_filters(self):
         """
-        API: Test get filter related roles with query mutator
+        API: Test get filter related roles with extra related query filters
         """
         self.login(username="admin")
 
@@ -1838,15 +1838,13 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
             return query.filter_by(name="Alpha")
 
         with patch.dict(
-            "superset.dashboards.filters.current_app.config",
+            "superset.views.filters.current_app.config",
             {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
         ):
             uri = f"api/v1/dashboard/related/roles"
             rv = self.client.get(uri)
             assert rv.status_code == 200
             response = json.loads(rv.data.decode("utf-8"))
-            assert response["count"] == 1
-
             response_roles = [result["text"] for result in response["result"]]
             assert response_roles == ["Alpha"]
 
