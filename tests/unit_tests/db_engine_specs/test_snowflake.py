@@ -19,6 +19,7 @@
 
 import json
 from datetime import datetime
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -29,17 +30,21 @@ from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
-    "actual,expected",
+    "target_type,expected_result",
     [
-        ("DATE", "TO_DATE('2019-01-02')"),
-        ("DATETIME", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
-        ("TIMESTAMP", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("Date", "TO_DATE('2019-01-02')"),
+        ("DateTime", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
+        ("TimeStamp", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("UnknownType", None),
     ],
 )
-def test_convert_dttm(actual: str, expected: str, dttm: datetime) -> None:
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
-    assert SnowflakeEngineSpec.convert_dttm(actual, dttm) == expected
+    for target in (target_type, target_type.upper(), target_type.lower()):
+        assert SnowflakeEngineSpec.convert_dttm(target, dttm) == expected_result
 
 
 def test_database_connection_test_mutator() -> None:

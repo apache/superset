@@ -28,6 +28,7 @@ from cryptography.hazmat.primitives import serialization
 from flask import current_app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
+from sqlalchemy import types
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
@@ -157,13 +158,15 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        column_spec = cls.get_column_spec(target_type)
+        sqla_type = column_spec.sqla_type if column_spec else None
+
+        if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}')"
-        if tt == utils.TemporalType.DATETIME:
-            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
+        if isinstance(sqla_type, types.DateTime):
+            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
         return None
 
     @staticmethod
