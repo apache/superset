@@ -33,12 +33,14 @@ from sqlalchemy.orm import Session
 
 from superset import (
     app,
+    db,
     is_feature_enabled,
     results_backend,
     results_backend_use_msgpack,
     security_manager,
 )
 from superset.common.db_query_status import QueryStatus
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -69,7 +71,6 @@ SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
 SQL_QUERY_MUTATOR = config["SQL_QUERY_MUTATOR"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
-cancel_query_key = "cancel_query"
 
 
 class SqlLabException(Exception):
@@ -473,7 +474,7 @@ def execute_sql_statements(  # pylint: disable=too-many-arguments, too-many-loca
             cursor = conn.cursor()
             cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
             if cancel_query_id is not None:
-                query.set_extra_json_key(cancel_query_key, cancel_query_id)
+                query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
                 session.commit()
             statement_count = len(statements)
             for i, statement in enumerate(statements):
@@ -613,7 +614,7 @@ def cancel_query(query: Query) -> bool:
     """
     Cancel a running query.
 
-    Note some engines implicitly handle the cancelation of a query and thus no expliicit
+    Note some engines implicitly handle the cancelation of a query and thus no explicit
     action is required.
 
     :param query: Query to cancel
@@ -623,7 +624,16 @@ def cancel_query(query: Query) -> bool:
     if query.database.db_engine_spec.has_implicit_cancel():
         return True
 
-    cancel_query_id = query.extra.get(cancel_query_key)
+    # Some databases may need to make preparations for query cancellation
+    query.database.db_engine_spec.prepare_cancel_query(query, db.session)
+
+    if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+        # Query has been cancelled prior to being able to set the cancel key.
+        # This can happen if the query cancellation key can only be acquired after the
+        # query has been executed
+        return True
+
+    cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
     if cancel_query_id is None:
         return False
 

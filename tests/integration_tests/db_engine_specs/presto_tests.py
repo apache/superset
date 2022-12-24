@@ -492,7 +492,8 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         db.get_df = mock.Mock(return_value=df)
         PrestoEngineSpec.get_create_view = mock.Mock(return_value=None)
         result = PrestoEngineSpec.extra_table_metadata(db, "test_table", "test_schema")
-        self.assertEqual({"ds": "01-01-19", "hour": 1}, result["partitions"]["latest"])
+        assert result["partitions"]["cols"] == ["ds", "hour"]
+        assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 
     def test_presto_where_latest_partition(self):
         db = mock.Mock()

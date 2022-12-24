@@ -199,7 +199,7 @@ describe('Time range filter', () => {
         });
         cy.get('[data-test=cancel-button]').click();
         cy.wait(500);
-        cy.get('.ant-popover').should('not.be.visible');
+        cy.get('.ant-popover').should('not.exist');
       });
   });
 

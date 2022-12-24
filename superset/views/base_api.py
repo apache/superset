@@ -195,21 +195,27 @@ class BaseSupersetModelRestApi(ModelRestApi):
         }
     """
 
-    related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
+    base_related_field_filters: Dict[str, BaseFilter] = {}
     """
-    Declare the filters for related fields::
+    This is used to specify a base filter for related fields
+    when they are accessed through the '/related/<column_name>' endpoint.
+    When combined with the `related_field_filters` attribute,
+    this filter will be applied in addition to the latest::
 
-        related_fields = {
-            "<RELATED_FIELD>": <RelatedFieldFilter>)
+        base_related_field_filters = {
+            "<RELATED_FIELD>": "<FILTER>")
         }
     """
 
-    filter_rel_fields: Dict[str, BaseFilter] = {}
+    related_field_filters: Dict[str, Union[RelatedFieldFilter, str]] = {}
     """
-    Declare the related field base filter::
+    Specify a filter for related fields when they are accessed
+    through the '/related/<column_name>' endpoint.
+    When combined with the `base_related_field_filters` attribute,
+    this filter will be applied in prior to the latest::
 
-        filter_rel_fields_field = {
-            "<RELATED_FIELD>": "<FILTER>")
+        related_fields = {
+            "<RELATED_FIELD>": <RelatedFieldFilter>)
         }
     """
     allowed_rel_fields: Set[str] = set()
@@ -299,7 +305,7 @@ class BaseSupersetModelRestApi(ModelRestApi):
         filter_field = cast(RelatedFieldFilter, filter_field)
         search_columns = [filter_field.field_name] if filter_field else None
         filters = datamodel.get_filters(search_columns)
-        base_filters = self.filter_rel_fields.get(column_name)
+        base_filters = self.base_related_field_filters.get(column_name)
         if base_filters:
             filters.add_filter_list(base_filters)
         if value and filter_field:
