@@ -18,11 +18,16 @@
 # pylint: disable=line-too-long, import-outside-toplevel, protected-access, invalid-name
 
 import json
+from datetime import datetime
+from typing import Optional
 
+import pytest
 from pytest_mock import MockFixture
 from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
+
+from tests.unit_tests.fixtures.common import dttm
 
 
 def test_get_fields() -> None:
@@ -285,3 +290,25 @@ def test_parse_error_raises_exception() -> None:
         == expected_result
     )
     assert str(BigQueryEngineSpec.parse_error_exception(Exception(message_2))) == "6"
+
+
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Date", "CAST('2019-01-02' AS DATE)"),
+        ("DateTime", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
+        ("TimeStamp", "CAST('2019-01-02T03:04:05.678900' AS TIMESTAMP)"),
+        ("Time", "CAST('03:04:05.678900' AS TIME)"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
+    """
+    DB Eng Specs (bigquery): Test conversion to date time
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    for target in (target_type, target_type.upper(), target_type.lower()):
+        assert BigQueryEngineSpec.convert_dttm(target, dttm) == expected_result

@@ -196,7 +196,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
-    default_column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
+    _default_column_type_mappings: Tuple[ColumnTypeMapping, ...] = (
         (
             re.compile(r"^string", re.IGNORECASE),
             types.String(),
@@ -1406,7 +1406,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return None
 
         for regex, sqla_type, generic_type in (
-            cls.column_type_mappings + cls.default_column_type_mappings
+            cls.column_type_mappings + cls._default_column_type_mappings
         ):
             match = regex.match(column_type)
             if not match:

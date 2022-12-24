@@ -18,7 +18,6 @@
 import json
 from datetime import datetime
 from typing import Any, Dict, Optional, Type
-from unittest import mock
 from unittest.mock import Mock, patch
 
 import pandas as pd
@@ -65,7 +64,7 @@ def test_get_extra_params(extra: Dict[str, Any], expected: Dict[str, Any]) -> No
 
 
 @patch("superset.utils.core.create_ssl_cert_file")
-def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file) -> None:
+def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     database = Mock()
@@ -81,80 +80,79 @@ def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file) -> None:
     mock_create_ssl_cert_file.assert_called_once_with(database.server_cert)
 
 
-def test_auth_basic() -> None:
+@patch("trino.auth.BasicAuthentication")
+def test_auth_basic(mock_auth: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    with patch("trino.auth.BasicAuthentication") as auth:
-        database = Mock()
+    database = Mock()
 
-        auth_params = {"username": "username", "password": "password"}
-        database.encrypted_extra = json.dumps(
-            {"auth_method": "basic", "auth_params": auth_params}
-        )
+    auth_params = {"username": "username", "password": "password"}
+    database.encrypted_extra = json.dumps(
+        {"auth_method": "basic", "auth_params": auth_params}
+    )
 
-        params: Dict[str, Any] = {}
-        TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
-        connect_args = params.setdefault("connect_args", {})
-        assert connect_args.get("http_scheme") == "https"
-        auth.assert_called_once_with(**auth_params)
+    params: Dict[str, Any] = {}
+    TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
+    connect_args = params.setdefault("connect_args", {})
+    assert connect_args.get("http_scheme") == "https"
+    mock_auth.assert_called_once_with(**auth_params)
 
 
-def test_auth_kerberos() -> None:
+@patch("trino.auth.KerberosAuthentication")
+def test_auth_kerberos(mock_auth: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    with patch("trino.auth.KerberosAuthentication") as auth:
-        database = Mock()
+    database = Mock()
 
-        auth_params = {
-            "service_name": "superset",
-            "mutual_authentication": False,
-            "delegate": True,
-        }
-        database.encrypted_extra = json.dumps(
-            {"auth_method": "kerberos", "auth_params": auth_params}
-        )
+    auth_params = {
+        "service_name": "superset",
+        "mutual_authentication": False,
+        "delegate": True,
+    }
+    database.encrypted_extra = json.dumps(
+        {"auth_method": "kerberos", "auth_params": auth_params}
+    )
 
-        params: Dict[str, Any] = {}
-        TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
-        connect_args = params.setdefault("connect_args", {})
-        assert connect_args.get("http_scheme") == "https"
-        auth.assert_called_once_with(**auth_params)
+    params: Dict[str, Any] = {}
+    TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
+    connect_args = params.setdefault("connect_args", {})
+    assert connect_args.get("http_scheme") == "https"
+    mock_auth.assert_called_once_with(**auth_params)
 
 
-def test_auth_certificate() -> None:
+@patch("trino.auth.CertificateAuthentication")
+def test_auth_certificate(mock_auth: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    with patch("trino.auth.CertificateAuthentication") as auth:
-        database = Mock()
+    database = Mock()
+    auth_params = {"cert": "/path/to/cert.pem", "key": "/path/to/key.pem"}
+    database.encrypted_extra = json.dumps(
+        {"auth_method": "certificate", "auth_params": auth_params}
+    )
 
-        auth_params = {"cert": "/path/to/cert.pem", "key": "/path/to/key.pem"}
-        database.encrypted_extra = json.dumps(
-            {"auth_method": "certificate", "auth_params": auth_params}
-        )
-
-        params: Dict[str, Any] = {}
-        TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
-        connect_args = params.setdefault("connect_args", {})
-        assert connect_args.get("http_scheme") == "https"
-        auth.assert_called_once_with(**auth_params)
+    params: Dict[str, Any] = {}
+    TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
+    connect_args = params.setdefault("connect_args", {})
+    assert connect_args.get("http_scheme") == "https"
+    mock_auth.assert_called_once_with(**auth_params)
 
 
-def test_auth_jwt() -> None:
+@patch("trino.auth.JWTAuthentication")
+def test_auth_jwt(mock_auth: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    with patch("trino.auth.JWTAuthentication") as auth:
-        database = Mock()
+    database = Mock()
 
-        auth_params = {"token": "jwt-token-string"}
-        database.encrypted_extra = json.dumps(
-            {"auth_method": "jwt", "auth_params": auth_params}
-        )
+    auth_params = {"token": "jwt-token-string"}
+    database.encrypted_extra = json.dumps(
+        {"auth_method": "jwt", "auth_params": auth_params}
+    )
 
-        params: Dict[str, Any] = {}
-        TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
-        connect_args = params.setdefault("connect_args", {})
-        assert connect_args.get("http_scheme") == "https"
-        auth.assert_called_once_with(**auth_params)
+    params: Dict[str, Any] = {}
+    TrinoEngineSpec.update_params_from_encrypted_extra(database, params)
+    connect_args = params.setdefault("connect_args", {})
+    assert connect_args.get("http_scheme") == "https"
+    mock_auth.assert_called_once_with(**auth_params)
 
 
 def test_auth_custom_auth() -> None:
@@ -250,8 +248,10 @@ def test_get_column_spec(
 
     assert (column_spec := TrinoEngineSpec.get_column_spec(native_type)) is not None
     assert isinstance(column_spec.sqla_type, sqla_type)
+
     for key, value in (attrs or {}).items():
         assert getattr(column_spec.sqla_type, key) == value
+
     assert column_spec.generic_type == generic_type
     assert column_spec.is_dttm == is_dttm
 
@@ -259,35 +259,37 @@ def test_get_column_spec(
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("TIMESTAMP", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
-        ("TIMESTAMP(3)", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
-        ("TIMESTAMP WITH TIME ZONE", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
-        ("TIMESTAMP(3) WITH TIME ZONE", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
-        ("DATE", "DATE '2019-01-02'"),
+        ("TimeStamp", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        ("TimeStamp(3)", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        ("TimeStamp With Time Zone", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        ("TimeStamp(3) With Time Zone", "TIMESTAMP '2019-01-02 03:04:05.678900'"),
+        ("Date", "DATE '2019-01-02'"),
+        ("Other", None),
     ],
 )
 def test_convert_dttm(target_type: str, expected_result: bool, dttm: datetime) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    assert TrinoEngineSpec.convert_dttm(target_type, dttm) == expected_result
+    for target in (target_type, target_type.upper(), target_type.lower()):
+        assert TrinoEngineSpec.convert_dttm(target, dttm) == expected_result
 
 
 def test_extra_table_metadata() -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    db = Mock()
-    db.get_indexes = Mock(
+    db_mock = Mock()
+    db_mock.get_indexes = Mock(
         return_value=[{"column_names": ["ds", "hour"], "name": "partition"}]
     )
-    db.get_extra = Mock(return_value={})
-    db.has_view_by_name = Mock(return_value=None)
-    db.get_df = Mock(return_value=pd.DataFrame({"ds": ["01-01-19"], "hour": [1]}))
-    result = TrinoEngineSpec.extra_table_metadata(db, "test_table", "test_schema")
+    db_mock.get_extra = Mock(return_value={})
+    db_mock.has_view_by_name = Mock(return_value=None)
+    db_mock.get_df = Mock(return_value=pd.DataFrame({"ds": ["01-01-19"], "hour": [1]}))
+    result = TrinoEngineSpec.extra_table_metadata(db_mock, "test_table", "test_schema")
     assert result["partitions"]["cols"] == ["ds", "hour"]
     assert result["partitions"]["latest"] == {"ds": "01-01-19", "hour": 1}
 
 
-@mock.patch("sqlalchemy.engine.Engine.connect")
+@patch("sqlalchemy.engine.Engine.connect")
 def test_cancel_query_success(engine_mock: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.models.sql_lab import Query
@@ -297,7 +299,7 @@ def test_cancel_query_success(engine_mock: Mock) -> None:
     assert TrinoEngineSpec.cancel_query(cursor_mock, query, "123") is True
 
 
-@mock.patch("sqlalchemy.engine.Engine.connect")
+@patch("sqlalchemy.engine.Engine.connect")
 def test_cancel_query_failed(engine_mock: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.models.sql_lab import Query
@@ -329,11 +331,11 @@ def test_prepare_cancel_query(
 
 
 @pytest.mark.parametrize("cancel_early", [True, False])
-@mock.patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
-@mock.patch("sqlalchemy.engine.Engine.connect")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("sqlalchemy.engine.Engine.connect")
 def test_handle_cursor_early_cancel(
-    engine_mock: mock.Mock,
-    cancel_query_mock: mock.Mock,
+    engine_mock: Mock,
+    cancel_query_mock: Mock,
     cancel_early: bool,
     mocker: MockerFixture,
 ) -> None:

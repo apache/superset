@@ -168,7 +168,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     column_type_mappings = (
         (
             re.compile(r"^boolean.*", re.IGNORECASE),
-            types.BOOLEAN,
+            types.BOOLEAN(),
             GenericDataType.BOOLEAN,
         ),
         (

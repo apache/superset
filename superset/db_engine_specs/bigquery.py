@@ -26,7 +26,7 @@ from apispec.ext.marshmallow import MarshmallowPlugin
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
-from sqlalchemy import column
+from sqlalchemy import column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.sql import sqltypes
 from typing_extensions import TypedDict
@@ -38,7 +38,6 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.sql_parse import Table
-from superset.utils import core as utils
 from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
@@ -199,15 +198,16 @@ class BigQueryEngineSpec(BaseEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        tt = target_type.upper()
-        if tt == utils.TemporalType.DATE:
+        column_spec = cls.get_column_spec(target_type)
+        sqla_type = column_spec.sqla_type if column_spec else None
+        if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
-        if tt == utils.TemporalType.DATETIME:
-            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
-        if tt == utils.TemporalType.TIME:
-            return f"""CAST('{dttm.strftime("%H:%M:%S.%f")}' AS TIME)"""
-        if tt == utils.TemporalType.TIMESTAMP:
+        if isinstance(sqla_type, types.TIMESTAMP):
             return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS TIMESTAMP)"""
+        if isinstance(sqla_type, types.DateTime):
+            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
+        if isinstance(sqla_type, types.Time):
+            return f"""CAST('{dttm.strftime("%H:%M:%S.%f")}' AS TIME)"""
         return None
 
     @classmethod

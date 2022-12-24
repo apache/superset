@@ -17,6 +17,7 @@
 import unittest.mock as mock
 from datetime import datetime
 from textwrap import dedent
+from typing import Optional
 
 import pytest
 from sqlalchemy import column, table
@@ -103,30 +104,32 @@ def test_time_exp_mixd_case_col_1y() -> None:
 
 
 @pytest.mark.parametrize(
-    "actual,expected",
+    "target_type,expected_result",
     [
         (
-            "DATE",
+            "Date",
             "CONVERT(DATE, '2019-01-02', 23)",
         ),
         (
-            "DATETIME",
+            "DateTime",
             "CONVERT(DATETIME, '2019-01-02T03:04:05.678', 126)",
         ),
         (
-            "SMALLDATETIME",
+            "SmallDateTime",
             "CONVERT(SMALLDATETIME, '2019-01-02 03:04:05', 20)",
         ),
+        ("Other", None),
     ],
 )
 def test_convert_dttm(
-    actual: str,
-    expected: str,
+    target_type: str,
+    expected_result: Optional[str],
     dttm: datetime,
 ) -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
-    assert MssqlEngineSpec.convert_dttm(actual, dttm) == expected
+    for target in (target_type, target_type.upper(), target_type.lower()):
+        assert MssqlEngineSpec.convert_dttm(target, dttm) == expected_result
 
 
 def test_extract_error_message() -> None:
