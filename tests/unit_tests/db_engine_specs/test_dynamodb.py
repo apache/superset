@@ -14,24 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
 from datetime import datetime
+from typing import Optional
+
+import pytest
 
 from tests.unit_tests.fixtures.common import dttm
 
 
-def test_convert_dttm(dttm: datetime) -> None:
+@pytest.mark.parametrize(
+    "target_type,expected_result",
+    [
+        ("Text", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
+        ("DateTime", "'2019-01-02 03:04:05'"),
+        ("UnknownType", None),
+    ],
+)
+def test_convert_dttm(
+    target_type: str, expected_result: Optional[str], dttm: datetime
+) -> None:
     from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
 
-    assert DynamoDBEngineSpec.convert_dttm("TEXT", dttm) == "'2019-01-02 03:04:05'"
-
-
-def test_convert_dttm_lower(dttm: datetime) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
-
-    assert DynamoDBEngineSpec.convert_dttm("text", dttm) == "'2019-01-02 03:04:05'"
-
-
-def test_convert_dttm_invalid_type(dttm: datetime) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
-
-    assert DynamoDBEngineSpec.convert_dttm("other", dttm) is None
+    for target in (target_type, target_type.upper(), target_type.lower()):
+        assert DynamoDBEngineSpec.convert_dttm(target, dttm) == expected_result
