@@ -30,6 +30,7 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
+import { QueryState } from '@superset-ui/core';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
@@ -502,6 +503,7 @@ describe('async actions', () => {
         const results = {
           data: mockBigNumber,
           query: { sqlEditorId: 'abcd' },
+          status: QueryState.SUCCESS,
           query_id: 'efgh',
         };
         fetchMock.get(fetchQueryEndpoint, JSON.stringify(results), {
@@ -523,6 +525,35 @@ describe('async actions', () => {
         return store.dispatch(actions.fetchQueryResults(query)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
+        });
+      });
+
+      it("doesn't update the tab state in the backend on stoppped query", () => {
+        expect.assertions(2);
+
+        const results = {
+          status: QueryState.STOPPED,
+          query_id: 'efgh',
+        };
+        fetchMock.get(fetchQueryEndpoint, JSON.stringify(results), {
+          overwriteRoutes: true,
+        });
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.REQUEST_QUERY_RESULTS,
+            query,
+          },
+          // missing below
+          {
+            type: actions.QUERY_SUCCESS,
+            query,
+            results,
+          },
+        ];
+        return store.dispatch(actions.fetchQueryResults(query)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
         });
       });
     });
