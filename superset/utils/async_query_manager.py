@@ -77,7 +77,7 @@ class AsyncQueryManager:
         self._stream_prefix: str = ""
         self._stream_limit: Optional[int]
         self._stream_limit_firehose: Optional[int]
-        self._jwt_cookie_name: str
+        self._jwt_cookie_name: str = ""
         self._jwt_cookie_secure: bool = False
         self._jwt_cookie_domain: Optional[str]
         self._jwt_secret: str
