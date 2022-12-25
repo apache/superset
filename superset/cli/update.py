@@ -83,7 +83,7 @@ def update_api_docs() -> None:
         openapi_version="3.0.2",
         info=dict(description=current_app.appbuilder.app_name),
         plugins=[MarshmallowPlugin(schema_name_resolver=resolver)],
-        servers=[{"url": "http://localhost:8088"}],
+        servers=[{"url": "https://localhost:8088"}, {"url": "https://home.quotron.ai"}],
     )
     for base_api in current_app.appbuilder.baseviews:
         if isinstance(base_api, BaseApi) and base_api.version == api_version:

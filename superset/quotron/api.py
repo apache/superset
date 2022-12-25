@@ -1,8 +1,12 @@
 import datetime
 
+import requests
 from flask import g, request, Response, jsonify
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 import logging
+
+from superset import charts
+from superset.charts.api import ChartRestApi
 from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.explore.commands.get import GetExploreCommand
@@ -11,6 +15,7 @@ from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointE
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
 from superset.extensions import event_logger
+from superset.quotron.DataTypes import Autocomplete
 from superset.quotron.schemas import AutoCompleteSchema, QuestionSchema
 from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
@@ -19,11 +24,7 @@ from superset.temporary_cache.commands.exceptions import (
 
 
 logger = logging.getLogger(__name__)
-class Autocomplete:
-    def __init__(self, question, email, time):
-        self.question = question
-        self.email = email
-        self.time = time
+
 
 class QuotronRestApi(BaseApi):
     include_route_methods = {
@@ -77,6 +78,12 @@ class QuotronRestApi(BaseApi):
               application/json:
                 schema:
                   $ref: "#/components/schemas/QuestionSchema"
+                example:
+                    {
+                    "question": "what is the highest revenue?"
+                    }
+
+
           responses:
             200:
               description: Query result
@@ -92,6 +99,20 @@ class QuotronRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
+        req = QuestionSchema().load(request.json)
         logger.info(g.user)
+        question = req['question']
 
+        #1. Get quotron SQL query
+        # resp =requests.get(f'https://home.quotron.ai/ask/{question}')
+
+        #2. Parse quotron query
+
+        #3. Create a slice
+        ChartRestApi.post()
+
+        # logger.info(response)
         return self.response(200, result = 'ABC')
+
+
+

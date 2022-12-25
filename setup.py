@@ -122,6 +122,10 @@ setup(
         "typing-extensions>=4, <5",
         "wtforms>=2.3.3, <2.4",
         "wtforms-json",
+        "greenlet<2.0,>=1.1.0",
+        "mo-sql-parsing",
+        "sql-metadata"
+
     ],
     extras_require={
         "athena": ["pyathena[pandas]>=2, <3"],
