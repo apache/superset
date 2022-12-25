@@ -135,7 +135,6 @@ export enum ActionType {
   addTableCatalogSheet,
   configMethodChange,
   dbSelected,
-  driverChange,
   editorChange,
   extraEditorChange,
   extraInputChange,
@@ -151,7 +150,7 @@ export enum ActionType {
 interface DBReducerPayloadType {
   target?: string;
   name: string;
-  json?: {};
+  json?: string;
   type?: string;
   checked?: boolean;
   value?: string;
@@ -180,6 +179,7 @@ export type DBReducerActionType =
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
         engine_information?: {};
+        driver?: string;
       };
     }
   | {
@@ -198,10 +198,6 @@ export type DBReducerActionType =
         engine?: string;
         configuration_method: CONFIGURATION_METHOD;
       };
-    }
-  | {
-      type: ActionType.driverChange;
-      payload: string;
     };
 
 const StyledBtns = styled.div`
@@ -219,20 +215,28 @@ export function dbReducer(
   let query = {};
   let query_input = '';
   let parametersCatalog;
+  let actionPayloadJson;
   const extraJson: ExtraJson = JSON.parse(trimmedState.extra || '{}');
 
   switch (action.type) {
     case ActionType.extraEditorChange:
       // "extra" payload in state is a string
+      try {
+        // we don't want to stringify encoded strings twice
+        actionPayloadJson = JSON.parse(action.payload.json || '{}');
+      } catch (e) {
+        actionPayloadJson = action.payload.json;
+      }
       return {
         ...trimmedState,
         extra: JSON.stringify({
           ...extraJson,
-          [action.payload.name]: action.payload.json,
+          [action.payload.name]: actionPayloadJson,
         }),
       };
     case ActionType.extraInputChange:
       // "extra" payload in state is a string
+
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
@@ -424,12 +428,6 @@ export function dbReducer(
     case ActionType.configMethodChange:
       return {
         ...action.payload,
-      };
-
-    case ActionType.driverChange:
-      return {
-        ...trimmedState,
-        driver: action.payload,
       };
 
     case ActionType.reset:
@@ -753,7 +751,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       const selectedDbModel = availableDbs?.databases.filter(
         (db: DatabaseObject) => db.name === database_name,
       )[0];
-      const { engine, parameters, engine_information } = selectedDbModel;
+      const { engine, parameters, engine_information, default_driver } =
+        selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.dbSelected,
@@ -764,6 +763,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             ? CONFIGURATION_METHOD.DYNAMIC_FORM
             : CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine_information,
+          driver: default_driver,
         },
       });
 
@@ -1191,23 +1191,26 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           : typeof dbErrors === 'string'
           ? [dbErrors]
           : [];
-    } else if (!isEmpty(validationErrors)) {
-      alertErrors =
-        validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
-          ? [
-              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
-            ]
-          : [];
+    } else if (
+      !isEmpty(validationErrors) &&
+      validationErrors?.error_type === 'GENERIC_DB_ENGINE_ERROR'
+    ) {
+      alertErrors = [
+        validationErrors?.description || validationErrors?.message,
+      ];
     }
-
     if (alertErrors.length) {
       return (
-        <ErrorMessageWithStackTrace
-          title={t('Database Creation Error')}
-          description={alertErrors[0]}
-          subtitle={validationErrors?.description}
-          copyText={validationErrors?.description}
-        />
+        <ErrorAlertContainer>
+          <ErrorMessageWithStackTrace
+            title={t('Database Creation Error')}
+            description={t(
+              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
+            )}
+            subtitle={alertErrors?.[0] || validationErrors?.description}
+            copyText={validationErrors?.description}
+          />
+        </ErrorAlertContainer>
       );
     }
     return <></>;
@@ -1289,9 +1292,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         sslForced={sslForced}
         dbModel={dbModel}
         db={db as DatabaseObject}
-        setDatabaseDriver={(driver: string) => {
-          onChange(ActionType.driverChange, driver);
-        }}
         onParametersChange={({ target }: { target: HTMLInputElement }) =>
           onChange(ActionType.parametersChange, {
             type: target.type,
@@ -1463,9 +1463,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               sslForced={sslForced}
               dbModel={dbModel}
               db={db as DatabaseObject}
-              setDatabaseDriver={(driver: string) => {
-                onChange(ActionType.driverChange, driver);
-              }}
               onParametersChange={({ target }: { target: HTMLInputElement }) =>
                 onChange(ActionType.parametersChange, {
                   type: target.type,
@@ -1532,6 +1529,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               />
             </StyledAlertMargin>
           )}
+          {showDBError && errorAlert()}
         </Tabs.TabPane>
         <Tabs.TabPane tab={<span>{t('Advanced')}</span>} key="2">
           <ExtraOptions
@@ -1565,9 +1563,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               onChange(ActionType.extraEditorChange, payload);
             }}
           />
-          {showDBError && (
-            <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
-          )}
         </Tabs.TabPane>
       </TabsStyled>
     </Modal>
@@ -1659,9 +1654,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   db={db}
                   sslForced={sslForced}
                   dbModel={dbModel}
-                  setDatabaseDriver={(driver: string) => {
-                    onChange(ActionType.driverChange, driver);
-                  }}
                   onAddTableCatalog={() => {
                     setDB({ type: ActionType.addTableCatalogSheet });
                   }}
@@ -1742,9 +1734,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   )}
                 </div>
                 {/* Step 2 */}
-                {showDBError && (
-                  <ErrorAlertContainer>{errorAlert()}</ErrorAlertContainer>
-                )}
+                {showDBError && errorAlert()}
               </>
             ))}
         </>

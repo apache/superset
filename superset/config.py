@@ -21,6 +21,8 @@ in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
@@ -39,6 +41,7 @@ from typing import (
     Literal,
     Optional,
     Set,
+    Tuple,
     Type,
     TYPE_CHECKING,
     Union,
@@ -58,9 +61,9 @@ from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
-from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
+from superset.tasks.types import ExecutorType
 from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -73,6 +76,8 @@ if TYPE_CHECKING:
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -576,9 +581,33 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
-# Also used by Alerts & Reports
 # ---------------------------------------------------
-THUMBNAIL_SELENIUM_USER = "admin"
+# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
+# the username of the account used to render the queries and dashboards/charts
+THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
+
+# To be able to have different thumbnails for different users, use these configs to
+# define which user to execute the thumbnails and potentially custom functions for
+# calculating thumbnail digests. To have unique thumbnails for all users, use the
+# following config:
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+
+# By default, thumbnail digests are calculated based on various parameters in the
+# chart/dashboard metadata, and in the case of user-specific thumbnails, the
+# username. To specify a custom digest function, use the following config parameters
+# to define callbacks that receive
+# 1. the model (dashboard or chart)
+# 2. the executor type (e.g. ExecutorType.SELENIUM)
+# 3. the executor's username (note, this is the executor as defined by
+# `THUMBNAIL_EXECUTE_AS`; the executor is only equal to the currently logged in
+# user if the executor type is equal to `ExecutorType.CURRENT_USER`)
+# and return the final digest string:
+THUMBNAIL_DASHBOARD_DIGEST_FUNC: Optional[
+    Callable[[Dashboard, ExecutorType, str], str]
+] = None
+THUMBNAIL_CHART_DIGEST_FUNC: Optional[Callable[[Slice, ExecutorType, str], str]] = None
+
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "NullCache",
     "CACHE_NO_NULL_WARNING": True,
@@ -596,6 +625,12 @@ SCREENSHOT_SELENIUM_RETRIES = 5
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
+# Replace unexpected errors in screenshots with real error messages
+SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
+# Max time to wait for error message modal to show up, in seconds
+SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
+# Max time to wait for error message modal to close, in seconds
+SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -931,7 +966,7 @@ SQLLAB_CTAS_NO_LIMIT = False
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
 SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
-    Callable[["Database", "models.User", str, str], str]
+    Callable[[Database, models.User, str, str], str]
 ] = None
 
 # If enabled, it can be used to store the results of long-running queries
@@ -956,8 +991,8 @@ CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
 def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
-    database: "Database",
-    user: "models.User",  # pylint: disable=unused-argument
+    database: Database,
+    user: models.User,  # pylint: disable=unused-argument
     schema: Optional[str],
 ) -> str:
     # Note the final empty path enforces a trailing slash.
@@ -975,7 +1010,7 @@ UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[["Database", "models.User"], List[str]] = (
+ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], List[str]] = (
     lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
     if UPLOADED_CSV_HIVE_NAMESPACE
     else []
@@ -1175,16 +1210,14 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # creator if either is contained within the list of owners, otherwise the first owner
 # will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
-#     ReportScheduleExecutor.CREATOR_OWNER,
-#     ReportScheduleExecutor.CREATOR,
-#     ReportScheduleExecutor.MODIFIER_OWNER,
-#     ReportScheduleExecutor.MODIFIER,
-#     ReportScheduleExecutor.OWNER,
-#     ReportScheduleExecutor.SELENIUM,
+#     ScheduledTaskExecutor.CREATOR_OWNER,
+#     ScheduledTaskExecutor.CREATOR,
+#     ScheduledTaskExecutor.MODIFIER_OWNER,
+#     ScheduledTaskExecutor.MODIFIER,
+#     ScheduledTaskExecutor.OWNER,
+#     ScheduledTaskExecutor.SELENIUM,
 # ]
-ALERT_REPORTS_EXECUTE_AS: List[ReportScheduleExecutor] = [
-    ReportScheduleExecutor.SELENIUM
-]
+ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -1421,6 +1454,17 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "internet_address": internet_address,
     "port": internet_port,
 }
+
+# By default, the Welcome page features example charts and dashboards. This can be
+# changed to show all charts/dashboards the user has access to, or a custom view
+# by providing the title and a FAB filter:
+# WELCOME_PAGE_LAST_TAB = (
+#     "Xyz",
+#     [{"col": 'created_by', "opr": 'rel_o_m', "value": 10}],
+# )
+WELCOME_PAGE_LAST_TAB: Union[
+    Literal["examples", "all"], Tuple[str, List[Dict[str, Any]]]
+] = "examples"
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)

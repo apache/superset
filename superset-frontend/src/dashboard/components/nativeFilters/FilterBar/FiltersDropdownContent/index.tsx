@@ -24,7 +24,7 @@ import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 export interface FiltersDropdownContentProps {
   filtersInScope: (Filter | Divider)[];
   filtersOutOfScope: (Filter | Divider)[];
-  renderer: (filter: Filter | Divider) => ReactNode;
+  renderer: (filter: Filter | Divider, index: number) => ReactNode;
   showCollapsePanel?: boolean;
 }
 

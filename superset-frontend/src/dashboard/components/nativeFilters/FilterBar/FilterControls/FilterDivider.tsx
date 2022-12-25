@@ -56,7 +56,7 @@ const HorizontalDivider = ({ title, description }: FilterDividerProps) => {
         <h3
           ref={titleRef}
           css={css`
-            ${truncationCSS}
+            ${truncationCSS};
             max-width: ${theme.gridUnit * 32.5}px;
             font-size: ${theme.typography.sizes.m}px;
             font-weight: ${theme.typography.weights.normal};
@@ -108,13 +108,12 @@ const HorizontalOverflowDivider = ({
         <h3
           ref={titleRef}
           css={css`
-            ${truncationCSS}
+            ${truncationCSS};
             display: block;
             color: ${theme.colors.grayscale.dark1};
             font-weight: ${theme.typography.weights.normal};
             font-size: ${theme.typography.sizes.m}px;
             margin: 0 0 ${theme.gridUnit}px 0;
-            line-height: 1;
           `}
         >
           {title}
@@ -126,12 +125,11 @@ const HorizontalOverflowDivider = ({
             ref={descriptionRef}
             data-test="divider-description"
             css={css`
-              ${truncationCSS}
+              ${truncationCSS};
               display: block;
               font-size: ${theme.typography.sizes.s}px;
               color: ${theme.colors.grayscale.base};
-              margin: ${theme.gridUnit * 2}px 0 0 0;
-              line-height: 1;
+              margin: ${theme.gridUnit}px 0 0 0;
             `}
           >
             {description}

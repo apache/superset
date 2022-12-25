@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent, useEffect } from 'react';
+import React, { FormEvent } from 'react';
 import { SupersetTheme, JsonObject } from '@superset-ui/core';
 import { InputProps } from 'antd/lib/input';
 import { Form } from 'src/components/Form';
@@ -103,24 +103,7 @@ const FORM_FIELD_MAP = {
   account: validatedInputField,
 };
 
-const DatabaseConnectionForm = ({
-  dbModel: { parameters, default_driver },
-  db,
-  editNewDb,
-  getPlaceholder,
-  getValidation,
-  isEditMode = false,
-  onAddTableCatalog,
-  onChange,
-  onExtraInputChange,
-  onParametersChange,
-  onParametersUploadFileChange,
-  onQueryChange,
-  onRemoveTableCatalog,
-  setDatabaseDriver,
-  sslForced,
-  validationErrors,
-}: {
+interface DatabaseConnectionFormProps {
   isEditMode?: boolean;
   sslForced: boolean;
   editNewDb?: boolean;
@@ -146,52 +129,64 @@ const DatabaseConnectionForm = ({
   validationErrors: JsonObject | null;
   getValidation: () => void;
   getPlaceholder?: (field: string) => string | undefined;
-  setDatabaseDriver: (driver: string) => void;
-}) => {
-  useEffect(() => {
-    setDatabaseDriver(default_driver);
-  }, [default_driver]);
-  return (
-    <Form>
-      <div
-        // @ts-ignore
-        css={(theme: SupersetTheme) => [
-          formScrollableStyles,
-          validatedFormStyles(theme),
-        ]}
-      >
-        {parameters &&
-          FormFieldOrder.filter(
-            (key: string) =>
-              Object.keys(parameters.properties).includes(key) ||
-              key === 'database_name',
-          ).map(field =>
-            FORM_FIELD_MAP[field]({
-              required: parameters.required?.includes(field),
-              changeMethods: {
-                onParametersChange,
-                onChange,
-                onQueryChange,
-                onParametersUploadFileChange,
-                onAddTableCatalog,
-                onRemoveTableCatalog,
-                onExtraInputChange,
-              },
-              validationErrors,
-              getValidation,
-              db,
-              key: field,
-              field,
-              isEditMode,
-              sslForced,
-              editNewDb,
-              placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
-            }),
-          )}
-      </div>
-    </Form>
-  );
-};
+}
+
+const DatabaseConnectionForm = ({
+  dbModel: { parameters },
+  db,
+  editNewDb,
+  getPlaceholder,
+  getValidation,
+  isEditMode = false,
+  onAddTableCatalog,
+  onChange,
+  onExtraInputChange,
+  onParametersChange,
+  onParametersUploadFileChange,
+  onQueryChange,
+  onRemoveTableCatalog,
+  sslForced,
+  validationErrors,
+}: DatabaseConnectionFormProps) => (
+  <Form>
+    <div
+      // @ts-ignore
+      css={(theme: SupersetTheme) => [
+        formScrollableStyles,
+        validatedFormStyles(theme),
+      ]}
+    >
+      {parameters &&
+        FormFieldOrder.filter(
+          (key: string) =>
+            Object.keys(parameters.properties).includes(key) ||
+            key === 'database_name',
+        ).map(field =>
+          FORM_FIELD_MAP[field]({
+            required: parameters.required?.includes(field),
+            changeMethods: {
+              onParametersChange,
+              onChange,
+              onQueryChange,
+              onParametersUploadFileChange,
+              onAddTableCatalog,
+              onRemoveTableCatalog,
+              onExtraInputChange,
+            },
+            validationErrors,
+            getValidation,
+            db,
+            key: field,
+            field,
+            isEditMode,
+            sslForced,
+            editNewDb,
+            placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
+          }),
+        )}
+    </div>
+  </Form>
+);
 export const FormFieldMap = FORM_FIELD_MAP;
 
 export default DatabaseConnectionForm;
