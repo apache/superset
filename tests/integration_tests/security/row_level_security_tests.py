@@ -569,7 +569,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch(
-        "superset.row_level_security.api.RLSRestApi.filter_rel_fields",
+        "superset.row_level_security.api.RLSRestApi.base_related_field_filters",
         {"tables": [["table_name", filters.FilterStartsWith, "birth"]]},
     )
     def test_table_related_filter(self):
@@ -588,7 +588,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert {"birth_names"} == received_tables
 
     @mock.patch(
-        "superset.row_level_security.api.RLSRestApi.filter_rel_fields",
+        "superset.row_level_security.api.RLSRestApi.base_related_field_filters",
         {"roles": [["name", filters.FilterEqual, "Admin"]]},
     )
     def test_role_related_filter(self):
@@ -609,7 +609,7 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch(
-        "superset.row_level_security.api.RLSRestApi.filter_rel_fields",
+        "superset.row_level_security.api.RLSRestApi.base_related_field_filters",
         {
             "tables": [["table_name", filters.FilterStartsWith, "birth"]],
             "roles": [["name", filters.FilterEqual, "Admin"]],

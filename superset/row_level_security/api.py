@@ -122,7 +122,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
     edit_model_schema = RLSPutSchema()
 
     allowed_rel_fields = {"tables", "roles"}
-    filter_rel_fields = app.config["RLS_FILTER_RELATED_FIELDS"]
+    base_related_field_filters = app.config["RLS_BASE_RELATED_FIELD_FILTERS"]
 
     @expose("/", methods=["POST"])
     @protect()

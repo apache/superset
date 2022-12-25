@@ -1332,11 +1332,11 @@ TALISMAN_CONFIG = {
 #
 # from flask_appbuilder.models.sqla import filters
 
-# RLS_FILTER_RELATED_FIELDS = {
+# RLS_BASE_RELATED_FIELD_FILTERS = {
 #     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
 #     "roles": [["name", filters.FilterContains, "Admin"]]
 # }
-RLS_FILTER_RELATED_FIELDS: Dict[str, BaseFilter] = {}
+RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
 
 #
 # Flask session cookie options
