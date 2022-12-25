@@ -41,6 +41,7 @@ from typing import (
     Literal,
     Optional,
     Set,
+    Tuple,
     Type,
     TYPE_CHECKING,
     Union,
@@ -1451,6 +1452,17 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "internet_address": internet_address,
     "port": internet_port,
 }
+
+# By default, the Welcome page features example charts and dashboards. This can be
+# changed to show all charts/dashboards the user has access to, or a custom view
+# by providing the title and a FAB filter:
+# WELCOME_PAGE_LAST_TAB = (
+#     "Xyz",
+#     [{"col": 'created_by', "opr": 'rel_o_m', "value": 10}],
+# )
+WELCOME_PAGE_LAST_TAB: Union[
+    Literal["examples", "all"], Tuple[str, List[Dict[str, Any]]]
+] = "examples"
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)

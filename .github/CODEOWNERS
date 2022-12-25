@@ -22,4 +22,4 @@
 
 # Notify E2E test maintainers of changes
 
-/superset-frontend/cypress-base/ @jinghua-qa @geido
+/superset-frontend/cypress-base/ @jinghua-qa @geido @eschutho @rusackas @betodealmeida
