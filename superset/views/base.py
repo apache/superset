@@ -329,7 +329,6 @@ class BaseSupersetView(BaseView):
 
 def menu_data(user: User) -> Dict[str, Any]:
     menu = appbuilder.menu.get_data()
-
     languages = {}
     for lang in appbuilder.languages:
         languages[lang] = {

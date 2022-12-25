@@ -82,6 +82,13 @@ const DatasetList = lazy(
     ),
 );
 
+const DatamanageList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "DatamanageList" */ 'src/views/CRUD/data/datamanage/DatamanageList'
+    ),
+);
+
 const AddDataset = lazy(
   () =>
     import(
@@ -142,6 +149,11 @@ export const routes: Routes = [
   {
     path: '/tablemodelview/list/',
     Component: DatasetList,
+    
+  },
+  {
+    path: '/datamanage/list/',
+    Component: DatamanageList,
   },
   {
     path: '/databaseview/list/',

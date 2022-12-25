@@ -42,6 +42,7 @@ const emotionCache = createCache({
   key: 'menu',
 });
 
+console.log("+++++++menu++++++++", menu);
 const app = (
   // @ts-ignore: emotion types defs are incompatible between core and cache
   <CacheProvider value={emotionCache}>
