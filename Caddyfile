@@ -1,0 +1,5 @@
+home.quotron.ai {
+	reverse_proxy {
+		to superset_app:8088
+	}
+}
