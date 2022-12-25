@@ -149,6 +149,9 @@ export function interceptUnfav() {
 export function interceptDataset() {
   cy.intercept('GET', `/api/v1/dataset/*`).as('getDataset');
 }
+// export function interceptDatamanage() {
+//   cy.intercept('GET', `/api/v1/datamanage/*`).as('getDatamanage');
+// }
 
 export function interceptCharts() {
   cy.intercept('GET', `/api/v1/dashboard/*/charts`).as('getCharts');

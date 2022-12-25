@@ -50,6 +50,8 @@ const user = { ...bootstrapData.user };
 const menu = {
   ...bootstrapData.common.menu_data,
 };
+
+console.log("+++++++menu++++++++", menu);
 let lastLocationPathname: string;
 
 const boundActions = bindActionCreators({ logEvent }, store.dispatch);
