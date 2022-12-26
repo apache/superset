@@ -10,8 +10,8 @@ import {
 } from '@ant-design/icons';
 import HeaderPage from './pages/HeaderPage';
 import ContentPage from './pages/ContentPage';
-import HeaderViewTablePage from './pages/HeaderViewTablePage';
-import ViewTablePage from './pages/ViewTablePage';
+// import HeaderViewTablePage from './pages/HeaderViewTablePage';
+// import ViewTablePage from './pages/ViewTablePage';
 
 const { Header, Content, Sider } = Layout;
 
