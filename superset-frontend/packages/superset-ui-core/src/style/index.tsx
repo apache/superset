@@ -125,6 +125,11 @@ const defaultTheme = {
       light1: '#B3DEFE',
       light2: '#EFF8FE',
     },
+    quotron: {
+      black: 'black',
+      gray_white: '#fafafa',
+      white: 'white',
+    },
   },
   opacity: {
     light: '10%',

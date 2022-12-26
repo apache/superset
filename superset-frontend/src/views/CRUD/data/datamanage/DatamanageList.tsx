@@ -1,11 +1,12 @@
 import React from 'react';
-import { Layout, Menu, Button } from 'antd';
+import { Layout, Menu } from 'antd';
+import { SupersetTheme, useTheme } from '@superset-ui/core';
 import {
   HomeOutlined,
   SearchOutlined,
   DatabaseOutlined,
   SettingOutlined,
-  BellOutlined
+  BellOutlined,
 } from '@ant-design/icons';
 import HeaderPage from './pages/HeaderPage';
 import ContentPage from './pages/ContentPage';
@@ -15,15 +16,16 @@ import ViewTablePage from './pages/ViewTablePage';
 const { Header, Content, Sider } = Layout;
 
 const App = () => {
+  const theme: SupersetTheme = useTheme();
   return (
-    <Layout >
+    <Layout>
       <Sider
-        collapsible 
+        collapsible
         collapsed
         trigger={null}
         theme="light"
         style={{
-          background: "#f5f5f5"
+          background: theme.colors.quotron.gray_white,
         }}
       >
         <Menu
@@ -31,31 +33,22 @@ const App = () => {
           defaultOpenKeys={['sub1']}
           mode="inline"
           style={{
-            background: "#f5f5f5",
-            height: "100%"
+            background: theme.colors.quotron.gray_white,
+            height: '100%',
           }}
         >
-          <Menu.Item
-            key={1}
-            icon={<HomeOutlined />}
-          />
-          <Menu.Item
-            key={2}
-            icon={<SearchOutlined />}
-          />
-          <Menu.Item
-            key={3}
-            icon={<DatabaseOutlined />}
-          />
+          <Menu.Item key={1} icon={<HomeOutlined />} />
+          <Menu.Item key={2} icon={<SearchOutlined />} />
+          <Menu.Item key={3} icon={<DatabaseOutlined />} />
           <Menu.Item
             key={4}
             icon={<BellOutlined />}
-            style={{position: "absolute", bottom: 70}}
+            style={{ position: 'absolute', bottom: 70 }}
           />
           <Menu.Item
             key={5}
             icon={<SettingOutlined />}
-            style={{position: "absolute", bottom: 20}}
+            style={{ position: 'absolute', bottom: 20 }}
           />
         </Menu>
       </Sider>
@@ -63,7 +56,7 @@ const App = () => {
         <Header
           style={{
             padding: '48px',
-            background: "#fff",
+            background: theme.colors.quotron.white,
           }}
         >
           <HeaderPage />
@@ -72,8 +65,8 @@ const App = () => {
         <Content
           style={{
             minHeight: '90vh',
-            background: "#fff",
-            padding: '48px'
+            background: theme.colors.quotron.white,
+            padding: '48px',
           }}
         >
           <ContentPage />
