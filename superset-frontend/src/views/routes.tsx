@@ -149,7 +149,6 @@ export const routes: Routes = [
   {
     path: '/tablemodelview/list/',
     Component: DatasetList,
-    
   },
   {
     path: '/datamanage/list/',
