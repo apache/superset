@@ -1,0 +1,27 @@
+{
+  "name": "@superset-ui/input-text-plugin",
+  "version": "0.1.0",
+  "description": "Superset Input Text Plugin",
+  "keywords": [
+    "superset"
+  ],
+  "license": "Apache-2.0",
+  "author": "Emma.lou",
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "dependencies": {},
+  "devDependencies": {},
+  "peerDependencies": {
+    "@emotion/react": "^11.4.1",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^16.13.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
