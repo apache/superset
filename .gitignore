@@ -110,3 +110,6 @@ messages.mo
 docker/requirements-local.txt
 
 cache/
+
+superset_env
+superset/views/database/*json
