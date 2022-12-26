@@ -26,6 +26,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import SubMenu from 'src/views/components/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { useFlashListViewResource } from 'src/views/CRUD/hooks';
+import ReactJson from 'react-json-view';
 import { FlashAuditLogs } from '../../types';
 
 const PAGE_SIZE = 25;
@@ -113,26 +114,38 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
       {
         accessor: 'newValue',
         Header: t('New Value'),
+        size: 'xl',
         Cell: ({
           row: {
             original: { newValue = '' },
           },
         }: any) => (
           <Tooltip title={newValue} placement="topLeft">
-            <span>{newValue}</span>
+            <ReactJson
+              name="New Value"
+              enableClipboard
+              theme="apathy:inverted"
+              src={JSON.parse(newValue)}
+            />
           </Tooltip>
         ),
       },
       {
         accessor: 'oldValue',
         Header: t('Old Value'),
+        size: 'xl',
         Cell: ({
           row: {
             original: { oldValue = '' },
           },
         }: any) => (
           <Tooltip title={oldValue} placement="topLeft">
-            <span>{oldValue}</span>
+            <ReactJson
+              name="Old Value"
+              enableClipboard
+              theme="apathy:inverted"
+              src={JSON.parse(oldValue)}
+            />
           </Tooltip>
         ),
       },
