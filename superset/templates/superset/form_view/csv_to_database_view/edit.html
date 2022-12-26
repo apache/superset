@@ -35,6 +35,9 @@
         <table class="table table-bordered">
           <tbody>
             <tr>
+              {{ lib.render_field(form.api_url, begin_sep_label, end_sep_label, begin_sep_field, end_sep_field) }}
+            </tr>
+            <tr>
               {{ lib.render_field(form.csv_file, begin_sep_label, end_sep_label, begin_sep_field, end_sep_field) }}
             </tr>
             <tr>

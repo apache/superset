@@ -19,6 +19,9 @@ import os
 import tempfile
 import zipfile
 from typing import Any, TYPE_CHECKING
+import requests
+from urllib.parse import urlparse
+from pathlib import Path
 
 import pandas as pd
 from flask import flash, g, redirect
@@ -171,6 +174,32 @@ class CsvToDatabaseView(CustomFormView):
         form.if_exists.data = "fail"
 
     def form_post(self, form: CsvToDatabaseForm) -> Response:
+        is_json = False
+        url = form.api_url.data
+        domain = ""
+        base_path = f"{os.getcwd()}/superset/views/database/"
+        file_path = base_path
+        if (url):
+            domain = urlparse(url).netloc
+            try:
+                response = requests.get(url)
+                is_json = True
+
+                # Get the response from api
+                result = response.json()['data']
+
+                # using pd.DataFrame convert json to dataframe
+                df = pd.DataFrame(result)
+
+                # convert this dataframe to CSV and assigning it to form.csv_file attribute
+                file_path += f"{form.table_name.data+'_'+domain.split('.')[0]}json.csv"
+                df.to_csv(file_path, index=False)
+                form.csv_file.data = file_path
+
+            except Exception as e:
+                os.remove(file_path)
+                print("Exception occured in json to csv conversion ", e)
+
         database = form.database.data
         csv_table = Table(table=form.table_name.data, schema=form.schema.data)
         delimiter_input = form.delimiter.data
@@ -193,7 +222,7 @@ class CsvToDatabaseView(CustomFormView):
                 pd.read_csv(
                     chunksize=1000,
                     encoding="utf-8",
-                    filepath_or_buffer=form.csv_file.data,
+                    filepath_or_buffer=file_path if is_json  else form.csv_file.data,
                     header=form.header.data if form.header.data else 0,
                     index_col=form.index_col.data,
                     infer_datetime_format=form.infer_datetime_format.data,
@@ -269,7 +298,7 @@ class CsvToDatabaseView(CustomFormView):
                 'Unable to upload CSV file "%(filename)s" to table '
                 '"%(table_name)s" in database "%(db_name)s". '
                 "Error message: %(error_msg)s",
-                filename=form.csv_file.data.filename,
+                filename="generated from api response" if is_json else form.csv_file.data.filename,
                 table_name=form.table_name.data,
                 db_name=database.database_name,
                 error_msg=str(ex),
@@ -283,7 +312,7 @@ class CsvToDatabaseView(CustomFormView):
         message = __(
             'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
             'database "%(db_name)s"',
-            csv_filename=form.csv_file.data.filename,
+            csv_filename="generated from api response" if is_json else form.csv_file.data.filename,
             table_name=str(csv_table),
             db_name=sqla_table.database.database_name,
         )
