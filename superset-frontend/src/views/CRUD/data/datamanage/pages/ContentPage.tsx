@@ -124,7 +124,7 @@ const ContentPage = () => {
     })
       .then(async ({ json }) => {
         console.log(' ======== Success =======', json);
-        notification['success']({
+        notification.success({
           message: 'Success',
           description: 'Change table name successfully',
         });
