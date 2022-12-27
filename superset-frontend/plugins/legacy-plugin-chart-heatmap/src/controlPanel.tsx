@@ -147,8 +147,8 @@ const config: ControlPanelConfig = {
               label: t('Rendering'),
               renderTrigger: true,
               choices: [
-                ['pixelated', 'pixelated (Sharp)'],
-                ['auto', 'auto (Smooth)'],
+                ['pixelated', t('pixelated (Sharp)')],
+                ['auto', t('auto (Smooth)')],
               ],
               default: 'pixelated',
               description: t(
@@ -165,9 +165,9 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Normalize Across'),
               choices: [
-                ['heatmap', 'heatmap'],
-                ['x', 'x'],
-                ['y', 'y'],
+                ['heatmap', t('heatmap')],
+                ['x', t('x')],
+                ['y', t('y')],
               ],
               default: 'heatmap',
               description: (
