@@ -209,34 +209,53 @@
       "Add to dashboard": ["Добавить в дашборд"],
       "Add/Edit Filters": ["Добавить/изменить фильтры"],
       "Added": ["Добавлено"],
+      "Added to 1 dashboard": ["Добавлено в 1 дашборд"],
       "Additional Parameters": ["Дополнительные параметры"],
       "Additional information": ["Дополнительная информация"],
       "Additional metadata": ["Дополнительные метаданные"],
       "Additional padding for legend.": ["Дополнительный отступ для легенды"],
-      "Additional text to add before or after the value, e.g. unit": [""],
+      "Additional parameters": ["Дополнительные параметры"],
+      "Additional text to add before or after the value, e.g. unit": [
+        "Дополнительный текст перед значением, например, единица измерения"
+      ],
+      "Additive": ["Смешанный"],
       "Advanced": ["Дополнительно"],
+      "Advanced Analytics": ["Расширенный анализ"],
+      "Advanced Data type": ["Расширенный тип данных"],
       "Advanced analytics": ["Расширенный анализ"],
-      "Aesthetic": [""],
+      "Advanced analytics Query A": ["Расширенный анализ: запрос А"],
+      "Advanced analytics Query B": ["Расширенный анализ: запрос Б"],
+      "Advanced data type": ["Расширенный тип данных"],
+      "Advanced-Analytics": ["Расширенный анализ"],
+      "Aesthetic": ["Эстетично"],
+      "After": ["После"],
+      "Aggregate": ["Агрегация"],
+      "Aggregate Mean": ["Агрегированное среднее"],
+      "Aggregate Sum": ["Агрегированная сумма"],
       "Aggregate function applied to the list of points in each cluster to produce the cluster label.": [
-        ""
+        "Агрегатная функция, применяемая для списка точек в каждом кластере для создания метки кластера."
       ],
       "Aggregate function to apply when pivoting and computing the total rows and columns": [
-        ""
+        "Агрегатная функция, применяемая для сводных таблиц и вычислении суммарных значений."
       ],
       "Aggregates data within the boundary of grid cells and maps the aggregated values to a dynamic color scale": [
         ""
       ],
-      "Alert Triggered, In Grace Period": ["Сработало оповещение"],
+      "Alert Triggered, In Grace Period": [
+        "Оповещение сработало во время перерыва"
+      ],
       "Alert condition": ["Условие оповещения"],
       "Alert condition schedule": ["Расписание условия оповещения"],
-      "Alert ended grace period.": [""],
-      "Alert failed": ["Оповещение не удалось"],
-      "Alert fired during grace period.": [""],
+      "Alert ended grace period.": ["У оповещения закончилось время перерыва"],
+      "Alert failed": ["Оповещение не сработало"],
+      "Alert fired during grace period.": [
+        "Оповещение сработало во время перерыва"
+      ],
       "Alert found an error while executing a query.": [
-        "Обнаружена ошибка в запросе."
+        "Возникла ошибка при выполнении запроса для оповещения."
       ],
       "Alert name": ["Имя оповещения"],
-      "Alert on grace period": [""],
+      "Alert on grace period": ["Оповещение во время перерыва"],
       "Alert query returned a non-number value.": [
         "Запрос для оповещения вернул не число."
       ],
@@ -262,49 +281,62 @@
       "Alerts": ["Оповещения"],
       "Alerts & Reports": ["Оповещения и Рассылка"],
       "Alerts & reports": ["Оповещения и рассылки"],
-      "Align +/-": [""],
-      "All": [""],
+      "Align +/-": ["Выровнять +/-"],
+      "All": ["Все"],
       "All Text": ["Весь текст"],
       "All charts": ["Все графики"],
-      "All filters": ["Фильтры"],
-      "All filters (%(filterCount)d)": [""],
+      "All filters": ["Все фильтры"],
+      "All filters (%(filterCount)d)": ["Все фильтры (%(filterCount)d)"],
+      "All panels": ["Все панели"],
       "All panels with this column will be affected by this filter": [
         "Фильтр будет применён ко всем панелям с этим столбцом"
       ],
       "Allow CREATE TABLE AS": ["Разрешить CREATE TABLE AS"],
       "Allow CREATE TABLE AS option in SQL Lab": [
-        "Разрешить выполнять инструкцию CREATE TABLE AS в редакторе SQL"
+        "Разрешить CREATE TABLE AS в Лаборатории SQL"
       ],
       "Allow CREATE VIEW AS": ["Разрешить CREATE TABLE AS"],
       "Allow CREATE VIEW AS option in SQL Lab": [
-        "Разрешить выполнять инструкцию CREATE TABLE AS в редакторе SQL"
+        "Разрешить CREATE TABLE AS в Лаборатории SQL"
       ],
       "Allow Csv Upload": ["Разрешить загрузку CSV"],
-      "Allow DML": ["Allow DML"],
-      "Allow columns to be rearranged": [""],
-      "Allow creation of new tables based on queries": [""],
-      "Allow creation of new views based on queries": [""],
+      "Allow DML": ["Разрешить DML"],
+      "Allow columns to be rearranged": ["Разрешить смену столбцов местами"],
+      "Allow creation of new tables based on queries": [
+        "Разрешить создание новых таблиц на основе запросов"
+      ],
+      "Allow creation of new views based on queries": [
+        "Разрешить создание новых представлений на основе запросов"
+      ],
       "Allow data manipulation language": [
         "Разрешить язык манипулирования данными"
       ],
       "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.": [
-        ""
+        "Разрешить конечному пользователю перемещать столбцы, удерживая их заголовки. Заметьте, такие изменения будут нейтрализованы при следующем обращении к дашборду."
       ],
       "Allow manipulation of the database using non-SELECT statements such as UPDATE, DELETE, CREATE, etc.": [
-        ""
+        "Разрешить управление базой данных, используя запросы UPDATE, DELETE, CREATE и т.п."
       ],
-      "Allow multiple selections": ["Разрешить множественный фильтр"],
+      "Allow multiple selections": ["Разрешить множественный выбор"],
       "Allow sending multiple polygons as a filter event": [""],
-      "Allow this database to be explored": [""],
-      "Allow this database to be queried in SQL Lab": [""],
+      "Allow this database to be explored": [
+        "Разрешить изучение этой базы данных"
+      ],
+      "Allow this database to be queried in SQL Lab": [
+        "Разрешить запросы к этой базе данных в Лаборатории SQL"
+      ],
       "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab": [
-        "Позволяет пользователям запускать инструкции (UPDATE, DELETE, CREATE, …) без SELECT в редакторе SQL"
+        "Разрешить управление базой данных, используя запросы UPDATE, DELETE, CREATE и т.п. в Лаборатории SQL"
       ],
       "Allowed Domains (comma separated)": [""],
+      "Alphabetical": ["В алфавитном порядке"],
       "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles.": [
         ""
       ],
       "Altered": ["Изменения"],
+      "An alert named \"%(name)s\" already exists": [
+        "Оповещение с именем \"%(name)s\" уже существует"
+      ],
       "An enclosed time range (both start and end) must be specified when using a Time Comparison.": [
         ""
       ],
@@ -1239,7 +1271,7 @@
         "Столбец даты/времени не предусмотрен в настройках таблицы и является обязательным для этого типа графика"
       ],
       "Datetime format": ["Формат Datetime"],
-      "Day": ["день"],
+      "Day": ["День"],
       "Days %s": ["Дней %s"],
       "Db engine did not return all queried columns": [
         "Движок базы данных вернул не все запрошенные столбцы"
@@ -2255,7 +2287,7 @@
       "Original table column order": [
         "Расположение столбцов как в исходной таблице"
       ],
-      "Original value": [""],
+      "Original value": ["Исходное значение"],
       "Orthogonal": [""],
       "Outer Radius": [""],
       "Overlay one or more timeseries from a relative time period. Expects relative time deltas in natural language (example:  24 hours, 7 days, 52 weeks, 365 days). Free text is supported.": [
@@ -2415,31 +2447,40 @@
       "Predicate applied when fetching distinct value to populate the filter control component. Supports jinja template syntax. Applies only when `Enable Filter Select` is on.": [
         "Предикат применяется при получении значений для компонента - «Фильтр». Поддерживает синтаксис jinja. Применяется только в том случае, если включен параметр «Включить Онлайн Фильтр»."
       ],
+      "Predictive": ["Прогноз"],
+      "Predictive Analytics": ["Предиктивная аналитика"],
       "Prefix metric name with slice name": [""],
-      "Preview": ["Предпросмотр %s"],
-      "Preview: `%s`": ["Предпросмотр %s"],
-      "Previous": ["Предпросмотр %s"],
-      "Primary or secondary y-axis": [""],
-      "Primary y-axis format": [""],
+      "Preview": ["Предпросмотр"],
+      "Preview: `%s`": ["Предпросмотр «%s»"],
+      "Previous": ["Предыдущий"],
+      "Previous Line": ["Предыдущая строка"],
+      "Primary": ["Первичная"],
+      "Primary Metric": ["Первичная мера"],
+      "Primary or secondary y-axis": ["Первичная или вторичная ось Y"],
+      "Primary y-axis format": ["Формат первичной оси Y"],
       "Profile": ["Профиль"],
       "Profile picture provided by Gravatar": [
         "Изображение профиля, сгенерированное сервисом Gravatar"
       ],
-      "Progress": [""],
-      "Progressive": [""],
+      "Progress": ["Прогресс"],
+      "Progressive": ["Постепенный"],
       "Propagate": [""],
-      "Proportional": [""],
+      "Proportional": ["Пропорция"],
       "Public and privately shared sheets": [""],
       "Publicly shared sheets only": [""],
       "Published": ["Опубликовано"],
-      "Put labels outside": [""],
-      "Put the labels outside of the pie?": [""],
-      "Put the labels outside the pie?": [""],
+      "Put labels outside": ["Вынести метки наружу"],
+      "Put the labels outside of the pie?": [
+        "Вынести метки за пределы диаграммы"
+      ],
+      "Put the labels outside the pie?": ["Вынести метки за пределы диаграммы"],
       "Put your code here": [
         "Введите произвольный текст в формате html или markdown"
       ],
-      "Python datetime string pattern": [""],
+      "Python datetime string pattern": ["Шаблон строки даты и времени Python"],
       "QUERY DATA IN SQL LAB": [""],
+      "Quarter": ["Квартал"],
+      "Quarters %s": ["Кварталов: %s"],
       "Query": ["Запрос"],
       "Query %s: %s": ["Запрос %s: %s"],
       "Query A": ["Запрос А"],
@@ -2449,13 +2490,19 @@
       "Query history": ["История запросов"],
       "Query imported": ["Запрос импортирован"],
       "Query in a new tab": ["Запрос в отдельной вкладке"],
-      "Query is too complex and takes too long to run.": [""],
+      "Query is too complex and takes too long to run.": [
+        "Запрос слишком тяжелый для выполнения и займет много времени."
+      ],
+      "Query mode": ["Режим запроса"],
       "Query name": ["Имя запроса"],
       "Query preview": ["Предпросмотр данных"],
       "Query search string": ["Поиск запросов"],
-      "Query was stopped.": ["Запрос прерван."],
+      "Query was stopped": ["Запрос прерван"],
+      "Query was stopped.": ["Запрос прерван"],
       "RANGE TYPE": ["ТИП ИНТЕРВАЛА"],
-      "Radar": [""],
+      "RGB Color": ["Цвет RGB"],
+      "Radar": ["Радар"],
+      "Radar Chart": ["Диаграмма радар"],
       "Radar render type, whether to display 'circle' shape.": [""],
       "Range filter plugin using AntD": [""],
       "Range labels": [""],
@@ -3555,7 +3602,7 @@
       "Time grain missing": ["Период времени"],
       "Time granularity": ["Гранулярность времени"],
       "Time in seconds": ["Время в секундах"],
-      "Time range": ["Период времени"],
+      "Time range": ["Временной интервал"],
       "Time related form attributes": ["Параметры, связанные с временем"],
       "Time series columns": ["Столбцы Временных Рядов"],
       "Time shift": ["Временной сдвиг"],
