@@ -101,6 +101,12 @@ import usa from './countries/usa.geojson';
 import zambia from './countries/zambia.geojson';
 import venezuela from './countries/venezuela.geojson';
 import vietnam from './countries/vietnam.geojson';
+import uzbekistan from './countries/uzbekistan_regional.geojson';
+import tashkent from './countries/tashkent_region_districts..geojson';
+import tashkent_districts from './countries/tashkent_districts.geojson';
+import surkhandarya_region_districts from './countries/surkhandarya_region_districts..geojson';
+import sirdaryo_region_districts from './countries/sirdaryo_region_districts.geojson';
+import jizzakh_region_districts from './countries/jizzakh_region_districts..geojson';
 
 export const countries = {
   austria,
@@ -138,6 +144,7 @@ export const countries = {
   italy,
   italy_regions,
   japan,
+  jizzakh_region_districts,
   jordan,
   kenya,
   korea,
@@ -168,13 +175,17 @@ export const countries = {
   saint_barthelemy,
   saint_martin,
   saudi_arabia,
+  surkhandarya_region_districts,
   singapore,
+  sirdaryo_region_districts,
   slovenia,
   spain,
   sweden,
   switzerland,
   syria,
   tanzania,
+  tashkent,
+  tashkent_districts,
   thailand,
   timorleste,
   turkey,
@@ -184,6 +195,7 @@ export const countries = {
   ukraine,
   uruguay,
   usa,
+  uzbekistan,
   zambia,
   venezuela,
   vietnam,
