@@ -6,7 +6,7 @@ from flask import g, request, Response, jsonify
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 import logging
 
-from superset import charts
+from superset import charts, constants
 from superset.charts.api import ChartRestApi
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.commands.exceptions import ChartNotFoundError
@@ -22,7 +22,7 @@ from superset.explore.commands.parameters import CommandParameters
 from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
-from superset.extensions import event_logger
+from superset.extensions import event_logger, cache_manager
 from superset.quotron.DataTypes import Autocomplete, QuotronChart, Params
 from superset.quotron.schemas import AutoCompleteSchema, QuestionSchema
 from superset.superset_typing import Column, Metric, AdhocMetric, AdhocColumn
@@ -30,19 +30,13 @@ from superset.temporary_cache.commands.exceptions import (
     TemporaryCacheAccessDeniedError,
     TemporaryCacheResourceNotFoundError,
 )
-from superset.utils.core import DatasourceDict
 
+from superset.utils.core import DatasourceDict
+from sql_metadata import Parser
 logger = logging.getLogger(__name__)
 
 
-def get_table_from_name(table_name):
-    table = DatasetDAO.find_table_by_name(table_name)
-    return table
 
-def get_column_from_name(column_name):
-    column = DatasetDAO.find_column_by_name(column_name)
-
-    return AdhocColumn(columnType=column.type, id=column.id, column_name = column.column_name, groupby = True)
 
 class QuotronRestApi(BaseApi):
     include_route_methods = {
@@ -51,6 +45,8 @@ class QuotronRestApi(BaseApi):
     resource_name = "quotron"
     openapi_spec_tag = "Quotron"
     openapi_spec_component_schemas = (AutoCompleteSchema, QuestionSchema)
+
+    @cache_manager.cache.memoize(timeout=60)
     @expose("/auto_complete/", methods=["GET"])
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -122,27 +118,31 @@ class QuotronRestApi(BaseApi):
         question = req['question']
 
         #1. Get quotron SQL query
-        # resp =requests.get(f'https://home.quotron.ai/ask/{question}')
+        resp =requests.get(f'https://nlp.quotron.ai/ask/{question}')
 
         #2. Parse quotron query
-
-
+        sql = resp.json()['query']
+        columns = Parser(sql).columns
+        table = Parser(sql).tables[0]
+        logger.info(columns)
+        logger.info(table)
         add_model_schema = ChartPostSchema()
         add_model_schema.slice_name = question
         add_model_schema.viz_type = 'dist_bar'
-        table = get_table_from_name('financial_data')
-        column1 = get_column_from_name('revenue')
-        column2 = get_column_from_name('grossProfit')
+        table = get_table_from_name(table)
+        superset_columns = []
+        for column in columns:
+            superset_columns.append(get_column_from_name(column))
 
-        #3. Create a slice
-        metric1  = AdhocMetric(aggregate='AVG', column=column1, expressionType='SIMPLE')
-        metric2  = AdhocMetric(aggregate='AVG', column=column2,expressionType='SIMPLE' )
-        series_limit_metric = AdhocMetric(aggregate='AVG', column=get_column_from_name('calendarYear'),expressionType='SIMPLE' )
+        superset_metrics = []
+        for superset_column in superset_columns:
+            superset_metrics.append(AdhocMetric(aggregate='AVG', column=superset_column, expressionType='SIMPLE'))
+
+        series_limit_metric = AdhocMetric(aggregate='AVG', column=get_column_from_name('calendar_Year'),expressionType='SIMPLE' )
 
         datasource = DatasourceDict(type="table",id="24")
-        queryObject = QueryObject(datasource=datasource,columns = [column1, column2], metrics = [
-            metric1,
-            metric2], series_limit_metric = series_limit_metric, row_limit = 10000)
+        queryObject = QueryObject(datasource=datasource,columns = superset_columns,
+                                  metrics = superset_metrics, series_limit_metric = series_limit_metric, row_limit = 10000)
 
         qc = QueryContextFactory().create(
             datasource=datasource,
@@ -154,7 +154,7 @@ class QuotronRestApi(BaseApi):
 
         params = Params(datasource="24__table", viz_type="dist_bar",
                         time_range="No Filter",
-                        metrics=[metric1, metric2],groupby=["calendarYear"],
+                        metrics=superset_metrics,groupby=["calendar_Year"],
                         timeseries_limit_metric=series_limit_metric,
                         order_desc=False)
         quotronChart = QuotronChart(slice_name=question, viz_type="dist_bar",datasource_id=24, datasource_type="table",
@@ -168,3 +168,10 @@ class QuotronRestApi(BaseApi):
 
 
 
+def get_table_from_name(table_name):
+    table = DatasetDAO.find_table_by_name(table_name)
+    return table
+
+def get_column_from_name(column_name):
+    column = DatasetDAO.find_column_by_name(column_name)
+    return AdhocColumn(columnType=column.type, id=column.id, column_name = column.column_name, groupby = True)
