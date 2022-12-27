@@ -35,6 +35,19 @@ class DatasetDAO(BaseDAO):  # pylint: disable=too-many-public-methods
     model_cls = SqlaTable
     base_filter = DatasourceFilter
 
+    @classmethod
+    def find_table_by_name(
+        cls, table_name: str
+    ) -> Optional[id]:
+        table = db.session.query(SqlaTable).filter_by(table_name=table_name).one()
+        return table
+
+    @classmethod
+    def find_column_by_name(
+        cls, column_name: str
+    ) -> Optional[id]:
+        table = db.session.query(TableColumn).filter_by(column_name=column_name).one()
+        return table
     @staticmethod
     def get_database_by_id(database_id: int) -> Optional[Database]:
         try:

@@ -34,6 +34,7 @@ import {
   SequentialCommon,
   SequentialD3,
   ColorSchemeRegistry,
+  CategoricalQuotron,
 } from '@superset-ui/core';
 
 function registerColorSchemes<T extends ColorScheme>(
@@ -72,6 +73,7 @@ export default function setupColors(
       ...CategoricalPreset,
       ...CategoricalSuperset,
       ...extraCategoricalColorSchemes,
+      ...CategoricalQuotron,
     ],
     'supersetColors',
   );

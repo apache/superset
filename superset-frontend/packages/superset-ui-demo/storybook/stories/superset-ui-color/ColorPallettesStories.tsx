@@ -25,6 +25,7 @@ import {
   CategoricalGoogle,
   CategoricalLyft,
   CategoricalPreset,
+  CategoricalQuotron,
   CategoricalSuperset,
   SequentialCommon,
   SequentialD3,
@@ -44,6 +45,7 @@ export const categoricalPalettes = () =>
     { palettes: CategoricalGoogle, storyName: 'Google' },
     { palettes: CategoricalLyft, storyName: 'Lyft' },
     { palettes: CategoricalPreset, storyName: 'Preset' },
+    { palettes: CategoricalQuotron, storyName: 'Quotron' },
   ].map(({ palettes, storyName }) => (
     <RenderPalettes key={storyName} title={storyName} palettes={palettes} />
   ));

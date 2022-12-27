@@ -17,11 +17,37 @@
  * under the License.
  */
 
-export { default as CategoricalAirbnb } from './airbnb';
-export { default as CategoricalD3 } from './d3';
-export { default as CategoricalEcharts } from './echarts';
-export { default as CategoricalGoogle } from './google';
-export { default as CategoricalLyft } from './lyft';
-export { default as CategoricalPreset } from './preset';
-export { default as CategoricalSuperset } from './superset';
-export { default as CategoricalQuotron } from './quotron';
+import CategoricalScheme from '../../CategoricalScheme';
+
+const schemes = [
+  {
+    id: 'quotronColors',
+    label: 'Quotron Colors',
+    colors: [
+      // Full color
+      '#6BD3B3',
+      '#FCC550',
+      '#408184',
+      '#66CBE2',
+      '#EE5960',
+      '#484E5A',
+      '#FF874E',
+      '#03748E',
+      '#C9BBAB',
+      '#B17BAA',
+      // Pastels
+      '#B5E9D9',
+      '#FDE2A7',
+      '#9FC0C1',
+      '#B2E5F0',
+      '#F6ACAF',
+      '#A4A6AC',
+      '#FFC3A6',
+      '#81B9C6',
+      '#E4DDD5',
+      '#D9BDD5',
+    ],
+  },
+].map(s => new CategoricalScheme(s));
+
+export default schemes;
