@@ -19,7 +19,8 @@
 import React from 'react';
 import Button from 'src/components/Button';
 import { Empty } from 'src/components';
-import { t, styled } from '@superset-ui/core';
+import { TableTab } from 'src/views/CRUD/types';
+import { styled, t } from '@superset-ui/core';
 import { WelcomeTable } from './types';
 
 const welcomeTableLabels: Record<WelcomeTable, string> = {
@@ -29,9 +30,10 @@ const welcomeTableLabels: Record<WelcomeTable, string> = {
   [WelcomeTable.SavedQueries]: t('saved queries'),
 };
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   tableName: WelcomeTable;
   tab?: string;
+  otherTabTitle?: string;
 }
 const EmptyContainer = styled.div`
   min-height: 200px;
@@ -52,7 +54,11 @@ type Redirects = Record<
   string
 >;
 
-export default function EmptyState({ tableName, tab }: EmptyStateProps) {
+export default function EmptyState({
+  tableName,
+  tab,
+  otherTabTitle,
+}: EmptyStateProps) {
   const mineRedirects: Redirects = {
     [WelcomeTable.Charts]: '/chart/add',
     [WelcomeTable.Dashboards]: '/dashboard/new',
@@ -77,22 +83,23 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const recent = (
     <span className="no-recents">
       {(() => {
-        if (tab === 'Viewed') {
+        if (tab === TableTab.Viewed) {
           return t(
             `Recently viewed charts, dashboards, and saved queries will appear here`,
           );
         }
-        if (tab === 'Created') {
+        if (tab === TableTab.Created) {
           return t(
             'Recently created charts, dashboards, and saved queries will appear here',
           );
         }
-        if (tab === 'Examples') {
-          return t('Example %(tableName)s will appear here', {
+        if (tab === TableTab.Other) {
+          return t('%(other)s %(tableName)s will appear here', {
+            other: otherTabTitle || t('Other'),
             tableName: tableName.toLowerCase(),
           });
         }
-        if (tab === 'Edited') {
+        if (tab === TableTab.Edited) {
           return t(
             `Recently edited charts, dashboards, and saved queries will appear here`,
           );
@@ -101,17 +108,24 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
       })()}
     </span>
   );
+
   // Mine and Recent Activity(all tabs) tab empty state
-  if (tab === 'Mine' || tableName === 'RECENTS' || tab === 'Examples') {
+  if (
+    tab === TableTab.Mine ||
+    tableName === WelcomeTable.Recents ||
+    tab === TableTab.Other
+  ) {
     return (
       <EmptyContainer>
         <Empty
           image={`/static/assets/images/${tableIcon[tableName]}`}
           description={
-            tableName === 'RECENTS' || tab === 'Examples' ? recent : mine
+            tableName === WelcomeTable.Recents || tab === TableTab.Other
+              ? recent
+              : mine
           }
         >
-          {tableName !== 'RECENTS' && (
+          {tableName !== WelcomeTable.Recents && (
             <ButtonContainer>
               <Button
                 buttonStyle="primary"
@@ -120,7 +134,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
                 }}
               >
                 <i className="fa fa-plus" />
-                {tableName === 'SAVED_QUERIES'
+                {tableName === WelcomeTable.SavedQueries
                   ? t('SQL query')
                   : tableName
                       .split('')
@@ -152,7 +166,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
         >
           {t('See all %(tableName)s', {
             tableName:
-              tableName === 'SAVED_QUERIES'
+              tableName === WelcomeTable.SavedQueries
                 ? t('SQL Lab queries')
                 : welcomeTableLabels[tableName],
           })}

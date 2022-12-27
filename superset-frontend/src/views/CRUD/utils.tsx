@@ -18,22 +18,24 @@
  */
 
 import {
-  t,
-  SupersetClient,
-  SupersetClientResponse,
+  css,
   logging,
   styled,
+  SupersetClient,
+  SupersetClientResponse,
   SupersetTheme,
-  css,
+  t,
 } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
 import { intersection } from 'lodash';
 import rison from 'rison';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
-import { FetchDataConfig } from 'src/components/ListView';
+import { FetchDataConfig, FilterValue } from 'src/components/ListView';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
-import { Dashboard, Filters } from './types';
+import { User } from 'src/types/bootstrapTypes';
+import { Dashboard, Filter, TableTab } from './types';
+import { WelcomeTable } from './welcome/types';
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
@@ -120,7 +122,7 @@ const createFetchResourceMethod =
   };
 
 export const PAGE_SIZE = 5;
-const getParams = (filters?: Array<Filters>) => {
+const getParams = (filters?: Filter[]) => {
   const params = {
     order_column: 'changed_on_delta_humanized',
     order_direction: 'desc',
@@ -164,7 +166,7 @@ export const getEditedObjects = (userId: string | number) => {
 export const getUserOwnedObjects = (
   userId: string | number,
   resource: string,
-  filters: Array<Filters> = [
+  filters: Filter[] = [
     {
       col: 'owners',
       opr: 'rel_m_m',
@@ -180,16 +182,10 @@ export const getRecentAcitivtyObjs = (
   userId: string | number,
   recent: string,
   addDangerToast: (arg1: string, arg2: any) => any,
+  filters: Filter[],
 ) =>
   SupersetClient.get({ endpoint: recent }).then(recentsRes => {
     const res: any = {};
-    const filters = [
-      {
-        col: 'created_by',
-        opr: 'rel_o_m',
-        value: 0,
-      },
-    ];
     const newBatch = [
       SupersetClient.get({
         endpoint: `/api/v1/chart/?q=${getParams(filters)}`,
@@ -200,7 +196,7 @@ export const getRecentAcitivtyObjs = (
     ];
     return Promise.all(newBatch)
       .then(([chartRes, dashboardRes]) => {
-        res.examples = [...chartRes.json.result, ...dashboardRes.json.result];
+        res.other = [...chartRes.json.result, ...dashboardRes.json.result];
         res.viewed = recentsRes.json;
         return res;
       })
@@ -442,3 +438,64 @@ export const uploadUserPerms = (
     canUploadData: canUploadCSV || canUploadColumnar || canUploadExcel,
   };
 };
+
+export function getFilterValues(
+  tab: TableTab,
+  welcomeTable: WelcomeTable,
+  user?: User,
+  otherTabFilters?: Filter[],
+): FilterValue[] {
+  if (
+    tab === TableTab.Created ||
+    (welcomeTable === WelcomeTable.SavedQueries && tab === TableTab.Mine)
+  ) {
+    return [
+      {
+        id: 'created_by',
+        operator: 'rel_o_m',
+        value: `${user?.userId}`,
+      },
+    ];
+  }
+  if (welcomeTable === WelcomeTable.SavedQueries && tab === TableTab.Favorite) {
+    return [
+      {
+        id: 'id',
+        operator: 'saved_query_is_fav',
+        value: true,
+      },
+    ];
+  }
+  if (tab === TableTab.Mine && user) {
+    return [
+      {
+        id: 'owners',
+        operator: 'rel_m_m',
+        value: `${user.userId}`,
+      },
+    ];
+  }
+  if (
+    tab === TableTab.Favorite &&
+    [WelcomeTable.Dashboards, WelcomeTable.Charts].includes(welcomeTable)
+  ) {
+    return [
+      {
+        id: 'id',
+        operator:
+          welcomeTable === WelcomeTable.Dashboards
+            ? 'dashboard_is_favorite'
+            : 'chart_is_favorite',
+        value: true,
+      },
+    ];
+  }
+  if (tab === TableTab.Other) {
+    return (otherTabFilters || []).map(flt => ({
+      id: flt.col,
+      operator: flt.opr,
+      value: flt.value,
+    }));
+  }
+  return [];
+}
