@@ -152,7 +152,7 @@ const ContentPage = () => {
     await setTableData({
       ...tableData,
       columns: tableData.columns.map((column: any) =>
-        column.id == columnData.id
+        column.id === columnData.id
           ? {
               ...columnData,
               column_name: columnName,
