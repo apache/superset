@@ -18,6 +18,7 @@ import {
   Modal,
   Switch,
   Dropdown,
+  notification,
 } from 'antd';
 import {
   AppstoreOutlined,
@@ -46,11 +47,28 @@ const ContentPage = () => {
   const [btnToggle, setBtnToggle] = useState(true);
   const [tableSelectNum, setTableSelectNum] = useState([]);
   const [data, setData] = useState([]);
+  const [tableData, setTableData] = useState(null as any);
+  const [selectedId, setSelectedId] = useState(0);
+  const [tableName, setTableName] = useState('');
   const theme: SupersetTheme = useTheme();
 
   const showLargeDrawer = (e: any) => {
-    if (e.key === 'drop_edit') setOpen(true);
+    if (e.key === 'drop_edit') {
+      console.log('eeeeeee', selectedId);
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/${selectedId}`,
+      }).then(
+        async ({ json = {} }) => {
+          console.log('==========', json.result);
+          await setTableData(json.result);
+          await setTableName(json.result.table_name);
+          setOpen(true);
+        },
+        createErrorHandler(errMsg => console.log('====Err===', errMsg)),
+      );
+    }
   };
+
   const onClose = () => {
     setOpen(false);
   };
@@ -67,6 +85,12 @@ const ContentPage = () => {
   const handleToggle = () => {
     setBtnToggle(!btnToggle);
   };
+  const handleRowAction = (id: any) => {
+    setSelectedId(id);
+  };
+  const handleInputChange = (e: any) => {
+    setTableName(e.target.value);
+  };
   const handleTableSelect = (id: any) => {
     console.log('id', id);
     let tmp: any = tableSelectNum;
@@ -74,9 +98,10 @@ const ContentPage = () => {
     else tmp = [...tmp, id];
     setTableSelectNum(tmp);
   };
-  useEffect(() => {
-    SupersetClient.get({
-      endpoint: `/api/v1/datamanage/`,
+
+  const getData = async () => {
+    await SupersetClient.get({
+      endpoint: `/api/v1/dataset/`,
     })
       .then(
         ({ json = {} }) => {
@@ -85,6 +110,34 @@ const ContentPage = () => {
         createErrorHandler(errMsg => console.log('====Err===', errMsg)),
       )
       .finally(() => {});
+  };
+  const handleEditTableSave = () => {
+    SupersetClient.post({
+      endpoint: '/datasource/save/',
+      postPayload: {
+        data: {
+          ...tableData,
+          type: 'table',
+          table_name: tableName,
+        },
+      },
+    })
+      .then(async ({ json }) => {
+        console.log(' ======== Success =======', json);
+        notification.success({
+          message: 'Success',
+          description: 'Change table name successfully',
+        });
+        await getData();
+        setOpen(false);
+      })
+      .catch(err => {
+        console.log('====== Save error ========', err);
+      });
+  };
+
+  useEffect(() => {
+    getData();
   }, []);
 
   useEffect(() => {
@@ -255,7 +308,7 @@ const ContentPage = () => {
                       <Row style={{ display: 'inline-block' }}>Author</Row>
                     </Col>
                     <Col span="2">
-                      <Dropdown overlay={menu} arrow>
+                      <Dropdown overlay={menu} trigger={['click']} arrow>
                         <Button
                           type="primary"
                           icon={<MoreOutlined />}
@@ -263,6 +316,7 @@ const ContentPage = () => {
                             background: 'none',
                             color: theme.colors.quotron.black,
                           }}
+                          onClick={() => handleRowAction(row?.id)}
                         />
                       </Dropdown>
                     </Col>
@@ -312,7 +366,7 @@ const ContentPage = () => {
                             />
                           </Col>
                           <Col span={21} style={{ display: 'inline-block' }}>
-                            <Dropdown overlay={menu} arrow>
+                            <Dropdown overlay={menu} trigger={['click']} arrow>
                               <Button
                                 type="primary"
                                 icon={<MoreOutlined />}
@@ -321,6 +375,7 @@ const ContentPage = () => {
                                   color: theme.colors.quotron.white,
                                   float: 'right',
                                 }}
+                                onClick={() => handleRowAction(row?.id)}
                               />
                             </Dropdown>
                           </Col>
@@ -380,7 +435,7 @@ const ContentPage = () => {
               </Breadcrumb>
             </Row>
             <Row>
-              <Title level={3}>Sales India</Title>
+              <Title level={3}>{tableData?.table_name || ''}</Title>
             </Row>
           </Col>
           <Col span="12" style={{ display: 'inline-block' }}>
@@ -391,155 +446,61 @@ const ContentPage = () => {
           </Col>
         </Row>
         <Alert
-          message="Warning Text"
-          description="Warning Description Warning Description Warning Description Warning Description"
+          message="Please note that any changes made to table details would be persisted on"
+          description="Quotron only, it will not affect anything orignal data source"
           type="warning"
           style={{ background: theme.colors.quotron.gray_white }}
         />
         <Title level={4} style={{ marginTop: '12px' }}>
           Table Name
         </Title>
-        <Input placeholder="Sales India" />
+        <Input
+          placeholder="Sales India"
+          value={tableName}
+          onChange={handleInputChange}
+        />
         <Title level={4} style={{ marginTop: '12px' }}>
           Table Description
         </Title>
-        <TextArea rows={4} />
+        <TextArea rows={4} value={tableData?.description} />
         <Title level={4} style={{ marginTop: '24px' }}>
           Columes
         </Title>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>Product Cost</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>Sales Cost</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>No Of New Customers</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>CAC</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button
-                  icon={<FunctionOutlined />}
-                  size="large"
-                  onClick={showModal}
-                />
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>Averge</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button
-                  icon={<FunctionOutlined />}
-                  size="large"
-                  onClick={showModal}
-                />
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>Sum</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button
-                  icon={<FunctionOutlined />}
-                  size="large"
-                  onClick={showModal}
-                />
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
+        {tableData?.columns?.map((column: any) => (
+          <Card
+            style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
+          >
+            <Row justify="center">
+              <Col span="1">
+                <FolderOutlined />
+              </Col>
+              <Col span="11">
+                <Text strong>{column.column_name}</Text>
+              </Col>
+              <Col span="12" style={{ display: 'inline-block' }}>
+                <Space style={{ float: 'right' }}>
+                  {column.expression ? (
+                    <Button
+                      icon={<FunctionOutlined />}
+                      size="large"
+                      onClick={showModal}
+                    />
+                  ) : (
+                    ''
+                  )}
+                  <Button icon={<EyeInvisibleOutlined />} size="large" />
+                  <Button icon={<DeleteOutlined />} size="large" />
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        ))}
 
         <Row justify="center" gutter={16}>
           <Col span="12">
-            <Button style={{ width: '100%', height: '50px' }}>Cancel</Button>
+            <Button style={{ width: '100%', height: '50px' }} onClick={onClose}>
+              Cancel
+            </Button>
           </Col>
           <Col span="12">
             <Button
@@ -550,6 +511,7 @@ const ContentPage = () => {
                 background: theme.colors.quotron.black,
                 color: theme.colors.quotron.gray_white,
               }}
+              onClick={handleEditTableSave}
             >
               Save
             </Button>
