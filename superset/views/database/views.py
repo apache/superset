@@ -160,7 +160,7 @@ class CustomFormView(SimpleFormView):
 class CsvToDatabaseView(CustomFormView):
     form = CsvToDatabaseForm
     form_template = "superset/form_view/csv_to_database_view/edit.html"
-    form_title = _("CSV to Database configuration")
+    form_title = _("JSON/CSV to Database configuration")
     add_columns = ["database", "schema", "table_name"]
 
     def form_get(self, form: CsvToDatabaseForm) -> None:

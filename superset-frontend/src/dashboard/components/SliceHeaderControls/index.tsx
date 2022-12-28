@@ -54,6 +54,7 @@ import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import Modal from 'src/components/Modal';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
+import { Switch } from 'src/components/Switch';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -142,12 +143,6 @@ export interface SliceHeaderControlsProps {
   supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
-
-  // refreshFrequency?: number;
-  // refreshLimit?: number;
-  // refreshWarning?: string | null;
-  // editMode: boolean;
-  // onChange: (refreshLimit: number) => void;
 }
 
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
@@ -155,8 +150,7 @@ type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
 interface State {
   showControls: boolean;
   showCrossFilterScopingModal: boolean;
-  sliceId: number;
-  dashboardId: number;
+  intervalId: any;
 }
 
 const dropdownIconsStyles = css`
@@ -256,8 +250,7 @@ class SliceHeaderControls extends React.PureComponent<
     this.state = {
       showControls: false,
       showCrossFilterScopingModal: false,
-      sliceId: 0,
-      dashboardId: 0,
+      intervalId: 0,
     };
   }
 
@@ -270,20 +263,21 @@ class SliceHeaderControls extends React.PureComponent<
     }
   }
 
-  autoRefreshChart(refreshInterval = 0) {
-    let intervalId;
+  autoRefreshChart(refreshInterval = 0, sliceId: number, dashboardId: number) {
     if (refreshInterval !== 0) {
-      intervalId = setInterval(() => {
-        this.props.addSuccessToast(
-          `Auto Refreshed ${this.props.slice.slice_name}`,
-        );
-        if (this.props.updatedDttm) {
-          this.props.forceRefresh(this.state.sliceId, this.state.dashboardId);
-        }
-      }, refreshInterval * 1000);
+      this.setState({
+        intervalId: setInterval(() => {
+          this.props.addSuccessToast(
+            `Auto Refreshed ${this.props.slice.slice_name}`,
+          );
+          if (this.props.updatedDttm) {
+            this.props.forceRefresh(sliceId, dashboardId);
+          }
+        }, refreshInterval * 1000),
+      });
     } else {
       // eslint-disable-next-line no-unused-expressions
-      intervalId && clearInterval(intervalId);
+      this.state.intervalId && clearInterval(this.state.intervalId);
     }
   }
 
@@ -301,23 +295,6 @@ class SliceHeaderControls extends React.PureComponent<
     domEvent: MouseEvent<HTMLElement>;
   }) {
     switch (key) {
-      case MENU_KEYS.AUTO_REFRESH:
-        if (this.state.sliceId !== this.props.slice.slice_id) {
-          this.setState({
-            sliceId: this.props.slice.slice_id,
-            dashboardId: this.props.dashboardId,
-          });
-          this.autoRefreshChart(10);
-          this.props.addSuccessToast(
-            `Updated Auto Refresh ${this.props.slice.slice_name}`,
-          );
-        } else {
-          this.autoRefreshChart(0);
-          this.props.addSuccessToast(
-            `Auto Refresh already set for ${this.props.slice.slice_name}`,
-          );
-        }
-        break;
       case MENU_KEYS.FORCE_REFRESH:
         this.refreshChart();
         this.props.addSuccessToast(t('Data refreshed'));
@@ -430,37 +407,6 @@ class SliceHeaderControls extends React.PureComponent<
           <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
             {refreshTooltip}
           </RefreshTooltip>
-        </Menu.Item>
-
-        <Menu.Item
-          key={MENU_KEYS.AUTO_REFRESH}
-          disabled={this.props.chartStatus === 'loading'}
-          style={{ height: 'auto', lineHeight: 'initial' }}
-          data-test="auto-refresh-chart-menu-item"
-        >
-          {t('Auto-Refresh for 10 seconds')}
-          {/* <RefreshIntervalModal
-            addSuccessToast={this.props.addSuccessToast}
-            refreshFrequency={this.props.refreshFrequency ?? 0}
-            refreshLimit={this.props.refreshLimit ?? 0}
-            refreshWarning={this.props.refreshWarning ?? null}
-            refreshIntervalOptions={[
-              [0, `Don't refresh`],
-              [5, `5 seconds`],
-              [10, `10 seconds`],
-              [30, `30 seconds`],
-              [60, `1 minute`],
-              [300, `5 minutes`],
-              [1800, `30 minutes`],
-              [3600, `1 hour`],
-              [21600, `6 hours`],
-              [43200, `12 hours`],
-              [86400, `24 hours`],
-            ]}
-            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
-            onChange={this.autoRefreshChart}
-            editMode={this.props.editMode ?? false}
-          /> */}
         </Menu.Item>
 
         <Menu.Item key={MENU_KEYS.FULLSCREEN}>{fullscreenLabel}</Menu.Item>
@@ -600,6 +546,31 @@ class SliceHeaderControls extends React.PureComponent<
 
     return (
       <>
+        <Switch
+          title="Auto Refresh for 10 secons"
+          loading={this.props.chartStatus === 'loading'}
+          onChange={(event: any) => {
+            if (event) {
+              this.autoRefreshChart(
+                10,
+                this.props.slice.slice_id,
+                this.props.dashboardId,
+              );
+              this.props.addSuccessToast(
+                `Updated Auto Refresh ${this.props.slice.slice_name}`,
+              );
+            } else {
+              this.autoRefreshChart(
+                0,
+                this.props.slice.slice_id,
+                this.props.dashboardId,
+              );
+              this.props.addSuccessToast(
+                `Auto Refresh off for ${this.props.slice.slice_name}`,
+              );
+            }
+          }}
+        />
         <CrossFilterScopingModal
           chartId={slice.slice_id}
           isOpen={this.state.showCrossFilterScopingModal}
