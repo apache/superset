@@ -179,6 +179,10 @@ class CsvToDatabaseView(CustomFormView):
         domain = ""
         base_path = f"{os.getcwd()}/superset/views/database/"
         file_path = base_path
+        existing_files = os.listdir(file_path)
+        for file in existing_files:
+            if file.endswith(".csv"):
+                os.remove(os.path.join(file_path, file))
         if (url):
             domain = urlparse(url).netloc
             try:

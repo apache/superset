@@ -35,7 +35,6 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
-import Button from 'src/components/Button';
 
 interface MenuProps {
   data: MenuData;
@@ -304,7 +303,6 @@ export function Menu({
 
 // transform the menu data to reorganize components
 export default function MenuWrapper({ data, ...rest }: MenuProps) {
-  console.log(data?.menu);
   const newMenuData = {
     ...data,
   };
