@@ -6,7 +6,7 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:///home/exx/git/superset
+
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in

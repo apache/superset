@@ -124,8 +124,7 @@ class QuotronRestApi(BaseApi):
         logger.info(columns)
         logger.info(table)
         add_model_schema = ChartPostSchema()
-        add_model_schema.slice_name = question
-        add_model_schema.viz_type = 'dist_bar'
+
         table = get_table_from_name(table)
         superset_columns = []
         for column in columns:
@@ -158,13 +157,15 @@ class QuotronRestApi(BaseApi):
 		"sqlExpression": where_clause,
 		"clause": "WHERE",
 	}]
-        params = Params(datasource="24__table", viz_type="dist_bar",
+        params = Params(datasource="24__table", viz_type="echarts_timeseries_bar",
                         time_range="No Filter",
                         metrics=superset_metrics,groupby=["calendar_Year"],
                         timeseries_limit_metric=series_limit_metric,
                         order_desc=False,
-                        adhoc_filters=adhoc_filters)
-        quotronChart = QuotronChart(slice_name=question, viz_type="dist_bar",datasource_id=24, datasource_type="table",
+                        adhoc_filters=adhoc_filters,
+                        zoomable = True,
+                        time_grain_sqla=None)
+        quotronChart = QuotronChart(slice_name=question, viz_type="echarts_timeseries_bar",datasource_id=24, datasource_type="table",
                                     query_context=json.dumps(qc.__dict__, default=lambda o: '<not serializable>'),
                                     params =json.dumps(params.__dict__, default=lambda o: '<not serializable>'))
         result = add_model_schema.dump(quotronChart)
