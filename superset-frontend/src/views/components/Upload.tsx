@@ -4,7 +4,7 @@ import { Button, message, Upload } from 'antd';
 import { css, SupersetTheme } from '@superset-ui/core';
 import React from 'react';
 
-const uploadAreaStyle = (theme: SupersetTheme) => css`
+const uploadAreaStyle = () => css`
   width: auto !important;
   border: 1px dashed rgba(0, 0, 0, 0.1);
   margin: 40px !important;
@@ -65,7 +65,7 @@ const App: React.FC = () => (
     <Button
       css={uploadBtnStyle}
       icon={<CloudUploadOutlined css={uploadBtnIconStyle} />}
-      size={'large'}
+      size="large"
     >
       Upload Tables
     </Button>
