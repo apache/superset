@@ -48,8 +48,14 @@ const ContentPage = () => {
   const [tableSelectNum, setTableSelectNum] = useState([]);
   const [data, setData] = useState([]);
   const [tableData, setTableData] = useState(null as any);
+  const [columnData, setColumnData] = useState(null as any);
   const [selectedId, setSelectedId] = useState(0);
   const [tableName, setTableName] = useState('');
+  const [tableDescription, setTableDescription] = useState('');
+  const [columnName, setColumnName] = useState('');
+  const [columnDescription, setColumnDescription] = useState('');
+  const [columnExpression, setColumnExpression] = useState('');
+
   const theme: SupersetTheme = useTheme();
 
   const showLargeDrawer = (e: any) => {
@@ -62,6 +68,7 @@ const ContentPage = () => {
           console.log('==========', json.result);
           await setTableData(json.result);
           await setTableName(json.result.table_name);
+          await setTableDescription(json.result.description);
           setOpen(true);
         },
         createErrorHandler(errMsg => console.log('====Err===', errMsg)),
@@ -73,7 +80,11 @@ const ContentPage = () => {
     setOpen(false);
   };
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const showModal = () => {
+  const showModal = async (column: any) => {
+    await setColumnData(column);
+    await setColumnName(column.column_name);
+    await setColumnDescription(column.description);
+    await setColumnExpression(column.expression);
     setIsModalOpen(true);
   };
   const handleOk = () => {
@@ -99,7 +110,33 @@ const ContentPage = () => {
     setTableSelectNum(tmp);
   };
 
-  const getData = async () => {
+  const actionTableSave = async () => {
+    await SupersetClient.post({
+      endpoint: '/datasource/save/',
+      postPayload: {
+        data: {
+          ...tableData,
+          type: 'table',
+          table_name: tableName,
+          description: tableDescription,
+        },
+      },
+    })
+      .then(async ({ json }) => {
+        console.log(' ======== Success =======', json);
+        notification.success({
+          message: 'Success',
+          description: 'Changed table name successfully',
+        });
+        await actionGetData();
+        setOpen(false);
+      })
+      .catch(err => {
+        console.log('====== Save error ========', err);
+      });
+  };
+
+  const actionGetData = async () => {
     await SupersetClient.get({
       endpoint: `/api/v1/dataset/`,
     })
@@ -111,33 +148,29 @@ const ContentPage = () => {
       )
       .finally(() => {});
   };
+  const handleColumnSave = async () => {
+    await setTableData({
+      ...tableData,
+      columns: tableData.columns.map((column: any) =>
+        column.id === columnData.id
+          ? {
+              ...columnData,
+              column_name: columnName,
+              description: columnDescription,
+              expression: columnExpression,
+            }
+          : column,
+      ),
+    });
+
+    setIsModalOpen(false);
+  };
   const handleEditTableSave = () => {
-    SupersetClient.post({
-      endpoint: '/datasource/save/',
-      postPayload: {
-        data: {
-          ...tableData,
-          type: 'table',
-          table_name: tableName,
-        },
-      },
-    })
-      .then(async ({ json }) => {
-        console.log(' ======== Success =======', json);
-        notification.success({
-          message: 'Success',
-          description: 'Change table name successfully',
-        });
-        await getData();
-        setOpen(false);
-      })
-      .catch(err => {
-        console.log('====== Save error ========', err);
-      });
+    actionTableSave();
   };
 
   useEffect(() => {
-    getData();
+    actionGetData();
   }, []);
 
   useEffect(() => {
@@ -462,7 +495,13 @@ const ContentPage = () => {
         <Title level={4} style={{ marginTop: '12px' }}>
           Table Description
         </Title>
-        <TextArea rows={4} value={tableData?.description} />
+        <TextArea
+          rows={4}
+          value={tableDescription}
+          onChange={e => {
+            setTableDescription(e.target.value);
+          }}
+        />
         <Title level={4} style={{ marginTop: '24px' }}>
           Columes
         </Title>
@@ -483,7 +522,7 @@ const ContentPage = () => {
                     <Button
                       icon={<FunctionOutlined />}
                       size="large"
-                      onClick={showModal}
+                      onClick={() => showModal(column)}
                     />
                   ) : (
                     ''
@@ -543,11 +582,23 @@ const ContentPage = () => {
         <Title level={4} style={{ marginTop: '24px' }}>
           Colume Name
         </Title>
-        <Input placeholder="CAC" />
+        <Input
+          placeholder="CAC"
+          value={columnName}
+          onChange={(e: any) => {
+            setColumnName(e.target.value);
+          }}
+        />
         <Title level={4} style={{ marginTop: '24px' }}>
           KPI Description
         </Title>
-        <TextArea rows={4} />
+        <TextArea
+          rows={4}
+          value={columnDescription}
+          onChange={(e: any) => {
+            setColumnDescription(e.target.value);
+          }}
+        />
         <Row style={{ marginTop: '24px' }}>
           <Col span={12}>
             <Title level={4}>KPI</Title>
@@ -559,10 +610,21 @@ const ContentPage = () => {
             />
           </Col>
         </Row>
-        <TextArea rows={4} />
+        <TextArea
+          rows={4}
+          value={columnExpression}
+          onChange={(e: any) => {
+            setColumnExpression(e.target.value);
+          }}
+        />
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
           <Col span="12">
-            <Button style={{ width: '100%', height: '50px' }}>Cancel</Button>
+            <Button
+              style={{ width: '100%', height: '50px' }}
+              onClick={handleCancel}
+            >
+              Cancel
+            </Button>
           </Col>
           <Col span="12">
             <Button
@@ -573,6 +635,7 @@ const ContentPage = () => {
                 background: theme.colors.quotron.black,
                 color: theme.colors.quotron.gray_white,
               }}
+              onClick={handleColumnSave}
             >
               Save
             </Button>

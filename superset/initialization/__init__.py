@@ -127,6 +127,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             SqlMetricInlineView,
             TableColumnInlineView,
             TableModelView,
+            Datamanage,
         )
         from superset.css_templates.api import CssTemplateRestApi
         from superset.dashboards.api import DashboardRestApi
@@ -326,6 +327,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(Superset)
         appbuilder.add_view_no_menu(TableColumnInlineView)
         appbuilder.add_view_no_menu(TableModelView)
+        appbuilder.add_view_no_menu(Datamanage)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)
         appbuilder.add_view_no_menu(TagView)
