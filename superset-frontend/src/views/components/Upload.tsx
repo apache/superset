@@ -6,10 +6,10 @@ import React from 'react';
 
 const uploadAreaStyle = () => css`
   width: auto !important;
-  border: 1px dashed rgba(0, 0, 0, 0.1);
+  border: 1px dashed #000000;
   margin: 40px !important;
   :hover {
-    border-color: rgba(0, 0, 0, 0.4);
+    border-color: #000000;
   }
 `;
 
