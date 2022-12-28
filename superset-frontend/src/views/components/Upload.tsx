@@ -4,12 +4,12 @@ import { Button, message, Upload } from 'antd';
 import { css, SupersetTheme } from '@superset-ui/core';
 import React from 'react';
 
-const uploadAreaStyle = () => css`
+const uploadAreaStyle = (theme: SupersetTheme) => css`
   width: auto !important;
-  border: 1px dashed #000000;
+  border: 1px dashed ${theme.colors.primary.dark1};
   margin: 40px !important;
   :hover {
-    border-color: #000000;
+    border-color: ${theme.colors.primary.dark1};
   }
 `;
 
