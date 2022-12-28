@@ -14,8 +14,8 @@ from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.datasets.dao import DatasetDAO
 from superset.extensions import event_logger, cache_manager
-from superset.quotron.DataTypes import Autocomplete, QuotronChart, Params
-from superset.quotron.schemas import AutoCompleteSchema, QuestionSchema
+from superset.quotron.DataTypes import Autocomplete, QuotronChart, Params, Answer
+from superset.quotron.schemas import AutoCompleteSchema, QuestionSchema, AnswerSchema
 from superset.superset_typing import AdhocMetric, AdhocColumn
 from superset.utils.core import DatasourceDict, AdhocFilterClause, \
     QueryObjectFilterClause
@@ -170,8 +170,10 @@ class QuotronRestApi(BaseApi):
         result = add_model_schema.dump(quotronChart)
         new_model = CreateChartCommand(result).run()
         logger.info(new_model)
-        # logger.info(response)
-        return self.response(200, result = 'ABC')
+        answer = Answer(question=question, answer='{placeholder}', chart_id=new_model.id)
+        schema = AnswerSchema()
+        result = schema.dump(answer)
+        return self.response(200, result = result)
 
 
 
