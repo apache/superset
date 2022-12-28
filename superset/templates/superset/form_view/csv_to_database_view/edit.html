@@ -24,10 +24,21 @@
   {% set end_sep_field = '</td>' %}
 {% import 'superset/form_view/database_schemas_selector.html' as schemas_selector %}
 {% import 'superset/form_view/csv_scripts.html' as csv_scripts %}
+{% import 'superset/form_view/loader_script.html' as loader_scripts %}
 {% import 'superset/form_view/csv_macros.html' as csv_macros %}
+{% import 'superset/form_view/loader_style.html' as loader_style %}
 {% block content %}
 {{ lib.panel_begin(title, "edit") }}
 <div id="Home" class="tab-pane active">
+ 
+    
+  <div id="progress" style="display: none;">
+    <div class="ring-wrap"></div>
+    <div class="ring">Uploading
+      <span></span>
+    </div>
+  </div>
+
   <form id="model_form" action="" method="post" enctype="multipart/form-data">
     {{form.hidden_tag()}}
     <div class="form-group">
@@ -129,9 +140,12 @@
 {% endblock %}
 {% block add_tail_js %}
 <script src="{{url_for('appbuilder.static',filename='js/ab_keep_tab.js')}}"></script>
+
 {% endblock %}
 {% block tail_js %}
   {{ super() }}
   {{ schemas_selector }}
   {{ csv_scripts }}
+  {{ loader_scripts }}
+  {{ loader_style }}
 {% endblock %}
