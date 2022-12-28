@@ -18,7 +18,7 @@ class QuotronChart:
 
 
 class Params:
-    def __init__(self, datasource, viz_type, time_range, metrics, groupby, timeseries_limit_metric, order_desc):
+    def __init__(self, datasource, viz_type, time_range, metrics, groupby, timeseries_limit_metric, order_desc,adhoc_filters):
         self.datasource = datasource
         self.viz_type = viz_type
         self.time_range = time_range
@@ -26,6 +26,7 @@ class Params:
         self.groupby=groupby
         self.timeseries_limit_metric=timeseries_limit_metric
         self.order_desc = order_desc
+        self.adhoc_filters = adhoc_filters
 
 
 

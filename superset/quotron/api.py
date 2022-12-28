@@ -1,40 +1,36 @@
 import datetime
 import json
-
-import requests
-from flask import g, request, Response, jsonify
-from flask_appbuilder.api import BaseApi, expose, protect, safe
 import logging
 
-from superset import charts, constants
-from superset.charts.api import ChartRestApi
+import requests
+import sqlparse
+from flask import g, request, Response
+from flask_appbuilder.api import BaseApi, expose
+from sql_metadata import Parser
+
 from superset.charts.commands.create import CreateChartCommand
-from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.schemas import ChartPostSchema
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.datasets.api import DatasetRestApi
 from superset.datasets.dao import DatasetDAO
-from superset.explore.commands.get import GetExploreCommand
-from superset.explore.commands.parameters import CommandParameters
-from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError
-from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
-from superset.explore.schemas import ExploreContextSchema
 from superset.extensions import event_logger, cache_manager
 from superset.quotron.DataTypes import Autocomplete, QuotronChart, Params
 from superset.quotron.schemas import AutoCompleteSchema, QuestionSchema
-from superset.superset_typing import Column, Metric, AdhocMetric, AdhocColumn
-from superset.temporary_cache.commands.exceptions import (
-    TemporaryCacheAccessDeniedError,
-    TemporaryCacheResourceNotFoundError,
-)
+from superset.superset_typing import AdhocMetric, AdhocColumn
+from superset.utils.core import DatasourceDict, AdhocFilterClause, \
+    QueryObjectFilterClause
 
-from superset.utils.core import DatasourceDict
-from sql_metadata import Parser
 logger = logging.getLogger(__name__)
 
+
+def get_where_clause(sql):
+    parsed_sql = sqlparse.parse(sql)
+    for item in parsed_sql[0].tokens:
+        if isinstance(item, sqlparse.sql.Where):
+            clause = item.value
+            stripped_clause = clause.replace('where', '')
+            logger.debug(f'stripped clause: {stripped_clause}')
+            return stripped_clause
 
 
 
@@ -122,6 +118,7 @@ class QuotronRestApi(BaseApi):
 
         #2. Parse quotron query
         sql = resp.json()['query']
+        where_clause = get_where_clause(sql)
         columns = Parser(sql).columns
         table = Parser(sql).tables[0]
         logger.info(columns)
@@ -141,8 +138,13 @@ class QuotronRestApi(BaseApi):
         series_limit_metric = AdhocMetric(aggregate='AVG', column=get_column_from_name('calendar_Year'),expressionType='SIMPLE' )
 
         datasource = DatasourceDict(type="table",id="24")
+        extras = {
+			"having": "",
+			"where": where_clause
+		}
+
         queryObject = QueryObject(datasource=datasource,columns = superset_columns,
-                                  metrics = superset_metrics, series_limit_metric = series_limit_metric, row_limit = 10000)
+                                  metrics = superset_metrics, series_limit_metric = series_limit_metric, row_limit = 10000, extras=extras)
 
         qc = QueryContextFactory().create(
             datasource=datasource,
@@ -151,12 +153,17 @@ class QuotronRestApi(BaseApi):
             result_format='json'
         )
         qc.queries.append(queryObject)
-
+        adhoc_filters = [{
+		"expressionType": "SQL",
+		"sqlExpression": where_clause,
+		"clause": "WHERE",
+	}]
         params = Params(datasource="24__table", viz_type="dist_bar",
                         time_range="No Filter",
                         metrics=superset_metrics,groupby=["calendar_Year"],
                         timeseries_limit_metric=series_limit_metric,
-                        order_desc=False)
+                        order_desc=False,
+                        adhoc_filters=adhoc_filters)
         quotronChart = QuotronChart(slice_name=question, viz_type="dist_bar",datasource_id=24, datasource_type="table",
                                     query_context=json.dumps(qc.__dict__, default=lambda o: '<not serializable>'),
                                     params =json.dumps(params.__dict__, default=lambda o: '<not serializable>'))
