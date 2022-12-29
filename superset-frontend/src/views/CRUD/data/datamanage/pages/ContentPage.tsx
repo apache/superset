@@ -103,11 +103,8 @@ const ContentPage = () => {
   const onSelect = (value: any) => {
     console.log('onSelect', value);
   };
-
-  const handleSearch = () => {
-    options.map((option: any) => {
-      option.value.toUpperCase().indexOf(columnExpression.toUpperCase()) !== -1;
-    });
+  const handleOwner = (ev: any) => {
+    setOwner(ev.key);
   };
 
 
