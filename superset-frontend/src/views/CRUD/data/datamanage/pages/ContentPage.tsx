@@ -59,6 +59,7 @@ const ContentPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isKPIChecked, setIsKPIChecked] = useState(false);
   const [options, setOptions] = useState([] as any[]);
+  const [isRequiredField, setIsRequiredField] = useState(false);
 
   const handleTextAreaOnChange = (ev: any) => {
     setColumnExpression(ev.target.value);
@@ -96,6 +97,12 @@ const ContentPage = () => {
   const onClose = () => {
     setOpen(false);
   };
+
+  const initColumnData = async () => {
+    await setColumnName('');
+    await setColumnDescription('');
+    await setColumnExpression('');
+  };
   const showModal = async (column: any) => {
     await setColumnData(column);
     await setColumnName(column.column_name);
@@ -104,9 +111,8 @@ const ContentPage = () => {
     setIsModalOpen(true);
   };
   const ShowAddColumnModal = async () => {
-    await setColumnName('');
-    await setColumnDescription('');
-    await setColumnExpression('');
+    await initColumnData();
+    await setIsKPIChecked(false);
     await tableData?.columns.map((column: any) => {
       if (column.expression) {
         setOptions([...options, { value: column.expression }]);
@@ -122,9 +128,7 @@ const ContentPage = () => {
     setIsModalOpen(false);
   };
   const handleCancel = async () => {
-    await setColumnName('');
-    await setColumnDescription('');
-    await setColumnExpression('');
+    initColumnData();
     setIsModalOpen(false);
   };
   const handleToggle = () => {
@@ -190,23 +194,28 @@ const ContentPage = () => {
   };
 
   const handleColumnSave = async () => {
-    await setTableData({
-      ...tableData,
-      columns: tableData.columns.map((column: any) =>
-        column.id === columnData.id
-          ? {
-              ...columnData,
-              column_name: columnName,
-              description: columnDescription,
-              expression: JSON.stringify(options).includes(columnExpression)
-                ? ''
-                : columnExpression,
-            }
-          : column,
-      ),
-    });
+    if (columnName) {
+      await setTableData({
+        ...tableData,
+        columns: tableData.columns.map((column: any) =>
+          column.id === columnData.id
+            ? {
+                ...columnData,
+                column_name: columnName,
+                description: columnDescription,
+                expression: JSON.stringify(options).includes(columnExpression)
+                  ? ''
+                  : columnExpression,
+              }
+            : column,
+        ),
+      });
 
-    setIsModalOpen(false);
+      setIsModalOpen(false);
+      setIsRequiredField(false);
+    } else {
+      setIsRequiredField(true);
+    }
   };
   const handleEditTableSave = () => {
     actionTableSave();
@@ -219,14 +228,6 @@ const ContentPage = () => {
   useEffect(() => {
     setData(data);
   }, [btnToggle]);
-
-  useEffect(() => {
-    console.log('-----------', options);
-  }, [options]);
-
-  useEffect(() => {
-    console.log('------Tabe-----', tableData?.columns);
-  }, [tableData]);
 
   const menu = (
     <Menu onClick={showLargeDrawer}>
@@ -645,10 +646,13 @@ const ContentPage = () => {
           Colume Name
         </Title>
         <Input
-          placeholder="CAC"
+          placeholder="This field is required."
           value={columnName}
           onChange={(e: any) => {
             setColumnName(e.target.value);
+          }}
+          style={{
+            background: isRequiredField ? theme.colors.error.base : '',
           }}
         />
         <Title level={4} style={{ marginTop: '24px' }}>
@@ -670,7 +674,6 @@ const ContentPage = () => {
               checked={isKPIChecked}
               style={{
                 float: 'right',
-                background: theme.colors.quotron.black,
               }}
               onChange={handleSwitchOnChange}
             />
@@ -681,12 +684,13 @@ const ContentPage = () => {
           onSelect={onSelect}
           onSearch={handleSearch}
           style={{ width: '100%' }}
+          value={columnExpression}
         >
           <TextArea
             rows={4}
             value={columnExpression}
             onChange={handleTextAreaOnChange}
-            style={{ display: !isKPIChecked ? 'block' : 'none', width: '100%' }}
+            style={{ display: isKPIChecked ? 'block' : 'none', width: '100%' }}
           />
         </AutoComplete>
 
