@@ -95,40 +95,60 @@ const ContentPage = () => {
 
   const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
     setSearchtext(ev.target.value);
-  }
+  };
 
   const handleSort = () => {
     setSort((sort + 1) % 3);
-  }
+  };
 
   const handleOwner = (ev: any) => {
     setOwner(ev.key);
-  }
+  };
 
-  const handleDatasourceChange = (ev:CheckboxChangeEvent) => {
+  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
     setDatasourceOne(ev.target.checked);
-  }
+  };
 
   useEffect(() => {
-    if(!data.length)  return;
-    let tempData:DataProperties[] = [];
+    if (!data.length) return;
+    let tempData: DataProperties[] = [];
     //filter by author
-    if(owner === SHARED_WITH_YOU) {
-      tempData = data.filter((row: any) => row.owners.filter((owner: any) => owner.username === username).length);
-    } else if(owner === SHARED_BY_YOU) {
-      tempData = data.filter((row: any) => !row.owners.filter((owner: any) => owner.username === username).length);
+    if (owner === SHARED_WITH_YOU) {
+      tempData = data.filter(
+        (row: any) =>
+          row.owners.filter((owner: any) => owner.username === username).length,
+      );
+    } else if (owner === SHARED_BY_YOU) {
+      tempData = data.filter(
+        (row: any) =>
+          !row.owners.filter((owner: any) => owner.username === username)
+            .length,
+      );
     } else {
       tempData = [...data];
     }
     //filter by searchtext
-    if(searchtext) tempData = tempData.filter((row: any) => row.table_name.includes(searchtext));
+    if (searchtext)
+      tempData = tempData.filter((row: any) =>
+        row.table_name.includes(searchtext),
+      );
     //sort by alphabet
-    if(sort) {
-      tempData = tempData.sort((a, b) => sort === 1 ? (a.table_name.toUpperCase() > b.table_name.toUpperCase() ? 1 : -1) : (a.table_name.toUpperCase() < b.table_name.toUpperCase() ? 1 : -1));
+    if (sort) {
+      tempData = tempData.sort((a, b) =>
+        sort === 1
+          ? a.table_name.toUpperCase() > b.table_name.toUpperCase()
+            ? 1
+            : -1
+          : a.table_name.toUpperCase() < b.table_name.toUpperCase()
+          ? 1
+          : -1,
+      );
     }
     //sort by datasource one
-    if(datasourceOne) {
-      tempData = tempData.filter((row: any) => row.database.database_name !== 'examples');
+    if (datasourceOne) {
+      tempData = tempData.filter(
+        (row: any) => row.database.database_name !== 'examples',
+      );
     }
     //set filtered table data
     setFilteredTableData(tempData);
@@ -309,10 +329,12 @@ const ContentPage = () => {
             <Space style={{ float: 'right' }}>
               <Button
                 type="primary"
-                icon={sort === 2 ?
-                  <SortDescendingOutlined />
-                  :
-                  <SortAscendingOutlined />
+                icon={
+                  sort === 2 ? (
+                    <SortDescendingOutlined />
+                  ) : (
+                    <SortAscendingOutlined />
+                  )
                 }
                 style={{
                   background: sort ? 'blue' : 'white',
@@ -343,7 +365,11 @@ const ContentPage = () => {
           </Col>
         </Row>
         <Row>
-          <Input placeholder="Search tables" value={searchtext} onChange={handleSearchtext} />
+          <Input
+            placeholder="Search tables"
+            value={searchtext}
+            onChange={handleSearchtext}
+          />
         </Row>
         {tableSelectNum?.length ? (
           <Row
@@ -384,7 +410,9 @@ const ContentPage = () => {
           }}
         >
           <Col span="12">
-            <Checkbox value={datasourceOne} onChange={handleDatasourceChange}>DATASOURCE ONE</Checkbox>
+            <Checkbox value={datasourceOne} onChange={handleDatasourceChange}>
+              DATASOURCE ONE
+            </Checkbox>
           </Col>
           <Col span="12" style={{ float: 'right' }}>
             Uploaded on 21 aug 22, 12:00pm IST
@@ -417,16 +445,26 @@ const ContentPage = () => {
                     >
                       <Row justify="center">
                         <Avatar.Group>
-                          {
-                            row.owners.length ?
-                            row.owners.map((owner: any) => 
-                              <Avatar icon={<div>{`${owner.first_name[0]}${owner.last_name[0]}`}</div>} style={{backgroundColor: `rgb(${owner.id%256},${owner.id*2%256},${owner.id*3%256})`}} />
-                            )
-                            :
-                            <><Avatar icon={<UserOutlined />} />
-                            <Avatar icon={<UserOutlined />} />
-                            <Avatar icon={<UserOutlined />} /></>
-                          }
+                          {row.owners.length ? (
+                            row.owners.map((owner: any) => (
+                              <Avatar
+                                icon={
+                                  <div>{`${owner.first_name[0]}${owner.last_name[0]}`}</div>
+                                }
+                                style={{
+                                  backgroundColor: `rgb(${owner.id % 256},${
+                                    (owner.id * 2) % 256
+                                  },${(owner.id * 3) % 256})`,
+                                }}
+                              />
+                            ))
+                          ) : (
+                            <>
+                              <Avatar icon={<UserOutlined />} />
+                              <Avatar icon={<UserOutlined />} />
+                              <Avatar icon={<UserOutlined />} />
+                            </>
+                          )}
                         </Avatar.Group>
                       </Row>
                       <Row style={{ display: 'inline-block' }}>Author</Row>
