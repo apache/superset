@@ -15,7 +15,7 @@ import ContentPage from './pages/ContentPage';
 
 const { Header, Content, Sider } = Layout;
 
-const App = () => {
+const DatamanageList = () => {
   const theme: SupersetTheme = useTheme();
   return (
     <Layout>
@@ -76,4 +76,4 @@ const App = () => {
     </Layout>
   );
 };
-export default App;
+export default DatamanageList;
