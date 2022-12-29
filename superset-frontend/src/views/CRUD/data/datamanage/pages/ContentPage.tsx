@@ -64,11 +64,11 @@ interface DataProperties {
   table_name: string;
 }
 
-const username = JSON.parse(
+const {
+  user: { username },
+} = JSON.parse(
   document.getElementById('app')?.getAttribute('data-bootstrap') ?? '{}',
-).user.username;
-
-console.log(username);
+);
 
 const ALL = 'ALL';
 const SHARED_WITH_YOU = 'SHARED_WITH_YOU';
@@ -112,7 +112,7 @@ const ContentPage = () => {
   useEffect(() => {
     if (!data.length) return;
     let tempData: DataProperties[] = [];
-    //filter by author
+    // filter by author
     if (owner === SHARED_WITH_YOU) {
       tempData = data.filter(
         (row: any) =>
@@ -127,12 +127,12 @@ const ContentPage = () => {
     } else {
       tempData = [...data];
     }
-    //filter by searchtext
+    // filter by searchtext
     if (searchtext)
       tempData = tempData.filter((row: any) =>
         row.table_name.includes(searchtext),
       );
-    //sort by alphabet
+    // sort by alphabet
     if (sort) {
       tempData = tempData.sort((a, b) =>
         sort === 1
@@ -144,13 +144,13 @@ const ContentPage = () => {
           : -1,
       );
     }
-    //sort by datasource one
+    // sort by datasource one
     if (datasourceOne) {
       tempData = tempData.filter(
         (row: any) => row.database.database_name !== 'examples',
       );
     }
-    //set filtered table data
+    // set filtered table data
     setFilteredTableData(tempData);
   }, [searchtext, data, sort, owner, datasourceOne]);
 
