@@ -6,7 +6,7 @@ import requests
 import sqlparse
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose
-from sql_metadata import Parser
+# from sql_metadata import Parser
 
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.schemas import ChartPostSchema
