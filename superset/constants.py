@@ -185,3 +185,9 @@ class CacheRegion(str, Enum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"
+
+class TTL:
+    minute = 60
+    hour = 60 * minute
+    day = 24 * hour
+    week = day * 7

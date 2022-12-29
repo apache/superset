@@ -29,6 +29,7 @@ import { GlobalStyles } from 'src/GlobalStyles';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import Menu from 'src/views/components/Menu';
+import Upload from 'src/views/components/Upload';
 import { bootstrapData } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
@@ -51,7 +52,6 @@ const menu = {
   ...bootstrapData.common.menu_data,
 };
 
-console.log('+++++++menu++++++++', menu);
 let lastLocationPathname: string;
 
 const boundActions = bindActionCreators({ logEvent }, store.dispatch);
@@ -81,6 +81,7 @@ const App = () => (
       <RootContextProviders>
         <GlobalStyles />
         <Menu data={menu} isFrontendRoute={isFrontendRoute} />
+        <Upload />
         <Switch>
           {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
             <Route path={path} key={path}>

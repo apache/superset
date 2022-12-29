@@ -3,3 +3,8 @@ home.quotron.ai {
 		to superset_app:8088
 	}
 }
+nlp.quotron.ai {
+	reverse_proxy {
+		to quotron_nlp:5000
+	}
+}

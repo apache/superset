@@ -4,7 +4,11 @@ class Autocomplete:
         self.question = question
         self.email = email
         self.time = time
-
+class Answer:
+    def __init__(self, question, answer, chart_id):
+        self.question = question
+        self.answer = answer
+        self.chart_id = chart_id
 
 class QuotronChart:
     def __init__(self, slice_name, viz_type, datasource_id, datasource_type, query_context, params ):
@@ -18,7 +22,7 @@ class QuotronChart:
 
 
 class Params:
-    def __init__(self, datasource, viz_type, time_range, metrics, groupby, timeseries_limit_metric, order_desc):
+    def __init__(self, datasource, viz_type, time_range, metrics, groupby, timeseries_limit_metric, order_desc,adhoc_filters, zoomable, time_grain_sqla):
         self.datasource = datasource
         self.viz_type = viz_type
         self.time_range = time_range
@@ -26,6 +30,10 @@ class Params:
         self.groupby=groupby
         self.timeseries_limit_metric=timeseries_limit_metric
         self.order_desc = order_desc
+        self.adhoc_filters = adhoc_filters
+        self.zoomable = zoomable
+        self.time_range = time_range
+        self.time_grain_sqla = time_grain_sqla
 
 
 
