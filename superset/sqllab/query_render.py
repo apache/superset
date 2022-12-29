@@ -53,9 +53,10 @@ class SqlQueryRenderImpl(SqlQueryRender):
 
     def render(self, execution_context: SqlJsonExecutionContext) -> str:
         query_model = execution_context.query
+        source = execution_context.query_source
         try:
             sql_template_processor = self._sql_template_processor_factory(
-                database=query_model.database, query=query_model
+                database=query_model.database, query=query_model, query_source = source
             )
 
             rendered_query = sql_template_processor.process_template(

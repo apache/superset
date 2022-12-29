@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Defines the templating context for SQL Lab"""
+import hashlib
 import json
 import re
 from functools import partial
@@ -465,17 +466,35 @@ class BaseTemplateProcessor:
         self._context.update(kwargs)
         self._context.update(context_addons())
 
-    def process_template(self, sql: str, **kwargs: Any) -> str:
+    
+    def gen_query_hash(self,sql):
+        """Return hash of the given query after stripping all comments, line breaks
+        and multiple spaces, and lower casing all text.
+
+        TODO: possible issue - the following queries will get the same id:
+            1. SELECT 1 FROM table WHERE column='Value';
+            2. SELECT 1 FROM table where column='value';
+        """
+        # sql = re.COMMENTS_REGEX.sub("", sql)
+        # sql = "".join(sql.split()).lower()
+        return hashlib.md5(sql.encode("utf-8")).hexdigest()
+
+
+    def process_template(self, sql: str, **kwargs: Any,) -> str:
         """Processes a sql template
 
         >>> sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        template = self._env.from_string(sql)
+        hash = self.gen_query_hash(sql)
         kwargs.update(self._context)
-
         context = validate_template_context(self.engine, kwargs)
+        query_source = context["query_source"]
+        username = context['current_username']()
+        query_id = self._query.id
+        sql_query = "/* username {}, query_id: {}, query_hash: {}, query_source */". format(username,query_id,hash,query_source) + sql 
+        template = self._env.from_string(sql_query)
         return template.render(context)
 
 
@@ -517,7 +536,6 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
     """
 
     engine = "presto"
-
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
         self._context[self.engine] = {
