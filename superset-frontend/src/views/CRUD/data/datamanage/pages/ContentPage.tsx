@@ -58,19 +58,9 @@ const ContentPage = () => {
   const [columnExpression, setColumnExpression] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isKPIChecked, setIsKPIChecked] = useState(false);
-  const options = [
-    {
-      value: 'Product Cost',
-    },
-    {
-      value: 'Product Details',
-    },
-    {
-      value: 'Product No',
-    },
-  ];
+  const [options, setOptions] = useState([] as any[]);
 
-  const handleKeyPress = (ev: any) => {
+  const handleTextAreaOnChange = (ev: any) => {
     setColumnExpression(ev.target.value);
   };
   const onSelect = (value: any) => {
@@ -92,10 +82,10 @@ const ContentPage = () => {
         endpoint: `/api/v1/dataset/${selectedId}`,
       }).then(
         async ({ json = {} }) => {
-          console.log('==========', json.result);
           await setTableData(json.result);
           await setTableName(json.result.table_name);
           await setTableDescription(json.result.description);
+
           setOpen(true);
         },
         createErrorHandler(errMsg => console.log('====Err===', errMsg)),
@@ -117,6 +107,11 @@ const ContentPage = () => {
     await setColumnName('');
     await setColumnDescription('');
     await setColumnExpression('');
+    await tableData?.columns.map((column: any) => {
+      if (column.expression) {
+        setOptions([...options, { value: column.expression }]);
+      }
+    });
     await setColumnData({
       id: 10000,
     });
@@ -126,7 +121,10 @@ const ContentPage = () => {
   const handleOk = () => {
     setIsModalOpen(false);
   };
-  const handleCancel = () => {
+  const handleCancel = async () => {
+    await setColumnName('');
+    await setColumnDescription('');
+    await setColumnExpression('');
     setIsModalOpen(false);
   };
   const handleToggle = () => {
@@ -190,6 +188,7 @@ const ContentPage = () => {
       )
       .finally(() => {});
   };
+
   const handleColumnSave = async () => {
     await setTableData({
       ...tableData,
@@ -199,7 +198,9 @@ const ContentPage = () => {
               ...columnData,
               column_name: columnName,
               description: columnDescription,
-              expression: columnExpression,
+              expression: JSON.stringify(options).includes(columnExpression)
+                ? ''
+                : columnExpression,
             }
           : column,
       ),
@@ -218,6 +219,14 @@ const ContentPage = () => {
   useEffect(() => {
     setData(data);
   }, [btnToggle]);
+
+  useEffect(() => {
+    console.log('-----------', options);
+  }, [options]);
+
+  useEffect(() => {
+    console.log('------Tabe-----', tableData?.columns);
+  }, [tableData]);
 
   const menu = (
     <Menu onClick={showLargeDrawer}>
@@ -676,7 +685,7 @@ const ContentPage = () => {
           <TextArea
             rows={4}
             value={columnExpression}
-            onKeyPress={handleKeyPress}
+            onChange={handleTextAreaOnChange}
             style={{ display: !isKPIChecked ? 'block' : 'none', width: '100%' }}
           />
         </AutoComplete>
