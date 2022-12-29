@@ -45,23 +45,23 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 
 interface DataProperties {
-  changed_by: {},
-  changed_by_name: string,
-  changed_by_url: string,
-  changed_on_delta_humanized: string,
-  changed_on_utc: string,
-  database: {},
-  datasource_type: string,
-  default_endpoint: string,
-  description: string,
-  explore_url: string,
-  extra: string,
-  id: number,
-  kind: string,
-  owners: [],
-  schema: string,
-  sql: string,
-  table_name: string
+  changed_by: {};
+  changed_by_name: string;
+  changed_by_url: string;
+  changed_on_delta_humanized: string;
+  changed_on_utc: string;
+  database: {};
+  datasource_type: string;
+  default_endpoint: string;
+  description: string;
+  explore_url: string;
+  extra: string;
+  id: number;
+  kind: string;
+  owners: [];
+  schema: string;
+  sql: string;
+  table_name: string;
 }
 
 const username = JSON.parse(
