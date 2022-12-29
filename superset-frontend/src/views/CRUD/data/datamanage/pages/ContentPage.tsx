@@ -18,6 +18,7 @@ import {
   Modal,
   Switch,
   Dropdown,
+  AutoComplete,
   notification,
 } from 'antd';
 import {
@@ -55,6 +56,32 @@ const ContentPage = () => {
   const [columnName, setColumnName] = useState('');
   const [columnDescription, setColumnDescription] = useState('');
   const [columnExpression, setColumnExpression] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isKPIChecked, setIsKPIChecked] = useState(false);
+  const options = [
+    {
+      value: 'Product Cost',
+    },
+    {
+      value: 'Product Details',
+    },
+    {
+      value: 'Product No',
+    },
+  ];
+
+  const handleKeyPress = (ev: any) => {
+    setColumnExpression(ev.target.value);
+  };
+  const onSelect = (value: any) => {
+    console.log('onSelect', value);
+  };
+
+  const handleSearch = () => {
+    options.map((option: any) => {
+      option.value.toUpperCase().indexOf(columnExpression.toUpperCase()) !== -1;
+    });
+  };
 
   const theme: SupersetTheme = useTheme();
 
@@ -79,12 +106,21 @@ const ContentPage = () => {
   const onClose = () => {
     setOpen(false);
   };
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = async (column: any) => {
     await setColumnData(column);
     await setColumnName(column.column_name);
     await setColumnDescription(column.description);
     await setColumnExpression(column.expression);
+    setIsModalOpen(true);
+  };
+  const ShowAddColumnModal = async () => {
+    await setColumnName('');
+    await setColumnDescription('');
+    await setColumnExpression('');
+    await setColumnData({
+      id: 10000,
+    });
+    tableData.columns = [...tableData.columns, { id: 10000 }];
     setIsModalOpen(true);
   };
   const handleOk = () => {
@@ -101,6 +137,12 @@ const ContentPage = () => {
   };
   const handleInputChange = (e: any) => {
     setTableName(e.target.value);
+  };
+  const handleSwitchOnChange = async () => {
+    await setIsKPIChecked(!isKPIChecked);
+    if (isKPIChecked) {
+      await setColumnExpression('');
+    }
   };
   const handleTableSelect = (id: any) => {
     console.log('id', id);
@@ -502,9 +544,20 @@ const ContentPage = () => {
             setTableDescription(e.target.value);
           }}
         />
-        <Title level={4} style={{ marginTop: '24px' }}>
-          Columes
-        </Title>
+        <Row align="middle" style={{ marginTop: '24px' }}>
+          <Col span={12}>
+            <Title level={4}>Columes</Title>
+          </Col>
+          <Col span={12} style={{ display: 'inline-block' }}>
+            <Button
+              style={{ float: 'right' }}
+              onClick={ShowAddColumnModal}
+              type="primary"
+            >
+              Add Column
+            </Button>
+          </Col>
+        </Row>
         {tableData?.columns?.map((column: any) => (
           <Card
             style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
@@ -518,7 +571,7 @@ const ContentPage = () => {
               </Col>
               <Col span="12" style={{ display: 'inline-block' }}>
                 <Space style={{ float: 'right' }}>
-                  {column.expression ? (
+                  {column.expression?.length ? (
                     <Button
                       icon={<FunctionOutlined />}
                       size="large"
@@ -605,18 +658,29 @@ const ContentPage = () => {
           </Col>
           <Col span={12}>
             <Switch
-              defaultChecked
-              style={{ float: 'right', background: theme.colors.quotron.black }}
+              checked={isKPIChecked}
+              style={{
+                float: 'right',
+                background: theme.colors.quotron.black,
+              }}
+              onChange={handleSwitchOnChange}
             />
           </Col>
         </Row>
-        <TextArea
-          rows={4}
-          value={columnExpression}
-          onChange={(e: any) => {
-            setColumnExpression(e.target.value);
-          }}
-        />
+        <AutoComplete
+          options={options}
+          onSelect={onSelect}
+          onSearch={handleSearch}
+          style={{ width: '100%' }}
+        >
+          <TextArea
+            rows={4}
+            value={columnExpression}
+            onKeyPress={handleKeyPress}
+            style={{ display: !isKPIChecked ? 'block' : 'none', width: '100%' }}
+          />
+        </AutoComplete>
+
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
           <Col span="12">
             <Button
