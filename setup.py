@@ -172,7 +172,7 @@ setup(
         "snowflake": ["snowflake-sqlalchemy>=1.2.4, <2"],
         "spark": ["pyhive[hive]>=0.6.5", "tableschema", "thrift>=0.14.1, <1.0.0"],
         "teradata": ["teradatasql>=16.20.0.23"],
-        "thumbnails": ["Pillow>=9.1.1, <10.0.0"],
+        "thumbnails": ["Pillow>=9.3.0, <10.0.0"],
         "vertica": ["sqlalchemy-vertica-python>=0.5.9, < 0.6"],
         "netezza": ["nzalchemy>=11.0.2"],
     },
