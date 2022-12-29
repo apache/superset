@@ -30,6 +30,7 @@ import {
   FeatureFlag,
 } from 'src/featureFlags';
 import setupExtensions from 'src/setup/setupExtensions';
+import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
@@ -54,6 +55,11 @@ const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 initFeatureFlags(bootstrapData.common.feature_flags);
 
 const initialState = getInitialState(bootstrapData);
+
+if (!canUserAccessSqlLab(bootstrapData.user)) {
+  window.location.href = '/';
+}
+
 const sqlLabPersistStateConfig = {
   paths: ['sqlLab'],
   config: {
