@@ -24,6 +24,7 @@ import {
   AppstoreOutlined,
   FilterOutlined,
   SortAscendingOutlined,
+  SortDescendingOutlined,
   UserOutlined,
   MoreOutlined,
   EyeOutlined,
@@ -38,16 +39,51 @@ import {
 
 import { SupersetClient, SupersetTheme, useTheme } from '@superset-ui/core';
 import { createErrorHandler } from 'src/views/CRUD/utils';
+import { CheckboxChangeEvent } from 'antd/lib/checkbox';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
+interface DataProperties {
+  changed_by: {};
+  changed_by_name: string;
+  changed_by_url: string;
+  changed_on_delta_humanized: string;
+  changed_on_utc: string;
+  database: {};
+  datasource_type: string;
+  default_endpoint: string;
+  description: string;
+  explore_url: string;
+  extra: string;
+  id: number;
+  kind: string;
+  owners: [];
+  schema: string;
+  sql: string;
+  table_name: string;
+}
+
+const {
+  user: { username },
+} = JSON.parse(
+  document.getElementById('app')?.getAttribute('data-bootstrap') ?? '{}',
+);
+
+const ALL = 'ALL';
+const SHARED_WITH_YOU = 'SHARED_WITH_YOU';
+const SHARED_BY_YOU = 'SHARED_BY_YOU';
+
 const ContentPage = () => {
   const [open, setOpen] = useState(false);
+  const [sort, setSort] = useState(0);
+  const [owner, setOwner] = useState(ALL);
+  const [datasourceOne, setDatasourceOne] = useState(false);
   const [btnToggle, setBtnToggle] = useState(true);
   const [tableSelectNum, setTableSelectNum] = useState([]);
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<DataProperties[]>([]);
   const [tableData, setTableData] = useState(null as any);
+  const [filteredTableData, setFilteredTableData] = useState(null as any);
   const [columnData, setColumnData] = useState(null as any);
   const [selectedId, setSelectedId] = useState(0);
   const [tableName, setTableName] = useState('');
@@ -55,6 +91,68 @@ const ContentPage = () => {
   const [columnName, setColumnName] = useState('');
   const [columnDescription, setColumnDescription] = useState('');
   const [columnExpression, setColumnExpression] = useState('');
+  const [searchtext, setSearchtext] = useState('');
+
+  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchtext(ev.target.value);
+  };
+
+  const handleSort = () => {
+    setSort((sort + 1) % 3);
+  };
+
+  const handleOwner = (ev: any) => {
+    setOwner(ev.key);
+  };
+
+  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
+    setDatasourceOne(ev.target.checked);
+  };
+
+  useEffect(() => {
+    if (!data.length) return;
+    let tempData: DataProperties[] = [];
+    // filter by author
+    if (owner === SHARED_WITH_YOU) {
+      tempData = data.filter(
+        (row: any) =>
+          row.owners.filter((owner: any) => owner.username === username).length,
+      );
+    } else if (owner === SHARED_BY_YOU) {
+      tempData = data.filter(
+        (row: any) =>
+          !row.owners.filter((owner: any) => owner.username === username)
+            .length,
+      );
+    } else {
+      tempData = [...data];
+    }
+    // filter by searchtext
+    if (searchtext)
+      tempData = tempData.filter((row: any) =>
+        row.table_name.includes(searchtext),
+      );
+    // sort by alphabet
+    if (sort) {
+      tempData = tempData.sort((a, b) =>
+        sort === 1
+          ? a.table_name.toUpperCase() > b.table_name.toUpperCase()
+            ? 1
+            : -1
+          : a.table_name.toUpperCase() < b.table_name.toUpperCase()
+          ? 1
+          : -1,
+      );
+    }
+    // sort by datasource one
+    if (datasourceOne) {
+      tempData = tempData.filter(
+        (row: any) => row.database.database_name !== 'examples',
+      );
+    }
+    // set filtered table data
+    setFilteredTableData(tempData);
+  }, [searchtext, data, sort, owner, datasourceOne]);
 
   const theme: SupersetTheme = useTheme();
 
@@ -198,6 +296,7 @@ const ContentPage = () => {
     <Row gutter={48}>
       <Col span={4}>
         <Menu
+          onClick={handleOwner}
           mode="inline"
           openKeys={['sub1']}
           style={{
@@ -208,15 +307,15 @@ const ContentPage = () => {
             padding: '12px',
           }}
         >
-          <Menu.Item key="sub1">All</Menu.Item>
+          <Menu.Item key={ALL}>All</Menu.Item>
           <Menu.Item key="sub2">My Data</Menu.Item>
           <Divider />
           <Menu.Item key="sub3">Favourites</Menu.Item>
           <Menu.Item key="sub4">Datasources</Menu.Item>
           <Menu.Item key="sub5">Files</Menu.Item>
           <Divider />
-          <Menu.Item key="sub6">Shared With You</Menu.Item>
-          <Menu.Item key="sub7">Shared By You</Menu.Item>
+          <Menu.Item key={SHARED_WITH_YOU}>Shared With You</Menu.Item>
+          <Menu.Item key={SHARED_BY_YOU}>Shared By You</Menu.Item>
           <Divider />
           <Menu.Item key="sub8">Hidden</Menu.Item>
         </Menu>
@@ -230,11 +329,18 @@ const ContentPage = () => {
             <Space style={{ float: 'right' }}>
               <Button
                 type="primary"
-                icon={<SortAscendingOutlined />}
+                icon={
+                  sort === 2 ? (
+                    <SortDescendingOutlined />
+                  ) : (
+                    <SortAscendingOutlined />
+                  )
+                }
                 style={{
-                  background: 'none',
-                  color: theme.colors.quotron.black,
+                  background: sort ? 'blue' : 'white',
+                  color: sort ? 'white' : theme.colors.quotron.black,
                 }}
+                onClick={handleSort}
               />
               <Button
                 type="primary"
@@ -259,7 +365,11 @@ const ContentPage = () => {
           </Col>
         </Row>
         <Row>
-          <Input placeholder="Search tables" />
+          <Input
+            placeholder="Search tables"
+            value={searchtext}
+            onChange={handleSearchtext}
+          />
         </Row>
         {tableSelectNum?.length ? (
           <Row
@@ -300,14 +410,16 @@ const ContentPage = () => {
           }}
         >
           <Col span="12">
-            <Checkbox>DATASOURCE ONE</Checkbox>
+            <Checkbox value={datasourceOne} onChange={handleDatasourceChange}>
+              DATASOURCE ONE
+            </Checkbox>
           </Col>
           <Col span="12" style={{ float: 'right' }}>
             Uploaded on 21 aug 22, 12:00pm IST
           </Col>
         </Row>
         {btnToggle === true ? (
-          data?.map((row: any) => {
+          filteredTableData?.map((row: any) => {
             let description: any = row?.description;
             if (description) description = `${description.slice(0, 50)}...`;
             else description = '';
@@ -333,9 +445,26 @@ const ContentPage = () => {
                     >
                       <Row justify="center">
                         <Avatar.Group>
-                          <Avatar icon={<UserOutlined />} />
-                          <Avatar icon={<UserOutlined />} />
-                          <Avatar icon={<UserOutlined />} />
+                          {row.owners.length ? (
+                            row.owners.map((owner: any) => (
+                              <Avatar
+                                icon={
+                                  <div>{`${owner.first_name[0]}${owner.last_name[0]}`}</div>
+                                }
+                                style={{
+                                  backgroundColor: `rgb(${owner.id % 256},${
+                                    (owner.id * 2) % 256
+                                  },${(owner.id * 3) % 256})`,
+                                }}
+                              />
+                            ))
+                          ) : (
+                            <>
+                              <Avatar icon={<UserOutlined />} />
+                              <Avatar icon={<UserOutlined />} />
+                              <Avatar icon={<UserOutlined />} />
+                            </>
+                          )}
                         </Avatar.Group>
                       </Row>
                       <Row style={{ display: 'inline-block' }}>Author</Row>
@@ -361,7 +490,7 @@ const ContentPage = () => {
         ) : (
           <Row gutter={8}>
             {' '}
-            {data?.map((row: any) => {
+            {filteredTableData?.map((row: any) => {
               let description: any = row?.description;
               if (description) description = `${description.slice(0, 40)}...`;
               else description = '';
