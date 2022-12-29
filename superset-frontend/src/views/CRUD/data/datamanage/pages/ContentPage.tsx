@@ -18,11 +18,13 @@ import {
   Modal,
   Switch,
   Dropdown,
+  notification,
 } from 'antd';
 import {
   AppstoreOutlined,
   FilterOutlined,
   SortAscendingOutlined,
+  SortDescendingOutlined,
   UserOutlined,
   MoreOutlined,
   EyeOutlined,
@@ -37,25 +39,130 @@ import {
 
 import { SupersetClient, SupersetTheme, useTheme } from '@superset-ui/core';
 import { createErrorHandler } from 'src/views/CRUD/utils';
+import { CheckboxChangeEvent } from 'antd/lib/checkbox';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 
+interface DataProperties {
+  changed_by: {},
+  changed_by_name: string,
+  changed_by_url: string,
+  changed_on_delta_humanized: string,
+  changed_on_utc: string,
+  database: {},
+  datasource_type: string,
+  default_endpoint: string,
+  description: string,
+  explore_url: string,
+  extra: string,
+  id: number,
+  kind: string,
+  owners: [],
+  schema: string,
+  sql: string,
+  table_name: string
+}
+
+const username = JSON.parse(
+  document.getElementById('app')?.getAttribute('data-bootstrap') ?? '{}',
+).user.username;
+
+console.log(username);
+
+const ALL = 'ALL';
+const SHARED_WITH_YOU = 'SHARED_WITH_YOU';
+const SHARED_BY_YOU = 'SHARED_BY_YOU';
+
 const ContentPage = () => {
   const [open, setOpen] = useState(false);
+  const [sort, setSort] = useState(0);
+  const [owner, setOwner] = useState(ALL);
+  const [datasourceOne, setDatasourceOne] = useState(false);
   const [btnToggle, setBtnToggle] = useState(true);
   const [tableSelectNum, setTableSelectNum] = useState([]);
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<DataProperties[]>([]);
+  const [tableData, setTableData] = useState(null as any);
+  const [filteredTableData, setFilteredTableData] = useState(null as any);
+  const [columnData, setColumnData] = useState(null as any);
+  const [selectedId, setSelectedId] = useState(0);
+  const [tableName, setTableName] = useState('');
+  const [tableDescription, setTableDescription] = useState('');
+  const [columnName, setColumnName] = useState('');
+  const [columnDescription, setColumnDescription] = useState('');
+  const [columnExpression, setColumnExpression] = useState('');
+  const [searchtext, setSearchtext] = useState('');
+
+  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchtext(ev.target.value);
+  }
+
+  const handleSort = () => {
+    setSort((sort + 1) % 3);
+  }
+
+  const handleOwner = (ev: any) => {
+    setOwner(ev.key);
+  }
+
+  const handleDatasourceChange = (ev:CheckboxChangeEvent) => {
+    setDatasourceOne(ev.target.checked);
+  }
+
+  useEffect(() => {
+    if(!data.length)  return;
+    let tempData:DataProperties[] = [];
+    //filter by author
+    if(owner === SHARED_WITH_YOU) {
+      tempData = data.filter((row: any) => row.owners.filter((owner: any) => owner.username === username).length);
+    } else if(owner === SHARED_BY_YOU) {
+      tempData = data.filter((row: any) => !row.owners.filter((owner: any) => owner.username === username).length);
+    } else {
+      tempData = [...data];
+    }
+    //filter by searchtext
+    if(searchtext) tempData = tempData.filter((row: any) => row.table_name.includes(searchtext));
+    //sort by alphabet
+    if(sort) {
+      tempData = tempData.sort((a, b) => sort === 1 ? (a.table_name.toUpperCase() > b.table_name.toUpperCase() ? 1 : -1) : (a.table_name.toUpperCase() < b.table_name.toUpperCase() ? 1 : -1));
+    }
+    //sort by datasource one
+    if(datasourceOne) {
+      tempData = tempData.filter((row: any) => row.database.database_name !== 'examples');
+    }
+    //set filtered table data
+    setFilteredTableData(tempData);
+  }, [searchtext, data, sort, owner, datasourceOne]);
+
   const theme: SupersetTheme = useTheme();
 
   const showLargeDrawer = (e: any) => {
-    if (e.key === 'drop_edit') setOpen(true);
+    if (e.key === 'drop_edit') {
+      console.log('eeeeeee', selectedId);
+      SupersetClient.get({
+        endpoint: `/api/v1/dataset/${selectedId}`,
+      }).then(
+        async ({ json = {} }) => {
+          console.log('==========', json.result);
+          await setTableData(json.result);
+          await setTableName(json.result.table_name);
+          await setTableDescription(json.result.description);
+          setOpen(true);
+        },
+        createErrorHandler(errMsg => console.log('====Err===', errMsg)),
+      );
+    }
   };
+
   const onClose = () => {
     setOpen(false);
   };
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const showModal = () => {
+  const showModal = async (column: any) => {
+    await setColumnData(column);
+    await setColumnName(column.column_name);
+    await setColumnDescription(column.description);
+    await setColumnExpression(column.expression);
     setIsModalOpen(true);
   };
   const handleOk = () => {
@@ -67,6 +174,12 @@ const ContentPage = () => {
   const handleToggle = () => {
     setBtnToggle(!btnToggle);
   };
+  const handleRowAction = (id: any) => {
+    setSelectedId(id);
+  };
+  const handleInputChange = (e: any) => {
+    setTableName(e.target.value);
+  };
   const handleTableSelect = (id: any) => {
     console.log('id', id);
     let tmp: any = tableSelectNum;
@@ -74,9 +187,36 @@ const ContentPage = () => {
     else tmp = [...tmp, id];
     setTableSelectNum(tmp);
   };
-  useEffect(() => {
-    SupersetClient.get({
-      endpoint: `/api/v1/datamanage/`,
+
+  const actionTableSave = async () => {
+    await SupersetClient.post({
+      endpoint: '/datasource/save/',
+      postPayload: {
+        data: {
+          ...tableData,
+          type: 'table',
+          table_name: tableName,
+          description: tableDescription,
+        },
+      },
+    })
+      .then(async ({ json }) => {
+        console.log(' ======== Success =======', json);
+        notification.success({
+          message: 'Success',
+          description: 'Changed table name successfully',
+        });
+        await actionGetData();
+        setOpen(false);
+      })
+      .catch(err => {
+        console.log('====== Save error ========', err);
+      });
+  };
+
+  const actionGetData = async () => {
+    await SupersetClient.get({
+      endpoint: `/api/v1/dataset/`,
     })
       .then(
         ({ json = {} }) => {
@@ -85,6 +225,30 @@ const ContentPage = () => {
         createErrorHandler(errMsg => console.log('====Err===', errMsg)),
       )
       .finally(() => {});
+  };
+  const handleColumnSave = async () => {
+    await setTableData({
+      ...tableData,
+      columns: tableData.columns.map((column: any) =>
+        column.id === columnData.id
+          ? {
+              ...columnData,
+              column_name: columnName,
+              description: columnDescription,
+              expression: columnExpression,
+            }
+          : column,
+      ),
+    });
+
+    setIsModalOpen(false);
+  };
+  const handleEditTableSave = () => {
+    actionTableSave();
+  };
+
+  useEffect(() => {
+    actionGetData();
   }, []);
 
   useEffect(() => {
@@ -112,6 +276,7 @@ const ContentPage = () => {
     <Row gutter={48}>
       <Col span={4}>
         <Menu
+          onClick={handleOwner}
           mode="inline"
           openKeys={['sub1']}
           style={{
@@ -122,15 +287,15 @@ const ContentPage = () => {
             padding: '12px',
           }}
         >
-          <Menu.Item key="sub1">All</Menu.Item>
+          <Menu.Item key={ALL}>All</Menu.Item>
           <Menu.Item key="sub2">My Data</Menu.Item>
           <Divider />
           <Menu.Item key="sub3">Favourites</Menu.Item>
           <Menu.Item key="sub4">Datasources</Menu.Item>
           <Menu.Item key="sub5">Files</Menu.Item>
           <Divider />
-          <Menu.Item key="sub6">Shared With You</Menu.Item>
-          <Menu.Item key="sub7">Shared By You</Menu.Item>
+          <Menu.Item key={SHARED_WITH_YOU}>Shared With You</Menu.Item>
+          <Menu.Item key={SHARED_BY_YOU}>Shared By You</Menu.Item>
           <Divider />
           <Menu.Item key="sub8">Hidden</Menu.Item>
         </Menu>
@@ -144,11 +309,16 @@ const ContentPage = () => {
             <Space style={{ float: 'right' }}>
               <Button
                 type="primary"
-                icon={<SortAscendingOutlined />}
+                icon={sort === 2 ?
+                  <SortDescendingOutlined />
+                  :
+                  <SortAscendingOutlined />
+                }
                 style={{
-                  background: 'none',
-                  color: theme.colors.quotron.black,
+                  background: sort ? 'blue' : 'white',
+                  color: sort ? 'white' : theme.colors.quotron.black,
                 }}
+                onClick={handleSort}
               />
               <Button
                 type="primary"
@@ -173,7 +343,7 @@ const ContentPage = () => {
           </Col>
         </Row>
         <Row>
-          <Input placeholder="Search tables" />
+          <Input placeholder="Search tables" value={searchtext} onChange={handleSearchtext} />
         </Row>
         {tableSelectNum?.length ? (
           <Row
@@ -214,14 +384,14 @@ const ContentPage = () => {
           }}
         >
           <Col span="12">
-            <Checkbox>DATASOURCE ONE</Checkbox>
+            <Checkbox value={datasourceOne} onChange={handleDatasourceChange}>DATASOURCE ONE</Checkbox>
           </Col>
           <Col span="12" style={{ float: 'right' }}>
             Uploaded on 21 aug 22, 12:00pm IST
           </Col>
         </Row>
         {btnToggle === true ? (
-          data?.map((row: any) => {
+          filteredTableData?.map((row: any) => {
             let description: any = row?.description;
             if (description) description = `${description.slice(0, 50)}...`;
             else description = '';
@@ -247,15 +417,22 @@ const ContentPage = () => {
                     >
                       <Row justify="center">
                         <Avatar.Group>
-                          <Avatar icon={<UserOutlined />} />
-                          <Avatar icon={<UserOutlined />} />
-                          <Avatar icon={<UserOutlined />} />
+                          {
+                            row.owners.length ?
+                            row.owners.map((owner: any) => 
+                              <Avatar icon={<div>{`${owner.first_name[0]}${owner.last_name[0]}`}</div>} style={{backgroundColor: `rgb(${owner.id%256},${owner.id*2%256},${owner.id*3%256})`}} />
+                            )
+                            :
+                            <><Avatar icon={<UserOutlined />} />
+                            <Avatar icon={<UserOutlined />} />
+                            <Avatar icon={<UserOutlined />} /></>
+                          }
                         </Avatar.Group>
                       </Row>
                       <Row style={{ display: 'inline-block' }}>Author</Row>
                     </Col>
                     <Col span="2">
-                      <Dropdown overlay={menu} arrow>
+                      <Dropdown overlay={menu} trigger={['click']} arrow>
                         <Button
                           type="primary"
                           icon={<MoreOutlined />}
@@ -263,6 +440,7 @@ const ContentPage = () => {
                             background: 'none',
                             color: theme.colors.quotron.black,
                           }}
+                          onClick={() => handleRowAction(row?.id)}
                         />
                       </Dropdown>
                     </Col>
@@ -274,7 +452,7 @@ const ContentPage = () => {
         ) : (
           <Row gutter={8}>
             {' '}
-            {data?.map((row: any) => {
+            {filteredTableData?.map((row: any) => {
               let description: any = row?.description;
               if (description) description = `${description.slice(0, 40)}...`;
               else description = '';
@@ -312,7 +490,7 @@ const ContentPage = () => {
                             />
                           </Col>
                           <Col span={21} style={{ display: 'inline-block' }}>
-                            <Dropdown overlay={menu} arrow>
+                            <Dropdown overlay={menu} trigger={['click']} arrow>
                               <Button
                                 type="primary"
                                 icon={<MoreOutlined />}
@@ -321,6 +499,7 @@ const ContentPage = () => {
                                   color: theme.colors.quotron.white,
                                   float: 'right',
                                 }}
+                                onClick={() => handleRowAction(row?.id)}
                               />
                             </Dropdown>
                           </Col>
@@ -380,7 +559,7 @@ const ContentPage = () => {
               </Breadcrumb>
             </Row>
             <Row>
-              <Title level={3}>Sales India</Title>
+              <Title level={3}>{tableData?.table_name || ''}</Title>
             </Row>
           </Col>
           <Col span="12" style={{ display: 'inline-block' }}>
@@ -391,155 +570,67 @@ const ContentPage = () => {
           </Col>
         </Row>
         <Alert
-          message="Warning Text"
-          description="Warning Description Warning Description Warning Description Warning Description"
+          message="Please note that any changes made to table details would be persisted on"
+          description="Quotron only, it will not affect anything orignal data source"
           type="warning"
           style={{ background: theme.colors.quotron.gray_white }}
         />
         <Title level={4} style={{ marginTop: '12px' }}>
           Table Name
         </Title>
-        <Input placeholder="Sales India" />
+        <Input
+          placeholder="Sales India"
+          value={tableName}
+          onChange={handleInputChange}
+        />
         <Title level={4} style={{ marginTop: '12px' }}>
           Table Description
         </Title>
-        <TextArea rows={4} />
+        <TextArea
+          rows={4}
+          value={tableDescription}
+          onChange={e => {
+            setTableDescription(e.target.value);
+          }}
+        />
         <Title level={4} style={{ marginTop: '24px' }}>
           Columes
         </Title>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>Product Cost</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>Sales Cost</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>No Of New Customers</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>CAC</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button
-                  icon={<FunctionOutlined />}
-                  size="large"
-                  onClick={showModal}
-                />
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>Averge</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button
-                  icon={<FunctionOutlined />}
-                  size="large"
-                  onClick={showModal}
-                />
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        <Card
-          style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
-        >
-          <Row justify="center">
-            <Col span="1">
-              <FolderOutlined />
-            </Col>
-            <Col span="11">
-              <Text strong>Sum</Text>
-            </Col>
-            <Col span="12" style={{ display: 'inline-block' }}>
-              <Space style={{ float: 'right' }}>
-                <Button
-                  icon={<FunctionOutlined />}
-                  size="large"
-                  onClick={showModal}
-                />
-                <Button icon={<EyeInvisibleOutlined />} size="large" />
-                <Button icon={<DeleteOutlined />} size="large" />
-              </Space>
-            </Col>
-          </Row>
-        </Card>
+        {tableData?.columns?.map((column: any) => (
+          <Card
+            style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
+          >
+            <Row justify="center">
+              <Col span="1">
+                <FolderOutlined />
+              </Col>
+              <Col span="11">
+                <Text strong>{column.column_name}</Text>
+              </Col>
+              <Col span="12" style={{ display: 'inline-block' }}>
+                <Space style={{ float: 'right' }}>
+                  {column.expression ? (
+                    <Button
+                      icon={<FunctionOutlined />}
+                      size="large"
+                      onClick={() => showModal(column)}
+                    />
+                  ) : (
+                    ''
+                  )}
+                  <Button icon={<EyeInvisibleOutlined />} size="large" />
+                  <Button icon={<DeleteOutlined />} size="large" />
+                </Space>
+              </Col>
+            </Row>
+          </Card>
+        ))}
 
         <Row justify="center" gutter={16}>
           <Col span="12">
-            <Button style={{ width: '100%', height: '50px' }}>Cancel</Button>
+            <Button style={{ width: '100%', height: '50px' }} onClick={onClose}>
+              Cancel
+            </Button>
           </Col>
           <Col span="12">
             <Button
@@ -550,6 +641,7 @@ const ContentPage = () => {
                 background: theme.colors.quotron.black,
                 color: theme.colors.quotron.gray_white,
               }}
+              onClick={handleEditTableSave}
             >
               Save
             </Button>
@@ -581,11 +673,23 @@ const ContentPage = () => {
         <Title level={4} style={{ marginTop: '24px' }}>
           Colume Name
         </Title>
-        <Input placeholder="CAC" />
+        <Input
+          placeholder="CAC"
+          value={columnName}
+          onChange={(e: any) => {
+            setColumnName(e.target.value);
+          }}
+        />
         <Title level={4} style={{ marginTop: '24px' }}>
           KPI Description
         </Title>
-        <TextArea rows={4} />
+        <TextArea
+          rows={4}
+          value={columnDescription}
+          onChange={(e: any) => {
+            setColumnDescription(e.target.value);
+          }}
+        />
         <Row style={{ marginTop: '24px' }}>
           <Col span={12}>
             <Title level={4}>KPI</Title>
@@ -597,10 +701,21 @@ const ContentPage = () => {
             />
           </Col>
         </Row>
-        <TextArea rows={4} />
+        <TextArea
+          rows={4}
+          value={columnExpression}
+          onChange={(e: any) => {
+            setColumnExpression(e.target.value);
+          }}
+        />
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
           <Col span="12">
-            <Button style={{ width: '100%', height: '50px' }}>Cancel</Button>
+            <Button
+              style={{ width: '100%', height: '50px' }}
+              onClick={handleCancel}
+            >
+              Cancel
+            </Button>
           </Col>
           <Col span="12">
             <Button
@@ -611,6 +726,7 @@ const ContentPage = () => {
                 background: theme.colors.quotron.black,
                 color: theme.colors.quotron.gray_white,
               }}
+              onClick={handleColumnSave}
             >
               Save
             </Button>

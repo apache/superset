@@ -22,7 +22,8 @@ const zlib = require('zlib');
 const parsedArgs = require('yargs').argv;
 
 const { supersetPort = 8088, superset: supersetUrl = null } = parsedArgs;
-const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
+const backend = (supersetUrl || 'https://home.quotron.ai').replace(
+  // const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
   '//+$/',
   '',
 ); // strip ending backslash
