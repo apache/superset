@@ -129,6 +129,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
           const dataset = response.json?.result;
           // modify the response to fit structure expected by AdhocFilterControl
           dataset.type = dataset.datasource_type;
+          // setting filter_select to false will disable suggestions
           dataset.filter_select = false;
           setDatasetDetails(dataset);
         })
