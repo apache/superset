@@ -18,7 +18,6 @@ import {
   Modal,
   Switch,
   Dropdown,
-  AutoComplete,
   notification,
 } from 'antd';
 import {
@@ -92,21 +91,68 @@ const ContentPage = () => {
   const [columnName, setColumnName] = useState('');
   const [columnDescription, setColumnDescription] = useState('');
   const [columnExpression, setColumnExpression] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isKPIChecked, setIsKPIChecked] = useState(false);
-  const [options, setOptions] = useState([] as any[]);
-  const [isRequiredField, setIsRequiredField] = useState(false);
+  const [searchtext, setSearchtext] = useState('');
 
-  const handleTextAreaOnChange = (ev: any) => {
-    setColumnExpression(ev.target.value);
+  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchtext(ev.target.value);
   };
-  const onSelect = (value: any) => {
-    console.log('onSelect', value);
+
+  const handleSort = () => {
+    setSort((sort + 1) % 3);
   };
+
   const handleOwner = (ev: any) => {
     setOwner(ev.key);
   };
 
+  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
+    setDatasourceOne(ev.target.checked);
+  };
+
+  useEffect(() => {
+    if (!data.length) return;
+    let tempData: DataProperties[] = [];
+    // filter by author
+    if (owner === SHARED_WITH_YOU) {
+      tempData = data.filter(
+        (row: any) =>
+          row.owners.filter((owner: any) => owner.username === username).length,
+      );
+    } else if (owner === SHARED_BY_YOU) {
+      tempData = data.filter(
+        (row: any) =>
+          !row.owners.filter((owner: any) => owner.username === username)
+            .length,
+      );
+    } else {
+      tempData = [...data];
+    }
+    // filter by searchtext
+    if (searchtext)
+      tempData = tempData.filter((row: any) =>
+        row.table_name.includes(searchtext),
+      );
+    // sort by alphabet
+    if (sort) {
+      tempData = tempData.sort((a, b) =>
+        sort === 1
+          ? a.table_name.toUpperCase() > b.table_name.toUpperCase()
+            ? 1
+            : -1
+          : a.table_name.toUpperCase() < b.table_name.toUpperCase()
+          ? 1
+          : -1,
+      );
+    }
+    // sort by datasource one
+    if (datasourceOne) {
+      tempData = tempData.filter(
+        (row: any) => row.database.database_name !== 'examples',
+      );
+    }
+    // set filtered table data
+    setFilteredTableData(tempData);
+  }, [searchtext, data, sort, owner, datasourceOne]);
 
   const theme: SupersetTheme = useTheme();
 
@@ -117,10 +163,10 @@ const ContentPage = () => {
         endpoint: `/api/v1/dataset/${selectedId}`,
       }).then(
         async ({ json = {} }) => {
+          console.log('==========', json.result);
           await setTableData(json.result);
           await setTableName(json.result.table_name);
           await setTableDescription(json.result.description);
-
           setOpen(true);
         },
         createErrorHandler(errMsg => console.log('====Err===', errMsg)),
@@ -131,12 +177,7 @@ const ContentPage = () => {
   const onClose = () => {
     setOpen(false);
   };
-
-  const initColumnData = async () => {
-    await setColumnName('');
-    await setColumnDescription('');
-    await setColumnExpression('');
-  };
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = async (column: any) => {
     await setColumnData(column);
     await setColumnName(column.column_name);
@@ -144,25 +185,10 @@ const ContentPage = () => {
     await setColumnExpression(column.expression);
     setIsModalOpen(true);
   };
-  const ShowAddColumnModal = async () => {
-    await initColumnData();
-    await setIsKPIChecked(false);
-    await tableData?.columns.map((column: any) => {
-      if (column.expression) {
-        setOptions([...options, { value: column.expression }]);
-      }
-    });
-    await setColumnData({
-      id: 10000,
-    });
-    tableData.columns = [...tableData.columns, { id: 10000 }];
-    setIsModalOpen(true);
-  };
   const handleOk = () => {
     setIsModalOpen(false);
   };
-  const handleCancel = async () => {
-    initColumnData();
+  const handleCancel = () => {
     setIsModalOpen(false);
   };
   const handleToggle = () => {
@@ -173,12 +199,6 @@ const ContentPage = () => {
   };
   const handleInputChange = (e: any) => {
     setTableName(e.target.value);
-  };
-  const handleSwitchOnChange = async () => {
-    await setIsKPIChecked(!isKPIChecked);
-    if (isKPIChecked) {
-      await setColumnExpression('');
-    }
   };
   const handleTableSelect = (id: any) => {
     console.log('id', id);
@@ -226,30 +246,22 @@ const ContentPage = () => {
       )
       .finally(() => {});
   };
-
   const handleColumnSave = async () => {
-    if (columnName) {
-      await setTableData({
-        ...tableData,
-        columns: tableData.columns.map((column: any) =>
-          column.id === columnData.id
-            ? {
-                ...columnData,
-                column_name: columnName,
-                description: columnDescription,
-                expression: JSON.stringify(options).includes(columnExpression)
-                  ? ''
-                  : columnExpression,
-              }
-            : column,
-        ),
-      });
+    await setTableData({
+      ...tableData,
+      columns: tableData.columns.map((column: any) =>
+        column.id === columnData.id
+          ? {
+              ...columnData,
+              column_name: columnName,
+              description: columnDescription,
+              expression: columnExpression,
+            }
+          : column,
+      ),
+    });
 
-      setIsModalOpen(false);
-      setIsRequiredField(false);
-    } else {
-      setIsRequiredField(true);
-    }
+    setIsModalOpen(false);
   };
   const handleEditTableSave = () => {
     actionTableSave();
@@ -619,20 +631,9 @@ const ContentPage = () => {
             setTableDescription(e.target.value);
           }}
         />
-        <Row align="middle" style={{ marginTop: '24px' }}>
-          <Col span={12}>
-            <Title level={4}>Columes</Title>
-          </Col>
-          <Col span={12} style={{ display: 'inline-block' }}>
-            <Button
-              style={{ float: 'right' }}
-              onClick={ShowAddColumnModal}
-              type="primary"
-            >
-              Add Column
-            </Button>
-          </Col>
-        </Row>
+        <Title level={4} style={{ marginTop: '24px' }}>
+          Columes
+        </Title>
         {tableData?.columns?.map((column: any) => (
           <Card
             style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
@@ -646,7 +647,7 @@ const ContentPage = () => {
               </Col>
               <Col span="12" style={{ display: 'inline-block' }}>
                 <Space style={{ float: 'right' }}>
-                  {column.expression?.length ? (
+                  {column.expression ? (
                     <Button
                       icon={<FunctionOutlined />}
                       size="large"
@@ -711,13 +712,10 @@ const ContentPage = () => {
           Colume Name
         </Title>
         <Input
-          placeholder="This field is required."
+          placeholder="CAC"
           value={columnName}
           onChange={(e: any) => {
             setColumnName(e.target.value);
-          }}
-          style={{
-            background: isRequiredField ? theme.colors.error.base : '',
           }}
         />
         <Title level={4} style={{ marginTop: '24px' }}>
@@ -736,29 +734,18 @@ const ContentPage = () => {
           </Col>
           <Col span={12}>
             <Switch
-              checked={isKPIChecked}
-              style={{
-                float: 'right',
-              }}
-              onChange={handleSwitchOnChange}
+              defaultChecked
+              style={{ float: 'right', background: theme.colors.quotron.black }}
             />
           </Col>
         </Row>
-        <AutoComplete
-          options={options}
-          onSelect={onSelect}
-          onSearch={handleSearch}
-          style={{ width: '100%' }}
+        <TextArea
+          rows={4}
           value={columnExpression}
-        >
-          <TextArea
-            rows={4}
-            value={columnExpression}
-            onChange={handleTextAreaOnChange}
-            style={{ display: isKPIChecked ? 'block' : 'none', width: '100%' }}
-          />
-        </AutoComplete>
-
+          onChange={(e: any) => {
+            setColumnExpression(e.target.value);
+          }}
+        />
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
           <Col span="12">
             <Button
