@@ -129,7 +129,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
           const dataset = response.json?.result;
           // modify the response to fit structure expected by AdhocFilterControl
           dataset.type = dataset.datasource_type;
-          dataset.filter_select = true;
+          dataset.filter_select = false;
           setDatasetDetails(dataset);
         })
         .catch((response: SupersetApiError) => {
