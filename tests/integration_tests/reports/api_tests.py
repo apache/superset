@@ -295,6 +295,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == REPORTS_COUNT
         data_keys = sorted(list(data["result"][0].keys()))
+        data_keys.push("msg_content")
         assert expected_fields == data_keys
 
         # Assert nested fields
