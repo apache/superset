@@ -61,27 +61,13 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
     t('auditlogs'),
     addDangerToast,
   );
-  // const {
-  //   state: { loading: alertLoading, resource: alertResource },
-  //   fetchResource,
-  // } = useSingleViewResource<any>(
-  //   'report',
-  //   t('reports'),
-  //   addDangerToast,
-  // );
-
-  // useEffect(() => {
-  //   if (flashId !== null && !alertLoading) {
-  //     fetchResource(flashId);
-  //   }
-  // }, [flashId]);
 
   const initialSort = [{ id: 'timestamp', desc: true }];
   const columns = useMemo(
     () => [
       {
         accessor: 'id',
-        Header: t('Execution Log Id'),
+        Header: t('Log Id'),
       },
       {
         accessor: 'description',
@@ -120,14 +106,12 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
             original: { newValue = '' },
           },
         }: any) => (
-          // <Tooltip title={newValue} placement="topLeft">
           <ReactJson
             name="New Value"
             enableClipboard
-            theme="apathy:inverted"
+            theme="rjv-default"
             src={JSON.parse(newValue)}
           />
-          // </Tooltip>
         ),
       },
       {
@@ -139,14 +123,12 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
             original: { oldValue = '' },
           },
         }: any) => (
-          // <Tooltip title={oldValue} placement="topLeft">
           <ReactJson
             name="Old Value"
             enableClipboard
-            theme="apathy:inverted"
+            theme="rjv-default"
             src={JSON.parse(oldValue)}
           />
-          // </Tooltip>
         ),
       },
     ],
