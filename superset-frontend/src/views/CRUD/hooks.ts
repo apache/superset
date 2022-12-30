@@ -291,7 +291,7 @@ export function useFlashListViewResource<D extends object = any>(
               (json = {}) => {
                 updateState({
                   collection: json?.data as D[],
-                  count: 10,
+                  count: json?.data?.length,
                   lastFetched: new Date().toISOString(),
                 });
               },

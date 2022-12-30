@@ -120,14 +120,14 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
             original: { newValue = '' },
           },
         }: any) => (
-          <Tooltip title={newValue} placement="topLeft">
-            <ReactJson
-              name="New Value"
-              enableClipboard
-              theme="apathy:inverted"
-              src={JSON.parse(newValue)}
-            />
-          </Tooltip>
+          // <Tooltip title={newValue} placement="topLeft">
+          <ReactJson
+            name="New Value"
+            enableClipboard
+            theme="apathy:inverted"
+            src={JSON.parse(newValue)}
+          />
+          // </Tooltip>
         ),
       },
       {
@@ -139,14 +139,14 @@ function FlashAuditLog({ addDangerToast }: AuditLogProps) {
             original: { oldValue = '' },
           },
         }: any) => (
-          <Tooltip title={oldValue} placement="topLeft">
-            <ReactJson
-              name="Old Value"
-              enableClipboard
-              theme="apathy:inverted"
-              src={JSON.parse(oldValue)}
-            />
-          </Tooltip>
+          // <Tooltip title={oldValue} placement="topLeft">
+          <ReactJson
+            name="Old Value"
+            enableClipboard
+            theme="apathy:inverted"
+            src={JSON.parse(oldValue)}
+          />
+          // </Tooltip>
         ),
       },
     ],
