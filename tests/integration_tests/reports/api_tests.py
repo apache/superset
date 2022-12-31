@@ -83,7 +83,6 @@ class TestReportSchedulesApi(SupersetTestCase):
             report_schedules = []
             admin_user = self.get_user("admin")
             alpha_user = self.get_user("alpha")
-            msg_content = ""
             chart = db.session.query(Slice).first()
             example_db = get_example_database()
             for cx in range(REPORTS_COUNT):
@@ -116,7 +115,6 @@ class TestReportSchedulesApi(SupersetTestCase):
                         owners=[admin_user, alpha_user],
                         recipients=recipients,
                         logs=logs,
-                        msg_content=msg_content,
                     )
                 )
             yield report_schedules
@@ -291,7 +289,6 @@ class TestReportSchedulesApi(SupersetTestCase):
             "recipients",
             "timezone",
             "type",
-            "msg_content",
         ]
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
