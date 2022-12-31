@@ -6019,6 +6019,10 @@
             "format": "int32",
             "nullable": true,
             "type": "integer"
+          },
+          "msg_content": {
+            "nullable": true,
+            "type": "string"
           }
         },
         "required": [
@@ -6200,6 +6204,10 @@
           },
           "type": {
             "maxLength": 50,
+            "type": "string"
+          },
+          "msg_content": {
+            "nullable": true,
             "type": "string"
           }
         },
