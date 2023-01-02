@@ -290,7 +290,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "timezone",
             "type",
         ]
-        assert rv.status_code == 400
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == REPORTS_COUNT
         data_keys = sorted(list(data["result"][0].keys()))
