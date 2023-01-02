@@ -29,7 +29,7 @@ import { useFlashListViewResource } from 'src/views/CRUD/hooks';
 import ReactJson from 'react-json-view';
 import { FlashAuditLogs } from '../../types';
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 10;
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
