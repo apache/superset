@@ -54,20 +54,34 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             if self._content.url is not None
             else ""
         )
-        return __(
+        template = __(
             """*%(name)s*
 
-%(description)s
+                %(description)s
 
-<%(url)s|Explore in Careem Insights>
-
-%(table)s
-""",
+                %(table)s
+            """,
             name=self._content.name,
             description=self._content.description or "",
-            url=url,
             table=table,
         )
+        if all([url is not None, url != ""]):
+            template = __(
+                """*%(name)s*
+
+                %(description)s
+
+                <%(url)s|Explore in Careem Insights>
+
+                %(table)s
+            """,
+                name=self._content.name,
+                description=self._content.description or "",
+                url=url,
+                table=table,
+            )
+
+        return template
 
     @staticmethod
     def _error_template(name: str, description: str, text: str) -> str:

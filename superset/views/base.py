@@ -79,9 +79,7 @@ from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
-
 from superset.views.utils import bootstrap_user_data
-
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -661,7 +659,7 @@ class DatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
-    def get_database_ids(self, database_permissions: set) -> List[str]:
+    def get_database_ids(self, database_permissions: Any) -> List[str]:
         db_ids = []
         if database_permissions is not None and len(database_permissions) > 0:
             database_list = list(database_permissions)
