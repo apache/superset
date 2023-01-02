@@ -51,7 +51,7 @@ import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
 import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -71,9 +71,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-  };
+  user: BootstrapUser;
 }
 
 const StyledTableLabel = styled.div`
@@ -89,11 +87,10 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-const bootstrapData = getBootstrapData();
-
 function SavedQueryList({
   addDangerToast,
   addSuccessToast,
+  user,
 }: SavedQueryListProps) {
   const {
     state: {
@@ -476,7 +473,7 @@ function SavedQueryList({
     [addDangerToast],
   );
 
-  if (!canUserAccessSqlLab(bootstrapData.user)) {
+  if (!canUserAccessSqlLab(user)) {
     window.location.href = '/';
     return <></>;
   }

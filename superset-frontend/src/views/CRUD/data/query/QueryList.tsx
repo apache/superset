@@ -49,8 +49,8 @@ import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import Icons from 'src/components/Icons';
-import getBootstrapData from 'src/utils/getBootstrapData';
 import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
 import QueryPreviewModal from './QueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -73,6 +73,7 @@ const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
 interface QueryListProps {
   addDangerToast: (msg: string, config?: any) => any;
   addSuccessToast: (msg: string, config?: any) => any;
+  user: BootstrapUser;
 }
 
 const StyledTableLabel = styled.div`
@@ -88,9 +89,7 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-const bootstrapData = getBootstrapData();
-
-function QueryList({ addDangerToast }: QueryListProps) {
+function QueryList({ addDangerToast, user }: QueryListProps) {
   const {
     state: { loading, resourceCount: queryCount, resourceCollection: queries },
     fetchData,
@@ -421,7 +420,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
     [addDangerToast],
   );
 
-  if (!canUserAccessSqlLab(bootstrapData.user)) {
+  if (!canUserAccessSqlLab(user)) {
     window.location.href = '/';
     return <></>;
   }
