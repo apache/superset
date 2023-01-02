@@ -193,7 +193,9 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
     // If a chart is a new one that isn't saved, metadata is null. In this
     // case we want to default P1D. If the chart has been saved, we want
     // to use whichever value was chosen, either nothing or valid a time grain.
-    return state.metadata ? state.form_data?.time_grain_sqla : 'P1D';
+    return state.metadata || 'time_grain_sqla' in (state?.form_data ?? {})
+      ? state.form_data?.time_grain_sqla
+      : 'P1D';
   },
   description: t(
     'The time granularity for the visualization. This ' +
