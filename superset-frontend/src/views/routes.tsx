@@ -101,6 +101,14 @@ const ExecutionLog = lazy(
       /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/alert/ExecutionLog'
     ),
 );
+
+const FlashAuditLogs = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExecutionLog" */ 'src/views/CRUD/flash/components/FlashAuditLogs/FlashAuditLogs'
+    ),
+);
+
 const ExplorePage = lazy(
   () => import(/* webpackChunkName: "ExplorePage" */ 'src/explore/ExplorePage'),
 );
@@ -198,6 +206,10 @@ export const routes: Routes = [
     props: {
       isReportEnabled: true,
     },
+  },
+  {
+    path: '/flash/auditlogs/:flashId/',
+    Component: FlashAuditLogs,
   },
   {
     path: '/explore/',

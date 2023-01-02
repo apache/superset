@@ -33,7 +33,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import SupersetText from 'src/utils/textUtils';
 import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
-import { fetchUsers } from './flash/services/flash.service';
+import { fetchAuditLogs, fetchUsers } from './flash/services/flash.service';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -285,34 +285,51 @@ export function useFlashListViewResource<D extends object = any>(
       }, '');
       const offset = Number(pageIndex) + 1;
       const queryParams = `limit=${pageSize}&offset=${offset}${filtersConcatenated}`;
-      return fetchUsers(queryParams)
-        .then(
-          (json = {}) => {
-            updateState({
-              collection: json?.data.results as D[],
-              count: json?.data?.totalCount,
-              lastFetched: new Date().toISOString(),
-            });
-          },
-          createErrorHandler(errMsg =>
-            handleErrorMsg(
-              t(
-                'An error occurred while fetching %s: %s',
-                resourceLabel,
-                errMsg,
+      return resourceLabel === 'auditlogs'
+        ? fetchAuditLogs(Number(resource), queryParams)
+            .then(
+              (json = {}) => {
+                updateState({
+                  collection: json?.data as D[],
+                  count: json?.data?.length,
+                  lastFetched: new Date().toISOString(),
+                });
+              },
+              createErrorHandler(errMsg =>
+                handleErrorMsg(
+                  t(
+                    'An error occurred while fetching %s: %s',
+                    resourceLabel,
+                    errMsg,
+                  ),
+                ),
               ),
-            ),
-          ),
-        )
-        .finally(() => {
-          updateState({ loading: false });
-          // updateState({
-          //   loading:false,
-          //   collection: flashResults as D[],
-          //   count: flashResults.length,
-          //   lastFetched: new Date().toISOString(),
-          // });
-        });
+            )
+            .finally(() => {
+              updateState({ loading: false });
+            })
+        : fetchUsers(queryParams)
+            .then(
+              (json = {}) => {
+                updateState({
+                  collection: json?.data.results as D[],
+                  count: json?.data?.totalCount,
+                  lastFetched: new Date().toISOString(),
+                });
+              },
+              createErrorHandler(errMsg =>
+                handleErrorMsg(
+                  t(
+                    'An error occurred while fetching %s: %s',
+                    resourceLabel,
+                    errMsg,
+                  ),
+                ),
+              ),
+            )
+            .finally(() => {
+              updateState({ loading: false });
+            });
     },
     [baseFilters],
   );

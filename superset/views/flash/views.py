@@ -20,6 +20,7 @@ from flask_appbuilder.security.decorators import has_access
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
+from flask_appbuilder import permission_name
 
 
 class Flash(BaseSupersetView):
@@ -29,4 +30,10 @@ class Flash(BaseSupersetView):
     @expose("/list/")
     @has_access
     def list(self) -> FlaskResponse:
+        return super().render_app_template()
+
+    @expose("/auditlogs/<pk>", methods=["GET"])
+    @has_access
+    @permission_name("read")
+    def auditlogs(self, pk: int) -> FlaskResponse:
         return super().render_app_template()

@@ -68,6 +68,7 @@ export type FlashServiceObject = {
   flashType: string;
   id?: number;
   lastRefreshTime?: string;
+  nextRefreshTime?: string;
   retryCount?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -81,6 +82,17 @@ export type FlashServiceObject = {
   teamSlackChannel?: string;
   teamSlackHandle?: string;
   ttl: string;
+};
+
+export type FlashAuditLogs = {
+  description: string;
+  flashId: number;
+  id: number;
+  newValue: string;
+  oldValue: string;
+  flashType: string;
+  timestamp: string;
+  user: string;
 };
 
 export interface FormErrors {
