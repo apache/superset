@@ -419,8 +419,8 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
             params=get_slice_json(
                 defaults,
                 groupby=["ds"],
-                since="40 years ago",
-                until="now",
+                since="1950-01-01",
+                until="2020-01-01",
                 viz_type="table",
                 metrics=metrics,
             ),
