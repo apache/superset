@@ -19,7 +19,7 @@
 
 # superset
 
-![Version: 0.7.7](https://img.shields.io/badge/Version-0.7.7-informational?style=flat-square)
+![Version: 0.7.8](https://img.shields.io/badge/Version-0.7.8-informational?style=flat-square)
 
 Apache Superset is a modern, enterprise-ready business intelligence web application
 
@@ -40,8 +40,8 @@ helm install my-superset superset/superset
 
 | Repository | Name | Version |
 |------------|------|---------|
-| https://charts.bitnami.com/bitnami | postgresql | 11.1.22 |
-| https://charts.bitnami.com/bitnami | redis | 16.3.1 |
+| https://charts.bitnami.com/bitnami | postgresql | 12.1.6  |
+| https://charts.bitnami.com/bitnami | redis | 17.3.17 |
 
 ## Values
 
