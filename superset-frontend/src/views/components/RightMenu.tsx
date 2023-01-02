@@ -187,8 +187,8 @@ const RightMenu = ({
           perm: canDatabase && HAS_GSHEETS_INSTALLED,
         },
         {
-          label: t('Upload JSON/CSV to database'),
-          name: 'Upload a JSON/CSV',
+          label: t('Upload API URL/CSV to database'),
+          name: 'Upload API URL/CSV',
           url: '/csvtodatabaseview/form',
           perm: canUploadCSV && showUploads,
         },

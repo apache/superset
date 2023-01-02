@@ -18,6 +18,7 @@
  */
 import { t, styled } from '@superset-ui/core';
 import React, { useCallback, useEffect, useRef } from 'react';
+import IconButton from 'src/dashboard/components/IconButton';
 import Alert from 'src/components/Alert';
 import cx from 'classnames';
 import Button from 'src/components/Button';
@@ -25,6 +26,7 @@ import Icons from 'src/components/Icons';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
+import Icon from '../Icons/Icon';
 import CardCollection from './CardCollection';
 import FilterControls from './Filters';
 import { CardSortSelect } from './CardSortSelect';
@@ -315,12 +317,23 @@ function ListView<T extends object = any>({
           )}
           <div className="controls">
             {filterable && (
-              <FilterControls
-                ref={filterControlsRef}
-                filters={filters}
-                internalFilters={internalFilters}
-                updateFilterValue={applyFilterValue}
-              />
+              <>
+                <FilterControls
+                  ref={filterControlsRef}
+                  filters={filters}
+                  internalFilters={internalFilters}
+                  updateFilterValue={applyFilterValue}
+                />
+                <IconButton
+                  icon={
+                    <Icon
+                      fileName="filter_remove_icon"
+                      style={{ marginTop: 20 }}
+                    />
+                  }
+                  onClick={handleClearFilterControls}
+                />
+              </>
             )}
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect

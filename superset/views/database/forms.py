@@ -106,7 +106,7 @@ class UploadToDatabaseForm(DynamicForm):
 
 class CsvToDatabaseForm(UploadToDatabaseForm):
     api_url = StringField(
-        _("JSON/CSV Upload"),
+        _("API URL/CSV Upload"),
         description=_(
             "(1st Priority) Please enter a valid API URL to get data"),
         validators=[
