@@ -68,6 +68,7 @@ export type FlashServiceObject = {
   flashType: string;
   id?: number;
   lastRefreshTime?: string;
+  nextRefreshTime?: string;
   retryCount?: number;
   createdAt?: string;
   updatedAt?: string;

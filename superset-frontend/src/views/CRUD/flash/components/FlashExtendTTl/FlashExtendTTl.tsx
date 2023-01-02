@@ -36,6 +36,7 @@ import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { updateFlash } from '../../services/flash.service';
 import { UPDATE_TYPES } from '../../constants';
+import { FlashTypes } from '../../enums';
 
 const appContainer = document.getElementById('app');
 const bootstrapData = JSON.parse(
@@ -136,6 +137,41 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
     setFormData(formData);
   };
 
+  const validate = (formData: any, errors: any) => {
+    const flashType = flash.flashType.replace(/([A-Z])/g, ' $1').trim();
+    if (flash) {
+      if (new Date(formData.ttl) < new Date(flash.ttl)) {
+        errors.ttl.addError(
+          `The extended TTL should not be less than the prior TTL i.e. (${
+            new Date(flash.ttl).toISOString().split('T')[0]
+          })`,
+        );
+      } else if (flashType === FlashTypes.SHORT_TERM) {
+        const maxDate = new Date(flash.ttl);
+        maxDate.setDate(maxDate.getDate() + 7);
+        if (new Date(formData.ttl) > new Date(maxDate)) {
+          errors.ttl.addError(
+            `TTL should not extend more than 7 days from the current one. Max date can be (${
+              new Date(maxDate).toISOString().split('T')[0]
+            })`,
+            ')',
+          );
+        }
+      } else if (flashType === FlashTypes.LONG_TERM) {
+        const maxDate = new Date(flash.ttl);
+        maxDate.setDate(maxDate.getDate() + 90);
+        if (new Date(formData.ttl) > new Date(maxDate)) {
+          errors.ttl.addError(
+            `TTL should not extend more than 90 days from the current one. Max date can be (${
+              new Date(maxDate).toISOString().split('T')[0]
+            })`,
+          );
+        }
+      }
+    }
+    return errors;
+  };
+
   const onFlashUpdation = ({ formData }: { formData: any }) => {
     const payload = { ...formData };
     flashTtlService(Number(flash?.id), UPDATE_TYPES.TTL, payload);
@@ -162,6 +198,23 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
   const renderModalBody = () => (
     <Form layout="vertical">
       <Row>
+        <Col xs={5}>
+          <p>FLASH TYPE:</p>
+        </Col>
+        <Col xs={12}>
+          <p>
+            <strong>
+              {flash?.flashType
+                ? flash.flashType
+                    .replace(/([A-Z])/g, ' $1')
+                    .trim()
+                    .toUpperCase()
+                : ''}
+            </strong>
+          </p>
+        </Col>
+      </Row>
+      <Row>
         <Col xs={24}>
           <StyledJsonSchema>
             <SchemaForm
@@ -171,6 +224,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
               uiSchema={getUISchema()}
               onSubmit={onFlashUpdation}
               transformErrors={transformErrors}
+              validate={validate}
               onChange={e => onFieldChange(e.formData)}
             >
               <Button

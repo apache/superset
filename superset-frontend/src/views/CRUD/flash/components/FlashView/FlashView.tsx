@@ -203,6 +203,16 @@ const FlashView: FunctionComponent<FlashViewButtonProps> = ({
               : 'NIL'}
           </Value>
         </StyledCol>
+        <StyledCol xs={5}>
+          <Label>Next Refresh Time:</Label>
+        </StyledCol>
+        <StyledCol xs={7}>
+          <Value>
+            {flash?.nextRefreshTime
+              ? moment(flash?.nextRefreshTime).format('DD/MM/YYYY hh:mm:ss A')
+              : 'NIL'}
+          </Value>
+        </StyledCol>
       </Row>
       <Row css={{ justifyContent: 'flex-end' }}>
         <Button onClick={() => openAuditLogs()}>Audit Logs</Button>

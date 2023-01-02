@@ -189,16 +189,6 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         size: 'l',
       },
       {
-        Header: t('Slack Channel'),
-        accessor: 'teamSlackChannel',
-        size: 'xl',
-      },
-      {
-        Header: t('Slack Handle'),
-        accessor: 'teamSlackHandle',
-        size: 'xl',
-      },
-      {
         accessor: 'ttl',
         Header: t('TTL'),
         disableSortBy: true,
@@ -206,6 +196,11 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       {
         accessor: 'lastRefreshTime',
         Header: t('Last Refresh Time'),
+        disableSortBy: true,
+      },
+      {
+        accessor: 'nextRefreshTime',
+        Header: t('Next Refresh Time'),
         disableSortBy: true,
       },
       {
@@ -233,13 +228,14 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
             history.push(`/flash/auditlogs/${original.id}`);
 
           const actions: ActionProps[] | [] = [
-            (original?.owner === user?.email || user?.roles?.Admin) && {
-              label: 'export-action',
-              tooltip: t('Extend TTL'),
-              placement: 'bottom' as TooltipPlacement,
-              icon: 'Share',
-              onClick: handleChangeTtl,
-            },
+            original?.flashType !== FlashTypesEnum.ONE_TIME &&
+              (original?.owner === user?.email || user?.roles?.Admin) && {
+                label: 'export-action',
+                tooltip: t('Extend TTL'),
+                placement: 'bottom' as TooltipPlacement,
+                icon: 'Share',
+                onClick: handleChangeTtl,
+              },
             {
               label: 'ownership-action',
               tooltip: t('Change Ownership'),
