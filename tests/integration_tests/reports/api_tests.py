@@ -284,12 +284,12 @@ class TestReportSchedulesApi(SupersetTestCase):
             "id",
             "last_eval_dttm",
             "last_state",
+            "msg_content",
             "name",
             "owners",
             "recipients",
             "timezone",
             "type",
-            "msg_content",
         ]
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
