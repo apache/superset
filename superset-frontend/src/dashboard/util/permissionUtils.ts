@@ -30,7 +30,7 @@ const ADMIN_ROLE_NAME = 'admin';
 const SQL_LAB_ROLE = 'sql_lab';
 
 export const isUserAdmin = (
-  user: UserWithPermissionsAndRoles | UndefinedUser,
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   Object.keys(user.roles || {}).some(
@@ -53,7 +53,7 @@ export const canUserEditDashboard = (
   findPermission('can_write', 'Dashboard', user.roles);
 
 export function canUserAccessSqlLab(
-  user: UserWithPermissionsAndRoles | UndefinedUser,
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
 ) {
   return (
     isUserAdmin(user) ||

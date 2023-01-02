@@ -50,6 +50,8 @@ import copyTextToClipboard from 'src/utils/copy';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
+import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -86,6 +88,8 @@ const StyledTableLabel = styled.div`
 const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
+
+const bootstrapData = getBootstrapData();
 
 function SavedQueryList({
   addDangerToast,
@@ -471,6 +475,11 @@ function SavedQueryList({
     ],
     [addDangerToast],
   );
+
+  if (!canUserAccessSqlLab(bootstrapData.user)) {
+    window.location.href = '/';
+    return <></>;
+  }
 
   return (
     <>

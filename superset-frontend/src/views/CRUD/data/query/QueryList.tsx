@@ -49,6 +49,8 @@ import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import Icons from 'src/components/Icons';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
 import QueryPreviewModal from './QueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -85,6 +87,8 @@ const StyledTableLabel = styled.div`
 const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
+
+const bootstrapData = getBootstrapData();
 
 function QueryList({ addDangerToast }: QueryListProps) {
   const {
@@ -416,6 +420,11 @@ function QueryList({ addDangerToast }: QueryListProps) {
     ],
     [addDangerToast],
   );
+
+  if (!canUserAccessSqlLab(bootstrapData.user)) {
+    window.location.href = '/';
+    return <></>;
+  }
 
   return (
     <>

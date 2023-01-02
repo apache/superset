@@ -56,10 +56,6 @@ initFeatureFlags(bootstrapData.common.feature_flags);
 
 const initialState = getInitialState(bootstrapData);
 
-if (!canUserAccessSqlLab(bootstrapData.user)) {
-  window.location.href = '/';
-}
-
 const sqlLabPersistStateConfig = {
   paths: ['sqlLab'],
   config: {
@@ -142,15 +138,22 @@ if (sqlLabMenu) {
   }
 }
 
-const Application = () => (
-  <QueryProvider>
-    <Provider store={store}>
-      <ThemeProvider theme={theme}>
-        <GlobalStyles />
-        <App />
-      </ThemeProvider>
-    </Provider>
-  </QueryProvider>
-);
+const Application = () => {
+  if (!canUserAccessSqlLab(bootstrapData.user)) {
+    window.location.href = '/';
+    return <></>;
+  }
+
+  return (
+    <QueryProvider>
+      <Provider store={store}>
+        <ThemeProvider theme={theme}>
+          <GlobalStyles />
+          <App />
+        </ThemeProvider>
+      </Provider>
+    </QueryProvider>
+  );
+};
 
 export default hot(Application);

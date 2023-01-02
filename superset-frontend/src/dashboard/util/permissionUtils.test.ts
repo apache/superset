@@ -121,6 +121,10 @@ test('isUserAdmin returns true for admin user', () => {
   expect(isUserAdmin(adminUser)).toEqual(true);
 });
 
+test('isUserAdmin returns false for undefined', () => {
+  expect(isUserAdmin(undefined)).toEqual(false);
+});
+
 test('isUserAdmin returns false for undefined user', () => {
   expect(isUserAdmin(undefinedUser)).toEqual(false);
 });
@@ -131,6 +135,10 @@ test('isUserAdmin returns false for non-admin user', () => {
 
 test('canUserAccessSqlLab returns true for admin user', () => {
   expect(canUserAccessSqlLab(adminUser)).toEqual(true);
+});
+
+test('canUserAccessSqlLab returns false for undefined', () => {
+  expect(canUserAccessSqlLab(undefined)).toEqual(false);
 });
 
 test('canUserAccessSqlLab returns false for undefined user', () => {
