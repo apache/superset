@@ -84,6 +84,7 @@ export default function AddDataset() {
   >(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
+  const [editPageIsVisible, setEditPageIsVisible] = useState(false);
   const datasetNames = datasets.map(dataset => dataset.table_name);
   const encodedSchema = dataset?.schema
     ? encodeURIComponent(dataset?.schema)
@@ -112,12 +113,11 @@ export default function AddDataset() {
       getDatasetsList();
     }
   }, [dataset?.schema, getDatasetsList]);
-  const [showEditPage, setShowEditPage] = useState(false);
 
   const id = window.location.pathname.split('/')[2];
   useEffect(() => {
     if (!Number.isNaN(parseFloat(id))) {
-      setShowEditPage(true);
+      setEditPageIsVisible(true);
     }
   }, [id]);
 
@@ -157,12 +157,12 @@ export default function AddDataset() {
   return (
     <DatasetLayout
       header={HeaderComponent()}
-      leftPanel={showEditPage ? null : LeftPanelComponent()}
+      leftPanel={editPageIsVisible ? null : LeftPanelComponent()}
       datasetPanel={
-        showEditPage ? EditPageComponent() : DatasetPanelComponent()
+        editPageIsVisible ? EditPageComponent() : DatasetPanelComponent()
       }
       footer={FooterComponent()}
-      showEditPage={showEditPage}
+      editPageIsVisible={editPageIsVisible}
     />
   );
 }

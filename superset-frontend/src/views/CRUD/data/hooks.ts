@@ -113,3 +113,10 @@ export const UseGetDatasetsList = async (filters: object[]) => {
   }
   return results;
 };
+
+export const UseGetDatasetRelatedObjects = (id: string) =>
+  SupersetClient.get({
+    endpoint: `/api/v1/dataset/${id}/related_objects`,
+  })
+    .then(({ json }) => json)
+    .catch(error => logging.error(error));

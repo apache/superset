@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, SupersetClient, t, logging } from '@superset-ui/core';
+import { styled, t, logging } from '@superset-ui/core';
 import React, { useEffect, useState } from 'react';
+import { UseGetDatasetRelatedObjects } from 'src/views/CRUD/data/hooks';
 import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';
 
@@ -45,7 +46,7 @@ interface EditPageProps {
   id: string;
 }
 
-const TRANSLATiONS = {
+const TRANSLATIONS = {
   USAGE_TEXT: t('Usage'),
   COLUMNS_TEXT: t('Columns'),
   METRICS_TEXT: t('Metrics'),
@@ -58,26 +59,24 @@ const EditPage = ({ id }: EditPageProps) => {
     // when we populate data for the new tabs. For right separating out this
     // api call for building the usage page.
     if (id)
-      SupersetClient.get({
-        endpoint: `/api/v1/dataset/${id}/related_objects`,
-      })
-        .then(({ json = {} }) => {
-          setUsageCount(json.charts.count);
+      UseGetDatasetRelatedObjects(id)
+        .then(json => {
+          setUsageCount(json?.charts.count);
         })
         .catch(err => logging.log(err));
   }, [id]);
 
   const UsageTab = (
     <TabStyles>
-      <span>{TRANSLATiONS.USAGE_TEXT}</span>
-      <Badge count={usageCount + 1} />
+      <span>{TRANSLATIONS.USAGE_TEXT}</span>
+      {usageCount > 0 && <Badge count={usageCount} />}
     </TabStyles>
   );
 
   return (
     <StyledTabs moreIcon={null} fullWidth={false}>
-      <Tabs.TabPane tab={TRANSLATiONS.COLUMNS_TEXT} key="1" />
-      <Tabs.TabPane tab={TRANSLATiONS.METRICS_TEXT} key="2" />
+      <Tabs.TabPane tab={TRANSLATIONS.COLUMNS_TEXT} key="1" />
+      <Tabs.TabPane tab={TRANSLATIONS.METRICS_TEXT} key="2" />
       <Tabs.TabPane tab={UsageTab} key="3" />
     </StyledTabs>
   );
