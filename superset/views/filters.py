@@ -61,7 +61,7 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
 
     Use in the api by adding something like:
     ```
-    filter_rel_fields = {
+    base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
