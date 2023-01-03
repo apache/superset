@@ -57,12 +57,15 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         template = __(
             """*%(name)s*
 
+                %(msg_content)s
+
                 %(description)s
 
                 %(table)s
             """,
             name=self._content.name,
             description=self._content.description or "",
+            msg_content=self._content.msg_content or "",
             table=table,
         )
         if all([url is not None, url != ""]):

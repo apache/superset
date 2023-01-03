@@ -166,6 +166,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 <b><a href="{url}">{call_to_action}</a></b><p></p>
                 {html_table}
                 {img_tag}
+                <p>{self._content.msg_content}</p>
               </body>
             </html>
             """

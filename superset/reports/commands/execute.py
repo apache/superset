@@ -358,12 +358,11 @@ class BaseReportState:
         screenshot_data = []
         header_data = self._get_log_data()
         if self._report_schedule.msg_content:
-            name = (
-                f"{self._report_schedule.name}: " f"{self._report_schedule.msg_content}"
-            )
+            name = self._report_schedule.name
             return NotificationContent(
                 name=name,
                 description=self._report_schedule.description,
+                msg_content=self._report_schedule.msg_content,
                 header_data=header_data,
             )
         url = self._get_url(user_friendly=True)
