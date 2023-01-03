@@ -2773,7 +2773,6 @@ msgid "Filter List"
 msgstr "Filter Lijst"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:261
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:94
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
@@ -9926,38 +9925,9 @@ msgstr "SQL"
 msgid "No query history yet..."
 msgstr "Nog geen zoekgeschiedenis…"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:137
-msgid "An error occurred when refreshing queries"
-msgstr "Er is een fout opgetreden bij het vernieuwen van de queries"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:185
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:184
 msgid "It seems you don't have access to any database"
 msgstr "Het lijkt erop dat je geen toegang hebt tot een database"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:200
-msgid "Filter by user"
-msgstr "Filter op gebruiker"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:209
-msgid "Filter by database"
-msgstr "Filter op database"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:218
-msgid "Query search string"
-msgstr "Query zoek string"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:224
-msgid "[From]-"
-msgstr "[From]-"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:236
-msgid "[To]-"
-msgstr "[To]-"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:245
-msgid "Filter by status"
-msgstr "Filter op status"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:117
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:54

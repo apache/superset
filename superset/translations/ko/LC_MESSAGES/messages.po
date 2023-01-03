@@ -1160,10 +1160,6 @@ msgstr ""
 msgid "An error occurred saving dataset"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:132
-msgid "An error occurred when refreshing queries"
-msgstr ""
-
 #: superset/key_value/commands/exceptions.py:33
 #, fuzzy, python-format
 msgid "An error occurred while accessing the value."
@@ -5625,18 +5621,6 @@ msgstr ""
 msgid "Filter box"
 msgstr "필터"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:204
-msgid "Filter by database"
-msgstr "데이터베이스 선택"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:240
-msgid "Filter by status"
-msgstr "필터"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:195
-msgid "Filter by user"
-msgstr "필터"
-
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:282
 msgid "Filter configuration"
 msgstr ""
@@ -6469,7 +6453,6 @@ msgstr "이슈 1000 - 데이터 소스가 쿼리하기에 너무 큽니다."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:180
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.jsx:125
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:183
 msgid "It seems you don't have access to any database"
@@ -9052,10 +9035,6 @@ msgstr "Query 검색"
 msgid "Query preview"
 msgstr "데이터 미리보기"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:213
-msgid "Query search string"
-msgstr "Query 검색"
-
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:682
 msgid "Query was stopped"
 msgstr ""
@@ -10067,7 +10046,6 @@ msgid "Scoping"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:256
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:77
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
@@ -14557,10 +14535,6 @@ msgstr ""
 msgid "[Alert] %(label)s"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:219
-msgid "[From]-"
-msgstr ""
-
 #: superset/viz.py:2349
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
@@ -14576,10 +14550,6 @@ msgstr ""
 #: superset/utils/core.py:864
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:231
-msgid "[To]-"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:94

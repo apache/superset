@@ -1211,10 +1211,6 @@ msgstr "Произошла ошибка"
 msgid "An error occurred saving dataset"
 msgstr "Произошла ошибка при создании источника данных"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:132
-msgid "An error occurred when refreshing queries"
-msgstr "Произошла ошибка при создании источника данных"
-
 #: superset/key_value/commands/exceptions.py:33
 #, fuzzy
 msgid "An error occurred while accessing the value."
@@ -5860,18 +5856,6 @@ msgstr "Значение фильтра"
 msgid "Filter box"
 msgstr "Фильтр"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:204
-msgid "Filter by database"
-msgstr "Выберите базу данных"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:240
-msgid "Filter by status"
-msgstr "Значение фильтра"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:195
-msgid "Filter by user"
-msgstr "Значение фильтра"
-
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:282
 msgid "Filter configuration"
 msgstr "Фильтруемые срезы"
@@ -6753,7 +6737,6 @@ msgstr "Проблема 1000 - Источник данных слишком в�
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Проблема 1001 - Необычная загрузка базы данных."
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:180
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.jsx:125
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:183
 msgid "It seems you don't have access to any database"
@@ -9438,10 +9421,6 @@ msgstr "Имя запроса"
 msgid "Query preview"
 msgstr "Предпросмотр данных"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:213
-msgid "Query search string"
-msgstr "Поиск запросов"
-
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:682
 #, fuzzy
 msgid "Query was stopped"
@@ -10488,7 +10467,6 @@ msgid "Scoping"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:256
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:77
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
@@ -15217,10 +15195,6 @@ msgstr ""
 msgid "[Alert] %(label)s"
 msgstr "[Оповещение] %(label)s"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:219
-msgid "[From]-"
-msgstr "[С]-"
-
 #: superset/viz.py:2349
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr "Столбцы [Долгота] и [Широта] должны присутствовать в поле [Группировка]"
@@ -15238,10 +15212,6 @@ msgstr "Выберите источник данных"
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "Доступ к базе данных предоставлен для пользователя — %(name)s"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:231
-msgid "[To]-"
-msgstr "[До]-"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:94
 #, fuzzy, python-format
