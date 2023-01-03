@@ -22,7 +22,6 @@ from tests.integration_tests.test_app import app
 from tests.integration_tests.base_tests import SupersetTestCase
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.models.core import Database
-from superset.utils.core import GenericDataType
 
 
 class TestDbEngineSpec(SupersetTestCase):
