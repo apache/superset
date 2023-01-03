@@ -34,11 +34,7 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.constants import (
-    MODEL_API_RW_METHOD_PERMISSION_MAP,
-    PASSWORD_MASK,
-    RouteMethod,
-)
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
 from superset.databases.commands.delete import DeleteDatabaseCommand
 from superset.databases.commands.exceptions import (
