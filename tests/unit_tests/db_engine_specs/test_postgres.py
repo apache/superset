@@ -16,10 +16,17 @@
 # under the License.
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional, Type
 
 import pytest
+from sqlalchemy import types
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 
+from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 from tests.unit_tests.fixtures.common import dttm
 
 
@@ -41,7 +48,44 @@ from tests.unit_tests.fixtures.common import dttm
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert PostgresEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,attrs,generic_type,is_dttm",
+    [
+        ("SMALLINT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
+        ("INTEGER", types.Integer, None, GenericDataType.NUMERIC, False),
+        ("BIGINT", types.BigInteger, None, GenericDataType.NUMERIC, False),
+        ("DECIMAL", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("NUMERIC", types.Numeric, None, GenericDataType.NUMERIC, False),
+        ("REAL", types.REAL, None, GenericDataType.NUMERIC, False),
+        ("DOUBLE PRECISION", DOUBLE_PRECISION, None, GenericDataType.NUMERIC, False),
+        ("MONEY", types.Numeric, None, GenericDataType.NUMERIC, False),
+        # String
+        ("CHAR", types.String, None, GenericDataType.STRING, False),
+        ("VARCHAR", types.String, None, GenericDataType.STRING, False),
+        ("TEXT", types.String, None, GenericDataType.STRING, False),
+        ("ARRAY", types.String, None, GenericDataType.STRING, False),
+        ("ENUM", ENUM, None, GenericDataType.STRING, False),
+        ("JSON", JSON, None, GenericDataType.STRING, False),
+        # Temporal
+        ("DATE", types.Date, None, GenericDataType.TEMPORAL, True),
+        ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
+        ("TIME", types.Time, None, GenericDataType.TEMPORAL, True),
+        # Boolean
+        ("BOOLEAN", types.Boolean, None, GenericDataType.BOOLEAN, False),
+    ],
+)
+def test_get_column_spec(
+    native_type: str,
+    sqla_type: Type[types.TypeEngine],
+    attrs: Optional[Dict[str, Any]],
+    generic_type: GenericDataType,
+    is_dttm: bool,
+) -> None:
+    from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
+
+    assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)

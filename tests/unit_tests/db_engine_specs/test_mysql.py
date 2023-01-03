@@ -16,12 +16,68 @@
 # under the License.
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Dict, Optional, Type
 from unittest.mock import Mock, patch
 
 import pytest
+from sqlalchemy import types
+from sqlalchemy.dialects.mysql import (
+    BIT,
+    DECIMAL,
+    DOUBLE,
+    FLOAT,
+    INTEGER,
+    LONGTEXT,
+    MEDIUMINT,
+    MEDIUMTEXT,
+    TINYINT,
+    TINYTEXT,
+)
 
+from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 from tests.unit_tests.fixtures.common import dttm
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,attrs,generic_type,is_dttm",
+    [
+        # Numeric
+        ("TINYINT", TINYINT, None, GenericDataType.NUMERIC, False),
+        ("SMALLINT", types.SmallInteger, None, GenericDataType.NUMERIC, False),
+        ("MEDIUMINT", MEDIUMINT, None, GenericDataType.NUMERIC, False),
+        ("INT", INTEGER, None, GenericDataType.NUMERIC, False),
+        ("BIGINT", types.BigInteger, None, GenericDataType.NUMERIC, False),
+        ("DECIMAL", DECIMAL, None, GenericDataType.NUMERIC, False),
+        ("FLOAT", FLOAT, None, GenericDataType.NUMERIC, False),
+        ("DOUBLE", DOUBLE, None, GenericDataType.NUMERIC, False),
+        ("BIT", BIT, None, GenericDataType.NUMERIC, False),
+        # String
+        ("CHAR", types.String, None, GenericDataType.STRING, False),
+        ("VARCHAR", types.String, None, GenericDataType.STRING, False),
+        ("TINYTEXT", TINYTEXT, None, GenericDataType.STRING, False),
+        ("MEDIUMTEXT", MEDIUMTEXT, None, GenericDataType.STRING, False),
+        ("LONGTEXT", LONGTEXT, None, GenericDataType.STRING, False),
+        # Temporal
+        ("DATE", types.Date, None, GenericDataType.TEMPORAL, True),
+        ("DATETIME", types.DateTime, None, GenericDataType.TEMPORAL, True),
+        ("TIMESTAMP", types.TIMESTAMP, None, GenericDataType.TEMPORAL, True),
+        ("TIME", types.Time, None, GenericDataType.TEMPORAL, True),
+    ],
+)
+def test_get_column_spec(
+    native_type: str,
+    sqla_type: Type[types.TypeEngine],
+    attrs: Optional[Dict[str, Any]],
+    generic_type: GenericDataType,
+    is_dttm: bool,
+) -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec
+
+    assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
 
 @pytest.mark.parametrize(
@@ -38,10 +94,9 @@ from tests.unit_tests.fixtures.common import dttm
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.mysql import MySQLEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert MySQLEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 @patch("sqlalchemy.engine.Engine.connect")

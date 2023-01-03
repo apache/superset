@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
-from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
+from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.dialects.postgresql.base import PGInspector
 from sqlalchemy.types import Date, DateTime, String
 
@@ -181,7 +181,7 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
         ),
         (
             re.compile(r"^array.*", re.IGNORECASE),
-            lambda match: ARRAY(int(match[2])) if match[2] else String(),
+            String(),
             GenericDataType.STRING,
         ),
         (

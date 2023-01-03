@@ -20,21 +20,21 @@ from typing import Optional
 
 import pytest
 
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
 @pytest.mark.parametrize(
     "target_type,expected_result",
     [
-        ("Text", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
-        ("DateTime", "'2019-01-02 03:04:05'"),
-        ("UnknownType", None),
+        ("text", "'2019-01-02 03:04:05'"),
+        ("dateTime", "'2019-01-02 03:04:05'"),
+        ("unknowntype", None),
     ],
 )
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec
+    from superset.db_engine_specs.dynamodb import DynamoDBEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert DynamoDBEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

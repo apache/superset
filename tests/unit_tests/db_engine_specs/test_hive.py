@@ -21,6 +21,7 @@ from typing import Optional
 
 import pytest
 
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
@@ -38,7 +39,6 @@ from tests.unit_tests.fixtures.common import dttm
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert HiveEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

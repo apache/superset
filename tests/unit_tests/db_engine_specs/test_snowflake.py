@@ -26,6 +26,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
@@ -41,10 +42,9 @@ from tests.unit_tests.fixtures.common import dttm
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert SnowflakeEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 def test_database_connection_test_mutator() -> None:

@@ -21,6 +21,7 @@ from typing import Optional
 
 import pytest
 
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
@@ -102,7 +103,6 @@ def test_invalid_impersonation() -> None:
 def test_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.drill import DrillEngineSpec
+    from superset.db_engine_specs.drill import DrillEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert DrillEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

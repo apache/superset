@@ -27,6 +27,7 @@ from sqlalchemy import select
 from sqlalchemy.sql import sqltypes
 from sqlalchemy_bigquery import BigQueryDialect
 
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
@@ -308,7 +309,6 @@ def test_convert_dttm(
     """
     DB Eng Specs (bigquery): Test conversion to date time
     """
-    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert BigQueryEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

@@ -20,6 +20,7 @@ from typing import Optional
 
 import pytest
 
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
@@ -120,10 +121,9 @@ def test_kql_parse_sql() -> None:
 def test_kql_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert KustoKqlEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 @pytest.mark.parametrize(
@@ -139,7 +139,6 @@ def test_kql_convert_dttm(
 def test_sql_convert_dttm(
     target_type: str, expected_result: Optional[str], dttm: datetime
 ) -> None:
-    from superset.db_engine_specs.kusto import KustoSqlEngineSpec
+    from superset.db_engine_specs.kusto import KustoSqlEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert KustoSqlEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(spec, target_type, expected_result, dttm)

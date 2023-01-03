@@ -28,6 +28,10 @@ from sqlalchemy import types
 import superset.config
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.utils.core import GenericDataType
+from tests.unit_tests.db_engine_specs.utils import (
+    assert_column_spec,
+    assert_convert_dttm,
+)
 from tests.unit_tests.fixtures.common import dttm
 
 
@@ -244,16 +248,16 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
 
-    assert (column_spec := TrinoEngineSpec.get_column_spec(native_type)) is not None
-    assert isinstance(column_spec.sqla_type, sqla_type)
-
-    for key, value in (attrs or {}).items():
-        assert getattr(column_spec.sqla_type, key) == value
-
-    assert column_spec.generic_type == generic_type
-    assert column_spec.is_dttm == is_dttm
+    assert_column_spec(
+        spec,
+        native_type,
+        sqla_type,
+        attrs,
+        generic_type,
+        is_dttm,
+    )
 
 
 @pytest.mark.parametrize(
@@ -267,11 +271,14 @@ def test_get_column_spec(
         ("Other", None),
     ],
 )
-def test_convert_dttm(target_type: str, expected_result: bool, dttm: datetime) -> None:
+def test_convert_dttm(
+    target_type: str,
+    expected_result: Optional[str],
+    dttm: datetime,
+) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert TrinoEngineSpec.convert_dttm(target, dttm) == expected_result
+    assert_convert_dttm(TrinoEngineSpec, target_type, expected_result, dttm)
 
 
 def test_extra_table_metadata() -> None:

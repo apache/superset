@@ -21,6 +21,7 @@ from unittest.mock import MagicMock
 import pytest
 from sqlalchemy import column
 
+from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm
 
 
@@ -52,17 +53,9 @@ def test_elasticsearch_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,
 ) -> None:
-    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
+    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert (
-            ElasticSearchEngineSpec.convert_dttm(
-                target_type=target,
-                dttm=dttm,
-                db_extra=db_extra,
-            )
-            == expected_result
-        )
+    assert_convert_dttm(spec, target_type, expected_result, dttm, db_extra)
 
 
 @pytest.mark.parametrize(
@@ -77,13 +70,9 @@ def test_opendistro_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,
 ) -> None:
-    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
+    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec as spec
 
-    for target in (target_type, target_type.upper(), target_type.lower()):
-        assert (
-            OpenDistroEngineSpec.convert_dttm(target_type=target, dttm=dttm)
-            == expected_result
-        )
+    assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
 @pytest.mark.parametrize(
