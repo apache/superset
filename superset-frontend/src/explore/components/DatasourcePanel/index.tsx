@@ -373,7 +373,9 @@ export default function DataSourcePanel({
                     <span
                       role="button"
                       tabIndex={0}
-                      onClick={() => setShowSaveDatasetModal(true)}
+                      onClick={() => {
+                        window.location.href = '/dataset/add/';
+                      }}
                       className="add-dataset-alert-description"
                     >
                       {t('Create a dataset')}
