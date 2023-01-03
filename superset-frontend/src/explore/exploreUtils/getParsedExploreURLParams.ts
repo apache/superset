@@ -50,8 +50,8 @@ const EXPLORE_URL_SEARCH_PARAMS = {
   datasource: {
     name: 'datasource',
     parser: (datasource: string) => {
-      const [datasource_id, datasouce_type] = datasource.split('__');
-      return { datasource_id, datasouce_type };
+      const [datasource_id, datasource_type] = datasource.split('__');
+      return { datasource_id, datasource_type };
     },
   },
   form_data_key: {
