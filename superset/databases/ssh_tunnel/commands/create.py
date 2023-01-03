@@ -28,7 +28,7 @@ from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelRequiredFieldValidationError,
 )
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 
 logger = logging.getLogger(__name__)
 
@@ -39,12 +39,22 @@ class CreateSSHTunnelCommand(BaseCommand):
         self._properties["database_id"] = database_id
 
     def run(self) -> Model:
-        self.validate()
-
         try:
+            # Start nested transaction since we are always creating the tunnel
+            # through a DB command (Create or Update). Without this, we cannot
+            # safely rollback changes to databases if any, i.e, things like
+            # test_do_not_create_database_if_ssh_tunnel_creation_fails test will fail
+            db.session.begin_nested()
+            self.validate()
             tunnel = SSHTunnelDAO.create(self._properties, commit=False)
         except DAOCreateFailedError as ex:
+            # Rollback nested transaction
+            db.session.rollback()
             raise SSHTunnelCreateFailedError() from ex
+        except SSHTunnelInvalidError as ex:
+            # Rollback nested transaction
+            db.session.rollback()
+            raise ex
 
         return tunnel
 

@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any, Dict
+
 import sqlalchemy as sa
 from flask import current_app
 from flask_appbuilder import Model
@@ -64,3 +66,11 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     private_key_password = sa.Column(
         EncryptedType(sa.String, app_config["SECRET_KEY"]), nullable=True
     )
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        return {
+            "server_address": self.server_address,
+            "server_port": self.server_port,
+            "username": self.username,
+        }

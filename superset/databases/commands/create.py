@@ -31,7 +31,11 @@ from superset.databases.commands.exceptions import (
 )
 from superset.databases.commands.test_connection import TestConnectionDatabaseCommand
 from superset.databases.dao import DatabaseDAO
-from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+from superset.databases.ssh_tunnel.commands.create import CreateSSHTunnelCommand
+from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelCreateFailedError,
+    SSHTunnelInvalidError,
+)
 from superset.exceptions import SupersetErrorsException
 from superset.extensions import db, event_logger, security_manager
 
@@ -71,17 +75,28 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             database = DatabaseDAO.create(self._properties, commit=False)
             database.set_sqlalchemy_uri(database.sqlalchemy_uri)
-            db.session.flush()
 
             ssh_tunnel = None
             if ssh_tunnel_properties := self._properties.get("ssh_tunnel"):
-                ssh_tunnel = SSHTunnelDAO.create(
-                    {
-                        **ssh_tunnel_properties,
-                        "database_id": database.id,
-                    },
-                    commit=False,
-                )
+                try:
+                    # So database.id is not None
+                    db.session.flush()
+                    ssh_tunnel = CreateSSHTunnelCommand(
+                        database.id, ssh_tunnel_properties
+                    ).run()
+                except (SSHTunnelInvalidError, SSHTunnelCreateFailedError) as ex:
+                    event_logger.log_with_context(
+                        action=f"db_creation_failed.{ex.__class__.__name__}",
+                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+                    )
+                    # So we can show the original message
+                    raise ex
+                except Exception as ex:
+                    event_logger.log_with_context(
+                        action=f"db_creation_failed.{ex.__class__.__name__}",
+                        engine=self._properties.get("sqlalchemy_uri", "").split(":")[0],
+                    )
+                    raise DatabaseCreateFailedError() from ex
 
             # adding a new database we always want to force refresh schema list
             schemas = database.get_all_schema_names(cache=False, ssh_tunnel=ssh_tunnel)
