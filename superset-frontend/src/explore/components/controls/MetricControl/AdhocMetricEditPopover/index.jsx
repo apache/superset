@@ -388,7 +388,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                       tabIndex={0}
                       role="button"
                       onClick={() => {
-                        this.props.handleDatasetModal(true);
+                        window.location.href = '/dataset/add/';
                         this.props.onClose();
                       }}
                     >
