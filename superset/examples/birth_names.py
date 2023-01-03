@@ -168,12 +168,10 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "time_range": "No filter",
         "granularity_sqla": "ds",
         "groupby": [],
         "row_limit": app.config["ROW_LIMIT"],
-        "since": "100 years ago",
-        "until": "now",
+        "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
     }
