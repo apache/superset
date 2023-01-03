@@ -85,6 +85,7 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.ssh_tunnel import mask_password_info
 from superset.views.base import json_errors_response
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -329,9 +330,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = new_model.ssh_tunnel  # pylint: disable=no-member
-                item["ssh_tunnel"].pop("password", None)
-                item["ssh_tunnel"].pop("private_key_password", None)
+                item["ssh_tunnel"] = mask_password_info(
+                    new_model.ssh_tunnel  # pylint: disable=no-member
+                )
 
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
@@ -416,9 +417,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 item["parameters"] = changed_model.parameters
             # Return SSH Tunnel and hide passwords if any
             if item.get("ssh_tunnel"):
-                item["ssh_tunnel"] = changed_model.ssh_tunnel
-                item["ssh_tunnel"].pop("password", None)
-                item["ssh_tunnel"].pop("private_key_password", None)
+                item["ssh_tunnel"] = mask_password_info(changed_model.ssh_tunnel)
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()

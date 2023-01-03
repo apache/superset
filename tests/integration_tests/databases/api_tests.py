@@ -571,6 +571,7 @@ class TestDatabaseApi(SupersetTestCase):
             "server_address": "123.132.123.1",
             "server_port": 8080,
             "username": "foo",
+            "password": "XXXXXXXXXX",
         }
 
         uri = "api/v1/database/"
