@@ -515,7 +515,7 @@ class Database(
                     security_manager,
                 )
 
-        with closing(engine.raw_connection()) as conn:
+        with self.get_raw_connection(schema=schema) as conn:
             cursor = conn.cursor()
             for sql_ in sqls[:-1]:
                 _log_query(sql_)
