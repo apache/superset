@@ -417,7 +417,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [currentAlert, setCurrentAlert] =
     useState<Partial<AlertObject> | null>();
   const [isHidden, setIsHidden] = useState<boolean>(true);
-  const [contentType, setContentType] = useState<string>('dashboard');
+  const [contentType, setContentType] = useState<string>(
+    isReport ? 'dashboard' : 'text_message',
+  );
   const [reportFormat, setReportFormat] = useState<string>(
     DEFAULT_NOTIFICATION_FORMAT,
   );
@@ -1358,46 +1360,55 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             <Radio.Group onChange={onContentTypeChange} value={contentType}>
-              <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
-              <StyledRadio value="chart">{t('Chart')}</StyledRadio>
+              {isReport && (
+                <StyledRadio value="dashboard">{t('Dashboard')}</StyledRadio>
+              )}
+              {isReport && (
+                <StyledRadio value="chart">{t('Chart')}</StyledRadio>
+              )}
               <StyledRadio value="text_message">
                 {t('Text Message')}
               </StyledRadio>
             </Radio.Group>
-            <AsyncSelect
-              ariaLabel={t('Chart')}
-              css={{
-                display: contentType === 'chart' ? 'inline' : 'none',
-              }}
-              name="chart"
-              value={
-                currentAlert?.chart?.label && currentAlert?.chart?.value
-                  ? {
-                      value: currentAlert.chart.value,
-                      label: currentAlert.chart.label,
-                    }
-                  : undefined
-              }
-              options={loadChartOptions}
-              onChange={onChartChange}
-            />
-            <AsyncSelect
-              ariaLabel={t('Dashboard')}
-              css={{
-                display: contentType === 'dashboard' ? 'inline' : 'none',
-              }}
-              name="dashboard"
-              value={
-                currentAlert?.dashboard?.label && currentAlert?.dashboard?.value
-                  ? {
-                      value: currentAlert.dashboard.value,
-                      label: currentAlert.dashboard.label,
-                    }
-                  : undefined
-              }
-              options={loadDashboardOptions}
-              onChange={onDashboardChange}
-            />
+            {isReport && (
+              <AsyncSelect
+                ariaLabel={t('Chart')}
+                css={{
+                  display: contentType === 'chart' ? 'inline' : 'none',
+                }}
+                name="chart"
+                value={
+                  currentAlert?.chart?.label && currentAlert?.chart?.value
+                    ? {
+                        value: currentAlert.chart.value,
+                        label: currentAlert.chart.label,
+                      }
+                    : undefined
+                }
+                options={loadChartOptions}
+                onChange={onChartChange}
+              />
+            )}
+            {isReport && (
+              <AsyncSelect
+                ariaLabel={t('Dashboard')}
+                css={{
+                  display: contentType === 'dashboard' ? 'inline' : 'none',
+                }}
+                name="dashboard"
+                value={
+                  currentAlert?.dashboard?.label &&
+                  currentAlert?.dashboard?.value
+                    ? {
+                        value: currentAlert.dashboard.value,
+                        label: currentAlert.dashboard.label,
+                      }
+                    : undefined
+                }
+                options={loadDashboardOptions}
+                onChange={onDashboardChange}
+              />
+            )}
             <StyledInputContainer
               css={{
                 display: contentType === 'text_message' ? 'inline' : 'none',
@@ -1437,7 +1448,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 </div>
               </>
             )}
-            {(isReport || contentType === 'dashboard') && (
+            {isReport && contentType === 'dashboard' && (
               <div className="inline-container">
                 <StyledCheckbox
                   data-test="bypass-cache"
