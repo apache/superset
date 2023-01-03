@@ -493,7 +493,7 @@ class BaseTemplateProcessor:
         query_source = context["query_source"]
         username = context['current_username']()
         query_id = self._query.id
-        sql_query = "/* username {}, query_id: {}, query_hash: {}, query_source */". format(username,query_id,hash,query_source) + sql 
+        sql_query = "/* username {}, query_id: {}, query_hash: {}, query_source: {} */". format(username,query_id,hash,query_source) + sql 
         template = self._env.from_string(sql_query)
         return template.render(context)
 
