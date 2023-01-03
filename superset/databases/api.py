@@ -234,7 +234,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ---
         get:
           description: >-
-            Get a database with its SSH Tunnel if any
+            Get a database
           parameters:
           - in: path
             schema:
