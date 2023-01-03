@@ -1964,6 +1964,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
             )
 
+    def raise_for_sql_lab_access(self) -> None:
+        if not (
+            self.is_admin()
+            or "sql_lab" in (role.name for role in self.get_user_roles())
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.SQL_LAB_SECURITY_ACCESS_ERROR,
+                    message="You do not have access to SQL Lab",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
     def raise_for_dashboard_access(self, dashboard: "Dashboard") -> None:
         """
         Raise an exception if the user cannot access the dashboard.

@@ -2777,11 +2777,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/sqllab/", methods=["GET", "POST"])
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
-        if not (
-            security_manager.is_admin()
-            or "sql_lab" in (role.name for role in security_manager.get_user_roles())
-        ):
-            flash(__("You do not have access to SQL Lab"), "danger")
+        try:
+            security_manager.raise_for_sql_lab_access()
+        except SupersetSecurityException as ex:
+            flash(ex.error.message, "danger")
             return redirect("/")
 
         payload = {
@@ -2811,11 +2810,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/sqllab/history/", methods=["GET"])
     @event_logger.log_this
     def sqllab_history(self) -> FlaskResponse:
-        if not (
-            security_manager.is_admin()
-            or "sql_lab" in (role.name for role in security_manager.get_user_roles())
-        ):
-            flash(__("You do not have access to SQL Lab"), "danger")
+        try:
+            security_manager.raise_for_sql_lab_access()
+        except SupersetSecurityException as ex:
+            flash(ex.error.message, "danger")
             return redirect("/")
 
         return super().render_app_template()
