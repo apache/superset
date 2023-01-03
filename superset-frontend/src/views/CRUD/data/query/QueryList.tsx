@@ -49,7 +49,6 @@ import { DATETIME_WITH_TIME_ZONE, TIME_WITH_MS } from 'src/constants';
 import { QueryObject, QueryObjectColumns } from 'src/views/CRUD/types';
 
 import Icons from 'src/components/Icons';
-import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
 import { BootstrapUser } from 'src/types/bootstrapTypes';
 import QueryPreviewModal from './QueryPreviewModal';
 
@@ -419,11 +418,6 @@ function QueryList({ addDangerToast, user }: QueryListProps) {
     ],
     [addDangerToast],
   );
-
-  if (!canUserAccessSqlLab(user)) {
-    window.location.href = '/';
-    return <></>;
-  }
 
   return (
     <>

@@ -50,7 +50,6 @@ import copyTextToClipboard from 'src/utils/copy';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
-import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
 import { BootstrapUser } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
@@ -472,11 +471,6 @@ function SavedQueryList({
     ],
     [addDangerToast],
   );
-
-  if (!canUserAccessSqlLab(user)) {
-    window.location.href = '/';
-    return <></>;
-  }
 
   return (
     <>

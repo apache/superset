@@ -30,7 +30,6 @@ import {
   FeatureFlag,
 } from 'src/featureFlags';
 import setupExtensions from 'src/setup/setupExtensions';
-import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
 import getInitialState from './reducers/getInitialState';
 import rootReducer from './reducers/index';
 import { initEnhancer } from '../reduxUtils';
@@ -55,7 +54,6 @@ const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 initFeatureFlags(bootstrapData.common.feature_flags);
 
 const initialState = getInitialState(bootstrapData);
-
 const sqlLabPersistStateConfig = {
   paths: ['sqlLab'],
   config: {
@@ -138,22 +136,15 @@ if (sqlLabMenu) {
   }
 }
 
-const Application = () => {
-  if (!canUserAccessSqlLab(bootstrapData.user)) {
-    window.location.href = '/';
-    return <></>;
-  }
-
-  return (
-    <QueryProvider>
-      <Provider store={store}>
-        <ThemeProvider theme={theme}>
-          <GlobalStyles />
-          <App />
-        </ThemeProvider>
-      </Provider>
-    </QueryProvider>
-  );
-};
+const Application = () => (
+  <QueryProvider>
+    <Provider store={store}>
+      <ThemeProvider theme={theme}>
+        <GlobalStyles />
+        <App />
+      </ThemeProvider>
+    </Provider>
+  </QueryProvider>
+);
 
 export default hot(Application);
