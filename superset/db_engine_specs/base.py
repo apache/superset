@@ -97,7 +97,6 @@ class TimeGrain(NamedTuple):
 
 
 builtin_time_grains: Dict[Optional[str], str] = {
-    None: __("Original value"),
     "PT1S": __("Second"),
     "PT5S": __("5 second"),
     "PT30S": __("30 second"),
