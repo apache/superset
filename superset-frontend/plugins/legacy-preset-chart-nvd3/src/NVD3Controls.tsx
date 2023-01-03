@@ -443,6 +443,8 @@ export const timeSeriesSection: ControlPanelSectionConfig[] = [
               '2 years',
               '156 weeks',
               '3 years',
+              '208 weeks',
+              '4 years',
             ]),
             description: t(
               'Overlay one or more timeseries from a ' +
