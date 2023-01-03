@@ -26,7 +26,7 @@ from flask import current_app
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 
-from superset.constants import USER_AGENT
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
@@ -181,10 +181,29 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             query.tracking_url = tracking_url
 
         # Adds the executed query id to the extra payload so the query can be cancelled
-        query.set_extra_json_key("cancel_query", cursor.stats["queryId"])
+        query.set_extra_json_key(
+            key=QUERY_CANCEL_KEY,
+            value=(cancel_query_id := cursor.stats["queryId"]),
+        )
 
         session.commit()
+
+        # if query cancelation was requested prior to the handle_cursor call, but
+        # the query was still executed, trigger the actual query cancelation now
+        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+            cls.cancel_query(
+                cursor=cursor,
+                query=query,
+                cancel_query_id=cancel_query_id,
+            )
+
         super().handle_cursor(cursor=cursor, query=query, session=session)
+
+    @classmethod
+    def prepare_cancel_query(cls, query: Query, session: Session) -> None:
+        if QUERY_CANCEL_KEY not in query.extra:
+            query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+            session.commit()
 
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
