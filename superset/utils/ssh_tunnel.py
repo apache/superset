@@ -20,7 +20,7 @@ from typing import Any, Dict
 from superset.constants import PASSWORD_MASK
 
 
-def mask_password_info(ssh_tunnel: Dict[str, Any]) -> Dict:
+def mask_password_info(ssh_tunnel: Dict[str, Any]) -> Dict[str, Any]:
     if ssh_tunnel.pop("password", None) is not None:
         ssh_tunnel["password"] = PASSWORD_MASK
     if ssh_tunnel.pop("private_key", None) is not None:
