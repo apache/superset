@@ -24,7 +24,6 @@ import {
   JsonObject,
   JsonResponse,
   smartDateDetailedFormatter,
-  styled,
   SupersetApiError,
   SupersetClient,
   t,
