@@ -705,6 +705,11 @@ BACKUP_COUNT = 30
 #     pass
 QUERY_LOGGER = None
 
+# Uncomment below to view SQL Query in logs
+# def log_sql_statements(database, query, schema, user, client, security_manager): 
+#     logger.info("Ikigai SQL Query :" + str(query)) 
+# QUERY_LOGGER = log_sql_statements
+
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
