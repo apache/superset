@@ -100,7 +100,7 @@ class TablesDatabaseCommand(BaseCommand):
                 key=lambda item: item["value"],
             )
 
-            payload = {"tableLength": len(tables) + len(views), "options": options}
+            payload = {"count": len(tables) + len(views), "options": options}
             return payload
         except SupersetException as ex:
             raise ex

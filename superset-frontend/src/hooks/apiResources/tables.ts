@@ -43,7 +43,7 @@ type QueryData = {
   json: {
     result: {
       options: Table[];
-      tableLength: number;
+      count: number;
     };
   };
   response: Response;
@@ -84,7 +84,7 @@ export function useTables(options: Params) {
     {
       select: ({ json }) => ({
         ...json.result,
-        hasMore: json.result.tableLength > json.result.options.length,
+        hasMore: json.result.count > json.result.options.length,
       }),
       enabled: Boolean(dbId && schema),
       onSuccess,

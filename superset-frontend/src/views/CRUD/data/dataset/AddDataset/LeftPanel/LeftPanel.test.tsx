@@ -137,7 +137,7 @@ fetchMock.get(schemasEndpoint, {
 
 fetchMock.get(tablesEndpoint, {
   result: {
-    tableLength: 3,
+    count: 3,
     options: [
       { value: 'Sheet1', type: 'table', extra: null },
       { value: 'Sheet2', type: 'table', extra: null },

@@ -50,7 +50,7 @@ fetchMock.get('glob:*/api/v1/database/*/tables/*', {
         value: 'ab_user',
       },
     ],
-    tableLength: 1,
+    count: 1,
   },
 });
 

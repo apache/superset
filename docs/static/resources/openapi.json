@@ -4157,12 +4157,15 @@
       "DatabaseTablesResponse": {
         "properties": {
           "extra": {
+            "description": "Extra data used to specify column metadata",
             "type": "object"
           },
           "type": {
+            "description": "table or view",
             "type": "string"
           },
           "value": {
+            "description": "The table or view name",
             "type": "string"
           }
         },
@@ -8864,6 +8867,9 @@
             "type": "string"
           }
         },
+        "required": [
+          "schema_name"
+        ],
         "type": "object"
       },
       "get_delete_ids_schema": {
@@ -15138,7 +15144,7 @@
                           },
                           "type": "array"
                         },
-                        "tableLength": {
+                        "count": {
                           "type": "integer"
                         }
                       },

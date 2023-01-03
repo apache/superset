@@ -953,6 +953,6 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         command = TablesDatabaseCommand(database.id, schema_name, False)
         result = command.run()
 
-        assert result["tableLength"] > 0
+        assert result["count"] > 0
         assert len(result["options"]) > 0
-        assert len(result["options"]) == result["tableLength"]
+        assert len(result["options"]) == result["count"]

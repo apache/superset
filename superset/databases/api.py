@@ -513,7 +513,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """Get a list of tables for given database
         ---
         get:
-          description: Get a list of tables for given database
+          summary: Get a list of tables for given database
           parameters:
           - in: path
             schema:
@@ -539,7 +539,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                           A List of tables for given database
                         type: object
                         properties:
-                          tableLength:
+                          count:
                             type: integer
                           options:
                             type: array
@@ -556,8 +556,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         """
         force = kwargs["rison"].get("force", False)
         schema_name = kwargs["rison"].get("schema_name", "")
-        if not schema_name:
-            return self.response_422("Schema undefined")
 
         try:
             command = TablesDatabaseCommand(pk, schema_name, force)

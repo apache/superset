@@ -49,6 +49,7 @@ database_tables_query_schema = {
         "force": {"type": "boolean"},
         "schema_name": {"type": "string"},
     },
+    "required": ["schema_name"],
 }
 
 database_name_description = "A database name to identify this connection."
@@ -564,9 +565,9 @@ class SchemasResponseSchema(Schema):
 
 
 class DatabaseTablesResponse(Schema):
-    extra = fields.Dict(required=False)
-    type = fields.String()
-    value = fields.String()
+    extra = fields.Dict(description="Extra data used to specify column metadata")
+    type = fields.String(description="table or view")
+    value = fields.String(description="The table or view name")
 
 
 class ValidateSQLRequest(Schema):

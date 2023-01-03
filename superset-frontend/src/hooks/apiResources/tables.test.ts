@@ -36,7 +36,7 @@ const fakeApiResult = {
           label: 'fake api label2',
         },
       ],
-      tableLength: 2,
+      count: 2,
     },
   },
 };
@@ -56,7 +56,7 @@ const fakeHasMoreApiResult = {
           label: 'fake api label2',
         },
       ],
-      tableLength: 4,
+      count: 4,
     },
   },
 };
