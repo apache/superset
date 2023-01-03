@@ -134,10 +134,20 @@ fetchMock.get(queriesDistinctEndpoint, {
 // Mock utils module
 jest.mock('src/views/CRUD/utils');
 
+const mockedProps = {
+  user: {
+    username: 'user',
+    permissions: [],
+    roles: {
+      Admin: [],
+    },
+  },
+};
+
 describe('SavedQueryList', () => {
   const wrapper = mount(
     <Provider store={store}>
-      <SavedQueryList />
+      <SavedQueryList {...mockedProps} />
     </Provider>,
   );
 
@@ -246,7 +256,7 @@ describe('RTL', () => {
     const mounted = act(async () => {
       render(
         <QueryParamProvider>
-          <SavedQueryList />
+          <SavedQueryList {...mockedProps} />
         </QueryParamProvider>,
         { useRedux: true },
       );

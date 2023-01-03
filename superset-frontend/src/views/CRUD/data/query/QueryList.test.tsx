@@ -89,7 +89,15 @@ fetchMock.get('glob:*/api/v1/query/disting/status*', {
 });
 
 describe('QueryList', () => {
-  const mockedProps = {};
+  const mockedProps = {
+    user: {
+      username: 'user',
+      permissions: [],
+      roles: {
+        Admin: [],
+      },
+    },
+  };
   const wrapper = mount(
     <Provider store={store}>
       <QueryList {...mockedProps} />
