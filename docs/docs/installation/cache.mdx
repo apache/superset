@@ -53,6 +53,13 @@ FEATURE_FLAGS = {
 }
 ```
 
+By default thumbnails are rendered using the `THUMBNAIL_SELENIUM_USER` user account. To render thumbnails as the
+logged in user (e.g. in environments that are using user impersonation), use the following configuration:
+
+```python
+THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
+```
+
 For this feature you will need a cache system and celery workers. All thumbnails are stored on cache
 and are processed asynchronously by the workers.
 

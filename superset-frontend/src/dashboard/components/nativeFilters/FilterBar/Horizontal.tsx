@@ -29,7 +29,9 @@ import FilterConfigurationLink from './FilterConfigurationLink';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
+    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
+    theme.gridUnit * 3
+  }px ${theme.gridUnit * 4}px;
     background: ${theme.colors.grayscale.light5};
     box-shadow: inset 0px -2px 2px -1px ${theme.colors.grayscale.light2};
   `}
@@ -42,7 +44,6 @@ const HorizontalBarContent = styled.div`
     flex-wrap: nowrap;
     align-items: center;
     justify-content: flex-start;
-    padding: 0 ${theme.gridUnit * 2}px;
     line-height: 0;
 
     .loading {
@@ -54,7 +55,6 @@ const HorizontalBarContent = styled.div`
 
 const FilterBarEmptyStateContainer = styled.div`
   ${({ theme }) => `
-    margin: 0 ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
     font-weight: ${theme.typography.weights.bold};
     color: ${theme.colors.grayscale.base};
     font-size: ${theme.typography.sizes.s}px;
@@ -63,7 +63,10 @@ const FilterBarEmptyStateContainer = styled.div`
 
 const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
   ${({ theme, hasFilters }) => `
-    padding: 0 ${theme.gridUnit * 2}px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    padding: 0 ${theme.gridUnit * 4}px 0 ${theme.gridUnit * 4}px;
     border-right: ${
       hasFilters ? `1px solid ${theme.colors.grayscale.light2}` : 0
     };
@@ -71,12 +74,9 @@ const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
     button {
       display: flex;
       align-items: center;
-      text-transform: capitalize;
-      font-weight: ${theme.typography.weights.normal};
-      color: ${theme.colors.primary.base};
       > .anticon {
         height: 24px;
-        padding-right: ${theme.gridUnit * 2}px;
+        padding-right: ${theme.gridUnit}px;
       }
       > .anticon + span, > .anticon {
           margin-right: 0;
@@ -93,7 +93,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
   dataMaskSelected,
   filterValues,
   isInitialized,
-  directPathToChild,
+  focusedFilterId,
   onSelectionChange,
 }) => {
   const hasFilters = filterValues.length > 0;
@@ -106,11 +106,6 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
         ) : (
           <>
             {canEdit && <FilterBarOrientationSelect />}
-            {!hasFilters && (
-              <FilterBarEmptyStateContainer>
-                {t('No filters are currently added to this dashboard.')}
-              </FilterBarEmptyStateContainer>
-            )}
             {canEdit && (
               <FiltersLinkContainer hasFilters={hasFilters}>
                 <FilterConfigurationLink
@@ -121,10 +116,15 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
                 </FilterConfigurationLink>
               </FiltersLinkContainer>
             )}
+            {!hasFilters && (
+              <FilterBarEmptyStateContainer data-test="horizontal-filterbar-empty">
+                {t('No filters are currently added to this dashboard.')}
+              </FilterBarEmptyStateContainer>
+            )}
             {hasFilters && (
               <FilterControls
                 dataMaskSelected={dataMaskSelected}
-                directPathToChild={directPathToChild}
+                focusedFilterId={focusedFilterId}
                 onFilterSelectionChange={onSelectionChange}
               />
             )}

@@ -209,7 +209,7 @@ class BaseDatasource(
     def explore_url(self) -> str:
         if self.default_endpoint:
             return self.default_endpoint
-        return f"/explore/?dataset_type={self.type}&dataset_id={self.id}"
+        return f"/explore/?datasource_type={self.type}&datasource_id={self.id}"
 
     @property
     def column_formats(self) -> Dict[str, Optional[str]]:
@@ -395,6 +395,7 @@ class BaseDatasource(
     @staticmethod
     def filter_values_handler(  # pylint: disable=too-many-arguments
         values: Optional[FilterValues],
+        operator: str,
         target_generic_type: GenericDataType,
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
@@ -405,6 +406,8 @@ class BaseDatasource(
             return None
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
+            if operator == utils.FilterOperator.TEMPORAL_RANGE:
+                return value
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL

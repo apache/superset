@@ -184,14 +184,17 @@ const granularity: SharedControlConfig<'SelectControl'> = {
 const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   label: TIME_FILTER_LABELS.time_grain_sqla,
+  placeholder: t('None'),
   initialValue: (control: ControlState, state: ControlPanelState) => {
     if (!isDefined(state)) {
       // If a chart is in a Dashboard, the ControlPanelState is empty.
       return control.value;
     }
-    // If a chart is a new one that isn't saved, the 'time_grain_sqla' isn't in the form_data.
-    return 'time_grain_sqla' in (state?.form_data ?? {})
-      ? state.form_data?.time_grain_sqla
+    // If a chart is a new one that isn't saved, metadata is null. In this
+    // case we want to default P1D. If the chart has been saved, we want
+    // to use whichever value was chosen, either nothing or valid a time grain.
+    return state?.metadata || 'time_grain_sqla' in (state?.form_data ?? {})
+      ? state?.form_data?.time_grain_sqla
       : 'P1D';
   },
   description: t(
@@ -264,6 +267,7 @@ const limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Series limit'),
+  placeholder: t('None'),
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
   clearable: true,
@@ -279,6 +283,7 @@ const series_limit: SharedControlConfig<'SelectControl'> = {
   type: 'SelectControl',
   freeForm: true,
   label: t('Series limit'),
+  placeholder: t('None'),
   validators: [legacyValidateInteger],
   choices: formatSelectOptions(SERIES_LIMITS),
   description: t(
@@ -354,7 +359,7 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
   description: t('Show empty columns'),
 };
 
-const datetime_columns_lookup: SharedControlConfig<'HiddenControl'> = {
+const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
   type: 'HiddenControl',
   initialValue: (control: ControlState, state: ControlPanelState | null) =>
     Object.fromEntries(
@@ -400,5 +405,5 @@ export default {
   truncate_metric,
   x_axis: dndXAxisControl,
   show_empty_columns,
-  datetime_columns_lookup,
+  temporal_columns_lookup,
 };
