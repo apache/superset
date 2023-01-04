@@ -79,6 +79,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     type = ReportRecipientType.EMAIL
 
+    logger.info("SAMRA EMAIL")
+
     @staticmethod
     def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
@@ -142,6 +144,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 """
             )
         img_tag = "".join(img_tags)
+        msgContent = ""
+        if self._content.msg_content:
+            msgContent = f"""<p>{self._content.msg_content}</p>"""
         body = textwrap.dedent(
             f"""
             <html>
@@ -156,6 +161,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                   .image{{
                       margin-bottom: 18px;
                   }}
+                  p{{
+                    color: rgb(60, 85, 122)
+                  }}
                 </style>
               </head>
               <body>
@@ -164,6 +172,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 <b><a href="{url}">{call_to_action}</a></b><p></p>
                 {html_table}
                 {img_tag}
+                {msgContent}
               </body>
             </html>
             """

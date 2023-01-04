@@ -92,6 +92,7 @@ export type AlertObject = {
   validator_type?: string;
   working_timeout?: number;
   error?: string;
+  msg_content?: any;
 };
 
 export type LogObject = {

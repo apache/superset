@@ -42,6 +42,7 @@ def test_render_description_with_html() -> None:
             "chart_id": None,
             "dashboard_id": None,
             "error_text": None,
+            "msg_content": None,
         },
     )
     email_body = (

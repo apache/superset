@@ -65,6 +65,7 @@ def insert_report_schedule(
     logs: Optional[List[ReportExecutionLog]] = None,
     extra: Optional[Dict[Any, Any]] = None,
     force_screenshot: bool = False,
+    msg_content: Optional[str] = None,
 ) -> ReportSchedule:
     owners = owners or []
     recipients = recipients or []
@@ -91,6 +92,7 @@ def insert_report_schedule(
         report_format=report_format,
         extra=extra,
         force_screenshot=force_screenshot,
+        msg_content=msg_content,
     )
     db.session.add(report_schedule)
     db.session.commit()
@@ -112,6 +114,7 @@ def create_report_notification(
     name: Optional[str] = None,
     extra: Optional[Dict[str, Any]] = None,
     force_screenshot: bool = False,
+    msg_content: Optional[str] = None,
 ) -> ReportSchedule:
     owner = (
         db.session.query(security_manager.user_model)
@@ -154,6 +157,7 @@ def create_report_notification(
         report_format=report_format or ReportDataFormat.VISUALIZATION,
         extra=extra,
         force_screenshot=force_screenshot,
+        msg_content=msg_content,
     )
     return report_schedule
 

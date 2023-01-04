@@ -66,6 +66,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         creation_method = self._properties.get("creation_method")
         chart_id = self._properties.get("chart")
         dashboard_id = self._properties.get("dashboard")
+        msg_content = self._properties.get("msg_content")
 
         # Validate type is required
         if not report_type:
@@ -93,7 +94,8 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                 self._properties["database"] = database
 
         # Validate chart or dashboard relations
-        self.validate_chart_dashboard(exceptions)
+        if not msg_content:
+            self.validate_chart_dashboard(exceptions)
         self._validate_report_extra(exceptions)
 
         # Validate that each chart or dashboard only has one report with

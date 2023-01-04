@@ -225,7 +225,8 @@ class BaseReportState:
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
             )
         try:
-            image = screenshot.get_screenshot(user=user)
+            if not self._report_schedule.msg_content:
+                image = screenshot.get_screenshot(user=user)
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while taking a screenshot.")
             raise ReportScheduleScreenshotTimeout() from ex
@@ -296,7 +297,8 @@ class BaseReportState:
         context.
         """
         try:
-            self._get_screenshots()
+            if not self._report_schedule.msg_content:
+                self._get_screenshots()
         except (
             ReportScheduleScreenshotFailedError,
             ReportScheduleScreenshotTimeout,
@@ -311,22 +313,37 @@ class BaseReportState:
         chart_id = None
         dashboard_id = None
         report_source = None
+        msg_content = None
+
         if self._report_schedule.chart:
             report_source = ReportSourceFormat.CHART
             chart_id = self._report_schedule.chart_id
+        elif self._report_schedule.msg_content:
+            report_source = ReportSourceFormat.TEXT_MESSAGE
+            msg_content = self._report_schedule.msg_content
         else:
             report_source = ReportSourceFormat.DASHBOARD
             dashboard_id = self._report_schedule.dashboard_id
 
-        log_data: HeaderDataType = {
-            "notification_type": self._report_schedule.type,
-            "notification_source": report_source,
-            "notification_format": self._report_schedule.report_format,
-            "chart_id": chart_id,
-            "dashboard_id": dashboard_id,
-            "owners": self._report_schedule.owners,
-            "error_text": None,
-        }
+        if self._report_schedule.msg_content:
+            log_data: HeaderDataType = {
+                "notification_type": self._report_schedule.type,
+                "notification_source": report_source,
+                "notification_format": self._report_schedule.report_format,
+                "msg_content": msg_content,
+                "owners": self._report_schedule.owners,
+            }
+        else:
+            log_data: HeaderDataType = {
+                "notification_type": self._report_schedule.type,
+                "notification_source": report_source,
+                "notification_format": self._report_schedule.report_format,
+                "chart_id": chart_id,
+                "dashboard_id": dashboard_id,
+                "msg_content": msg_content,
+                "owners": self._report_schedule.owners,
+                "error_text": None,
+            }
         return log_data
 
     def _get_notification_content(self) -> NotificationContent:
@@ -340,6 +357,14 @@ class BaseReportState:
         error_text = None
         screenshot_data = []
         header_data = self._get_log_data()
+        if self._report_schedule.msg_content:
+            name = self._report_schedule.name
+            return NotificationContent(
+                name=name,
+                description=self._report_schedule.description,
+                msg_content=self._report_schedule.msg_content,
+                header_data=header_data,
+            )
         url = self._get_url(user_friendly=True)
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
