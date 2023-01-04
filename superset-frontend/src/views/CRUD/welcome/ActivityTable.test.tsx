@@ -82,7 +82,7 @@ describe('ActivityTable', () => {
     activityData: mockData,
     setActiveChild: jest.fn(),
     user: { userId: '1' },
-    loadedCount: 3,
+    doneFetching: true,
   };
 
   let wrapper: ReactWrapper;
@@ -127,7 +127,7 @@ describe('ActivityTable', () => {
       activityData: {},
       setActiveChild: jest.fn(),
       user: { userId: '1' },
-      loadedCount: 3,
+      doneFetching: true,
     };
     const wrapper = mount(
       <Provider store={store}>

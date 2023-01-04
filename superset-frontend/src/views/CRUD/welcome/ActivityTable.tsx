@@ -74,7 +74,7 @@ interface ActivityProps {
   activeChild: string;
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
-  loadedCount: number;
+  doneFetching: boolean;
 }
 
 const Styles = styled.div`
@@ -128,7 +128,7 @@ export default function ActivityTable({
   setActiveChild,
   activityData,
   user,
-  loadedCount,
+  doneFetching,
 }: ActivityProps) {
   const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
   const [loadingState, setLoadingState] = useState(false);
@@ -200,9 +200,7 @@ export default function ActivityTable({
       );
     });
 
-  const doneFetching = loadedCount < 3;
-
-  if ((loadingState && !editedObjs) || doneFetching) {
+  if ((loadingState && !editedObjs) || !doneFetching) {
     return <LoadingCards />;
   }
   return (
