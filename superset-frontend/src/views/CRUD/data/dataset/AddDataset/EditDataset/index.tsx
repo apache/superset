@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, t, logging } from '@superset-ui/core';
-import React, { useEffect, useState } from 'react';
-import { UseGetDatasetRelatedObjects } from 'src/views/CRUD/data/hooks';
+import { styled, t } from '@superset-ui/core';
+import React, { useEffect } from 'react';
+import { useGetDatasetRelatedObjects } from 'src/views/CRUD/data/hooks';
 import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';
 
@@ -53,17 +53,15 @@ const TRANSLATIONS = {
 };
 
 const EditPage = ({ id }: EditPageProps) => {
-  const [usageCount, setUsageCount] = useState(0);
+  const { getDatasetRelatedObjects, usageCount } =
+    useGetDatasetRelatedObjects(id);
   useEffect(() => {
     // Todo: this useEffect should be used to call all count methods conncurently
     // when we populate data for the new tabs. For right separating out this
     // api call for building the usage page.
-    if (id)
-      UseGetDatasetRelatedObjects(id)
-        .then(json => {
-          setUsageCount(json?.charts.count);
-        })
-        .catch(err => logging.log(err));
+    if (id) {
+      getDatasetRelatedObjects();
+    }
   }, [id]);
 
   const UsageTab = (

@@ -78,45 +78,60 @@ export function useQueryPreviewState<D extends BaseQueryObject = any>({
   };
 }
 
-/**
- * Retrieves all pages of dataset results
- */
-export const UseGetDatasetsList = async (filters: object[]) => {
-  let results: DatasetObject[] = [];
-  let page = 0;
-  let count;
+export const useGetDatasetsList = () => {
+  const [datasets, setDatasets] = useState<DatasetObject[]>([]);
 
-  // If count is undefined or less than results, we need to
-  // asynchronously retrieve a page of dataset results
-  while (count === undefined || results.length < count) {
-    const queryParams = rison.encode_uri({ filters, page });
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      const response = await SupersetClient.get({
-        endpoint: `/api/v1/dataset/?q=${queryParams}`,
-      });
+  const getDatasetsList = async (filters: object[]) => {
+    let results: DatasetObject[] = [];
+    let page = 0;
+    let count;
 
-      // Reassign local count to response's count
-      ({ count } = response.json);
+    // If count is undefined or less than results, we need to
+    // asynchronously retrieve a page of dataset results
+    while (count === undefined || results.length < count) {
+      const queryParams = rison.encode_uri({ filters, page });
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const response = await SupersetClient.get({
+          endpoint: `/api/v1/dataset/?q=${queryParams}`,
+        });
 
-      const {
-        json: { result },
-      } = response;
+        // Reassign local count to response's count
+        ({ count } = response.json);
 
-      results = [...results, ...result];
+        const {
+          json: { result },
+        } = response;
 
-      page += 1;
-    } catch (error) {
-      addDangerToast(t('There was an error fetching dataset'));
-      logging.error(t('There was an error fetching dataset'), error);
+        results = [...results, ...result];
+
+        page += 1;
+      } catch (error) {
+        addDangerToast(t('There was an error fetching dataset'));
+        logging.error(t('There was an error fetching dataset'), error);
+      }
     }
-  }
-  return results;
+
+    setDatasets(results);
+    return results;
+  };
+
+  const datasetNames = datasets?.map(dataset => dataset.table_name);
+
+  return { getDatasetsList, datasets, datasetNames };
 };
 
-export const UseGetDatasetRelatedObjects = (id: string) =>
-  SupersetClient.get({
-    endpoint: `/api/v1/dataset/${id}/related_objects`,
-  })
-    .then(({ json }) => json)
-    .catch(error => logging.error(error));
+export const useGetDatasetRelatedObjects = (id: string) => {
+  const [usageCount, setUsageCount] = useState(0);
+
+  const getDatasetRelatedObjects = () =>
+    SupersetClient.get({
+      endpoint: `/api/v1/dataset/${id}/related_objects`,
+    })
+      .then(({ json }) => {
+        setUsageCount(json?.charts.count);
+      })
+      .catch(error => logging.error(error));
+
+  return { getDatasetRelatedObjects, usageCount };
+};
