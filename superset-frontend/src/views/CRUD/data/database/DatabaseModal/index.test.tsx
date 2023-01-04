@@ -1189,6 +1189,72 @@ describe('DatabaseModal', () => {
           expect.anything();
         });
       });
+
+      describe('SSH Tunnel Form interaction', () => {
+        test('properly interacts with SSH Tunnel form textboxes', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          userEvent.click(SSHTunnelingToggle);
+          const SSHTunnelServerAddressInput = screen.getByTestId(
+            'ssh-tunnel-server_address-input',
+          );
+          expect(SSHTunnelServerAddressInput).toHaveValue('');
+          userEvent.type(SSHTunnelServerAddressInput, 'localhost');
+          expect(SSHTunnelServerAddressInput).toHaveValue('localhost');
+          const SSHTunnelServerPortInput = screen.getByTestId(
+            'ssh-tunnel-server_port-input',
+          );
+          expect(SSHTunnelServerPortInput).toHaveValue('');
+          userEvent.type(SSHTunnelServerPortInput, '22');
+          expect(SSHTunnelServerPortInput).toHaveValue('22');
+          const SSHTunnelUsernameInput = screen.getByTestId(
+            'ssh-tunnel-username-input',
+          );
+          expect(SSHTunnelUsernameInput).toHaveValue('');
+          userEvent.type(SSHTunnelUsernameInput, 'test');
+          expect(SSHTunnelUsernameInput).toHaveValue('test');
+          const SSHTunnelPasswordInput = screen.getByTestId(
+            'ssh-tunnel-password-input',
+          );
+          expect(SSHTunnelPasswordInput).toHaveValue('');
+          userEvent.type(SSHTunnelPasswordInput, 'pass');
+          expect(SSHTunnelPasswordInput).toHaveValue('pass');
+        });
+
+        test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          expect(SSHTunnelingToggle).toBeVisible();
+          const SSHTunnelServerAddressInput = screen.queryByTestId(
+            'ssh-tunnel-server_address-input',
+          );
+          expect(SSHTunnelServerAddressInput).not.toBeInTheDocument();
+          const SSHTunnelServerPortInput = screen.queryByTestId(
+            'ssh-tunnel-server_port-input',
+          );
+          expect(SSHTunnelServerPortInput).not.toBeInTheDocument();
+          const SSHTunnelUsernameInput = screen.queryByTestId(
+            'ssh-tunnel-username-input',
+          );
+          expect(SSHTunnelUsernameInput).not.toBeInTheDocument();
+          const SSHTunnelPasswordInput = screen.queryByTestId(
+            'ssh-tunnel-password-input',
+          );
+          expect(SSHTunnelPasswordInput).not.toBeInTheDocument();
+        });
+      });
     });
 
     describe('Dynamic form flow', () => {
