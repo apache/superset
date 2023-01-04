@@ -43,6 +43,7 @@ import setupApp from '../setup/setupApp';
 
 import '../assets/stylesheets/reactable-pagination.less';
 import { theme } from '../preamble';
+import { SqlLabGlobalStyles } from './SqlLabGlobalStyles';
 
 setupApp();
 setupExtensions();
@@ -140,6 +141,7 @@ const Application = () => (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
         <GlobalStyles />
+        <SqlLabGlobalStyles />
         <App />
       </ThemeProvider>
     </Provider>

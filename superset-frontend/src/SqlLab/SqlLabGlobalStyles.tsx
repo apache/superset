@@ -16,22 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { css } from '@superset-ui/core';
-import { Global } from '@emotion/react';
 
-export const GlobalStyles = () => (
+import React from 'react';
+import { Global } from '@emotion/react';
+import { css } from '@superset-ui/core';
+
+export const SqlLabGlobalStyles = () => (
   <Global
     styles={theme => css`
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6,
-      strong,
-      th {
-        font-weight: ${theme.typography.weights.bold};
+      body {
+        min-height: max(
+          100vh,
+          ${theme.gridUnit * 125}px
+        ); // Set a min height so the gutter is always visible when resizing
+        overflow: hidden;
+      }
+
+      .cost-estimate {
+        font-size: ${theme.typography.sizes.s};
       }
     `}
   />
