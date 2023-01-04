@@ -28,6 +28,8 @@ interface QueryStateLabelProps {
 const StyledLabel = styled(Label)`
   margin-right: ${({ theme }) => theme.gridUnit}px;
 `;
+// Setting a displayName makes it easier to test with enzyme
+StyledLabel.displayName = 'Label';
 
 export default function QueryStateLabel({ query }: QueryStateLabelProps) {
   return (

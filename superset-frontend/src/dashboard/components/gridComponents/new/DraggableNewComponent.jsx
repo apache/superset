@@ -49,6 +49,8 @@ const NewComponent = styled.div`
     background: ${({ theme }) => theme.colors.grayscale.light4};
   }
 `;
+// Setting a displayName makes it easier to test with enzyme
+NewComponent.displayName = 'NewComponent';
 
 const NewComponentPlaceholder = styled.div`
   position: relative;
@@ -94,11 +96,7 @@ export default class DraggableNewComponent extends React.PureComponent {
         editMode
       >
         {({ dragSourceRef }) => (
-          <NewComponent
-            ref={dragSourceRef}
-            className="new-component"
-            data-test="new-component"
-          >
+          <NewComponent ref={dragSourceRef} data-test="new-component">
             <NewComponentPlaceholder
               className={cx('new-component-placeholder', className)}
             />
