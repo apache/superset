@@ -62,7 +62,7 @@ const EditPage = ({ id }: EditPageProps) => {
     if (id) {
       getDatasetRelatedObjects();
     }
-  }, [id]);
+  }, [id, getDatasetRelatedObjects]);
 
   const UsageTab = (
     <TabStyles>
