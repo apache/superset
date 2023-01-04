@@ -28,6 +28,7 @@ export enum FeatureFlag {
   DASHBOARD_CROSS_FILTERS = 'DASHBOARD_CROSS_FILTERS',
   DASHBOARD_EDIT_CHART_IN_NEW_TAB = 'DASHBOARD_EDIT_CHART_IN_NEW_TAB',
   DASHBOARD_FILTERS_EXPERIMENTAL = 'DASHBOARD_FILTERS_EXPERIMENTAL',
+  CONFIRM_DASHBOARD_DIFF = 'CONFIRM_DASHBOARD_DIFF',
   DASHBOARD_NATIVE_FILTERS = 'DASHBOARD_NATIVE_FILTERS',
   DASHBOARD_NATIVE_FILTERS_SET = 'DASHBOARD_NATIVE_FILTERS_SET',
   DASHBOARD_VIRTUALIZATION = 'DASHBOARD_VIRTUALIZATION',
@@ -87,14 +88,11 @@ declare global {
   }
 }
 
-export function isFeatureEnabled(feature: FeatureFlag) {
+export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
     return !!window.featureFlags[feature];
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(`Failed to query feature flag ${feature} (see error below)`);
-    // eslint-disable-next-line no-console
-    console.error(error);
-    return false;
+    console.error(`Failed to query feature flag ${feature}`);
   }
+  return false;
 }

@@ -34,6 +34,13 @@ export const HandlebarsViewer = ({
 }: HandlebarsViewerProps) => {
   const [renderedTemplate, setRenderedTemplate] = useState('');
   const [error, setError] = useState('');
+  const appContainer = document.getElementById('app');
+  const { common } = JSON.parse(
+    appContainer?.getAttribute('data-bootstrap') || '{}',
+  );
+  const htmlSanitization = common?.conf?.HTML_SANITIZATION ?? true;
+  const htmlSchemaOverrides =
+    common?.conf?.HTML_SANITIZATION_SCHEMA_EXTENSIONS || {};
 
   useMemo(() => {
     try {
@@ -56,7 +63,13 @@ export const HandlebarsViewer = ({
   }
 
   if (renderedTemplate) {
-    return <SafeMarkdown source={renderedTemplate} />;
+    return (
+      <SafeMarkdown
+        source={renderedTemplate}
+        htmlSanitization={htmlSanitization}
+        htmlSchemaOverrides={htmlSchemaOverrides}
+      />
+    );
   }
   return <p>Loading...</p>;
 };

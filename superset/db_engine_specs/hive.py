@@ -185,8 +185,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
 
-        engine = cls.get_engine(database)
-
         if to_sql_kwargs["if_exists"] == "append":
             raise SupersetException("Append operation not currently supported")
 
@@ -205,7 +203,8 @@ class HiveEngineSpec(PrestoEngineSpec):
             if table_exists:
                 raise SupersetException("Table already exists")
         elif to_sql_kwargs["if_exists"] == "replace":
-            engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+            with cls.get_engine(database) as engine:
+                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
 
         def _get_hive_type(dtype: np.dtype) -> str:
             hive_type_by_dtype = {
@@ -226,22 +225,23 @@ class HiveEngineSpec(PrestoEngineSpec):
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
-            engine.execute(
-                text(
-                    f"""
-                    CREATE TABLE {str(table)} ({schema_definition})
-                    STORED AS PARQUET
-                    LOCATION :location
-                    """
-                ),
-                location=upload_to_s3(
-                    filename=file.name,
-                    upload_prefix=current_app.config[
-                        "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                    ](database, g.user, table.schema),
-                    table=table,
-                ),
-            )
+            with cls.get_engine(database) as engine:
+                engine.execute(
+                    text(
+                        f"""
+                        CREATE TABLE {str(table)} ({schema_definition})
+                        STORED AS PARQUET
+                        LOCATION :location
+                        """
+                    ),
+                    location=upload_to_s3(
+                        filename=file.name,
+                        upload_prefix=current_app.config[
+                            "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
+                        ](database, g.user, table.schema),
+                        table=table,
+                    ),
+                )
 
     @classmethod
     def convert_dttm(
@@ -559,7 +559,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def has_implicit_cancel(cls) -> bool:
         """
         Return True if the live cursor handles the implicit cancelation of the query,
-        False otherise.
+        False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query
         :see: handle_cursor

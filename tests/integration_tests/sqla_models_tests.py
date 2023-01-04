@@ -23,7 +23,6 @@ import pytest
 
 import numpy as np
 import pandas as pd
-import sqlalchemy as sa
 from flask import Flask
 from pytest_mock import MockFixture
 from sqlalchemy.sql import text
@@ -41,7 +40,6 @@ from superset.utils.core import (
     FilterOperator,
     GenericDataType,
     TemporalType,
-    backend,
 )
 from superset.utils.database import get_example_database
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -71,6 +69,7 @@ VIRTUAL_TABLE_STRING_TYPES: Dict[str, Pattern[str]] = {
 
 
 class FilterTestCase(NamedTuple):
+    column: str
     operator: str
     value: Union[float, int, List[Any], str]
     expected: Union[str, List[str]]
@@ -202,22 +201,34 @@ class TestDatabaseModel(SupersetTestCase):
             "granularity": None,
             "from_dttm": None,
             "to_dttm": None,
-            "groupby": ["user", "expr"],
+            "columns": [
+                "user",
+                "expr",
+                {
+                    "hasCustomLabel": True,
+                    "label": "adhoc_column",
+                    "sqlExpression": "'{{ 'foo_' + time_grain }}'",
+                },
+            ],
             "metrics": [
                 {
+                    "hasCustomLabel": True,
+                    "label": "adhoc_metric",
                     "expressionType": AdhocMetricExpressionType.SQL,
-                    "sqlExpression": "SUM(case when user = '{{ current_username() }}' "
-                    "then 1 else 0 end)",
-                    "label": "SUM(userid)",
-                }
+                    "sqlExpression": "SUM(case when user = '{{ 'user_' + "
+                    "current_username() }}' then 1 else 0 end)",
+                },
+                "count_timegrain",
             ],
             "is_timeseries": False,
             "filter": [],
+            "extras": {"time_grain_sqla": "P1D"},
         }
 
         table = SqlaTable(
             table_name="test_has_jinja_metric_and_expr",
-            sql="SELECT '{{ current_username() }}' as user",
+            sql="SELECT '{{ 'user_' + current_username() }}' as user, "
+            "'{{ 'xyz_' + time_grain }}' as time_grain",
             database=get_example_database(),
         )
         TableColumn(
@@ -227,14 +238,25 @@ class TestDatabaseModel(SupersetTestCase):
             type="VARCHAR(100)",
             table=table,
         )
+        SqlMetric(
+            metric_name="count_timegrain",
+            expression="count('{{ 'bar_' + time_grain }}')",
+            table=table,
+        )
         db.session.commit()
 
         sqla_query = table.get_sqla_query(**base_query_obj)
         query = table.database.compile_sqla_query(sqla_query.sqla_query)
-        # assert expression
-        assert "case when 'abc' = 'abc' then 'yes' else 'no' end" in query
-        # assert metric
-        assert "SUM(case when user = 'abc' then 1 else 0 end)" in query
+        # assert virtual dataset
+        assert "SELECT 'user_abc' as user, 'xyz_P1D' as time_grain" in query
+        # assert dataset calculated column
+        assert "case when 'abc' = 'abc' then 'yes' else 'no' end AS expr" in query
+        # assert adhoc column
+        assert "'foo_P1D'" in query
+        # assert dataset saved metric
+        assert "count('bar_P1D')" in query
+        # assert adhoc metric
+        assert "SUM(case when user = 'user_abc' then 1 else 0 end)" in query
         # Cleanup
         db.session.delete(table)
         db.session.commit()
@@ -271,19 +293,22 @@ class TestDatabaseModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_where_operators(self):
         filters: Tuple[FilterTestCase, ...] = (
-            FilterTestCase(FilterOperator.IS_NULL, "", "IS NULL"),
-            FilterTestCase(FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
+            FilterTestCase("num", FilterOperator.IS_NULL, "", "IS NULL"),
+            FilterTestCase("num", FilterOperator.IS_NOT_NULL, "", "IS NOT NULL"),
             # Some db backends translate true/false to 1/0
-            FilterTestCase(FilterOperator.IS_TRUE, "", ["IS 1", "IS true"]),
-            FilterTestCase(FilterOperator.IS_FALSE, "", ["IS 0", "IS false"]),
-            FilterTestCase(FilterOperator.GREATER_THAN, 0, "> 0"),
-            FilterTestCase(FilterOperator.GREATER_THAN_OR_EQUALS, 0, ">= 0"),
-            FilterTestCase(FilterOperator.LESS_THAN, 0, "< 0"),
-            FilterTestCase(FilterOperator.LESS_THAN_OR_EQUALS, 0, "<= 0"),
-            FilterTestCase(FilterOperator.EQUALS, 0, "= 0"),
-            FilterTestCase(FilterOperator.NOT_EQUALS, 0, "!= 0"),
-            FilterTestCase(FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
-            FilterTestCase(FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
+            FilterTestCase("num", FilterOperator.IS_TRUE, "", ["IS 1", "IS true"]),
+            FilterTestCase("num", FilterOperator.IS_FALSE, "", ["IS 0", "IS false"]),
+            FilterTestCase("num", FilterOperator.GREATER_THAN, 0, "> 0"),
+            FilterTestCase("num", FilterOperator.GREATER_THAN_OR_EQUALS, 0, ">= 0"),
+            FilterTestCase("num", FilterOperator.LESS_THAN, 0, "< 0"),
+            FilterTestCase("num", FilterOperator.LESS_THAN_OR_EQUALS, 0, "<= 0"),
+            FilterTestCase("num", FilterOperator.EQUALS, 0, "= 0"),
+            FilterTestCase("num", FilterOperator.NOT_EQUALS, 0, "!= 0"),
+            FilterTestCase("num", FilterOperator.IN, ["1", "2"], "IN (1, 2)"),
+            FilterTestCase("num", FilterOperator.NOT_IN, ["1", "2"], "NOT IN (1, 2)"),
+            FilterTestCase(
+                "ds", FilterOperator.TEMPORAL_RANGE, "2020 : 2021", "2020-01-01"
+            ),
         )
         table = self.get_table(name="birth_names")
         for filter_ in filters:
@@ -295,7 +320,11 @@ class TestDatabaseModel(SupersetTestCase):
                 "metrics": ["count"],
                 "is_timeseries": False,
                 "filter": [
-                    {"col": "num", "op": filter_.operator, "val": filter_.value}
+                    {
+                        "col": filter_.column,
+                        "op": filter_.operator,
+                        "val": filter_.value,
+                    }
                 ],
                 "extras": {},
             }
@@ -835,3 +864,26 @@ def test__normalize_prequery_result_type(
         assert str(normalized) == str(result)
     else:
         assert normalized == result
+
+
+def test__temporal_range_operator_in_adhoc_filter(app_context, physical_dataset):
+    result = physical_dataset.query(
+        {
+            "columns": ["col1", "col2"],
+            "filter": [
+                {
+                    "col": "col5",
+                    "val": "2000-01-05 : 2000-01-06",
+                    "op": FilterOperator.TEMPORAL_RANGE.value,
+                },
+                {
+                    "col": "col6",
+                    "val": "2002-05-11 : 2002-05-12",
+                    "op": FilterOperator.TEMPORAL_RANGE.value,
+                },
+            ],
+            "is_timeseries": False,
+        }
+    )
+    df = pd.DataFrame(index=[0], data={"col1": 4, "col2": "e"})
+    assert df.equals(result.df)

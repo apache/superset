@@ -112,6 +112,7 @@ export interface ExplorePageState {
     controlsTransferred: string[];
     standalone: boolean;
     force: boolean;
+    common: JsonObject;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }

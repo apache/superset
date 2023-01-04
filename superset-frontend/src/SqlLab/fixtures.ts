@@ -203,6 +203,7 @@ export const extraQueryEditor1 = {
   id: 'diekd23',
   sql: 'SELECT *\nFROM\nWHERE\nLIMIT',
   name: 'Untitled Query 2',
+  selectedText: 'SELECT',
 };
 
 export const extraQueryEditor2 = {
@@ -721,7 +722,7 @@ export const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,
-  explore_url: `/explore/?dataset_type=table&dataset_id=${i}`,
+  explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,

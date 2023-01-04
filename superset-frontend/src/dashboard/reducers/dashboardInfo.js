@@ -17,7 +17,10 @@
  * under the License.
  */
 
-import { DASHBOARD_INFO_UPDATED } from '../actions/dashboardInfo';
+import {
+  DASHBOARD_INFO_UPDATED,
+  SET_FILTER_BAR_ORIENTATION,
+} from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export default function dashboardStateReducer(state = {}, action) {
@@ -34,6 +37,11 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         ...action.data.dashboardInfo,
         // set async api call data
+      };
+    case SET_FILTER_BAR_ORIENTATION:
+      return {
+        ...state,
+        filterBarOrientation: action.filterBarOrientation,
       };
     default:
       return state;

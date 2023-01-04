@@ -18,6 +18,9 @@
  */
 import { styled } from '@superset-ui/core';
 import { Menu as AntdMenu } from 'antd';
+import { MenuProps as AntdMenuProps } from 'antd/lib/menu';
+
+export type MenuProps = AntdMenuProps;
 
 const MenuItem = styled(AntdMenu.Item)`
   > a {

@@ -65,6 +65,7 @@ from sqlalchemy_utils import UUIDType
 from superset import app, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -1095,6 +1096,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     @staticmethod
     def filter_values_handler(  # pylint: disable=too-many-arguments
         values: Optional[FilterValues],
+        operator: str,
         target_generic_type: utils.GenericDataType,
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
@@ -1107,6 +1109,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return None
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
+            if operator == utils.FilterOperator.TEMPORAL_RANGE:
+                return value
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL
@@ -1233,8 +1237,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_time_filter(
         self,
         time_col: Dict[str, Any],
-        start_dttm: sa.DateTime,
-        end_dttm: sa.DateTime,
+        start_dttm: Optional[sa.DateTime],
+        end_dttm: Optional[sa.DateTime],
     ) -> ColumnElement:
         label = "__time"
         col = time_col.get("column_name")
@@ -1281,13 +1285,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if limit:
             qry = qry.limit(limit)
 
-        engine = self.database.get_sqla_engine()  # type: ignore
-        sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
-        sql = self._apply_cte(sql, cte)
-        sql = self.mutate_query_from_config(sql)
+        with self.database.get_sqla_engine_with_context() as engine:  # type: ignore
+            sql = qry.compile(engine, compile_kwargs={"literal_binds": True})
+            sql = self._apply_cte(sql, cte)
+            sql = self.mutate_query_from_config(sql)
 
-        df = pd.read_sql_query(sql=sql, con=engine)
-        return df[column_name].to_list()
+            df = pd.read_sql_query(sql=sql, con=engine)
+            return df[column_name].to_list()
 
     def get_timestamp_expression(
         self,
@@ -1322,7 +1326,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = sa.column(label, type_=col_type)
         return self.make_sqla_column_compatible(col, label)
 
-    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+    def get_sqla_query(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements,unused-argument
         self,
         apply_fetch_values_predicate: bool = False,
         columns: Optional[List[Column]] = None,
@@ -1348,6 +1352,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         row_offset: Optional[int] = None,
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
+        time_shift: Optional[str] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -1691,6 +1696,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_generic_type = utils.GenericDataType.STRING
                 eq = self.filter_values_handler(
                     values=val,
+                    operator=op,
                     target_generic_type=target_generic_type,
                     target_native_type=col_type,
                     is_list_target=is_list_target,
@@ -1774,6 +1780,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         where_clause_and.append(sqla_col.like(eq))
                     elif op == utils.FilterOperator.ILIKE.value:
                         where_clause_and.append(sqla_col.ilike(eq))
+                    elif (
+                        op == utils.FilterOperator.TEMPORAL_RANGE.value
+                        and isinstance(eq, str)
+                        and col_obj is not None
+                    ):
+                        _since, _until = get_since_until_from_time_range(
+                            time_range=eq,
+                            time_shift=time_shift,
+                            extras=extras,
+                        )
+                        where_clause_and.append(
+                            self.get_time_filter(
+                                time_col=col_obj,
+                                start_dttm=_since,
+                                end_dttm=_until,
+                            )
+                        )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)

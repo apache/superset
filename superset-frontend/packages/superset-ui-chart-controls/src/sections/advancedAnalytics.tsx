@@ -119,6 +119,8 @@ export const advancedAnalyticsControls: ControlPanelSectionConfig = {
             '2 years ago',
             '156 weeks ago',
             '3 years ago',
+            '208 weeks ago',
+            '4 years ago',
           ]),
           description: t(
             'Overlay one or more timeseries from a ' +

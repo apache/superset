@@ -21,22 +21,56 @@ import Icons from 'src/components/Icons';
 import { Spin } from 'antd';
 import AntdSelect from 'antd/lib/select';
 
-export const StyledContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+export const StyledHeader = styled.span<{ headerPosition: string }>`
+  ${({ theme, headerPosition }) => `
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: ${headerPosition === 'left' ? theme.gridUnit * 2 : 0}px;
+  `}
 `;
 
-export const StyledSelect = styled(AntdSelect)`
-  ${({ theme }) => `
-   && .ant-select-selector {
-     border-radius: ${theme.gridUnit}px;
-   }
-   // Open the dropdown when clicking on the suffix
-   // This is fixed in version 4.16
-   .ant-select-arrow .anticon:not(.ant-select-suffix) {
-     pointer-events: none;
-   }
+export const StyledContainer = styled.div<{ headerPosition: string }>`
+  ${({ headerPosition }) => `
+    display: flex;
+    flex-direction: ${headerPosition === 'top' ? 'column' : 'row'};
+    align-items: ${headerPosition === 'left' ? 'center' : undefined};
+    width: 100%;
+  `}
+`;
+
+export const StyledSelect = styled(AntdSelect, {
+  shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
+})<{ headerPosition: string; oneLine?: boolean }>`
+  ${({ theme, headerPosition, oneLine }) => `
+    flex: ${headerPosition === 'left' ? 1 : 0};
+    && .ant-select-selector {
+      border-radius: ${theme.gridUnit}px;
+    }
+    // Open the dropdown when clicking on the suffix
+    // This is fixed in version 4.16
+    .ant-select-arrow .anticon:not(.ant-select-suffix) {
+      pointer-events: none;
+    }
+
+    ${
+      oneLine &&
+      `
+        .ant-select-selection-overflow {
+          flex-wrap: nowrap;
+        }
+
+        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+          flex-shrink: 1;
+          min-width: ${theme.gridUnit * 13}px;
+        }
+
+        .ant-select-selection-overflow-item-suffix {
+          flex: unset;
+          min-width: 0px;
+        }
+      `
+    };
  `}
 `;
 

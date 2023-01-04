@@ -38,7 +38,10 @@ import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import {
+  MenuObjectProps,
+  UserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import { RootState } from 'src/dashboard/types';
 import LanguagePicker from './LanguagePicker';
 import DatabaseModal from '../CRUD/data/database/DatabaseModal';
@@ -48,7 +51,6 @@ import {
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
-import { MenuObjectProps } from './Menu';
 import AddDatasetModal from '../CRUD/data/dataset/AddDatasetModal';
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -82,6 +84,13 @@ const StyledDiv = styled.div<{ align: string }>`
   .ant-menu-submenu-title > svg {
     top: ${({ theme }) => theme.gridUnit * 5.25}px;
   }
+`;
+
+const StyledMenuItemWithIcon = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
 `;
 
 const StyledAnchor = styled.a`
@@ -330,6 +339,9 @@ const RightMenu = ({
     return null;
   };
   const RightMenuExtension = extensionsRegistry.get('navbar.right');
+  const RightMenuItemIconExtension = extensionsRegistry.get(
+    'navbar.right-menu.item.icon',
+  );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
   const handleDatasetAdd = () => setQuery({ datasetAdded: true });
@@ -447,12 +459,20 @@ const RightMenu = ({
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
               {section?.childs?.map?.(child => {
                 if (typeof child !== 'string') {
+                  const menuItemDisplay = RightMenuItemIconExtension ? (
+                    <StyledMenuItemWithIcon>
+                      {child.label}
+                      <RightMenuItemIconExtension menuChild={child} />
+                    </StyledMenuItemWithIcon>
+                  ) : (
+                    child.label
+                  );
                   return (
                     <Menu.Item key={`${child.label}`}>
                       {isFrontendRoute(child.url) ? (
-                        <Link to={child.url || ''}>{child.label}</Link>
+                        <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={child.url}>{child.label}</a>
+                        <a href={child.url}>{menuItemDisplay}</a>
                       )}
                     </Menu.Item>
                   );

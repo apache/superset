@@ -22,7 +22,7 @@ from typing import Any
 from zipfile import is_zipfile, ZipFile
 
 import yaml
-from flask import g, request, Response, send_file
+from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -142,6 +142,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
+        "select_star",
         "owners.id",
         "owners.username",
         "owners.first_name",
@@ -217,7 +218,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     ]
     openapi_spec_tag = "Datasets"
 
-    filter_rel_fields = {
+    base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }
@@ -585,7 +586,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            new_model = DuplicateDatasetCommand([g.user.id], item).run()
+            new_model = DuplicateDatasetCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryState } from '@superset-ui/core';
 import { User } from 'src/types/bootstrapTypes';
 import Database from 'src/types/Database';
 import Owner from 'src/types/Owner';
@@ -24,13 +25,16 @@ export type FavoriteStatus = {
   [id: number]: boolean;
 };
 
-export enum TableTabTypes {
-  FAVORITE = 'Favorite',
-  MINE = 'Mine',
-  EXAMPLES = 'Examples',
+export enum TableTab {
+  Favorite = 'Favorite',
+  Mine = 'Mine',
+  Other = 'Other',
+  Viewed = 'Viewed',
+  Created = 'Created',
+  Edited = 'Edited',
 }
 
-export type Filters = {
+export type Filter = {
   col: string;
   opr: string;
   value: string | number;
@@ -39,12 +43,12 @@ export type Filters = {
 export interface DashboardTableProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
-  search: string;
   user?: User;
   mine: Array<Dashboard>;
   showThumbnails?: boolean;
-  featureFlag?: boolean;
-  examples: Array<Dashboard>;
+  otherTabData: Array<Dashboard>;
+  otherTabFilters: Filter[];
+  otherTabTitle: string;
 }
 
 export interface Dashboard {
@@ -91,14 +95,7 @@ export interface QueryObject {
   sql: string;
   executed_sql: string | null;
   sql_tables?: { catalog?: string; schema: string; table: string }[];
-  status:
-    | 'success'
-    | 'failed'
-    | 'stopped'
-    | 'running'
-    | 'timed_out'
-    | 'scheduled'
-    | 'pending';
+  status: QueryState;
   tab_name: string;
   user: {
     first_name: string;

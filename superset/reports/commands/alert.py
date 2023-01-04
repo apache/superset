@@ -36,6 +36,7 @@ from superset.reports.commands.exceptions import (
     AlertValidatorConfigError,
 )
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
+from superset.tasks.utils import get_executor
 from superset.utils.core import override_user
 from superset.utils.retries import retry_call
 
@@ -148,11 +149,12 @@ class AlertCommand(BaseCommand):
                 rendered_sql, ALERT_SQL_LIMIT
             )
 
-            with override_user(
-                security_manager.find_user(
-                    username=app.config["THUMBNAIL_SELENIUM_USER"]
-                )
-            ):
+            _, username = get_executor(
+                executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+                model=self._report_schedule,
+            )
+            user = security_manager.find_user(username)
+            with override_user(user):
                 start = default_timer()
                 df = self._report_schedule.database.get_df(sql=limited_rendered_sql)
                 stop = default_timer()

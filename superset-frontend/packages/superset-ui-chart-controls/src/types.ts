@@ -22,16 +22,15 @@ import type {
   AdhocColumn,
   Column,
   DatasourceType,
+  JsonObject,
   JsonValue,
   Metric,
-  QueryColumn,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   QueryResponse,
 } from '@superset-ui/core';
-import sharedControls from './shared-controls';
-import sharedControlComponents from './shared-controls/components';
+import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlFormItemSpec } from './components/ControlForm';
@@ -80,12 +79,16 @@ export interface Dataset {
   description: string | null;
   uid?: string;
   owners?: Owner[];
+  filter_select?: boolean;
+  filter_select_enabled?: boolean;
 }
 
 export interface ControlPanelState {
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
+  common: JsonObject;
+  metadata?: JsonObject | null;
 }
 
 /**
@@ -239,7 +242,7 @@ export interface BaseControlConfig<
   ) => boolean;
   mapStateToProps?: (
     state: ControlPanelState,
-    controlState?: ControlState,
+    controlState: ControlState,
     // TODO: add strict `chartState` typing (see superset-frontend/src/explore/types)
     chartState?: AnyDict,
   ) => ExtraControlProps;
@@ -449,9 +452,7 @@ export type ColorFormatters = {
 
 export default {};
 
-export function isColumnMeta(
-  column: AdhocColumn | ColumnMeta | QueryColumn,
-): column is ColumnMeta {
+export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
 }
 

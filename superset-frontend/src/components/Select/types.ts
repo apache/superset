@@ -27,6 +27,7 @@ import {
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
+import { TagProps } from 'antd/lib/tag';
 
 export type RawValue = string | number;
 
@@ -92,6 +93,10 @@ export interface BaseSelectProps extends AntdExposedProps {
    */
   header?: ReactNode;
   /**
+   * It changes the position of the header.
+   */
+  headerPosition?: 'top' | 'left';
+  /**
    * It adds a helper text on top of the Select options
    * with additional context to help with the interaction.
    */
@@ -136,6 +141,13 @@ export interface BaseSelectProps extends AntdExposedProps {
     b: AntdLabeledValue,
     search?: string,
   ) => number;
+  /**
+   * Sets maxTagCount to 1. The overflow tag is always displayed in
+   * the same line, line wrapping is disabled.
+   * When the dropdown is open, sets maxTagCount to 0,
+   * displays only the overflow tag.
+   */
+  oneLine?: boolean;
 
   suffixIcon?: ReactNode;
 
@@ -199,3 +211,8 @@ export interface AsyncSelectProps extends BaseSelectProps {
    */
   onError?: (error: string) => void;
 }
+
+export type CustomTagProps = HTMLSpanElement &
+  TagProps & {
+    label: ReactNode;
+  };

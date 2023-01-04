@@ -18,7 +18,7 @@ import json
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Pattern, Set, Tuple, TYPE_CHECKING
 
 from flask_babel import gettext as __
 from sqlalchemy.dialects.postgresql import ARRAY, DOUBLE_PRECISION, ENUM, JSON
@@ -166,6 +166,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     engine = "postgresql"
     engine_aliases = {"postgres"}
+    allow_ssh_tunneling = True
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
@@ -228,11 +229,11 @@ class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     @classmethod
     def get_table_names(
         cls, database: "Database", inspector: PGInspector, schema: Optional[str]
-    ) -> List[str]:
+    ) -> Set[str]:
         """Need to consider foreign tables for PostgreSQL"""
-        tables = inspector.get_table_names(schema)
-        tables.extend(inspector.get_foreign_table_names(schema))
-        return sorted(tables)
+        return set(inspector.get_table_names(schema)) | set(
+            inspector.get_foreign_table_names(schema)
+        )
 
     @classmethod
     def convert_dttm(
