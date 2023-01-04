@@ -1674,13 +1674,10 @@ class TestCore(SupersetTestCase):
         )
         self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
 
-    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_has_table_by_name(self):
         example_db = superset.utils.database.get_example_database()
         assert (
-            example_db.has_table_by_name(
-                table_name="load_energy_table_with_slice", schema="public"
-            )
+            example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
 
