@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { useHistory } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -49,12 +50,12 @@ const LOG_ACTIONS = [
 ];
 
 function Footer({
-  url,
   datasetObject,
   addDangerToast,
   hasColumns = false,
   datasets,
 }: FooterProps) {
+  const history = useHistory();
   const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
     'dataset',
     t('dataset'),
@@ -72,11 +73,7 @@ function Footer({
 
     return LOG_ACTIONS[value];
   };
-  const goToPreviousUrl = () => {
-    // this is a placeholder url until the final feature gets implemented
-    // at that point we will be passing in the url of the previous location.
-    window.location.href = url;
-  };
+  const goToPreviousUrl = () => history.goBack();
 
   const cancelButtonOnClick = () => {
     if (!datasetObject) {
