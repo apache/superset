@@ -1674,18 +1674,12 @@ class TestCore(SupersetTestCase):
         )
         self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
 
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_has_table_by_name(self):
-        from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
-
         example_db = superset.utils.database.get_example_database()
-        with example_db.get_sqla_engine_with_context() as engine:
-            engine.execute(
-                f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
-            )
-
         assert (
             example_db.has_table_by_name(
-                table_name="birth_names", schema=CTAS_SCHEMA_NAME
+                table_name="load_energy_table_with_slice", schema="public"
             )
             is True
         )
