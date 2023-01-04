@@ -18,8 +18,6 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-
-import Label from 'src/components/Label';
 import QueryStateLabel from 'src/SqlLab/components/QueryStateLabel';
 
 describe('SavedQuery', () => {

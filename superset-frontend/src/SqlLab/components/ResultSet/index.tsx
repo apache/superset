@@ -22,7 +22,13 @@ import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { QueryResponse, QueryState, styled, t, useTheme } from '@superset-ui/core';
+import {
+  QueryResponse,
+  QueryState,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
