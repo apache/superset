@@ -16,13 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export * from './getUrlLinks';
+
+import { ReactNode } from 'react';
+import { PopoverProps } from 'antd/lib/popover';
+import { ControlComponentProps } from '@superset-ui/chart-controls';
+
+export type UrlLinkConfig = {
+  columnName?: string;
+  linkText?: string;
+  linkSchema?: string;
+};
+
+export type UrlLinkControlProps = ControlComponentProps<UrlLinkConfig[]> & {
+  colnames: string[];
+  label: string;
+  description: string;
+};
+
+export type UrlLinkPopoverProps = PopoverProps & {
+  columns: string[];
+  onChange: (value: UrlLinkConfig) => void;
+  config?: UrlLinkConfig;
+  title: string;
+  children: ReactNode;
+};

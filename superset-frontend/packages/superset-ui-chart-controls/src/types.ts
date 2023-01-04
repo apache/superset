@@ -21,6 +21,7 @@ import React, { ReactElement, ReactNode, ReactText } from 'react';
 import type {
   AdhocColumn,
   Column,
+  DataRecord,
   DatasourceType,
   JsonObject,
   JsonValue,
@@ -445,9 +446,21 @@ export type ConditionalFormattingConfig = {
   colorScheme?: string;
 };
 
+export type UrlLinkConfig = {
+  columnName?: string;
+  linkText?: string;
+  linkSchema?: string;
+};
+
 export type ColorFormatters = {
   column: string;
   getColorFromValue: (value: number) => string | undefined;
+}[];
+
+export type UrlLinks = {
+  column: string;
+  linkText: string;
+  getTextFromValues: (value: number, values: DataRecord) => string;
 }[];
 
 export default {};

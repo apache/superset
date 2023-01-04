@@ -40,6 +40,7 @@ import MetricsControl from './MetricControl/MetricsControl';
 import AdhocFilterControl from './FilterControl/AdhocFilterControl';
 import FilterBoxItemControl from './FilterBoxItemControl';
 import ConditionalFormattingControl from './ConditionalFormattingControl';
+import UrlLinkControl from './UrlLinkControl';
 import DndColumnSelectControl, {
   DndColumnSelect,
   DndFilterSelect,
@@ -76,6 +77,7 @@ const controlMap = {
   FilterBoxItemControl,
   ConditionalFormattingControl,
   XAxisSortControl,
+  UrlLinkControl,
   ...sharedControlComponents,
 };
 export default controlMap;

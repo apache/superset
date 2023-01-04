@@ -73,7 +73,7 @@ function formatValue(
   }
   if (formatter) {
     // in case percent metric can specify percent format in the future
-    return [false, formatter(value as number)];
+    return [false, formatter(value as number, {})];
   }
   if (typeof value === 'string') {
     return isProbablyHTML(value) ? [true, xss.process(value)] : [false, value];

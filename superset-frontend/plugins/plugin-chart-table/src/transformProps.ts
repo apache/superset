@@ -34,6 +34,7 @@ import {
 import {
   ColorFormatters,
   getColorFormatters,
+  getTextFromValues,
 } from '@superset-ui/chart-controls';
 
 import isEqualColumns from './utils/isEqualColumns';
@@ -90,6 +91,7 @@ const processColumns = memoizeOne(function processColumns(
       metrics: metrics_,
       percent_metrics: percentMetrics_,
       column_config: columnConfig = {},
+      url_link: urlLink,
     },
     queriesData,
   } = props;
@@ -165,6 +167,23 @@ const processColumns = memoizeOne(function processColumns(
         config,
       };
     });
+
+  // append url link column to columns
+  const columnUrlLinks = getTextFromValues(urlLink) ?? [];
+  if (columnUrlLinks.length) {
+    columnUrlLinks.forEach(({ getTextFromValues, column }) => {
+      columns.push({
+        key: column,
+        label: column,
+        dataType: GenericDataType.STRING,
+        isNumeric: false,
+        isMetric: false,
+        isPercentMetric: false,
+        formatter: getTextFromValues,
+        config: {},
+      });
+    });
+  }
   return [metrics, percentMetrics, columns] as [
     typeof metrics,
     typeof percentMetrics,
@@ -224,6 +243,7 @@ const transformProps = (
     query_mode: queryMode,
     show_totals: showTotals,
     conditional_formatting: conditionalFormatting,
+    url_link: urlLink,
     allow_rearrange_columns: allowRearrangeColumns,
   } = formData;
   const timeGrain = extractTimegrain(formData);
@@ -248,6 +268,8 @@ const transformProps = (
       : undefined;
   const columnColorFormatters =
     getColorFormatters(conditionalFormatting, data) ?? defaultColorFormatters;
+
+  const columnUrlLinks = getTextFromValues(urlLink) ?? [];
 
   return {
     height,
@@ -276,6 +298,7 @@ const transformProps = (
     emitFilter,
     onChangeFilter,
     columnColorFormatters,
+    columnUrlLinks,
     timeGrain,
     allowRearrangeColumns,
     onContextMenu,
