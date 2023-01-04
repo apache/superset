@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Layout, Menu } from 'antd';
 import { SupersetTheme, useTheme } from '@superset-ui/core';
 import {
@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import HeaderPage from './pages/HeaderPage';
 import ContentPage from './pages/ContentPage';
+import ViewSearchPage from './pages/ViewSearchPage';
 // import HeaderViewTablePage from './pages/HeaderViewTablePage';
 // import ViewTablePage from './pages/ViewTablePage';
 
@@ -17,6 +18,11 @@ const { Header, Content, Sider } = Layout;
 
 const DatamanageList = () => {
   const theme: SupersetTheme = useTheme();
+  const [outLined, setoutLined] = useState('1');
+
+  const handleOutLined = (ev: any) => {
+    setoutLined(ev.key);
+  };
   return (
     <Layout>
       <Sider
@@ -29,6 +35,7 @@ const DatamanageList = () => {
         }}
       >
         <Menu
+          onClick={handleOutLined}
           defaultSelectedKeys={['1']}
           defaultOpenKeys={['sub1']}
           mode="inline"
@@ -52,27 +59,33 @@ const DatamanageList = () => {
           />
         </Menu>
       </Sider>
-      <Layout>
-        <Header
-          style={{
-            padding: '48px',
-            background: theme.colors.quotron.white,
-          }}
-        >
-          <HeaderPage />
-          {/* <HeaderViewTablePage /> */}
-        </Header>
-        <Content
-          style={{
-            minHeight: '90vh',
-            background: theme.colors.quotron.white,
-            padding: '48px',
-          }}
-        >
-          <ContentPage />
-          {/* <ViewTablePage /> */}
-        </Content>
-      </Layout>
+      {outLined === '2' && (
+        <Layout>
+          <ViewSearchPage />
+        </Layout>
+      )}
+      {outLined === '1' && (
+        <Layout>
+          <Header
+            style={{
+              padding: '48px',
+              background: theme.colors.quotron.white,
+            }}
+          >
+            <HeaderPage />
+            {/* <HeaderViewTablePage /> */}
+          </Header>
+          <Content
+            style={{
+              minHeight: '90vh',
+              background: theme.colors.quotron.white,
+              padding: '48px',
+            }}
+          >
+            <ContentPage />
+          </Content>
+        </Layout>
+      )}
     </Layout>
   );
 };
