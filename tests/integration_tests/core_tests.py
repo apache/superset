@@ -79,6 +79,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -1672,6 +1673,22 @@ class TestCore(SupersetTestCase):
             f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
         )
         self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
+
+    def test_has_table_by_name(self):
+        from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
+
+        example_db = superset.utils.database.get_example_database()
+        with example_db.get_sqla_engine_with_context() as engine:
+            engine.execute(
+                f"CREATE TABLE {CTAS_SCHEMA_NAME}.birth_names AS SELECT 2 as two"
+            )
+
+        assert (
+            example_db.has_table_by_name(
+                table_name="birth_names", schema=CTAS_SCHEMA_NAME
+            )
+            is True
+        )
 
 
 if __name__ == "__main__":
