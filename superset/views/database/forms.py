@@ -20,7 +20,7 @@ from typing import List
 from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 from flask_appbuilder.forms import DynamicForm
 from flask_babel import lazy_gettext as _
-from flask_wtf.file import FileAllowed, FileField, FileRequired,FileSize
+from flask_wtf.file import FileAllowed, FileField, FileRequired, FileSize
 from wtforms import (
     BooleanField,
     IntegerField,
@@ -137,7 +137,6 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
                     ),
                 ),
             ),
-
         ],
     )
     con = QuerySelectField(
@@ -215,7 +214,7 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     )
     nrows = IntegerField(
         _("Rows to Read"),
-         description=_(
+        description=_(
             "Number of rows of file to read. Minimum "
             + str(config["CSV_MIN_ROWS"])
             + " and Maximum "
