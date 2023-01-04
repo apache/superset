@@ -35,14 +35,14 @@ describe('Charts filters', () => {
       setGridMode('card');
     });
 
-    xit('should filter by owners correctly', () => {
+    it('should filter by owners correctly', () => {
       setFilter('Owner', 'alpha user');
       cy.getBySel('styled-card').should('not.exist');
       setFilter('Owner', 'admin user');
       cy.getBySel('styled-card').should('exist');
     });
 
-    xit('should filter by created by correctly', () => {
+    it('should filter by created by correctly', () => {
       setFilter('Created by', 'alpha user');
       cy.getBySel('styled-card').should('not.exist');
       setFilter('Created by', 'admin user');
@@ -76,14 +76,14 @@ describe('Charts filters', () => {
       setGridMode('list');
     });
 
-    xit('should filter by owners correctly', () => {
+    it('should filter by owners correctly', () => {
       setFilter('Owner', 'alpha user');
       cy.getBySel('table-row').should('not.exist');
       setFilter('Owner', 'admin user');
       cy.getBySel('table-row').should('exist');
     });
 
-    xit('should filter by created by correctly', () => {
+    it('should filter by created by correctly', () => {
       setFilter('Created by', 'alpha user');
       cy.getBySel('table-row').should('not.exist');
       setFilter('Created by', 'admin user');

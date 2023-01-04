@@ -54,6 +54,8 @@ import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import Modal from 'src/components/Modal';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
+import RefreshIntervalModal from '../RefreshIntervalModal';
+import { Switch } from 'src/components/Switch';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -67,6 +69,7 @@ const MENU_KEYS = {
   VIEW_QUERY: 'view_query',
   VIEW_RESULTS: 'view_results',
   DRILL_TO_DETAIL: 'drill_to_detail',
+  AUTO_REFRESH: 'auto_refresh',
 };
 
 const VerticalDotsContainer = styled.div`
@@ -147,6 +150,7 @@ type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
 interface State {
   showControls: boolean;
   showCrossFilterScopingModal: boolean;
+  intervalId: any;
 }
 
 const dropdownIconsStyles = css`
@@ -246,6 +250,7 @@ class SliceHeaderControls extends React.PureComponent<
     this.state = {
       showControls: false,
       showCrossFilterScopingModal: false,
+      intervalId: 0,
     };
   }
 
@@ -255,6 +260,25 @@ class SliceHeaderControls extends React.PureComponent<
         this.props.slice.slice_id,
         this.props.dashboardId,
       );
+    }
+  }
+
+
+  autoRefreshChart(refreshInterval = 0, sliceId: number, dashboardId: number) {
+    if (refreshInterval !== 0) {
+      this.setState({
+        intervalId: setInterval(() => {
+          this.props.addSuccessToast(
+            `Auto Refreshed ${this.props.slice.slice_name}`,
+          );
+          if (this.props.updatedDttm) {
+            this.props.forceRefresh(sliceId, dashboardId);
+          }
+        }, refreshInterval * 1000),
+      });
+    } else {
+      // eslint-disable-next-line no-unused-expressions
+      this.state.intervalId && clearInterval(this.state.intervalId);
     }
   }
 
@@ -272,6 +296,7 @@ class SliceHeaderControls extends React.PureComponent<
     domEvent: MouseEvent<HTMLElement>;
   }) {
     switch (key) {
+      
       case MENU_KEYS.FORCE_REFRESH:
         this.refreshChart();
         this.props.addSuccessToast(t('Data refreshed'));
@@ -384,6 +409,36 @@ class SliceHeaderControls extends React.PureComponent<
           <RefreshTooltip data-test="dashboard-slice-refresh-tooltip">
             {refreshTooltip}
           </RefreshTooltip>
+        </Menu.Item>
+        <Menu.Item
+          key={MENU_KEYS.AUTO_REFRESH}
+          disabled={this.props.chartStatus === 'loading'}
+          style={{ height: 'auto', lineHeight: 'initial' }}
+          data-test="auto-refresh-chart-menu-item"
+        >
+          <RefreshIntervalModal
+            addSuccessToast={this.props.addSuccessToast}
+            refreshFrequency={0}
+            refreshLimit={0}
+            refreshWarning={null}
+            refreshIntervalOptions={[
+              [0, `Don't refresh`],
+              [10, `10 seconds`],
+              [30, `30 seconds`],
+              [60, `1 minute`],
+              [300, `5 minutes`],
+              [1800, `30 minutes`],
+              [3600, `1 hour`],
+              [21600, `6 hours`],
+              [43200, `12 hours`],
+              [86400, `24 hours`],
+            ]}
+            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
+            onChange={function (refreshLimit: number, editMode: boolean): void {
+              throw new Error(t('Function not implemented.'));
+            }}
+            editMode={false}
+          />
         </Menu.Item>
 
         <Menu.Item key={MENU_KEYS.FULLSCREEN}>{fullscreenLabel}</Menu.Item>
@@ -523,6 +578,32 @@ class SliceHeaderControls extends React.PureComponent<
 
     return (
       <>
+        {t('Auto Refresh (5 seconds)')}
+        <Switch
+          title="Auto Refresh for 5 seconds"
+          loading={this.props.chartStatus === 'loading'}
+          onChange={(event: any) => {
+            if (event) {
+              this.autoRefreshChart(
+                5,
+                this.props.slice.slice_id,
+                this.props.dashboardId,
+              );
+              this.props.addSuccessToast(
+                `Updated Auto Refresh ${this.props.slice.slice_name}`,
+              );
+            } else {
+              this.autoRefreshChart(
+                0,
+                this.props.slice.slice_id,
+                this.props.dashboardId,
+              );
+              this.props.addSuccessToast(
+                `Auto Refresh off for ${this.props.slice.slice_name}`,
+              );
+            }
+          }}
+        />
         <CrossFilterScopingModal
           chartId={slice.slice_id}
           isOpen={this.state.showCrossFilterScopingModal}

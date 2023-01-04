@@ -18,7 +18,6 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from '../transformProps';
-import example from './images/example.jpg';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
@@ -28,7 +27,6 @@ const metadata = new ChartMetadata({
   description: t(
     'Visualizes a metric across three dimensions of data in a single chart (X axis, Y axis, and bubble size). Bubbles from the same group can be showcased using bubble color.',
   ),
-  exampleGallery: [{ url: example }],
   name: t('Bubble Chart'),
   tags: [
     t('Multi-Dimensions'),

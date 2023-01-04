@@ -218,7 +218,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     ]
     openapi_spec_tag = "Datasets"
 
-    base_related_field_filters = {
+    filter_rel_fields = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
     }

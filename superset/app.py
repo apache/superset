@@ -44,5 +44,6 @@ def create_app() -> Flask:
         raise ex
 
 
+        
 class SupersetApp(Flask):
     pass

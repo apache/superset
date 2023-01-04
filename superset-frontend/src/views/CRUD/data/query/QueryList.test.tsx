@@ -33,7 +33,6 @@ import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import SubMenu from 'src/views/components/SubMenu';
-import { QueryState } from '@superset-ui/core';
 
 // store needed for withToasts
 const mockStore = configureStore([thunk]);
@@ -55,7 +54,7 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
     { schema: 'foo', table: 'table' },
     { schema: 'bar', table: 'table_2' },
   ],
-  status: QueryState.SUCCESS,
+  status: 'success',
   tab_name: 'Main Tab',
   user: {
     first_name: 'cool',

@@ -55,8 +55,8 @@ class GetExploreCommand(BaseCommand, ABC):
     ) -> None:
         self._permalink_key = params.permalink_key
         self._form_data_key = params.form_data_key
-        self._datasource_id = params.datasource_id
-        self._datasource_type = params.datasource_type
+        self._dataset_id = params.dataset_id
+        self._dataset_type = params.dataset_type
         self._slice_id = params.slice_id
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
@@ -87,10 +87,10 @@ class GetExploreCommand(BaseCommand, ABC):
                     message = _(
                         "Form data not found in cache, reverting to chart metadata."
                     )
-            elif self._datasource_id:
+            elif self._dataset_id:
                 initial_form_data[
                     "datasource"
-                ] = f"{self._datasource_id}__{self._datasource_type}"
+                ] = f"{self._dataset_id}__{self._dataset_type}"
                 if self._form_data_key:
                     message = _(
                         "Form data not found in cache, reverting to dataset metadata."
@@ -102,43 +102,41 @@ class GetExploreCommand(BaseCommand, ABC):
             initial_form_data=initial_form_data,
         )
         try:
-            self._datasource_id, self._datasource_type = get_datasource_info(
-                self._datasource_id, self._datasource_type, form_data
+            self._dataset_id, self._dataset_type = get_datasource_info(
+                self._dataset_id, self._dataset_type, form_data
             )
         except SupersetException:
-            self._datasource_id = None
+            self._dataset_id = None
             # fallback unkonw datasource to table type
-            self._datasource_type = SqlaTable.type
+            self._dataset_type = SqlaTable.type
 
-        datasource: Optional[BaseDatasource] = None
-        if self._datasource_id is not None:
+        dataset: Optional[BaseDatasource] = None
+        if self._dataset_id is not None:
             try:
-                datasource = DatasourceDAO.get_datasource(
-                    db.session, cast(str, self._datasource_type), self._datasource_id
+                dataset = DatasourceDAO.get_datasource(
+                    db.session, cast(str, self._dataset_type), self._dataset_id
                 )
             except DatasourceNotFound:
                 pass
-        datasource_name = datasource.name if datasource else _("[Missing Dataset]")
+        dataset_name = dataset.name if dataset else _("[Missing Dataset]")
 
-        if datasource:
+        if dataset:
             if current_app.config["ENABLE_ACCESS_REQUEST"] and (
-                not security_manager.can_access_datasource(datasource)
+                not security_manager.can_access_datasource(dataset)
             ):
-                message = __(
-                    security_manager.get_datasource_access_error_msg(datasource)
-                )
+                message = __(security_manager.get_datasource_access_error_msg(dataset))
                 raise DatasetAccessDeniedError(
                     message=message,
-                    datasource_type=self._datasource_type,
-                    datasource_id=self._datasource_id,
+                    dataset_type=self._dataset_type,
+                    dataset_id=self._dataset_id,
                 )
 
         viz_type = form_data.get("viz_type")
-        if not viz_type and datasource and datasource.default_endpoint:
-            raise WrongEndpointError(redirect=datasource.default_endpoint)
+        if not viz_type and dataset and dataset.default_endpoint:
+            raise WrongEndpointError(redirect=dataset.default_endpoint)
 
         form_data["datasource"] = (
-            str(self._datasource_id) + "__" + cast(str, self._datasource_type)
+            str(self._dataset_id) + "__" + cast(str, self._dataset_type)
         )
 
         # On explore, merge legacy/extra filters and URL params into the form data
@@ -147,16 +145,16 @@ class GetExploreCommand(BaseCommand, ABC):
         utils.merge_request_params(form_data, request.args)
 
         # TODO: this is a dummy placeholder - should be refactored to being just `None`
-        datasource_data: Dict[str, Any] = {
-            "type": self._datasource_type,
-            "name": datasource_name,
+        dataset_data: Dict[str, Any] = {
+            "type": self._dataset_type,
+            "name": dataset_name,
             "columns": [],
             "metrics": [],
             "database": {"id": 0, "backend": ""},
         }
         try:
-            if datasource:
-                datasource_data = datasource.data
+            if dataset:
+                dataset_data = dataset.data
         except SupersetException as ex:
             message = ex.message
         except SQLAlchemyError:
@@ -180,7 +178,7 @@ class GetExploreCommand(BaseCommand, ABC):
                 metadata["changed_by"] = slc.changed_by.get_full_name()
 
         return {
-            "dataset": sanitize_datasource_data(datasource_data),
+            "dataset": sanitize_datasource_data(dataset_data),
             "form_data": form_data,
             "slice": slc.data if slc else None,
             "message": message,

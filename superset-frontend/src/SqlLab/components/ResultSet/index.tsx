@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import ButtonGroup from 'src/components/ButtonGroup';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import shortid from 'shortid';
-import { QueryResponse, QueryState, styled, t } from '@superset-ui/core';
+import { styled, t, QueryResponse } from '@superset-ui/core';
 import { usePrevious } from 'src/hooks/usePrevious';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import {
@@ -43,9 +43,9 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import {
-  addQueryEditor,
-  clearQueryResults,
   CtasEnum,
+  clearQueryResults,
+  addQueryEditor,
   fetchQueryResults,
   reFetchQueryResults,
   reRunQuery,
@@ -387,8 +387,8 @@ const ResultSet = ({
   let trackingUrl;
   if (
     query.trackingUrl &&
-    query.state !== QueryState.SUCCESS &&
-    query.state !== QueryState.FETCHING
+    query.state !== 'success' &&
+    query.state !== 'fetching'
   ) {
     trackingUrl = (
       <Button
@@ -397,9 +397,7 @@ const ResultSet = ({
         href={query.trackingUrl}
         target="_blank"
       >
-        {query.state === QueryState.RUNNING
-          ? t('Track job')
-          : t('See query details')}
+        {query.state === 'running' ? t('Track job') : t('See query details')}
       </Button>
     );
   }
@@ -408,11 +406,11 @@ const ResultSet = ({
     sql = <HighlightedSql sql={query.sql} />;
   }
 
-  if (query.state === QueryState.STOPPED) {
+  if (query.state === 'stopped') {
     return <Alert type="warning" message={t('Query was stopped')} />;
   }
 
-  if (query.state === QueryState.FAILED) {
+  if (query.state === 'failed') {
     return (
       <ResultlessStyles>
         <ErrorMessageWithStackTrace
@@ -428,7 +426,7 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === QueryState.SUCCESS && query.ctas) {
+  if (query.state === 'success' && query.ctas) {
     const { tempSchema, tempTable } = query;
     let object = 'Table';
     if (query.ctas_method === CtasEnum.VIEW) {
@@ -467,7 +465,7 @@ const ResultSet = ({
     );
   }
 
-  if (query.state === QueryState.SUCCESS && query.results) {
+  if (query.state === 'success' && query.results) {
     const { results } = query;
     // Accounts for offset needed for height of ResultSetRowsReturned component if !limitReached
     const rowMessageHeight = !limitReached ? 32 : 0;
@@ -510,7 +508,7 @@ const ResultSet = ({
     }
   }
 
-  if (query.cached || (query.state === QueryState.SUCCESS && !query.results)) {
+  if (query.cached || (query.state === 'success' && !query.results)) {
     if (query.isDataPreview) {
       return (
         <Button

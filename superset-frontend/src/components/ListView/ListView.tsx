@@ -37,6 +37,8 @@ import {
 } from './types';
 import { ListViewError, useListViewState } from './utils';
 import { EmptyStateBig, EmptyStateProps } from '../EmptyState';
+import Icon from '../Icons/Icon';
+import IconButton from 'src/dashboard/components/IconButton';
 
 const ListViewStyles = styled.div`
   text-align: center;
@@ -277,6 +279,8 @@ function ListView<T extends object = any>({
     defaultViewMode,
   });
   const filterable = Boolean(filters.length);
+  console.log(filters);
+  
   if (filterable) {
     const columnAccessors = columns.reduce(
       (acc, col) => ({ ...acc, [col.id || col.accessor]: true }),
@@ -322,6 +326,10 @@ function ListView<T extends object = any>({
                 updateFilterValue={applyFilterValue}
               />
             )}
+            <div style={{"marginTop":"20px"}}>
+              <IconButton icon={<Icon fileName='filter_remove_icon'/>} onClick={handleClearFilterControls} ></IconButton>
+            {/* <Button onClick={handleClearFilterControls}>Reset Filter</Button> */}
+            </div>
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
                 initialSort={initialSort}

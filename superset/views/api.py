@@ -115,3 +115,8 @@ class Api(BaseSupersetView):
 
             self.query_context_factory = QueryContextFactory()
         return self.query_context_factory
+    # @api
+    # @handle_api_exception
+    # @expose("/apidemo", methods=["GET"])
+    # def hello():
+    #     return "Hello, World!"

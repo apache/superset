@@ -91,6 +91,7 @@ const IconFileNames = [
   'file',
   'filter',
   'filter_small',
+  'filter_remove_icon',
   'folder',
   'full',
   'function_x',

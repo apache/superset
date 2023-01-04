@@ -18,6 +18,7 @@
 #}
 {% extends "appbuilder/base.html" %}
 {% import 'appbuilder/general/lib.html' as lib %}
+{% set begin_sep_label_merge = '<td rowspan="2" style="border-left: 0; border-top: 0;">' %}
 {% set begin_sep_label = '<td class="col-sm-2" style="border-left: 0; border-top: 0;">' %}
   {% set end_sep_label = '</td>' %}
 {% set begin_sep_field = '<td style="border-right: 0; border-top: 0;">' %}
@@ -35,7 +36,10 @@
         <table class="table table-bordered">
           <tbody>
             <tr>
-              {{ lib.render_field(form.csv_file, begin_sep_label, end_sep_label, begin_sep_field, end_sep_field) }}
+              {{ lib.render_field(form.api_url, begin_sep_label_merge, end_sep_label, begin_sep_field, end_sep_field) }}
+            </tr>
+            <tr>
+              {{ lib.render_field(form.csv_file, null, null, begin_sep_field, end_sep_field) }}
             </tr>
             <tr>
               {{ lib.render_field(form.table_name, begin_sep_label, end_sep_label, begin_sep_field, end_sep_field) }}

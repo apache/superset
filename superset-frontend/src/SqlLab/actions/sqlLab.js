@@ -17,7 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t, SupersetClient } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -229,13 +229,11 @@ export function startQuery(query) {
 
 export function querySuccess(query, results) {
   return function (dispatch) {
-    const sqlEditorId = results?.query?.sqlEditorId;
     const sync =
-      sqlEditorId &&
       !query.isDataPreview &&
       isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
         ? SupersetClient.put({
-            endpoint: encodeURI(`/tabstateview/${sqlEditorId}`),
+            endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
             postPayload: { latest_query_id: query.id },
           })
         : Promise.resolve();

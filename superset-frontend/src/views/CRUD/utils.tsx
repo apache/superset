@@ -281,6 +281,7 @@ export function handleDashboardDelete(
   dashboardFilter?: string,
   userId?: string | number,
 ) {
+  
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
   }).then(

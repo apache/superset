@@ -222,6 +222,8 @@ function DashboardList(props: DashboardListProps) {
   };
 
   function handleBulkDashboardDelete(dashboardsToDelete: Dashboard[]) {
+    
+    
     return SupersetClient.delete({
       endpoint: `/api/v1/dashboard/?q=${rison.encode(
         dashboardsToDelete.map(({ id }) => id),
@@ -606,7 +608,7 @@ function DashboardList(props: DashboardListProps) {
   const subMenuButtons: SubMenuProps['buttons'] = [];
   if (canDelete || canExport) {
     subMenuButtons.push({
-      name: t('Bulk select'),
+      name: t('Bulk select mode'),
       buttonStyle: 'secondary',
       'data-test': 'bulk-select',
       onClick: toggleBulkSelect,
@@ -651,6 +653,7 @@ function DashboardList(props: DashboardListProps) {
         )}
         onConfirm={handleBulkDashboardDelete}
       >
+        
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {

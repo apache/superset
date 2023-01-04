@@ -53,7 +53,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
     }),
     shallowEqual,
   );
-  const queryState = useSelector<SqlLabRootState, QueryState>(
+  const queryStatus = useSelector<SqlLabRootState, QueryState>(
     ({ sqlLab }) => sqlLab.queries[qe.latestQueryId || '']?.state || '',
   );
   const dispatch = useDispatch();
@@ -139,7 +139,7 @@ const SqlEditorTabHeader: React.FC<Props> = ({ queryEditor }) => {
           </Menu>
         }
       />
-      <TabTitle>{qe.name}</TabTitle> <TabStatusIcon tabState={queryState} />{' '}
+      <TabTitle>{qe.name}</TabTitle> <TabStatusIcon tabState={queryStatus} />{' '}
     </TabTitleWrapper>
   );
 };

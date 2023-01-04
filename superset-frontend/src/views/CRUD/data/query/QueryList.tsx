@@ -17,13 +17,7 @@
  * under the License.
  */
 import React, { useMemo, useState, useCallback, ReactElement } from 'react';
-import {
-  QueryState,
-  styled,
-  SupersetClient,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { SupersetClient, t, styled, useTheme } from '@superset-ui/core';
 import moment from 'moment';
 import {
   createFetchRelated,
@@ -133,13 +127,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           row: {
             original: { status },
           },
-        }: {
-          row: {
-            original: {
-              status: QueryState;
-            };
-          };
-        }) => {
+        }: any) => {
           const statusConfig: {
             name: ReactElement | null;
             label: string;
@@ -147,39 +135,33 @@ function QueryList({ addDangerToast }: QueryListProps) {
             name: null,
             label: '',
           };
-          if (status === QueryState.SUCCESS) {
+          if (status === 'success') {
             statusConfig.name = (
               <Icons.Check iconColor={theme.colors.success.base} />
             );
             statusConfig.label = t('Success');
-          } else if (
-            status === QueryState.FAILED ||
-            status === QueryState.STOPPED
-          ) {
+          } else if (status === 'failed' || status === 'stopped') {
             statusConfig.name = (
               <Icons.XSmall
                 iconColor={
-                  status === QueryState.FAILED
+                  status === 'failed'
                     ? theme.colors.error.base
                     : theme.colors.grayscale.base
                 }
               />
             );
             statusConfig.label = t('Failed');
-          } else if (status === QueryState.RUNNING) {
+          } else if (status === 'running') {
             statusConfig.name = (
               <Icons.Running iconColor={theme.colors.primary.base} />
             );
             statusConfig.label = t('Running');
-          } else if (status === QueryState.TIMED_OUT) {
+          } else if (status === 'timed_out') {
             statusConfig.name = (
               <Icons.Offline iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
-          } else if (
-            status === QueryState.SCHEDULED ||
-            status === QueryState.PENDING
-          ) {
+          } else if (status === 'scheduled' || status === 'pending') {
             statusConfig.name = (
               <Icons.Queued iconColor={theme.colors.grayscale.base} />
             );

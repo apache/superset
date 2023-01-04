@@ -245,6 +245,9 @@ class HeaderActionsDropdown extends React.PureComponent {
 
     const refreshIntervalOptions =
       dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
+      
+
+      console.log(this.props);
 
     return (
       <Menu selectable={false} data-test="header-actions-menu" {...rest}>
