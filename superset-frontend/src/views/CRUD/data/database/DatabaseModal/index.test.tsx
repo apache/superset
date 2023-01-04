@@ -38,6 +38,11 @@ import DatabaseModal, {
   ActionType,
 } from './index';
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: () => true,
+}));
+
 const dbProps = {
   show: true,
   database_name: 'my database',
@@ -445,6 +450,21 @@ describe('DatabaseModal', () => {
       const SQLURIHelper = screen.getByText(
         /refer to the for more information on how to structure your uri\./i,
       );
+      // <SSHTunnelForm> - Basic tab's SSH Tunnel Form
+      const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+      userEvent.click(SSHTunnelingToggle);
+      const SSHTunnelServerAddressInput = screen.getByTestId(
+        'ssh-tunnel-server_address-input',
+      );
+      const SSHTunnelServerPortInput = screen.getByTestId(
+        'ssh-tunnel-server_port-input',
+      );
+      const SSHTunnelUsernameInput = screen.getByTestId(
+        'ssh-tunnel-username-input',
+      );
+      const SSHTunnelPasswordInput = screen.getByTestId(
+        'ssh-tunnel-password-input',
+      );
       const testConnectionButton = screen.getByRole('button', {
         name: /test connection/i,
       });
@@ -479,6 +499,11 @@ describe('DatabaseModal', () => {
         SQLURILabel,
         SQLURIInput,
         SQLURIHelper,
+        SSHTunnelingToggle,
+        SSHTunnelServerAddressInput,
+        SSHTunnelServerPortInput,
+        SSHTunnelUsernameInput,
+        SSHTunnelPasswordInput,
         testConnectionButton,
         alertIcon,
         alertMessage,

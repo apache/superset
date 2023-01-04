@@ -88,6 +88,7 @@ const SSHTunnelForm = ({
             setUseSSHTunneling(changed);
             if (!changed) removeSSHTunnelConfig();
           }}
+          data-test="ssh-tunnel-switch"
         />
         <span css={toggleStyle}>SSH Tunnel</span>
         <InfoTooltip
