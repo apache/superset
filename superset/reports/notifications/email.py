@@ -144,6 +144,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 """
             )
         img_tag = "".join(img_tags)
+        msgContent = ""
+        if self._content.msg_content:
+            msgContent = f"""<p>{self._content.msg_content}</p>"""
         body = textwrap.dedent(
             f"""
             <html>
@@ -158,6 +161,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                   .image{{
                       margin-bottom: 18px;
                   }}
+                  p{{
+                    color: rgb(60, 85, 122)
+                  }}
                 </style>
               </head>
               <body>
@@ -166,7 +172,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 <b><a href="{url}">{call_to_action}</a></b><p></p>
                 {html_table}
                 {img_tag}
-                <p>{self._content.msg_content}</p>
+                {msgContent}
               </body>
             </html>
             """
