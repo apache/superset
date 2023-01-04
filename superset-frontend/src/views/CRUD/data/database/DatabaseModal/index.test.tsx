@@ -1254,6 +1254,41 @@ describe('DatabaseModal', () => {
           );
           expect(SSHTunnelPasswordInput).not.toBeInTheDocument();
         });
+
+        test('If user changes the login method, the inputs change', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          userEvent.click(SSHTunnelingToggle);
+          const SSHTunnelUsePasswordInput = screen.getByTestId(
+            'ssh-tunnel-use_password-radio',
+          );
+          expect(SSHTunnelUsePasswordInput).toBeVisible();
+          const SSHTunnelUsePrivateKeyInput = screen.getByTestId(
+            'ssh-tunnel-use_private_key-radio',
+          );
+          expect(SSHTunnelUsePrivateKeyInput).toBeVisible();
+          const SSHTunnelPasswordInput = screen.getByTestId(
+            'ssh-tunnel-password-input',
+          );
+          // By default, we use Password as login method
+          expect(SSHTunnelPasswordInput).toBeVisible();
+          // Change the login method to use private key
+          userEvent.click(SSHTunnelUsePrivateKeyInput);
+          const SSHTunnelPrivateKeyInput = screen.getByTestId(
+            'ssh-tunnel-private_key-input',
+          );
+          expect(SSHTunnelPrivateKeyInput).toBeVisible();
+          const SSHTunnelPrivateKeyPasswordInput = screen.getByTestId(
+            'ssh-tunnel-private_key_password-input',
+          );
+          expect(SSHTunnelPrivateKeyPasswordInput).toBeVisible();
+        });
       });
     });
 

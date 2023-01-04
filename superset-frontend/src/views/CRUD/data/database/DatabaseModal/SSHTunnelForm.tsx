@@ -160,10 +160,17 @@ const SSHTunnelForm = ({
                       setUsePassword(value);
                       setSSHTunnelLoginMethod(value);
                     }}
-                    data-test="ssh-tunnel-use_password-input"
                   >
-                    <Radio value={AuthType.password}>{t('Password')}</Radio>
-                    <Radio value={AuthType.privateKey}>
+                    <Radio
+                      value={AuthType.password}
+                      data-test="ssh-tunnel-use_password-radio"
+                    >
+                      {t('Password')}
+                    </Radio>
+                    <Radio
+                      value={AuthType.privateKey}
+                      data-test="ssh-tunnel-use_private_key-radio"
+                    >
                       {t('Private Key & Password')}
                     </Radio>
                   </Radio.Group>
