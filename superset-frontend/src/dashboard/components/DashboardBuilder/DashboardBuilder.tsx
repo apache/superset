@@ -130,35 +130,6 @@ const StyledDiv = styled.div`
       opacity: 1;
     }
 
-    h1 {
-      font-weight: ${theme.typography.weights.bold};
-      line-height: 1.4;
-      font-size: ${theme.typography.sizes.xxl}px;
-      letter-spacing: -0.2px;
-      margin-top: ${theme.gridUnit * 3}px;
-      margin-bottom: ${theme.gridUnit * 3}px;
-    }
-
-    h2 {
-      font-weight: ${theme.typography.weights.bold};
-      line-height: 1.4;
-      font-size: ${theme.typography.sizes.xl}px;
-      margin-top: ${theme.gridUnit * 3}px;
-      margin-bottom: ${theme.gridUnit * 2}px;
-    }
-
-    h3,
-    h4,
-    h5,
-    h6 {
-      font-weight: ${theme.typography.weights.bold};
-      line-height: 1.4;
-      font-size: ${theme.typography.sizes.l}px;
-      letter-spacing: 0.2px;
-      margin-top: ${theme.gridUnit * 2}px;
-      margin-bottom: ${theme.gridUnit}px;
-    }
-
     p {
       margin: 0 0 ${theme.gridUnit * 2}px 0;
     }
