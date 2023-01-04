@@ -208,12 +208,6 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
         ),
         validators=[Optional()],
     )
-    skip_initial_space = BooleanField(
-        _("Skip Initial Space"), description=_("Skip spaces after delimiter")
-    )
-    skipinitialspace = BooleanField(
-        _("Skip Initial Space"), description=_("Skip spaces after delimiter.")
-    )
     skiprows = IntegerField(
         _("Skip Rows"),
         description=_("Number of rows to skip at start of file."),
@@ -235,6 +229,9 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
             NumberRange(max=config["CSV_MAX_ROWS"]),
         ],
         widget=BS3TextFieldWidget(),
+    )
+    skip_initial_space = BooleanField(
+        _("Skip Initial Space"), description=_("Skip spaces after delimiter")
     )
     skip_blank_lines = BooleanField(
         _("Skip Blank Lines"),
