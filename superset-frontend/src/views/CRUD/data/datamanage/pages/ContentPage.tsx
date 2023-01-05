@@ -158,12 +158,10 @@ const ContentPage = () => {
 
   const showLargeDrawer = (e: any) => {
     if (e.key === 'drop_edit') {
-      console.log('eeeeeee', selectedId);
       SupersetClient.get({
         endpoint: `/api/v1/dataset/${selectedId}`,
       }).then(
         async ({ json = {} }) => {
-          console.log('==========', json.result);
           await setTableData(json.result);
           await setTableName(json.result.table_name);
           await setTableDescription(json.result.description);
@@ -201,7 +199,6 @@ const ContentPage = () => {
     setTableName(e.target.value);
   };
   const handleTableSelect = (id: any) => {
-    console.log('id', id);
     let tmp: any = tableSelectNum;
     if (tmp.includes(id)) tmp = tmp.filter((item: any) => item !== id);
     else tmp = [...tmp, id];
@@ -221,7 +218,6 @@ const ContentPage = () => {
       },
     })
       .then(async ({ json }) => {
-        console.log(' ======== Success =======', json);
         notification.success({
           message: 'Success',
           description: 'Changed table name successfully',
