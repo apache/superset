@@ -215,8 +215,8 @@ export function saveDashboardFinished() {
 
 export function saveDashboardRequest(data, id, saveType) {
   return (dispatch, getState) => {
-    dispatch(saveDashboardStarted());
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
+    dispatch(saveDashboardStarted());
 
     const { dashboardFilters, dashboardLayout } = getState();
     const layout = dashboardLayout.present;
