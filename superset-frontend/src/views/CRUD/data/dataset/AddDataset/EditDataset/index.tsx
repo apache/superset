@@ -64,7 +64,7 @@ const EditPage = ({ id }: EditPageProps) => {
     }
   }, [id, getDatasetRelatedObjects]);
 
-  const UsageTab = (
+  const usageTab = (
     <TabStyles>
       <span>{TRANSLATIONS.USAGE_TEXT}</span>
       {usageCount > 0 && <Badge count={usageCount} />}
@@ -75,7 +75,7 @@ const EditPage = ({ id }: EditPageProps) => {
     <StyledTabs moreIcon={null} fullWidth={false}>
       <Tabs.TabPane tab={TRANSLATIONS.COLUMNS_TEXT} key="1" />
       <Tabs.TabPane tab={TRANSLATIONS.METRICS_TEXT} key="2" />
-      <Tabs.TabPane tab={UsageTab} key="3" />
+      <Tabs.TabPane tab={usageTab} key="3" />
     </StyledTabs>
   );
 };
