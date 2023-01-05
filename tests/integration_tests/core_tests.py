@@ -1691,7 +1691,7 @@ class TestCore(SupersetTestCase):
         if backend() in ("sqlite", "mysql"):
             return
         example_db = superset.utils.database.get_example_database()
-        table = Table(table_name="birth_names", schema="public")
+        table = Table(name="birth_names", schema="public")
         assert example_db.has_table(table=table) is True
 
 
