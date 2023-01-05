@@ -27,6 +27,7 @@ from typing import Dict, List
 from urllib.parse import quote
 
 import superset.utils.database
+from superset.utils.core import backend
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -1674,7 +1675,10 @@ class TestCore(SupersetTestCase):
         )
         self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
 
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_has_table_by_name(self):
+        if backend() in ("sqlite", "mysql"):
+            return
         example_db = superset.utils.database.get_example_database()
         assert (
             example_db.has_table_by_name(table_name="birth_names", schema="public")
