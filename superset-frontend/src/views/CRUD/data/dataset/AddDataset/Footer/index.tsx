@@ -73,7 +73,6 @@ function Footer({
 
     return LOG_ACTIONS[value];
   };
-  const goToPreviousUrl = () => history.goBack();
 
   const cancelButtonOnClick = () => {
     if (!datasetObject) {
@@ -82,7 +81,7 @@ function Footer({
       const logAction = createLogAction(datasetObject);
       logEvent(logAction, datasetObject);
     }
-    goToPreviousUrl();
+    history.goBack();
   };
 
   const tooltipText = t('Select a database table.');
@@ -101,7 +100,8 @@ function Footer({
         if (typeof response === 'number') {
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
-          goToPreviousUrl();
+          window.location.href =
+            '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
         }
       });
     }
