@@ -225,15 +225,36 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 404)
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_draft_dashboard_datasets(self):
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_gamma_dashboard_datasets(self):
         """
-        All users should have access to dashboards without roles
+        Check that a gamma user with data access can access dashboard/datasets
         """
+        from superset.connectors.sqla.models import SqlaTable
+
+        # Set correct role permissions
+        gamma_role = security_manager.find_role("Gamma")
+        fixture_dataset = db.session.query(SqlaTable).get(1)
+        data_access_pvm = security_manager.add_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        gamma_role.permissions.append(data_access_pvm)
+        db.session.commit()
+
         self.login(username="gamma")
-        uri = "api/v1/dashboard/world_health/datasets"
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        db.session.commit()
+
+        uri = f"api/v1/dashboard/{dashboard.id}/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
+
+        # rollback permission change
+        data_access_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        security_manager.del_permission_role(gamma_role, data_access_pvm)
 
     @pytest.mark.usefixtures("create_dashboards")
     def get_dashboard_by_slug(self):
@@ -319,16 +340,44 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric(uri, "get_charts")
         self.assertEqual(response.status_code, 404)
 
-    @pytest.mark.usefixtures("create_dashboards")
-    def test_get_draft_dashboard_charts(self):
-        """
-        All users should have access to draft dashboards without roles
-        """
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_not_allowed(self):
         self.login(username="gamma")
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_gamma_dashboard_charts(self):
+        """
+        Check that a gamma user with data access can access dashboard/charts
+        """
+        from superset.connectors.sqla.models import SqlaTable
+
+        # Set correct role permissions
+        gamma_role = security_manager.find_role("Gamma")
+        fixture_dataset = db.session.query(SqlaTable).get(1)
+        data_access_pvm = security_manager.add_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        gamma_role.permissions.append(data_access_pvm)
+        db.session.commit()
+
+        self.login(username="gamma")
+
         dashboard = self.dashboards[0]
+        dashboard.published = True
+        db.session.commit()
+
         uri = f"api/v1/dashboard/{dashboard.id}/charts"
         response = self.get_assert_metric(uri, "get_charts")
         assert response.status_code == 200
+
+        # rollback permission change
+        data_access_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        security_manager.del_permission_role(gamma_role, data_access_pvm)
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_empty(self):
@@ -451,7 +500,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
-        assert rv.status_code == 200
+        assert rv.status_code == 404
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
