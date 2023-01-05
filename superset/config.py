@@ -430,14 +430,14 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_NATIVE_FILTERS": True,
-    "DASHBOARD_CROSS_FILTERS": False,
+    "DASHBOARD_CROSS_FILTERS": True,
     # Feature is under active development and breaking changes are expected
     "DASHBOARD_NATIVE_FILTERS_SET": False,
     "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "DASHBOARD_VIRTUALIZATION": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": True,
-    "EMBEDDED_SUPERSET": False,
+    "EMBEDDED_SUPERSET": True,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "DASHBOARD_RBAC": False,
