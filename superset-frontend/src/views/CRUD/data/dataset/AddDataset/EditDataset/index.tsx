@@ -69,7 +69,7 @@ const EditPage = ({ id }: EditPageProps) => {
       <Tabs.TabPane tab={TRANSLATIONS.COLUMNS_TEXT} key="1" />
       <Tabs.TabPane tab={TRANSLATIONS.METRICS_TEXT} key="2" />
       <Tabs.TabPane tab={usageTab} key="3">
-        <DatasetUsage />
+        <DatasetUsage datasetId={id} />
       </Tabs.TabPane>
     </StyledTabs>
   );

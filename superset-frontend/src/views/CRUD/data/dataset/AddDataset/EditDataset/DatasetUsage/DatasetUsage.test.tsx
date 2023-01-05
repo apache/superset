@@ -17,4 +17,21 @@
  * under the License.
  */
 
-test.todo('Sample test');
+import React from 'react';
+import { render, screen } from 'spec/helpers/testing-library';
+import DatasetUsage from '.';
+
+const sampleDatasetId = '1';
+
+test('shows empty state', () => {
+  render(<DatasetUsage datasetId={sampleDatasetId} />);
+  expect(screen.getByText(/no charts/i)).toBeVisible();
+  expect(
+    screen.getByText(/this dataset is not used to power any charts\./i),
+  ).toBeVisible();
+});
+
+test.todo('shows loading state');
+test.todo('shows error state');
+test.todo('shows single-page results');
+test.todo('shows multi-page results and paginates');

@@ -17,13 +17,26 @@
  * under the License.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ensureIsArray, t } from '@superset-ui/core';
+import {
+  css,
+  ensureIsArray,
+  styled,
+  SupersetTheme,
+  t,
+} from '@superset-ui/core';
 import CrossLinks from 'src/components/ListView/CrossLinks';
 import Chart from 'src/types/Chart';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import { alphabeticalSort } from 'src/components/Table/sorters';
+import { EmptyStateBig } from 'src/components/EmptyState';
+import ChartImage from 'src/assets/images/chart.svg';
+import Icons from 'src/components/Icons';
+
+interface DatasetUsageProps {
+  datasetId: string;
+}
 
 const DEFAULT_PAGE_SIZE = 25;
 const columns: ColumnsType<Chart> = [
@@ -72,13 +85,65 @@ const columns: ColumnsType<Chart> = [
   },
 ];
 
-const DatasetUsage = () => (
-  <Table
-    columns={columns}
-    data={[]}
-    size={TableSize.MIDDLE}
-    defaultPageSize={DEFAULT_PAGE_SIZE}
-  />
+const emptyStateTableCSS = (theme: SupersetTheme) => css`
+  && th.ant-table-cell {
+    color: ${theme.colors.grayscale.light1};
+  }
+
+  .ant-table-placeholder {
+    display: none;
+  }
+`;
+
+const emptyStateButtonText = (
+  <>
+    <Icons.PlusOutlined
+      iconSize="m"
+      css={css`
+        & > .anticon {
+          line-height: 0;
+        }
+      `}
+    />
+    {t('Create chart with dataset')}
+  </>
 );
+
+const StyledEmptyStateBig = styled(EmptyStateBig)`
+  margin: ${({ theme }) => 13 * theme.gridUnit}px 0;
+`;
+
+const data: Chart[] = [];
+
+const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
+  const emptyStateButtonAction = useCallback(
+    () =>
+      window.open(
+        `/explore/?dataset_type=table&dataset_id=${datasetId}`,
+        '_blank',
+      ),
+    [datasetId],
+  );
+
+  return (
+    <div css={!data.length ? emptyStateTableCSS : null}>
+      <Table
+        columns={columns}
+        data={data}
+        size={TableSize.MIDDLE}
+        defaultPageSize={DEFAULT_PAGE_SIZE}
+      />
+      {!data.length ? (
+        <StyledEmptyStateBig
+          image={<ChartImage />}
+          title={t('No charts')}
+          description={t('This dataset is not used to power any charts.')}
+          buttonText={emptyStateButtonText}
+          buttonAction={emptyStateButtonAction}
+        />
+      ) : null}
+    </div>
+  );
+};
 
 export default DatasetUsage;
