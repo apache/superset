@@ -1828,6 +1828,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response_roles = [result["text"] for result in response["result"]]
         assert "Alpha" in response_roles
 
+    def test_get_all_related_roles_with_with_extra_filters(self):
+        """
+        API: Test get filter related roles with extra related query filters
+        """
+        self.login(username="admin")
+
+        def _base_filter(query):
+            return query.filter_by(name="Alpha")
+
+        with patch.dict(
+            "superset.views.filters.current_app.config",
+            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
+        ):
+            uri = f"api/v1/dashboard/related/roles"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            response_roles = [result["text"] for result in response["result"]]
+            assert response_roles == ["Alpha"]
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):
         self.login(username="admin")
