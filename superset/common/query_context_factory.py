@@ -28,7 +28,7 @@ from superset.models.slice import Slice
 from superset.utils.core import DatasourceDict, DatasourceType
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 config = app.config
 
@@ -89,7 +89,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         )
 
     # pylint: disable=no-self-use
-    def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
+    def _convert_to_model(self, datasource: DatasourceDict) -> SqlaTable:
 
         return DatasourceDAO.get_datasource(
             session=db.session,

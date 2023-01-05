@@ -36,7 +36,7 @@ from superset.common.query_actions import get_query_results
 from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_query_object
-from superset.connectors.base.models import BaseDatasource
+from superset.connectors.sqla.models import SqlaTable
 from superset.constants import CacheRegion
 from superset.exceptions import (
     InvalidPostProcessingError,
@@ -88,7 +88,7 @@ class QueryContextProcessor:
     """
 
     _query_context: QueryContext
-    _qc_datasource: BaseDatasource
+    _qc_datasource: SqlaTable
     """
     The query context contains the query object and additional fields necessary
     to retrieve the data payload for a given viz.
@@ -244,7 +244,7 @@ class QueryContextProcessor:
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
         # todo: should support "python_date_format" and "get_column" in each datasource
         def _get_timestamp_format(
-            source: BaseDatasource, column: Optional[str]
+            source: SqlaTable, column: Optional[str]
         ) -> Optional[str]:
             column_obj = source.get_column(column)
             if (

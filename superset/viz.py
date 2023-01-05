@@ -99,7 +99,7 @@ from superset.utils.hashing import md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 config = app.config
 stats_logger = config["STATS_LOGGER"]
@@ -132,7 +132,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
 
     def __init__(
         self,
-        datasource: "BaseDatasource",
+        datasource: "SqlaTable",
         form_data: Dict[str, Any],
         force: bool = False,
         force_cached: bool = False,

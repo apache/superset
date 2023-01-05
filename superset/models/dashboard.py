@@ -46,7 +46,6 @@ from sqlalchemy.sql import join, select
 from sqlalchemy.sql.elements import BinaryExpression
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.datasource.dao import DatasourceDAO
 from superset.extensions import cache_manager
@@ -178,11 +177,9 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return f"/superset/dashboard/{self.slug or self.id}/"
 
     @property
-    def datasources(self) -> Set[BaseDatasource]:
+    def datasources(self) -> Set[SqlaTable]:
         # Verbose but efficient database enumeration of dashboard datasources.
-        datasources_by_cls_model: Dict[Type["BaseDatasource"], Set[int]] = defaultdict(
-            set
-        )
+        datasources_by_cls_model: Dict[Type["SqlaTable"], Set[int]] = defaultdict(set)
 
         for slc in self.slices:
             datasources_by_cls_model[slc.cls_model].add(slc.datasource_id)
@@ -291,7 +288,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     def datasets_trimmed_for_slices(self) -> List[Dict[str, Any]]:
         # Verbose but efficient database enumeration of dashboard datasources.
         slices_by_datasource: Dict[
-            Tuple[Type["BaseDatasource"], int], Set[Slice]
+            Tuple[Type["SqlaTable"], int], Set[Slice]
         ] = defaultdict(set)
 
         for slc in self.slices:
@@ -462,7 +459,7 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     def clear_dashboard_cache(
         _mapper: Mapper,
         _connection: Connection,
-        obj: Union[Slice, BaseDatasource, Dashboard],
+        obj: Union[Slice, SqlaTable, Dashboard],
         check_modified: bool = True,
     ) -> None:
         if check_modified and not object_session(obj).is_modified(obj):
@@ -472,7 +469,7 @@ if is_feature_enabled("DASHBOARD_CACHE"):
             obj.clear_cache()
         elif isinstance(obj, Slice):
             Dashboard.clear_cache_for_slice(slice_id=obj.id)
-        elif isinstance(obj, BaseDatasource):
+        elif isinstance(obj, SqlaTable):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.id)
         elif isinstance(obj, (SqlMetric, TableColumn)):
             Dashboard.clear_cache_for_datasource(datasource_id=obj.table_id)
@@ -483,10 +480,8 @@ if is_feature_enabled("DASHBOARD_CACHE"):
     )
     sqla.event.listen(Slice, "after_update", clear_dashboard_cache)
     sqla.event.listen(Slice, "after_delete", clear_dashboard_cache)
-    sqla.event.listen(
-        BaseDatasource, "after_update", clear_dashboard_cache, propagate=True
-    )
+    sqla.event.listen(SqlaTable, "after_update", clear_dashboard_cache, propagate=True)
     # also clear cache on column/metric updates since updates to these will not
-    # trigger update events for BaseDatasource.
+    # trigger update events for SqlaTable.
     sqla.event.listen(SqlMetric, "after_update", clear_dashboard_cache)
     sqla.event.listen(TableColumn, "after_update", clear_dashboard_cache)

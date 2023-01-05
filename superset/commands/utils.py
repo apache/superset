@@ -33,7 +33,7 @@ from superset.extensions import db
 from superset.utils.core import DatasourceType, get_user_id
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 
 def populate_owners(
@@ -77,7 +77,7 @@ def populate_roles(role_ids: Optional[List[int]] = None) -> List[Role]:
     return roles
 
 
-def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
+def get_datasource_by_id(datasource_id: int, datasource_type: str) -> SqlaTable:
     try:
         return DatasourceDAO.get_datasource(
             db.session, DatasourceType(datasource_type), datasource_id

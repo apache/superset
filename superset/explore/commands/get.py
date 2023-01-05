@@ -25,7 +25,6 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
-from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DatasourceNotFound
 from superset.datasource.dao import DatasourceDAO
@@ -110,7 +109,7 @@ class GetExploreCommand(BaseCommand, ABC):
             # fallback unkonw datasource to table type
             self._datasource_type = SqlaTable.type
 
-        datasource: Optional[BaseDatasource] = None
+        datasource: Optional[SqlaTable] = None
         if self._datasource_id is not None:
             try:
                 datasource = DatasourceDAO.get_datasource(

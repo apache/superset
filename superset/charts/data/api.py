@@ -40,7 +40,7 @@ from superset.charts.data.query_context_cache_loader import QueryContextCacheLoa
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
-from superset.connectors.base.models import BaseDatasource
+from superset.connectors.sqla.models import SqlaTable
 from superset.dao.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
@@ -342,7 +342,7 @@ class ChartDataRestApi(ChartRestApi):
         self,
         result: Dict[Any, Any],
         form_data: Optional[Dict[str, Any]] = None,
-        datasource: Optional[BaseDatasource] = None,
+        datasource: Optional[SqlaTable] = None,
     ) -> Response:
         result_type = result["query_context"].result_type
         result_format = result["query_context"].result_format
@@ -395,7 +395,7 @@ class ChartDataRestApi(ChartRestApi):
         command: ChartDataCommand,
         force_cached: bool = False,
         form_data: Optional[Dict[str, Any]] = None,
-        datasource: Optional[BaseDatasource] = None,
+        datasource: Optional[SqlaTable] = None,
     ) -> Response:
         try:
             result = command.run(force_cached=force_cached)

@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=arguments-renamed
 import logging
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -26,9 +26,6 @@ from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
-
-if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
 
 logger = logging.getLogger(__name__)
 

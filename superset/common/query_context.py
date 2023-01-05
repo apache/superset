@@ -30,7 +30,7 @@ from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.helpers import QueryResult
 
 
@@ -46,7 +46,7 @@ class QueryContext:
     cache_type: ClassVar[str] = "df"
     enforce_numerical_metrics: ClassVar[bool] = True
 
-    datasource: BaseDatasource
+    datasource: SqlaTable
     slice_: Optional[Slice] = None
     queries: List[QueryObject]
     form_data: Optional[Dict[str, Any]]
@@ -64,7 +64,7 @@ class QueryContext:
     def __init__(
         self,
         *,
-        datasource: BaseDatasource,
+        datasource: SqlaTable,
         queries: List[QueryObject],
         slice_: Optional[Slice],
         form_data: Optional[Dict[str, Any]],

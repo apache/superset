@@ -31,7 +31,7 @@ from superset.models.slice import Slice
 from superset.utils import core as utils
 from superset.utils.core import DatasourceType
 
-from ..connectors.base.models import BaseDatasource
+from ..connectors.sqla.models import SqlaTable
 from .helpers import (
     get_example_url,
     get_examples_folder,
@@ -140,7 +140,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     db.session.commit()
 
 
-def create_slices(tbl: BaseDatasource) -> List[Slice]:
+def create_slices(tbl: SqlaTable) -> List[Slice]:
     metric = "sum__SP_POP_TOTL"
     metrics = ["sum__SP_POP_TOTL"]
     secondary_metric = {

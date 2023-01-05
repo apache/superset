@@ -26,7 +26,6 @@ from sqlalchemy.orm.session import make_transient
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.importers.exceptions import IncorrectVersionError
-from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.datasets.commands.exceptions import DatasetInvalidError
@@ -61,7 +60,7 @@ def lookup_sqla_database(table: SqlaTable) -> Optional[Database]:
 
 
 def import_dataset(
-    i_datasource: BaseDatasource,
+    i_datasource: SqlaTable,
     database_id: Optional[int] = None,
     import_time: Optional[int] = None,
 ) -> int:
@@ -72,8 +71,8 @@ def import_dataset(
     superset instances. Audit metadata isn't copied over.
     """
 
-    lookup_database: Callable[[BaseDatasource], Optional[Database]]
-    lookup_datasource: Callable[[BaseDatasource], Optional[BaseDatasource]]
+    lookup_database: Callable[[SqlaTable], Optional[Database]]
+    lookup_datasource: Callable[[SqlaTable], Optional[SqlaTable]]
     if isinstance(i_datasource, SqlaTable):
         lookup_database = lookup_sqla_database
         lookup_datasource = lookup_sqla_table
@@ -102,12 +101,8 @@ def lookup_sqla_metric(session: Session, metric: SqlMetric) -> SqlMetric:
     )
 
 
-def import_metric(session: Session, metric: BaseMetric) -> BaseMetric:
-    if isinstance(metric, SqlMetric):
-        lookup_metric = lookup_sqla_metric
-    else:
-        raise Exception(f"Invalid metric type: {metric}")
-    return import_simple_obj(session, metric, lookup_metric)
+def import_metric(session: Session, metric: SqlMetric) -> SqlMetric:
+    return import_simple_obj(session, metric, lookup_sqla_metric)
 
 
 def lookup_sqla_column(session: Session, column: TableColumn) -> TableColumn:
@@ -121,12 +116,8 @@ def lookup_sqla_column(session: Session, column: TableColumn) -> TableColumn:
     )
 
 
-def import_column(session: Session, column: BaseColumn) -> BaseColumn:
-    if isinstance(column, TableColumn):
-        lookup_column = lookup_sqla_column
-    else:
-        raise Exception(f"Invalid column type: {column}")
-    return import_simple_obj(session, column, lookup_column)
+def import_column(session: Session, column: TableColumn) -> TableColumn:
+    return import_simple_obj(session, column, lookup_sqla_column)
 
 
 def import_datasource(  # pylint: disable=too-many-arguments

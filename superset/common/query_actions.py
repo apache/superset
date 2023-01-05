@@ -24,7 +24,7 @@ from flask_babel import _
 from superset import app
 from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.base.models import BaseDatasource
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import QueryObjectValidationError
 from superset.utils.core import (
     extract_column_dtype,
@@ -42,9 +42,7 @@ if TYPE_CHECKING:
 config = app.config
 
 
-def _get_datasource(
-    query_context: QueryContext, query_obj: QueryObject
-) -> BaseDatasource:
+def _get_datasource(query_context: QueryContext, query_obj: QueryObject) -> SqlaTable:
     return query_obj.datasource or query_context.datasource
 
 

@@ -40,7 +40,7 @@ from superset.utils.core import (
 )
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 
 def get_column_key(label: Tuple[str, ...], metrics: List[str]) -> Tuple[Any, ...]:
@@ -222,7 +222,7 @@ pivot_v2_aggfunc_map = {
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional["SqlaTable"] = None,
 ) -> pd.DataFrame:
     """
     Pivot table v2.
@@ -248,7 +248,7 @@ def pivot_table_v2(
 def pivot_table(
     df: pd.DataFrame,
     form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional["SqlaTable"] = None,
 ) -> pd.DataFrame:
     """
     Pivot table (v1).
@@ -284,7 +284,7 @@ def pivot_table(
 def table(
     df: pd.DataFrame,
     form_data: Dict[str, Any],
-    datasource: Optional["BaseDatasource"] = None,  # pylint: disable=unused-argument
+    datasource: Optional["SqlaTable"] = None,  # pylint: disable=unused-argument
 ) -> pd.DataFrame:
     """
     Table.
@@ -313,7 +313,7 @@ post_processors = {
 def apply_post_process(
     result: Dict[Any, Any],
     form_data: Optional[Dict[str, Any]] = None,
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional["SqlaTable"] = None,
 ) -> Dict[Any, Any]:
     form_data = form_data or {}
 

@@ -60,7 +60,6 @@ from superset.charts.commands.exceptions import ChartNotFoundError
 from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.base.models import BaseDatasource
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
     SqlaTable,
@@ -848,7 +847,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # fallback unkonw datasource to table type
             datasource_type = SqlaTable.type
 
-        datasource: Optional[BaseDatasource] = None
+        datasource: Optional[SqlaTable] = None
         if datasource_id is not None:
             try:
                 datasource = DatasourceDAO.get_datasource(

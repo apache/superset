@@ -25,7 +25,7 @@ from superset.models.helpers import AuditMixinNullable
 from superset.utils.memoized import memoized
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 config = app.config
 
@@ -42,7 +42,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     ROLES_DENYLIST = set(config["ROBOT_PERMISSION_ROLES"])
 
     @property
-    def cls_model(self) -> Type["BaseDatasource"]:
+    def cls_model(self) -> Type["SqlaTable"]:
         # pylint: disable=import-outside-toplevel
         from superset.datasource.dao import DatasourceDAO
 
@@ -53,12 +53,12 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         return self.creator()
 
     @property
-    def datasource(self) -> "BaseDatasource":
+    def datasource(self) -> "SqlaTable":
         return self.get_datasource
 
     @datasource.getter  # type: ignore
     @memoized
-    def get_datasource(self) -> "BaseDatasource":
+    def get_datasource(self) -> "SqlaTable":
         ds = db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
         return ds
 

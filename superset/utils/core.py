@@ -126,7 +126,7 @@ except ImportError:
     pass
 
 if TYPE_CHECKING:
-    from superset.connectors.base.models import BaseColumn, BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
@@ -912,7 +912,7 @@ def notify_user_about_perm_udate(  # pylint: disable=too-many-arguments
     granter: User,
     user: User,
     role: Role,
-    datasource: "BaseDatasource",
+    datasource: "SqlaTable",
     tpl_name: str,
     config: Dict[str, Any],
 ) -> None:
@@ -1729,7 +1729,7 @@ def get_column_names_from_metrics(metrics: List[Metric]) -> List[str]:
 
 def extract_dataframe_dtypes(
     df: pd.DataFrame,
-    datasource: Optional["BaseDatasource"] = None,
+    datasource: Optional["SqlaTable"] = None,
 ) -> List[GenericDataType]:
     """Serialize pandas/numpy dtypes to generic types"""
 
@@ -1775,7 +1775,7 @@ def extract_dataframe_dtypes(
     return generic_types
 
 
-def extract_column_dtype(col: "BaseColumn") -> GenericDataType:
+def extract_column_dtype(col: "TableColumn") -> GenericDataType:
     if col.is_temporal:
         return GenericDataType.TEMPORAL
     if col.is_numeric:
@@ -1800,7 +1800,7 @@ def is_test() -> bool:
 
 
 def get_time_filter_status(
-    datasource: "BaseDatasource",
+    datasource: "SqlaTable",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
 

@@ -52,7 +52,7 @@ from superset.viz import BaseViz, viz_types
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_factory import QueryContextFactory
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
 
 metadata = Model.metadata  # pylint: disable=no-member
 slice_user = Table(
@@ -124,14 +124,14 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.slice_name or str(self.id)
 
     @property
-    def cls_model(self) -> Type["BaseDatasource"]:
+    def cls_model(self) -> Type["SqlaTable"]:
         # pylint: disable=import-outside-toplevel
         from superset.datasource.dao import DatasourceDAO
 
         return DatasourceDAO.sources[self.datasource_type]
 
     @property
-    def datasource(self) -> Optional["BaseDatasource"]:
+    def datasource(self) -> Optional["SqlaTable"]:
         return self.get_datasource
 
     def clone(self) -> "Slice":
@@ -149,7 +149,7 @@ class Slice(  # pylint: disable=too-many-public-methods
     # pylint: disable=using-constant-test
     @datasource.getter  # type: ignore
     @memoized
-    def get_datasource(self) -> Optional["BaseDatasource"]:
+    def get_datasource(self) -> Optional["SqlaTable"]:
         return db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
 
     @renders("datasource_name")

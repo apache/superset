@@ -29,9 +29,9 @@ from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import DataRequired, Regexp
 
 from superset import app, db
-from superset.connectors.base.views import DatasourceModelView
 from superset.connectors.sqla import models
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.exceptions import SupersetException
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import (
@@ -375,7 +375,7 @@ class RowLevelSecurityFiltersModelView(  # pylint: disable=too-many-ancestors
 
 
 class TableModelView(  # pylint: disable=too-many-ancestors
-    DatasourceModelView, DeleteMixin, YamlExportMixin
+    SupersetModelView, DeleteMixin, YamlExportMixin
 ):
     datamodel = SQLAInterface(models.SqlaTable)
     class_permission_name = "Dataset"
@@ -502,6 +502,16 @@ class TableModelView(  # pylint: disable=too-many-ancestors
             widget=Select2Widget(extra_classes="readonly"),
         )
     }
+
+    def pre_delete(self, item: models.SqlaTable) -> None:
+        if item.slices:
+            raise SupersetException(
+                Markup(
+                    "Cannot delete a datasource that has slices attached to it."
+                    "Here's the list of associated charts: "
+                    + "".join([i.slice_name for i in item.slices])
+                )
+            )
 
     def post_add(  # pylint: disable=arguments-differ
         self,

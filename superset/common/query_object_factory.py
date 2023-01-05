@@ -26,7 +26,7 @@ from superset.utils.core import apply_max_row_limit, DatasourceDict, DatasourceT
 if TYPE_CHECKING:
     from sqlalchemy.orm import sessionmaker
 
-    from superset.connectors.base.models import BaseDatasource
+    from superset.connectors.sqla.models import SqlaTable
     from superset.datasource.dao import DatasourceDAO
 
 
@@ -75,7 +75,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             **kwargs,
         )
 
-    def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
+    def _convert_to_model(self, datasource: DatasourceDict) -> SqlaTable:
         return self._datasource_dao.get_datasource(
             datasource_type=DatasourceType(datasource["type"]),
             datasource_id=int(datasource["id"]),
