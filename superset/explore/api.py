@@ -82,11 +82,11 @@ class ExploreRestApi(BaseApi):
           - in: query
             schema:
               type: integer
-            name: dataset_id
+            name: datasource_id
           - in: query
             schema:
               type: string
-            name: dataset_type
+            name: datasource_type
           responses:
             200:
               description: Returns the initial context.
@@ -110,8 +110,8 @@ class ExploreRestApi(BaseApi):
                 actor=g.user,
                 permalink_key=request.args.get("permalink_key", type=str),
                 form_data_key=request.args.get("form_data_key", type=str),
-                dataset_id=request.args.get("dataset_id", type=int),
-                dataset_type=request.args.get("dataset_type", type=str),
+                datasource_id=request.args.get("datasource_id", type=int),
+                datasource_type=request.args.get("datasource_type", type=str),
                 slice_id=request.args.get("slice_id", type=int),
             )
             result = GetExploreCommand(params).run()
@@ -124,8 +124,8 @@ class ExploreRestApi(BaseApi):
             return self.response(
                 403,
                 message=ex.message,
-                dataset_id=ex.dataset_id,
-                dataset_type=ex.dataset_type,
+                datasource_id=ex.datasource_id,
+                datasource_type=ex.datasource_type,
             )
         except (ChartNotFoundError, ExplorePermalinkGetFailedError) as ex:
             return self.response(404, message=str(ex))
