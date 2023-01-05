@@ -122,7 +122,7 @@ describe('Test datatable', () => {
   });
   it('Data Pane opens and loads results', () => {
     cy.get('[data-test="data-tab"]').click();
-    cy.get('[data-test="row-count-label"]').contains('26 rows retrieved');
+    cy.get('[data-test="row-count-label"]').contains('25 rows retrieved');
     cy.contains('View results');
     cy.get('.ant-empty-description').should('not.exist');
   });

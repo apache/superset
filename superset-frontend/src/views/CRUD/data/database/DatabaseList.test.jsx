@@ -82,6 +82,8 @@ const mockUser = {
   userId: 1,
 };
 
+const userSelectorMock = jest.spyOn(redux, 'useSelector');
+
 fetchMock.get(databasesInfoEndpoint, {
   permissions: ['can_write'],
 });

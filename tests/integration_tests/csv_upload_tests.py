@@ -205,6 +205,14 @@ def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     return dest_dir
 
 
+def escaped_double_quotes(text):
+    return f"&#34;{text}&#34;"
+
+
+def escaped_parquet(text):
+    return escaped_double_quotes(f"[&#39;{text}&#39;]")
+
+
 @pytest.mark.usefixtures("setup_csv_upload")
 @pytest.mark.usefixtures("create_csv_files")
 @mock.patch(
@@ -226,11 +234,11 @@ def test_import_csv_enforced_schema(mock_event_logger):
     # no schema specified, fail upload
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_SCHEMA, extra={"schema": None})
     assert (
-        f'Database "{CSV_UPLOAD_DATABASE}" schema "None" is not allowed for csv uploads'
+        f'Database {escaped_double_quotes(CSV_UPLOAD_DATABASE)} schema {escaped_double_quotes("None")} is not allowed for csv uploads'
         in resp
     )
 
-    success_msg = f'CSV file "{CSV_FILENAME1}" uploaded to table "{full_table_name}"'
+    success_msg = f"CSV file {escaped_double_quotes(CSV_FILENAME1)} uploaded to table {escaped_double_quotes(full_table_name)}"
     resp = upload_csv(
         CSV_FILENAME1,
         CSV_UPLOAD_TABLE_W_SCHEMA,
@@ -255,7 +263,7 @@ def test_import_csv_enforced_schema(mock_event_logger):
         CSV_FILENAME1, CSV_UPLOAD_TABLE_W_SCHEMA, extra={"schema": "gold"}
     )
     assert (
-        f'Database "{CSV_UPLOAD_DATABASE}" schema "gold" is not allowed for csv uploads'
+        f'Database {escaped_double_quotes(CSV_UPLOAD_DATABASE)} schema {escaped_double_quotes("gold")} is not allowed for csv uploads'
         in resp
     )
 
@@ -283,7 +291,10 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
         pytest.skip("Sqlite doesn't support schema / database creation")
 
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE_W_EXPLORE)
-    assert f'CSV file "{CSV_FILENAME1}" uploaded to table "{full_table_name}"' in resp
+    assert (
+        f"CSV file {escaped_double_quotes(CSV_FILENAME1)} uploaded to table {escaped_double_quotes(full_table_name)}"
+        in resp
+    )
     table = SupersetTestCase.get_table(name=CSV_UPLOAD_TABLE_W_EXPLORE)
     assert table.database_id == superset.utils.database.get_example_database().id
 
@@ -295,7 +306,7 @@ def test_import_csv_explore_database(setup_csv_upload, create_csv_files):
 def test_import_csv(mock_event_logger):
     schema = utils.get_example_default_schema()
     full_table_name = f"{schema}.{CSV_UPLOAD_TABLE}" if schema else CSV_UPLOAD_TABLE
-    success_msg_f1 = f'CSV file "{CSV_FILENAME1}" uploaded to table "{full_table_name}"'
+    success_msg_f1 = f"CSV file {escaped_double_quotes(CSV_FILENAME1)} uploaded to table {escaped_double_quotes(full_table_name)}"
 
     test_db = get_upload_db()
 
@@ -304,9 +315,7 @@ def test_import_csv(mock_event_logger):
     assert success_msg_f1 in resp
 
     # upload again with fail mode; should fail
-    fail_msg = (
-        f'Unable to upload CSV file "{CSV_FILENAME1}" to table "{CSV_UPLOAD_TABLE}"'
-    )
+    fail_msg = f"Unable to upload CSV file {escaped_double_quotes(CSV_FILENAME1)} to table {escaped_double_quotes(CSV_UPLOAD_TABLE)}"
     resp = upload_csv(CSV_FILENAME1, CSV_UPLOAD_TABLE)
     assert fail_msg in resp
 
@@ -341,14 +350,12 @@ def test_import_csv(mock_event_logger):
 
     # try to append to table from file with different schema
     resp = upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "append"})
-    fail_msg_f2 = (
-        f'Unable to upload CSV file "{CSV_FILENAME2}" to table "{CSV_UPLOAD_TABLE}"'
-    )
+    fail_msg_f2 = f"Unable to upload CSV file {escaped_double_quotes(CSV_FILENAME2)} to table {escaped_double_quotes(CSV_UPLOAD_TABLE)}"
     assert fail_msg_f2 in resp
 
     # replace table from file with different schema
     resp = upload_csv(CSV_FILENAME2, CSV_UPLOAD_TABLE, extra={"if_exists": "replace"})
-    success_msg_f2 = f'CSV file "{CSV_FILENAME2}" uploaded to table "{full_table_name}"'
+    success_msg_f2 = f"CSV file {escaped_double_quotes(CSV_FILENAME2)} uploaded to table {escaped_double_quotes(full_table_name)}"
     assert success_msg_f2 in resp
 
     table = SupersetTestCase.get_table(name=CSV_UPLOAD_TABLE)
@@ -388,7 +395,7 @@ def test_import_excel(mock_event_logger):
     full_table_name = f"{schema}.{EXCEL_UPLOAD_TABLE}" if schema else EXCEL_UPLOAD_TABLE
     test_db = get_upload_db()
 
-    success_msg = f'Excel file "{EXCEL_FILENAME}" uploaded to table "{full_table_name}"'
+    success_msg = f"Excel file {escaped_double_quotes(EXCEL_FILENAME)} uploaded to table {escaped_double_quotes(full_table_name)}"
 
     # initial upload with fail mode
     resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
@@ -405,7 +412,7 @@ def test_import_excel(mock_event_logger):
     assert security_manager.find_user("admin") in table.owners
 
     # upload again with fail mode; should fail
-    fail_msg = f'Unable to upload Excel file "{EXCEL_FILENAME}" to table "{EXCEL_UPLOAD_TABLE}"'
+    fail_msg = f"Unable to upload Excel file {escaped_double_quotes(EXCEL_FILENAME)} to table {escaped_double_quotes(EXCEL_UPLOAD_TABLE)}"
     resp = upload_excel(EXCEL_FILENAME, EXCEL_UPLOAD_TABLE)
     assert fail_msg in resp
 
@@ -451,14 +458,14 @@ def test_import_parquet(mock_event_logger):
     )
     test_db = get_upload_db()
 
-    success_msg_f1 = f'Columnar file "[\'{PARQUET_FILENAME1}\']" uploaded to table "{full_table_name}"'
+    success_msg_f1 = f"Columnar file {escaped_parquet(PARQUET_FILENAME1)} uploaded to table {escaped_double_quotes(full_table_name)}"
 
     # initial upload with fail mode
     resp = upload_columnar(PARQUET_FILENAME1, PARQUET_UPLOAD_TABLE)
     assert success_msg_f1 in resp
 
     # upload again with fail mode; should fail
-    fail_msg = f'Unable to upload Columnar file "[\'{PARQUET_FILENAME1}\']" to table "{PARQUET_UPLOAD_TABLE}"'
+    fail_msg = f"Unable to upload Columnar file {escaped_parquet(PARQUET_FILENAME1)} to table {escaped_double_quotes(PARQUET_UPLOAD_TABLE)}"
     resp = upload_columnar(PARQUET_FILENAME1, PARQUET_UPLOAD_TABLE)
     assert fail_msg in resp
 
@@ -507,9 +514,7 @@ def test_import_parquet(mock_event_logger):
     resp = upload_columnar(
         ZIP_FILENAME, PARQUET_UPLOAD_TABLE, extra={"if_exists": "replace"}
     )
-    success_msg_f2 = (
-        f'Columnar file "[\'{ZIP_FILENAME}\']" uploaded to table "{full_table_name}"'
-    )
+    success_msg_f2 = f"Columnar file {escaped_parquet(ZIP_FILENAME)} uploaded to table {escaped_double_quotes(full_table_name)}"
     assert success_msg_f2 in resp
 
     data = (
