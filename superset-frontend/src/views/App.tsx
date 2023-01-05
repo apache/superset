@@ -81,7 +81,7 @@ const App = () => (
       <RootContextProviders>
         <GlobalStyles />
         <Menu data={menu} isFrontendRoute={isFrontendRoute} />
-        <Upload />
+        {/* <Upload /> */}
         <Switch>
           {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
             <Route path={path} key={path}>
