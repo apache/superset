@@ -23,6 +23,7 @@ import {
 import {
   AppstoreOutlined,
   FilterOutlined,
+  PlusOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
   UserOutlined,
@@ -242,6 +243,34 @@ const ContentPage = () => {
       )
       .finally(() => {});
   };
+
+  const handleColumnAdd = () => {
+    let now = new Date()
+    const newElement = {
+      advanced_data_type: null,
+      changed_on: now.toISOString(),
+      column_name : "New Column",
+      created_on: now.toISOString(),
+      description : null,
+      expression : null,
+      extra : "{\"warning_markdown\":null}",
+      filterable : true,
+      groupby : true,
+      id : -1,
+      is_active : null,
+      is_dttm : false,
+      python_date_format : null,
+      type : "TEXT",
+      type_generic : 1,
+      uuid : "",
+      verbose_name : null,
+    };
+    setTableData({
+      ...tableData,
+      columns: [...tableData.columns, newElement]
+    })
+  }
+
   const handleColumnSave = async () => {
     await setTableData({
       ...tableData,
@@ -627,9 +656,12 @@ const ContentPage = () => {
             setTableDescription(e.target.value);
           }}
         />
-        <Title level={4} style={{ marginTop: '24px' }}>
-          Columes
-        </Title>
+        <Row justify="space-between" align='middle' style={{ marginTop: '24px' }}>
+          <Title level={4}>
+            Columes
+          </Title>
+          <Button icon={<PlusOutlined />} size="large" onClick={() => handleColumnAdd()} />
+        </Row>
         {tableData?.columns?.map((column: any) => (
           <Card
             style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
