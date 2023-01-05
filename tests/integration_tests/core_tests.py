@@ -32,6 +32,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from sqlalchemy import Table
 
 import pytest
 import pytz
@@ -1684,6 +1685,14 @@ class TestCore(SupersetTestCase):
             example_db.has_table_by_name(table_name="birth_names", schema="public")
             is True
         )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_has_table(self):
+        if backend() in ("sqlite", "mysql"):
+            return
+        example_db = superset.utils.database.get_example_database()
+        table = Table(table_name="birth_names", schema="public")
+        assert example_db.has_table(table=table) is True
 
 
 if __name__ == "__main__":
