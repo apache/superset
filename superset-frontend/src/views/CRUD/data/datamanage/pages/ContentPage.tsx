@@ -97,7 +97,7 @@ const ContentPage = () => {
   const [options, setOptions] = useState<{ value: string }[]>([]);
 
   const handleSearch = (value: string) => {
-    let optionTemp: Array<any>;
+    const optionTemp: Array<any>;
     optionTemp = [];
     tableData.columns.map((itm: any) => {
       optionTemp.push({ value: itm.column_name });
