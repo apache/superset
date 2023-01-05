@@ -258,17 +258,13 @@ class TestSqlLab(SupersetTestCase):
         self.assertLess(0, len(data["data"]))
 
     def test_sqllab_has_access(self):
-        self.create_user_with_roles("sqluser", ["Gamma", "sql_lab"])
-
-        for username in ("admin", "sqluser"):
+        for username in ("admin", "gamma_sqllab"):
             self.login(username)
             for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
                 resp = self.client.get(endpoint)
                 self.assertEqual(200, resp.status_code)
 
-        user = self.get_user("sqluser")
-        db.session.delete(user)
-        db.session.commit()
+            self.logout()
 
     def test_sqllab_no_access(self):
         self.login("gamma")
