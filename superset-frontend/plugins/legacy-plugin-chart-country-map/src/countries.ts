@@ -70,6 +70,7 @@ import nicaragua from './countries/nicaragua.geojson';
 import oman from './countries/oman.geojson';
 import pakistan from './countries/pakistan.geojson';
 import panama from './countries/panama.geojson';
+import papua_new_guinea from './countries/papua new guinea.geojson';
 import paraguay from './countries/paraguay.geojson';
 import philippines from './countries/philippines.geojson';
 import peru from './countries/peru.geojson';
@@ -156,6 +157,7 @@ export const countries = {
   oman,
   pakistan,
   panama,
+  papua_new_guinea,
   paraguay,
   philippines,
   peru,
