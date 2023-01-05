@@ -245,25 +245,25 @@ const ContentPage = () => {
   };
 
   const handleColumnAdd = () => {
-    let now = new Date()
+    const now = new Date();
     const newElement = {
       advanced_data_type: null,
       changed_on: now.toISOString(),
-      column_name : "New Column",
+      column_name: 'New Column',
       created_on: now.toISOString(),
-      description : null,
-      expression : null,
-      extra : "{\"warning_markdown\":null}",
-      filterable : true,
-      groupby : true,
-      id : -1,
-      is_active : null,
-      is_dttm : false,
-      python_date_format : null,
-      type : "TEXT",
-      type_generic : 1,
-      uuid : "",
-      verbose_name : null,
+      description: null,
+      expression: null,
+      extra: '{\"warning_markdown\":null}',
+      filterable: true,
+      groupby: true,
+      id: -1,
+      is_active: null,
+      is_dttm: false,
+      python_date_format: null,
+      type: 'TEXT',
+      type_generic: 1,
+      uuid: '',
+      verbose_name: null,
     };
     setTableData({
       ...tableData,
