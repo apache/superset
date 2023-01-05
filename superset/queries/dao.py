@@ -16,12 +16,13 @@
 # under the License.
 import logging
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
 from superset.dao.base import BaseDAO
 from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery
 from superset.queries.filters import QueryFilter
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -56,3 +57,14 @@ class QueryDAO(BaseDAO):
         columns = payload.get("columns", {})
         db.session.add(query)
         query.set_extra_json_key("columns", columns)
+
+    @staticmethod
+    def get_queries_changed_after(last_updated_ms: Union[float, int]) -> List[Query]:
+        # UTC date time, same that is stored in the DB.
+        last_updated_dt = datetime.utcfromtimestamp(last_updated_ms / 1000)
+
+        return (
+            db.session.query(Query)
+            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
+            .all()
+        )
