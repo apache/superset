@@ -21,7 +21,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-from contextlib import closing
 from datetime import datetime
 from typing import (
     Any,
@@ -98,7 +97,6 @@ class TimeGrain(NamedTuple):
 
 
 builtin_time_grains: Dict[Optional[str], str] = {
-    None: __("Original value"),
     "PT1S": __("Second"),
     "PT5S": __("5 second"),
     "PT30S": __("30 second"),
@@ -195,6 +193,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: Set[str] = set()
     drivers: Dict[str, str] = {}
     default_driver: Optional[str] = None
+    allow_ssh_tunneling = False
 
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
@@ -1299,14 +1298,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         statements = parsed_query.get_statements()
 
         costs = []
-        with cls.get_engine(database, schema=schema, source=source) as engine:
-            with closing(engine.raw_connection()) as conn:
-                cursor = conn.cursor()
-                for statement in statements:
-                    processed_statement = cls.process_statement(statement, database)
-                    costs.append(
-                        cls.estimate_statement_cost(processed_statement, cursor)
-                    )
+        with database.get_raw_connection(schema=schema, source=source) as conn:
+            cursor = conn.cursor()
+            for statement in statements:
+                processed_statement = cls.process_statement(statement, database)
+                costs.append(cls.estimate_statement_cost(processed_statement, cursor))
+
         return costs
 
     @classmethod
