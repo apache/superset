@@ -1442,9 +1442,7 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
 # Slack API token for the superset reports, either string or callable
-SLACK_API_TOKEN: Optional[
-    Union[Callable[[], str], str]
-] = "xoxb-19067173008-3954072407285-ELohaKTH0TPySAg5CK1FhWfl"
+SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
 SLACK_PROXY = None
 
 # The webdriver to use for generating reports. Use one of the following
