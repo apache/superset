@@ -67,7 +67,6 @@ const ViewSearchPage = () => {
   }, [answer]);
   const [queriesResponse, setQueriesResponse] = useState<any>({});
   const handleChart = (slice_id: number) => {
-    slice_id = 1489;
     SupersetClient.get({
       endpoint: `/api/v1/explore?slice_id=${slice_id}`,
     }).then(async ({ json = {} }) => {
@@ -82,8 +81,6 @@ const ViewSearchPage = () => {
     });
   };
   const { Title } = Typography;
-  const GUTTER_SIZE_FACTOR = 1.25;
-  const annotationData = {};
   const chartAlert = null;
   const chartStackTrace = null;
   const chartStatus = 'rendered';
@@ -94,11 +91,8 @@ const ViewSearchPage = () => {
   const timeout = 60;
   const datasource = chartData.dataset;
   const formData = chartData.form_data;
-  console.log(formData);
   const vizType = 'table';
   const ownState = '';
-  const gutterMargin = theme.gridUnit * GUTTER_SIZE_FACTOR;
-  const gutterHeight = theme.gridUnit * GUTTER_SIZE_FACTOR;
   const {
     width: chartPanelWidth,
     height: chartPanelHeight,
@@ -117,32 +111,31 @@ const ViewSearchPage = () => {
         `}
         ref={chartPanelRef}
       >
-        asdfsdasdfadsfdsfadsfsdf
-        {/* {chartPanelWidth && chartPanelHeight && ( */}
-        <ChartContainer
-          width={Math.floor(300)}
-          height={300}
-          // ownState={ownState}
-          annotationData={undefined}
-          chartAlert={chartAlert}
-          chartStackTrace={chartStackTrace}
-          chartId={chartData?.slice?.slice_id}
-          chartStatus={chartStatus}
-          triggerRender={triggerRender}
-          force={force}
-          datasource={datasource}
-          errorMessage={errorMessage}
-          form_data={formData}
-          latestQueryFormData={chartData.latestQueryFormData}
-          onQuery={chartData.onQuery}
-          queriesResponse={queriesResponse}
-          chartIsStale={chartIsStale}
-          // setControlValue={actions.setControlValue}
-          timeout={timeout}
-          triggerQuery={chartData.triggerQuery}
-          vizType={vizType}
-        />
-        {/* )} */}
+        {JSON.stringify(chartData) !== '{}' && (
+          <ChartContainer
+            width={Math.floor(1000)}
+            height={300}
+            // ownState={ownState}
+            annotationData={undefined}
+            chartAlert={chartAlert}
+            chartStackTrace={chartStackTrace}
+            chartId={chartData?.slice?.slice_id}
+            chartStatus={chartStatus}
+            triggerRender={triggerRender}
+            force={force}
+            datasource={datasource}
+            errorMessage={errorMessage}
+            formData={formData}
+            latestQueryFormData={chartData.latestQueryFormData}
+            onQuery={chartData.onQuery}
+            queriesResponse={queriesResponse}
+            chartIsStale={chartIsStale}
+            // setControlValue={actions.setControlValue}
+            timeout={timeout}
+            triggerQuery={chartData.triggerQuery}
+            vizType={vizType}
+          />
+        )}
       </div>
     ),
     [
