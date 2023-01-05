@@ -178,7 +178,7 @@
     "react-lines-ellipsis": "^0.15.0",
     "react-loadable": "^5.5.0",
     "react-query": "^3.39.2",
-    "react-redux": "^7.2.0",
+    "react-redux": "^7.2.8",
     "react-resize-detector": "^6.7.6",
     "react-reverse-portal": "^2.0.1",
     "react-router-dom": "^5.1.2",
