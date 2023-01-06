@@ -257,7 +257,7 @@
       "AnnotationLayerRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
           },
           "changed_on": {
             "format": "date-time",
@@ -268,7 +268,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -414,13 +414,13 @@
       "AnnotationRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
           },
           "end_dttm": {
             "format": "date-time",
@@ -1695,7 +1695,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -1742,10 +1742,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "params": {
             "nullable": true,
@@ -1854,16 +1854,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -1880,11 +1875,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -2487,7 +2487,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -2534,10 +2534,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "params": {
             "nullable": true,
@@ -2646,16 +2646,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -2672,11 +2667,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -2939,13 +2939,13 @@
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -3312,7 +3312,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -3327,7 +3327,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/DashboardRestApi.get_list.User"
+            "$ref": "#/components/schemas/DashboardRestApi.get_list.User1"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -3412,11 +3412,16 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
+          },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name"
+          "last_name",
+          "username"
         ],
         "type": "object"
       },
@@ -3433,16 +3438,11 @@
           "last_name": {
             "maxLength": 64,
             "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
           }
         },
         "required": [
           "first_name",
-          "last_name",
-          "username"
+          "last_name"
         ],
         "type": "object"
       },
@@ -4045,6 +4045,14 @@
             "minLength": 1,
             "type": "string"
           },
+          "ssh_tunnel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatabaseSSHTunnel"
+              }
+            ],
+            "nullable": true
+          },
           "uuid": {
             "type": "string"
           }
@@ -4150,6 +4158,38 @@
             "maxLength": 1024,
             "minLength": 0,
             "type": "string"
+          },
+          "ssh_tunnel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatabaseSSHTunnel"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseSSHTunnel": {
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "private_key": {
+            "type": "string"
+          },
+          "private_key_password": {
+            "type": "string"
+          },
+          "server_address": {
+            "type": "string"
+          },
+          "server_port": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "username": {
+            "type": "string"
           }
         },
         "type": "object"
@@ -4222,6 +4262,14 @@
             "maxLength": 1024,
             "minLength": 1,
             "type": "string"
+          },
+          "ssh_tunnel": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DatabaseSSHTunnel"
+              }
+            ],
+            "nullable": true
           }
         },
         "type": "object"
@@ -4756,7 +4804,7 @@
             "type": "integer"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User"
           },
           "changed_on": {
             "format": "date-time",
@@ -4770,7 +4818,7 @@
             "$ref": "#/components/schemas/DatasetRestApi.get.TableColumn"
           },
           "created_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -5088,7 +5136,7 @@
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -5131,7 +5179,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "schema": {
             "maxLength": 255,
@@ -5175,6 +5223,23 @@
             "maxLength": 64,
             "type": "string"
           },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5191,23 +5256,6 @@
         "required": [
           "first_name",
           "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
           "username"
         ],
         "type": "object"
@@ -6529,7 +6577,7 @@
             "type": "boolean"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
           },
           "changed_on": {
             "format": "date-time",
@@ -6545,7 +6593,7 @@
             "type": "integer"
           },
           "created_by": {
-            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User"
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User1"
           },
           "created_on": {
             "format": "date-time",
@@ -14510,26 +14558,16 @@
         ]
       },
       "get": {
-        "description": "Get an item model",
+        "description": "Get a database",
         "parameters": [
           {
+            "description": "The database id",
             "in": "path",
             "name": "pk",
             "required": true,
             "schema": {
               "type": "integer"
             }
-          },
-          {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_item_schema"
-                }
-              }
-            },
-            "in": "query",
-            "name": "q"
           }
         ],
         "responses": {
@@ -14537,61 +14575,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "properties": {
-                    "description_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The description for the column name. Will be translated by babel",
-                          "example": "A Nice description for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "id": {
-                      "description": "The item id",
-                      "type": "string"
-                    },
-                    "label_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The label for the column name. Will be translated by babel",
-                          "example": "A Nice label for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "result": {
-                      "$ref": "#/components/schemas/DatabaseRestApi.get"
-                    },
-                    "show_columns": {
-                      "description": "A list of columns",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "show_title": {
-                      "description": "A title to render. Will be translated by babel",
-                      "example": "Show Item Details",
-                      "type": "string"
-                    }
-                  },
                   "type": "object"
                 }
               }
             },
-            "description": "Item from Model"
+            "description": "Database"
           },
           "400": {
             "$ref": "#/components/responses/400"
           },
           "401": {
             "$ref": "#/components/responses/401"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
           },
           "422": {
             "$ref": "#/components/responses/422"
@@ -14965,6 +14959,61 @@
         ]
       }
     },
+    "/api/v1/database/{pk}/ssh_tunnel/": {
+      "delete": {
+        "description": "Deletes a SSH Tunnel.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "SSH Tunnel deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Database"
+        ]
+      }
+    },
     "/api/v1/database/{pk}/table/{table_name}/{schema_name}/": {
       "get": {
         "description": "Get database table metadata",
@@ -15106,7 +15155,6 @@
     },
     "/api/v1/database/{pk}/tables/": {
       "get": {
-        "description": "Get a list of tables for given database",
         "parameters": [
           {
             "description": "The database id",
@@ -15138,14 +15186,14 @@
                     "result": {
                       "description": "A List of tables for given database",
                       "properties": {
+                        "count": {
+                          "type": "integer"
+                        },
                         "options": {
                           "items": {
                             "$ref": "#/components/schemas/DatabaseTablesResponse"
                           },
                           "type": "array"
-                        },
-                        "count": {
-                          "type": "integer"
                         }
                       },
                       "type": "object"
@@ -15166,6 +15214,9 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
           "500": {
             "$ref": "#/components/responses/500"
           }
@@ -15175,6 +15226,7 @@
             "jwt": []
           }
         ],
+        "summary": "Get a list of tables for given database",
         "tags": [
           "Database"
         ]
@@ -16394,14 +16446,14 @@
           },
           {
             "in": "query",
-            "name": "dataset_id",
+            "name": "datasource_id",
             "schema": {
               "type": "integer"
             }
           },
           {
             "in": "query",
-            "name": "dataset_type",
+            "name": "datasource_type",
             "schema": {
               "type": "string"
             }

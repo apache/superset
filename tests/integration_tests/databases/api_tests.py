@@ -1704,6 +1704,16 @@ class TestDatabaseApi(SupersetTestCase):
         )
 
         self.assertEqual(rv.status_code, 200)
+        if database.backend == "postgresql":
+            response = json.loads(rv.data.decode("utf-8"))
+            schemas = [
+                s[0] for s in database.get_all_table_names_in_schema(schema_name)
+            ]
+            self.assertEquals(response["result"]["count"], len(schemas))
+            for option in response["result"]["options"]:
+                self.assertEquals(option["extra"], None)
+                self.assertEquals(option["type"], "table")
+                self.assertTrue(option["value"] in schemas)
 
     def test_database_tables_not_found(self):
         """
@@ -1739,7 +1749,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(
             f"api/v1/database/{database.id}/tables/?q={prison.dumps({'schema_name': 'main'})}"
         )
-        self.assertEqual(rv.status_code, 500)
+        self.assertEqual(rv.status_code, 422)
 
     def test_test_connection(self):
         """

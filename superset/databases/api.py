@@ -608,6 +608,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -623,7 +625,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
         except DatabaseTablesUnexpectedError as ex:
-            return self.response_500(ex.message)
+            return self.response_422(ex.message)
 
     @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
