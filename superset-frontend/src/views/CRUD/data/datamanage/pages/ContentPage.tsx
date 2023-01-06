@@ -253,7 +253,7 @@ const ContentPage = () => {
       created_on: now.toISOString(),
       description: null,
       expression: null,
-      extra: '{\"warning_markdown\":null}',
+      extra: '{"warning_markdown":null}',
       filterable: true,
       groupby: true,
       id: -1,
@@ -267,9 +267,9 @@ const ContentPage = () => {
     };
     setTableData({
       ...tableData,
-      columns: [...tableData.columns, newElement]
-    })
-  }
+      columns: [...tableData.columns, newElement],
+    });
+  };
 
   const handleColumnSave = async () => {
     await setTableData({
@@ -656,11 +656,17 @@ const ContentPage = () => {
             setTableDescription(e.target.value);
           }}
         />
-        <Row justify="space-between" align='middle' style={{ marginTop: '24px' }}>
-          <Title level={4}>
-            Columes
-          </Title>
-          <Button icon={<PlusOutlined />} size="large" onClick={() => handleColumnAdd()} />
+        <Row
+          justify="space-between"
+          align="middle"
+          style={{ marginTop: '24px' }}
+        >
+          <Title level={4}>Columes</Title>
+          <Button
+            icon={<PlusOutlined />}
+            size="large"
+            onClick={() => handleColumnAdd()}
+          />
         </Row>
         {tableData?.columns?.map((column: any) => (
           <Card

@@ -1,15 +1,17 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Row, Input, Col, Typography, Space, Button } from 'antd';
+import { Row, Input, Col, Typography, Space, Button, AutoComplete } from 'antd';
 import {
   ShareAltOutlined,
   SaveOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
-import { SupersetClient } from '@superset-ui/core';
-import { SupersetTheme, useTheme, css } from '@superset-ui/core';
+import {
+  SupersetClient,
+  SupersetTheme,
+  useTheme,
+  css,
+} from '@superset-ui/core';
 import type { SelectProps } from 'antd/es/select';
-
-import { AutoComplete } from 'antd';
 
 import { useResizeDetector } from 'react-resize-detector';
 import ChartContainer from 'src/components/Chart/ChartContainer';
@@ -41,7 +43,7 @@ const ViewSearchPage = () => {
   };
   const searchResult = (query: string) =>
     [...questionLists].map((value: any, idx) => {
-      const category: string = `${value.question}`;
+      const category = `${value.question}`;
       return {
         value: category,
         label: (
@@ -124,7 +126,7 @@ const ViewSearchPage = () => {
   useEffect(() => {
     setItem(LocalStorageKeys.chart_split_sizes, splitSizes);
   }, [splitSizes]);
-  const [showSplite, setShowSplit] = useState(
+  const [, setShowSplit] = useState(
     isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
       ? false
       : getItem(LocalStorageKeys.is_datapanel_open, false),
@@ -212,7 +214,7 @@ const ViewSearchPage = () => {
                 datasource={datasource}
                 queryForce={force}
                 onCollapseChange={onCollapseChange}
-                chartStatus={'rendered'}
+                chartStatus="rendered"
                 // errorMessage={errorMessage}
                 actions={chartData.actions}
               />
@@ -314,7 +316,7 @@ const ViewSearchPage = () => {
                 background: theme.colors.quotron.gray_white,
                 color: theme.colors.quotron.black,
               }}
-              size={'large'}
+              size="large"
               onClick={() => handleSearch}
             >
               Search

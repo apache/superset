@@ -8,10 +8,10 @@ import {
   SettingOutlined,
   BellOutlined,
 } from '@ant-design/icons';
+import UploadCsv from 'src/views/components/Upload';
 import HeaderPage from './pages/HeaderPage';
 import ContentPage from './pages/ContentPage';
 import ViewSearchPage from './pages/ViewSearchPage';
-import UploadCsv from 'src/views/components/Upload';
 // import HeaderViewTablePage from './pages/HeaderViewTablePage';
 // import ViewTablePage from './pages/ViewTablePage';
 
@@ -22,8 +22,8 @@ const DatamanageList = () => {
   const [outLined, setoutLined] = useState('1');
 
   const onShowUploadUI = () => {
-    setoutLined("3")
-  }
+    setoutLined('3');
+  };
   const handleOutLined = (ev: any) => {
     setoutLined(ev.key);
   };
@@ -48,9 +48,21 @@ const DatamanageList = () => {
             height: '100%',
           }}
         >
-          <Menu.Item key={1} className={`${outLined === '1' ? 'ant-menu-item-selected' : ''}`} icon={<HomeOutlined />} />
-          <Menu.Item key={2} className={`${outLined === '2' ? 'ant-menu-item-selected' : ''}`} icon={<SearchOutlined />} />
-          <Menu.Item key={3} className={`${outLined === '3' ? 'ant-menu-item-selected' : ''}`} icon={<DatabaseOutlined />} />
+          <Menu.Item
+            key={1}
+            className={`${outLined === '1' ? 'ant-menu-item-selected' : ''}`}
+            icon={<HomeOutlined />}
+          />
+          <Menu.Item
+            key={2}
+            className={`${outLined === '2' ? 'ant-menu-item-selected' : ''}`}
+            icon={<SearchOutlined />}
+          />
+          <Menu.Item
+            key={3}
+            className={`${outLined === '3' ? 'ant-menu-item-selected' : ''}`}
+            icon={<DatabaseOutlined />}
+          />
           <Menu.Item
             key={4}
             icon={<BellOutlined />}
