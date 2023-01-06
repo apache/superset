@@ -67,3 +67,11 @@ class QuerySchema(Schema):
     # pylint: disable=no-self-use
     def get_sql_tables(self, obj: Query) -> List[Table]:
         return obj.sql_tables
+
+
+class StopQuerySchema(Schema):
+    """
+    Schema for the stop_query API call.
+    """
+
+    client_id = fields.String()

@@ -317,7 +317,7 @@ describe('async actions', () => {
   });
 
   describe('postStopQuery', () => {
-    const stopQueryEndpoint = 'glob:*/superset/stop_query/*';
+    const stopQueryEndpoint = 'glob:*/api/v1/query/stop';
     fetchMock.post(stopQueryEndpoint, {});
 
     const makeRequest = () => {
