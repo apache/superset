@@ -193,6 +193,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: Set[str] = set()
     drivers: Dict[str, str] = {}
     default_driver: Optional[str] = None
+    allow_ssh_tunneling = False
 
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}

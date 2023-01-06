@@ -20,6 +20,7 @@ import { t, ChartMetadata, ChartPlugin, Behavior } from '@superset-ui/core';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import buildQuery from './buildQuery';
 
 export default class EchartsGraphChartPlugin extends ChartPlugin {
@@ -34,6 +35,7 @@ export default class EchartsGraphChartPlugin extends ChartPlugin {
         description: t(
           'Displays connections between entities in a graph structure. Useful for mapping relationships and showing which nodes are important in a network. Graph charts can be configured to be force-directed or circulate. If your data has a geospatial component, try the deck.gl Arc chart.',
         ),
+        exampleGallery: [{ url: example }],
         name: t('Graph Chart'),
         tags: [
           t('Aesthetic'),
