@@ -19,6 +19,32 @@ under the License.
 
 ## Change Log
 
+### 1.5.3 (Thu Jan 5 15:05:44 2023 -0500)
+
+**Database Migrations**
+
+**Features**
+
+**Fixes**
+
+- [#21895](https://github.com/apache/superset/pull/21895) fix: Improves SafeMarkdown HTML sanitization (@michael-s-molina)
+- [#21874](https://github.com/apache/superset/pull/21874) fix: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina)
+- [#21853](https://github.com/apache/superset/pull/21853) fix: Disables HTML rendering in Toast by default (@michael-s-molina)
+- [#22591](https://github.com/apache/superset/pull/22591) fix: Talisman configuration (@michael-s-molina)
+- [#22196](https://github.com/apache/superset/pull/22196) fix(reports): force data generation in csv reports (@mayurnewase)
+- [#22038](https://github.com/apache/superset/pull/22038) fix: datasource save, improve data validation (@dpgaspar)
+- [#22022](https://github.com/apache/superset/pull/22022) fix: deprecate approve and request_access endpoint (@dpgaspar)
+- [#21964](https://github.com/apache/superset/pull/21964) fix: dashboard api cache decorator (@dpgaspar)
+- [#21875](https://github.com/apache/superset/pull/21875) fix: check that imports are ZIPs (@betodealmeida)
+- [#21761](https://github.com/apache/superset/pull/21761) fix: flash message on database data upload forms (@dpgaspar)
+- [#21759](https://github.com/apache/superset/pull/21759) fix: database schema selector on import data (@dpgaspar)
+- [#21729](https://github.com/apache/superset/pull/21729) fix: allow adhoc columns in non-aggregate query (@mayurnewase)
+- [#21216](https://github.com/apache/superset/pull/21216) fix(database-list): hide upload file button if no permission (@stephenLYZ)
+
+**Others**
+
+- [#21811](https://github.com/apache/superset/pull/21811) chore(sqla): refactor query utils (@villebro)
+
 ### 1.5.2 (Wed Sep 14 17:11:51 2022 +0530)
 
 **Database Migrations**
