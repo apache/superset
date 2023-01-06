@@ -144,7 +144,7 @@ const ContentPage = () => {
 
   const handleSearch = (value: string) => {
     const optionTemp: Object[] =[];
-    tableData.columns.forEach((itm: any) => {
+    tableData.columns.forEach(function (itm: any) {
       optionTemp.push({ value: itm.column_name });
     });
 
