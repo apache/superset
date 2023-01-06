@@ -180,8 +180,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const [dashboardData, setDashboardData] = useState<Array<object> | null>(
     null,
   );
-  const [loadedCount, setLoadedCount] = useState(0);
-  const doneFetching = loadedCount === (canAccessSqlLab ? 3 : 2);
+  const [isFetchingActivityData, setIsFetchingActivityData] = useState(true);
 
   const collapseState = getItem(LocalStorageKeys.homepage_collapse_state, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
@@ -263,42 +262,46 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         value: `${id}`,
       },
     ];
-    getUserOwnedObjects(id, 'dashboard')
-      .then(r => {
-        setDashboardData(r);
-        setLoadedCount(loadedCount => loadedCount + 1);
-      })
-      .catch((err: unknown) => {
-        setDashboardData([]);
-        setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(
-          t('There was an issue fetching your dashboards: %s', err),
-        );
-      });
-    getUserOwnedObjects(id, 'chart')
-      .then(r => {
-        setChartData(r);
-        setLoadedCount(loadedCount => loadedCount + 1);
-      })
-      .catch((err: unknown) => {
-        setChartData([]);
-        setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(t('There was an issue fetching your chart: %s', err));
-      });
-    if (canAccessSqlLab) {
-      getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
+    Promise.all([
+      getUserOwnedObjects(id, 'dashboard')
         .then(r => {
-          setQueryData(r);
-          setLoadedCount(loadedCount => loadedCount + 1);
+          setDashboardData(r);
+          return Promise.resolve();
         })
         .catch((err: unknown) => {
-          setQueryData([]);
-          setLoadedCount(loadedCount => loadedCount + 1);
+          setDashboardData([]);
           addDangerToast(
-            t('There was an issue fetching your saved queries: %s', err),
+            t('There was an issue fetching your dashboards: %s', err),
           );
-        });
-    }
+          return Promise.resolve();
+        }),
+      getUserOwnedObjects(id, 'chart')
+        .then(r => {
+          setChartData(r);
+          return Promise.resolve();
+        })
+        .catch((err: unknown) => {
+          setChartData([]);
+          addDangerToast(t('There was an issue fetching your chart: %s', err));
+          return Promise.resolve();
+        }),
+      canAccessSqlLab
+        ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
+            .then(r => {
+              setQueryData(r);
+              return Promise.resolve();
+            })
+            .catch((err: unknown) => {
+              setQueryData([]);
+              addDangerToast(
+                t('There was an issue fetching your saved queries: %s', err),
+              );
+              return Promise.resolve();
+            })
+        : Promise.resolve(),
+    ]).then(() => {
+      setIsFetchingActivityData(false);
+    });
   }, [otherTabFilters]);
 
   const handleToggle = () => {
@@ -362,7 +365,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   activeChild={activeChild}
                   setActiveChild={setActiveChild}
                   activityData={activityData}
-                  doneFetching={doneFetching}
+                  isFetchingActivityData={isFetchingActivityData}
                 />
               ) : (
                 <LoadingCards />
