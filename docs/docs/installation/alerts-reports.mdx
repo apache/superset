@@ -191,7 +191,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
     rm -f google-chrome-stable_current_amd64.deb
 
-RUN export CHROMEDRIVER_VERSION=$(curl --silent https://chromedriver.storage.googleapis.com/LATEST_RELEASE_88) && \
+RUN export CHROMEDRIVER_VERSION=$(curl --silent https://chromedriver.storage.googleapis.com/LATEST_RELEASE_102) && \
     wget -q https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip && \
     unzip chromedriver_linux64.zip -d /usr/bin && \
     chmod 755 /usr/bin/chromedriver && \
