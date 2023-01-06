@@ -143,7 +143,7 @@ const ContentPage = () => {
   }, [searchtext, data, sort, owner, datasourceOne]);
 
   const handleSearch = (value: string) => {
-    const optionTemp: Array<any>;
+    let optionTemp: Array<any>;
     optionTemp = [];
     tableData.columns.forEach((itm: any) => {
       optionTemp.push({ value: itm.column_name });
