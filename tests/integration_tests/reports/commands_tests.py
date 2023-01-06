@@ -18,8 +18,8 @@ import json
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from unittest.mock import call, Mock, patch
-from uuid import uuid4
+from unittest.mock import ANY, call, Mock, patch
+from uuid import UUID, uuid4
 
 import pytest
 from flask import current_app
@@ -697,7 +697,7 @@ def test_email_chart_report_schedule_alpha_owner(
     # setup screenshot mock
     username = ""
 
-    def _screenshot_side_effect(user: User) -> Optional[bytes]:
+    def _screenshot_side_effect(user: User, **kwargs) -> Optional[bytes]:
         nonlocal username
         username = user.username
 
@@ -781,7 +781,9 @@ def test_email_chart_report_schedule_force_screenshot(
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+@patch("superset.utils.webdriver.logger.debug")
 def test_email_chart_alert_schedule(
+    logger_mock,
     screenshot_mock,
     email_mock,
     create_alert_email_chart,
@@ -811,6 +813,12 @@ def test_email_chart_alert_schedule(
         assert smtp_images[list(smtp_images.keys())[0]] == SCREENSHOT_FILE
         # Assert logs are correct
         assert_log(ReportState.SUCCESS)
+
+        screenshot_mock.assert_called_with(
+            user=create_alert_email_chart.owners[0], execution_id=ANY
+        )
+
+        logger_mock.assert_called_with("foo")
 
 
 @pytest.mark.usefixtures(

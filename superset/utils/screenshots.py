@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import logging
 from io import BytesIO
-from typing import Optional, TYPE_CHECKING, Union
+from typing import cast, Optional, TYPE_CHECKING, TypedDict, Union
+from uuid import UUID
 
 from flask import current_app
 
@@ -43,6 +44,12 @@ if TYPE_CHECKING:
     from flask_caching import Cache
 
 
+class ScreenshotDetails(TypedDict, total=False):
+    execution_id: Optional[UUID]
+    window_size: Optional[WindowSize]
+    thumb_size: Optional[WindowSize]
+
+
 class BaseScreenshot:
     driver_type = current_app.config["WEBDRIVER_TYPE"]
     thumbnail_type: str = ""
@@ -50,10 +57,11 @@ class BaseScreenshot:
     window_size: WindowSize = (800, 600)
     thumb_size: WindowSize = (400, 300)
 
-    def __init__(self, url: str, digest: str):
+    def __init__(self, url: str, digest: str, execution_id: Optional[UUID]):
         self.digest: str = digest
         self.url = url
         self.screenshot: Optional[bytes] = None
+        self.execution_id = execution_id
 
     def driver(self, window_size: Optional[WindowSize] = None) -> WebDriverProxy:
         window_size = window_size or self.window_size
@@ -76,10 +84,17 @@ class BaseScreenshot:
         return md5_sha_from_dict(args)
 
     def get_screenshot(
-        self, user: User, window_size: Optional[WindowSize] = None
+        self,
+        user: User,
+        window_size: Optional[WindowSize] = None,
     ) -> Optional[bytes]:
         driver = self.driver(window_size)
-        self.screenshot = driver.get_screenshot(self.url, self.element, user)
+        self.screenshot = driver.get_screenshot(
+            url=self.url,
+            element_name=self.element,
+            user=user,
+            execution_id=self.execution_id,
+        )
         return self.screenshot
 
     def get(
@@ -204,41 +219,30 @@ class ChartScreenshot(BaseScreenshot):
     thumbnail_type: str = "chart"
     element: str = "chart-container"
 
-    def __init__(
-        self,
-        url: str,
-        digest: str,
-        window_size: Optional[WindowSize] = None,
-        thumb_size: Optional[WindowSize] = None,
-    ):
-        # Chart reports are in standalone="true" mode
+    def __init__(self, url: str, digest: str, *args: ScreenshotDetails):
+        # Chart reports and thumbnails are in standalone="true" mode
         url = modify_url_query(
             url,
             standalone=ChartStandaloneMode.HIDE_NAV.value,
         )
-        super().__init__(url, digest)
-        self.window_size = window_size or (800, 600)
-        self.thumb_size = thumb_size or (800, 600)
+        options = cast(ScreenshotDetails, {*args})
+        super().__init__(url, digest, options.get("execution_id"))
+        self.window_size = options.get("window_size") or (800, 600)
+        self.thumb_size = options.get("thumb_size") or (800, 600)
 
 
 class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "standalone"
 
-    def __init__(
-        self,
-        url: str,
-        digest: str,
-        window_size: Optional[WindowSize] = None,
-        thumb_size: Optional[WindowSize] = None,
-    ):
+    def __init__(self, url: str, digest: str, *args: ScreenshotDetails):
         # per the element above, dashboard screenshots
         # should always capture in standalone
         url = modify_url_query(
             url,
             standalone=DashboardStandaloneMode.REPORT.value,
         )
-
-        super().__init__(url, digest)
-        self.window_size = window_size or (1600, 1200)
-        self.thumb_size = thumb_size or (800, 600)
+        options = cast(ScreenshotDetails, {*args})
+        super().__init__(url, digest, options.get("execution_id"))
+        self.window_size = options.get("window_size") or (1600, 1200)
+        self.thumb_size = options.get("thumb_size") or (800, 600)

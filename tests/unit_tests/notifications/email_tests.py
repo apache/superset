@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import uuid
+
 import pandas as pd
 
 
@@ -41,6 +43,7 @@ def test_render_description_with_html() -> None:
             "notification_source": None,
             "chart_id": None,
             "dashboard_id": None,
+            "execution_id": uuid.uuid4(),
         },
     )
     email_body = (

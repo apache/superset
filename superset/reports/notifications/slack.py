@@ -180,7 +180,10 @@ Error: %(text)s
                     )
             else:
                 client.chat_postMessage(channel=channel, text=body)
-            logger.info("Report sent to slack")
+            logger.info(
+                "Report sent to slack. Execution id is %s",
+                self._content.header_data["execution_id"],
+            )
         except (
             BotUserAccessError,
             SlackRequestError,

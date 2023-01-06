@@ -21,6 +21,7 @@ import logging
 from enum import Enum
 from time import sleep
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from uuid import UUID
 
 from flask import current_app
 from selenium.common.exceptions import (
@@ -165,7 +166,11 @@ class WebDriverProxy:
             pass
 
     def get_screenshot(
-        self, url: str, element_name: str, user: User
+        self,
+        url: str,
+        element_name: str,
+        user: User,
+        execution_id: Optional[UUID] = None,
     ) -> Optional[bytes]:
         driver = self.auth(user)
         driver.set_window_size(*self._window)
@@ -174,7 +179,6 @@ class WebDriverProxy:
         selenium_headstart = current_app.config["SCREENSHOT_SELENIUM_HEADSTART"]
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)
-
         try:
             logger.debug("Wait for the presence of %s", element_name)
             element = WebDriverWait(driver, self._screenshot_locate_wait).until(
@@ -198,10 +202,11 @@ class WebDriverProxy:
             ]
             logger.debug("Wait %i seconds for chart animation", selenium_animation_wait)
             sleep(selenium_animation_wait)
-            logger.debug(
-                "Taking a PNG screenshot of url %s as user %s",
+            logger.info(
+                "Taking a PNG screenshot of url %s as user %s with execution_id: %s",
                 url,
                 user.username,
+                execution_id,
             )
 
             if current_app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"]:

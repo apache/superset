@@ -26,7 +26,11 @@ from superset import security_manager, thumbnail_cache
 from superset.extensions import celery_app
 from superset.tasks.utils import get_executor
 from superset.utils.core import override_user
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardScreenshot,
+    ScreenshotDetails,
+)
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WindowSize
 
@@ -47,6 +51,8 @@ def cache_chart_thumbnail(
     if not thumbnail_cache:
         logger.warning("No cache set, refusing to compute")
         return None
+
+    task_id = None
     chart = cast(Slice, Slice.get(chart_id))
     url = get_url_path("Superset.slice", slice_id=chart.id)
     logger.info("Caching chart: %s", url)
@@ -57,7 +63,8 @@ def cache_chart_thumbnail(
     )
     user = security_manager.find_user(username)
     with override_user(user):
-        screenshot = ChartScreenshot(url, chart.digest)
+        options = ScreenshotDetails(execution_id=task_id)
+        screenshot = ChartScreenshot(url, chart.digest, options)
         screenshot.compute_and_cache(
             user=user,
             cache=thumbnail_cache,
@@ -81,6 +88,8 @@ def cache_dashboard_thumbnail(
     if not thumbnail_cache:
         logging.warning("No cache set, refusing to compute")
         return
+
+    task_id = None
     dashboard = Dashboard.get(dashboard_id)
     url = get_url_path("Superset.dashboard", dashboard_id_or_slug=dashboard.id)
 
@@ -91,8 +100,10 @@ def cache_dashboard_thumbnail(
         current_user=current_user,
     )
     user = security_manager.find_user(username)
+    task_id = cache_dashboard_thumbnail.request.id
     with override_user(user):
-        screenshot = DashboardScreenshot(url, dashboard.digest)
+        options = ScreenshotDetails(execution_id=task_id)
+        screenshot = DashboardScreenshot(url, dashboard.digest, options)
         screenshot.compute_and_cache(
             user=user,
             cache=thumbnail_cache,

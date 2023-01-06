@@ -89,7 +89,9 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
         url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
-        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
+        webdriver_proxy.get_screenshot(
+            url=url, element_name="grid-container", user=user
+        )
 
         assert not mock_find_unexpected_errors.called
 
@@ -105,7 +107,9 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
         url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
-        webdriver_proxy.get_screenshot(url, "grid-container", user=user)
+        webdriver_proxy.get_screenshot(
+            url=url, element_name="grid-container", user=user
+        )
 
         assert mock_find_unexpected_errors.called
 
@@ -155,7 +159,7 @@ class TestWebDriverProxy(SupersetTestCase):
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_HEADSTART"] = 5
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url=url, element_name="chart-container", user=user)
         assert mock_sleep.call_args_list[0] == call(5)
 
     @patch("superset.utils.webdriver.WebDriverWait")
@@ -167,7 +171,7 @@ class TestWebDriverProxy(SupersetTestCase):
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url=url, element_name="chart-container", user=user)
         assert mock_webdriver_wait.call_args_list[0] == call(ANY, 15)
 
     @patch("superset.utils.webdriver.WebDriverWait")
@@ -179,7 +183,7 @@ class TestWebDriverProxy(SupersetTestCase):
             app.config["THUMBNAIL_SELENIUM_USER"]
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url=url, element_name="chart-container", user=user)
         assert mock_webdriver_wait.call_args_list[2] == call(ANY, 15)
 
     @patch("superset.utils.webdriver.WebDriverWait")
@@ -194,8 +198,46 @@ class TestWebDriverProxy(SupersetTestCase):
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"] = 4
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url=url, element_name="chart-container", user=user)
         assert mock_sleep.call_args_list[1] == call(4)
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    @patch("superset.utils.webdriver.logger")
+    def test_screenshot_logging(self, logger_mock, mock_webdriver, mock_webdriver_wait):
+        webdriver = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
+        webdriver.get_screenshot(url=url, element_name="chart-container", user=user)
+        logger_mock.info.assert_called_with(
+            "Taking a PNG screenshot of url %s as user %s with execution_id: %s",
+            "http://0.0.0.0:8081/superset/slice/1/?standalone=true",
+            "admin",
+            None,
+        )
+
+    @patch("superset.utils.webdriver.WebDriverWait")
+    @patch("superset.utils.webdriver.firefox")
+    @patch("superset.utils.webdriver.logger")
+    def test_screenshot_logging_with_execution_id(
+        self, logger_mock, mock_webdriver, mock_webdriver_wait
+    ):
+        webdriver = WebDriverProxy("firefox")
+        user = security_manager.get_user_by_username(
+            app.config["THUMBNAIL_SELENIUM_USER"]
+        )
+        url = get_url_path("Superset.slice", slice_id=1, standalone="true")
+        webdriver.get_screenshot(
+            url=url, element_name="chart-container", user=user, execution_id="12345"
+        )
+        logger_mock.info.assert_called_with(
+            "Taking a PNG screenshot of url %s as user %s with execution_id: %s",
+            "http://0.0.0.0:8081/superset/slice/1/?standalone=true",
+            "admin",
+            "12345",
+        )
 
 
 class TestThumbnails(SupersetTestCase):

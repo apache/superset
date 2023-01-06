@@ -73,7 +73,11 @@ from superset.tasks.utils import get_executor
 from superset.utils.celery import session_scope
 from superset.utils.core import HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardScreenshot,
+    ScreenshotDetails,
+)
 from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
@@ -204,18 +208,22 @@ class BaseReportState:
         )
         user = security_manager.find_user(username)
         if self._report_schedule.chart:
-            screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
-                url,
-                self._report_schedule.chart.digest,
+            chart_options = ScreenshotDetails(
+                execution_id=self._execution_id,
                 window_size=app.config["WEBDRIVER_WINDOW"]["slice"],
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
             )
+            screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
+                url, self._report_schedule.chart.digest, chart_options
+            )
         else:
-            screenshot = DashboardScreenshot(
-                url,
-                self._report_schedule.dashboard.digest,
+            dashboard_options = ScreenshotDetails(
+                execution_id=self._execution_id,
                 window_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
                 thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+            )
+            screenshot = DashboardScreenshot(
+                url, self._report_schedule.dashboard.digest, dashboard_options
             )
         try:
             image = screenshot.get_screenshot(user=user)
@@ -324,6 +332,7 @@ class BaseReportState:
             "chart_id": chart_id,
             "dashboard_id": dashboard_id,
             "owners": self._report_schedule.owners,
+            "execution_id": self._execution_id,
         }
         return log_data
 
@@ -453,7 +462,9 @@ class BaseReportState:
             self._execution_id,
         )
         notification_content = NotificationContent(
-            name=name, text=message, header_data=header_data
+            name=name,
+            text=message,
+            header_data=header_data,
         )
 
         # filter recipients to recipients who are also owners

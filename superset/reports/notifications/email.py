@@ -187,6 +187,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def send(self) -> None:
         subject = self._get_subject()
         content = self._get_content()
+        execution_id = content.header_data and content.header_data.get("execution_id")
         to = self._get_to()
         try:
             send_email_smtp(
@@ -203,7 +204,8 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 header_data=content.header_data,
             )
             logger.info(
-                "Report sent to email, notification content is %s", content.header_data
+                "Report sent to email. Execution_id is %s",
+                execution_id,
             )
         except SupersetErrorsException as ex:
             raise NotificationError(
