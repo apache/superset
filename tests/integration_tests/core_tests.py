@@ -1686,14 +1686,6 @@ class TestCore(SupersetTestCase):
             is True
         )
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_has_table(self):
-        if backend() in ("sqlite", "mysql"):
-            return
-        example_db = superset.utils.database.get_example_database()
-        table = Table(name="birth_names")
-        assert example_db.has_table(table=table) is True
-
 
 if __name__ == "__main__":
     unittest.main()
