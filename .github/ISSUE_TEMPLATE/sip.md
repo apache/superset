@@ -1,7 +1,9 @@
 ---
 name: SIP
-about: Superset Improvement Proposal [See SIP-0](https://github.com/apache/superset/issues/5602)
+about: Superset Improvement Proposal (See SIP-0: https://github.com/apache/superset/issues/5602)
 labels: "#SIP"
+title: "[SIP] Your Title Here (do not add SIP number)"
+asignees: "apache/superset-committers"
 
 ---
 
