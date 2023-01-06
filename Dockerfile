@@ -21,6 +21,9 @@
 ARG PY_VER=3.8.13-slim
 FROM node:16-slim AS superset-node
 
+RUN apt-get update -y \
+    && apt-get install -y chromium
+
 ARG NPM_BUILD_CMD="build"
 ENV BUILD_CMD=${NPM_BUILD_CMD}
 
