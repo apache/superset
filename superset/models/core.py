@@ -744,13 +744,14 @@ class Database(
     def get_table(self, table_name: str, schema: Optional[str] = None) -> Table:
         extra = self.get_extra()
         meta = MetaData(**extra.get("metadata_params", {}))
-        return Table(
-            table_name,
-            meta,
-            schema=schema or None,
-            autoload=True,
-            autoload_with=self._get_sqla_engine(),
-        )
+        with self.get_sqla_engine_with_context() as engine:
+            return Table(
+                table_name,
+                meta,
+                schema=schema or None,
+                autoload=True,
+                autoload_with=engine,
+            )
 
     def get_table_comment(
         self, table_name: str, schema: Optional[str] = None
@@ -846,12 +847,12 @@ class Database(
         return self.perm  # type: ignore
 
     def has_table(self, table: Table) -> bool:
-        engine = self._get_sqla_engine()
-        return engine.has_table(table.table_name, table.schema or None)
+        with self.get_sqla_engine_with_context() as engine:
+            return engine.has_table(table.table_name, table.schema or None)
 
     def has_table_by_name(self, table_name: str, schema: Optional[str] = None) -> bool:
-        engine = self._get_sqla_engine()
-        return engine.has_table(table_name, schema)
+        with self.get_sqla_engine_with_context() as engine:
+            return engine.has_table(table_name, schema)
 
     @classmethod
     def _has_view(
