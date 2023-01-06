@@ -27,10 +27,12 @@ from typing import Dict, List
 from urllib.parse import quote
 
 import superset.utils.database
+from superset.utils.core import backend
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from sqlalchemy import Table
 
 import pytest
 import pytz
@@ -79,6 +81,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -1672,6 +1675,16 @@ class TestCore(SupersetTestCase):
             f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
         )
         self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_has_table_by_name(self):
+        if backend() in ("sqlite", "mysql"):
+            return
+        example_db = superset.utils.database.get_example_database()
+        assert (
+            example_db.has_table_by_name(table_name="birth_names", schema="public")
+            is True
+        )
 
 
 if __name__ == "__main__":
