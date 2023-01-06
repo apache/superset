@@ -9,11 +9,11 @@ import { SupersetTheme, useTheme } from '@superset-ui/core';
 
 const { Title } = Typography;
 interface IProsp {
-  onShowUploadUI: () => void
+  onShowUploadUI: () => void;
 }
 const HeaderPage = (props: IProsp) => {
   const theme: SupersetTheme = useTheme();
-  const { onShowUploadUI } = props
+  const { onShowUploadUI } = props;
 
   return (
     <Row>

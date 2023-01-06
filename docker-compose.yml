@@ -29,6 +29,18 @@ x-superset-volumes: &superset-volumes
 
 version: "3.7"
 services:
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - $PWD/Caddyfile:/etc/caddy/Caddyfile
+      - $PWD/site:/srv
+
+
   redis:
     image: redis:latest
     container_name: superset_cache
@@ -156,18 +168,7 @@ services:
     volumes: *superset-volumes
     healthcheck:
       test: ["CMD-SHELL", "celery inspect ping -A superset.tasks.celery_app:app -d celery@$$HOSTNAME"]
-  # caddy:
-  #   image: caddy:latest
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
 
-    # volumes:
-    #   - $PWD/Caddyfile:/etc/caddy/Caddyfile
-    #   - $PWD/site:/srv
-    #   - caddy_data:/data
-    #   - caddy_config:/config
 
 volumes:
   # caddy_data:

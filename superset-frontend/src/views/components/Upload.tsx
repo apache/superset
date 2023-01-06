@@ -120,7 +120,7 @@ const StyleProgressBarCount = styled.div`
 `
 
 const UploadCsv = () => {
-    const [progress, setProgress] = useState(0)
+    const [progress] = useState(0)
     const { Dragger } = Upload;
     const [showProgressBarModal, setShowProgressBarModal] = useState(false)
 
@@ -146,11 +146,12 @@ const UploadCsv = () => {
                 '100%': '#87d068',
             },
             strokeWidth: 3,
-            format: (percent) => {
-                percent &&
-                    setProgress(parseFloat(percent.toFixed(0)))
-                setShowProgressBarModal(true)
-            },
+            //TODO: Uncomment me.
+            // format: (percent) => {
+            //     percent &&
+            //         setProgress(parseFloat(percent.toFixed(0)))
+            //     setShowProgressBarModal(true)
+            // },
         },
     };
 
@@ -198,9 +199,9 @@ const UploadCsv = () => {
                     <div className='upload-text'>uploaded</div>
                 </StyleProgressBarCount>
                 <StyleProgressBar>
-                    <div className="progress-bar" role="progressbar" aria-valuenow={`${progress}`} aria-valuemin="0" aria-valuemax="100" style={{ width: `${progress}%` }}>
-                        <span className="sr-only">70% Complete</span>
-                    </div>
+                    {/*<div className="progress-bar" role="progressbar" aria-valuenow={`${progress}`} aria-valuemin="0" aria-valuemax="100" style={{ width: `${progress}%` }}>*/}
+                    {/*    <span className="sr-only">70% Complete</span>*/}
+                    {/*</div>*/}
                 </StyleProgressBar>
             </Modal>
 

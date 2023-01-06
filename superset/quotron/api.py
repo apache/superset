@@ -6,15 +6,17 @@ import requests
 import sqlparse
 from flask import g, request, Response
 from flask_appbuilder.api import BaseApi, expose
-# from sql_metadata import Parser
+from sql_metadata import Parser
 
 from superset.charts.commands.create import CreateChartCommand
 from superset.charts.schemas import ChartPostSchema
+from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.datasets.dao import DatasetDAO
 from superset.extensions import event_logger, cache_manager
-from superset.quotron.DataTypes import Autocomplete, QuotronChart, Params, Answer
+from superset.quotron.DataTypes import Autocomplete, QuotronChart, Params, Answer, \
+    QuotronQueryContext
 from superset.quotron.schemas import AutoCompleteSchema, QuestionSchema, AnswerSchema
 from superset.superset_typing import AdhocMetric, AdhocColumn
 from superset.utils.core import DatasourceDict, AdhocFilterClause, \
@@ -36,7 +38,7 @@ def get_where_clause(sql):
 
 class QuotronRestApi(BaseApi):
     include_route_methods = {
-        "auto_complete", "answer"
+        "auto_complete", "answer", "answer_debug"
     }
     resource_name = "quotron"
     openapi_spec_tag = "Quotron"
@@ -66,14 +68,60 @@ class QuotronRestApi(BaseApi):
         schema = AutoCompleteSchema()
         result = schema.dump(autocomplete)
         return self.response(200, result = [result])
-
-
     @expose("/answer/", methods=["POST"])
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
         log_to_statsd=False,
     )
     def answer(self) -> Response:
+        """
+        Takes a natural langauge question and generate a corresponding graph/ slice
+        ---
+        post:
+          description: >-
+            Takes a natural langauge question and generate a corresponding graph/ slice
+          requestBody:
+            description: >-
+              Question context that has natural langauge question and metadata
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/QuestionSchema"
+                example:
+                    {
+                    "question": "what is the highest revenue?"
+                    }
+
+
+          responses:
+            200:
+              description: Query result
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/AnswerSchema"
+
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        req = QuestionSchema().load(request.json)
+        question = req['question']
+        answer = Answer(question=question, answer='{placeholder}', slice_id=1322)
+        schema = AnswerSchema()
+        result = schema.dump(answer)
+        return self.response(200, result=result)
+
+    @expose("/answer_debug/", methods=["POST"])
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
+        log_to_statsd=False,
+    )
+    def answer_debug(self) -> Response:
         """
         Takes a natural langauge question and generate a corresponding graph/ slice
         ---
@@ -134,15 +182,15 @@ class QuotronRestApi(BaseApi):
         for superset_column in superset_columns:
             superset_metrics.append(AdhocMetric(aggregate='AVG', column=superset_column, expressionType='SIMPLE'))
 
-        series_limit_metric = AdhocMetric(aggregate='AVG', column=get_column_from_name('calendar_Year'),expressionType='SIMPLE' )
+        series_limit_metric = AdhocMetric(aggregate='AVG', column=get_column_from_name('calendar_year'),expressionType='SIMPLE' )
 
-        datasource = DatasourceDict(type="table",id="24")
+        datasource = DatasourceDict(type="table",id=str(table.id))
         extras = {
 			"having": "",
 			"where": where_clause
 		}
 
-        queryObject = QueryObject(datasource=datasource,columns = superset_columns,
+        queryObject = QueryObject(datasource=json.dumps(datasource),columns = superset_columns,
                                   metrics = superset_metrics, series_limit_metric = series_limit_metric, row_limit = 10000, extras=extras)
 
         qc = QueryContextFactory().create(
@@ -157,21 +205,22 @@ class QuotronRestApi(BaseApi):
 		"sqlExpression": where_clause,
 		"clause": "WHERE",
 	}]
-        params = Params(datasource="24__table", viz_type="echarts_timeseries_bar",
+        params = Params(datasource=datasource['id'] + '__' + datasource['type'], viz_type="dist_bar",
                         time_range="No Filter",
-                        metrics=superset_metrics,groupby=["calendar_Year"],
+                        metrics=superset_metrics,groupby=["calendar_year"],
                         timeseries_limit_metric=series_limit_metric,
                         order_desc=False,
                         adhoc_filters=adhoc_filters,
                         zoomable = True,
                         time_grain_sqla=None)
-        quotronChart = QuotronChart(slice_name=question, viz_type="echarts_timeseries_bar",datasource_id=24, datasource_type="table",
-                                    query_context=json.dumps(qc.__dict__, default=lambda o: '<not serializable>'),
+        quotronQueryContext = QuotronQueryContext(datasource=datasource, queries=qc.queries, result_format=qc.result_format, result_type=qc.result_type )
+        quotronChart = QuotronChart(slice_name=question, viz_type="dist_bar",datasource_id=table.id, datasource_type="table",
+                                    query_context=json.dumps(quotronQueryContext, default=lambda o: o.__dict__, indent=4),
                                     params =json.dumps(params.__dict__, default=lambda o: '<not serializable>'))
         result = add_model_schema.dump(quotronChart)
         new_model = CreateChartCommand(result).run()
         logger.info(new_model)
-        answer = Answer(question=question, answer='{placeholder}', chart_id=new_model.id)
+        answer = Answer(question=question, answer='{placeholder}', slice_id=new_model.id)
         schema = AnswerSchema()
         result = schema.dump(answer)
         return self.response(200, result = result)
@@ -185,3 +234,811 @@ def get_table_from_name(table_name):
 def get_column_from_name(column_name):
     column = DatasetDAO.find_column_by_name(column_name)
     return AdhocColumn(columnType=column.type, id=column.id, column_name = column.column_name, groupby = True)
+
+def serialize_query_context(qc: QueryContext):
+    datasource = DatasourceDict(type=qc.datasource.type, id=str(qc.datasource.id))
+    return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

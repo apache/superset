@@ -5,10 +5,10 @@ class Autocomplete:
         self.email = email
         self.time = time
 class Answer:
-    def __init__(self, question, answer, chart_id):
+    def __init__(self, question, answer, slice_id):
         self.question = question
         self.answer = answer
-        self.chart_id = chart_id
+        self.slice_id = slice_id
 
 class QuotronChart:
     def __init__(self, slice_name, viz_type, datasource_id, datasource_type, query_context, params ):
@@ -37,3 +37,9 @@ class Params:
 
 
 
+class QuotronQueryContext:
+    def __init__(self, datasource, queries, result_format, result_type):
+        self.datasource = datasource
+        self.queries = queries
+        self.result_format = result_format
+        self.result_type = result_type
