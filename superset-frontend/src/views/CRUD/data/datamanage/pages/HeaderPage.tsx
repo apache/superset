@@ -8,9 +8,13 @@ import {
 import { SupersetTheme, useTheme } from '@superset-ui/core';
 
 const { Title } = Typography;
-
-const HeaderPage = () => {
+interface IProsp {
+  onShowUploadUI: () => void;
+}
+const HeaderPage = (props: IProsp) => {
   const theme: SupersetTheme = useTheme();
+  const { onShowUploadUI } = props;
+
   return (
     <Row>
       <Col span="12">
@@ -42,6 +46,7 @@ const HeaderPage = () => {
           </Button>
           <Button
             type="primary"
+            onClick={onShowUploadUI}
             icon={<DownloadOutlined />}
             size="large"
             style={{

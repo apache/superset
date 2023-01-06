@@ -23,6 +23,7 @@ import {
 import {
   AppstoreOutlined,
   FilterOutlined,
+  PlusOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
   UserOutlined,
@@ -178,9 +179,12 @@ const ContentPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = async (column: any) => {
     await setColumnData(column);
-    await setColumnName(column.column_name);
-    await setColumnDescription(column.description);
-    await setColumnExpression(column.expression);
+    if (column.column_name) await setColumnName(column.column_name);
+    else await setColumnName('calculated_column');
+    if (column.description) await setColumnDescription(column.description);
+    else await setColumnDescription('');
+    if (column.expression) await setColumnExpression(column.expression);
+    else await setColumnExpression('');
     setIsModalOpen(true);
   };
   const handleOk = () => {
@@ -242,6 +246,34 @@ const ContentPage = () => {
       )
       .finally(() => {});
   };
+
+  const handleColumnAdd = () => {
+    const now = new Date();
+    const newElement = {
+      advanced_data_type: null,
+      changed_on: now.toISOString(),
+      column_name: columnName,
+      created_on: now.toISOString(),
+      description: columnDescription,
+      expression: columnExpression,
+      extra: '{"warning_markdown":null}',
+      filterable: true,
+      groupby: true,
+      id: -1,
+      is_active: null,
+      is_dttm: false,
+      python_date_format: null,
+      type: 'TEXT',
+      type_generic: 1,
+      uuid: '',
+      verbose_name: null,
+    };
+    setTableData({
+      ...tableData,
+      columns: [...tableData.columns, newElement],
+    });
+  };
+
   const handleColumnSave = async () => {
     await setTableData({
       ...tableData,
@@ -256,8 +288,8 @@ const ContentPage = () => {
           : column,
       ),
     });
-
     setIsModalOpen(false);
+    handleColumnAdd();
   };
   const handleEditTableSave = () => {
     actionTableSave();
@@ -627,9 +659,18 @@ const ContentPage = () => {
             setTableDescription(e.target.value);
           }}
         />
-        <Title level={4} style={{ marginTop: '24px' }}>
-          Columes
-        </Title>
+        <Row
+          justify="space-between"
+          align="middle"
+          style={{ marginTop: '24px' }}
+        >
+          <Title level={4}>Columes</Title>
+          <Button
+            icon={<PlusOutlined />}
+            size="large"
+            onClick={() => showModal('')}
+          />
+        </Row>
         {tableData?.columns?.map((column: any) => (
           <Card
             style={{ width: '100%', marginBottom: '12px', marginTop: '12px' }}
