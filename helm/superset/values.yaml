@@ -278,8 +278,11 @@ supersetNode:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -timeout 120s
+
   # -- Annotations to be added to supersetNode deployment
   deploymentAnnotations: {}
+  # -- Labels to be added to supersetNode deployment
+  deploymentLabels: {}
   # -- Annotations to be added to supersetNode pods
   podAnnotations: {}
   # -- Labels to be added to supersetNode pods
@@ -355,6 +358,8 @@ supersetWorker:
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
   # -- Annotations to be added to supersetWorker deployment
   deploymentAnnotations: {}
+  # -- Labels to be added to supersetWorker deployment
+  deploymentLabels: {}
   # -- Annotations to be added to supersetWorker pods
   podAnnotations: {}
   # -- Labels to be added to supersetWorker pods
