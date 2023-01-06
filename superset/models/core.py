@@ -429,6 +429,19 @@ class Database(
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex)
 
+    @contextmanager
+    def get_raw_connection(
+        self,
+        schema: Optional[str] = None,
+        nullpool: bool = True,
+        source: Optional[utils.QuerySource] = None,
+    ) -> Connection:
+        with self.get_sqla_engine_with_context(
+            schema=schema, nullpool=nullpool, source=source
+        ) as engine:
+            with closing(engine.raw_connection()) as conn:
+                yield conn
+
     @property
     def quote_identifier(self) -> Callable[[str], str]:
         """Add quotes to potential identifiter expressions if needed"""
