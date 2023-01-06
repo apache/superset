@@ -158,7 +158,11 @@ const ContentPage = () => {
 
   const onSelect = (value: string) => {
     console.log('onSelect', value);
-    setColumnExpression(value);
+    setColumnExpression(columnExpression + value);
+  };
+
+  const handleChange = (e) => {
+    setColumnExpression(e.target.value);
   };
 
   const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
@@ -797,6 +801,7 @@ const ContentPage = () => {
         <AutoComplete
           style={{ width: '100%' }}
           options={options}
+          value={columnExpression}
           onSelect={onSelect}
           onSearch={handleSearch}
         >
@@ -805,6 +810,7 @@ const ContentPage = () => {
             className="custom"
             style={{ height: 50 }}
             onKeyPress={handleKeyPress}
+            onChange={handleChange}
           />
         </AutoComplete>
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
