@@ -97,40 +97,7 @@ const ContentPage = () => {
 
   const [options, setOptions] = useState<{ value: string }[]>([]);
 
-  const handleSearch = (value: string) => {
-    const optionTemp: Array<any>;
-    optionTemp = [];
-    tableData.columns.map((itm: any) => {
-      optionTemp.push({ value: itm.column_name });
-    });
-
-    setOptions(!value ? [] : optionTemp);
-  };
-
-  const handleKeyPress = (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    console.log('handleKeyPress', ev);
-  };
-
-  const onSelect = (value: string) => {
-    console.log('onSelect', value);
-    setColumnExpression(value);
-  };
-
-  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchtext(ev.target.value);
-  };
-
-  const handleSort = () => {
-    setSort((sort + 1) % 3);
-  };
-
-  const handleOwner = (ev: any) => {
-    setOwner(ev.key);
-  };
-
-  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
-    setDatasourceOne(ev.target.checked);
-  };
+  
 
   useEffect(() => {
     if (!data.length) return;
@@ -177,6 +144,41 @@ const ContentPage = () => {
     setFilteredTableData(tempData);
   }, [searchtext, data, sort, owner, datasourceOne]);
 
+
+  const handleSearch = (value: string) => {
+    const optionTemp: Array<any>;
+    optionTemp = [];
+    tableData.columns.map((itm: any) => {
+      optionTemp.push({ value: itm.column_name });
+    });
+
+    setOptions(!value ? [] : optionTemp);
+  };
+
+  const handleKeyPress = (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    console.log('handleKeyPress', ev);
+  };
+
+  const onSelect = (value: string) => {
+    console.log('onSelect', value);
+    setColumnExpression(value);
+  };
+
+  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchtext(ev.target.value);
+  };
+
+  const handleSort = () => {
+    setSort((sort + 1) % 3);
+  };
+
+  const handleOwner = (ev: any) => {
+    setOwner(ev.key);
+  };
+
+  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
+    setDatasourceOne(ev.target.checked);
+  };
   const theme: SupersetTheme = useTheme();
 
   const showLargeDrawer = (e: any) => {
