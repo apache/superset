@@ -434,7 +434,6 @@ class TestQueryApi(SupersetTestCase):
         self.assertEqual(len(data["result"]), 1)
         for key, value in data["result"][0].items():
             # We can't assert timestamp
-            print(key)
             if key not in (
                 "changedOn",
                 "changed_on",
