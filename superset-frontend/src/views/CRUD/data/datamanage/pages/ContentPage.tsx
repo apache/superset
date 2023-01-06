@@ -97,8 +97,6 @@ const ContentPage = () => {
 
   const [options, setOptions] = useState<{ value: string }[]>([]);
 
-  
-
   useEffect(() => {
     if (!data.length) return;
     let tempData: DataProperties[] = [];
@@ -144,11 +142,10 @@ const ContentPage = () => {
     setFilteredTableData(tempData);
   }, [searchtext, data, sort, owner, datasourceOne]);
 
-
   const handleSearch = (value: string) => {
     const optionTemp: Array<any>;
     optionTemp = [];
-    tableData.columns.map((itm: any) => {
+    tableData.columns.forEach((itm: any) => {
       optionTemp.push({ value: itm.column_name });
     });
 
