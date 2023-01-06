@@ -144,7 +144,7 @@ const ContentPage = () => {
 
   const handleSearch = (value: string) => {
     // eslint-disable-next-line
-    const optionTemp: Array<any> =[];
+    const optionTemp: Array<any> = [];
     tableData.columns.forEach(function (itm: any) {
       optionTemp.push({ value: itm.column_name });
     });
