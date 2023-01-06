@@ -143,8 +143,11 @@ const ContentPage = () => {
   }, [searchtext, data, sort, owner, datasourceOne]);
 
   const handleSearch = (value: string) => {
+    /* prettier-ignore */
     const optionTemp: Array<any> =[];
+    /* prettier-ignore */
     tableData.columns.forEach(function (itm: any) {
+      /* prettier-ignore */
       optionTemp.push({ value: itm.column_name });
     });
 
