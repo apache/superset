@@ -106,6 +106,10 @@ ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
+# customize the polling time of each engine. The default time is 5 seconds
+DB_POLL_INTERVAL_SECONDS = {
+    "hive": int(timedelta(seconds=5).total_seconds()),
+}
 
 SQLLAB_CTAS_NO_LIMIT = True
 
