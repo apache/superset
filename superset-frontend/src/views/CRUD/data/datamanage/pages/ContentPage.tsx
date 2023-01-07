@@ -19,6 +19,7 @@ import {
   Switch,
   Dropdown,
   notification,
+  AutoComplete,
 } from 'antd';
 import {
   AppstoreOutlined,
@@ -94,21 +95,7 @@ const ContentPage = () => {
   const [columnExpression, setColumnExpression] = useState('');
   const [searchtext, setSearchtext] = useState('');
 
-  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchtext(ev.target.value);
-  };
-
-  const handleSort = () => {
-    setSort((sort + 1) % 3);
-  };
-
-  const handleOwner = (ev: any) => {
-    setOwner(ev.key);
-  };
-
-  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
-    setDatasourceOne(ev.target.checked);
-  };
+  const [options, setOptions] = useState<{ value: string }[]>([]);
 
   useEffect(() => {
     if (!data.length) return;
@@ -155,6 +142,44 @@ const ContentPage = () => {
     setFilteredTableData(tempData);
   }, [searchtext, data, sort, owner, datasourceOne]);
 
+  const handleSearch = (value: string) => {
+    // eslint-disable-next-line
+    const optionTemp: Array<any> = [];
+    tableData.columns.forEach(function (itm: any) {
+      optionTemp.push({ value: itm.column_name });
+    });
+
+    setOptions(!value ? [] : optionTemp);
+  };
+
+  const handleKeyPress = (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    console.log('handleKeyPress', ev);
+  };
+
+  const onSelect = (value: string) => {
+    console.log('onSelect', value);
+    setColumnExpression(columnExpression + value);
+  };
+
+  const handleChange = (value: string) => {
+    setColumnExpression(value);
+  };
+
+  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchtext(ev.target.value);
+  };
+
+  const handleSort = () => {
+    setSort((sort + 1) % 3);
+  };
+
+  const handleOwner = (ev: any) => {
+    setOwner(ev.key);
+  };
+
+  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
+    setDatasourceOne(ev.target.checked);
+  };
   const theme: SupersetTheme = useTheme();
 
   const showLargeDrawer = (e: any) => {
@@ -182,6 +207,7 @@ const ContentPage = () => {
     await setColumnName(column.column_name);
     await setColumnDescription(column.description);
     await setColumnExpression(column.expression);
+
     setIsModalOpen(true);
   };
   const handleOk = () => {
@@ -207,6 +233,8 @@ const ContentPage = () => {
   };
 
   const actionTableSave = async () => {
+    console.log(tableData, 12111111111111);
+
     await SupersetClient.post({
       endpoint: '/datasource/save/',
       postPayload: {
@@ -253,7 +281,7 @@ const ContentPage = () => {
       created_on: now.toISOString(),
       description: null,
       expression: null,
-      extra: '{"warning_markdown":null}',
+      extra: '{}',
       filterable: true,
       groupby: true,
       id: -1,
@@ -281,6 +309,7 @@ const ContentPage = () => {
               column_name: columnName,
               description: columnDescription,
               expression: columnExpression,
+              type: 'DOUBLE_PRECISION',
             }
           : column,
       ),
@@ -288,8 +317,58 @@ const ContentPage = () => {
 
     setIsModalOpen(false);
   };
+
+  const actionColumnSave = async () => {
+    await SupersetClient.put({
+      endpoint: `/api/v1/dataset/${tableData.id}?override_columns=true`,
+      jsonPayload: {
+        columns: tableData.columns.map((column: any) => {
+          return column.id !== -1
+            ? {
+                advanced_data_type: column.advanced_data_type,
+                column_name: column.column_name,
+                description: column.description,
+                expression: column.expression,
+                extra: column.extra,
+                filterable: column.filterable,
+                groupby: column.groupby,
+                id: column.id,
+                is_dttm: column.is_dttm,
+                python_date_format: column.python_date_format,
+                type: column.type,
+                uuid: column.uuid,
+                verbose_name: column.verbose_name,
+              }
+            : {
+                column_name: column.column_name,
+                description: column.description,
+                expression: column.expression,
+                extra: column.extra,
+                filterable: column.filterable,
+                groupby: column.groupby,
+                is_dttm: column.is_dttm,
+                python_date_format: column.python_date_format,
+                type: column.type,
+                verbose_name: column.verbose_name,
+              };
+        }),
+      },
+    })
+      .then(async ({ json }) => {
+        notification.success({
+          message: 'Success',
+          description: 'Changed table successfully',
+        });
+        await actionGetData();
+        setOpen(false);
+      })
+      .catch(err => {
+        console.log('====== Save error ========', err);
+      });
+  };
+
   const handleEditTableSave = () => {
-    actionTableSave();
+    actionColumnSave();
   };
 
   useEffect(() => {
@@ -773,13 +852,23 @@ const ContentPage = () => {
             />
           </Col>
         </Row>
-        <TextArea
-          rows={4}
-          value={columnExpression}
-          onChange={(e: any) => {
-            setColumnExpression(e.target.value);
-          }}
-        />
+        <AutoComplete
+          style={{ width: '100%' }}
+          options={options}
+          defaultValue={columnExpression}
+          filterOption
+          onSelect={onSelect}
+          onSearch={handleSearch}
+          onChange={handleChange}
+        >
+          <TextArea
+            placeholder="input here"
+            className="custom"
+            value={columnExpression}
+            style={{ height: 50 }}
+            onKeyPress={handleKeyPress}
+          />
+        </AutoComplete>
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
           <Col span="12">
             <Button
