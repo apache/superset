@@ -107,7 +107,15 @@ class UploadToDatabaseForm(DynamicForm):
 class CsvToDatabaseForm(UploadToDatabaseForm):
     csv_file = FileField(
         _("CSV Upload"),
-        description=_("Select a file to be uploaded to the database"),
+        description=_(
+            "Select a file to be uploaded to a database. Max Size of the file should be "
+            + str(config["CSV_MAX_SIZES"] / 1048576)
+            + "  MB and the accepted extensions are: "
+            "%(allowed_extensions)s",
+            allowed_extensions=", ".join(
+                config["ALLOWED_EXTENSIONS"].intersection(config["CSV_EXTENSIONS"])
+            ),
+        ),
         validators=[
             FileRequired(),
             FileSize(
@@ -175,60 +183,6 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
             ("append", _("Append")),
         ],
         validators=[DataRequired()],
-    )
-    header = IntegerField(
-        _("Header Row"),
-        description=_(
-            "Row containing the headers to use as "
-            "column names (0 is first line of data). "
-            "Leave empty if there is no header row."
-        ),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    index_col = IntegerField(
-        _("Index Column"),
-        description=_(
-            "Column to use as the row labels of the "
-            "dataframe. Leave empty if no index column."
-        ),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    mangle_dupe_cols = BooleanField(
-        _("Mangle Duplicate Columns"),
-        description=_('Specify duplicate columns as "X.0, X.1".'),
-    )
-    usecols = JsonListField(
-        _("Use Columns"),
-        default=None,
-        description=_(
-            "Json list of the column names that should be read. "
-            "If not None, only these columns will be read from the file."
-        ),
-        validators=[Optional()],
-    )
-    skiprows = IntegerField(
-        _("Skip Rows"),
-        description=_("Number of rows to skip at start of file."),
-        validators=[Optional(), NumberRange(min=0)],
-        widget=BS3TextFieldWidget(),
-    )
-    nrows = IntegerField(
-        _("Rows to Read"),
-        description=_(
-            "Number of rows of file to read. Minimum "
-            + str(config["CSV_MIN_ROWS"])
-            + " and Maximum "
-            + str(config["CSV_MAX_ROWS"])
-            + " rows are allowed"
-        ),
-        validators=[
-            Optional(),
-            NumberRange(min=config["CSV_MIN_ROWS"]),
-            NumberRange(max=config["CSV_MAX_ROWS"]),
-        ],
-        widget=BS3TextFieldWidget(),
     )
     skip_initial_space = BooleanField(
         _("Skip Initial Space"), description=_("Skip spaces after delimiter")
@@ -312,8 +266,18 @@ class CsvToDatabaseForm(UploadToDatabaseForm):
     )
     nrows = IntegerField(
         _("Rows to Read"),
-        description=_("Number of rows of file to read"),
-        validators=[Optional(), NumberRange(min=0)],
+        description=_(
+            "Number of rows of file to read. Minimum "
+            + str(config["CSV_MIN_ROWS"])
+            + " and Maximum "
+            + str(config["CSV_MAX_ROWS"])
+            + " rows are allowed"
+        ),
+        validators=[
+            Optional(),
+            NumberRange(min=config["CSV_MIN_ROWS"]),
+            NumberRange(max=config["CSV_MAX_ROWS"]),
+        ],
         widget=BS3TextFieldWidget(),
     )
     skiprows = IntegerField(
