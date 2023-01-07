@@ -1,5 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Row, Input, Col, Typography } from 'antd';
+import { Row, Input, Col, Typography, Button, Layout, Menu, Modal, Image, ConfigProvider } from 'antd';
+const { Sider } = Layout;
+// import type { MenuProps } from 'antd';
 import { SupersetClient } from '@superset-ui/core';
 import { SupersetTheme, useTheme, css } from '@superset-ui/core';
 import type { SelectProps } from 'antd/es/select';
@@ -11,10 +13,56 @@ import ChartContainer from 'src/components/Chart/ChartContainer';
 
 const ViewSearchPage = () => {
   const theme: SupersetTheme = useTheme();
+  const [open, setOpen] = useState<boolean>(false);
+  const [open1, setOpen1] = useState<boolean>(false);
   const [options, setOptions] = useState<SelectProps<object>['options']>([]);
   const [answer, setAnswer] = useState<any>({});
   const [chartData, setChartData] = useState<any>({});
   const [questionLists, setQuestionLists] = useState([]);
+  const [outLined, setoutLined] = useState<number>(1);
+  // type MenuItem = Required<MenuProps>['items'][number];
+
+  // function getItem(
+  //   label: React.ReactNode,
+  //   key: React.Key,
+  // ): MenuItem {
+  //   return {
+  //     key,
+  //     label,
+  //   } as MenuItem;
+  // }
+  
+  const data = [
+    [
+      { image: "line.svg", title: "Time-series Line Chart" },
+      { image: "bar.svg", title: "Time-series Bar Chart" },
+      { image: "scatter.svg", title: "Time-series scatter plot" },
+      { image: "stepped.svg", title: "Time-series stepped plot" },
+      { image: "mix.svg", title: "Mixed Time-series" }
+    ],
+    [
+      { image: "pie.svg", title: "Pie Chart" },
+      { image: "gauge.svg", title: "Gauge Chart" },
+      { image: "partition.svg", title: "Partition Chart" },
+      { image: "treemap.svg", title: "Treemap" },
+      { image: "bignumber.svg", title: "Big Number" }
+    ],
+    [
+      { image: "seriestable.svg", title: "Time-series Table" },
+      { image: "pivottable.svg", title: "Pivot Table" },
+    ],
+    [
+      { image: "world.svg", title: "World Map" },
+      { image: "country.svg", title: "Country Map" },
+    ],
+  ];
+  
+  // const items: MenuItem[] = [
+  //   getItem('Option 1', '1'),
+  //   getItem('Option 2', '2'),
+  //   getItem('Option 3', '3'),
+  // ];
+
   const handleInputChange = () => {
     SupersetClient.get({
       endpoint: '/api/v1/quotron/auto_complete/',
@@ -25,6 +73,16 @@ const ViewSearchPage = () => {
   const handleSearch = (value: string) => {
     setOptions(value ? searchResult(value) : []);
   };
+
+  const showModal = () => {
+    console.log(open);
+    setOpen(true);
+  }
+
+  const setTableType = (value: number) => {
+    setoutLined(value)
+  }
+
   const searchResult = (query: string) =>
     [...questionLists].map((value: any, idx) => {
       const category: string = `${value.question}`;
@@ -164,38 +222,126 @@ const ViewSearchPage = () => {
     ],
   );
   return (
-    <Col
-      style={{
-        minHeight: '90vh',
-        background: theme.colors.quotron.white,
-        padding: '48px',
-      }}
-    >
-      <Row>
-        <Col>
-          <Title>Get Insights From Your Data</Title>
-        </Col>
-      </Row>
-      <Col>
+    <>
+      <Col
+        style={{
+          minHeight: '90vh',
+          background: theme.colors.quotron.white,
+          padding: '48px',
+        }}
+      >
         <Row>
-          <AutoComplete
-            dropdownMatchSelectWidth={252}
-            style={{ width: 300 }}
-            options={options}
-            onSelect={onSelect}
-            onSearch={handleSearch}
-          >
-            <Input.Search
-              size="large"
-              placeholder="input here"
-              onChange={handleInputChange}
-              enterButton
-            />
-          </AutoComplete>
+          <Col>
+            <Title>Get Insights From Your Data</Title>
+          </Col>
+          <Button type="primary" onClick={() => setOpen(true)}> primary </Button>
         </Row>
+        <Col>
+          <Row>
+            <AutoComplete
+              dropdownMatchSelectWidth={252}
+              style={{ width: 300 }}
+              options={options}
+              onSelect={onSelect}
+              onSearch={handleSearch}
+            >
+              <Input.Search
+                size="large"
+                placeholder="input here"
+                onChange={handleInputChange}
+                enterButton
+              />
+            </AutoComplete>
+          </Row>
+        </Col>
+        <Col>{renderChart()}</Col>
       </Col>
-      <Col>{renderChart()}</Col>
-    </Col>
+      <Modal
+        title="Choose Data Visualisation Type"
+        centered
+        visible={open}
+        width={1000}
+        footer={null}
+        onCancel={() => setOpen(false)}
+      >
+        <Layout
+          style={{
+            minHeight: "100vh"
+          }}
+        >
+          <Sider theme="light" className="site-layout">
+            <Menu
+              theme="light"
+              mode="inline"
+              defaultSelectedKeys={["1"]}
+              
+            >
+              <Menu.Item key={1} className={`${outLined === 1 ? 'ant-menu-item-selected' : ''}`} onClick={() => setTableType(1)}>Time-series charts</Menu.Item>
+              <Menu.Item key={2} className={`${outLined === 2 ? 'ant-menu-item-selected' : ''}`} onClick={() => setTableType(2)}>Traditional charts</Menu.Item>
+              <Menu.Item key={3} className={`${outLined === 3 ? 'ant-menu-item-selected' : ''}`} onClick={() => setTableType(3)}>Tables</Menu.Item>
+              <Menu.Item key={4} className={`${outLined === 4 ? 'ant-menu-item-selected' : ''}`} onClick={() => setTableType(4)}>Geo Maps</Menu.Item>
+            </Menu>
+          </Sider>
+          <Layout className="site-layout">
+            <Row>
+            {
+              data[outLined-1].map(function(item){
+                  return (<Col span={8}>
+                  <div>
+                    <Image
+                      width={230}
+                      height={230}
+                      preview={false}
+                      src={`../../../../../static/assets/images/customizethumb/${item.image}`}
+                    />
+                    <p>{item.title}</p>
+                    <div>
+                      <Button style={{ margin: "20px", background:"#7D3AD3", color: "#000000"}}>Select</Button>
+                      <Button onClick={() => setOpen1(true)}>customize</Button>
+                    </div>
+                  </div>
+              </Col>)})}
+            </Row>
+          </Layout>
+        </Layout>
+      </Modal>
+      <Modal
+        visible={open1}
+        title="Title"
+        // onCancel={handleCancel}
+        footer={[
+          <Button key="back" type="primary" onClick={() => setOpen1(false)}>
+            Return
+          </Button>
+        ]}
+      >
+        <Row>
+          <Col span={8}>
+            <Row>
+              <Typography>Chart Title</Typography>
+              <Input placeholder="Write Here" />
+            </Row>
+            <Row>
+              <Typography>Chart Title</Typography>
+              <Input placeholder="Write Here" />
+            </Row>
+            <Row>
+              <Typography>Chart Title</Typography>
+              <Input placeholder="Write Here" />
+            </Row>
+          </Col>
+          <Col span={8}>
+            <Row>
+              <Typography>Chart Title</Typography>
+            </Row>
+            <Row>
+              <Typography>Chart Title</Typography>
+            </Row>
+          </Col>
+          <Col span={8}></Col>
+        </Row>
+      </Modal>
+  </>
   );
 };
 
