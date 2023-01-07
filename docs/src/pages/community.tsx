@@ -23,7 +23,7 @@ import Layout from '@theme/Layout';
 
 const links = [
   [
-    'bit.ly/join-superset-slack',
+    'http://bit.ly/join-superset-slack',
     'Slack',
     'interact with other Superset users and community members',
   ],
