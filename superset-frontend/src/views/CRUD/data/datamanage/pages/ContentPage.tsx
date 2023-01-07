@@ -322,7 +322,7 @@ const ContentPage = () => {
     await SupersetClient.put({
       endpoint: `/api/v1/dataset/${tableData.id}?override_columns=true`,
       jsonPayload: {
-        columns: tableData.columns.map((column: any) => {
+        columns: tableData.columns.map(function (column: any) {
           return column.id !== -1
             ? {
                 advanced_data_type: column.advanced_data_type,
