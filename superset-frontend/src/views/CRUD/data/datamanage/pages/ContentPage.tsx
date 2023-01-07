@@ -232,32 +232,32 @@ const ContentPage = () => {
     setTableSelectNum(tmp);
   };
 
-  const actionTableSave = async () => {
-    console.log(tableData, 12111111111111);
+  // const actionTableSave = async () => {
+  //   console.log(tableData, 12111111111111);
 
-    await SupersetClient.post({
-      endpoint: '/datasource/save/',
-      postPayload: {
-        data: {
-          ...tableData,
-          type: 'table',
-          table_name: tableName,
-          description: tableDescription,
-        },
-      },
-    })
-      .then(async ({ json }) => {
-        notification.success({
-          message: 'Success',
-          description: 'Changed table name successfully',
-        });
-        await actionGetData();
-        setOpen(false);
-      })
-      .catch(err => {
-        console.log('====== Save error ========', err);
-      });
-  };
+  //   await SupersetClient.post({
+  //     endpoint: '/datasource/save/',
+  //     postPayload: {
+  //       data: {
+  //         ...tableData,
+  //         type: 'table',
+  //         table_name: tableName,
+  //         description: tableDescription,
+  //       },
+  //     },
+  //   })
+  //     .then(async ({ json }) => {
+  //       notification.success({
+  //         message: 'Success',
+  //         description: 'Changed table name successfully',
+  //       });
+  //       await actionGetData();
+  //       setOpen(false);
+  //     })
+  //     .catch(err => {
+  //       console.log('====== Save error ========', err);
+  //     });
+  // };
 
   const actionGetData = async () => {
     await SupersetClient.get({
