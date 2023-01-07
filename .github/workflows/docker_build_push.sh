@@ -60,9 +60,9 @@ docker build --target lean \
 # Build the "websocket" image
 #
 docker build \
-  -t "${REPO_NAME}-websocket:${SHA}" \
-  -t "${REPO_NAME}-websocket:${REFSPEC}" \
-  -t "${REPO_NAME}-websocket:${LATEST_TAG}" \
+  -t "${REPO_NAME}:${SHA}-websocket" \
+  -t "${REPO_NAME}:${REFSPEC}-websocket" \
+  -t "${REPO_NAME}:${LATEST_TAG}-websocket" \
   --label "sha=${SHA}" \
   --label "built_at=$(date)" \
   --label "target=lean" \
@@ -90,5 +90,4 @@ else
   docker logout
   docker login --username "${DOCKERHUB_USER}" --password "${DOCKERHUB_TOKEN}"
   docker push --all-tags "${REPO_NAME}"
-  docker push --all-tags "${REPO_NAME}-websocket"
 fi

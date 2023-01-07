@@ -16,29 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import findParentId from 'src/dashboard/util/findParentId';
+import React from 'react';
+import { getTimeFormatter, TimeFormats } from '@superset-ui/core';
+import NullCell from '../NullCell';
 
-describe('findParentId', () => {
-  const layout = {
-    a: {
-      id: 'a',
-      children: ['b', 'r', 'k'],
-    },
-    b: {
-      id: 'b',
-      children: ['x', 'y', 'z'],
-    },
-    z: {
-      id: 'z',
-      children: [],
-    },
-  };
-  it('should return the correct parentId', () => {
-    expect(findParentId({ childId: 'b', layout })).toBe('a');
-    expect(findParentId({ childId: 'z', layout })).toBe('b');
-  });
+export interface TimeCellProps {
+  format?: string;
+  value?: number | Date;
+}
 
-  it('should return null if the parent cannot be found', () => {
-    expect(findParentId({ childId: 'a', layout })).toBeNull();
-  });
-});
+function TimeCell({
+  format = TimeFormats.DATABASE_DATETIME,
+  value,
+}: TimeCellProps) {
+  if (value) {
+    return <span>{getTimeFormatter(format).format(value)}</span>;
+  }
+  return <NullCell />;
+}
+
+export default TimeCell;

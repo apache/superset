@@ -63,7 +63,13 @@ const FilterBarOrientationSelect = () => {
     <DropdownSelectableIcon
       onSelect={toggleFilterBarOrientation}
       info={t('Orientation of filter bar')}
-      icon={<Icons.Gear name="gear" iconColor={theme.colors.grayscale.base} />}
+      icon={
+        <Icons.Gear
+          name="gear"
+          iconColor={theme.colors.grayscale.base}
+          data-test="filterbar-orientation-icon"
+        />
+      }
       menuItems={[
         {
           key: FilterBarOrientation.VERTICAL,

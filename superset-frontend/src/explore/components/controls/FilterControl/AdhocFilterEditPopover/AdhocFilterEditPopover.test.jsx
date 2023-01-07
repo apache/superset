@@ -122,7 +122,7 @@ describe('AdhocFilterEditPopover', () => {
 
   it('prevents saving if the filter is invalid', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
+    expect(wrapper.find(Button).find({ disabled: true })).toExist();
     wrapper
       .instance()
       .onAdhocFilterChange(simpleAdhocFilter.duplicateWith({ operator: null }));
@@ -133,7 +133,6 @@ describe('AdhocFilterEditPopover', () => {
 
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).not.toExist();
     wrapper.instance().onAdhocFilterChange(sqlAdhocFilter);
     expect(wrapper.find(Button).find({ buttonStyle: 'primary' })).toExist();
   });

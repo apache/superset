@@ -76,7 +76,7 @@ import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
-import ConnectedSouthPane from '../SouthPane/state';
+import SouthPane from '../SouthPane';
 import SaveQuery from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
@@ -135,7 +135,6 @@ const StyledSidebar = styled.div`
 `;
 
 const propTypes = {
-  actions: PropTypes.object.isRequired,
   tables: PropTypes.array.isRequired,
   queryEditor: PropTypes.object.isRequired,
   defaultQueryLimit: PropTypes.number.isRequired,
@@ -146,7 +145,6 @@ const propTypes = {
 };
 
 const SqlEditor = ({
-  actions,
   tables,
   queryEditor,
   defaultQueryLimit,
@@ -617,10 +615,9 @@ const SqlEditor = ({
           />
           {renderEditorBottomBar(hotkeys)}
         </div>
-        <ConnectedSouthPane
+        <SouthPane
           queryEditorId={queryEditor.id}
           latestQueryId={latestQuery?.id}
-          actions={actions}
           height={southPaneHeight}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}

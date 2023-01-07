@@ -45,6 +45,7 @@ from superset.extensions import (
     migrate,
     profiling,
     results_backend_manager,
+    ssh_manager_factory,
     talisman,
 )
 from superset.security import SupersetSecurityManager
@@ -417,6 +418,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_data_sources()
         self.configure_auth_provider()
         self.configure_async_queries()
+        self.configure_ssh_manager()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -473,6 +475,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_auth_provider(self) -> None:
         machine_auth_provider_factory.init_app(self.superset_app)
+
+    def configure_ssh_manager(self) -> None:
+        ssh_manager_factory.init_app(self.superset_app)
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(
@@ -572,25 +577,33 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Flask-Compress
         Compress(self.superset_app)
 
+        # Talisman
+        talisman_enabled = self.config["TALISMAN_ENABLED"]
+        talisman_config = self.config["TALISMAN_CONFIG"]
+        csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
+
+        if talisman_enabled:
+            talisman.init_app(self.superset_app, **talisman_config)
+
         show_csp_warning = False
         if (
-            self.config["CONTENT_SECURITY_POLICY_WARNING"]
+            csp_warning
             and not self.superset_app.debug
+            and (
+                not talisman_enabled
+                or not talisman_config
+                or not talisman_config.get("content_security_policy")
+            )
         ):
-            if self.config["TALISMAN_ENABLED"]:
-                talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
-                if not self.config["TALISMAN_CONFIG"].get("content_security_policy"):
-                    show_csp_warning = True
-            else:
-                show_csp_warning = True
+            show_csp_warning = True
 
         if show_csp_warning:
             logger.warning(
                 "We haven't found any Content Security Policy (CSP) defined in "
                 "the configurations. Please make sure to configure CSP using the "
-                "TALISMAN_CONFIG key or any other external software. Failing to "
-                "configure CSP have serious security implications. Check "
-                "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
+                "TALISMAN_ENABLED and TALISMAN_CONFIG keys or any other external "
+                "software. Failing to configure CSP have serious security implications. "
+                "Check https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
                 "information. You can disable this warning using the "
                 "CONTENT_SECURITY_POLICY_WARNING key."
             )

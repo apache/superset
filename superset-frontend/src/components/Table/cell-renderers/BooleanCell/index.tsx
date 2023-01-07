@@ -16,34 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-function findParentId({ childId, layout = {} }) {
-  let parentId = null;
+import React from 'react';
+import { BOOL_FALSE_DISPLAY, BOOL_TRUE_DISPLAY } from 'src/constants';
 
-  const ids = Object.keys(layout);
-  for (let i = 0; i <= ids.length - 1; i += 1) {
-    const id = ids[i];
-    const component = layout[id] || {};
-    if (
-      id !== childId &&
-      component.children &&
-      component.children.includes(childId)
-    ) {
-      parentId = id;
-      break;
-    }
-  }
-
-  return parentId;
+export interface BooleanCellProps {
+  value?: boolean;
 }
 
-const cache = {};
-export default function findParentIdWithCache({ childId, layout = {} }) {
-  if (cache[childId]) {
-    const lastParent = layout[cache[childId]] || {};
-    if (lastParent.children && lastParent.children.includes(childId)) {
-      return lastParent.id;
-    }
-  }
-  cache[childId] = findParentId({ childId, layout });
-  return cache[childId];
+function BooleanCell({ value }: BooleanCellProps) {
+  return <span>{value ? BOOL_TRUE_DISPLAY : BOOL_FALSE_DISPLAY}</span>;
 }
+
+export default BooleanCell;

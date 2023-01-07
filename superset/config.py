@@ -21,6 +21,8 @@ in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
@@ -39,8 +41,10 @@ from typing import (
     Literal,
     Optional,
     Set,
+    Tuple,
     Type,
     TYPE_CHECKING,
+    TypedDict,
     Union,
 )
 
@@ -51,15 +55,16 @@ from dateutil import tz
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from sqlalchemy.orm.query import Query
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
-from superset.reports.types import ReportScheduleExecutor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
+from superset.tasks.types import ExecutorType
 from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
@@ -72,6 +77,8 @@ if TYPE_CHECKING:
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
 
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
@@ -476,7 +483,29 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
     # `cost_estimate_enabled: true` to the database `extra` attribute.
     "ESTIMATE_QUERY_COST": False,
+    # Allow users to enable ssh tunneling when creating a DB.
+    # Users must check whether the DB engine supports SSH Tunnels
+    # otherwise enabling this flag won't have any effect on the DB.
+    "SSH_TUNNELING": False,
 }
+
+# ------------------------------
+# SSH Tunnel
+# ------------------------------
+# Allow users to set the host used when connecting to the SSH Tunnel
+# as localhost and any other alias (0.0.0.0)
+# ----------------------------------------------------------------------
+#                             |
+# -------------+              |    +----------+
+#     LOCAL    |              |    |  REMOTE  | :22 SSH
+#     CLIENT   | <== SSH ========> |  SERVER  | :8080 web service
+# -------------+              |    +----------+
+#                             |
+#                          FIREWALL (only port 22 is open)
+
+# ----------------------------------------------------------------------
+SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
+SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -580,9 +609,33 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
-# Also used by Alerts & Reports
 # ---------------------------------------------------
-THUMBNAIL_SELENIUM_USER = "admin"
+# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
+# the username of the account used to render the queries and dashboards/charts
+THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
+
+# To be able to have different thumbnails for different users, use these configs to
+# define which user to execute the thumbnails and potentially custom functions for
+# calculating thumbnail digests. To have unique thumbnails for all users, use the
+# following config:
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+
+# By default, thumbnail digests are calculated based on various parameters in the
+# chart/dashboard metadata, and in the case of user-specific thumbnails, the
+# username. To specify a custom digest function, use the following config parameters
+# to define callbacks that receive
+# 1. the model (dashboard or chart)
+# 2. the executor type (e.g. ExecutorType.SELENIUM)
+# 3. the executor's username (note, this is the executor as defined by
+# `THUMBNAIL_EXECUTE_AS`; the executor is only equal to the currently logged in
+# user if the executor type is equal to `ExecutorType.CURRENT_USER`)
+# and return the final digest string:
+THUMBNAIL_DASHBOARD_DIGEST_FUNC: Optional[
+    Callable[[Dashboard, ExecutorType, str], str]
+] = None
+THUMBNAIL_CHART_DIGEST_FUNC: Optional[Callable[[Slice, ExecutorType, str], str]] = None
+
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "NullCache",
     "CACHE_NO_NULL_WARNING": True,
@@ -600,6 +653,12 @@ SCREENSHOT_SELENIUM_RETRIES = 5
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
+# Replace unexpected errors in screenshots with real error messages
+SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
+# Max time to wait for error message modal to show up, in seconds
+SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
+# Max time to wait for error message modal to close, in seconds
+SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 
 # ---------------------------------------------------
 # Image and file configuration
@@ -931,7 +990,7 @@ SQLLAB_CTAS_NO_LIMIT = False
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
 SQLLAB_CTAS_SCHEMA_NAME_FUNC: Optional[
-    Callable[["Database", "models.User", str, str], str]
+    Callable[[Database, models.User, str, str], str]
 ] = None
 
 # If enabled, it can be used to store the results of long-running queries
@@ -956,8 +1015,8 @@ CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
 def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
-    database: "Database",
-    user: "models.User",  # pylint: disable=unused-argument
+    database: Database,
+    user: models.User,  # pylint: disable=unused-argument
     schema: Optional[str],
 ) -> str:
     # Note the final empty path enforces a trailing slash.
@@ -975,7 +1034,7 @@ UPLOADED_CSV_HIVE_NAMESPACE: Optional[str] = None
 # db configuration and a result of this function.
 
 # mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[["Database", "models.User"], List[str]] = (
+ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], List[str]] = (
     lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
     if UPLOADED_CSV_HIVE_NAMESPACE
     else []
@@ -1152,7 +1211,7 @@ EXCLUDE_USERS_FROM_LISTS: Optional[List[str]] = None
 # list/dropdown if you do not want these dbs to show as available.
 # The available list is generated by driver installed, and some engines have multiple
 # drivers.
-# e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": ("pyhive", "pyodbc")}
+# e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": {"pyhive", "pyodbc"}}
 DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {}
 
 # This auth provider is used by background (offline) tasks that need to access
@@ -1175,16 +1234,14 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # creator if either is contained within the list of owners, otherwise the first owner
 # will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
-#     ReportScheduleExecutor.CREATOR_OWNER,
-#     ReportScheduleExecutor.CREATOR,
-#     ReportScheduleExecutor.MODIFIER_OWNER,
-#     ReportScheduleExecutor.MODIFIER,
-#     ReportScheduleExecutor.OWNER,
-#     ReportScheduleExecutor.SELENIUM,
+#     ScheduledTaskExecutor.CREATOR_OWNER,
+#     ScheduledTaskExecutor.CREATOR,
+#     ScheduledTaskExecutor.MODIFIER_OWNER,
+#     ScheduledTaskExecutor.MODIFIER,
+#     ScheduledTaskExecutor.OWNER,
+#     ScheduledTaskExecutor.SELENIUM,
 # ]
-ALERT_REPORTS_EXECUTE_AS: List[ReportScheduleExecutor] = [
-    ReportScheduleExecutor.SELENIUM
-]
+ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -1421,6 +1478,17 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
+# By default, the Welcome page features example charts and dashboards. This can be
+# changed to show all charts/dashboards the user has access to, or a custom view
+# by providing the title and a FAB filter:
+# WELCOME_PAGE_LAST_TAB = (
+#     "Xyz",
+#     [{"col": 'created_by', "opr": 'rel_o_m', "value": 10}],
+# )
+WELCOME_PAGE_LAST_TAB: Union[
+    Literal["examples", "all"], Tuple[str, List[Dict[str, Any]]]
+] = "examples"
+
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
 ENVIRONMENT_TAG_CONFIG = {
@@ -1436,6 +1504,32 @@ ENVIRONMENT_TAG_CONFIG = {
         },
     },
 }
+
+
+# Extra related query filters make it possible to limit which objects are shown
+# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
+# the "Owners" dropdowns, you could add the following in your config:
+# def user_filter(query: Query, *args, *kwargs):
+#     from superset import security_manager
+#
+#     user_model = security_manager.user_model
+#     filters = [
+#         user_model.username == "admin",
+#         user_model.username.ilike("b%"),
+#     ]
+#     return query.filter(or_(*filters))
+#
+#  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
+#
+# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
+# filter callback for the "role" key.
+class ExtraRelatedQueryFilters(TypedDict, total=False):
+    role: Callable[[Query], Query]
+    user: Callable[[Query], Query]
+
+
+EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
@@ -1463,7 +1557,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type:ignore
+        from superset_config import *  # type: ignore
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:
