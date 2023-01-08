@@ -411,9 +411,12 @@ const ViewSearchPage = () => {
             minHeight: '90vh',
           }}
         >
-          <Sider style={{ background: 'rgb(240, 242, 245, 1)' }} className="site-layout">
+          <Sider
+            style={{ background: theme.colors.quotron.gray_white }}
+            className="site-layout"
+          >
             <Menu
-              style={{ background: 'rgb(240, 242, 245, 1)' }}
+              style={{ background: theme.colors.quotron.gray_white }}
               mode="inline"
               defaultSelectedKeys={['1']}
             >
@@ -465,7 +468,7 @@ const ViewSearchPage = () => {
                       <Row justify="space-between">
                         <Button
                           style={{
-                            background: 'rgb(125, 58, 211, 1)',
+                            background: theme.colors.error.light1,
                             color: theme.colors.quotron.white,
                           }}
                         >
@@ -503,7 +506,7 @@ const ViewSearchPage = () => {
         onCancel={() => setCustoModal(false)}
         footer={null}
       >
-        <Row style={{ height: '90vh' }} justify='space-between'>
+        <Row style={{ height: '90vh' }} justify="space-between">
           <Col span={8}>
             <Row style={customizeRowStyle}>
               <Title level={4}>Chart Title</Title>
@@ -534,7 +537,12 @@ const ViewSearchPage = () => {
             </Row>
           </Col>
           <Col span={8} style={{ padding: 20 }}>
-            <Layout style={{ background: 'rgb(240, 242, 245, 1)', height: '85vh' }}>
+            <Layout
+              style={{
+                background: theme.colors.quotron.gray_white,
+                height: '85vh',
+              }}
+            >
               Preview
               {previewState && (
                 <Image
@@ -552,3 +560,4 @@ const ViewSearchPage = () => {
 };
 
 export default ViewSearchPage;
+
