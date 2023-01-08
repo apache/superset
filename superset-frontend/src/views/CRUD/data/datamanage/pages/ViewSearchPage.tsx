@@ -411,9 +411,9 @@ const ViewSearchPage = () => {
             minHeight: '90vh',
           }}
         >
-          <Sider style={{ background: 'rgba(240, 242, 245, 1)' }} className="site-layout">
+          <Sider style={{ background: 'rgb(240, 242, 245, 1)' }} className="site-layout">
             <Menu
-              style={{ background: 'rgba(240, 242, 245, 1)' }}
+              style={{ background: 'rgb(240, 242, 245, 1)' }}
               mode="inline"
               defaultSelectedKeys={['1']}
             >
@@ -465,7 +465,7 @@ const ViewSearchPage = () => {
                       <Row justify="space-between">
                         <Button
                           style={{
-                            background: 'rgba(125, 58, 211, 1)',
+                            background: 'rgb(125, 58, 211, 1)',
                             color: theme.colors.quotron.white,
                           }}
                         >
@@ -534,13 +534,13 @@ const ViewSearchPage = () => {
             </Row>
           </Col>
           <Col span={8} style={{ padding: 20 }}>
-            <Layout style={{ background: 'rgba(240, 242, 245, 1)', height: '85vh' }}>
+            <Layout style={{ background: 'rgb(240, 242, 245, 1)', height: '85vh' }}>
               Preview
               {previewState && (
                 <Image
                   style={{ width: '100%', height: 'auto', marginTop: 200 }}
                   preview={false}
-                  src='../../../../../static/assets/images/customizethumb/pie.svg'
+                  src="../../../../../static/assets/images/customizethumb/pie.svg"
                 />
               )}
             </Layout>
