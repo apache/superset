@@ -513,7 +513,9 @@ FLASH_TTL = {
         "ui:order": [
             "ttl",
         ],
-        "ttl": {"ui:help": "Flash object validity"},
+        "ttl": {
+            "ui:help": "Flash object validity (can extend TTL up to 7 days for SHORT TERM and 90 days for LONG TERM"
+        },
     },
     "VALIDATION": [],
 }
@@ -727,7 +729,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "VERSIONED_EXPORT": True,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
-    "ALERT_REPORTS": False,
+    "ALERT_REPORTS": True,
     "DASHBOARD_RBAC": False,
     "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_FILTER_BOX_MIGRATION": False,
@@ -1281,7 +1283,7 @@ FLASK_APP_MUTATOR = None
 ENABLE_ACCESS_REQUEST = False
 
 # smtp server configuration
-EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
+EMAIL_NOTIFICATIONS = True  # all the emails are sent using dryrun
 SMTP_HOST = "localhost"
 SMTP_STARTTLS = True
 SMTP_SSL = False
@@ -1450,7 +1452,7 @@ SLACK_PROXY = None
 # chrome:
 #   Requires: headless chrome
 #   Limitations: unable to generate screenshots of elements
-WEBDRIVER_TYPE = "firefox"
+WEBDRIVER_TYPE = "chrome"
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {

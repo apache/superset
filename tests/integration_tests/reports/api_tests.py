@@ -284,6 +284,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             "id",
             "last_eval_dttm",
             "last_state",
+            "msg_content",
             "name",
             "owners",
             "recipients",

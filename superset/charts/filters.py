@@ -97,7 +97,7 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             )
         )
 
-    def get_database_ids(self, database_permissions: set) -> Any:
+    def get_database_ids(self, database_permissions: Any) -> Any:
         db_ids = []
         if database_permissions is not None and len(database_permissions) > 0:
             database_list = list(database_permissions)

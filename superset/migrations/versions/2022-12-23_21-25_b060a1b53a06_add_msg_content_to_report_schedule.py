@@ -14,26 +14,28 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access
 
-from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-from superset.superset_typing import FlaskResponse
-from superset.views.base import BaseSupersetView
-from flask_appbuilder import permission_name
+"""add_msg_content_to_report_schedule
+
+Revises: 291f024254b5
+Revision ID: b060a1b53a06
+Author: Burhanuddin Bhopalwala
+Create Date: 2022-12-23 21:25:43.463243
+
+"""
+
+# revision identifiers, used by Alembic.
+revision = "b060a1b53a06"
+down_revision = "291f024254b5"
+
+import sqlalchemy as sa
+from alembic import op
 
 
-class Flash(BaseSupersetView):
-    class_permission_name = "SavedQuery"
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+def upgrade():
+    op.add_column("report_schedule", sa.Column("msg_content", sa.Text(), nullable=True))
 
-    @expose("/list/")
-    @has_access
-    def list(self) -> FlaskResponse:
-        return super().render_app_template()
 
-    @expose("/auditlogs/<pk>", methods=["GET"])
-    @has_access
-    @permission_name("read")
-    def auditlogs(self, pk: int) -> FlaskResponse:
-        return super().render_app_template()
+def downgrade():
+    op.drop_column("report_schedule", "msg_content")
+    # ### end Alembic commands ###

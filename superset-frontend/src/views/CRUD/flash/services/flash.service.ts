@@ -34,6 +34,11 @@ export const fetchDatabases = (): Promise<any> =>
 export const fetchUsers = (queryParams: any): Promise<any> =>
   FlashClient.get<FlashServiceObject[]>(`${'v1/flash/?'}${queryParams}`);
 
+export const fetchAuditLogs = (id: number, queryParams: any): Promise<any> =>
+  FlashClient.get<FlashServiceObject[]>(
+    `v1/flash/${id}/audit-log?${queryParams}`,
+  );
+
 export const createFlash = (payload: FlashObject): Promise<any> =>
   FlashClient.post<FlashServiceObject>('v1/flash/', payload);
 
