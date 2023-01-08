@@ -161,8 +161,8 @@ const ContentPage = () => {
     setColumnExpression(columnExpression + value);
   };
 
-  const handleChange = (e) => {
-    setColumnExpression(e.target.value);
+  const handleChange = (value: string) => {
+    setColumnExpression(value);
   };
 
   const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,30 +234,32 @@ const ContentPage = () => {
     setTableSelectNum(tmp);
   };
 
-  const actionTableSave = async () => {
-    await SupersetClient.post({
-      endpoint: '/datasource/save/',
-      postPayload: {
-        data: {
-          ...tableData,
-          type: 'table',
-          table_name: tableName,
-          description: tableDescription,
-        },
-      },
-    })
-      .then(async ({ json }) => {
-        notification.success({
-          message: 'Success',
-          description: 'Changed table name successfully',
-        });
-        await actionGetData();
-        setOpen(false);
-      })
-      .catch(err => {
-        console.log('====== Save error ========', err);
-      });
-  };
+  // const actionTableSave = async () => {
+  //   console.log(tableData, 12111111111111);
+
+  //   await SupersetClient.post({
+  //     endpoint: '/datasource/save/',
+  //     postPayload: {
+  //       data: {
+  //         ...tableData,
+  //         type: 'table',
+  //         table_name: tableName,
+  //         description: tableDescription,
+  //       },
+  //     },
+  //   })
+  //     .then(async ({ json }) => {
+  //       notification.success({
+  //         message: 'Success',
+  //         description: 'Changed table name successfully',
+  //       });
+  //       await actionGetData();
+  //       setOpen(false);
+  //     })
+  //     .catch(err => {
+  //       console.log('====== Save error ========', err);
+  //     });
+  // };
 
   const actionGetData = async () => {
     await SupersetClient.get({
@@ -279,9 +281,9 @@ const ContentPage = () => {
       changed_on: now.toISOString(),
       column_name: columnName,
       created_on: now.toISOString(),
-      description: columnDescription,
-      expression: columnExpression,
-      extra: '{"warning_markdown":null}',
+      description: null,
+      expression: null,
+      extra: '{}',
       filterable: true,
       groupby: true,
       id: -1,
@@ -309,6 +311,7 @@ const ContentPage = () => {
               column_name: columnName,
               description: columnDescription,
               expression: columnExpression,
+              type: 'DOUBLE_PRECISION',
             }
           : column,
       ),
@@ -316,8 +319,58 @@ const ContentPage = () => {
     setIsModalOpen(false);
     handleColumnAdd();
   };
+
+  const actionColumnSave = async () => {
+    await SupersetClient.put({
+      endpoint: `/api/v1/dataset/${tableData.id}?override_columns=true`,
+      jsonPayload: {
+        columns: tableData.columns.map(function (column: any) {
+          return column.id !== -1
+            ? {
+                advanced_data_type: column.advanced_data_type,
+                column_name: column.column_name,
+                description: column.description,
+                expression: column.expression,
+                extra: column.extra,
+                filterable: column.filterable,
+                groupby: column.groupby,
+                id: column.id,
+                is_dttm: column.is_dttm,
+                python_date_format: column.python_date_format,
+                type: column.type,
+                uuid: column.uuid,
+                verbose_name: column.verbose_name,
+              }
+            : {
+                column_name: column.column_name,
+                description: column.description,
+                expression: column.expression,
+                extra: column.extra,
+                filterable: column.filterable,
+                groupby: column.groupby,
+                is_dttm: column.is_dttm,
+                python_date_format: column.python_date_format,
+                type: column.type,
+                verbose_name: column.verbose_name,
+              };
+        }),
+      },
+    })
+      .then(async ({ json }) => {
+        notification.success({
+          message: 'Success',
+          description: 'Changed table successfully',
+        });
+        await actionGetData();
+        setOpen(false);
+      })
+      .catch(err => {
+        console.log('====== Save error ========', err);
+      });
+  };
+
   const handleEditTableSave = () => {
-    actionTableSave();
+    actionColumnSave();
   };
 
   useEffect(() => {
@@ -804,16 +857,18 @@ const ContentPage = () => {
         <AutoComplete
           style={{ width: '100%' }}
           options={options}
-          value={columnExpression}
+          defaultValue={columnExpression}
+          filterOption
           onSelect={onSelect}
           onSearch={handleSearch}
+          onChange={handleChange}
         >
           <TextArea
             placeholder="input here"
             className="custom"
+            value={columnExpression}
             style={{ height: 50 }}
             onKeyPress={handleKeyPress}
-            onChange={handleChange}
           />
         </AutoComplete>
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
