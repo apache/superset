@@ -317,7 +317,6 @@ const ContentPage = () => {
       ),
     });
     setIsModalOpen(false);
-    handleColumnAdd();
   };
 
   const actionColumnSave = async () => {
