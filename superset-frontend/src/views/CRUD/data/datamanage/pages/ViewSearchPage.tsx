@@ -23,6 +23,7 @@ import {
   SupersetTheme,
   useTheme,
   css,
+  getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
 import type { SelectProps } from 'antd/es/select';
 
@@ -36,7 +37,7 @@ import {
   setItem,
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
-import { getCategoricalSchemeRegistry } from '@superset-ui/core';
+
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const { Sider } = Layout;
 const INITIAL_SIZES: [number, number] = [100, 0];
@@ -410,9 +411,9 @@ const ViewSearchPage = () => {
             minHeight: '90vh',
           }}
         >
-          <Sider style={{ background: '#f0f2f5' }} className="site-layout">
+          <Sider style={{ background: 'rgba(240, 242, 245, 1)' }} className="site-layout">
             <Menu
-              style={{ background: '#f0f2f5' }}
+              style={{ background: 'rgba(240, 242, 245, 1)' }}
               mode="inline"
               defaultSelectedKeys={['1']}
             >
@@ -448,7 +449,7 @@ const ViewSearchPage = () => {
           </Sider>
           <Layout
             className="site-layout"
-            style={{ background: '#ffffff', paddingLeft: 10 }}
+            style={{ background: theme.colors.quotron.white, paddingLeft: 10 }}
           >
             <Row>
               {TempData[outLined - 1].map(function (item) {
@@ -464,8 +465,8 @@ const ViewSearchPage = () => {
                       <Row justify="space-between">
                         <Button
                           style={{
-                            background: '#7D3AD3',
-                            color: '#ffffff',
+                            background: 'rgba(125, 58, 211, 1)',
+                            color: theme.colors.quotron.white,
                           }}
                         >
                           Select
@@ -502,7 +503,7 @@ const ViewSearchPage = () => {
         onCancel={() => setCustoModal(false)}
         footer={null}
       >
-        <Row style={{ height: '90vh' }} justify={'space-between'}>
+        <Row style={{ height: '90vh' }} justify='space-between'>
           <Col span={8}>
             <Row style={customizeRowStyle}>
               <Title level={4}>Chart Title</Title>
@@ -533,15 +534,13 @@ const ViewSearchPage = () => {
             </Row>
           </Col>
           <Col span={8} style={{ padding: 20 }}>
-            <Layout style={{ background: '#f0f2f5', height: '85vh' }}>
+            <Layout style={{ background: 'rgba(240, 242, 245, 1)', height: '85vh' }}>
               Preview
               {previewState && (
                 <Image
                   style={{ width: '100%', height: 'auto', marginTop: 200 }}
                   preview={false}
-                  src={
-                    '../../../../../static/assets/images/customizethumb/pie.svg'
-                  }
+                  src='../../../../../static/assets/images/customizethumb/pie.svg'
                 />
               )}
             </Layout>
@@ -553,4 +552,3 @@ const ViewSearchPage = () => {
 };
 
 export default ViewSearchPage;
-
