@@ -560,4 +560,3 @@ const ViewSearchPage = () => {
 };
 
 export default ViewSearchPage;
-
