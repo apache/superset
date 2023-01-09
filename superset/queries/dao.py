@@ -21,7 +21,7 @@ from typing import Any, Dict
 from superset import sql_lab
 from superset.common.db_query_status import QueryStatus
 from superset.dao.base import BaseDAO
-from superset.exceptions import SupersetCancelQueryException
+from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
 from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery
 from superset.queries.filters import QueryFilter
@@ -63,7 +63,10 @@ class QueryDAO(BaseDAO):
 
     @staticmethod
     def stop_query(client_id: str) -> None:
-        query = db.session.query(Query).filter_by(client_id=client_id).one()
+        query = db.session.query(Query).filter_by(client_id=client_id).one_or_none()
+        if not query:
+            raise QueryNotFoundException(f"Query with client_id {client_id} not found")
+
         if query.status in [
             QueryStatus.FAILED,
             QueryStatus.SUCCESS,

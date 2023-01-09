@@ -23,6 +23,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from superset import db, event_logger
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
+from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
 from superset.queries.dao import QueryDAO
 from superset.queries.filters import QueryFilter
@@ -190,6 +191,9 @@ class QueryRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        body = self.stop_query_schema.load(request.json)
-        QueryDAO.stop_query(body["client_id"])
-        return self.response(200, result="OK")
+        try:
+            body = self.stop_query_schema.load(request.json)
+            QueryDAO.stop_query(body["client_id"])
+            return self.response(200, result="OK")
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)

@@ -21,7 +21,7 @@ import pytest
 from pytest_mock import MockFixture
 from sqlalchemy.orm.session import Session
 
-from superset.exceptions import SupersetCancelQueryException
+from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
 
 
 def test_query_dao_save_metadata(session: Session) -> None:
@@ -56,6 +56,48 @@ def test_query_dao_save_metadata(session: Session) -> None:
     query = session.query(Query).one()
     QueryDAO.save_metadata(query=query, payload={"columns": []})
     assert query.extra.get("columns", None) == []
+
+
+def test_query_dao_stop_query_not_found(
+    mocker: MockFixture, app: Any, session: Session
+) -> None:
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    engine = session.get_bind()
+    Query.metadata.create_all(engine)  # pylint: disable=no-member
+
+    db = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+
+    query_obj = Query(
+        client_id="foo",
+        database=db,
+        tab_name="test_tab",
+        sql_editor_id="test_editor_id",
+        sql="select * from bar",
+        select_sql="select * from bar",
+        executed_sql="select * from bar",
+        limit=100,
+        select_as_cta=False,
+        rows=100,
+        error_message="none",
+        results_key="abc",
+        status=QueryStatus.RUNNING,
+    )
+
+    session.add(db)
+    session.add(query_obj)
+
+    mocker.patch("superset.sql_lab.cancel_query", return_value=False)
+
+    from superset.queries.dao import QueryDAO
+
+    with pytest.raises(QueryNotFoundException):
+        QueryDAO.stop_query("foo2")
+
+    query = session.query(Query).one()
+    assert query.status == QueryStatus.RUNNING
 
 
 def test_query_dao_stop_query_not_running(
