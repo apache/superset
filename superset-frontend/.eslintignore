@@ -33,4 +33,3 @@ esm/
 lib/
 tmp/
 storybook-static/
-src/views/components/Upload.tsx
