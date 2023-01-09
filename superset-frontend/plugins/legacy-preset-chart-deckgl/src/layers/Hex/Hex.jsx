@@ -30,8 +30,7 @@ function setTooltipContent(o) {
   return (
     <div className="deckgl-tooltip">
       <TooltipRow
-        // eslint-disable-next-line prefer-template
-        label={t('Centroid (Longitude and Latitude)') + ': '}
+        label={t('Centroid (Longitude and Latitude): ')}
         value={`(${o.coordinate[0]}, ${o.coordinate[1]})`}
       />
       <TooltipRow
