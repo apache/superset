@@ -19,7 +19,7 @@ import {
   Switch,
   Dropdown,
   notification,
-  Badge,
+  AutoComplete,
 } from 'antd';
 import {
   AppstoreOutlined,
@@ -109,10 +109,6 @@ const ContentPage = () => {
     setSearchtext(ev.target.value);
   };
 
-  const handleUserSearch = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchUser(ev.target.value);
-  };
-
   const handleSort = () => {
     setSort((sort + 1) % 3);
   };
@@ -121,41 +117,8 @@ const ContentPage = () => {
     setOwner(ev.key);
   };
 
-  const cancelSelectPeople = () => {
-    setIsSelectPeople(false);
-  };
-
   const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
     setDatasourceOne(ev.target.checked);
-  };
-
-  const handleSelectPeople = () => {
-    SupersetClient.get({
-      endpoint: `/api/v1/users/all`,
-    }).then(async ({ json = {} }) => {
-      setUserList(
-        json.result.filter((user: any) => {
-          const index = sharePeople.findIndex(
-            (people: any) => people.id === user.id,
-          );
-          if (index === -1) return true;
-          sharePeople[index].email = user.email;
-          return false;
-        }),
-      );
-    });
-    setIsSelectPeople(true);
-  };
-  const onChangeCheck = (e: CheckboxChangeEvent) => {
-    if (e.target.checked) {
-      const index = userList.findIndex(
-        (user: any) => user.id.toString() === e.target.value,
-      );
-      setSharePeople(sharePeople.concat(userList[index]));
-      let temp_userList = [...userList];
-      temp_userList.splice(index, 1);
-      setUserList(temp_userList);
-    }
   };
 
   useEffect(() => {
@@ -203,6 +166,42 @@ const ContentPage = () => {
     setFilteredTableData(tempData);
   }, [searchtext, data, sort, owner, datasourceOne]);
 
+  const handleSearch = (value: string) => {
+    /* prettier-ignore */
+    const optionTemp: Array<any> =[];
+    /* prettier-ignore */
+    tableData.columns.forEach(function (itm: any) {
+      /* prettier-ignore */
+      optionTemp.push({ value: itm.column_name });
+    });
+
+    setOptions(!value ? [] : optionTemp);
+  };
+
+  const handleKeyPress = (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    console.log('handleKeyPress', ev);
+  };
+
+  const onSelect = (value: string) => {
+    console.log('onSelect', value);
+    setColumnExpression(value);
+  };
+
+  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchtext(ev.target.value);
+  };
+
+  const handleSort = () => {
+    setSort((sort + 1) % 3);
+  };
+
+  const handleOwner = (ev: any) => {
+    setOwner(ev.key);
+  };
+
+  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
+    setDatasourceOne(ev.target.checked);
+  };
   const theme: SupersetTheme = useTheme();
 
   const showLargeDrawer = (e: any) => {
@@ -829,13 +828,19 @@ const ContentPage = () => {
             />
           </Col>
         </Row>
-        <TextArea
-          rows={4}
-          value={columnExpression}
-          onChange={(e: any) => {
-            setColumnExpression(e.target.value);
-          }}
-        />
+        <AutoComplete
+          style={{ width: '100%' }}
+          options={options}
+          onSelect={onSelect}
+          onSearch={handleSearch}
+        >
+          <TextArea
+            placeholder="input here"
+            className="custom"
+            style={{ height: 50 }}
+            onKeyPress={handleKeyPress}
+          />
+        </AutoComplete>
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
           <Col span="12">
             <Button
