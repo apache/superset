@@ -6040,7 +6040,7 @@ msgstr ""
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:179
 #, fuzzy
 msgid ""
-"For Presto and Postgres, shows a button to compute cost before running a "
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a "
 "query."
 msgstr "Спрогнозировать время до выполнения запроса"
 
