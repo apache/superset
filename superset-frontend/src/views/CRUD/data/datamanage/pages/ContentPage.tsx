@@ -100,7 +100,7 @@ const ContentPage = () => {
   const [shareOpen, setShareOpen] = useState(false);
   const [sharePeople, setSharePeople] = useState<any>([]);
   const [isSelectPeople, setIsSelectPeople] = useState(false);
-  const [size, setSize] = useState<SizeType>('large');
+  const [size] = useState<SizeType>('large');
   const [userList, setUserList] = useState<any>([]);
   const [searchUser, setSearchUser] = useState('');
   const [options, setOptions] = useState<{ value: string }[]>([]);
@@ -113,20 +113,8 @@ const ContentPage = () => {
     setSearchUser(ev.target.value);
   };
 
-  const handleSort = () => {
-    setSort((sort + 1) % 3);
-  };
-
-  const handleOwner = (ev: any) => {
-    setOwner(ev.key);
-  };
-
   const cancelSelectPeople = () => {
     setIsSelectPeople(false);
-  };
-
-  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
-    setDatasourceOne(ev.target.checked);
   };
 
   const handleSelectPeople = () => {
@@ -152,7 +140,7 @@ const ContentPage = () => {
         (user: any) => user.id.toString() === e.target.value,
       );
       setSharePeople(sharePeople.concat(userList[index]));
-      let temp_userList = [...userList];
+      const temp_userList = [...userList];
       temp_userList.splice(index, 1);
       setUserList(temp_userList);
     }
@@ -218,16 +206,11 @@ const ContentPage = () => {
   };
 
   const onSelect = (value: string) => {
-    console.log('onSelect', value);
     setColumnExpression(columnExpression);
   };
 
   const handleChange = (value: string) => {
     setColumnExpression(value);
-  };
-
-  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchtext(ev.target.value);
   };
 
   const handleSort = () => {
@@ -785,7 +768,7 @@ const ContentPage = () => {
         </Row>
         <Alert
           message="Please note that any changes made to table details would be persisted on"
-          description="Quotron only, it will not affect anything orignal data source"
+          description="Quotron only, it will not affect anything original data source"
           type="warning"
           style={{ background: theme.colors.quotron.gray_white }}
         />
@@ -812,7 +795,7 @@ const ContentPage = () => {
           align="middle"
           style={{ marginTop: '24px' }}
         >
-          <Title level={4}>Columes</Title>
+          <Title level={4}>Columns</Title>
           <Button
             icon={<PlusOutlined />}
             size="large"
@@ -894,7 +877,7 @@ const ContentPage = () => {
           <Title level={3}>CAC</Title>
         </Row>
         <Title level={4} style={{ marginTop: '24px' }}>
-          Colume Name
+          Column Name
         </Title>
         <Input
           placeholder="CAC"
@@ -1131,10 +1114,10 @@ const ContentPage = () => {
                 <Button
                   size={size}
                   style={{
-                    background: 'black',
+                    background: theme.colors.quotron.black,
                     borderRadius: 10,
                     fontSize: 20,
-                    color: 'white',
+                    color: theme.colors.quotron.white,
                     height: 50,
                   }}
                 >
@@ -1156,7 +1139,7 @@ const ContentPage = () => {
               <Col
                 style={{
                   background: theme.colors.quotron.gray_white,
-                  color: 'black',
+                  color: theme.colors.quotron.black,
                   width: '100%',
                   height: '150px',
                   border: '1px solid black',
@@ -1176,7 +1159,7 @@ const ContentPage = () => {
               <Col
                 style={{
                   background: theme.colors.quotron.gray_white,
-                  color: 'black',
+                  color: theme.colors.quotron.black,
                   width: '100%',
                   height: '150px',
                   border: '1px solid black',

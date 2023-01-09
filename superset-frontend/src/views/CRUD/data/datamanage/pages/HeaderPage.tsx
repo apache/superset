@@ -327,10 +327,10 @@ const HeaderPage = (props: IProsp) => {
                 <Button
                   size="large"
                   style={{
-                    background: 'black',
+                    background: theme.colors.quotron.black,
                     borderRadius: 10,
                     fontSize: 20,
-                    color: 'white',
+                    color: theme.colors.quotron.white,
                     height: 50,
                   }}
                 >
@@ -466,7 +466,7 @@ const HeaderPage = (props: IProsp) => {
                 style={{
                   borderRight: `1px solid ${theme.colors.quotron.gray_white} `,
                 }}
-              ></Col>
+              />
               <Col span={8}>
                 <Row>
                   <Title
@@ -537,7 +537,7 @@ const HeaderPage = (props: IProsp) => {
                     background: theme.colors.quotron.black,
                     borderRadius: 10,
                     fontSize: 20,
-                    color: 'white',
+                    color: theme.colors.quotron.white,
                     height: 50,
                   }}
                 >
