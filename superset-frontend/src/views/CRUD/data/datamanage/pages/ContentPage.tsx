@@ -19,6 +19,7 @@ import {
   Switch,
   Dropdown,
   notification,
+  AutoComplete,
 } from 'antd';
 import {
   AppstoreOutlined,
@@ -102,6 +103,7 @@ const ContentPage = () => {
   const [size, setSize] = useState<SizeType>('large');
   const [userList, setUserList] = useState<any>([]);
   const [searchUser, setSearchUser] = useState('');
+  const [options, setOptions] = useState<{ value: string }[]>([]);
 
   const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
     setSearchtext(ev.target.value);
@@ -200,6 +202,45 @@ const ContentPage = () => {
     // set filtered table data
     setFilteredTableData(tempData);
   }, [searchtext, data, sort, owner, datasourceOne]);
+
+  const handleSearch = (value: string) => {
+    // eslint-disable-next-line
+    const optionTemp: Array<any> = [];
+    tableData.columns.forEach(function (itm: any) {
+      optionTemp.push({ value: itm.column_name });
+    });
+
+    setOptions(!value ? [] : optionTemp);
+  };
+
+  const handleKeyPress = (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    console.log('handleKeyPress', ev);
+  };
+
+  const onSelect = (value: string) => {
+    console.log('onSelect', value);
+    setColumnExpression(columnExpression);
+  };
+
+  const handleChange = (value: string) => {
+    setColumnExpression(value);
+  };
+
+  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchtext(ev.target.value);
+  };
+
+  const handleSort = () => {
+    setSort((sort + 1) % 3);
+  };
+
+  const handleOwner = (ev: any) => {
+    setOwner(ev.key);
+  };
+
+  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
+    setDatasourceOne(ev.target.checked);
+  };
 
   const theme: SupersetTheme = useTheme();
 
@@ -883,13 +924,23 @@ const ContentPage = () => {
             />
           </Col>
         </Row>
-        <TextArea
-          rows={4}
-          value={columnExpression}
-          onChange={(e: any) => {
-            setColumnExpression(e.target.value);
-          }}
-        />
+        <AutoComplete
+          style={{ width: '100%' }}
+          options={options}
+          defaultValue={columnExpression}
+          filterOption
+          onSelect={onSelect}
+          onSearch={handleSearch}
+          onChange={handleChange}
+        >
+          <TextArea
+            placeholder="input here"
+            className="custom"
+            value={columnExpression}
+            style={{ height: 50 }}
+            onKeyPress={handleKeyPress}
+          />
+        </AutoComplete>
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
           <Col span="12">
             <Button
