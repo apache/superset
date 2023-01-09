@@ -22,7 +22,11 @@ import {
 } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
 import Owner from 'src/types/Owner';
-import { canUserEditDashboard, isUserAdmin } from './permissionUtils';
+import {
+  canUserAccessSqlLab,
+  canUserEditDashboard,
+  isUserAdmin,
+} from './permissionUtils';
 
 const ownerUser: UserWithPermissionsAndRoles = {
   createdOn: '2021-05-12T16:56:22.116839',
@@ -58,6 +62,14 @@ const owner: Owner = {
   id: ownerUser.userId!,
   last_name: 'User',
   username: ownerUser.username,
+};
+
+const sqlLabUser: UserWithPermissionsAndRoles = {
+  ...ownerUser,
+  roles: {
+    ...ownerUser.roles,
+    sql_lab: [],
+  },
 };
 
 const undefinedUser: UndefinedUser = {};
@@ -109,10 +121,34 @@ test('isUserAdmin returns true for admin user', () => {
   expect(isUserAdmin(adminUser)).toEqual(true);
 });
 
+test('isUserAdmin returns false for undefined', () => {
+  expect(isUserAdmin(undefined)).toEqual(false);
+});
+
 test('isUserAdmin returns false for undefined user', () => {
   expect(isUserAdmin(undefinedUser)).toEqual(false);
 });
 
 test('isUserAdmin returns false for non-admin user', () => {
   expect(isUserAdmin(ownerUser)).toEqual(false);
+});
+
+test('canUserAccessSqlLab returns true for admin user', () => {
+  expect(canUserAccessSqlLab(adminUser)).toEqual(true);
+});
+
+test('canUserAccessSqlLab returns false for undefined', () => {
+  expect(canUserAccessSqlLab(undefined)).toEqual(false);
+});
+
+test('canUserAccessSqlLab returns false for undefined user', () => {
+  expect(canUserAccessSqlLab(undefinedUser)).toEqual(false);
+});
+
+test('canUserAccessSqlLab returns false for non-sqllab role', () => {
+  expect(canUserAccessSqlLab(ownerUser)).toEqual(false);
+});
+
+test('canUserAccessSqlLab returns true for sqllab role', () => {
+  expect(canUserAccessSqlLab(sqlLabUser)).toEqual(true);
 });
