@@ -9,7 +9,6 @@ import {
   Drawer,
   Space,
   Input,
-  Divider,
 } from 'antd';
 import {
   ShareAltOutlined,
@@ -91,6 +90,7 @@ const HeaderPage = (props: IProsp) => {
             (table: any) => table.id === res.id,
           );
           if (index === -1) return true;
+          return false;
         }),
       );
     });
@@ -102,7 +102,7 @@ const HeaderPage = (props: IProsp) => {
         (user: any) => user.id.toString() === e.target.value,
       );
       setSharePeople(sharePeople.concat(userList[index]));
-      let temp_userList = [...userList];
+      const temp_userList = [...userList];
       temp_userList.splice(index, 1);
       setUserList(temp_userList);
     }
@@ -113,7 +113,7 @@ const HeaderPage = (props: IProsp) => {
         (table: any) => table.id.toString() === e.target.value,
       );
       setShareTable(shareTable.concat(tableList[index]));
-      let temp_tableList = [...tableList];
+      const temp_tableList = [...tableList];
       temp_tableList.splice(index, 1);
       setTableList(temp_tableList);
     }
@@ -222,7 +222,6 @@ const HeaderPage = (props: IProsp) => {
                             ({
                               first_name: firstName,
                               last_name: lastName,
-                              ...rest
                             }: any) =>
                               firstName
                                 .toUpperCase()
@@ -231,7 +230,7 @@ const HeaderPage = (props: IProsp) => {
                                 .toUpperCase()
                                 .includes(searchUser.toUpperCase()),
                           )
-                          .map((user: any, index: number) => (
+                          .map((user: any) => (
                             <Row
                               align="middle"
                               style={{ marginLeft: '20px' }}
@@ -309,7 +308,7 @@ const HeaderPage = (props: IProsp) => {
               </Col>
               <Col>
                 <Button
-                  size={'large'}
+                  size="large"
                   style={{ fontSize: '20px', height: 50, borderRadius: 5 }}
                 >
                   Copy Link
@@ -326,9 +325,9 @@ const HeaderPage = (props: IProsp) => {
               </Col>
               <Col>
                 <Button
-                  size={'large'}
+                  size="large"
                   style={{
-                    background: theme.colors.quotron.black,
+                    background: 'black',
                     borderRadius: 10,
                     fontSize: 20,
                     color: 'white',
@@ -425,7 +424,6 @@ const HeaderPage = (props: IProsp) => {
                             ({
                               table_name: tablename,
                               kind: table_kind,
-                              ...rest
                             }: any) =>
                               tablename
                                 .toUpperCase()
@@ -434,7 +432,7 @@ const HeaderPage = (props: IProsp) => {
                                 .toUpperCase()
                                 .includes(searchTable.toUpperCase()),
                           )
-                          .map((table: any, index: number) => (
+                          .map((table: any) => (
                             <Row
                               align="middle"
                               style={{
@@ -518,7 +516,7 @@ const HeaderPage = (props: IProsp) => {
               </Col>
               <Col>
                 <Button
-                  size={'large'}
+                  size="large"
                   style={{ fontSize: '20px', height: 50, borderRadius: 5 }}
                 >
                   Copy Link
@@ -535,7 +533,7 @@ const HeaderPage = (props: IProsp) => {
               </Col>
               <Col>
                 <Button
-                  size={'large'}
+                  size="large"
                   style={{
                     background: theme.colors.quotron.black,
                     borderRadius: 10,
