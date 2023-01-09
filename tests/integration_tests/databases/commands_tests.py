@@ -954,5 +954,5 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         result = command.run()
 
         assert result["count"] > 0
-        assert len(result["options"]) > 0
-        assert len(result["options"]) == result["count"]
+        assert len(result["result"]) > 0
+        assert len(result["result"]) == result["count"]

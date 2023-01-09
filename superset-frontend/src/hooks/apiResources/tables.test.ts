@@ -24,7 +24,6 @@ import { useTables } from './tables';
 const fakeApiResult = {
   json: {
     count: 2,
-
     result: [
       {
         id: 1,
@@ -42,7 +41,7 @@ const fakeApiResult = {
 
 const fakeHasMoreApiResult = {
   json: {
-    count: 2,
+    count: 4,
     result: [
       {
         id: 1,
@@ -59,12 +58,12 @@ const fakeHasMoreApiResult = {
 };
 
 const expectedData = {
-  ...fakeApiResult.json.result,
+  options: [...fakeApiResult.json.result],
   hasMore: false,
 };
 
 const expectedHasMoreData = {
-  ...fakeHasMoreApiResult.json.result,
+  options: [...fakeHasMoreApiResult.json.result],
   hasMore: true,
 };
 
