@@ -52,6 +52,7 @@ module.exports = {
   env: {
     browser: true,
     node: true,
+    es6: true,
   },
   settings: {
     'import/resolver': {
@@ -110,6 +111,7 @@ module.exports = {
             '.json': 'always',
           },
         ],
+        'import/no-unresolved': 0,
         'import/no-named-as-default-member': 0,
         'import/prefer-default-export': 0,
         indent: 0,
