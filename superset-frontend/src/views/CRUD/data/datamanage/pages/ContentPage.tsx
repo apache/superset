@@ -204,7 +204,7 @@ const ContentPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = async (column: any) => {
     await setColumnData(column);
-    if (column !=='') {
+    if (column !== '') {
       await setColumnName(column.column_name);
       await setColumnDescription(column.description);
       await setColumnExpression(column.expression);
@@ -320,8 +320,7 @@ const ContentPage = () => {
       ),
     });
     await setIsModalOpen(false);
-    if (columnData === "")
-      handleColumnAdd();
+    if (columnData === '') handleColumnAdd();
   };
 
   const actionColumnSave = async () => {
