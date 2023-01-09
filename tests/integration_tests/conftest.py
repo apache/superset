@@ -188,7 +188,11 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
 
 def setup_presto_if_needed():
-    backend = app.config["SQLALCHEMY_EXAMPLES_URI"].split("://")[0]
+    db_uri = (
+        app.config.get("SQLALCHEMY_EXAMPLES_URI")
+        or app.config["SQLALCHEMY_DATABASE_URI"]
+    )
+    backend = db_uri.split("://")[0]
     database = get_example_database()
     extra = database.get_extra()
 

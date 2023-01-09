@@ -189,7 +189,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
-        "can_sql_json",  # TODO: move can_sql_json to sql_lab role
         "can_override_role_permissions",
         "can_sync_druid_source",
         "can_override_role_permissions",
@@ -223,11 +222,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword"}
 
-    SQLLAB_PERMISSION_VIEWS = {
-        ("can_csv", "Superset"),
+    SQLLAB_ONLY_PERMISSIONS = {
+        ("can_my_queries", "SqlLab"),
         ("can_read", "SavedQuery"),
-        ("can_read", "Database"),
         ("can_sql_json", "Superset"),
+        ("can_sqllab_history", "Superset"),
         ("can_sqllab_viz", "Superset"),
         ("can_sqllab_table_viz", "Superset"),
         ("can_sqllab", "Superset"),
@@ -235,6 +234,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "SQL Editor"),
         ("menu_access", "Saved Queries"),
         ("menu_access", "Query Search"),
+    }
+
+    SQLLAB_EXTRA_PERMISSION_VIEWS = {
+        ("can_csv", "Superset"),
+        ("can_read", "Superset"),
+        ("can_read", "Database"),
     }
 
     data_access_permissions = (
@@ -908,7 +913,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         return not (
-            self._is_user_defined_permission(pvm) or self._is_admin_only(pvm)
+            self._is_user_defined_permission(pvm)
+            or self._is_admin_only(pvm)
+            or self._is_sql_lab_only(pvm)
         ) or self._is_accessible_to_all(pvm)
 
     def _is_gamma_pvm(self, pvm: PermissionView) -> bool:
@@ -924,7 +931,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self._is_user_defined_permission(pvm)
             or self._is_admin_only(pvm)
             or self._is_alpha_only(pvm)
+            or self._is_sql_lab_only(pvm)
         ) or self._is_accessible_to_all(pvm)
+
+    def _is_sql_lab_only(self, pvm: PermissionView) -> bool:
+        """
+        Return True if the FAB permission/view is only SQL Lab related, False
+        otherwise.
+
+        :param pvm: The FAB permission/view
+        :returns: Whether the FAB object is SQL Lab related
+        """
+        return (pvm.permission.name, pvm.view_menu.name) in self.SQLLAB_ONLY_PERMISSIONS
 
     def _is_sql_lab_pvm(self, pvm: PermissionView) -> bool:
         """
@@ -934,7 +952,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param pvm: The FAB permission/view
         :returns: Whether the FAB object is SQL Lab related
         """
-        return (pvm.permission.name, pvm.view_menu.name) in self.SQLLAB_PERMISSION_VIEWS
+        return (
+            self._is_sql_lab_only(pvm)
+            or (pvm.permission.name, pvm.view_menu.name)
+            in self.SQLLAB_EXTRA_PERMISSION_VIEWS
+        )
 
     def _is_granter_pvm(  # pylint: disable=no-self-use
         self, pvm: PermissionView

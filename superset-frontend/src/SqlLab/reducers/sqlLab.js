@@ -320,7 +320,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: false,
             cost: null,
             error: null,
@@ -333,7 +333,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: true,
             cost: action.json,
             error: null,
@@ -346,7 +346,7 @@ export default function sqlLabReducer(state = {}, action) {
         ...state,
         queryCostEstimates: {
           ...state.queryCostEstimates,
-          [action.query.sqlEditorId]: {
+          [action.query.id]: {
             completed: false,
             cost: null,
             error: action.error,
