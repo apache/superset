@@ -64,6 +64,7 @@ from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+from superset.slim.initialization import SlimAppInitializer
 
 logger = logging.getLogger(__name__)
 
@@ -274,6 +275,8 @@ SCHEDULED_QUERIES: Dict[str, Any] = {}
 # ------------------------------
 # Uncomment to setup Your App name
 APP_NAME = "Superset"
+
+APP_INITIALIZER = SlimAppInitializer
 
 # Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
@@ -1326,7 +1329,7 @@ STATIC_ASSETS_PREFIX = ""
 
 # Some sqlalchemy connection strings can open Superset to security risks.
 # Typically these should not be allowed.
-PREVENT_UNSAFE_DB_CONNECTIONS = True
+PREVENT_UNSAFE_DB_CONNECTIONS = False
 
 # Prevents unsafe default endpoints to be registered on datasets.
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
