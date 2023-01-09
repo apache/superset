@@ -2257,9 +2257,13 @@
       ],
       "Opacity": ["Прозрачность"],
       "Opacity of Area Chart. Also applies to confidence band.": [""],
-      "Opacity of all clusters, points, and labels. Between 0 and 1.": [""],
+      "Opacity of all clusters, points, and labels. Between 0 and 1.": [
+        "Непрозрачность всех кластеров, точек и меток. Между 0 и 1."
+      ],
       "Opacity of area chart.": [""],
-      "Opacity, expects values between 0 and 100": [""],
+      "Opacity, expects values between 0 and 100": [
+        "Непрозрачность, принимаются значения от 0 до 100"
+      ],
       "Open Datasource tab": ["Открыть вкладку источника данных"],
       "Open in SQL Lab": ["Открыть в SQL редакторе"],
       "Open query in SQL Lab": ["Открыть в SQL редакторе"],
@@ -2269,7 +2273,10 @@
       "Operate the database in asynchronous mode, meaning that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.": [
         "Работа с базой данных в асинхронном режиме означает, что запросы исполняются на удалённых воркерах, а не на веб-сервере Superset. Это подразумевает, что у вас установка с воркерами Celery. Обратитесь к документации по настройке за дополнительной информацией."
       ],
-      "Operator undefined for aggregator: %(name)s": [""],
+      "Operator": ["Оператор"],
+      "Operator undefined for aggregator: %(name)s": [
+        "Оператор не определен для агрегатора: %(name)s"
+      ],
       "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines.": [
         ""
       ],
@@ -2277,21 +2284,33 @@
       "Optional time column if time range should apply to another column than the default time column": [
         ""
       ],
-      "Optional warning about use of this metric": [""],
+      "Optional warning about use of this metric": [
+        "Необязательное предупреждение об использовании этой меры"
+      ],
       "Optionally add a detailed description": [""],
+      "Options": ["Опции"],
       "Or choose from a list of other databases we support:": [""],
       "Order by entity id": [""],
-      "Order results by selected columns": [""],
+      "Order results by selected columns": [
+        "Упорядочить результаты по выбранным столбцам"
+      ],
+      "Ordering": ["Упорядочивание"],
+      "Orientation": ["Ориентация"],
+      "Orientation of bar chart": ["Ориентация диаграммы"],
       "Orientation of filter bar": [""],
-      "Orientation of tree": [""],
+      "Orientation of tree": ["Ориентация дерева"],
+      "Original": ["Исходные данные"],
       "Original table column order": [
         "Расположение столбцов как в исходной таблице"
       ],
       "Original value": ["Исходное значение"],
       "Orthogonal": [""],
-      "Outer Radius": [""],
+      "Other": ["Прочее"],
+      "Outer Radius": ["Внешний радиус"],
+      "Outer edge of Pie chart": ["Внешний радиус круговой диаграммы"],
+      "Overlap": ["Перекрывание"],
       "Overlay one or more timeseries from a relative time period. Expects relative time deltas in natural language (example:  24 hours, 7 days, 52 weeks, 365 days). Free text is supported.": [
-        ""
+        "Наложение одной или нескольких временных рядов из относительного периода времени."
       ],
       "Overlays a hexagonal grid on a map, and aggregates data within the boundary of each cell.": [
         ""
@@ -2299,39 +2318,45 @@
       "Overwrite": ["Перезаписать"],
       "Overwrite & Explore": ["Перезаписать и исследовать"],
       "Overwrite Dashboard [%s]": ["Перезаписать дашборд [%s]"],
+      "Overwrite existing": ["Переписать существующий"],
       "Overwrite text in the editor with a query on this table": [
-        "Перезаписать текст в редакторе с запросом к этой таблице"
+        "Вставить этот запрос в редактор SQL"
       ],
       "Owner": ["Владелец"],
       "Owners": ["Владельцы"],
-      "Owners are invalid": ["Владельцы недействительны"],
+      "Owners are invalid": ["Неверный список владельцев"],
       "Owners is a list of users who can alter the dashboard.": [
-        "Владельцы - это пользователи, которые могут изменять дашборд."
+        "Владельцы – это список пользователей, которые могут изменять дашборд."
       ],
       "Owners is a list of users who can alter the dashboard. Searchable by name or username.": [
         "Владельцы - это список пользователей, которые могут изменять дашборд."
       ],
-      "Page length": [""],
-      "Paired t-test Table": [""],
+      "Page length": ["Размер страницы"],
+      "Paired t-test Table": ["Таблица парного t-теста"],
       "Pandas resample method": [
-        "Одна из функций (Resample) библиотеки Pandas, которая определяет метод обработки данных"
+        "Правило ресемплирования данных библиотеки Pandas"
       ],
       "Pandas resample rule": [
         "Одна из функций (Resample) библиотеки Pandas, которая определяет период, к которому применяется функция агрегации"
       ],
       "Parallel Coordinates": [""],
-      "Parameter error": ["Параметры"],
+      "Parameter error": ["Ошибка параметра"],
       "Parameters": ["Параметры"],
+      "Parameters ": ["Параметры "],
       "Parameters related to the view and perspective on the map": [""],
-      "Parent": [""],
-      "Parse Dates": ["Разбор Дат"],
-      "Part of a Whole": [""],
+      "Parent": ["Родитель"],
+      "Parse Dates": ["Парсинг дат"],
+      "Part of a Whole": ["Покомпонентное сравнение"],
       "Partition Diagram": ["Partition Diagram"],
       "Partition Threshold": [""],
       "Partitions whose height to parent height proportions are below this value are pruned": [
         ""
       ],
+      "Password": ["Пароль"],
       "Paste the shareable Google Sheet URL here": [""],
+      "Pattern": ["Паттерн"],
+      "Percent Change": ["Процентное изменение"],
+      "Percentage change": ["Процентное изменение"],
       "Percentage threshold": [""],
       "Periods": ["Период"],
       "Person or group that has certified this metric": [
@@ -4221,71 +4246,105 @@
       "cannot be empty": [""],
       "chart": ["график"],
       "choose WHERE or HAVING...": ["выберите WHERE или HAVING…"],
-      "click here": [""],
+      "clear all filters": ["Сбросить все фильтры"],
+      "click here": ["нажмите сюда"],
       "column": ["столбец"],
       "create a ": ["создать "],
       "create dataset from SQL query": [""],
-      "css": ["Css"],
+      "css": ["CSS"],
       "css_template": ["шаблон_css"],
+      "cumulative": ["С накоплением"],
       "dashboard": ["дашборд"],
       "database": ["база данных"],
       "dataset": ["датасет"],
+      "dataset name": ["имя датасета"],
       "date": ["дата"],
       "day": ["день"],
       "day of the month": ["день месяца"],
       "day of the week": ["день недели"],
-      "deckGL": [""],
+      "deck.gl 3D Hexagon": ["deck.gl 3D Шестигранники"],
+      "deck.gl Arc": ["deck.gl Дуга"],
+      "deck.gl Multiple Layers": ["deck.gl Многослойный"],
+      "deck.gl Polygon": ["deck.gl Полигон"],
+      "deck.gl Scatterplot": ["deck.gl Точечная карта"],
+      "deckGL": ["Карта deckGL"],
+      "default": ["по умолчанию"],
       "delete": ["удалить"],
+      "descendant": ["потомок"],
       "description": ["описание"],
       "dialect+driver://username:password@host:port/database": [
         "диалект+драйвер://пользователь:пароль@хост:порт/схема"
       ],
+      "draft": ["черновик"],
       "dttm": ["dttm"],
-      "e.g. ********": [""],
-      "e.g. 127.0.0.1": [""],
-      "e.g. 5432": [""],
-      "e.g. param1=value1&param2=value2": [""],
-      "e.g. sql/protocolv1/o/12345": [""],
-      "e.g. world_population": [""],
-      "e.g. xy12345.us-east-2.aws": [""],
+      "e.g. ********": ["например, ********"],
+      "e.g. 127.0.0.1": ["например, 127.0.0.1"],
+      "e.g. 5432": ["например, 5432"],
+      "e.g. Analytics": ["например, Analytics"],
+      "e.g. param1=value1&param2=value2": [
+        "например, параметр1=значение1&параметр2=значение2"
+      ],
+      "e.g. sql/protocolv1/o/12345": ["например, sql/protocolv1/o/12345"],
+      "e.g. world_population": ["например, world_population"],
+      "e.g. xy12345.us-east-2.aws": ["например, xy12345.us-east-2.aws"],
+      "edit mode": ["режиме редактирования"],
       "every": ["каждый"],
       "every day of the month": ["каждый день месяца"],
       "every day of the week": ["каждый день недели"],
       "every hour": ["каждый час"],
+      "every minute": ["каждая минута"],
       "every month": ["месяц"],
       "filter_box will be deprecated in a future version of Superset. Please replace filter_box by dashboard filter components.": [
-        ""
+        "filter_box устарел и будет удален в будущей версии Суперсета. Пожалуйста, замените его фильтрами в левой панели дашборда."
+      ],
+      "for more information on how to structure your URI.": [
+        " за подробной информацией по тому, как структурировать ваш URI."
       ],
       "function type icon": [""],
-      "green": [""],
+      "green": ["Зеленая"],
       "heatmap: values are normalized across the entire heatmap": [""],
+      "here": ["здесь"],
       "hour": ["час"],
-      "id:": ["идентификатор:"],
+      "id:": ["Идентификатор:"],
       "image-rendering CSS attribute of the canvas object that defines how the browser scales up the image": [
         ""
       ],
       "in": ["в"],
-      "in modal": [""],
-      "is expected to be a number": [""],
-      "is expected to be an integer": [""],
-      "joined": ["присоединился"],
-      "json isn't valid": ["json не валиден"],
-      "key a-z": [""],
-      "key z-a": [""],
-      "last quarter": [""],
+      "in modal": ["в модальном окне"],
+      "is expected to be a number": ["Ожидается число"],
+      "is expected to be an integer": ["Ожидается целое число"],
+      "joined": ["Присоединился"],
+      "json isn't valid": ["JSON не валиден"],
+      "key a-z": ["По алфавиту А-Я"],
+      "key z-a": ["По алфавиту Я-А"],
+      "label": ["метка"],
+      "last day": ["последний день"],
+      "last month": ["последний месяц"],
+      "last quarter": ["последний квартал"],
+      "last week": ["последняя неделя"],
+      "last year": ["последний год"],
       "latest partition:": ["последний раздел:"],
+      "left": ["слева"],
       "log": ["журнал"],
       "lower percentile must be greater than 0 and less than 100. Must be lower than upper percentile.": [
-        "нижний процентиль должен быть больше 0 и меньше верхнего процентиля."
+        "Нижний процентиль должен быть больше 0 и меньше 100. Должен быть ниже верхнего процентиля"
       ],
       "minute": ["минута"],
+      "minute(s)": ["минут"],
       "month": ["месяц"],
-      "must have a value": [""],
+      "must have a value": ["значение обязательно"],
+      "name": ["имя"],
+      "no SQL validator is configured": ["не настроен ни один SQL валидатор"],
+      "no SQL validator is configured for {}": [
+        "не настроен ни один SQL валидатор для {}"
+      ],
       "numeric type icon": [""],
       "nvd3": [""],
-      "on": [""],
-      "or use existing ones from the panel on the right": [""],
-      "p-value precision": [""],
+      "on": ["по"],
+      "or use existing ones from the panel on the right": [
+        "или использовать уже существующие из панели справа"
+      ],
+      "p-value precision": ["точность p-значения"],
       "page_size.all": [""],
       "page_size.entries": [""],
       "page_size.show": [""],
@@ -4293,14 +4352,19 @@
       "percentiles must be a list or tuple with two numeric values, of which the first is lower than the second value": [
         "процентили должны быть списками из кортежами из двух числовых значений, в которых первое значение меньше второго"
       ],
-      "previous calendar month": [""],
-      "previous calendar week": [""],
-      "previous calendar year": [""],
+      "previous calendar month": ["предыдущий календарный месяц"],
+      "previous calendar week": ["предыдущая календарная неделя"],
+      "previous calendar year": ["предыдущий календарный год"],
+      "published": ["опубликовано"],
+      "queries": ["запросы"],
       "query": ["запрос"],
       "reboot": [""],
+      "recent": ["недавние"],
+      "red": ["Красная"],
       "report": ["рассылка"],
       "reports": ["рассылки"],
-      "restore zoom": [""],
+      "restore zoom": ["восстановить масштабирование"],
+      "right": ["справа"],
       "search.num_records": [""],
       "series: Treat each series independently; overall: All series use the same scale; change: Show changes compared to the first data point in each series": [
         ""
@@ -4308,6 +4372,7 @@
       "string type icon": [""],
       "temporal type icon": [""],
       "textarea": ["текстовая область"],
+      "top": ["сверху"],
       "upper percentile must be greater than 0 and less than 100. Must be higher than lower percentile.": [
         "верхний процентиль должен быть больше нижнего процентиля и меньше 100."
       ],
@@ -4317,8 +4382,8 @@
       "x: values are normalized within each column": [""],
       "y: values are normalized within each row": [""],
       "year": ["год"],
-      "yellow": [""],
-      "zoom area": [""]
+      "yellow": ["Желтая"],
+      "zoom area": ["область масштабирования"]
     }
   }
 }
