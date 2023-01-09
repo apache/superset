@@ -7,7 +7,7 @@
 #
 -r development.txt
 -r integration.txt
--e file:///home/exx/git/superset
+# -e file:///home/exx/git/superset
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in

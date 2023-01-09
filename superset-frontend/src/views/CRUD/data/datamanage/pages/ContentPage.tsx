@@ -19,7 +19,6 @@ import {
   Switch,
   Dropdown,
   notification,
-  AutoComplete,
 } from 'antd';
 import {
   AppstoreOutlined,
@@ -37,7 +36,10 @@ import {
   ShareAltOutlined,
   FormOutlined,
   BarsOutlined,
+  DownOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
+import type { SizeType } from 'antd/es/config-provider/SizeContext';
 
 import { SupersetClient, SupersetTheme, useTheme } from '@superset-ui/core';
 import { createErrorHandler } from 'src/views/CRUD/utils';
@@ -94,8 +96,65 @@ const ContentPage = () => {
   const [columnDescription, setColumnDescription] = useState('');
   const [columnExpression, setColumnExpression] = useState('');
   const [searchtext, setSearchtext] = useState('');
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharePeople, setSharePeople] = useState<any>([]);
+  const [isSelectPeople, setIsSelectPeople] = useState(false);
+  const [size, setSize] = useState<SizeType>('large');
+  const [userList, setUserList] = useState<any>([]);
+  const [searchUser, setSearchUser] = useState('');
 
-  const [options, setOptions] = useState<{ value: string }[]>([]);
+  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchtext(ev.target.value);
+  };
+
+  const handleUserSearch = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchUser(ev.target.value);
+  };
+
+  const handleSort = () => {
+    setSort((sort + 1) % 3);
+  };
+
+  const handleOwner = (ev: any) => {
+    setOwner(ev.key);
+  };
+
+  const cancelSelectPeople = () => {
+    setIsSelectPeople(false);
+  };
+
+  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
+    setDatasourceOne(ev.target.checked);
+  };
+
+  const handleSelectPeople = () => {
+    SupersetClient.get({
+      endpoint: `/api/v1/users/all`,
+    }).then(async ({ json = {} }) => {
+      setUserList(
+        json.result.filter((user: any) => {
+          const index = sharePeople.findIndex(
+            (people: any) => people.id === user.id,
+          );
+          if (index === -1) return true;
+          sharePeople[index].email = user.email;
+          return false;
+        }),
+      );
+    });
+    setIsSelectPeople(true);
+  };
+  const onChangeCheck = (e: CheckboxChangeEvent) => {
+    if (e.target.checked) {
+      const index = userList.findIndex(
+        (user: any) => user.id.toString() === e.target.value,
+      );
+      setSharePeople(sharePeople.concat(userList[index]));
+      let temp_userList = [...userList];
+      temp_userList.splice(index, 1);
+      setUserList(temp_userList);
+    }
+  };
 
   useEffect(() => {
     if (!data.length) return;
@@ -142,48 +201,10 @@ const ContentPage = () => {
     setFilteredTableData(tempData);
   }, [searchtext, data, sort, owner, datasourceOne]);
 
-  const handleSearch = (value: string) => {
-    // eslint-disable-next-line
-    const optionTemp: Array<any> = [];
-    tableData.columns.forEach(function (itm: any) {
-      optionTemp.push({ value: itm.column_name });
-    });
-
-    setOptions(!value ? [] : optionTemp);
-  };
-
-  const handleKeyPress = (ev: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    console.log('handleKeyPress', ev);
-  };
-
-  const onSelect = (value: string) => {
-    console.log('onSelect', value);
-    setColumnExpression(columnExpression);
-  };
-
-  const handleChange = (value: string) => {
-    setColumnExpression(value);
-  };
-
-  const handleSearchtext = (ev: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchtext(ev.target.value);
-  };
-
-  const handleSort = () => {
-    setSort((sort + 1) % 3);
-  };
-
-  const handleOwner = (ev: any) => {
-    setOwner(ev.key);
-  };
-
-  const handleDatasourceChange = (ev: CheckboxChangeEvent) => {
-    setDatasourceOne(ev.target.checked);
-  };
   const theme: SupersetTheme = useTheme();
 
   const showLargeDrawer = (e: any) => {
-    if (e.key === 'drop_edit') {
+    if (e.key === 'drop_edit' || e.key === 'drop_share') {
       SupersetClient.get({
         endpoint: `/api/v1/dataset/${selectedId}`,
       }).then(
@@ -191,7 +212,9 @@ const ContentPage = () => {
           await setTableData(json.result);
           await setTableName(json.result.table_name);
           await setTableDescription(json.result.description);
-          setOpen(true);
+          await setSharePeople(json.result.owners);
+          if (e.key === 'drop_edit') setOpen(true);
+          if (e.key === 'drop_share') setShareOpen(true);
         },
         createErrorHandler(errMsg => console.log('====Err===', errMsg)),
       );
@@ -217,9 +240,12 @@ const ContentPage = () => {
   };
   const handleOk = () => {
     setIsModalOpen(false);
+    setShareOpen(false);
   };
   const handleCancel = () => {
     setIsModalOpen(false);
+    setShareOpen(false);
+    setIsSelectPeople(false);
   };
   const handleToggle = () => {
     setBtnToggle(!btnToggle);
@@ -857,23 +883,13 @@ const ContentPage = () => {
             />
           </Col>
         </Row>
-        <AutoComplete
-          style={{ width: '100%' }}
-          options={options}
-          defaultValue={columnExpression}
-          filterOption
-          onSelect={onSelect}
-          onSearch={handleSearch}
-          onChange={handleChange}
-        >
-          <TextArea
-            placeholder="input here"
-            className="custom"
-            value={columnExpression}
-            style={{ height: 50 }}
-            onKeyPress={handleKeyPress}
-          />
-        </AutoComplete>
+        <TextArea
+          rows={4}
+          value={columnExpression}
+          onChange={(e: any) => {
+            setColumnExpression(e.target.value);
+          }}
+        />
         <Row justify="center" gutter={16} style={{ marginTop: '24px' }}>
           <Col span="12">
             <Button
@@ -899,6 +915,255 @@ const ContentPage = () => {
           </Col>
         </Row>
       </Modal>
+      <Drawer
+        width="75%"
+        placement="right"
+        onClose={handleCancel}
+        visible={shareOpen}
+        closable={false}
+      >
+        {isSelectPeople ? (
+          <Col>
+            <br />
+            <Row>
+              <Button type="link" onClick={cancelSelectPeople}>
+                <Title level={4}>{'<- Select People'}</Title>
+              </Button>
+            </Row>
+            <Row>
+              <Col span={16}>
+                <Row>
+                  <Col span={16}>
+                    <Title level={5} style={{ marginTop: '24px' }}>
+                      Add people by email id or names
+                    </Title>
+                  </Col>
+                  <Col span={8} style={{ float: 'right' }}>
+                    <Space style={{ float: 'right' }}>
+                      <Title level={5} style={{ marginTop: '24px' }}>
+                        Can edit
+                        <DownOutlined />
+                      </Title>
+                    </Space>
+                  </Col>
+                </Row>
+                <Row>
+                  <Col
+                    style={{
+                      border: '1px solid black',
+                      borderRadius: 10,
+                      width: '100%',
+                      height: '400px',
+                    }}
+                  >
+                    <Input
+                      placeholder="Add Emails and Addresses to share access with"
+                      bordered={false}
+                      size="large"
+                      style={{
+                        background: theme.colors.quotron.gray_white,
+                        borderRadius: 10,
+                      }}
+                      value={searchUser}
+                      onChange={handleUserSearch}
+                    />
+                    <Col style={{ borderTop: '1px solid black' }}>
+                      {userList.length !== 0 &&
+                        userList
+                          .filter(
+                            ({
+                              first_name: firstName,
+                              last_name: lastName,
+                              ...rest
+                            }: any) =>
+                              firstName
+                                .toUpperCase()
+                                .includes(searchUser.toUpperCase()) ||
+                              lastName
+                                .toUpperCase()
+                                .includes(searchUser.toUpperCase()),
+                          )
+                          .map((user: any, index: number) => (
+                            <Row
+                              align="middle"
+                              style={{ marginLeft: '20px' }}
+                              key={user.id.toString()}
+                            >
+                              <Col span={2}>
+                                <Checkbox
+                                  value={user.id.toString()}
+                                  onChange={onChangeCheck}
+                                />
+                              </Col>
+                              <Col span={2}>
+                                <Avatar icon={<UserOutlined />} />
+                              </Col>
+                              <Col>
+                                <Row>
+                                  <Title level={5}>{user.username}</Title>
+                                </Row>
+                                <Row>{user.email}</Row>
+                              </Col>
+                            </Row>
+                          ))}
+                    </Col>
+                  </Col>
+                </Row>
+              </Col>
+              <Col span={8}>
+                <Row>
+                  <Title
+                    level={5}
+                    style={{ marginTop: '24px', marginLeft: 20 }}
+                  >
+                    Selected People
+                  </Title>
+                </Row>
+                <Row style={{ width: '100%' }}>
+                  <Col span={24}>
+                    {sharePeople.length !== 0 &&
+                      sharePeople.map((user: any) => (
+                        <Row align="middle" style={{ marginLeft: '20px' }}>
+                          <Col span={4}>
+                            <Avatar icon={<UserOutlined />} />
+                          </Col>
+                          <Col span={16}>
+                            <Row>
+                              <Title level={5}>{user.username}</Title>
+                            </Row>
+                            <Row>{user.email}</Row>
+                          </Col>
+                          <Col span={4}>
+                            <DeleteOutlined />
+                          </Col>
+                        </Row>
+                      ))}
+                  </Col>
+                </Row>
+              </Col>
+            </Row>
+            <Row>
+              <Title level={4}>General Access</Title>
+            </Row>
+            <Row
+              style={{ width: '100%' }}
+              justify="space-between"
+              align="middle"
+            >
+              <Col>
+                <GlobalOutlined />
+              </Col>
+              <Col>
+                <Row>
+                  <Title level={5}>People With the Link</Title>
+                </Row>
+                <Row>anyone on the internet with the link can edit</Row>
+              </Col>
+              <Col>
+                <Button
+                  size={size}
+                  style={{ fontSize: '20px', height: 50, borderRadius: 5 }}
+                >
+                  Copy Link
+                </Button>
+              </Col>
+              <Col>
+                can edit
+                <DownOutlined />
+              </Col>
+            </Row>
+            <Row justify="space-between" style={{ marginTop: '24px' }}>
+              <Col>
+                <Title level={5}>Invites will be shared by email</Title>
+              </Col>
+              <Col>
+                <Button
+                  size={size}
+                  style={{
+                    background: 'black',
+                    borderRadius: 10,
+                    fontSize: 20,
+                    color: 'white',
+                    height: 50,
+                  }}
+                >
+                  {'Share access->'}
+                </Button>
+              </Col>
+            </Row>
+          </Col>
+        ) : (
+          <Col>
+            <br />
+            <Row>
+              <Title level={3}>Share Tables</Title>
+            </Row>
+            <Title level={4} style={{ marginTop: '24px' }}>
+              Select Tables
+            </Title>
+            <Row>
+              <Col
+                style={{
+                  background: theme.colors.quotron.gray_white,
+                  color: 'black',
+                  width: '100%',
+                  height: '150px',
+                  border: '1px solid black',
+                  borderRadius: 10,
+                }}
+              >
+                <Button style={{ margin: '20px' }} shape="round" type="default">
+                  {tableName}
+                </Button>
+              </Col>
+            </Row>
+            <Title level={4} style={{ marginTop: '24px' }}>
+              Select People
+            </Title>
+
+            <Row>
+              <Col
+                style={{
+                  background: theme.colors.quotron.gray_white,
+                  color: 'black',
+                  width: '100%',
+                  height: '150px',
+                  border: '1px solid black',
+                  borderRadius: 10,
+                }}
+              >
+                {sharePeople.length !== 0 ? (
+                  <Row>
+                    <Space>
+                      {sharePeople.map((people: any) => (
+                        <Button
+                          style={{ margin: '20px 0 0 20px' }}
+                          shape="round"
+                          type="default"
+                        >
+                          {people.username}
+                        </Button>
+                      ))}
+                    </Space>
+                  </Row>
+                ) : (
+                  <Row justify="center" style={{ marginTop: '30px' }}>
+                    You haven't selected people to share with
+                  </Row>
+                )}
+                <Row justify="center">
+                  <Title level={5}>
+                    <Button type="link" onClick={handleSelectPeople}>
+                      <Title level={5}>Select People</Title>
+                    </Button>
+                  </Title>
+                </Row>
+              </Col>
+            </Row>
+          </Col>
+        )}
+        {/* </Modal> */}
+      </Drawer>
     </Row>
   );
 };
