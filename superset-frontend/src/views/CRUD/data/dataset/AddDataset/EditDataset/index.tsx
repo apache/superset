@@ -21,7 +21,7 @@ import React from 'react';
 import { useGetDatasetRelatedCounts } from 'src/views/CRUD/data/hooks';
 import Badge from 'src/components/Badge';
 import Tabs from 'src/components/Tabs';
-import DatasetUsage from './DatasetUsage';
+import UsageTab from './UsageTab';
 
 const StyledTabs = styled(Tabs)`
   ${({ theme }) => `
@@ -69,7 +69,7 @@ const EditPage = ({ id }: EditPageProps) => {
       <Tabs.TabPane tab={TRANSLATIONS.COLUMNS_TEXT} key="1" />
       <Tabs.TabPane tab={TRANSLATIONS.METRICS_TEXT} key="2" />
       <Tabs.TabPane tab={usageTab} key="3">
-        <DatasetUsage datasetId={id} />
+        <UsageTab datasetId={id} />
       </Tabs.TabPane>
     </StyledTabs>
   );

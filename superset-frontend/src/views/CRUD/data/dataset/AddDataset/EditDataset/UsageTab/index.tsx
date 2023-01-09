@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   css,
@@ -28,11 +28,19 @@ import {
 } from '@superset-ui/core';
 import CrossLinks from 'src/components/ListView/CrossLinks';
 import Chart from 'src/types/Chart';
-import Table, { ColumnsType, TableSize } from 'src/components/Table';
+import Table, {
+  ColumnsType,
+  TableSize,
+  OnChangeFunction,
+} from 'src/components/Table';
 import { alphabeticalSort } from 'src/components/Table/sorters';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ChartImage from 'src/assets/images/chart.svg';
 import Icons from 'src/components/Icons';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import { FilterOperator } from 'src/components/ListView';
+import moment from 'moment';
 
 interface DatasetUsageProps {
   datasetId: string;
@@ -57,17 +65,18 @@ const columns: ColumnsType<Chart> = [
         .join(', '),
   },
   {
-    key: 'last-modified',
-    dataIndex: 'changed_on_delta_humanized',
+    key: 'last_saved_at',
     title: t('Chart last modified'),
     width: '209px',
-    sorter: (a, b) => alphabeticalSort('changed_on_utc', a, b),
+    render: (value, record) =>
+      record.last_saved_at ?? moment.utc(record.last_saved_at).fromNow(),
+    sorter: (a, b) => alphabeticalSort('last_saved_at', a, b),
   },
   {
-    key: 'last-modified-by',
+    key: 'changed_by_name',
+    dataIndex: 'changed_by_name',
     title: t('Chart last modified by'),
     width: '216px',
-    dataIndex: 'changed_by_name',
     sorter: (a, b) => alphabeticalSort('changed_by_name', a, b),
   },
   {
@@ -113,9 +122,82 @@ const StyledEmptyStateBig = styled(EmptyStateBig)`
   margin: ${({ theme }) => 13 * theme.gridUnit}px 0;
 `;
 
-const data: Chart[] = [];
+/**
+ * Hook that uses the useListViewResource hook to retrieve records
+ * based on pagination state.
+ */
+const useDatasetChartRecords = (datasetId: string) => {
+  const { addDangerToast } = useToasts();
+
+  // Always filters charts by dataset
+  const baseFilters = useMemo(
+    () => [
+      {
+        id: 'datasource_id',
+        operator: FilterOperator.equals,
+        value: datasetId,
+      },
+    ],
+    [datasetId],
+  );
+
+  // Returns request status/results and function for re-fetching
+  const {
+    state: { loading, resourceCount, resourceCollection },
+    fetchData,
+  } = useListViewResource<Chart>(
+    'chart',
+    t('chart'),
+    addDangerToast,
+    true,
+    [],
+    baseFilters,
+  );
+
+  // Adds `key` field
+  const resourceCollectionWithKey = useMemo(
+    () => resourceCollection.map(o => ({ ...o, key: o.id })),
+    [resourceCollection],
+  );
+
+  // Called by table with updated table state to fetch new data
+  const onChange: OnChangeFunction = useCallback(
+    (tablePagination, tableFilters, tableSorter) => {
+      const pageIndex = tablePagination.current ?? 0;
+      const pageSize = tablePagination.pageSize ?? 0;
+      const sortBy = ensureIsArray(tableSorter)
+        .filter(({ columnKey }) => typeof columnKey === 'string')
+        .map(({ columnKey, order }) => ({
+          id: columnKey as string,
+          desc: order === 'descend',
+        }));
+      fetchData({ pageIndex, pageSize, sortBy, filters: [] });
+    },
+    [fetchData],
+  );
+
+  // Initial data request
+  useEffect(() => {
+    fetchData({
+      pageIndex: 0,
+      pageSize: DEFAULT_PAGE_SIZE,
+      sortBy: [{ id: 'changed_on_utc', desc: true }],
+      filters: [],
+    });
+  }, [fetchData]);
+
+  return {
+    loading,
+    recordCount: resourceCount,
+    data: resourceCollectionWithKey,
+    onChange,
+  };
+};
 
 const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
+  const { loading, recordCount, data, onChange } =
+    useDatasetChartRecords(datasetId);
+
   const emptyStateButtonAction = useCallback(
     () =>
       window.open(
@@ -132,8 +214,11 @@ const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
         data={data}
         size={TableSize.MIDDLE}
         defaultPageSize={DEFAULT_PAGE_SIZE}
+        recordCount={recordCount}
+        loading={loading}
+        onChange={onChange}
       />
-      {!data.length ? (
+      {!data.length && !loading ? (
         <StyledEmptyStateBig
           image={<ChartImage />}
           title={t('No charts')}
