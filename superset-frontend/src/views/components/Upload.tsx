@@ -140,6 +140,7 @@ const UploadCsv = () => {
           setProgress(parseFloat(percent.toFixed(0)));
           setShowProgressBarModal(true);
         }
+        return `${parseFloat(percent.toFixed(2))}%`;
       },
     },
   };
