@@ -204,12 +204,15 @@ const ContentPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = async (column: any) => {
     await setColumnData(column);
-    if (column.column_name) await setColumnName(column.column_name);
-    else await setColumnName('calculated_column');
-    if (column.description) await setColumnDescription(column.description);
-    else await setColumnDescription('');
-    if (column.expression) await setColumnExpression(column.expression);
-    else await setColumnExpression('');
+    if (column !=='') {
+      await setColumnName(column.column_name);
+      await setColumnDescription(column.description);
+      await setColumnExpression(column.expression);
+    } else {
+      await setColumnName('calculated_column');
+      await setColumnDescription('');
+      await setColumnExpression('');
+    }
     setIsModalOpen(true);
   };
   const handleOk = () => {
@@ -316,7 +319,9 @@ const ContentPage = () => {
           : column,
       ),
     });
-    setIsModalOpen(false);
+    await setIsModalOpen(false);
+    if (columnData === "")
+      handleColumnAdd();
   };
 
   const actionColumnSave = async () => {
