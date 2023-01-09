@@ -6696,9 +6696,8 @@ msgstr "Ciljno razmerje za razdelke drevesnega grafikona."
 
 #: superset-frontend/plugins/legacy-plugin-chart-treemap/src/index.js:31
 msgid ""
-"Shows the composition of a dataset by segmenting a given rectangle as smaller "
-"rectangles with areas proportional to their value or contribution to the whole. "
-"Those rectangles may also, in turn, be further segmented hierarchically."
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a "
+"query."
 msgstr ""
 "Prikaže zgradbo podatkovnega seta na podlagi segmentacije danega pravokotnika na "
 "manjše pravokotnike, pri čemer je ploščina sorazmerna vrednostim oz. deležem. "
@@ -15788,7 +15787,7 @@ msgstr "Omogoči ocenjevanje potratnosti poizvedbe"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:179
 msgid ""
-"For Presto and Postgres, shows a button to compute cost before running a query."
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a query."
 msgstr ""
 "Za Presto in Postgres prikaže gumb za izračun potratnosti pred zagonom poizvedbe."
 
