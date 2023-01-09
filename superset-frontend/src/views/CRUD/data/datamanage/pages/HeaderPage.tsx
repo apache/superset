@@ -394,7 +394,6 @@ const HeaderPage = (props: IProsp) => {
                 <Row>
                   <Col
                     style={{
-                      // borderRadius: 10,
                       width: '100%',
                       height: '400px',
                       overflow: 'auto',
