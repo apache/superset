@@ -227,12 +227,15 @@ const ContentPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = async (column: any) => {
     await setColumnData(column);
-    if (column.column_name) await setColumnName(column.column_name);
-    else await setColumnName('calculated_column');
-    if (column.description) await setColumnDescription(column.description);
-    else await setColumnDescription('');
-    if (column.expression) await setColumnExpression(column.expression);
-    else await setColumnExpression('');
+    if (column !== '') {
+      await setColumnName(column.column_name);
+      await setColumnDescription(column.description);
+      await setColumnExpression(column.expression);
+    } else {
+      await setColumnName('calculated_column');
+      await setColumnDescription('');
+      await setColumnExpression('');
+    }
     setIsModalOpen(true);
   };
   const handleOk = () => {
@@ -260,30 +263,32 @@ const ContentPage = () => {
     setTableSelectNum(tmp);
   };
 
-  const actionTableSave = async () => {
-    await SupersetClient.post({
-      endpoint: '/datasource/save/',
-      postPayload: {
-        data: {
-          ...tableData,
-          type: 'table',
-          table_name: tableName,
-          description: tableDescription,
-        },
-      },
-    })
-      .then(async ({ json }) => {
-        notification.success({
-          message: 'Success',
-          description: 'Changed table name successfully',
-        });
-        await actionGetData();
-        setOpen(false);
-      })
-      .catch(err => {
-        console.log('====== Save error ========', err);
-      });
-  };
+  // const actionTableSave = async () => {
+  //   console.log(tableData, 12111111111111);
+
+  //   await SupersetClient.post({
+  //     endpoint: '/datasource/save/',
+  //     postPayload: {
+  //       data: {
+  //         ...tableData,
+  //         type: 'table',
+  //         table_name: tableName,
+  //         description: tableDescription,
+  //       },
+  //     },
+  //   })
+  //     .then(async ({ json }) => {
+  //       notification.success({
+  //         message: 'Success',
+  //         description: 'Changed table name successfully',
+  //       });
+  //       await actionGetData();
+  //       setOpen(false);
+  //     })
+  //     .catch(err => {
+  //       console.log('====== Save error ========', err);
+  //     });
+  // };
 
   const actionGetData = async () => {
     await SupersetClient.get({
@@ -305,9 +310,9 @@ const ContentPage = () => {
       changed_on: now.toISOString(),
       column_name: columnName,
       created_on: now.toISOString(),
-      description: columnDescription,
-      expression: columnExpression,
-      extra: '{"warning_markdown":null}',
+      description: null,
+      expression: null,
+      extra: '{}',
       filterable: true,
       groupby: true,
       id: -1,
@@ -335,15 +340,66 @@ const ContentPage = () => {
               column_name: columnName,
               description: columnDescription,
               expression: columnExpression,
+              type: 'DOUBLE_PRECISION',
             }
           : column,
       ),
     });
-    setIsModalOpen(false);
-    handleColumnAdd();
+    await setIsModalOpen(false);
+    if (columnData === '') handleColumnAdd();
   };
+
+  const actionColumnSave = async () => {
+    await SupersetClient.put({
+      endpoint: `/api/v1/dataset/${tableData.id}?override_columns=true`,
+      jsonPayload: {
+        columns: tableData.columns.map(function (column: any) {
+          return column.id !== -1
+            ? {
+                advanced_data_type: column.advanced_data_type,
+                column_name: column.column_name,
+                description: column.description,
+                expression: column.expression,
+                extra: column.extra,
+                filterable: column.filterable,
+                groupby: column.groupby,
+                id: column.id,
+                is_dttm: column.is_dttm,
+                python_date_format: column.python_date_format,
+                type: column.type,
+                uuid: column.uuid,
+                verbose_name: column.verbose_name,
+              }
+            : {
+                column_name: column.column_name,
+                description: column.description,
+                expression: column.expression,
+                extra: column.extra,
+                filterable: column.filterable,
+                groupby: column.groupby,
+                is_dttm: column.is_dttm,
+                python_date_format: column.python_date_format,
+                type: column.type,
+                verbose_name: column.verbose_name,
+              };
+        }),
+      },
+    })
+      .then(async ({ json }) => {
+        notification.success({
+          message: 'Success',
+          description: 'Changed table successfully',
+        });
+        await actionGetData();
+        setOpen(false);
+      })
+      .catch(err => {
+        console.log('====== Save error ========', err);
+      });
+  };
+
   const handleEditTableSave = () => {
-    actionTableSave();
+    actionColumnSave();
   };
 
   useEffect(() => {

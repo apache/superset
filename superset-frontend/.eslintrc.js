@@ -52,6 +52,7 @@ module.exports = {
   env: {
     browser: true,
     node: true,
+    es6: true,
   },
   settings: {
     'import/resolver': {
@@ -110,6 +111,7 @@ module.exports = {
             '.json': 'always',
           },
         ],
+        'import/no-unresolved': 0,
         'import/no-named-as-default-member': 0,
         'import/prefer-default-export': 0,
         indent: 0,
@@ -145,7 +147,12 @@ module.exports = {
         'react/require-default-props': 0,
         'react/sort-comp': 0, // TODO: re-enable in separate PR
         'react/static-property-placement': 0, // re-enable up for discussion
-        'prettier/prettier': 'error',
+        'prettier/prettier': [
+          'error',
+          {
+            endOfLine: 'auto',
+          },
+        ],
         'file-progress/activate': 1,
       },
       settings: {

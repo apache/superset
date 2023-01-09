@@ -17,10 +17,9 @@
 from flask import g, Response
 from flask_appbuilder.api import BaseApi, expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
-
-from superset.views.utils import bootstrap_user_data
-
+from superset.views.utils import bootstrap_user_data, logger
 from .schemas import UserResponseSchema
+from .. import utils
 
 user_response_schema = UserResponseSchema()
 
@@ -28,32 +27,59 @@ user_response_schema = UserResponseSchema()
 class CurrentUserRestApi(BaseApi):
     """An api to get information about the current user"""
 
-    resource_name = "me"
+    resource_name = "users"
     openapi_spec_tag = "Current User"
     openapi_spec_component_schemas = (UserResponseSchema,)
+    @expose("/all", methods=["GET"])
+    def get_all(self) -> Response:
+        """Get the user roles corresponding to the agent making the request
+                ---
+                get:
+                  description: >-
+                    Returns the user roles corresponding to the agent making the request,
+                    or returns a 401 error if the user is unauthenticated.
+                  responses:
+                    200:
+                      description: The current user
+                      content:
+                        application/json:
+                          schema:
+                            type: array
+                            items:
+                                $ref: '#/components/schemas/UserResponseSchema'
 
+                    401:
+                      $ref: '#/components/responses/401'
+                """
+        users = utils.get_all_users()
+        logger.info(users)
+        users_response = []
+        for user in users:
+            users_response.append(user_response_schema.dump(user))
+
+        return self.response(200, result=users_response)
     @expose("/", methods=["GET"])
     @safe
     def get_me(self) -> Response:
-        """Get the user object corresponding to the agent making the request
-        ---
-        get:
-          description: >-
-            Returns the user object corresponding to the agent making the request,
-            or returns a 401 error if the user is unauthenticated.
-          responses:
-            200:
-              description: The current user
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/UserResponseSchema'
-            401:
-              $ref: '#/components/responses/401'
-        """
+        """Get the user roles corresponding to the agent making the request
+                ---
+                get:
+                  description: >-
+                    Returns the user roles corresponding to the agent making the request,
+                    or returns a 401 error if the user is unauthenticated.
+                  responses:
+                    200:
+                      description: The current user
+                      content:
+                        application/json:
+                          schema:
+                            type: object
+                            properties:
+                              result:
+                                $ref: '#/components/schemas/UserResponseSchema'
+                    401:
+                      $ref: '#/components/responses/401'
+                """
         try:
             if g.user is None or g.user.is_anonymous:
                 return self.response_401()
