@@ -629,7 +629,7 @@ class TestCore(SupersetTestCase):
 
         self.login(username="admin")
         response = self.client.get(f"/r/{model_url.id}")
-        assert response.headers["Location"] == "http://localhost/"
+        assert response.headers["Location"] == "/"
         db.session.delete(model_url)
         db.session.commit()
 
@@ -1674,7 +1674,9 @@ class TestCore(SupersetTestCase):
         rv = self.client.get(
             f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
         )
-        self.assertRedirects(rv, f"/explore/?form_data_key={random_key}")
+        self.assertEqual(
+            rv.headers["Location"], f"/explore/?form_data_key={random_key}"
+        )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_has_table_by_name(self):

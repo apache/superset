@@ -143,7 +143,7 @@ class TestDashboard(SupersetTestCase):
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
         self.assertEqual(dash_count_before + 1, dash_count_after)
         group = re.match(
-            r"http:\/\/localhost\/superset\/dashboard\/([0-9]*)\/\?edit=true",
+            r"\/superset\/dashboard\/([0-9]*)\/\?edit=true",
             response.headers["Location"],
         )
         assert group is not None
