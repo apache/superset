@@ -158,7 +158,7 @@ const ContentPage = () => {
 
   const onSelect = (value: string) => {
     console.log('onSelect', value);
-    setColumnExpression(columnExpression + value);
+    setColumnExpression(columnExpression);
   };
 
   const handleChange = (value: string) => {
