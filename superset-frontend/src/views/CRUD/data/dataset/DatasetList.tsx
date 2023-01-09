@@ -23,6 +23,7 @@ import React, {
   useMemo,
   useCallback,
 } from 'react';
+import { useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
   createFetchRelated,
@@ -135,6 +136,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   addSuccessToast,
   user,
 }) => {
+  const history = useHistory();
   const {
     state: {
       loading,
@@ -598,7 +600,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         </>
       ),
       onClick: () => {
-        window.location.href = '/dataset/add/';
+        history.push('/dataset/add/');
       },
       buttonStyle: 'primary',
     });
