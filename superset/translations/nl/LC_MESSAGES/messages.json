@@ -4487,7 +4487,7 @@
         "Sta manipulatie van de database toe met niet-SELECT statements zoals UPDATE, DELETE, CREATE, enz."
       ],
       "Enable query cost estimation": [""],
-      "For Presto and Postgres, shows a button to compute cost before running a query.": [
+      "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         ""
       ],
       "Allow this database to be explored": [""],
