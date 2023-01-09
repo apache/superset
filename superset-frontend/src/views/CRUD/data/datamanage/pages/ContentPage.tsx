@@ -335,7 +335,7 @@ const ContentPage = () => {
       column_name: columnName,
       created_on: now.toISOString(),
       description: null,
-      expression: null,
+      expression: columnExpression,
       extra: '{}',
       filterable: true,
       groupby: true,
