@@ -44,7 +44,6 @@ import type { SizeType } from 'antd/es/config-provider/SizeContext';
 import { SupersetClient, SupersetTheme, useTheme } from '@superset-ui/core';
 import { createErrorHandler } from 'src/views/CRUD/utils';
 import { CheckboxChangeEvent } from 'antd/lib/checkbox';
-import { borderRadius } from 'polished';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -1025,7 +1024,7 @@ const ContentPage = () => {
                 <Button
                   size={size}
                   style={{
-                    background: theme.colors.quotron.black,
+                    background: 'black',
                     borderRadius: 10,
                     fontSize: 20,
                     color: 'white',
@@ -1050,7 +1049,7 @@ const ContentPage = () => {
               <Col
                 style={{
                   background: theme.colors.quotron.gray_white,
-                  color: theme.colors.quotron.black,
+                  color: 'black',
                   width: '100%',
                   height: '150px',
                   border: '1px solid black',
@@ -1070,7 +1069,7 @@ const ContentPage = () => {
               <Col
                 style={{
                   background: theme.colors.quotron.gray_white,
-                  color: theme.colors.quotron.black,
+                  color: 'black',
                   width: '100%',
                   height: '150px',
                   border: '1px solid black',
