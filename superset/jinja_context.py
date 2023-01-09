@@ -490,10 +490,14 @@ class BaseTemplateProcessor:
         hash = self.gen_query_hash(sql)
         kwargs.update(self._context)
         context = validate_template_context(self.engine, kwargs)
-        query_source = context["query_source"]
-        username = context['current_username']()
-        query_id = self._query.id
-        sql_query = "/* username {}, query_id: {}, query_hash: {}, query_source: {} */". format(username,query_id,hash,query_source) + sql 
+        sql_query = sql
+        query_source = "unknown"
+        query_id = 1
+        if "query_source" in context.keys():
+            query_source = context["query_source"]
+            username = context['current_username']()
+            query_id = self._query.id
+            sql_query = "/* Username: {}, Query_id: {}, Query_hash: {}, Query_source: {} */". format(username,query_id,hash,query_source) + sql
         template = self._env.from_string(sql_query)
         return template.render(context)
 

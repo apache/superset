@@ -157,7 +157,7 @@ class ExecuteSqlCommand(BaseCommand):
             logger.info("Triggering query_id: %i", query.id)
             self._validate_access(query)
             self._execution_context.set_query(query)
-            self._execution_context.set_query_source("sqlLab")
+            self._execution_context.set_query_source("SqlLab")
             rendered_query = self._sql_query_render.render(self._execution_context)
             self._set_query_limit_if_required(rendered_query)
             self._query_dao.update(

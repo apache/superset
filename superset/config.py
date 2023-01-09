@@ -1394,7 +1394,7 @@ DB_CONNECTION_MUTATOR = None
 def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     sql: str, **kwargs: Any
 ) -> str:
-    return sql
+    return f"/* Username: {kwargs['user_name']}, Query_hash: {kwargs['query_hash']}, Query_source: {kwargs['query_source']}  */ \n{sql}"
 
 
 # This allows for a user to add header data to any outgoing emails. For example,
