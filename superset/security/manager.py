@@ -1991,7 +1991,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.is_admin()
                 or self.is_owner(dashboard)
                 or (dashboard.published and has_rbac_access())
-                or (not dashboard.published and not dashboard.roles)
+                or (dashboard.published and not dashboard.roles)
             )
 
         if not can_access:
