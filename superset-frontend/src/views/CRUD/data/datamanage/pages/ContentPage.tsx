@@ -161,7 +161,7 @@ const ContentPage = () => {
     setColumnExpression(columnExpression + value);
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: any) => {
     setColumnExpression(e.target.value);
   };
 
