@@ -23,41 +23,38 @@ import { useTables } from './tables';
 
 const fakeApiResult = {
   json: {
-    result: {
-      options: [
-        {
-          id: 1,
-          name: 'fake api result1',
-          label: 'fake api label1',
-        },
-        {
-          id: 2,
-          name: 'fake api result2',
-          label: 'fake api label2',
-        },
-      ],
-      count: 2,
-    },
+    count: 2,
+
+    result: [
+      {
+        id: 1,
+        name: 'fake api result1',
+        label: 'fake api label1',
+      },
+      {
+        id: 2,
+        name: 'fake api result2',
+        label: 'fake api label2',
+      },
+    ],
   },
 };
 
 const fakeHasMoreApiResult = {
   json: {
-    result: {
-      options: [
-        {
-          id: 1,
-          name: 'fake api result1',
-          label: 'fake api label1',
-        },
-        {
-          id: 2,
-          name: 'fake api result2',
-          label: 'fake api label2',
-        },
-      ],
-      count: 4,
-    },
+    count: 2,
+    result: [
+      {
+        id: 1,
+        name: 'fake api result1',
+        label: 'fake api label1',
+      },
+      {
+        id: 2,
+        name: 'fake api result2',
+        label: 'fake api label2',
+      },
+    ],
   },
 };
 

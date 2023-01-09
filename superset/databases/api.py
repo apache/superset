@@ -591,17 +591,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                   schema:
                     type: object
                     properties:
+                      count:
+                        type: integer
                       result:
                         description: >-
                           A List of tables for given database
-                        type: object
-                        properties:
-                          count:
-                            type: integer
-                          options:
-                            type: array
-                            items:
-                              $ref: '#/components/schemas/DatabaseTablesResponse'
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DatabaseTablesResponse'
             400:
               $ref: '#/components/responses/400'
             401:
@@ -619,7 +616,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             command = TablesDatabaseCommand(pk, schema_name, force)
             payload = command.run()
-            return self.response(200, result=payload)
+            return self.response(200, **payload)
         except DatabaseNotFoundError:
             return self.response_404()
         except SupersetException as ex:

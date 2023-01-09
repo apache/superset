@@ -178,17 +178,15 @@ export default function LeftPanel({
   const getTablesList = (url: string) => {
     SupersetClient.get({ url })
       .then(({ json }) => {
-        const options: TableOption[] = json.result.options.map(
-          (table: Table) => {
-            const option: TableOption = {
-              value: table.value,
-              label: <TableOption table={table} />,
-              text: table.label,
-            };
+        const options: TableOption[] = json.result.map((table: Table) => {
+          const option: TableOption = {
+            value: table.value,
+            label: <TableOption table={table} />,
+            text: table.label,
+          };
 
-            return option;
-          },
-        );
+          return option;
+        });
 
         setTableOptions(options);
         setLoadTables(false);

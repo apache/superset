@@ -41,15 +41,14 @@ export interface Table {
 
 type QueryData = {
   json: {
-    result: {
-      options: Table[];
-      count: number;
-    };
+    count: number;
+    result: Table[];
   };
   response: Response;
 };
 
-export type Data = QueryData['json']['result'] & {
+export type Data = {
+  options: Table[];
   hasMore: boolean;
 };
 
@@ -83,8 +82,8 @@ export function useTables(options: Params) {
     () => fetchTables({ ...params, forceRefresh: forceRefreshRef.current }),
     {
       select: ({ json }) => ({
-        ...json.result,
-        hasMore: json.result.count > json.result.options.length,
+        options: json.result,
+        hasMore: json.count > json.result.length,
       }),
       enabled: Boolean(dbId && schema),
       onSuccess,

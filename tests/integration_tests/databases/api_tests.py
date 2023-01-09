@@ -1709,8 +1709,8 @@ class TestDatabaseApi(SupersetTestCase):
             schemas = [
                 s[0] for s in database.get_all_table_names_in_schema(schema_name)
             ]
-            self.assertEquals(response["result"]["count"], len(schemas))
-            for option in response["result"]["options"]:
+            self.assertEquals(response["count"], len(schemas))
+            for option in response["result"]:
                 self.assertEquals(option["extra"], None)
                 self.assertEquals(option["type"], "table")
                 self.assertTrue(option["value"] in schemas)

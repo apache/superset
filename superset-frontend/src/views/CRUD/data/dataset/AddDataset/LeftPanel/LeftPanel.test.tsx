@@ -136,14 +136,12 @@ fetchMock.get(schemasEndpoint, {
 });
 
 fetchMock.get(tablesEndpoint, {
-  result: {
-    count: 3,
-    options: [
-      { value: 'Sheet1', type: 'table', extra: null },
-      { value: 'Sheet2', type: 'table', extra: null },
-      { value: 'Sheet3', type: 'table', extra: null },
-    ],
-  },
+  count: 3,
+  result: [
+    { value: 'Sheet1', type: 'table', extra: null },
+    { value: 'Sheet2', type: 'table', extra: null },
+    { value: 'Sheet3', type: 'table', extra: null },
+  ],
 });
 
 const mockFun = jest.fn();

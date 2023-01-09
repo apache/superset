@@ -51,14 +51,13 @@ const getSchemaMockFunction = async () =>
 const getTableMockFunction = async () =>
   ({
     json: {
-      result: {
-        options: [
-          { label: 'table_a', value: 'table_a' },
-          { label: 'table_b', value: 'table_b' },
-          { label: 'table_c', value: 'table_c' },
-          { label: 'table_d', value: 'table_d' },
-        ],
-      },
+      count: 4,
+      result: [
+        { label: 'table_a', value: 'table_a' },
+        { label: 'table_b', value: 'table_b' },
+        { label: 'table_c', value: 'table_c' },
+        { label: 'table_d', value: 'table_d' },
+      ],
     },
   } as any);
 

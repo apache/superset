@@ -43,15 +43,13 @@ const store = mockStore(initialState);
 
 fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: [] });
 fetchMock.get('glob:*/api/v1/database/*/tables/*', {
-  result: {
-    options: [
-      {
-        label: 'ab_user',
-        value: 'ab_user',
-      },
-    ],
-    count: 1,
-  },
+  count: 1,
+  result: [
+    {
+      label: 'ab_user',
+      value: 'ab_user',
+    },
+  ],
 });
 
 const renderAndWait = (props, store) =>
