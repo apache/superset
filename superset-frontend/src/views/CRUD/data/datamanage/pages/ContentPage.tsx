@@ -204,10 +204,12 @@ const ContentPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = async (column: any) => {
     await setColumnData(column);
-    await setColumnName(column.column_name);
-    await setColumnDescription(column.description);
-    await setColumnExpression(column.expression);
-
+    if (column.column_name) await setColumnName(column.column_name);
+    else await setColumnName('calculated_column');
+    if (column.description) await setColumnDescription(column.description);
+    else await setColumnDescription('');
+    if (column.expression) await setColumnExpression(column.expression);
+    else await setColumnExpression('');
     setIsModalOpen(true);
   };
   const handleOk = () => {
@@ -277,7 +279,7 @@ const ContentPage = () => {
     const newElement = {
       advanced_data_type: null,
       changed_on: now.toISOString(),
-      column_name: 'New Column',
+      column_name: columnName,
       created_on: now.toISOString(),
       description: null,
       expression: null,
@@ -314,8 +316,8 @@ const ContentPage = () => {
           : column,
       ),
     });
-
     setIsModalOpen(false);
+    handleColumnAdd();
   };
 
   const actionColumnSave = async () => {
@@ -744,7 +746,7 @@ const ContentPage = () => {
           <Button
             icon={<PlusOutlined />}
             size="large"
-            onClick={() => handleColumnAdd()}
+            onClick={() => showModal('')}
           />
         </Row>
         {tableData?.columns?.map((column: any) => (
