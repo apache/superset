@@ -181,7 +181,7 @@ const useDatasetChartRecords = (datasetId: string) => {
     fetchData({
       pageIndex: 0,
       pageSize: DEFAULT_PAGE_SIZE,
-      sortBy: [{ id: 'changed_on_utc', desc: true }],
+      sortBy: [{ id: 'last_saved_at', desc: true }],
       filters: [],
     });
   }, [fetchData]);

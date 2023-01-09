@@ -68,11 +68,11 @@ test('shows error state', async () => {
   expect(errorMessage).toBeInTheDocument();
 });
 
-test('shows empty state', () => {
+test('shows empty state', async () => {
   mockChartsFetch(emptyChartResponse);
   renderDatasetUsage();
 
-  const noChartsTitle = screen.getByText(/no charts/i);
+  const noChartsTitle = await screen.findByText(/no charts/i);
   const noChartsDescription = screen.getByText(
     /this dataset is not used to power any charts\./i,
   );
