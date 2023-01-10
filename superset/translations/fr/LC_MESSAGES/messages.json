@@ -3419,7 +3419,7 @@
       "Enable query cost estimation": [
         "Activer l'estimation du coût de la requête"
       ],
-      "For Presto and Postgres, shows a button to compute cost before running a query.": [
+      "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         "Pour Presto et Postgres, affiche un bouton pour calculer le coût avant d'exécuter une requête."
       ],
       "Allow this database to be explored": [

@@ -123,7 +123,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
-            RowLevelSecurityFiltersModelView,
+            RowLevelSecurityView,
             SqlMetricInlineView,
             TableColumnInlineView,
             TableModelView,
@@ -147,6 +147,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
+        from superset.row_level_security.api import RLSRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
@@ -215,6 +216,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
+        appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         #
         # Setup regular views
@@ -279,14 +281,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=__("Manage"),
             category_icon="",
-        )
-        appbuilder.add_view(
-            RowLevelSecurityFiltersModelView,
-            "Row Level Security",
-            label=__("Row Level Security"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-lock",
         )
 
         #
@@ -407,6 +401,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Security"),
             icon="fa-table",
             menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
+        )
+
+        appbuilder.add_view(
+            RowLevelSecurityView,
+            "Row Level Security",
+            href="/rowlevelsecurity/list/",
+            label=__("Row Level Security"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
         )
 
     def init_app_in_ctx(self) -> None:
@@ -577,25 +581,33 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Flask-Compress
         Compress(self.superset_app)
 
+        # Talisman
+        talisman_enabled = self.config["TALISMAN_ENABLED"]
+        talisman_config = self.config["TALISMAN_CONFIG"]
+        csp_warning = self.config["CONTENT_SECURITY_POLICY_WARNING"]
+
+        if talisman_enabled:
+            talisman.init_app(self.superset_app, **talisman_config)
+
         show_csp_warning = False
         if (
-            self.config["CONTENT_SECURITY_POLICY_WARNING"]
+            csp_warning
             and not self.superset_app.debug
+            and (
+                not talisman_enabled
+                or not talisman_config
+                or not talisman_config.get("content_security_policy")
+            )
         ):
-            if self.config["TALISMAN_ENABLED"]:
-                talisman.init_app(self.superset_app, **self.config["TALISMAN_CONFIG"])
-                if not self.config["TALISMAN_CONFIG"].get("content_security_policy"):
-                    show_csp_warning = True
-            else:
-                show_csp_warning = True
+            show_csp_warning = True
 
         if show_csp_warning:
             logger.warning(
                 "We haven't found any Content Security Policy (CSP) defined in "
                 "the configurations. Please make sure to configure CSP using the "
-                "TALISMAN_CONFIG key or any other external software. Failing to "
-                "configure CSP have serious security implications. Check "
-                "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
+                "TALISMAN_ENABLED and TALISMAN_CONFIG keys or any other external "
+                "software. Failing to configure CSP have serious security implications. "
+                "Check https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
                 "information. You can disable this warning using the "
                 "CONTENT_SECURITY_POLICY_WARNING key."
             )

@@ -5924,7 +5924,7 @@ msgstr "列表中最小值的字体大小"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:179
 #, fuzzy
 msgid ""
-"For Presto and Postgres, shows a button to compute cost before running a "
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a "
 "query."
 msgstr "在运行查询之前计算执行计划"
 
