@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import hashlib
 import json
 import logging
 from typing import Any, Dict, List, Optional
@@ -41,6 +42,7 @@ from superset.reports.models import (
     ReportScheduleType,
 )
 from superset.reports.types import ReportScheduleExtra
+from superset.utils.core import get_username
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +114,9 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             self._properties["validator_config_json"] = json.dumps(
                 self._properties["validator_config_json"]
             )
+        
+        if "sql" in self._properties:
+            self.add_metadata()
 
         try:
             owners = self.populate_owners(owner_ids)
@@ -147,3 +152,9 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                     "extra",
                 )
             )
+
+    def add_metadata(self) -> None:
+        username = get_username()
+        sql = self._properties["sql"]
+        query_hash = hashlib.md5(sql.encode("utf-8")).hexdigest()
+        self._properties["sql"] = f"/* Username: {username}, Query_id: None, Query_hash: {query_hash}, Query_source: Alerts */ \n{sql}"
