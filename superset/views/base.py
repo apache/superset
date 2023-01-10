@@ -316,7 +316,7 @@ class BaseSupersetView(BaseView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
@@ -429,9 +429,9 @@ def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
     return bootstrap_data
 
 
-def common_bootstrap_payload() -> Dict[str, Any]:
+def common_bootstrap_payload(user: User) -> Dict[str, Any]:
     return {
-        **(cached_common_bootstrap_data(g.user)),
+        **(cached_common_bootstrap_data(user)),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
 
@@ -541,7 +541,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 def get_common_bootstrap_data() -> Dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
-            {"common": common_bootstrap_payload()},
+            {"common": common_bootstrap_payload(g.user)},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
 
@@ -559,7 +559,7 @@ class SupersetModelView(ModelView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         return self.render_template(
             "superset/spa.html",
