@@ -110,6 +110,7 @@ Join our growing community!
 - [Whale](http://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
+- [Careem](https://www.careem.com/) [@SamraHanifCareem]
 
 ### Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
@@ -162,3 +163,4 @@ Join our growing community!
 - [Twitter](https://twitter.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
 - [Yahoo!](https://yahoo.com/)
+
