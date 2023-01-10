@@ -33,7 +33,6 @@ import Table, {
   TableSize,
   OnChangeFunction,
 } from 'src/components/Table';
-import { alphabeticalSort } from 'src/components/Table/sorters';
 import { EmptyStateBig } from 'src/components/EmptyState';
 import ChartImage from 'src/assets/images/chart.svg';
 import Icons from 'src/components/Icons';
@@ -52,8 +51,8 @@ const columns: ColumnsType<Chart> = [
     key: 'slice_name',
     title: t('Chart'),
     width: '320px',
+    sorter: true,
     render: (value, record) => <Link to={record.url}>{record.slice_name}</Link>,
-    sorter: (a, b) => alphabeticalSort('slice_name', a, b),
   },
   {
     key: 'owners',
@@ -68,16 +67,20 @@ const columns: ColumnsType<Chart> = [
     key: 'last_saved_at',
     title: t('Chart last modified'),
     width: '209px',
+    sorter: true,
+    defaultSortOrder: 'descend',
     render: (value, record) =>
-      record.last_saved_at ?? moment.utc(record.last_saved_at).fromNow(),
-    sorter: (a, b) => alphabeticalSort('last_saved_at', a, b),
+      record.last_saved_at ? moment.utc(record.last_saved_at).fromNow() : null,
   },
   {
-    key: 'changed_by_name',
-    dataIndex: 'changed_by_name',
+    key: 'last_saved_by.first_name',
     title: t('Chart last modified by'),
     width: '216px',
-    sorter: (a, b) => alphabeticalSort('changed_by_name', a, b),
+    sorter: true,
+    render: (value, record) =>
+      record.last_saved_by
+        ? `${record.last_saved_by.first_name} ${record.last_saved_by.last_name}`
+        : null,
   },
   {
     key: 'dashboards',
@@ -163,7 +166,7 @@ const useDatasetChartRecords = (datasetId: string) => {
   // Called by table with updated table state to fetch new data
   const onChange: OnChangeFunction = useCallback(
     (tablePagination, tableFilters, tableSorter) => {
-      const pageIndex = tablePagination.current ?? 0;
+      const pageIndex = (tablePagination.current ?? 1) - 1;
       const pageSize = tablePagination.pageSize ?? 0;
       const sortBy = ensureIsArray(tableSorter)
         .filter(({ columnKey }) => typeof columnKey === 'string')
