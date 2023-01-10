@@ -39,6 +39,7 @@ import VizTypeGallery, {
 } from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 type Dataset = {
   id: number;
@@ -61,6 +62,9 @@ export type AddSliceContainerState = {
 
 const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
+
+const bootstrapData = getBootstrapData();
+const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
@@ -395,6 +399,7 @@ export class AddSliceContainer extends React.PureComponent<
             description={
               <StyledStepDescription>
                 <VizTypeGallery
+                  denyList={denyList}
                   className="viz-gallery"
                   onChange={this.changeVizType}
                   onDoubleClick={this.onVizTypeDoubleClick}

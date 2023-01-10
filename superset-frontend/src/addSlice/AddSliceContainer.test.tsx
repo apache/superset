@@ -84,7 +84,7 @@ async function getWrapper(user = mockUser) {
   return wrapper;
 }
 
-test('renders a select and a VizTypeControl', async () => {
+test('renders a select and a VizTypeGallery', async () => {
   const wrapper = await getWrapper();
   expect(wrapper.find(AsyncSelect)).toExist();
   expect(wrapper.find(VizTypeGallery)).toExist();

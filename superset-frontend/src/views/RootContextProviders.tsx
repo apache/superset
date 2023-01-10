@@ -24,14 +24,14 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from './store';
 import FlashProvider from '../components/FlashProvider';
-import { bootstrapData, theme } from '../preamble';
+import { theme } from '../preamble';
 import { EmbeddedUiConfigProvider } from '../components/UiConfigContext';
 import { DynamicPluginProvider } from '../components/DynamicPlugins';
 
-const common = { ...bootstrapData.common };
+const { common } = getBootstrapData();
 
 const extensionsRegistry = getExtensionsRegistry();
 
