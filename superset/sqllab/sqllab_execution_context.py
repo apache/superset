@@ -58,7 +58,6 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
     create_table_as_select: Optional[CreateTableAsSelect]
     database: Optional[Database]
     query: Query
-    query_source: Optional[str]
     _sql_result: Optional[SqlResults]
 
     def __init__(self, query_params: Dict[str, Any]):
@@ -70,9 +69,6 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
 
     def set_query(self, query: Query) -> None:
         self.query = query
-
-    def set_query_source(self,source:str) -> None:
-        self.query_source = source
 
     def _init_from_query_params(self, query_params: Dict[str, Any]) -> None:
         self.database_id = cast(int, query_params.get("database_id"))

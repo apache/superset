@@ -52,6 +52,7 @@ from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.celery import session_scope
 from superset.utils.core import (
+    gen_query_hash,
     get_username,
     json_iso_dttm_ser,
     override_user,
@@ -253,7 +254,7 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
             query.limit = SQL_MAX_ROW
         sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
-    query_hash = hashlib.md5(sql.encode("utf-8")).hexdigest()
+    query_hash = gen_query_hash(sql)
 
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(

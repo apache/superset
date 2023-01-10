@@ -22,6 +22,7 @@ import _thread
 import collections
 import decimal
 import errno
+import hashlib
 import json
 import logging
 import os
@@ -1988,3 +1989,14 @@ def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
         form_data[key] = [
             filter_ for filter_ in value or [] if not filter_.get("isExtra")
         ]
+
+def gen_query_hash(sql):
+        """Return hash of the given query after stripping all comments, line breaks
+        and multiple spaces, and lower casing all text.
+        TODO: possible issue - the following queries will get the same id:
+            1. SELECT 1 FROM table WHERE column='Value';
+            2. SELECT 1 FROM table where column='value';
+        """
+        # sql = re.COMMENTS_REGEX.sub("", sql)
+        # sql = "".join(sql.split()).lower()
+        return hashlib.md5(sql.encode("utf-8")).hexdigest()

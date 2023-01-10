@@ -128,6 +128,7 @@ from superset.tables.models import Table as NewTable
 from superset.utils import core as utils
 from superset.utils.core import (
     GenericDataType,
+    gen_query_hash,
     get_column_name,
     get_username,
     is_adhoc_column,
@@ -969,25 +970,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         df = pd.read_sql_query(sql=sql, con=engine)
         return df[column_name].to_list()
-        
-    def gen_query_hash(self,sql):
-        """Return hash of the given query after stripping all comments, line breaks
-        and multiple spaces, and lower casing all text.
-
-        TODO: possible issue - the following queries will get the same id:
-            1. SELECT 1 FROM table WHERE column='Value';
-            2. SELECT 1 FROM table where column='value';
-        """
-        # sql = re.COMMENTS_REGEX.sub("", sql)
-        # sql = "".join(sql.split()).lower()
-        return hashlib.md5(sql.encode("utf-8")).hexdigest()
+    
 
     def mutate_query_from_config(self, sql: str) -> str:
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-        query_hash = self.gen_query_hash(sql)
+        query_hash = gen_query_hash(sql)
         if sql_query_mutator:
             sql = sql_query_mutator(
                 sql,
@@ -1356,7 +1346,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             "to_dttm": to_dttm.isoformat() if to_dttm else None,
             "table_columns": [col.column_name for col in self.columns],
             "filter": filter,
-            "query_source": "dashboard"
         }
         columns = columns or []
         groupby = groupby or []

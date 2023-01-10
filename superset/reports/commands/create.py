@@ -42,7 +42,7 @@ from superset.reports.models import (
     ReportScheduleType,
 )
 from superset.reports.types import ReportScheduleExtra
-from superset.utils.core import get_username
+from superset.utils.core import gen_query_hash, get_username
 
 logger = logging.getLogger(__name__)
 
@@ -156,5 +156,5 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
     def add_metadata(self) -> None:
         username = get_username()
         sql = self._properties["sql"]
-        query_hash = hashlib.md5(sql.encode("utf-8")).hexdigest()
+        query_hash = gen_query_hash(sql)
         self._properties["sql"] = f"/* Username: {username}, Query_id: None, Query_hash: {query_hash}, Query_source: Alerts */ \n{sql}"
