@@ -58,6 +58,7 @@ RUN mkdir -p ${PYTHONPATH} \
         && apt-get update -y \
         && apt-get install -y --no-install-recommends \
             build-essential \
+            curl \
             default-libmysqlclient-dev \
             libsasl2-dev \
             libsasl2-modules-gssapi-mit \
