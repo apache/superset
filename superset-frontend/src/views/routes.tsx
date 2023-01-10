@@ -24,7 +24,7 @@ import Welcome from 'src/views/CRUD/welcome/Welcome';
 const ChartCreation = lazy(
   () =>
     import(
-      /* webpackChunkName: "ChartCreation" */ 'src/pages/charts/creation/ChartCreation'
+      /* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation/ChartCreation'
     ),
 );
 const AnnotationLayersList = lazy(
@@ -47,9 +47,7 @@ const AnnotationList = lazy(
 );
 const ChartList = lazy(
   () =>
-    import(
-      /* webpackChunkName: "ChartList" */ 'src/pages/charts/list/ChartList'
-    ),
+    import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList/ChartList'),
 );
 const CssTemplatesList = lazy(
   () =>
