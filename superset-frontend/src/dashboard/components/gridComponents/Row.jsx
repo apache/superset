@@ -25,7 +25,6 @@ import {
   isFeatureEnabled,
   styled,
   t,
-  useTheme,
 } from '@superset-ui/core';
 
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
