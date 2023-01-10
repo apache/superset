@@ -27,6 +27,7 @@ export type CatalogObject = {
 };
 
 export type SSHTunnelObject = {
+  id?: number;
   server_address?: string;
   server_port?: number;
   username?: string;

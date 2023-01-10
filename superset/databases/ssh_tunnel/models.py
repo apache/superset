@@ -71,6 +71,7 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
     @property
     def data(self) -> Dict[str, Any]:
         output = {
+            "id": self.id,
             "server_address": self.server_address,
             "server_port": self.server_port,
             "username": self.username,

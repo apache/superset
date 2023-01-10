@@ -42,6 +42,8 @@ class SSHTunnelDAO(BaseDAO):
 
         The masked values should be unmasked before the ssh tunnel is updated.
         """
+        # ID cannot be updated so we remove it if present in the payload
+        properties.pop("id", None)
         properties = unmask_password_info(properties, model)
 
         return super().update(model, properties, commit)
