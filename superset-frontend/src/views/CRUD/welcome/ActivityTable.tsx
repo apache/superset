@@ -74,7 +74,7 @@ interface ActivityProps {
   activeChild: string;
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
-  loadedCount: number;
+  isFetchingActivityData: boolean;
 }
 
 const Styles = styled.div`
@@ -128,22 +128,21 @@ export default function ActivityTable({
   setActiveChild,
   activityData,
   user,
-  loadedCount,
+  isFetchingActivityData,
 }: ActivityProps) {
-  const [editedObjs, setEditedObjs] = useState<Array<ActivityData>>();
-  const [loadingState, setLoadingState] = useState(false);
+  const [editedCards, setEditedCards] = useState<ActivityData[]>();
+  const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
 
   const getEditedCards = () => {
-    setLoadingState(true);
+    setIsFetchingEditedCards(true);
     getEditedObjects(user.userId).then(r => {
-      setEditedObjs([...r.editedChart, ...r.editedDash]);
-      setLoadingState(false);
+      setEditedCards([...r.editedChart, ...r.editedDash]);
+      setIsFetchingEditedCards(false);
     });
   };
 
   useEffect(() => {
     if (activeChild === TableTab.Edited) {
-      setLoadingState(true);
       getEditedCards();
     }
   }, [activeChild]);
@@ -178,9 +177,9 @@ export default function ActivityTable({
     });
   }
   const renderActivity = () =>
-    (activeChild !== TableTab.Edited
-      ? activityData[activeChild]
-      : editedObjs
+    (activeChild === TableTab.Edited
+      ? editedCards
+      : activityData[activeChild]
     ).map((entity: ActivityObject) => {
       const url = getEntityUrl(entity);
       const lastActionOn = getEntityLastActionOn(entity);
@@ -200,18 +199,14 @@ export default function ActivityTable({
       );
     });
 
-  const doneFetching = loadedCount < 3;
-
-  if ((loadingState && !editedObjs) || doneFetching) {
+  if ((isFetchingEditedCards && !editedCards) || isFetchingActivityData) {
     return <LoadingCards />;
   }
   return (
     <Styles>
       <SubMenu activeChild={activeChild} tabs={tabs} />
       {activityData[activeChild]?.length > 0 ||
-      (activeChild === TableTab.Edited &&
-        editedObjs &&
-        editedObjs.length > 0) ? (
+      (activeChild === TableTab.Edited && editedCards?.length) ? (
         <CardContainer className="recentCards">
           {renderActivity()}
         </CardContainer>

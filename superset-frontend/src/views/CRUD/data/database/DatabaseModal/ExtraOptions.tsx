@@ -171,7 +171,7 @@ const ExtraOptions = ({
                 />
                 <InfoTooltip
                   tooltip={t(
-                    'For Presto and Postgres, shows a button to compute cost before running a query.',
+                    'For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.',
                   )}
                 />
               </div>

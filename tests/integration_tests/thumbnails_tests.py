@@ -368,7 +368,7 @@ class TestThumbnails(SupersetTestCase):
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             rv = self.client.get(f"api/v1/chart/{id_}/thumbnail/1234/")
             self.assertEqual(rv.status_code, 302)
-            self.assertRedirects(rv, thumbnail_url)
+            self.assertEqual(rv.headers["Location"], thumbnail_url)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -413,4 +413,4 @@ class TestThumbnails(SupersetTestCase):
             id_, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             rv = self.client.get(f"api/v1/dashboard/{id_}/thumbnail/1234/")
             self.assertEqual(rv.status_code, 302)
-            self.assertRedirects(rv, thumbnail_url)
+            self.assertEqual(rv.headers["Location"], thumbnail_url)

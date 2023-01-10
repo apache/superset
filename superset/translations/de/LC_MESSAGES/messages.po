@@ -6114,7 +6114,7 @@ msgstr "Schriftgröße für den kleinsten Wert in der Liste"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:179
 msgid ""
-"For Presto and Postgres, shows a button to compute cost before running a "
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a "
 "query."
 msgstr ""
 "Für Presto und Postgres wird ein Buttons angezeigt, um Kosten vor dem "
