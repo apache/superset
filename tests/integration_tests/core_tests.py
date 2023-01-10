@@ -28,6 +28,7 @@ from urllib.parse import quote
 
 import superset.utils.database
 from superset.utils.core import backend
+from superset.sqllab.tabs import _get_sqllab_tabs
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -1472,7 +1473,7 @@ class TestCore(SupersetTestCase):
 
         # we should have only 1 query returned, since the second one is not
         # associated with any tabs
-        payload = views.Superset._get_sqllab_tabs(user_id=user_id)
+        payload = _get_sqllab_tabs(user_id=user_id)
         self.assertEqual(len(payload["queries"]), 1)
 
     @mock.patch.dict(

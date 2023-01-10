@@ -18,13 +18,13 @@ import logging
 
 import simplejson as json
 from flask import g, redirect, request, Response
-from flask_appbuilder import expose
+from flask_appbuilder import expose, permission_name
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_
 
-from superset import db
+from superset import db, event_logger
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
@@ -38,6 +38,18 @@ from superset.views.base import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class SqlLabView(BaseSupersetView):
+    route_base = "/sqllab"
+    class_permission_name = "SqlLab"
+
+    @expose("/")
+    @has_access
+    @permission_name("read")
+    @event_logger.log_this
+    def root(self) -> FlaskResponse:
+        return super().render_app_template()
 
 
 class SavedQueryView(  # pylint: disable=too-many-ancestors

@@ -347,9 +347,8 @@ export function runQuery(query) {
 
     const search = window.location.search || '';
     return SupersetClient.post({
-      endpoint: `/superset/sql_json/${search}`,
-      body: JSON.stringify(postPayload),
-      headers: { 'Content-Type': 'application/json' },
+      endpoint: `/api/v1/sqllab/execute/sql/${search}`,
+      jsonPayload: postPayload,
       parseMethod: 'json-bigint',
     })
       .then(({ json }) => {

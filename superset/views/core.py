@@ -72,7 +72,6 @@ from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.databases.commands.exceptions import DatabaseInvalidError
-from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
@@ -103,28 +102,20 @@ from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query, TabState
 from superset.models.user_attributes import UserAttribute
-from superset.queries.dao import QueryDAO
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from superset.sql_lab import get_sql_results
 from superset.sql_parse import ParsedQuery
 from superset.sql_validators import get_validator_by_name
-from superset.sqllab.command import CommandResult, ExecuteSqlCommand
-from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sqllab.exceptions import (
-    QueryIsForbiddenToAccessException,
-    SqlLabException,
+from superset.sqllab.api import (
+    _create_response_from_execution_context,
+    _create_sql_json_command,
+    _set_http_status_into_sql_lab_exception,
 )
-from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
+from superset.sqllab.command import CommandResult
+from superset.sqllab.exceptions import SqlLabException
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.sqllab.query_render import SqlQueryRenderImpl
-from superset.sqllab.sql_json_executer import (
-    ASynchronousSqlJsonExecutor,
-    SqlJsonExecutor,
-    SynchronousSqlJsonExecutor,
-)
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+from superset.sqllab.tabs import _get_sqllab_tabs
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
-from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils, csv
@@ -176,21 +167,6 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"
 stats_logger = config["STATS_LOGGER"]
 DAR = DatasourceAccessRequest
 logger = logging.getLogger(__name__)
-
-DATABASE_KEYS = [
-    "allow_file_upload",
-    "allow_ctas",
-    "allow_cvas",
-    "allow_dml",
-    "allow_run_async",
-    "allows_subquery",
-    "backend",
-    "database_name",
-    "expose_in_sqllab",
-    "force_ctas_schema",
-    "id",
-    "disable_data_preview",
-]
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
@@ -2399,6 +2375,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @handle_api_exception
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
+    @deprecated()
     def sql_json(self) -> FlaskResponse:
         errors = SqlJsonPayloadSchema().validate(request.json)
         if errors:
@@ -2409,69 +2386,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
             }
             execution_context = SqlJsonExecutionContext(request.json)
-            command = self._create_sql_json_command(execution_context, log_params)
+            command = _create_sql_json_command(execution_context, log_params)
             command_result: CommandResult = command.run()
-            return self._create_response_from_execution_context(command_result)
+            return _create_response_from_execution_context(command_result)
         except SqlLabException as ex:
             logger.error(ex.message)
-            self._set_http_status_into_Sql_lab_exception(ex)
+            _set_http_status_into_sql_lab_exception(ex)
             payload = {"errors": [ex.to_dict()]}
             return json_error_response(status=ex.status, payload=payload)
-
-    @staticmethod
-    def _create_sql_json_command(
-        execution_context: SqlJsonExecutionContext, log_params: Optional[Dict[str, Any]]
-    ) -> ExecuteSqlCommand:
-        query_dao = QueryDAO()
-        sql_json_executor = Superset._create_sql_json_executor(
-            execution_context, query_dao
-        )
-        execution_context_convertor = ExecutionContextConvertor()
-        execution_context_convertor.set_max_row_in_display(
-            int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
-        )
-        return ExecuteSqlCommand(
-            execution_context,
-            query_dao,
-            DatabaseDAO(),
-            CanAccessQueryValidatorImpl(),
-            SqlQueryRenderImpl(get_template_processor),
-            sql_json_executor,
-            execution_context_convertor,
-            config.get("SQLLAB_CTAS_NO_LIMIT"),  # type: ignore
-            log_params,
-        )
-
-    @staticmethod
-    def _create_sql_json_executor(
-        execution_context: SqlJsonExecutionContext, query_dao: QueryDAO
-    ) -> SqlJsonExecutor:
-        sql_json_executor: SqlJsonExecutor
-        if execution_context.is_run_asynchronous():
-            sql_json_executor = ASynchronousSqlJsonExecutor(query_dao, get_sql_results)
-        else:
-            sql_json_executor = SynchronousSqlJsonExecutor(
-                query_dao,
-                get_sql_results,
-                config.get("SQLLAB_TIMEOUT"),  # type: ignore
-                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
-            )
-        return sql_json_executor
-
-    @staticmethod
-    def _set_http_status_into_Sql_lab_exception(ex: SqlLabException) -> None:
-        if isinstance(ex, QueryIsForbiddenToAccessException):
-            ex.status = 403
-
-    def _create_response_from_execution_context(  # pylint: disable=invalid-name, no-self-use
-        self,
-        command_result: CommandResult,
-    ) -> FlaskResponse:
-
-        status_code = 200
-        if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING:
-            status_code = 202
-        return json_success(command_result["payload"], status_code)
 
     @has_access
     @event_logger.log_this
@@ -2732,51 +2654,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             ),
         )
 
-    @staticmethod
-    def _get_sqllab_tabs(user_id: Optional[int]) -> Dict[str, Any]:
-        # send list of tab state ids
-        tabs_state = (
-            db.session.query(TabState.id, TabState.label)
-            .filter_by(user_id=user_id)
-            .all()
-        )
-        tab_state_ids = [str(tab_state[0]) for tab_state in tabs_state]
-        # return first active tab, or fallback to another one if no tab is active
-        active_tab = (
-            db.session.query(TabState)
-            .filter_by(user_id=user_id)
-            .order_by(TabState.active.desc())
-            .first()
-        )
-
-        databases: Dict[int, Any] = {}
-        for database in DatabaseDAO.find_all():
-            databases[database.id] = {
-                k: v for k, v in database.to_json().items() if k in DATABASE_KEYS
-            }
-            databases[database.id]["backend"] = database.backend
-        queries: Dict[str, Any] = {}
-
-        # These are unnecessary if sqllab backend persistence is disabled
-        if is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"):
-            # return all user queries associated with existing SQL editors
-            user_queries = (
-                db.session.query(Query)
-                .filter_by(user_id=user_id)
-                .filter(Query.sql_editor_id.in_(tab_state_ids))
-                .all()
-            )
-            queries = {
-                query.client_id: dict(query.to_dict().items()) for query in user_queries
-            }
-
-        return {
-            "tab_state_ids": tabs_state,
-            "active_tab": active_tab.to_dict() if active_tab else None,
-            "databases": databases,
-            "queries": queries,
-        }
-
     @has_access
     @event_logger.log_this
     @expose("/sqllab/", methods=["GET", "POST"])
@@ -2785,7 +2662,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         payload = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
             "common": common_bootstrap_payload(g.user),
-            **self._get_sqllab_tabs(get_user_id()),
+            **_get_sqllab_tabs(get_user_id()),
         }
 
         form_data = request.form.get("form_data")
