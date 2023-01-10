@@ -79,7 +79,6 @@ from superset.superset_typing import FlaskResponse
 from superset.translations.utils import get_language_pack
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
-
 from superset.views.utils import bootstrap_user_data
 
 FRONTEND_CONF_KEYS = (
