@@ -48,6 +48,7 @@ import {
 import shortid from 'shortid';
 import {
   BootstrapUser,
+  UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import { AnyDatasourcesAction } from 'src/explore/actions/datasourcesActions';
@@ -72,9 +73,9 @@ export type UserLoadedAction = {
 };
 
 const userReducer = (
-  user = bootstrapData.user,
+  user = bootstrapData.user || {},
   action: UserLoadedAction,
-): BootstrapUser => {
+): BootstrapUser | UndefinedUser => {
   if (action.type === USER_LOADED) {
     return action.user;
   }
