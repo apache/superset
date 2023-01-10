@@ -21,10 +21,10 @@ import moment from 'moment';
 
 import TableLoader from '../../components/TableLoader';
 import { Activity } from '../types';
-import { User } from '../../types/bootstrapTypes';
+import { BootstrapUser } from '../../types/bootstrapTypes';
 
 interface RecentActivityProps {
-  user: User;
+  user: BootstrapUser;
 }
 
 export default function RecentActivity({ user }: RecentActivityProps) {
@@ -45,7 +45,7 @@ export default function RecentActivity({ user }: RecentActivityProps) {
         className="table-condensed"
         mutator={mutator}
         sortable
-        dataEndpoint={`/superset/recent_activity/${user.userId}/?limit=${rowLimit}`}
+        dataEndpoint={`/superset/recent_activity/${user?.userId}/?limit=${rowLimit}`}
       />
     </div>
   );
