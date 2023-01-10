@@ -316,7 +316,7 @@ class BaseSupersetView(BaseView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
         return self.render_template(
             "superset/spa.html",
@@ -387,13 +387,12 @@ def menu_data(user: User) -> Dict[str, Any]:
 
 
 @cache_manager.cache.memoize(timeout=60)
-def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
     """Common data always sent to the client
 
-    The function is memoized as the return value only changes based
-    on configuration and feature flag values.
+    The function is memoized as the return value only changes when user permissions
+    or configuration values change.
     """
-    messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
     # should not expose API TOKEN to frontend
@@ -417,7 +416,6 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
     bootstrap_data = {
-        "flash_messages": messages,
         "conf": frontend_config,
         "locale": locale,
         "language_pack": get_language_pack(locale),
@@ -429,6 +427,13 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
+
+
+def common_bootstrap_payload() -> Dict[str, Any]:
+    return {
+        **(cached_common_bootstrap_data(g.user)),
+        "flash_messages": get_flashed_messages(with_categories=True),
+    }
 
 
 def get_error_level_from_status_code(  # pylint: disable=invalid-name
@@ -536,7 +541,7 @@ def show_unexpected_exception(ex: Exception) -> FlaskResponse:
 def get_common_bootstrap_data() -> Dict[str, Any]:
     def serialize_bootstrap_data() -> str:
         return json.dumps(
-            {"common": common_bootstrap_payload(g.user)},
+            {"common": common_bootstrap_payload()},
             default=utils.pessimistic_json_iso_dttm_ser,
         )
 
@@ -554,7 +559,7 @@ class SupersetModelView(ModelView):
     def render_app_template(self) -> FlaskResponse:
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(g.user),
+            "common": common_bootstrap_payload(),
         }
         return self.render_template(
             "superset/spa.html",
