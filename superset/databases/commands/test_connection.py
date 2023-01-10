@@ -42,6 +42,7 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,15 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             # Generate tunnel if present in the properties
             if ssh_tunnel := self._properties.get("ssh_tunnel"):
+                # If there's an existing tunnel for that DB we need to use the stored
+                # password, private_key and private_key_password instead
+                if self._model:
+                    if existing_ssh_tunnel := DatabaseDAO.get_ssh_tunnel(
+                        self._model.id
+                    ):
+                        ssh_tunnel = unmask_password_info(
+                            ssh_tunnel, existing_ssh_tunnel
+                        )
                 ssh_tunnel = SSHTunnel(**ssh_tunnel)
 
             event_logger.log_with_context(

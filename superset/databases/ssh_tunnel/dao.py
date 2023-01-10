@@ -17,9 +17,9 @@
 import logging
 from typing import Any, Dict
 
-from superset.constants import PASSWORD_MASK
 from superset.dao.base import BaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +42,6 @@ class SSHTunnelDAO(BaseDAO):
 
         The masked values should be unmasked before the ssh tunnel is updated.
         """
-        if properties.get("password") == PASSWORD_MASK:
-            properties["password"] = model.password
-        if properties.get("private_key") == PASSWORD_MASK:
-            properties["private_key"] = model.private_key
-        if properties.get("private_key_password") == PASSWORD_MASK:
-            properties["private_key_password"] = model.private_key_password
+        properties = unmask_password_info(properties, model)
 
         return super().update(model, properties, commit)
