@@ -79,7 +79,7 @@ const ALL = 'ALL';
 const SHARED_WITH_YOU = 'SHARED_WITH_YOU';
 const SHARED_BY_YOU = 'SHARED_BY_YOU';
 
-const ContentPage = () => {
+const ContentPage = ({ update }: { update: boolean }) => {
   const [open, setOpen] = useState(false);
   const [sort, setSort] = useState(0);
   const [owner, setOwner] = useState(ALL);
@@ -373,6 +373,22 @@ const ContentPage = () => {
     if (columnData === '') handleColumnAdd();
   };
 
+  const actionSharePeopleSave = async () => {
+    await SupersetClient.put({
+      endpoint: `/api/v1/dataset/${tableData.id}?override_columns=true`,
+      jsonPayload: {
+        owners: sharePeople.map((user: any) => user.id),
+      },
+    }).then(async ({ json }) => {
+      notification.success({
+        message: 'Success',
+        description: 'Shared people  successfully',
+      });
+      await actionGetData();
+      handleCancel();
+    });
+  };
+
   const actionColumnSave = async () => {
     await SupersetClient.put({
       endpoint: `/api/v1/dataset/${tableData.id}?override_columns=true`,
@@ -425,10 +441,13 @@ const ContentPage = () => {
   const handleEditTableSave = () => {
     actionColumnSave();
   };
+  const handleSharePeople = () => {
+    actionSharePeopleSave();
+  };
 
   useEffect(() => {
     actionGetData();
-  }, []);
+  }, [update]);
 
   useEffect(() => {
     setData(data);
@@ -1120,6 +1139,7 @@ const ContentPage = () => {
                     color: theme.colors.quotron.white,
                     height: 50,
                   }}
+                  onClick={handleSharePeople}
                 >
                   {'Share access->'}
                 </Button>

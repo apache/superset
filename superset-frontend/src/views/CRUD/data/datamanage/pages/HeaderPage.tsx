@@ -9,6 +9,7 @@ import {
   Drawer,
   Space,
   Input,
+  notification,
 } from 'antd';
 import {
   ShareAltOutlined,
@@ -26,6 +27,7 @@ import { CheckboxChangeEvent } from 'antd/lib/checkbox';
 const { Title } = Typography;
 interface IProsp {
   onShowUploadUI: () => void;
+  updateContent: () => void;
 }
 const HeaderPage = (props: IProsp) => {
   const theme: SupersetTheme = useTheme();
@@ -64,6 +66,36 @@ const HeaderPage = (props: IProsp) => {
       );
     });
     setIsSelectPeople(true);
+  };
+
+  const actionShareTable = () => {
+    setIsSelectTable(false);
+    handleSelectPeople();
+  };
+
+  const handleSharePeople = () => {
+    actionSharePeopleSave();
+  };
+
+  const handleShareTable = () => {
+    actionShareTable();
+  };
+  const actionSharePeopleSave = async () => {
+    shareTable.map((table: any) =>
+      SupersetClient.put({
+        endpoint: `/api/v1/dataset/${table.id}?override_columns=true`,
+        jsonPayload: {
+          owners: sharePeople.map((user: any) => user.id),
+        },
+      }).then(async ({ json }) => {
+        notification.success({
+          message: 'Success',
+          description: 'Shared people  successfully',
+        });
+        handleCancel();
+        props.updateContent();
+      }),
+    );
   };
   const [sharePeople, setSharePeople] = useState<any>([]);
   const handleUserSearch = (ev: React.ChangeEvent<HTMLInputElement>) => {
@@ -333,6 +365,7 @@ const HeaderPage = (props: IProsp) => {
                     color: theme.colors.quotron.white,
                     height: 50,
                   }}
+                  onClick={handleSharePeople}
                 >
                   {'Share access->'}
                 </Button>
@@ -540,6 +573,7 @@ const HeaderPage = (props: IProsp) => {
                     color: theme.colors.quotron.white,
                     height: 50,
                   }}
+                  onClick={handleShareTable}
                 >
                   {'Share access->'}
                 </Button>

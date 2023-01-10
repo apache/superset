@@ -20,6 +20,10 @@ const { Header, Content, Sider } = Layout;
 const DatamanageList = () => {
   const theme: SupersetTheme = useTheme();
   const [outLined, setoutLined] = useState('1');
+  const [update, setUpdate] = useState<boolean>(true);
+  const updateContent = () => {
+    setUpdate(!update);
+  };
 
   const onShowUploadUI = () => {
     setoutLined('3');
@@ -93,7 +97,10 @@ const DatamanageList = () => {
               background: theme.colors.quotron.white,
             }}
           >
-            <HeaderPage onShowUploadUI={onShowUploadUI} />
+            <HeaderPage
+              updateContent={updateContent}
+              onShowUploadUI={onShowUploadUI}
+            />
             {/* <HeaderViewTablePage /> */}
           </Header>
 
@@ -104,7 +111,7 @@ const DatamanageList = () => {
               padding: '48px',
             }}
           >
-            <ContentPage />
+            <ContentPage update={update} />
           </Content>
         </Layout>
       )}
