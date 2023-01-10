@@ -39,13 +39,8 @@ const bootstrapData = getBootstrapData();
 
 // Configure translation
 if (typeof window !== 'undefined') {
-  if (bootstrapData.common.language_pack) {
-    const languagePack = bootstrapData.common.language_pack;
-    configure({ languagePack });
-    moment.locale(bootstrapData.common.locale);
-  } else {
-    configure();
-  }
+  configure({ languagePack: bootstrapData.common.language_pack });
+  moment.locale(bootstrapData.common.locale);
 } else {
   configure();
 }
