@@ -1131,7 +1131,7 @@ BLUEPRINTS: List[Blueprint] = []
 TRACKING_URL_TRANSFORMER = lambda url: url
 
 
-# customize the polling time of each engine. The default time is 5 seconds
+# customize the polling time of each engine
 DB_POLL_INTERVAL_SECONDS: Dict[str, int] = {}
 
 # Interval between consecutive polls when using Presto Engine
