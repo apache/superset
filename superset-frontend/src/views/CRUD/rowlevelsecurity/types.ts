@@ -16,34 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-function findParentId({ childId, layout = {} }) {
-  let parentId = null;
 
-  const ids = Object.keys(layout);
-  for (let i = 0; i <= ids.length - 1; i += 1) {
-    const id = ids[i];
-    const component = layout[id] || {};
-    if (
-      id !== childId &&
-      component.children &&
-      component.children.includes(childId)
-    ) {
-      parentId = id;
-      break;
-    }
-  }
-
-  return parentId;
+export enum FilterType {
+  REGULAR = 'Regular',
+  BASE = 'Base',
 }
 
-const cache = {};
-export default function findParentIdWithCache({ childId, layout = {} }) {
-  if (cache[childId]) {
-    const lastParent = layout[cache[childId]] || {};
-    if (lastParent.children && lastParent.children.includes(childId)) {
-      return lastParent.id;
-    }
-  }
-  cache[childId] = findParentId({ childId, layout });
-  return cache[childId];
-}
+export type RLSObject = {
+  id?: number;
+  name: string;
+  filter_type: FilterType;
+  tables?: TableObject[];
+  roles?: RoleObject[];
+  group_key?: string;
+  clause?: string;
+  description?: string;
+};
+
+export type TableObject = {
+  key: any;
+  id?: number;
+  label?: string;
+  value?: number | string;
+  schema?: string;
+  table_name?: string;
+};
+
+export type RoleObject = {
+  key: any;
+  id?: number;
+  label?: string;
+  value?: number | string;
+  name?: string;
+};

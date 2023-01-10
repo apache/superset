@@ -65,7 +65,7 @@ import setupPlugins from 'src/setup/setupPlugins';
 import InfoTooltip from 'src/components/InfoTooltip';
 import CertifiedBadge from 'src/components/CertifiedBadge';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
-import { bootstrapData } from 'src/preamble';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import Owner from 'src/types/Owner';
 import ChartCard from './ChartCard';
 
@@ -157,6 +157,8 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const bootstrapData = getBootstrapData();
+
 function ChartList(props: ChartListProps) {
   const {
     addDangerToast,
@@ -224,7 +226,7 @@ function ChartList(props: ChartListProps) {
     hasPerm('can_export') && isFeatureEnabled(FeatureFlag.VERSIONED_EXPORT);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
   const enableBroadUserAccess =
-    bootstrapData?.common?.conf?.ENABLE_BROAD_ACTIVITY_ACCESS;
+    bootstrapData.common.conf.ENABLE_BROAD_ACTIVITY_ACCESS;
   const handleBulkChartExport = (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
     handleResourceExport('chart', ids, () => {

@@ -115,6 +115,7 @@ FRONTEND_CONF_KEYS = (
     "HTML_SANITIZATION",
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
     "WELCOME_PAGE_LAST_TAB",
+    "VIZ_TYPE_DENYLIST",
 )
 
 logger = logging.getLogger(__name__)
