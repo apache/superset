@@ -201,9 +201,13 @@ test('show chart owners', async () => {
 
   const chartOwners = await screen.findAllByText(/doe/i);
 
-  expect(chartOwners).toHaveLength(2);
-  expect(chartOwners[0]).toHaveTextContent('John Doe, Jane Doe');
-  expect(chartOwners[1]).toHaveTextContent('John Doe');
+  expect(chartOwners).toHaveLength(3);
+  expect(chartOwners[0]).toHaveTextContent('John Doe');
+  expect(chartOwners[1]).toHaveTextContent('Jane Doe');
+  expect(chartOwners[0].parentNode).toBe(chartOwners[1].parentNode);
+  expect(chartOwners[2]).toHaveTextContent('John Doe');
+  expect(chartOwners[2].parentNode).not.toBe(chartOwners[0].parentNode);
+  expect(chartOwners[2].parentNode).not.toBe(chartOwners[1].parentNode);
   expectLastChartRequest();
 });
 

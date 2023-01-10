@@ -40,12 +40,13 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { FilterOperator } from 'src/components/ListView';
 import moment from 'moment';
+import TruncatedList from 'src/components/TruncatedList';
 
 interface DatasetUsageProps {
   datasetId: string;
 }
 
-const DEFAULT_PAGE_SIZE = 25;
+const DEFAULT_PAGE_SIZE = 5;
 const columns: ColumnsType<Chart> = [
   {
     key: 'slice_name',
@@ -58,10 +59,15 @@ const columns: ColumnsType<Chart> = [
     key: 'owners',
     title: t('Chart owners'),
     width: '242px',
-    render: (value, record) =>
-      record.owners
-        ?.map(owner => `${owner.first_name} ${owner.last_name}`)
-        .join(', '),
+    render: (value, record) => (
+      <TruncatedList
+        items={
+          record.owners?.map(
+            owner => `${owner.first_name} ${owner.last_name}`,
+          ) ?? []
+        }
+      />
+    ),
   },
   {
     key: 'last_saved_at',
