@@ -46,7 +46,7 @@ interface DatasetUsageProps {
   datasetId: string;
 }
 
-const DEFAULT_PAGE_SIZE = 5;
+const DEFAULT_PAGE_SIZE = 25;
 const columns: ColumnsType<Chart> = [
   {
     key: 'slice_name',
