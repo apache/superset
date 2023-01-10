@@ -19,7 +19,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
-import { styled } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
@@ -60,49 +60,45 @@ const propTypes = {
 const defaultProps = {};
 
 const ColumnStyles = styled.div`
-  &.grid-column {
-    width: 100%;
-    position: relative;
+  ${({ theme }) => css`
+    &.grid-column {
+      width: 100%;
+      position: relative;
 
-    & > :not(.hover-menu):not(:last-child) {
-      margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+      & > :not(.hover-menu):not(:last-child) {
+        margin-bottom: ${theme.gridUnit * 4}px;
+      }
     }
-  }
 
-  &.grid-column--empty {
-    min-height: ${({ theme }) => theme.gridUnit * 25}px;
-
-    &:before {
-      content: 'Empty column';
+    .dashboard--editing &:after {
+      content: '';
       position: absolute;
-      top: 0;
-      left: 0;
       width: 100%;
       height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: ${({ theme }) => theme.colors.grayscale.light2};
+      top: 0;
+      left: 0;
+      z-index: 1;
+      pointer-events: none;
+      border: 1px dashed ${theme.colors.grayscale.light2};
     }
-  }
-
-  .dashboard--editing &:after {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    z-index: 1;
-    pointer-events: none;
-    border: 1px dashed ${({ theme }) => theme.colors.grayscale.light2};
-  }
-  .dashboard--editing .resizable-container--resizing:hover > &:after,
-  .dashboard--editing .hover-menu:hover + &:after {
-    border: 1px dashed ${({ theme }) => theme.colors.primary.base};
-    z-index: 2;
-  }
+    .dashboard--editing .resizable-container--resizing:hover > &:after,
+    .dashboard--editing .hover-menu:hover + &:after {
+      border: 1px dashed ${theme.colors.primary.base};
+      z-index: 2;
+    }
+  `}
 `;
+
+const emptyColumnContentStyles = theme => css`
+  min-height: ${theme.gridUnit * 25}px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${theme.colors.text.label};
+`;
+
 class Column extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -218,28 +214,28 @@ class Column extends React.PureComponent {
                 </HoverMenu>
               )}
               <ColumnStyles
-                className={cx(
-                  'grid-column',
-                  columnItems.length === 0 && 'grid-column--empty',
-                  backgroundStyle.className,
-                )}
+                className={cx('grid-column', backgroundStyle.className)}
               >
-                {columnItems.map((componentId, itemIndex) => (
-                  <DashboardComponent
-                    key={componentId}
-                    id={componentId}
-                    parentId={columnComponent.id}
-                    depth={depth + 1}
-                    index={itemIndex}
-                    availableColumnCount={columnComponent.meta.width}
-                    columnWidth={columnWidth}
-                    onResizeStart={onResizeStart}
-                    onResize={onResize}
-                    onResizeStop={onResizeStop}
-                    isComponentVisible={isComponentVisible}
-                    onChangeTab={onChangeTab}
-                  />
-                ))}
+                {columnItems.length === 0 ? (
+                  <div css={emptyColumnContentStyles}>{t('Empty column')}</div>
+                ) : (
+                  columnItems.map((componentId, itemIndex) => (
+                    <DashboardComponent
+                      key={componentId}
+                      id={componentId}
+                      parentId={columnComponent.id}
+                      depth={depth + 1}
+                      index={itemIndex}
+                      availableColumnCount={columnComponent.meta.width}
+                      columnWidth={columnWidth}
+                      onResizeStart={onResizeStart}
+                      onResize={onResize}
+                      onResizeStop={onResizeStop}
+                      isComponentVisible={isComponentVisible}
+                      onChangeTab={onChangeTab}
+                    />
+                  ))
+                )}
 
                 {dropIndicatorProps && <div {...dropIndicatorProps} />}
               </ColumnStyles>

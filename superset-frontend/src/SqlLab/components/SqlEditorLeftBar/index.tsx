@@ -241,7 +241,7 @@ const SqlEditorLeftBar = ({
   }, []);
 
   return (
-    <LeftBarStyles data-test="sql-editor-left-bar" className="SqlEditorLeftBar">
+    <LeftBarStyles data-test="sql-editor-left-bar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent(emptyResultsWithSearch)}

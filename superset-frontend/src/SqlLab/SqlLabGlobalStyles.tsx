@@ -31,10 +31,6 @@ export const SqlLabGlobalStyles = () => (
         ); // Set a min height so the gutter is always visible when resizing
         overflow: hidden;
       }
-
-      .cost-estimate {
-        font-size: ${theme.typography.sizes.s};
-      }
     `}
   />
 );

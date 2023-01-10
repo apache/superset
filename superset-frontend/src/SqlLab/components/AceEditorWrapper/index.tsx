@@ -62,7 +62,7 @@ type AceEditorWrapperProps = {
 const StyledAceEditor = styled(AceEditor)`
   ${({ theme }) => css`
     && {
-      //double class is better than !important
+      // double class is better than !important
       border: 1px solid ${theme.colors.grayscale.light2};
       font-feature-settings: 'liga' off, 'calt' off;
       // Fira Code causes problem with Ace under Firefox

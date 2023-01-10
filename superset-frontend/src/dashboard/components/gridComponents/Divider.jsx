@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { styled } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
 
 import DragDroppable from '../dnd/DragDroppable';
 import HoverMenu from '../menu/HoverMenu';
@@ -38,26 +38,28 @@ const propTypes = {
 };
 
 const DividerLine = styled.div`
-  width: 100%;
-  padding: ${({ theme }) => theme.gridUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
-  background-color: transparent;
-
-  &:after {
-    content: '';
-    height: 1px;
+  ${({ theme }) => css`
     width: 100%;
-    background-color: ${({ theme }) => theme.colors.grayscale.light2};
-    display: block;
-  }
+    padding: ${theme.gridUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
+    background-color: transparent;
 
-  div[draggable='true'] & {
-    cursor: move;
-  }
+    &:after {
+      content: '';
+      height: 1px;
+      width: 100%;
+      background-color: ${theme.colors.grayscale.light2};
+      display: block;
+    }
 
-  .dashboard-component-tabs & {
-    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
-  }
+    div[draggable='true'] & {
+      cursor: move;
+    }
+
+    .dashboard-component-tabs & {
+      padding-left: ${theme.gridUnit * 4}px;
+      padding-right: ${theme.gridUnit * 4}px;
+    }
+  `}
 `;
 
 class Divider extends React.PureComponent {

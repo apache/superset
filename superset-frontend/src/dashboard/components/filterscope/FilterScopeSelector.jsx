@@ -67,7 +67,7 @@ const ScopeContainer = styled.div`
 
       .filter-field-pane,
       .filter-scope-pane {
-        overflow-y: scroll;
+        overflow-y: auto;
       }
     }
 
@@ -85,7 +85,7 @@ const ScopeBody = styled.div`
 
       .filter-field-pane,
       .filter-scope-pane {
-        overflow-y: scroll;
+        overflow-y: auto;
       }
     }
   `}
@@ -158,12 +158,10 @@ const ScopeSelector = styled.div`
         padding-left: 0;
         border-right: 1px solid ${theme.colors.grayscale.light2};
 
-        .filter-container {
-          label {
-            font-weight: ${theme.typography.weights.normal};
-            margin: 0 0 0 ${theme.gridUnit * 4}px;
-            word-break: break-all;
-          }
+        .filter-container label {
+          font-weight: ${theme.typography.weights.normal};
+          margin: 0 0 0 ${theme.gridUnit * 4}px;
+          word-break: break-all;
         }
 
         .filter-field-item {
@@ -760,8 +758,8 @@ export default class FilterScopeSelector extends React.PureComponent {
     const { showSelector } = this.state;
 
     return (
-      <ScopeContainer className="filter-scope-container">
-        <ScopeHeader className="filter-scope-header">
+      <ScopeContainer>
+        <ScopeHeader>
           <h4>{t('Configure filter scopes')}</h4>
           {showSelector && this.renderEditingFiltersName()}
         </ScopeHeader>

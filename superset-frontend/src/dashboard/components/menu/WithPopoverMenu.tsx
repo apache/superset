@@ -47,12 +47,6 @@ const WithPopoverMenuStyles = styled.div`
     position: relative;
     outline: none;
 
-    .grid-row.grid-row--empty & {
-      /* drop indicator doesn't show up without this */
-      width: 100%;
-      height: 100%;
-    }
-
     &.with-popover-menu--focused:after {
       content: '';
       position: absolute;
@@ -206,7 +200,7 @@ export default class WithPopoverMenu extends React.PureComponent<
       >
         {children}
         {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
-          <PopoverMenuStyles className="popover-menu">
+          <PopoverMenuStyles>
             {menuItems.map((node: React.ReactNode, i: Number) => (
               <div className="menu-item" key={`menu-item-${i}`}>
                 {node}

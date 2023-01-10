@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import cx from 'classnames';
 
-import { styled, t, SafeMarkdown } from '@superset-ui/core';
+import { css, styled, t, SafeMarkdown } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 
@@ -84,32 +84,34 @@ Click here to learn more about [markdown formatting](https://bit.ly/1dQOfRK)`;
 const MARKDOWN_ERROR_MESSAGE = t('This markdown component has an error.');
 
 const MarkdownStyles = styled.div`
-  &.dashboard-markdown {
-    overflow: hidden;
+  ${({ theme }) => css`
+    &.dashboard-markdown {
+      overflow: hidden;
 
-    h4,
-    h5,
-    h6 {
-      font-weight: ${({ theme }) => theme.typography.weights.normal};
-    }
+      h4,
+      h5,
+      h6 {
+        font-weight: ${theme.typography.weights.normal};
+      }
 
-    h5 {
-      color: ${({ theme }) => theme.colors.grayscale.base};
-    }
+      h5 {
+        color: ${theme.colors.grayscale.base};
+      }
 
-    h6 {
-      font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    }
+      h6 {
+        font-size: ${theme.typography.sizes.s}px;
+      }
 
-    .dashboard-component-chart-holder {
-      overflow-y: auto;
-      overflow-x: hidden;
-    }
+      .dashboard-component-chart-holder {
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
 
-    .dashboard--editing & {
-      cursor: move;
+      .dashboard--editing & {
+        cursor: move;
+      }
     }
-  }
+  `}
 `;
 
 class Markdown extends React.PureComponent {

@@ -89,8 +89,7 @@ const StyledResizable = styled(Resizable)`
       position: relative;
 
       /* re-resizable sets an empty div to 100% width and height, which doesn't
-    play well with many 100% height containers we need
-   */
+      play well with many 100% height containers we need */
 
       & ~ div {
         width: auto !important;

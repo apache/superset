@@ -20,7 +20,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
-import { css, styled } from '@superset-ui/core';
+import { css } from '@superset-ui/core';
 import { LayoutItem, RootState } from 'src/dashboard/types';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/containers/Chart';
@@ -69,17 +69,13 @@ interface ChartHolderProps {
   isInView: boolean;
 }
 
-const FullSizeWrapper = styled.div<{ isFullSize: boolean }>`
-  ${({ isFullSize }) =>
-    isFullSize &&
-    css`
-      && {
-        position: fixed;
-        z-index: 3000;
-        left: 0;
-        top: 0;
-      }
-    `};
+const fullSizeStyle = css`
+  && {
+    position: fixed;
+    z-index: 3000;
+    left: 0;
+    top: 0;
+  }
 `;
 
 const ChartHolder: React.FC<ChartHolderProps> = ({
@@ -274,11 +270,11 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
           onResizeStop={onResizeStop}
           editMode={editMode}
         >
-          <FullSizeWrapper
+          <div
             ref={dragSourceRef}
             data-test="dashboard-component-chart-holder"
             style={focusHighlightStyles}
-            isFullSize={isFullSize}
+            css={isFullSize ? fullSizeStyle : undefined}
             className={cx(
               'dashboard-component',
               'dashboard-component-chart-holder',
@@ -327,7 +323,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
                 </div>
               </HoverMenu>
             )}
-          </FullSizeWrapper>
+          </div>
           {dropIndicatorProps && <div {...dropIndicatorProps} />}
         </ResizableContainer>
       )}

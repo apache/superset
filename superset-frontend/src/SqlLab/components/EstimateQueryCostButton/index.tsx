@@ -18,7 +18,7 @@
  */
 import React, { useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 
 import Alert from 'src/components/Alert';
 import TableView from 'src/components/TableView';
@@ -35,6 +35,12 @@ export interface EstimateQueryCostButtonProps {
   tooltip?: string;
   disabled?: boolean;
 }
+
+const CostEstimateModalStyles = styled.div`
+  ${({ theme }) => css`
+    font-size: ${theme.typography.sizes.s};
+  `}
+`;
 
 const EstimateQueryCostButton = ({
   getEstimate,
@@ -76,13 +82,14 @@ const EstimateQueryCostButton = ({
     }
     if (queryCostEstimate?.completed) {
       return (
-        <TableView
-          columns={columns}
-          data={tableData}
-          withPagination={false}
-          emptyWrapperType={EmptyWrapperType.Small}
-          className="cost-estimate"
-        />
+        <CostEstimateModalStyles>
+          <TableView
+            columns={columns}
+            data={tableData}
+            withPagination={false}
+            emptyWrapperType={EmptyWrapperType.Small}
+          />
+        </CostEstimateModalStyles>
       );
     }
     return <Loading position="normal" />;

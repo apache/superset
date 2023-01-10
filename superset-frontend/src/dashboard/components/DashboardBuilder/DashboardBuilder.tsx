@@ -26,7 +26,14 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { addAlpha, css, JsonObject, styled, t } from '@superset-ui/core';
+import {
+  addAlpha,
+  css,
+  JsonObject,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -187,11 +194,6 @@ const DashboardContentWrapper = styled.div`
       flex-direction: column;
       height: 100%;
 
-      /* only top-level tabs have popover, give it more padding to match header + tabs */
-      & > .with-popover-menu > .popover-menu {
-        left: ${theme.gridUnit * 6}px;
-      }
-
       /* drop shadow for top-level tabs only */
       & .dashboard-component-tabs {
         box-shadow: 0 ${theme.gridUnit}px ${theme.gridUnit}px 0
@@ -332,18 +334,10 @@ const DashboardContentWrapper = styled.div`
 `;
 
 const StyledDashboardContent = styled.div<{
-  dashboardFiltersOpen: boolean;
   editMode: boolean;
-  nativeFiltersEnabled: boolean;
-  filterBarOrientation: FilterBarOrientation;
+  marginLeft: number;
 }>`
-  ${({
-    theme,
-    dashboardFiltersOpen,
-    editMode,
-    nativeFiltersEnabled,
-    filterBarOrientation,
-  }) => css`
+  ${({ theme, editMode, marginLeft }) => css`
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -363,12 +357,7 @@ const StyledDashboardContent = styled.div<{
       margin-top: ${theme.gridUnit * 6}px;
       margin-right: ${theme.gridUnit * 8}px;
       margin-bottom: ${theme.gridUnit * 6}px;
-      margin-left: ${!dashboardFiltersOpen &&
-      !editMode &&
-      nativeFiltersEnabled &&
-      filterBarOrientation !== FilterBarOrientation.HORIZONTAL
-        ? 0
-        : theme.gridUnit * 8}px;
+      margin-left: ${marginLeft}px;
 
       ${editMode &&
       `
@@ -436,6 +425,7 @@ const StyledDashboardContent = styled.div<{
 const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
+  const theme = useTheme();
 
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
@@ -633,6 +623,14 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     ],
   );
 
+  const dashboardContentMarginLeft =
+    !dashboardFiltersOpen &&
+    !editMode &&
+    nativeFiltersEnabled &&
+    filterBarOrientation !== FilterBarOrientation.HORIZONTAL
+      ? 0
+      : theme.gridUnit * 8;
+
   return (
     <StyledDiv>
       {showFilterBar && filterBarOrientation === FilterBarOrientation.VERTICAL && (
@@ -722,10 +720,8 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
         >
           <StyledDashboardContent
             className="dashboard-content"
-            dashboardFiltersOpen={dashboardFiltersOpen}
             editMode={editMode}
-            nativeFiltersEnabled={nativeFiltersEnabled}
-            filterBarOrientation={filterBarOrientation}
+            marginLeft={dashboardContentMarginLeft}
           >
             {showDashboard ? (
               <DashboardContainer topLevelTabs={topLevelTabs} />

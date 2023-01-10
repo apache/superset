@@ -73,7 +73,9 @@ describe('DraggableNewComponent', () => {
 
   it('should render the passed label', () => {
     const wrapper = setup();
-    expect(wrapper.find('NewComponent').text()).toBe(props.label);
+    expect(
+      wrapper.find('[data-test="new-component"]').at(0).childAt(0).text(),
+    ).toBe(props.label);
   });
 
   it('should add the passed className', () => {

@@ -58,8 +58,6 @@ const StyledEditableTabs = styled(EditableTabs)`
   display: flex;
   flex-direction: column;
 `;
-// Setting a displayName makes it easier to test with enzyme
-StyledEditableTabs.displayName = 'EditableTabs';
 
 const StyledTab = styled.span`
   line-height: 24px;
