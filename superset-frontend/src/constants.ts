@@ -146,9 +146,7 @@ export const NULL_DISPLAY = 'N/A';
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   flash_messages: [],
-  conf: {
-    VIZ_TYPE_DENYLIST: [],
-  },
+  conf: {},
   locale: 'en',
   feature_flags: {},
   language_pack: {

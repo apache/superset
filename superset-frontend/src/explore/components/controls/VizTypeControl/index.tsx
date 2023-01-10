@@ -43,7 +43,7 @@ interface VizTypeControlProps {
 }
 
 const bootstrapData = getBootstrapData();
-const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST;
+const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
 const metadataRegistry = getChartMetadataRegistry();
 
 export const VIZ_TYPE_CONTROL_TEST_ID = 'viz-type-control';

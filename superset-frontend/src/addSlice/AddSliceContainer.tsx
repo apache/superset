@@ -64,7 +64,7 @@ const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
 
 const bootstrapData = getBootstrapData();
-const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST;
+const denyList: string[] = bootstrapData.common.conf.VIZ_TYPE_DENYLIST || [];
 
 const StyledContainer = styled.div`
   ${({ theme }) => `
