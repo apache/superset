@@ -1487,34 +1487,36 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                <SSHTunnelForm
-                  isEditMode={isEditMode}
-                  sshTunneling={sshTunneling}
-                  db={db as DatabaseObject}
-                  dbFetched={dbFetched as DatabaseObject}
-                  onSSHTunnelParametersChange={({
-                    target,
-                  }: {
-                    target: HTMLInputElement | HTMLTextAreaElement;
-                  }) =>
-                    onChange(ActionType.parametersSSHTunnelChange, {
-                      type: target.type,
-                      name: target.name,
-                      value: target.value,
-                    })
-                  }
-                  setSSHTunnelLoginMethod={(method: AuthType) =>
-                    setDB({
-                      type: ActionType.setSSHTunnelLoginMethod,
-                      payload: { login_method: method },
-                    })
-                  }
-                  removeSSHTunnelConfig={() =>
-                    setDB({
-                      type: ActionType.removeSSHTunnelConfig,
-                    })
-                  }
-                />
+                {sshTunneling && (
+                  <SSHTunnelForm
+                    isEditMode={isEditMode}
+                    sshTunneling={sshTunneling}
+                    db={db as DatabaseObject}
+                    dbFetched={dbFetched as DatabaseObject}
+                    onSSHTunnelParametersChange={({
+                      target,
+                    }: {
+                      target: HTMLInputElement | HTMLTextAreaElement;
+                    }) =>
+                      onChange(ActionType.parametersSSHTunnelChange, {
+                        type: target.type,
+                        name: target.name,
+                        value: target.value,
+                      })
+                    }
+                    setSSHTunnelLoginMethod={(method: AuthType) =>
+                      setDB({
+                        type: ActionType.setSSHTunnelLoginMethod,
+                        payload: { login_method: method },
+                      })
+                    }
+                    removeSSHTunnelConfig={() =>
+                      setDB({
+                        type: ActionType.removeSSHTunnelConfig,
+                      })
+                    }
+                  />
+                )}
               </SqlAlchemyForm>
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
