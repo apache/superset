@@ -30,6 +30,8 @@ from superset.models.sql_lab import Query
 from superset.utils import core as utils
 
 logger = logging.getLogger(__name__)
+# Query 5543ffdf692b7d02:f78a944000000000: 3% Complete (17 out of 547)
+QUERY_PROGRESS_REGEX = re.compile(r"Query.*: (?P<query_progress>[0-9]+)%")
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
@@ -37,8 +39,6 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
     engine_name = "Apache Impala"
-    # Query 5543ffdf692b7d02:f78a944000000000: 3% Complete (17 out of 547)
-    query_progress_r = re.compile(r".*Query.*: (?P<query_progress>[0-9]+)%.*")
 
     _time_grain_expressions = {
         None: "{col}",
@@ -132,7 +132,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                     log = ""
 
                 if log:
-                    match = cls.query_progress_r.match(log)
+                    match = QUERY_PROGRESS_REGEX.match(log)
                     if match:
                         progress = int(match.groupdict()["query_progress"])
                     logger.debug(

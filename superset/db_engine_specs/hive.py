@@ -377,7 +377,7 @@ class HiveEngineSpec(PrestoEngineSpec):
                     session.commit()
             if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
                 logger.warning(
-                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL instead"
+                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"
                 )
             else:
                 sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
