@@ -68,7 +68,7 @@ class SqlLabRestApi(BaseApi):
     )
     def get(self) -> Response:
         """Assembles SqlLab related information (defaultDbId, tab_state_ids, active_tab)
-         in a single endpoint.
+        in a single endpoint.
         """
         payload = {
             "defaultDbId": conf["SQLLAB_DEFAULT_DBID"],
@@ -116,9 +116,7 @@ def _create_sql_json_command(
     query_dao = QueryDAO()
     sql_json_executor = _create_sql_json_executor(execution_context, query_dao)
     execution_context_convertor = ExecutionContextConvertor()
-    execution_context_convertor.set_max_row_in_display(
-        int(conf.get("DISPLAY_MAX_ROW"))
-    )
+    execution_context_convertor.set_max_row_in_display(int(conf.get("DISPLAY_MAX_ROW")))
     return ExecuteSqlCommand(
         execution_context,
         query_dao,
