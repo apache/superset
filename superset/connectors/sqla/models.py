@@ -1051,12 +1051,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
     def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
-        logger.info("talha query obj",str(query_obj))
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
-        logger.info("talha before cte",sql)
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
-        logger.info("talha after parse",sql)
         sql = self.mutate_query_from_config(sql)
 
         if self.table_name.startswith("tmp__"):
