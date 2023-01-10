@@ -26,8 +26,7 @@ import {
   SupersetTheme,
   t,
 } from '@superset-ui/core';
-import CrossLinks from 'src/components/ListView/CrossLinks';
-import Chart from 'src/types/Chart';
+import Chart, { ChartLinkedDashboard } from 'src/types/Chart';
 import Table, {
   ColumnsType,
   TableSize,
@@ -47,6 +46,23 @@ interface DatasetUsageProps {
 }
 
 const DEFAULT_PAGE_SIZE = 25;
+
+const getLinkProps = (dashboard: ChartLinkedDashboard) => ({
+  key: dashboard.id,
+  to: `/superset/dashboard/${dashboard.id}`,
+  target: '_blank',
+  rel: 'noreferer noopener',
+  children: dashboard.dashboard_title,
+});
+
+const tooltipItemCSS = (theme: SupersetTheme) => css`
+  color: ${theme.colors.grayscale.light5};
+  text-decoration: underline;
+  &:hover {
+    color: inherit;
+  }
+`;
+
 const columns: ColumnsType<Chart> = [
   {
     key: 'slice_name',
@@ -93,11 +109,13 @@ const columns: ColumnsType<Chart> = [
     title: t('Dashboard usage'),
     width: '420px',
     render: (value, record) => (
-      <CrossLinks
-        crossLinks={ensureIsArray(record.dashboards).map(d => ({
-          title: d.dashboard_title,
-          id: d.id,
-        }))}
+      <TruncatedList<ChartLinkedDashboard>
+        items={record.dashboards}
+        renderVisibleItem={dashboard => <Link {...getLinkProps(dashboard)} />}
+        renderTooltipItem={dashboard => (
+          <Link {...getLinkProps(dashboard)} css={tooltipItemCSS} />
+        )}
+        getKey={dashboard => dashboard.id}
       />
     ),
   },
