@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import dataclasses
+import hashlib
 import logging
 import uuid
 from contextlib import closing
@@ -252,10 +253,15 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
             query.limit = SQL_MAX_ROW
         sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
+    query_hash = hashlib.md5(sql.encode("utf-8")).hexdigest()
+
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(
         sql,
-        user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
+        query_source = "Sql Lab",
+        query_hash = query_hash,
+        query_id = query.id,
+        username=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
         security_manager=security_manager,
         database=database,
     )

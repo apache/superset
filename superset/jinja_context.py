@@ -16,6 +16,7 @@
 # under the License.
 """Defines the templating context for SQL Lab"""
 import hashlib
+import logging
 import json
 import re
 from functools import partial
@@ -48,6 +49,7 @@ from superset.utils.core import (
     merge_extra_filters,
 )
 from superset.utils.memoized import memoized
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -466,19 +468,6 @@ class BaseTemplateProcessor:
         self._context.update(kwargs)
         self._context.update(context_addons())
 
-    
-    def gen_query_hash(self,sql):
-        """Return hash of the given query after stripping all comments, line breaks
-        and multiple spaces, and lower casing all text.
-
-        TODO: possible issue - the following queries will get the same id:
-            1. SELECT 1 FROM table WHERE column='Value';
-            2. SELECT 1 FROM table where column='value';
-        """
-        # sql = re.COMMENTS_REGEX.sub("", sql)
-        # sql = "".join(sql.split()).lower()
-        return hashlib.md5(sql.encode("utf-8")).hexdigest()
-
 
     def process_template(self, sql: str, **kwargs: Any,) -> str:
         """Processes a sql template
@@ -487,18 +476,9 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        hash = self.gen_query_hash(sql)
         kwargs.update(self._context)
         context = validate_template_context(self.engine, kwargs)
-        sql_query = sql
-        query_source = "unknown"
-        query_id = 1
-        if "query_source" in context.keys():
-            query_source = context["query_source"]
-            username = context['current_username']()
-            query_id = self._query.id
-            sql_query = "/* Username: {}, Query_id: {}, Query_hash: {}, Query_source: {} */". format(username,query_id,hash,query_source) + sql
-        template = self._env.from_string(sql_query)
+        template = self._env.from_string(sql)
         return template.render(context)
 
 

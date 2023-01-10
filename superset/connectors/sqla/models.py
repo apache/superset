@@ -988,17 +988,14 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         Typically adds comments to the query with context"""
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
         query_hash = self.gen_query_hash(sql)
-        if self.is_sqllab_view:
-            query_source = "Sql Lab"
-        else:
-            query_source = "Charts"
         if sql_query_mutator:
             sql = sql_query_mutator(
                 sql,
                 # TODO(john-bodley): Deprecate in 3.0.
-                query_source = query_source,
+                query_source = "Charts",
                 query_hash = query_hash,
-                user_name=get_username(),
+                query_id = None,
+                username=get_username(),
                 security_manager=security_manager,
                 database=self.database,
             )
