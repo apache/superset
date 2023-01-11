@@ -234,12 +234,11 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
     assert cta_result(ctas_method) == (result["data"], result["columns"])
 
     query = get_query_by_id(result["query"]["serverId"])
-    temp_query = f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-    updated_query = add_metadata(temp_query,query_id = query.id,query_source = "Sql Lab")
-    assert (
-        updated_query
-        == query.executed_sql
+    temp_query = (
+        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
     )
+    updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
+    assert updated_query == query.executed_sql
     assert query.select_sql == get_select_star(
         tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME
     )
@@ -278,7 +277,7 @@ def test_run_async_query_cta_config(test_client, ctas_method):
     )
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == query.executed_sql
+        == ParsedQuery(query.executed_sql, strip_comments=True)
     )
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
