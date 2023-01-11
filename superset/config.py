@@ -58,7 +58,7 @@ from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
-from superset.utils.core import is_test, parse_boolean_string
+from superset.utils.core import add_metadata, is_test, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
@@ -1395,11 +1395,7 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     sql: str, **kwargs: Any
 ) -> str:
     if kwargs["query_source"]:
-        username = kwargs["username"]
-        query_hash = kwargs["query_hash"]
-        query_source = kwargs["query_source"]
-        query_id = kwargs["query_id"]
-        return f"/* Username: {username}, Query_id: {query_id}, Query_hash: {query_hash}, Query_source: {query_source} */ \n{sql}"
+        return add_metadata(sql,**kwargs)
     return sql
     
 
