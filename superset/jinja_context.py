@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """Defines the templating context for SQL Lab"""
-import hashlib
-import logging
 import json
 import re
 from functools import partial
@@ -49,7 +47,6 @@ from superset.utils.core import (
     merge_extra_filters,
 )
 from superset.utils.memoized import memoized
-logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -476,9 +473,9 @@ class BaseTemplateProcessor:
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
+        template = self._env.from_string(sql)
         kwargs.update(self._context)
         context = validate_template_context(self.engine, kwargs)
-        template = self._env.from_string(sql)
         return template.render(context)
 
 

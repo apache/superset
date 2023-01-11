@@ -140,7 +140,7 @@ class AlertCommand(BaseCommand):
         :raises AlertQueryTimeout: The SQL query received a celery soft timeout
         """
         sql_template = jinja_context.get_template_processor(
-            database=self._report_schedule.database,query_source = "alert"
+            database=self._report_schedule.database
         )
         rendered_sql = sql_template.process_template(self._report_schedule.sql)
         try:

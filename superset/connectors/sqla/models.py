@@ -970,7 +970,6 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         df = pd.read_sql_query(sql=sql, con=engine)
         return df[column_name].to_list()
-    
 
     def mutate_query_from_config(self, sql: str) -> str:
         """Apply config's SQL_QUERY_MUTATOR
