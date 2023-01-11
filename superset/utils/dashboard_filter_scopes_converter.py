@@ -63,10 +63,6 @@ def convert_filter_scopes(
             add_filter_scope(filter_fields, "__time_col", filter_id)
         if slice_params.get("show_sqla_time_granularity"):
             add_filter_scope(filter_fields, "__time_grain", filter_id)
-        if slice_params.get("show_druid_time_granularity"):
-            add_filter_scope(filter_fields, "__granularity", filter_id)
-        if slice_params.get("show_druid_time_origin"):
-            add_filter_scope(filter_fields, "druid_time_origin", filter_id)
         for config in configs:
             add_filter_scope(filter_fields, config.get("column"), filter_id)
 

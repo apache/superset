@@ -18,7 +18,7 @@
  */
 import userEvent from '@testing-library/user-event';
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import AdhocMetricEditPopover from '.';
 
@@ -35,9 +35,14 @@ const createProps = () => ({
   },
   savedMetricsOptions: [
     {
-      id: 65,
+      id: 64,
       metric_name: 'count',
       expression: 'COUNT(*)',
+    },
+    {
+      id: 65,
+      metric_name: 'sum',
+      expression: 'sum(num)',
     },
   ],
   adhocMetric: new AdhocMetric({ isNew: true }),
@@ -80,18 +85,6 @@ test('Should render correct elements for SQL', () => {
   expect(screen.getByRole('tabpanel', { name: 'Saved' })).toBeVisible();
 });
 
-test('Should render correct elements for native Druid', () => {
-  const props = { ...createProps(), datasource: { type: 'druid' } };
-  render(<AdhocMetricEditPopover {...props} />);
-  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
-    'aria-disabled',
-    'true',
-  );
-  expect(screen.getByRole('tab', { name: 'Simple' })).toBeEnabled();
-  expect(screen.getByRole('tab', { name: 'Saved' })).toBeEnabled();
-  expect(screen.getByRole('tabpanel', { name: 'Saved' })).toBeVisible();
-});
-
 test('Should render correct elements for allow ad-hoc metrics', () => {
   const props = {
     ...createProps(),
@@ -130,26 +123,33 @@ test('Clicking on "Close" should call onClose', () => {
   expect(props.onClose).toBeCalledTimes(1);
 });
 
-test('Clicking on "Save" should call onChange and onClose', () => {
+test('Clicking on "Save" should call onChange and onClose', async () => {
+  const props = createProps();
+  render(<AdhocMetricEditPopover {...props} />);
+  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onClose).toBeCalledTimes(0);
+  userEvent.click(
+    screen.getByRole('combobox', {
+      name: 'Select saved metrics',
+    }),
+  );
+  const sumOption = await waitFor(() =>
+    within(document.querySelector('.rc-virtual-list')!).getByText('sum'),
+  );
+  userEvent.click(sumOption);
+  userEvent.click(screen.getByRole('button', { name: 'Save' }));
+  expect(props.onChange).toBeCalledTimes(1);
+  expect(props.onClose).toBeCalledTimes(1);
+});
+
+test('Clicking on "Save" should not call onChange and onClose', () => {
   const props = createProps();
   render(<AdhocMetricEditPopover {...props} />);
   expect(props.onChange).toBeCalledTimes(0);
   expect(props.onClose).toBeCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
-  expect(props.onChange).toBeCalledTimes(1);
-  expect(props.onChange).toBeCalledWith(
-    {
-      id: 64,
-      metric_name: 'count',
-      expression: 'COUNT(*)',
-    },
-    {
-      id: 64,
-      metric_name: 'count',
-      expression: 'COUNT(*)',
-    },
-  );
-  expect(props.onClose).toBeCalledTimes(1);
+  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onClose).toBeCalledTimes(0);
 });
 
 test('Should switch to tab:Simple', () => {

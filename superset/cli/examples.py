@@ -55,7 +55,9 @@ def load_examples_run(
         print("Loading [Tabbed dashboard]")
         examples.load_tabbed_dashboard(only_metadata)
 
-    if not load_test_data:
+        print("Loading [Supported Charts Dashboard]")
+        examples.load_supported_charts_dashboard()
+    else:
         print("Loading [Random long/lat data]")
         examples.load_long_lat_data(only_metadata, force)
 
@@ -105,8 +107,8 @@ def load_examples_run(
     help="Force load data even if table already exists",
 )
 def load_examples(
-    load_test_data: bool,
-    load_big_data: bool,
+    load_test_data: bool = False,
+    load_big_data: bool = False,
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:

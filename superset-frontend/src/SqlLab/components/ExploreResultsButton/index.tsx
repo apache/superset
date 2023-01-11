@@ -39,13 +39,14 @@ const ExploreResultsButton = ({
       onClick={onClick}
       disabled={!allowsSubquery}
       tooltip={t('Explore the result set in the data exploration view')}
+      data-test="explore-results-button"
     >
       <InfoTooltipWithTrigger
         icon="line-chart"
         placement="top"
-        label="explore"
+        label={t('explore')}
       />{' '}
-      {t('Explore')}
+      {t('Create Chart')}
     </Button>
   );
 };

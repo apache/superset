@@ -17,9 +17,15 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t, SupersetClient, makeApi, styled } from '@superset-ui/core';
+import {
+  t,
+  SupersetClient,
+  makeApi,
+  styled,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import moment from 'moment';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import FacePile from 'src/components/FacePile';
@@ -44,8 +50,12 @@ import {
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import Owner from 'src/types/Owner';
 import AlertReportModal from './AlertReportModal';
 import { AlertObject, AlertState } from './types';
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const PAGE_SIZE = 25;
 
@@ -80,6 +90,18 @@ const RefreshContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
+const StyledHeaderWithIcon = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  > *:first-child {
+    margin-right: ${({ theme }) => theme.gridUnit}px;
+  }
+`;
+
+const HeaderExtension = extensionsRegistry.get('alertsreports.header.icon');
+
 function AlertList({
   addDangerToast,
   isReportEnabled = false,
@@ -109,6 +131,7 @@ function AlertList({
     },
     hasPerm,
     fetchData,
+    setResourceCollection,
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<AlertObject>(
@@ -188,14 +211,32 @@ function AlertList({
 
   const initialSort = [{ id: 'name', desc: true }];
 
-  const toggleActive = (data: AlertObject, checked: boolean) => {
-    if (data && data.id) {
-      const update_id = data.id;
-      updateResource(update_id, { active: checked }).then(() => {
-        refreshData();
-      });
-    }
-  };
+  const toggleActive = useCallback(
+    (data: AlertObject, checked: boolean) => {
+      if (data?.id) {
+        const update_id = data.id;
+        const original = [...alerts];
+
+        setResourceCollection(
+          original.map(alert => {
+            if (alert?.id === data.id) {
+              return {
+                ...alert,
+                active: checked,
+              };
+            }
+
+            return alert;
+          }),
+        );
+
+        updateResource(update_id, { active: checked }, false, false)
+          .then()
+          .catch(() => setResourceCollection(original));
+      }
+    },
+    [alerts, setResourceCollection, updateResource],
+  );
 
   const columns = useMemo(
     () => [
@@ -238,11 +279,14 @@ function AlertList({
         size: 'xl',
         Cell: ({
           row: {
-            original: { crontab_humanized = '' },
+            original: { crontab_humanized = '', timezone },
           },
         }: any) => (
-          <Tooltip title={crontab_humanized} placement="topLeft">
-            <span>{crontab_humanized}</span>
+          <Tooltip
+            title={`${crontab_humanized} (${timezone})`}
+            placement="topLeft"
+          >
+            <span>{`${crontab_humanized} (${timezone})`}</span>
           </Tooltip>
         ),
       },
@@ -284,14 +328,31 @@ function AlertList({
         size: 'xl',
       },
       {
-        Cell: ({ row: { original } }: any) => (
-          <Switch
-            data-test="toggle-active"
-            checked={original.active}
-            onClick={(checked: boolean) => toggleActive(original, checked)}
-            size="small"
-          />
-        ),
+        Cell: ({
+          row: {
+            original: { changed_on_delta_humanized: changedOn },
+          },
+        }: any) => <span className="no-wrap">{changedOn}</span>,
+        Header: t('Modified'),
+        accessor: 'changed_on_delta_humanized',
+        size: 'xl',
+      },
+      {
+        Cell: ({ row: { original } }: any) => {
+          const allowEdit =
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
+            isUserAdmin(user);
+
+          return (
+            <Switch
+              disabled={!allowEdit}
+              data-test="toggle-active"
+              checked={original.active}
+              onClick={(checked: boolean) => toggleActive(original, checked)}
+              size="small"
+            />
+          );
+        },
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
@@ -305,6 +366,10 @@ function AlertList({
           const handleGotoExecutionLog = () =>
             history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
 
+          const allowEdit =
+            original.owners.map((o: Owner) => o.id).includes(user.userId) ||
+            isUserAdmin(user);
+
           const actions = [
             canEdit
               ? {
@@ -317,14 +382,14 @@ function AlertList({
               : null,
             canEdit
               ? {
-                  label: 'edit-action',
-                  tooltip: t('Edit'),
+                  label: allowEdit ? 'edit-action' : 'preview-action',
+                  tooltip: allowEdit ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: 'Edit',
+                  icon: allowEdit ? 'Edit' : 'Binoculars',
                   onClick: handleEdit,
                 }
               : null,
-            canDelete
+            allowEdit && canDelete
               ? {
                   label: 'delete-action',
                   tooltip: t('Delete'),
@@ -344,7 +409,7 @@ function AlertList({
         size: 'xl',
       },
     ],
-    [canDelete, canEdit, isReportEnabled],
+    [canDelete, canEdit, isReportEnabled, toggleActive],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
@@ -386,6 +451,7 @@ function AlertList({
     () => [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -402,6 +468,7 @@ function AlertList({
       },
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -418,6 +485,7 @@ function AlertList({
       },
       {
         Header: t('Status'),
+        key: 'status',
         id: 'last_state',
         input: 'select',
         operator: FilterOperator.equals,
@@ -438,6 +506,7 @@ function AlertList({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'name',
         input: 'search',
         operator: FilterOperator.contains,
@@ -446,11 +515,20 @@ function AlertList({
     [],
   );
 
+  const header = HeaderExtension ? (
+    <StyledHeaderWithIcon>
+      <div>{t('Alerts & reports')}</div>
+      <HeaderExtension />
+    </StyledHeaderWithIcon>
+  ) : (
+    t('Alerts & reports')
+  );
+
   return (
     <>
       <SubMenu
         activeChild={pathName}
-        name={t('Alerts & reports')}
+        name={header}
         tabs={[
           {
             name: 'Alerts',

@@ -161,11 +161,12 @@ div.Workspace {
   vertical-align: middle;
   font-size: @font-size-m;
   font-weight: @font-weight-bold;
+  color: @lightest;
+  position: relative;
 }
 
 .running {
-  background-color: fade(@success, @opacity-heavy);
-  color: @darkest;
+  background-color: @info;
 }
 
 .success {
@@ -283,17 +284,14 @@ div.Workspace {
   display: flex;
   flex-direction: row;
   height: 100%;
-  padding: 10px;
 
   .schemaPane {
-    flex: 0 0 400px;
-    max-width: 400px;
     transition: transform @timing-normal ease-in-out;
   }
 
   .queryPane {
     flex: 1 1 auto;
-    padding-left: 10px;
+    padding: 10px;
     overflow-y: none;
     overflow-x: scroll;
   }
@@ -370,8 +368,8 @@ div.tablePopover {
   border: 1px solid @gray-light;
   font-feature-settings: @font-feature-settings;
   // Fira Code causes problem with Ace under Firefox
-  font-family: 'Menlo', 'Lucida Console', 'Courier New', 'Ubuntu Mono',
-    'Consolas', 'source-code-pro', monospace;
+  font-family: 'Menlo', 'Consolas', 'Courier New', 'Ubuntu Mono',
+    'source-code-pro', 'Lucida Console', monospace;
 
   &.ace_autocomplete {
     // Use !important because Ace Editor applies extra CSS at the last second

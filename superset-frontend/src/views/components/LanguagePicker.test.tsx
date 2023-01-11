@@ -38,22 +38,23 @@ const mockedProps = {
   },
 };
 
-test('should render', () => {
+test('should render', async () => {
   const { container } = render(
     <Menu>
       <LanguagePicker {...mockedProps} />
     </Menu>,
   );
+  expect(await screen.findByRole('button')).toBeInTheDocument();
   expect(container).toBeInTheDocument();
 });
 
-test('should render the language picker', () => {
+test('should render the language picker', async () => {
   render(
     <Menu>
       <LanguagePicker {...mockedProps} />
     </Menu>,
   );
-  expect(screen.getByLabelText('Languages')).toBeInTheDocument();
+  expect(await screen.findByLabelText('Languages')).toBeInTheDocument();
 });
 
 test('should render the items', async () => {

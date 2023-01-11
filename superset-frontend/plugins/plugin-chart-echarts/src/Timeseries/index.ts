@@ -21,12 +21,11 @@ import {
   Behavior,
   ChartMetadata,
   ChartPlugin,
-  FeatureFlag,
-  isFeatureEnabled,
+  hasGenericChartAxes,
   t,
 } from '@superset-ui/core';
 import buildQuery from './buildQuery';
-import controlPanel from './controlPanel';
+import controlPanel from './Regular/Line/controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import {
@@ -45,10 +44,10 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsTimeseries'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+        description: hasGenericChartAxes
           ? t(
               'Swiss army knife for visualizing data. Choose between  step, line, scatter, and bar charts. This viz type has many customization options as well.',
             )
@@ -62,9 +61,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-          ? t('Generic Chart')
-          : t('Time-series Chart'),
+        name: hasGenericChartAxes ? t('Generic Chart') : t('Time-series Chart'),
         tags: [
           t('Advanced-Analytics'),
           t('Aesthetic'),

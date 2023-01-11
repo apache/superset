@@ -17,8 +17,6 @@
 import logging
 from typing import List, Optional
 
-from flask_appbuilder.security.sqla.models import User
-
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.models.dashboard import Dashboard
@@ -32,8 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 class BulkDeleteSavedQueryCommand(BaseCommand):
-    def __init__(self, user: User, model_ids: List[int]):
-        self._actor = user
+    def __init__(self, model_ids: List[int]):
         self._model_ids = model_ids
         self._models: Optional[List[Dashboard]] = None
 

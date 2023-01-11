@@ -23,8 +23,12 @@ import { extent as d3Extent } from 'd3-array';
 import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
+  CategoricalColorNamespace,
+  logging,
+  t,
 } from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
+import { ColorBy } from './utils';
 
 const propTypes = {
   data: PropTypes.arrayOf(
@@ -48,6 +52,8 @@ const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
   const {
+    countryFieldtype,
+    entity,
     data,
     width,
     height,
@@ -55,6 +61,12 @@ function WorldMap(element, props) {
     showBubbles,
     linearColorScheme,
     color,
+    colorBy,
+    colorScheme,
+    sliceId,
+    theme,
+    onContextMenu,
+    inContextMenu,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -69,20 +81,57 @@ function WorldMap(element, props) {
     .domain([extRadius[0], extRadius[1]])
     .range([1, maxBubbleSize]);
 
-  const colorScale = getSequentialSchemeRegistry()
-    .get(linearColorScheme)
-    .createLinearScale(d3Extent(filteredData, d => d.m1));
+  let processedData;
+  let colorScale;
+  if (colorBy === ColorBy.country) {
+    colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
-  const processedData = filteredData.map(d => ({
-    ...d,
-    radius: radiusScale(Math.sqrt(d.m2)),
-    fillColor: colorScale(d.m1),
-  }));
+    processedData = filteredData.map(d => ({
+      ...d,
+      radius: radiusScale(Math.sqrt(d.m2)),
+      fillColor: colorScale(d.name, sliceId),
+    }));
+  } else {
+    colorScale = getSequentialSchemeRegistry()
+      .get(linearColorScheme)
+      .createLinearScale(d3Extent(filteredData, d => d.m1));
+
+    processedData = filteredData.map(d => ({
+      ...d,
+      radius: radiusScale(Math.sqrt(d.m2)),
+      fillColor: colorScale(d.m1),
+    }));
+  }
 
   const mapData = {};
   processedData.forEach(d => {
     mapData[d.country] = d;
   });
+
+  const handleContextMenu = source => {
+    const pointerEvent = d3.event;
+    pointerEvent.preventDefault();
+    const key = source.id || source.country;
+    const val = countryFieldtype === 'name' ? mapData[key]?.name : key;
+    if (val) {
+      const filters = [
+        {
+          col: entity,
+          op: '==',
+          val,
+          formattedVal: val,
+        },
+      ];
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+    } else {
+      logging.warn(
+        t(
+          `Unable to process right-click on %s. Check you chart configuration.`,
+        ),
+        key,
+      );
+    }
+  };
 
   const map = new Datamap({
     element,
@@ -90,14 +139,14 @@ function WorldMap(element, props) {
     height,
     data: processedData,
     fills: {
-      defaultFill: '#eee',
+      defaultFill: theme.colors.grayscale.light2,
     },
     geographyConfig: {
-      popupOnHover: true,
-      highlightOnHover: true,
+      popupOnHover: !inContextMenu,
+      highlightOnHover: !inContextMenu,
       borderWidth: 1,
-      borderColor: '#feffff',
-      highlightBorderColor: '#feffff',
+      borderColor: theme.colors.grayscale.light5,
+      highlightBorderColor: theme.colors.grayscale.light5,
       highlightFillColor: color,
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
@@ -109,7 +158,7 @@ function WorldMap(element, props) {
       borderWidth: 1,
       borderOpacity: 1,
       borderColor: color,
-      popupOnHover: true,
+      popupOnHover: !inContextMenu,
       radius: null,
       popupTemplate: (geo, d) =>
         `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
@@ -117,14 +166,19 @@ function WorldMap(element, props) {
         )}</div>`,
       fillOpacity: 0.5,
       animate: true,
-      highlightOnHover: true,
+      highlightOnHover: !inContextMenu,
       highlightFillColor: color,
-      highlightBorderColor: 'black',
+      highlightBorderColor: theme.colors.grayscale.dark2,
       highlightBorderWidth: 2,
       highlightBorderOpacity: 1,
       highlightFillOpacity: 0.85,
       exitDelay: 100,
       key: JSON.stringify,
+    },
+    done: datamap => {
+      datamap.svg
+        .selectAll('.datamaps-subunit')
+        .on('contextmenu', handleContextMenu);
     },
   });
 
@@ -135,7 +189,8 @@ function WorldMap(element, props) {
     div
       .selectAll('circle.datamaps-bubble')
       .style('fill', color)
-      .style('stroke', color);
+      .style('stroke', color)
+      .on('contextmenu', handleContextMenu);
   }
 }
 

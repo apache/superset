@@ -50,14 +50,17 @@ class BaseDAO:
 
     @classmethod
     def find_by_id(
-        cls, model_id: Union[str, int], session: Session = None
+        cls,
+        model_id: Union[str, int],
+        session: Session = None,
+        skip_base_filter: bool = False,
     ) -> Optional[Model]:
         """
         Find a model by id, if defined applies `base_filter`
         """
         session = session or db.session
         query = session.query(cls.model_cls)
-        if cls.base_filter:
+        if cls.base_filter and not skip_base_filter:
             data_model = SQLAInterface(cls.model_cls, session)
             query = cls.base_filter(  # pylint: disable=not-callable
                 cls.id_column_name, data_model
@@ -185,3 +188,14 @@ class BaseDAO:
             db.session.rollback()
             raise DAODeleteFailedError(exception=ex) from ex
         return model
+
+    @classmethod
+    def bulk_delete(cls, models: List[Model], commit: bool = True) -> None:
+        try:
+            for model in models:
+                cls.delete(model, False)
+            if commit:
+                db.session.commit()
+        except SQLAlchemyError as ex:
+            db.session.rollback()
+            raise DAODeleteFailedError(exception=ex) from ex

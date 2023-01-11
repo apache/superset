@@ -24,9 +24,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.base import BaseCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.form_data.commands.state import TemporaryExploreState
-from superset.explore.utils import check_access
+from superset.explore.form_data.commands.utils import check_access
 from superset.extensions import cache_manager
 from superset.temporary_cache.commands.exceptions import TemporaryCacheGetFailedError
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -39,13 +40,16 @@ class GetFormDataCommand(BaseCommand, ABC):
 
     def run(self) -> Optional[str]:
         try:
-            actor = self._cmd_params.actor
             key = self._cmd_params.key
             state: TemporaryExploreState = cache_manager.explore_form_data_cache.get(
                 key
             )
             if state:
-                check_access(state["dataset_id"], state["chart_id"], actor)
+                check_access(
+                    state["datasource_id"],
+                    state["chart_id"],
+                    DatasourceType(state["datasource_type"]),
+                )
                 if self._refresh_timeout:
                     cache_manager.explore_form_data_cache.set(key, state)
                 return state["form_data"]

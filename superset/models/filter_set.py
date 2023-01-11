@@ -55,8 +55,9 @@ class FilterSet(Model, AuditMixinNullable):
     @property
     def sqla_metadata(self) -> None:
         # pylint: disable=no-member
-        meta = MetaData(bind=self.get_sqla_engine())
-        meta.reflect()
+        with self.get_sqla_engine_with_context() as engine:
+            meta = MetaData(bind=engine)
+            meta.reflect()
 
     @property
     def changed_by_name(self) -> str:

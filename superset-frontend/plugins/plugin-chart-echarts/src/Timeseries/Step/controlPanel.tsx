@@ -17,31 +17,26 @@
  * under the License.
  */
 import React from 'react';
-import { FeatureFlag, isFeatureEnabled, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
   D3_TIME_FORMAT_DOCS,
+  getStandardizedControls,
   sections,
   sharedControls,
-  emitFilterControl,
 } from '@superset-ui/chart-controls';
 
-import {
-  DEFAULT_FORM_DATA,
-  EchartsTimeseriesContributionType,
-  EchartsTimeseriesSeriesType,
-} from '../types';
+import { EchartsTimeseriesSeriesType } from '../../types';
+import { DEFAULT_FORM_DATA } from '../constants';
 import {
   legendSection,
   richTooltipSection,
   showValueSection,
-  xAxisControl,
 } from '../../controls';
 
 const {
   area,
-  contributionMode,
   logAxis,
   markerEnabled,
   markerSize,
@@ -55,38 +50,8 @@ const {
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES) ? [xAxisControl] : [],
-        ['metrics'],
-        ['groupby'],
-        [
-          {
-            name: 'contributionMode',
-            config: {
-              type: 'SelectControl',
-              label: t('Contribution Mode'),
-              default: contributionMode,
-              choices: [
-                [null, 'None'],
-                [EchartsTimeseriesContributionType.Row, 'Row'],
-                [EchartsTimeseriesContributionType.Column, 'Series'],
-              ],
-              description: t('Calculate contribution per series or row'),
-            },
-          },
-        ],
-        ['adhoc_filters'],
-        emitFilterControl,
-        ['limit'],
-        ['timeseries_limit_metric'],
-        ['order_desc'],
-        ['row_limit'],
-      ],
-    },
+    sections.genericTime,
+    sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
@@ -105,9 +70,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: EchartsTimeseriesSeriesType.Start,
               choices: [
-                [EchartsTimeseriesSeriesType.Start, 'Start'],
-                [EchartsTimeseriesSeriesType.Middle, 'Middle'],
-                [EchartsTimeseriesSeriesType.End, 'End'],
+                [EchartsTimeseriesSeriesType.Start, t('Start')],
+                [EchartsTimeseriesSeriesType.Middle, t('Middle')],
+                [EchartsTimeseriesSeriesType.End, t('End')],
               ],
               description: t(
                 'Defines whether the step should appear at the beginning, middle or end between two data points',
@@ -296,6 +261,11 @@ const config: ControlPanelConfig = {
       default: rowLimit,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metrics: getStandardizedControls().popAllMetrics(),
+    groupby: getStandardizedControls().popAllColumns(),
+  }),
 };
 
 export default config;

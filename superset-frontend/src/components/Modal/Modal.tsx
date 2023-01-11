@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { isNil } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
@@ -34,6 +34,7 @@ export interface ModalProps {
   className?: string;
   children: React.ReactNode;
   disablePrimaryButton?: boolean;
+  primaryButtonLoading?: boolean;
   onHide: () => void;
   onHandledPrimaryAction?: () => void;
   primaryButtonName?: string;
@@ -55,6 +56,8 @@ export interface ModalProps {
   draggable?: boolean;
   draggableConfig?: DraggableProps;
   destroyOnClose?: boolean;
+  maskClosable?: boolean;
+  zIndex?: number;
 }
 
 interface StyledModalProps {
@@ -88,9 +91,20 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       max-width: ${maxWidth ?? '900px'};
       padding-left: ${theme.gridUnit * 3}px;
       padding-right: ${theme.gridUnit * 3}px;
+      padding-bottom: 0;
+      top: 0;
     `}
 
+  .ant-modal-content {
+    display: flex;
+    flex-direction: column;
+    max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
+    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+  }
+
   .ant-modal-header {
+    flex: 0 0 auto;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
@@ -118,11 +132,13 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   }
 
   .ant-modal-body {
+    flex: 0 1 auto;
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
   }
   .ant-modal-footer {
+    flex: 0 0 1;
     border-top: ${({ theme }) => theme.gridUnit / 4}px solid
       ${({ theme }) => theme.colors.grayscale.light2};
     padding: ${({ theme }) => theme.gridUnit * 4}px;
@@ -186,10 +202,29 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   `}
 `;
+const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
+  maxHeight: RESIZABLE_MAX_HEIGHT,
+  maxWidth: RESIZABLE_MAX_WIDTH,
+  minHeight: hideFooter
+    ? RESIZABLE_MIN_HEIGHT
+    : RESIZABLE_MIN_HEIGHT + MODAL_FOOTER_HEIGHT,
+  minWidth: RESIZABLE_MIN_WIDTH,
+  enable: {
+    bottom: true,
+    bottomLeft: false,
+    bottomRight: true,
+    left: false,
+    top: false,
+    topLeft: false,
+    topRight: false,
+    right: true,
+  },
+});
 
 const CustomModal = ({
   children,
   disablePrimaryButton = false,
+  primaryButtonLoading = false,
   onHide,
   onHandledPrimaryAction,
   primaryButtonName = t('OK'),
@@ -206,24 +241,7 @@ const CustomModal = ({
   wrapProps,
   draggable = false,
   resizable = false,
-  resizableConfig = {
-    maxHeight: RESIZABLE_MAX_HEIGHT,
-    maxWidth: RESIZABLE_MAX_WIDTH,
-    minHeight: hideFooter
-      ? RESIZABLE_MIN_HEIGHT
-      : RESIZABLE_MIN_HEIGHT + MODAL_FOOTER_HEIGHT,
-    minWidth: RESIZABLE_MIN_WIDTH,
-    enable: {
-      bottom: true,
-      bottomLeft: false,
-      bottomRight: true,
-      left: false,
-      top: false,
-      topLeft: false,
-      topRight: false,
-      right: true,
-    },
-  },
+  resizableConfig = defaultResizableConfig(hideFooter),
   draggableConfig,
   destroyOnClose,
   ...rest
@@ -231,7 +249,13 @@ const CustomModal = ({
   const draggableRef = useRef<HTMLDivElement>(null);
   const [bounds, setBounds] = useState<DraggableBounds>();
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
-  const modalFooter = isNil(footer)
+  let FooterComponent;
+  if (React.isValidElement(footer)) {
+    // If a footer component is provided inject a closeModal function
+    // so the footer can provide a "close" button if desired
+    FooterComponent = React.cloneElement(footer, { closeModal: onHide });
+  }
+  const modalFooter = isNil(FooterComponent)
     ? [
         <Button key="back" onClick={onHide} cta data-test="modal-cancel-button">
           {t('Cancel')}
@@ -240,6 +264,7 @@ const CustomModal = ({
           key="submit"
           buttonStyle={primaryButtonType}
           disabled={disablePrimaryButton}
+          loading={primaryButtonLoading}
           onClick={onHandledPrimaryAction}
           cta
           data-test="modal-confirm-button"
@@ -247,7 +272,7 @@ const CustomModal = ({
           {primaryButtonName}
         </Button>,
       ]
-    : footer;
+    : FooterComponent;
 
   const modalWidth = width || (responsive ? '100vw' : '600px');
   const shouldShowMask = !(resizable || draggable);
@@ -265,6 +290,13 @@ const CustomModal = ({
       });
     }
   };
+
+  const getResizableConfig = useMemo(() => {
+    if (Object.keys(resizableConfig).length === 0) {
+      return defaultResizableConfig(hideFooter);
+    }
+    return resizableConfig;
+  }, [hideFooter, resizableConfig]);
 
   const ModalTitle = () =>
     draggable ? (
@@ -306,7 +338,7 @@ const CustomModal = ({
             {...draggableConfig}
           >
             {resizable ? (
-              <Resizable className="resizable" {...resizableConfig}>
+              <Resizable className="resizable" {...getResizableConfig}>
                 <div className="resizable-wrapper" ref={draggableRef}>
                   {modal}
                 </div>
@@ -322,7 +354,7 @@ const CustomModal = ({
       mask={shouldShowMask}
       draggable={draggable}
       resizable={resizable}
-      destroyOnClose={destroyOnClose || resizable || draggable}
+      destroyOnClose={destroyOnClose}
       {...rest}
     >
       {children}

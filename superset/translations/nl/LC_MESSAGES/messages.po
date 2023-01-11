@@ -2415,13 +2415,13 @@ msgstr "Waarde moet groter zijn dan 0"
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr ""
 "Alert query heeft meer dan één rij geretourneerd. %s rijen geretourneerd"
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr "Alert query retourneerde meer dan één kolom. %s kolommen geretourneerd"
 
 #: superset/reports/commands/exceptions.py:44
@@ -2506,7 +2506,7 @@ msgid "Report Schedule reached a working timeout."
 msgstr "Rapportage planning heeft een werk time-out bereikt."
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "Alert query retourneerde meer dan één rij."
 
 #: superset/reports/commands/exceptions.py:182
@@ -2514,7 +2514,7 @@ msgid "Alert validator config error."
 msgstr "Waarschuwing validator configuratiefout."
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "Alert query heeft meer dan één kolom geretourneerd."
 
 #: superset/reports/commands/exceptions.py:190
@@ -2773,7 +2773,6 @@ msgid "Filter List"
 msgstr "Filter Lijst"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:261
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:94
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
@@ -9926,38 +9925,9 @@ msgstr "SQL"
 msgid "No query history yet..."
 msgstr "Nog geen zoekgeschiedenis…"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:137
-msgid "An error occurred when refreshing queries"
-msgstr "Er is een fout opgetreden bij het vernieuwen van de queries"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:185
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:184
 msgid "It seems you don't have access to any database"
 msgstr "Het lijkt erop dat je geen toegang hebt tot een database"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:200
-msgid "Filter by user"
-msgstr "Filter op gebruiker"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:209
-msgid "Filter by database"
-msgstr "Filter op database"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:218
-msgid "Query search string"
-msgstr "Query zoek string"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:224
-msgid "[From]-"
-msgstr "[From]-"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:236
-msgid "[To]-"
-msgstr "[To]-"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:245
-msgid "Filter by status"
-msgstr "Filter op status"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:117
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:54
@@ -15015,7 +14985,7 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:179
 msgid ""
-"For Presto and Postgres, shows a button to compute cost before running a "
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a "
 "query."
 msgstr ""
 

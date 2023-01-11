@@ -17,30 +17,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { isEmpty } from 'lodash';
+
 import {
   Annotation,
   AnnotationData,
   AnnotationLayer,
   AnnotationOpacity,
   AnnotationType,
+  DataRecord,
   evalExpression,
   FormulaAnnotationLayer,
   isRecordAnnotationResult,
   isTableAnnotationLayer,
   isTimeseriesAnnotationResult,
-  TimeseriesDataRecord,
+  AxisType,
 } from '@superset-ui/core';
+import { EchartsTimeseriesChartProps } from '../types';
+import { EchartsMixedTimeseriesProps } from '../MixedTimeseries/types';
 
 export function evalFormula(
   formula: FormulaAnnotationLayer,
-  data: TimeseriesDataRecord[],
-): [number, number][] {
+  data: DataRecord[],
+  xAxis: string,
+  xAxisType: AxisType,
+): [any, number][] {
   const { value: expression } = formula;
 
-  return data.map(row => [
-    Number(row.__timestamp),
-    evalExpression(expression, row.__timestamp as number),
-  ]);
+  return data.map(row => {
+    let value = row[xAxis];
+    if (xAxisType === 'time') {
+      value = new Date(value as string).getTime();
+    }
+    return [value, evalExpression(expression, (value || 0) as number)];
+  });
 }
 
 export function parseAnnotationOpacity(opacity?: AnnotationOpacity): number {
@@ -129,4 +139,14 @@ export function extractAnnotationLabels(
     });
 
   return formulaAnnotationLabels.concat(timeseriesAnnotationLabels);
+}
+
+export function getAnnotationData(
+  chartProps: EchartsTimeseriesChartProps | EchartsMixedTimeseriesProps,
+): AnnotationData {
+  const data = chartProps?.queriesData[0]?.annotation_data as AnnotationData;
+  if (!isEmpty(data)) {
+    return data;
+  }
+  return {};
 }

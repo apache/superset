@@ -23,12 +23,14 @@ import React, {
   HTMLProps,
   MutableRefObject,
   CSSProperties,
+  MouseEvent,
 } from 'react';
 import {
   useTable,
   usePagination,
   useSortBy,
   useGlobalFilter,
+  useColumnOrder,
   PluginHook,
   TableOptions,
   FilterType,
@@ -36,6 +38,7 @@ import {
   Row,
 } from 'react-table';
 import { matchSorter, rankings } from 'match-sorter';
+import { typedMemo } from '@superset-ui/core';
 import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
 import SelectPageSize, {
   SelectPageSizeProps,
@@ -63,6 +66,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   sticky?: boolean;
   rowCount: number;
   wrapperRef?: MutableRefObject<HTMLDivElement>;
+  onColumnOrderChange: () => void;
+  onContextMenu?: (value: D, clientX: number, clientY: number) => void;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -74,7 +79,7 @@ const sortTypes = {
 };
 
 // Be sure to pass our updateMyData and the skipReset option
-export default function DataTable<D extends object>({
+export default typedMemo(function DataTable<D extends object>({
   tableClassName,
   columns,
   data,
@@ -94,12 +99,15 @@ export default function DataTable<D extends object>({
   hooks,
   serverPagination,
   wrapperRef: userWrapperRef,
+  onColumnOrderChange,
+  onContextMenu,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
     useGlobalFilter,
     useSortBy,
     usePagination,
+    useColumnOrder,
     doSticky ? useSticky : [],
     hooks || [],
   ].flat();
@@ -124,7 +132,7 @@ export default function DataTable<D extends object>({
   const defaultGetTableSize = useCallback(() => {
     if (wrapperRef.current) {
       // `initialWidth` and `initialHeight` could be also parameters like `100%`
-      // `Number` reaturns `NaN` on them, then we fallback to computed size
+      // `Number` returns `NaN` on them, then we fallback to computed size
       const width = Number(initialWidth) || wrapperRef.current.clientWidth;
       const height =
         (Number(initialHeight) || wrapperRef.current.clientHeight) -
@@ -171,6 +179,8 @@ export default function DataTable<D extends object>({
     setGlobalFilter,
     setPageSize: setPageSize_,
     wrapStickyTable,
+    setColumnOrder,
+    allColumns,
     state: { pageIndex, pageSize, globalFilter: filterValue, sticky = {} },
   } = useTable<D>(
     {
@@ -210,6 +220,33 @@ export default function DataTable<D extends object>({
 
   const shouldRenderFooter = columns.some(x => !!x.Footer);
 
+  let columnBeingDragged = -1;
+
+  const onDragStart = (e: React.DragEvent) => {
+    const el = e.target as HTMLTableCellElement;
+    columnBeingDragged = allColumns.findIndex(
+      col => col.id === el.dataset.columnName,
+    );
+    e.dataTransfer.setData('text/plain', `${columnBeingDragged}`);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    const el = e.target as HTMLTableCellElement;
+    const newPosition = allColumns.findIndex(
+      col => col.id === el.dataset.columnName,
+    );
+
+    if (newPosition !== -1) {
+      const currentCols = allColumns.map(c => c.id);
+      const colToBeMoved = currentCols.splice(columnBeingDragged, 1);
+      currentCols.splice(newPosition, 0, colToBeMoved[0]);
+      setColumnOrder(currentCols);
+      // toggle value in TableChart to trigger column width recalc
+      onColumnOrderChange();
+    }
+    e.preventDefault();
+  };
+
   const renderTable = () => (
     <table {...getTableProps({ className: tableClassName })}>
       <thead>
@@ -222,6 +259,8 @@ export default function DataTable<D extends object>({
                 column.render('Header', {
                   key: column.id,
                   ...column.getSortByToggleProps(),
+                  onDragStart,
+                  onDrop,
                 }),
               )}
             </tr>
@@ -234,7 +273,21 @@ export default function DataTable<D extends object>({
             prepareRow(row);
             const { key: rowKey, ...rowProps } = row.getRowProps();
             return (
-              <tr key={rowKey || row.id} {...rowProps}>
+              <tr
+                key={rowKey || row.id}
+                {...rowProps}
+                onContextMenu={(e: MouseEvent) => {
+                  if (onContextMenu) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onContextMenu(
+                      row.original,
+                      e.nativeEvent.clientX,
+                      e.nativeEvent.clientY,
+                    );
+                  }
+                }}
+              >
                 {row.cells.map(cell =>
                   cell.render('Cell', { key: cell.column.id }),
                 )}
@@ -287,7 +340,7 @@ export default function DataTable<D extends object>({
   let resultCurrentPage = pageIndex;
   let resultOnPageChange: (page: number) => void = gotoPage;
   if (serverPagination) {
-    const serverPageSize = serverPaginationData.pageSize ?? initialPageSize;
+    const serverPageSize = serverPaginationData?.pageSize ?? initialPageSize;
     resultPageCount = Math.ceil(rowCount / serverPageSize);
     if (!Number.isFinite(resultPageCount)) {
       resultPageCount = 0;
@@ -299,7 +352,7 @@ export default function DataTable<D extends object>({
     if (foundPageSizeIndex === -1) {
       resultCurrentPageSize = 0;
     }
-    resultCurrentPage = serverPaginationData.currentPage ?? 0;
+    resultCurrentPage = serverPaginationData?.currentPage ?? 0;
     resultOnPageChange = (pageNumber: number) =>
       onServerPaginationChange(pageNumber, serverPageSize);
   }
@@ -354,4 +407,4 @@ export default function DataTable<D extends object>({
       ) : null}
     </div>
   );
-}
+});

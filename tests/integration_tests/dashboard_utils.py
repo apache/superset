@@ -21,12 +21,12 @@ from typing import Any, Dict, List, Optional
 
 from pandas import DataFrame
 
-from superset import ConnectorRegistry, db
+from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import DatasourceType, get_example_default_schema
 
 
 def get_table(
@@ -35,9 +35,8 @@ def get_table(
     schema: Optional[str] = None,
 ):
     schema = schema or get_example_default_schema()
-    table_source = ConnectorRegistry.sources["table"]
     return (
-        db.session.query(table_source)
+        db.session.query(SqlaTable)
         .filter_by(database_id=database.id, schema=schema, table_name=table_name)
         .one_or_none()
     )
@@ -54,8 +53,7 @@ def create_table_metadata(
 
     table = get_table(table_name, database, schema)
     if not table:
-        table_source = ConnectorRegistry.sources["table"]
-        table = table_source(schema=schema, table_name=table_name)
+        table = SqlaTable(schema=schema, table_name=table_name)
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database
@@ -72,7 +70,7 @@ def create_slice(
     return Slice(
         slice_name=title,
         viz_type=viz_type,
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=table.id,
         params=json.dumps(slices_dict, indent=4, sort_keys=True),
     )

@@ -95,32 +95,34 @@ const SavedQueryPreviewModal: FunctionComponent<SavedQueryPreviewModalProps> =
           onHide={onHide}
           show={show}
           title={t('Query preview')}
-          footer={[
-            <Button
-              data-test="previous-saved-query"
-              key="previous-saved-query"
-              disabled={disablePrevious}
-              onClick={() => handleDataChange(true)}
-            >
-              {t('Previous')}
-            </Button>,
-            <Button
-              data-test="next-saved-query"
-              key="next-saved-query"
-              disabled={disableNext}
-              onClick={() => handleDataChange(false)}
-            >
-              {t('Next')}
-            </Button>,
-            <Button
-              data-test="open-in-sql-lab"
-              key="open-in-sql-lab"
-              buttonStyle="primary"
-              onClick={() => openInSqlLab(savedQuery.id)}
-            >
-              {t('Open in SQL Lab')}
-            </Button>,
-          ]}
+          footer={
+            <>
+              <Button
+                data-test="previous-saved-query"
+                key="previous-saved-query"
+                disabled={disablePrevious}
+                onClick={() => handleDataChange(true)}
+              >
+                {t('Previous')}
+              </Button>
+              <Button
+                data-test="next-saved-query"
+                key="next-saved-query"
+                disabled={disableNext}
+                onClick={() => handleDataChange(false)}
+              >
+                {t('Next')}
+              </Button>
+              <Button
+                data-test="open-in-sql-lab"
+                key="open-in-sql-lab"
+                buttonStyle="primary"
+                onClick={() => openInSqlLab(savedQuery.id)}
+              >
+                {t('Open in SQL Lab')}
+              </Button>
+            </>
+          }
         >
           <QueryTitle>{t('Query name')}</QueryTitle>
           <QueryLabel>{savedQuery.label}</QueryLabel>

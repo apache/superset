@@ -18,7 +18,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 from flask_babel import gettext as _
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, to_numeric
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
@@ -122,4 +122,11 @@ def boxplot(
         for operator_name, operator in operators.items()
         for metric in metrics
     }
+
+    # nanpercentile needs numeric values, otherwise the isnan function
+    # that's used in the underlying function will fail
+    for column in metrics:
+        if df.dtypes[column] == np.object:
+            df[column] = to_numeric(df[column], errors="coerce")
+
     return aggregate(df, groupby=groupby, aggregates=aggregates)

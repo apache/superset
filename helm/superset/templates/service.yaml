@@ -27,6 +27,7 @@ metadata:
   annotations:
 {{- toYaml . | nindent 4 }}
 {{- end }}
+  namespace: {{ .Release.Namespace }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -40,3 +41,63 @@ spec:
   {{- if .Values.service.loadBalancerIP }}
   loadBalancerIP: {{ .Values.service.loadBalancerIP }}
   {{- end }}
+---
+{{- if .Values.supersetCeleryFlower.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ template "superset.fullname" . }}-flower"
+  labels:
+    app: {{ template "superset.name" . }}
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  {{- with .Values.supersetCeleryFlower.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.supersetCeleryFlower.service.type }}
+  ports:
+    - port: {{ .Values.supersetCeleryFlower.service.port }}
+      targetPort: flower
+      protocol: TCP
+      name: flower
+  selector:
+    app: {{ template "superset.name" . }}-flower
+    release: {{ .Release.Name }}
+  {{- if .Values.supersetCeleryFlower.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.supersetCeleryFlower.service.loadBalancerIP }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.supersetWebsockets.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ template "superset.fullname" . }}-ws"
+  labels:
+    app: {{ template "superset.name" . }}
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  {{- with .Values.supersetWebsockets.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: {{ .Values.supersetWebsockets.service.type }}
+  ports:
+    - port: {{ .Values.supersetWebsockets.service.port }}
+      targetPort: ws
+      protocol: TCP
+      name: ws
+  selector:
+    app: "{{ template "superset.name" . }}-ws"
+    release: {{ .Release.Name }}
+  {{- if .Values.supersetWebsockets.service.loadBalancerIP }}
+  loadBalancerIP: {{ .Values.supersetWebsockets.service.loadBalancerIP }}
+  {{- end }}
+{{- end }}

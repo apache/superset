@@ -20,6 +20,8 @@
 # string to use when None values *need* to be converted to/from strings
 from enum import Enum
 
+USER_AGENT = "Apache Superset"
+
 NULL_STRING = "<NULL>"
 EMPTY_STRING = "<empty string>"
 
@@ -27,6 +29,13 @@ CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"
 
 # UUID for the examples database
 EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
+
+PASSWORD_MASK = "X" * 10
+
+NO_TIME_RANGE = "No filter"
+
+QUERY_CANCEL_KEY = "cancel_query"
+QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
 
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
@@ -127,7 +136,10 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_datasets": "read",
     "function_names": "read",
     "available": "read",
+    "validate_sql": "read",
     "get_data": "read",
+    "samples": "read",
+    "delete_ssh_tunnel": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {
@@ -145,7 +157,6 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "time_column": "time_column",
     "time_grain": "time_grain",
     "time_range": "time_range",
-    "druid_time_origin": "druid_time_origin",
     "time_grain_sqla": "time_grain_sqla",
 }
 

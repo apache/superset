@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=invalid-name, import-outside-toplevel
+
+# pylint: disable=invalid-name, import-outside-toplevel, unused-argument
 
 import json
 from io import BytesIO
@@ -27,17 +28,15 @@ from pytest_mock import MockFixture
 from superset import security_manager
 
 
-def test_export_assets(mocker: MockFixture, client: Any) -> None:
+def test_export_assets(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
     """
     Test exporting assets.
     """
     from superset.commands.importers.v1.utils import get_contents_from_bundle
-
-    # grant access
-    mocker.patch(
-        "flask_appbuilder.security.decorators.verify_jwt_in_request", return_value=True
-    )
-    mocker.patch.object(security_manager, "has_access", return_value=True)
 
     mocked_contents = [
         (
@@ -62,16 +61,14 @@ def test_export_assets(mocker: MockFixture, client: Any) -> None:
     assert contents == dict(mocked_contents)
 
 
-def test_import_assets(mocker: MockFixture, client: Any) -> None:
+def test_import_assets(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
     """
     Test importing assets.
     """
-    # grant access
-    mocker.patch(
-        "flask_appbuilder.security.decorators.verify_jwt_in_request", return_value=True
-    )
-    mocker.patch.object(security_manager, "has_access", return_value=True)
-
     mocked_contents = {
         "metadata.yaml": (
             "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
@@ -105,16 +102,14 @@ def test_import_assets(mocker: MockFixture, client: Any) -> None:
     ImportAssetsCommand.assert_called_with(mocked_contents, passwords=passwords)
 
 
-def test_import_assets_not_zip(mocker: MockFixture, client: Any) -> None:
+def test_import_assets_not_zip(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
     """
     Test error message when the upload is not a ZIP file.
     """
-    # grant access
-    mocker.patch(
-        "flask_appbuilder.security.decorators.verify_jwt_in_request", return_value=True
-    )
-    mocker.patch.object(security_manager, "has_access", return_value=True)
-
     buf = BytesIO(b"definitely_not_a_zip_file")
     form_data = {
         "bundle": (buf, "broken.txt"),
@@ -145,14 +140,14 @@ def test_import_assets_not_zip(mocker: MockFixture, client: Any) -> None:
     }
 
 
-def test_import_assets_no_form_data(mocker: MockFixture, client: Any) -> None:
+def test_import_assets_no_form_data(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
     """
     Test error message when the upload has no form data.
     """
-    # grant access
-    mocker.patch(
-        "flask_appbuilder.security.decorators.verify_jwt_in_request", return_value=True
-    )
     mocker.patch.object(security_manager, "has_access", return_value=True)
 
     response = client.post("/api/v1/assets/import/", data="some_content")
@@ -179,16 +174,14 @@ def test_import_assets_no_form_data(mocker: MockFixture, client: Any) -> None:
     }
 
 
-def test_import_assets_incorrect_form_data(mocker: MockFixture, client: Any) -> None:
+def test_import_assets_incorrect_form_data(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
     """
     Test error message when the upload form data has the wrong key.
     """
-    # grant access
-    mocker.patch(
-        "flask_appbuilder.security.decorators.verify_jwt_in_request", return_value=True
-    )
-    mocker.patch.object(security_manager, "has_access", return_value=True)
-
     buf = BytesIO(b"definitely_not_a_zip_file")
     form_data = {
         "wrong": (buf, "broken.txt"),
@@ -200,16 +193,14 @@ def test_import_assets_incorrect_form_data(mocker: MockFixture, client: Any) -> 
     assert response.json == {"message": "Arguments are not correct"}
 
 
-def test_import_assets_no_contents(mocker: MockFixture, client: Any) -> None:
+def test_import_assets_no_contents(
+    mocker: MockFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
     """
     Test error message when the ZIP bundle has no contents.
     """
-    # grant access
-    mocker.patch(
-        "flask_appbuilder.security.decorators.verify_jwt_in_request", return_value=True
-    )
-    mocker.patch.object(security_manager, "has_access", return_value=True)
-
     mocked_contents = {
         "README.txt": "Something is wrong",
     }

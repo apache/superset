@@ -19,11 +19,13 @@ from typing import Any, Dict, Optional
 
 from superset.dao.base import BaseDAO
 from superset.databases.filters import DatabaseFilter
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,30 @@ logger = logging.getLogger(__name__)
 class DatabaseDAO(BaseDAO):
     model_cls = Database
     base_filter = DatabaseFilter
+
+    @classmethod
+    def update(
+        cls,
+        model: Database,
+        properties: Dict[str, Any],
+        commit: bool = True,
+    ) -> Database:
+        """
+        Unmask ``encrypted_extra`` before updating.
+
+        When a database is edited the user sees a masked version of ``encrypted_extra``,
+        depending on the engine spec. Eg, BigQuery will mask the ``private_key`` attribute
+        of the credentials.
+
+        The masked values should be unmasked before the database is updated.
+        """
+        if "encrypted_extra" in properties:
+            properties["encrypted_extra"] = model.db_engine_spec.unmask_encrypted_extra(
+                model.encrypted_extra,
+                properties["encrypted_extra"],
+            )
+
+        return super().update(model, properties, commit)
 
     @staticmethod
     def validate_uniqueness(database_name: str) -> bool:
@@ -75,7 +101,8 @@ class DatabaseDAO(BaseDAO):
         charts = (
             db.session.query(Slice)
             .filter(
-                Slice.datasource_id.in_(dataset_ids), Slice.datasource_type == "table"
+                Slice.datasource_id.in_(dataset_ids),
+                Slice.datasource_type == DatasourceType.TABLE,
             )
             .all()
         )
@@ -98,3 +125,13 @@ class DatabaseDAO(BaseDAO):
         return dict(
             charts=charts, dashboards=dashboards, sqllab_tab_states=sqllab_tab_states
         )
+
+    @classmethod
+    def get_ssh_tunnel(cls, database_id: int) -> Optional[SSHTunnel]:
+        ssh_tunnel = (
+            db.session.query(SSHTunnel)
+            .filter(SSHTunnel.database_id == database_id)
+            .one_or_none()
+        )
+
+        return ssh_tunnel

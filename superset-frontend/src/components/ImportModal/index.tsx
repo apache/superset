@@ -216,7 +216,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
 
     return (
       <>
-        <h5>Database passwords</h5>
+        <h5>{t('Database passwords')}</h5>
         <HelperMessage>{passwordsNeededMessage}</HelperMessage>
         {passwordFields.map(fileName => (
           <StyledInputContainer key={`password-for-${fileName}`}>
@@ -297,10 +297,15 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
           customRequest={() => {}}
           disabled={importingModel}
         >
-          <Button loading={importingModel}>Select file</Button>
+          <Button loading={importingModel}>{t('Select file')}</Button>
         </Upload>
       </StyledInputContainer>
-      {errorMessage && <ErrorAlert errorMessage={errorMessage} />}
+      {errorMessage && (
+        <ErrorAlert
+          errorMessage={errorMessage}
+          showDbInstallInstructions={passwordFields.length > 0}
+        />
+      )}
       {renderPasswordFields()}
       {renderOverwriteConfirmation()}
     </Modal>

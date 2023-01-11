@@ -18,10 +18,9 @@
  */
 
 /* eslint-disable camelcase */
+import { TimeGranularity, QueryFormData } from '@superset-ui/core';
 import {
   AppliedTimeExtras,
-  isDruidFormData,
-  QueryFormData,
   QueryObjectExtras,
   QueryObjectFilterClause,
   TimeColumnConfigKey,
@@ -30,8 +29,7 @@ import {
 type ExtraFilterQueryField = {
   time_range?: string;
   granularity_sqla?: string;
-  time_grain_sqla?: string;
-  druid_time_origin?: string;
+  time_grain_sqla?: TimeGranularity;
   granularity?: string;
 };
 
@@ -58,7 +56,6 @@ export default function extractExtras(formData: QueryFormData): ExtractedExtra {
     __time_range: 'time_range',
     __time_col: 'granularity_sqla',
     __time_grain: 'time_grain_sqla',
-    __time_origin: 'druid_time_origin',
     __granularity: 'granularity',
   };
 
@@ -66,28 +63,21 @@ export default function extractExtras(formData: QueryFormData): ExtractedExtra {
     if (filter.col in reservedColumnsToQueryField) {
       const key = filter.col as TimeColumnConfigKey;
       const queryField = reservedColumnsToQueryField[key];
-      extract[queryField] = filter.val as string;
+      extract[queryField] = filter.val as TimeGranularity;
       applied_time_extras[key] = filter.val as string;
     } else {
       filters.push(filter);
     }
   });
 
-  // map to undeprecated names and remove deprecated fields
-  if (isDruidFormData(formData) && !extract.druid_time_origin) {
-    extras.druid_time_origin = formData.druid_time_origin;
-    delete extract.druid_time_origin;
-  } else {
-    // SQL
-    extras.time_grain_sqla =
-      extract.time_grain_sqla || formData.time_grain_sqla;
-    extract.granularity =
-      extract.granularity_sqla ||
-      formData.granularity ||
-      formData.granularity_sqla;
-    delete extract.granularity_sqla;
-    delete extract.time_grain_sqla;
-  }
+  // SQL
+  extras.time_grain_sqla = extract.time_grain_sqla || formData.time_grain_sqla;
+  extract.granularity =
+    extract.granularity_sqla ||
+    formData.granularity ||
+    formData.granularity_sqla;
+  delete extract.granularity_sqla;
+  delete extract.time_grain_sqla;
 
   return extract;
 }

@@ -22,6 +22,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/views/CRUD/welcome/Welcome';
+import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
@@ -30,10 +31,12 @@ import ListViewCard from 'src/components/ListViewCard';
 import DeleteModal from 'src/components/DeleteModal';
 import Icons from 'src/components/Icons';
 import SubMenu from 'src/views/components/SubMenu';
+import { User } from 'src/types/bootstrapTypes';
 import EmptyState from './EmptyState';
 import {
   CardContainer,
   createErrorHandler,
+  getFilterValues,
   PAGE_SIZE,
   shortenSQL,
 } from '../utils';
@@ -56,9 +59,7 @@ interface Query {
 }
 
 interface SavedQueriesProps {
-  user: {
-    userId: string | number;
-  };
+  user: User;
   queryFilter: string;
   addDangerToast: (arg0: string) => void;
   addSuccessToast: (arg0: string) => void;
@@ -134,7 +135,7 @@ const SavedQueries = ({
     [],
     false,
   );
-  const [queryFilter, setQueryFilter] = useState('Mine');
+  const [activeTab, setActiveTab] = useState(TableTab.Mine);
   const [queryDeleteModal, setQueryDeleteModal] = useState(false);
   const [currentlyEdited, setCurrentlyEdited] = useState<Query>({});
   const [ifMine, setMine] = useState(true);
@@ -149,13 +150,11 @@ const SavedQueries = ({
     }).then(
       () => {
         const queryParams = {
-          filters: [
-            {
-              id: 'created_by',
-              operator: 'rel_o_m',
-              value: `${user?.userId}`,
-            },
-          ],
+          filters: getFilterValues(
+            TableTab.Created,
+            WelcomeTable.SavedQueries,
+            user,
+          ),
           pageSize: PAGE_SIZE,
           sortBy: [
             {
@@ -178,25 +177,7 @@ const SavedQueries = ({
     );
   };
 
-  const getFilters = (filterName: string) => {
-    const filters = [];
-    if (filterName === 'Mine') {
-      filters.push({
-        id: 'created_by',
-        operator: 'rel_o_m',
-        value: `${user?.userId}`,
-      });
-    } else {
-      filters.push({
-        id: 'id',
-        operator: 'saved_query_is_fav',
-        value: true,
-      });
-    }
-    return filters;
-  };
-
-  const getData = (filter: string) =>
+  const getData = (tab: TableTab) =>
     fetchData({
       pageIndex: 0,
       pageSize: PAGE_SIZE,
@@ -206,7 +187,7 @@ const SavedQueries = ({
           desc: true,
         },
       ],
-      filters: getFilters(filter),
+      filters: getFilterValues(tab, WelcomeTable.SavedQueries, user),
     });
 
   const renderMenu = (query: Query) => (
@@ -263,21 +244,13 @@ const SavedQueries = ({
         />
       )}
       <SubMenu
-        activeChild={queryFilter}
+        activeChild={activeTab}
         tabs={[
-          /* @TODO uncomment when fav functionality is implemented
           {
-            name: 'Favorite',
-            label: t('Favorite'),
-            onClick: () => {
-              getData('Favorite').then(() => setQueryFilter('Favorite'));
-            },
-          },
-          */
-          {
-            name: 'Mine',
+            name: TableTab.Mine,
             label: t('Mine'),
-            onClick: () => getData('Mine').then(() => setQueryFilter('Mine')),
+            onClick: () =>
+              getData(TableTab.Mine).then(() => setActiveTab(TableTab.Mine)),
           },
         ]}
         buttons={[
@@ -324,7 +297,7 @@ const SavedQueries = ({
                         language="sql"
                         lineProps={{
                           style: {
-                            color: 'black',
+                            color: theme.colors.grayscale.dark2,
                             wordBreak: 'break-all',
                             whiteSpace: 'pre-wrap',
                           },
@@ -366,7 +339,7 @@ const SavedQueries = ({
           ))}
         </CardContainer>
       ) : (
-        <EmptyState tableName={WelcomeTable.SavedQueries} tab={queryFilter} />
+        <EmptyState tableName={WelcomeTable.SavedQueries} tab={activeTab} />
       )}
     </>
   );

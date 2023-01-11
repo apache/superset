@@ -18,7 +18,7 @@ from typing import Optional
 
 from flask import current_app as app
 
-from superset.dashboards.dao import DashboardDAO
+from superset.dashboards.filter_state.commands.utils import check_access
 from superset.extensions import cache_manager
 from superset.temporary_cache.commands.get import GetTemporaryCacheCommand
 from superset.temporary_cache.commands.parameters import CommandParameters
@@ -34,7 +34,7 @@ class GetFilterStateCommand(GetTemporaryCacheCommand):
     def get(self, cmd_params: CommandParameters) -> Optional[str]:
         resource_id = cmd_params.resource_id
         key = cache_key(resource_id, cmd_params.key)
-        DashboardDAO.get_by_id_or_slug(str(resource_id))
+        check_access(resource_id)
         entry = cache_manager.filter_state_cache.get(key) or {}
         if entry and self._refresh_timeout:
             cache_manager.filter_state_cache.set(key, entry)

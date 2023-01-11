@@ -25,7 +25,7 @@ import Alert from 'src/components/Alert';
 import Badge from 'src/components/Badge';
 import shortid from 'shortid';
 import { styled, SupersetClient, t, withTheme } from '@superset-ui/core';
-import { Select, Row, Col } from 'src/components';
+import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';
@@ -123,14 +123,21 @@ const StyledColumnsTabWrapper = styled.div`
   }
 `;
 
+const StyledButtonWrapper = styled.span`
+  ${({ theme }) => `
+    margin-top: ${theme.gridUnit * 3}px;
+    margin-left: ${theme.gridUnit * 3}px;
+  `}
+`;
+
 const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
 const DATA_TYPES = [
-  { value: 'STRING', label: 'STRING' },
-  { value: 'NUMERIC', label: 'NUMERIC' },
-  { value: 'DATETIME', label: 'DATETIME' },
-  { value: 'BOOLEAN', label: 'BOOLEAN' },
+  { value: 'STRING', label: t('STRING') },
+  { value: 'NUMERIC', label: t('NUMERIC') },
+  { value: 'DATETIME', label: t('DATETIME') },
+  { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -173,22 +180,46 @@ function ColumnCollectionTable({
   return (
     <CollectionTable
       collection={columns}
-      tableColumns={[
-        'column_name',
-        'type',
-        'is_dttm',
-        'main_dttm_col',
-        'filterable',
-        'groupby',
-      ]}
-      sortColumns={[
-        'column_name',
-        'type',
-        'is_dttm',
-        'main_dttm_col',
-        'filterable',
-        'groupby',
-      ]}
+      tableColumns={
+        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+          ? [
+              'column_name',
+              'advanced_data_type',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
+          : [
+              'column_name',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
+      }
+      sortColumns={
+        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+          ? [
+              'column_name',
+              'advanced_data_type',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
+          : [
+              'column_name',
+              'type',
+              'is_dttm',
+              'main_dttm_col',
+              'filterable',
+              'groupby',
+            ]
+      }
       allowDeletes
       allowAddItem={allowAddItem}
       itemGenerator={itemGenerator}
@@ -204,6 +235,7 @@ function ColumnCollectionTable({
                   <TextAreaControl
                     language="markdown"
                     offerEditInModal={false}
+                    resize="vertical"
                   />
                 }
               />
@@ -242,6 +274,20 @@ function ColumnCollectionTable({
                   />
                 }
               />
+            )}
+            {isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES) ? (
+              <Field
+                fieldKey="advanced_data_type"
+                label={t('Advanced data type')}
+                control={
+                  <TextControl
+                    controlId="advanced_data_type"
+                    placeholder={t('Advanced Data type')}
+                  />
+                }
+              />
+            ) : (
+              <></>
             )}
             <Field
               fieldKey="python_date_format"
@@ -300,62 +346,131 @@ function ColumnCollectionTable({
           </Fieldset>
         </FormContainer>
       }
-      columnLabels={{
-        column_name: t('Column'),
-        type: t('Data type'),
-        groupby: t('Is dimension'),
-        is_dttm: t('Is temporal'),
-        main_dttm_col: t('Default datetime'),
-        filterable: t('Is filterable'),
-      }}
+      columnLabels={
+        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+          ? {
+              column_name: t('Column'),
+              advanced_data_type: t('Advanced data type'),
+              type: t('Data type'),
+              groupby: t('Is dimension'),
+              is_dttm: t('Is temporal'),
+              main_dttm_col: t('Default datetime'),
+              filterable: t('Is filterable'),
+            }
+          : {
+              column_name: t('Column'),
+              type: t('Data type'),
+              groupby: t('Is dimension'),
+              is_dttm: t('Is temporal'),
+              main_dttm_col: t('Default datetime'),
+              filterable: t('Is filterable'),
+            }
+      }
       onChange={onColumnsChange}
-      itemRenderers={{
-        column_name: (v, onItemChange, _, record) =>
-          editableColumnName ? (
-            <StyledLabelWrapper>
-              {record.is_certified && (
-                <CertifiedBadge
-                  certifiedBy={record.certified_by}
-                  details={record.certification_details}
-                />
-              )}
-              <TextControl value={v} onChange={onItemChange} />
-            </StyledLabelWrapper>
-          ) : (
-            <StyledLabelWrapper>
-              {record.is_certified && (
-                <CertifiedBadge
-                  certifiedBy={record.certified_by}
-                  details={record.certification_details}
-                />
-              )}
-              {v}
-            </StyledLabelWrapper>
-          ),
-        main_dttm_col: (value, _onItemChange, _label, record) => {
-          const checked = datasource.main_dttm_col === record.column_name;
-          const disabled = !columns.find(
-            column => column.column_name === record.column_name,
-          ).is_dttm;
-          return (
-            <Radio
-              data-test={`radio-default-dttm-${record.column_name}`}
-              checked={checked}
-              disabled={disabled}
-              onChange={() =>
-                onDatasourceChange({
-                  ...datasource,
-                  main_dttm_col: record.column_name,
-                })
-              }
-            />
-          );
-        },
-        type: d => (d ? <Label>{d}</Label> : null),
-        is_dttm: checkboxGenerator,
-        filterable: checkboxGenerator,
-        groupby: checkboxGenerator,
-      }}
+      itemRenderers={
+        isFeatureEnabled(FeatureFlag.ENABLE_ADVANCED_DATA_TYPES)
+          ? {
+              column_name: (v, onItemChange, _, record) =>
+                editableColumnName ? (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    <EditableTitle
+                      canEdit
+                      title={v}
+                      onSaveTitle={onItemChange}
+                    />
+                  </StyledLabelWrapper>
+                ) : (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    {v}
+                  </StyledLabelWrapper>
+                ),
+              main_dttm_col: (value, _onItemChange, _label, record) => {
+                const checked = datasource.main_dttm_col === record.column_name;
+                const disabled = !columns.find(
+                  column => column.column_name === record.column_name,
+                ).is_dttm;
+                return (
+                  <Radio
+                    data-test={`radio-default-dttm-${record.column_name}`}
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() =>
+                      onDatasourceChange({
+                        ...datasource,
+                        main_dttm_col: record.column_name,
+                      })
+                    }
+                  />
+                );
+              },
+              type: d => (d ? <Label>{d}</Label> : null),
+              advanced_data_type: d => (
+                <Label onChange={onColumnsChange}>{d}</Label>
+              ),
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
+          : {
+              column_name: (v, onItemChange, _, record) =>
+                editableColumnName ? (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    <TextControl value={v} onChange={onItemChange} />
+                  </StyledLabelWrapper>
+                ) : (
+                  <StyledLabelWrapper>
+                    {record.is_certified && (
+                      <CertifiedBadge
+                        certifiedBy={record.certified_by}
+                        details={record.certification_details}
+                      />
+                    )}
+                    {v}
+                  </StyledLabelWrapper>
+                ),
+              main_dttm_col: (value, _onItemChange, _label, record) => {
+                const checked = datasource.main_dttm_col === record.column_name;
+                const disabled = !columns.find(
+                  column => column.column_name === record.column_name,
+                ).is_dttm;
+                return (
+                  <Radio
+                    data-test={`radio-default-dttm-${record.column_name}`}
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() =>
+                      onDatasourceChange({
+                        ...datasource,
+                        main_dttm_col: record.column_name,
+                      })
+                    }
+                  />
+                );
+              },
+              type: d => (d ? <Label>{d}</Label> : null),
+              is_dttm: checkboxGenerator,
+              filterable: checkboxGenerator,
+              groupby: checkboxGenerator,
+            }
+      }
     />
   );
 }
@@ -411,10 +526,12 @@ const propTypes = {
   onChange: PropTypes.func,
   addSuccessToast: PropTypes.func.isRequired,
   addDangerToast: PropTypes.func.isRequired,
+  setIsEditing: PropTypes.func,
 };
 
 const defaultProps = {
   onChange: () => {},
+  setIsEditing: () => {},
 };
 
 function OwnersSelector({ datasource, onChange }) {
@@ -423,16 +540,18 @@ function OwnersSelector({ datasource, onChange }) {
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/related/owners?q=${query}`,
     }).then(response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
+      data: response.json.result
+        .filter(item => item.extra.active)
+        .map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
       totalCount: response.json.count,
     }));
   }, []);
 
   return (
-    <Select
+    <AsyncSelect
       ariaLabel={t('Select owners')}
       mode="multiple"
       name="owners"
@@ -473,9 +592,6 @@ class DatasourceEditor extends React.PureComponent {
         }),
       },
       errors: [],
-      isDruid:
-        props.datasource.type === 'druid' ||
-        props.datasource.datasource_type === 'druid',
       isSqla:
         props.datasource.datasource_type === 'table' ||
         props.datasource.type === 'table',
@@ -522,6 +638,7 @@ class DatasourceEditor extends React.PureComponent {
   }
 
   onChangeEditMode() {
+    this.props.setIsEditing(!this.state.isEditMode);
     this.setState(prevState => ({ isEditMode: !prevState.isEditMode }));
   }
 
@@ -626,7 +743,9 @@ class DatasourceEditor extends React.PureComponent {
       database_name:
         datasource.database.database_name || datasource.database.name,
       schema_name: datasource.schema,
-      table_name: datasource.table_name,
+      table_name: datasource.table_name
+        ? encodeURIComponent(datasource.table_name)
+        : datasource.table_name,
     };
     Object.entries(params).forEach(([key, value]) => {
       // rison can't encode the undefined value
@@ -734,7 +853,11 @@ class DatasourceEditor extends React.PureComponent {
           fieldKey="description"
           label={t('Description')}
           control={
-            <TextAreaControl language="markdown" offerEditInModal={false} />
+            <TextAreaControl
+              language="markdown"
+              offerEditInModal={false}
+              resize="vertical"
+            />
           }
         />
         <Field
@@ -768,6 +891,7 @@ class DatasourceEditor extends React.PureComponent {
                 language="sql"
                 controlId="fetch_values_predicate"
                 minLines={5}
+                resize="vertical"
               />
             }
           />
@@ -787,6 +911,7 @@ class DatasourceEditor extends React.PureComponent {
                 controlId="extra"
                 language="json"
                 offerEditInModal={false}
+                resize="vertical"
               />
             }
           />
@@ -967,24 +1092,11 @@ class DatasourceEditor extends React.PureComponent {
                         minLines={20}
                         maxLines={20}
                         readOnly={!this.state.isEditMode}
+                        resize="both"
                       />
                     }
                   />
                 </>
-              )}
-              {this.state.isDruid && (
-                <Field
-                  fieldKey="json"
-                  label={t('JSON')}
-                  description={
-                    <div>
-                      {t('The JSON metric or post aggregation definition.')}
-                    </div>
-                  }
-                  control={
-                    <TextAreaControl language="json" offerEditInModal={false} />
-                  }
-                />
               )}
             </div>
           )}
@@ -1133,6 +1245,7 @@ class DatasourceEditor extends React.PureComponent {
                     controlId="warning_markdown"
                     language="markdown"
                     offerEditInModal={false}
+                    resize="vertical"
                   />
                 }
               />
@@ -1147,6 +1260,11 @@ class DatasourceEditor extends React.PureComponent {
           verbose_name: '',
           expression: '',
         })}
+        itemCellProps={{
+          expression: () => ({
+            width: '240px',
+          }),
+        }}
         itemRenderers={{
           metric_name: (v, onChange, _, record) => (
             <FlexRowContainer>
@@ -1176,6 +1294,8 @@ class DatasourceEditor extends React.PureComponent {
               language="sql"
               offerEditInModal={false}
               minLines={5}
+              textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
+              resize="both"
             />
           ),
           description: (v, onChange, label) => (
@@ -1251,7 +1371,7 @@ class DatasourceEditor extends React.PureComponent {
           >
             <StyledColumnsTabWrapper>
               <ColumnButtonWrapper>
-                <span className="m-t-10 m-r-10">
+                <StyledButtonWrapper>
                   <Button
                     buttonSize="small"
                     buttonStyle="tertiary"
@@ -1262,7 +1382,7 @@ class DatasourceEditor extends React.PureComponent {
                     <i className="fa fa-database" />{' '}
                     {t('Sync columns from source')}
                   </Button>
-                </span>
+                </StyledButtonWrapper>
               </ColumnButtonWrapper>
               <ColumnCollectionTable
                 className="columns-table"

@@ -17,13 +17,63 @@
  * under the License.
  */
 import React from 'react';
-import { EchartsProps } from '../types';
+import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
+import { EventHandlers } from '../types';
 import Echart from '../components/Echart';
+import { GraphChartTransformedProps } from './types';
+
+type Event = {
+  name: string;
+  event: { stop: () => void; event: PointerEvent };
+  data: { source: string; target: string };
+};
 
 export default function EchartsGraph({
   height,
   width,
   echartOptions,
-}: EchartsProps) {
-  return <Echart height={height} width={width} echartOptions={echartOptions} />;
+  formData,
+  onContextMenu,
+  refs,
+}: GraphChartTransformedProps) {
+  const eventHandlers: EventHandlers = {
+    contextmenu: (e: Event) => {
+      if (onContextMenu) {
+        e.event.stop();
+        const pointerEvent = e.event.event;
+        const data = (echartOptions as any).series[0].data as {
+          id: string;
+          name: string;
+        }[];
+        const sourceValue = data.find(item => item.id === e.data.source)?.name;
+        const targetValue = data.find(item => item.id === e.data.target)?.name;
+        if (sourceValue && targetValue) {
+          const filters: BinaryQueryObjectFilterClause[] = [
+            {
+              col: formData.source,
+              op: '==',
+              val: sourceValue,
+              formattedVal: sourceValue,
+            },
+            {
+              col: formData.target,
+              op: '==',
+              val: targetValue,
+              formattedVal: targetValue,
+            },
+          ];
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+        }
+      }
+    },
+  };
+  return (
+    <Echart
+      refs={refs}
+      height={height}
+      width={width}
+      echartOptions={echartOptions}
+      eventHandlers={eventHandlers}
+    />
+  );
 }

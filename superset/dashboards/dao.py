@@ -19,16 +19,17 @@ import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
 from superset.dao.base import BaseDAO
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.slice import Slice
+from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
 logger = logging.getLogger(__name__)
@@ -39,11 +40,22 @@ class DashboardDAO(BaseDAO):
     base_filter = DashboardAccessFilter
 
     @staticmethod
-    def get_by_id_or_slug(id_or_slug: str) -> Dashboard:
-        dashboard = Dashboard.get(id_or_slug)
+    def get_by_id_or_slug(id_or_slug: Union[int, str]) -> Dashboard:
+        query = (
+            db.session.query(Dashboard)
+            .filter(id_or_slug_filter(id_or_slug))
+            .outerjoin(Slice, Dashboard.slices)
+            .outerjoin(Slice.table)
+            .outerjoin(Dashboard.owners)
+            .outerjoin(Dashboard.roles)
+        )
+        # Apply dashboard base filters
+        query = DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+            query, None
+        )
+        dashboard = query.one_or_none()
         if not dashboard:
             raise DashboardNotFoundError()
-        security_manager.raise_for_dashboard_access(dashboard)
         return dashboard
 
     @staticmethod
@@ -66,7 +78,7 @@ class DashboardDAO(BaseDAO):
         :returns: The datetime the dashboard was last changed.
         """
 
-        dashboard = (
+        dashboard: Dashboard = (
             DashboardDAO.get_by_id_or_slug(id_or_slug_or_dashboard)
             if isinstance(id_or_slug_or_dashboard, str)
             else id_or_slug_or_dashboard
@@ -159,6 +171,7 @@ class DashboardDAO(BaseDAO):
             for model in models:
                 model.slices = []
                 model.owners = []
+                model.embedded = []
                 db.session.merge(model)
         # bulk delete itself
         try:
@@ -168,8 +181,7 @@ class DashboardDAO(BaseDAO):
             if commit:
                 db.session.commit()
         except SQLAlchemyError as ex:
-            if commit:
-                db.session.rollback()
+            db.session.rollback()
             raise ex
 
     @staticmethod
@@ -266,7 +278,7 @@ class DashboardDAO(BaseDAO):
         md["color_scheme"] = data.get("color_scheme", "")
         md["label_colors"] = data.get("label_colors", {})
         md["shared_label_colors"] = data.get("shared_label_colors", {})
-
+        md["color_scheme_domain"] = data.get("color_scheme_domain", [])
         dashboard.json_metadata = json.dumps(md)
 
         if commit:
@@ -274,9 +286,7 @@ class DashboardDAO(BaseDAO):
         return dashboard
 
     @staticmethod
-    def favorited_ids(
-        dashboards: List[Dashboard], current_user_id: int
-    ) -> List[FavStar]:
+    def favorited_ids(dashboards: List[Dashboard]) -> List[FavStar]:
         ids = [dash.id for dash in dashboards]
         return [
             star.obj_id
@@ -284,7 +294,7 @@ class DashboardDAO(BaseDAO):
             .filter(
                 FavStar.class_name == FavStarClassName.DASHBOARD,
                 FavStar.obj_id.in_(ids),
-                FavStar.user_id == current_user_id,
+                FavStar.user_id == get_user_id(),
             )
             .all()
         ]

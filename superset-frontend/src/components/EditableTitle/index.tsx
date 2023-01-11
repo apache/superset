@@ -17,8 +17,9 @@
  * under the License.
  */
 import React, { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import cx from 'classnames';
-import { styled, t } from '@superset-ui/core';
+import { css, styled, SupersetTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import CertifiedBadge from '../CertifiedBadge';
 
@@ -37,6 +38,7 @@ export interface EditableTitleProps {
   placeholder?: string;
   certifiedBy?: string;
   certificationDetails?: string;
+  url?: string;
 }
 
 const StyledCertifiedBadge = styled(CertifiedBadge)`
@@ -57,6 +59,7 @@ export default function EditableTitle({
   placeholder = '',
   certifiedBy,
   certificationDetails,
+  url,
   // rest is related to title tooltip
   ...rest
 }: EditableTitleProps) {
@@ -216,7 +219,23 @@ export default function EditableTitle({
   }
   if (!canEdit) {
     // don't actually want an input in this case
-    titleComponent = <span data-test="editable-title-input">{value}</span>;
+    titleComponent = url ? (
+      <Link
+        to={url}
+        data-test="editable-title-input"
+        css={(theme: SupersetTheme) => css`
+          color: ${theme.colors.grayscale.dark1};
+          text-decoration: none;
+          :hover {
+            text-decoration: underline;
+          }
+        `}
+      >
+        {value}
+      </Link>
+    ) : (
+      <span data-test="editable-title-input">{value}</span>
+    );
   }
   return (
     <span

@@ -18,9 +18,12 @@
 """Unit tests for Superset"""
 import json
 import unittest
+from typing import Optional
 from unittest import mock
 
 import pytest
+from flask.ctx import AppContext
+from pytest_mock import MockFixture
 from sqlalchemy import inspect
 
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -37,10 +40,10 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 )
 from tests.integration_tests.test_app import app  # isort:skip
 from superset import db, security_manager
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.models import core as models
 from superset.models.datasource_access_request import DatasourceAccessRequest
+from superset.utils.core import get_user_id, get_username, override_user
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -86,13 +89,13 @@ DB_ACCESS_ROLE = "db_access_role"
 SCHEMA_ACCESS_ROLE = "schema_access_role"
 
 
-def create_access_request(session, ds_type, ds_name, role_name, user_name):
-    ds_class = ConnectorRegistry.sources[ds_type]
+def create_access_request(session, ds_type, ds_name, role_name, username):
     # TODO: generalize datasource names
     if ds_type == "table":
-        ds = session.query(ds_class).filter(ds_class.table_name == ds_name).first()
+        ds = session.query(SqlaTable).filter(SqlaTable.table_name == ds_name).first()
     else:
-        ds = session.query(ds_class).filter(ds_class.datasource_name == ds_name).first()
+        # This function will only work for ds_type == "table"
+        raise NotImplementedError()
     ds_perm_view = security_manager.find_permission_view_menu(
         "datasource_access", ds.perm
     )
@@ -102,7 +105,7 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
     access_request = DatasourceAccessRequest(
         datasource_id=ds.id,
         datasource_type=ds_type,
-        created_by_fk=security_manager.find_user(username=user_name).id,
+        created_by_fk=security_manager.find_user(username=username).id,
     )
     session.add(access_request)
     session.commit()
@@ -155,8 +158,8 @@ class TestRequestAccess(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_override_role_permissions_1_table(self):
         database = get_example_database()
-        engine = database.get_sqla_engine()
-        schema = inspect(engine).default_schema_name
+        with database.get_sqla_engine_with_context() as engine:
+            schema = inspect(engine).default_schema_name
 
         perm_data = ROLE_TABLES_PERM_DATA.copy()
         perm_data["database"][0]["schema"][0]["name"] = schema
@@ -183,8 +186,8 @@ class TestRequestAccess(SupersetTestCase):
     )
     def test_override_role_permissions_drops_absent_perms(self):
         database = get_example_database()
-        engine = database.get_sqla_engine()
-        schema = inspect(engine).default_schema_name
+        with database.get_sqla_engine_with_context() as engine:
+            schema = inspect(engine).default_schema_name
 
         override_me = security_manager.find_role("override_me")
         override_me.permissions.append(
@@ -267,7 +270,7 @@ class TestRequestAccess(SupersetTestCase):
         session.commit()
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
         self.assertTrue(access_requests)
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
@@ -306,7 +309,7 @@ class TestRequestAccess(SupersetTestCase):
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
         self.assertTrue(access_requests)
         # gamma2 request gets fulfilled
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
@@ -350,7 +353,7 @@ class TestRequestAccess(SupersetTestCase):
         gamma_user.roles.append(security_manager.find_role(SCHEMA_ACCESS_ROLE))
         session.commit()
         # gamma2 request gets fulfilled
-        self.client.get(
+        self.client.post(
             EXTEND_ROLE_REQUEST.format("table", ds_1_id, "gamma2", TEST_ROLE_2)
         )
         access_requests = self.get_access_requests("gamma", "table", ds_1_id)
@@ -446,49 +449,6 @@ class TestRequestAccess(SupersetTestCase):
             TEST_ROLE = security_manager.find_role(TEST_ROLE_NAME)
             self.assertIn(perm_view, TEST_ROLE.permissions)
 
-            # Case 3. Grant new role to the user to access the druid datasource.
-
-            security_manager.add_role("druid_role")
-            access_request3 = create_access_request(
-                session, "druid", "druid_ds_1", "druid_role", "gamma"
-            )
-            self.get_resp(
-                GRANT_ROLE_REQUEST.format(
-                    "druid", access_request3.datasource_id, "gamma", "druid_role"
-                )
-            )
-
-            # user was granted table_role
-            user_roles = [r.name for r in security_manager.find_user("gamma").roles]
-            self.assertIn("druid_role", user_roles)
-
-            # Case 4. Extend the role to have access to the druid datasource
-
-            access_request4 = create_access_request(
-                session, "druid", "druid_ds_2", "druid_role", "gamma"
-            )
-            druid_ds_2_perm = access_request4.datasource.perm
-
-            self.client.get(
-                EXTEND_ROLE_REQUEST.format(
-                    "druid", access_request4.datasource_id, "gamma", "druid_role"
-                )
-            )
-            # druid_role was extended to grant access to the druid_access_ds_2
-            druid_role = security_manager.find_role("druid_role")
-            perm_view = security_manager.find_permission_view_menu(
-                "datasource_access", druid_ds_2_perm
-            )
-            self.assertIn(perm_view, druid_role.permissions)
-
-            # cleanup
-            gamma_user = security_manager.find_user(username="gamma")
-            gamma_user.roles.remove(security_manager.find_role("druid_role"))
-            gamma_user.roles.remove(security_manager.find_role(TEST_ROLE_NAME))
-            session.delete(security_manager.find_role("druid_role"))
-            session.delete(security_manager.find_role(TEST_ROLE_NAME))
-            session.commit()
-
     def test_request_access(self):
         if app.config["ENABLE_ACCESS_REQUEST"]:
             session = db.session
@@ -563,6 +523,75 @@ class TestRequestAccess(SupersetTestCase):
             gamma_user = security_manager.find_user(username="gamma")
             gamma_user.roles.remove(security_manager.find_role("dummy_role"))
             session.commit()
+
+
+@pytest.mark.parametrize(
+    "username,user_id",
+    [
+        (None, None),
+        ("alpha", 5),
+        ("gamma", 2),
+    ],
+)
+def test_get_user_id(
+    app_context: AppContext,
+    mocker: MockFixture,
+    username: Optional[str],
+    user_id: Optional[int],
+) -> None:
+    mock_g = mocker.patch("superset.utils.core.g", spec={})
+    mock_g.user = security_manager.find_user(username)
+    assert get_user_id() == user_id
+
+
+@pytest.mark.parametrize(
+    "username",
+    [
+        None,
+        "alpha",
+        "gamma",
+    ],
+)
+def test_get_username(
+    app_context: AppContext,
+    mocker: MockFixture,
+    username: Optional[str],
+) -> None:
+    mock_g = mocker.patch("superset.utils.core.g", spec={})
+    mock_g.user = security_manager.find_user(username)
+    assert get_username() == username
+
+
+@pytest.mark.parametrize("username", [None, "alpha", "gamma"])
+@pytest.mark.parametrize("force", [False, True])
+def test_override_user(
+    app_context: AppContext,
+    mocker: MockFixture,
+    username: str,
+    force: bool,
+) -> None:
+    mock_g = mocker.patch("superset.utils.core.g", spec={})
+    admin = security_manager.find_user(username="admin")
+    user = security_manager.find_user(username)
+
+    with override_user(user, force):
+        assert mock_g.user == user
+
+    assert not hasattr(mock_g, "user")
+
+    mock_g.user = None
+
+    with override_user(user, force):
+        assert mock_g.user == user
+
+    assert mock_g.user is None
+
+    mock_g.user = admin
+
+    with override_user(user, force):
+        assert mock_g.user == user if force else admin
+
+    assert mock_g.user == admin
 
 
 if __name__ == "__main__":

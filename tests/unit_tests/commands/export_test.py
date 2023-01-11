@@ -20,7 +20,7 @@ from freezegun import freeze_time
 from pytest_mock import MockFixture
 
 
-def test_export_assets_command(mocker: MockFixture, app_context: None) -> None:
+def test_export_assets_command(mocker: MockFixture) -> None:
     """
     Test that all assets are exported correctly.
     """

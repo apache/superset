@@ -19,4 +19,5 @@
  */
 export { getMetricOffsetsMap } from './getMetricOffsetsMap';
 export { isTimeComparison } from './isTimeComparison';
+export { isDerivedSeries } from './isDerivedSeries';
 export { TIME_COMPARISON_SEPARATOR } from './constants';

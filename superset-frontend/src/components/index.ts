@@ -23,6 +23,7 @@
  * E.g. import { Select } from 'src/components'
  */
 export { default as Select } from './Select/Select';
+export { default as AsyncSelect } from './Select/AsyncSelect';
 
 /*
  * Components that don't conflict with the ones in src/components.
@@ -73,4 +74,5 @@ export {
 export type { FormInstance } from 'antd/lib/form';
 export type { ListItemProps } from 'antd/lib/list';
 export type { ModalProps as AntdModalProps } from 'antd/lib/modal';
+export type { DropDownProps as AntdDropdownProps } from 'antd/lib/dropdown';
 export type { RadioChangeEvent } from 'antd/lib/radio';

@@ -24,11 +24,12 @@ import {
   JsonObject,
   NativeFiltersState,
 } from '@superset-ui/core';
-import { DatasourceMeta } from '@superset-ui/chart-controls';
+import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
+import { UrlParamEntries } from 'src/utils/urlUtils';
 
-import { User } from 'src/types/bootstrapTypes';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ChartState } from '../explore/types';
 
 export { Dashboard } from 'src/types/Dashboard';
@@ -39,18 +40,22 @@ export type ChartReducerInitialState = typeof chart;
 // Ref: https://github.com/apache/superset/blob/dcac860f3e5528ecbc39e58f045c7388adb5c3d0/superset-frontend/src/dashboard/reducers/getInitialState.js#L120
 export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
   id: number;
-  formData: ChartProps['formData'];
   form_data?: ChartProps['rawFormData'];
   [key: string]: unknown;
 }
 
 /** Chart state of redux */
 export type Chart = ChartState & {
-  formData: {
+  form_data: {
     viz_type: string;
     datasource: string;
   };
 };
+
+export enum FilterBarOrientation {
+  VERTICAL = 'VERTICAL',
+  HORIZONTAL = 'HORIZONTAL',
+}
 
 export type ActiveTabs = string[];
 export type DashboardLayout = { [key: string]: LayoutItem };
@@ -65,6 +70,25 @@ export type DashboardState = {
   isRefreshing: boolean;
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
+  dashboardIsSaving: boolean;
+  colorScheme: string;
+  sliceIds: number[];
+  directPathLastUpdated: number;
+  focusedFilterField?: {
+    chartId: number;
+    column: string;
+  };
+  overwriteConfirmMetadata?: {
+    updatedAt: string;
+    updatedBy: string;
+    overwriteConfirmItems: {
+      keyPath: string;
+      oldValue: string;
+      newValue: string;
+    }[];
+    dashboardId: number;
+    data: JsonObject;
+  };
 };
 export type DashboardInfo = {
   id: number;
@@ -79,12 +103,18 @@ export type DashboardInfo = {
     native_filter_configuration: JsonObject;
     show_native_filters: boolean;
     chart_configuration: JsonObject;
+    color_scheme: string;
+    color_namespace: string;
+    color_scheme_domain: string[];
+    label_colors: JsonObject;
+    shared_label_colors: JsonObject;
   };
+  filterBarOrientation: FilterBarOrientation;
 };
 
 export type ChartsState = { [key: string]: Chart };
 
-export type Datasource = DatasourceMeta & {
+export type Datasource = Dataset & {
   uid: string;
   column_types: GenericDataType[];
   table_name: string;
@@ -105,7 +135,7 @@ export type RootState = {
   dataMask: DataMaskStateWithId;
   impressionId: string;
   nativeFilters: NativeFiltersState;
-  user: User;
+  user: UserWithPermissionsAndRoles;
 };
 
 /** State of dashboardLayout in redux */
@@ -145,13 +175,17 @@ export type ActiveFilters = {
   [key: string]: ActiveFilter;
 };
 
-export type DashboardPermalinkValue = {
+export interface DashboardPermalinkState {
+  dataMask: DataMaskStateWithId;
+  activeTabs: string[];
+  anchor: string;
+  urlParams?: UrlParamEntries;
+}
+
+export interface DashboardPermalinkValue {
   dashboardId: string;
-  state: {
-    filterState: DataMaskStateWithId;
-    hash: string;
-  };
-};
+  state: DashboardPermalinkState;
+}
 
 export type EmbeddedDashboard = {
   uuid: string;

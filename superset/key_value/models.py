@@ -21,6 +21,8 @@ from sqlalchemy.orm import relationship
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 
+VALUE_MAX_SIZE = 2**24 - 1
+
 
 class KeyValueEntry(Model, AuditMixinNullable, ImportExportMixin):
     """Key value store entity"""
@@ -28,7 +30,7 @@ class KeyValueEntry(Model, AuditMixinNullable, ImportExportMixin):
     __tablename__ = "key_value"
     id = Column(Integer, primary_key=True)
     resource = Column(String(32), nullable=False)
-    value = Column(LargeBinary(), nullable=False)
+    value = Column(LargeBinary(length=VALUE_MAX_SIZE), nullable=False)
     created_on = Column(DateTime, nullable=True)
     created_by_fk = Column(Integer, ForeignKey("ab_user.id"), nullable=True)
     changed_on = Column(DateTime, nullable=True)

@@ -19,13 +19,15 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from pprint import pformat
 from typing import Any, Dict, List, NamedTuple, Optional, TYPE_CHECKING
 
+from flask import g
 from flask_babel import gettext as _
 from pandas import DataFrame
 
+from superset import feature_flag_manager
 from superset.common.chart_data import ChartDataResultType
 from superset.exceptions import (
     InvalidPostProcessingError,
@@ -44,7 +46,6 @@ from superset.utils.core import (
     json_int_dttm_ser,
     QueryObjectFilterClause,
 )
-from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict
 
 if TYPE_CHECKING:
@@ -71,8 +72,6 @@ DEPRECATED_FIELDS = (
 DEPRECATED_EXTRAS_FIELDS = (
     DeprecatedField(old_name="where", new_name="where"),
     DeprecatedField(old_name="having", new_name="having"),
-    DeprecatedField(old_name="having_filters", new_name="having_druid"),
-    DeprecatedField(old_name="druid_time_origin", new_name="druid_time_origin"),
 )
 
 
@@ -106,7 +105,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     series_limit: int
     series_limit_metric: Optional[Metric]
     time_offsets: List[str]
-    time_shift: Optional[timedelta]
+    time_shift: Optional[str]
     time_range: Optional[str]
     to_dttm: Optional[datetime]
 
@@ -156,7 +155,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
         self.time_range = time_range
-        self.time_shift = parse_human_timedelta(time_shift)
+        self.time_shift = time_shift
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
@@ -336,6 +335,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,
             "to_dttm": self.to_dttm,
+            "time_shift": self.time_shift,
         }
         return query_object_dict
 
@@ -395,6 +395,24 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         # only add to key if there are annotations present that affect the payload
         if annotation_layers:
             cache_dict["annotation_layers"] = annotation_layers
+
+        # Add an impersonation key to cache if impersonation is enabled on the db
+        if (
+            feature_flag_manager.is_feature_enabled("CACHE_IMPERSONATION")
+            and self.datasource
+            and hasattr(self.datasource, "database")
+            and self.datasource.database.impersonate_user
+        ):
+
+            if key := self.datasource.database.db_engine_spec.get_impersonation_key(
+                getattr(g, "user", None)
+            ):
+
+                logger.debug(
+                    "Adding impersonation key to QueryObject cache dict: %s", key
+                )
+
+                cache_dict["impersonation_key"] = key
 
         return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
 

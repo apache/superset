@@ -21,8 +21,13 @@ import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
-const TITLE_MARGIN_OPTIONS: number[] = [15, 30, 50, 75, 100, 125, 150, 200];
-const TITLE_POSITION_OPTIONS: string[] = ['Left', 'Top'];
+export const TITLE_MARGIN_OPTIONS: number[] = [
+  15, 30, 50, 75, 100, 125, 150, 200,
+];
+export const TITLE_POSITION_OPTIONS: [string, string][] = [
+  ['Left', t('Left')],
+  ['Top', t('Top')],
+];
 export const titleControls: ControlPanelSectionConfig = {
   label: t('Chart Title'),
   tabOverride: 'customize',
@@ -93,8 +98,8 @@ export const titleControls: ControlPanelSectionConfig = {
           clearable: false,
           label: t('Y AXIS TITLE POSITION'),
           renderTrigger: true,
-          default: TITLE_POSITION_OPTIONS[0],
-          choices: formatSelectOptions(TITLE_POSITION_OPTIONS),
+          default: TITLE_POSITION_OPTIONS[0][0],
+          choices: TITLE_POSITION_OPTIONS,
           description: t('Changing this control takes effect instantly'),
         },
       },

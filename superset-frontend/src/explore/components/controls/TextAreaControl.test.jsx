@@ -19,7 +19,7 @@
 /* eslint-disable no-unused-expressions */
 import React from 'react';
 import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { TextAreaEditor } from 'src/components/AsyncAceEditor';
 import { TextArea } from 'src/components/Input';
 
@@ -34,7 +34,7 @@ const defaultProps = {
 describe('TextArea', () => {
   let wrapper;
   beforeEach(() => {
-    wrapper = shallow(<TextAreaControl {...defaultProps} />);
+    wrapper = mount(<TextAreaControl {...defaultProps} />);
   });
 
   it('renders a FormControl', () => {
@@ -50,7 +50,7 @@ describe('TextArea', () => {
   it('renders a AceEditor when language is specified', () => {
     const props = { ...defaultProps };
     props.language = 'markdown';
-    wrapper = shallow(<TextAreaControl {...props} />);
+    wrapper = mount(<TextAreaControl {...props} />);
     expect(wrapper.find(TextArea)).not.toExist();
     expect(wrapper.find(TextAreaEditor)).toExist();
   });
@@ -58,7 +58,7 @@ describe('TextArea', () => {
   it('calls onAreaEditorChange when entering in the AceEditor', () => {
     const props = { ...defaultProps };
     props.language = 'markdown';
-    wrapper = shallow(<TextAreaControl {...props} />);
+    wrapper = mount(<TextAreaControl {...props} />);
     wrapper.simulate('change', { target: { value: 'x' } });
     expect(defaultProps.onChange.calledWith('x')).toBe(true);
   });

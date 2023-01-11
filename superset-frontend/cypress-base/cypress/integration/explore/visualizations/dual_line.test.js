@@ -17,13 +17,18 @@
  * under the License.
  */
 describe('Visualization > Dual Line', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const DUAL_LINE_FORM_DATA = {
     datasource: '3__table',
     viz_type: 'dual_line',
     slice_id: 58,
     granularity_sqla: 'ds',
     time_grain_sqla: 'P1D',
-    time_range: '100+years+ago+:+now',
+    time_range: '100 years ago : now',
     color_scheme: 'bnbColors',
     x_axis_format: 'smart_date',
     metric: 'sum__num',
@@ -35,14 +40,9 @@ describe('Visualization > Dual Line', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work', () => {
     verify(DUAL_LINE_FORM_DATA);
@@ -65,5 +65,21 @@ describe('Visualization > Dual Line', () => {
       ],
     });
     cy.get('.chart-container svg path.nv-line').should('have.length', 2);
+  });
+
+  it('should allow type to search color schemes and apply the scheme', () => {
+    verify(DUAL_LINE_FORM_DATA);
+
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('supersetColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="supersetColors"]',
+    ).should('exist');
+    cy.get('.dual_line .nv-legend .nv-legend-symbol')
+      .first()
+      .should('have.css', 'fill', 'rgb(31, 168, 201)');
   });
 });

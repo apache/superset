@@ -22,6 +22,7 @@ from superset.charts.schemas import (
     datasource_type_description,
     datasource_uid_description,
 )
+from superset.utils.core import DatasourceType
 
 
 class Datasource(Schema):
@@ -36,7 +37,7 @@ class Datasource(Schema):
     )
     datasource_type = fields.String(
         description=datasource_type_description,
-        validate=validate.OneOf(choices=("druid", "table", "view")),
+        validate=validate.OneOf(choices=[ds.value for ds in DatasourceType]),
         required=True,
     )
 

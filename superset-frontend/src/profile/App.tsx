@@ -27,15 +27,15 @@ import App from 'src/profile/components/App';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import { initEnhancer } from 'src/reduxUtils';
 import setupApp from 'src/setup/setupApp';
+import setupExtensions from 'src/setup/setupExtensions';
 import { theme } from 'src/preamble';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 setupApp();
+setupExtensions();
 
-const profileViewContainer = document.getElementById('app');
-const bootstrap = JSON.parse(
-  profileViewContainer?.getAttribute('data-bootstrap') ?? '{}',
-);
+const bootstrapData = getBootstrapData();
 
 const store = createStore(
   combineReducers({
@@ -49,7 +49,7 @@ const Application = () => (
   <Provider store={store}>
     <ThemeProvider theme={theme}>
       <GlobalStyles />
-      <App user={bootstrap.user} />
+      <App user={bootstrapData.user} />
       <ToastContainer />
     </ThemeProvider>
   </Provider>

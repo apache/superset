@@ -20,8 +20,24 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
-from superset.models.reports import ReportSchedule
+from superset import db, security_manager
+from superset.reports.models import ReportSchedule
 from superset.views.base import BaseFilter
+
+
+class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    def apply(self, query: Query, value: Any) -> Query:
+        if security_manager.can_access_all_datasources():
+            return query
+        owner_ids_query = (
+            db.session.query(ReportSchedule.id)
+            .join(ReportSchedule.owners)
+            .filter(
+                security_manager.user_model.id
+                == security_manager.user_model.get_user_id()
+            )
+        )
+        return query.filter(ReportSchedule.id.in_(owner_ids_query))
 
 
 class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods

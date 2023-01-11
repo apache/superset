@@ -17,7 +17,13 @@
  * under the License.
  */
 import React, { useMemo, useState, useCallback, ReactElement } from 'react';
-import { SupersetClient, t, styled, useTheme } from '@superset-ui/core';
+import {
+  QueryState,
+  styled,
+  SupersetClient,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import moment from 'moment';
 import {
   createFetchRelated,
@@ -80,7 +86,7 @@ const StyledPopoverItem = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
 `;
 
-function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
+function QueryList({ addDangerToast }: QueryListProps) {
   const {
     state: { loading, resourceCount: queryCount, resourceCollection: queries },
     fetchData,
@@ -127,7 +133,13 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
           row: {
             original: { status },
           },
-        }: any) => {
+        }: {
+          row: {
+            original: {
+              status: QueryState;
+            };
+          };
+        }) => {
           const statusConfig: {
             name: ReactElement | null;
             label: string;
@@ -135,33 +147,39 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
             name: null,
             label: '',
           };
-          if (status === 'success') {
+          if (status === QueryState.SUCCESS) {
             statusConfig.name = (
               <Icons.Check iconColor={theme.colors.success.base} />
             );
             statusConfig.label = t('Success');
-          } else if (status === 'failed' || status === 'stopped') {
+          } else if (
+            status === QueryState.FAILED ||
+            status === QueryState.STOPPED
+          ) {
             statusConfig.name = (
               <Icons.XSmall
                 iconColor={
-                  status === 'failed'
+                  status === QueryState.FAILED
                     ? theme.colors.error.base
                     : theme.colors.grayscale.base
                 }
               />
             );
             statusConfig.label = t('Failed');
-          } else if (status === 'running') {
+          } else if (status === QueryState.RUNNING) {
             statusConfig.name = (
               <Icons.Running iconColor={theme.colors.primary.base} />
             );
             statusConfig.label = t('Running');
-          } else if (status === 'timed_out') {
+          } else if (status === QueryState.TIMED_OUT) {
             statusConfig.name = (
               <Icons.Offline iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
-          } else if (status === 'scheduled' || status === 'pending') {
+          } else if (
+            status === QueryState.SCHEDULED ||
+            status === QueryState.PENDING
+          ) {
             statusConfig.name = (
               <Icons.Queued iconColor={theme.colors.grayscale.base} />
             );
@@ -329,6 +347,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
     () => [
       {
         Header: t('Database'),
+        key: 'database',
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -346,6 +365,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         Header: t('State'),
+        key: 'state',
         id: 'status',
         input: 'select',
         operator: FilterOperator.equals,
@@ -363,6 +383,7 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         Header: t('User'),
+        key: 'user',
         id: 'user',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -380,12 +401,14 @@ function QueryList({ addDangerToast, addSuccessToast }: QueryListProps) {
       },
       {
         Header: t('Time range'),
+        key: 'start_time',
         id: 'start_time',
         input: 'datetime_range',
         operator: FilterOperator.between,
       },
       {
         Header: t('Search by query text'),
+        key: 'sql',
         id: 'sql',
         input: 'search',
         operator: FilterOperator.contains,

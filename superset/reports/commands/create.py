@@ -18,14 +18,12 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
+from flask_babel import gettext as _
 from marshmallow import ValidationError
 
 from superset.commands.base import CreateMixin
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.databases.dao import DatabaseDAO
-from superset.models.reports import ReportCreationMethodType, ReportScheduleType
 from superset.reports.commands.base import BaseReportScheduleCommand
 from superset.reports.commands.exceptions import (
     DatabaseNotFoundValidationError,
@@ -37,16 +35,21 @@ from superset.reports.commands.exceptions import (
     ReportScheduleRequiredTypeValidationError,
 )
 from superset.reports.dao import ReportScheduleDAO
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportSchedule,
+    ReportScheduleType,
+)
+from superset.reports.types import ReportScheduleExtra
 
 logger = logging.getLogger(__name__)
 
 
 class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
-    def __init__(self, user: User, data: Dict[str, Any]):
-        self._actor = user
+    def __init__(self, data: Dict[str, Any]):
         self._properties = data.copy()
 
-    def run(self) -> Model:
+    def run(self) -> ReportSchedule:
         self.validate()
         try:
             report_schedule = ReportScheduleDAO.create(self._properties)
@@ -63,7 +66,6 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         creation_method = self._properties.get("creation_method")
         chart_id = self._properties.get("chart")
         dashboard_id = self._properties.get("dashboard")
-        user_id = self._actor.id
 
         # Validate type is required
         if not report_type:
@@ -73,7 +75,11 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         if report_type and not ReportScheduleDAO.validate_update_uniqueness(
             name, report_type
         ):
-            exceptions.append(ReportScheduleNameUniquenessValidationError())
+            exceptions.append(
+                ReportScheduleNameUniquenessValidationError(
+                    report_type=report_type, name=name
+                )
+            )
 
         # validate relation by report type
         if report_type == ReportScheduleType.ALERT:
@@ -93,9 +99,9 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         # Validate that each chart or dashboard only has one report with
         # the respective creation method.
         if (
-            creation_method != ReportCreationMethodType.ALERTS_REPORTS
+            creation_method != ReportCreationMethod.ALERTS_REPORTS
             and not ReportScheduleDAO.validate_unique_creation_method(
-                user_id, dashboard_id, chart_id
+                dashboard_id, chart_id
             )
         ):
             raise ReportScheduleCreationMethodUniquenessValidationError()
@@ -106,7 +112,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             )
 
         try:
-            owners = self.populate_owners(self._actor, owner_ids)
+            owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners
         except ValidationError as ex:
             exceptions.append(ex)
@@ -116,20 +122,26 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             raise exception
 
     def _validate_report_extra(self, exceptions: List[ValidationError]) -> None:
-        extra = self._properties.get("extra")
+        extra: Optional[ReportScheduleExtra] = self._properties.get("extra")
         dashboard = self._properties.get("dashboard")
 
         if extra is None or dashboard is None:
             return
 
-        dashboard_tab_ids = extra.get("dashboard_tab_ids")
-        if dashboard_tab_ids is None:
+        dashboard_state = extra.get("dashboard")
+        if not dashboard_state:
             return
-        position_data = json.loads(dashboard.position_json)
-        invalid_tab_ids = [
-            tab_id for tab_id in dashboard_tab_ids if tab_id not in position_data
-        ]
+
+        position_data = json.loads(dashboard.position_json or "{}")
+        active_tabs = dashboard_state.get("activeTabs") or []
+        anchor = dashboard_state.get("anchor")
+        invalid_tab_ids = set(active_tabs) - set(position_data.keys())
+        if anchor and anchor not in position_data:
+            invalid_tab_ids.add(anchor)
         if invalid_tab_ids:
             exceptions.append(
-                ValidationError(f"Invalid tab IDs selected: {invalid_tab_ids}", "extra")
+                ValidationError(
+                    _("Invalid tab ids: %s(tab_ids)", tab_ids=str(invalid_tab_ids)),
+                    "extra",
+                )
             )

@@ -19,7 +19,6 @@ from datetime import datetime
 from textwrap import dedent
 
 import pytest
-from flask.ctx import AppContext
 from sqlalchemy import column, table
 from sqlalchemy.dialects import mssql
 from sqlalchemy.dialects.mssql import DATE, NTEXT, NVARCHAR, TEXT, VARCHAR
@@ -44,7 +43,6 @@ from tests.unit_tests.fixtures.common import dttm
     ],
 )
 def test_mssql_column_types(
-    app_context: AppContext,
     type_string: str,
     type_expected: TypeEngine,
     generic_type_expected: GenericDataType,
@@ -61,7 +59,7 @@ def test_mssql_column_types(
             assert column_spec.generic_type == generic_type_expected
 
 
-def test_where_clause_n_prefix(app_context: AppContext) -> None:
+def test_where_clause_n_prefix() -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     dialect = mssql.dialect()
@@ -95,7 +93,7 @@ def test_where_clause_n_prefix(app_context: AppContext) -> None:
     assert query == query_expected
 
 
-def test_time_exp_mixd_case_col_1y(app_context: AppContext) -> None:
+def test_time_exp_mixd_case_col_1y() -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     col = column("MixedCase")
@@ -122,7 +120,6 @@ def test_time_exp_mixd_case_col_1y(app_context: AppContext) -> None:
     ],
 )
 def test_convert_dttm(
-    app_context: AppContext,
     actual: str,
     expected: str,
     dttm: datetime,
@@ -132,7 +129,7 @@ def test_convert_dttm(
     assert MssqlEngineSpec.convert_dttm(actual, dttm) == expected
 
 
-def test_extract_error_message(app_context: AppContext) -> None:
+def test_extract_error_message() -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     test_mssql_exception = Exception(
@@ -158,7 +155,7 @@ def test_extract_error_message(app_context: AppContext) -> None:
     assert expected_message == error_message
 
 
-def test_fetch_data(app_context: AppContext) -> None:
+def test_fetch_data() -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
@@ -185,9 +182,7 @@ def test_fetch_data(app_context: AppContext) -> None:
         (NTEXT(collation="utf8_general_ci"), "NTEXT"),
     ],
 )
-def test_column_datatype_to_string(
-    app_context: AppContext, original: TypeEngine, expected: str
-) -> None:
+def test_column_datatype_to_string(original: TypeEngine, expected: str) -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     actual = MssqlEngineSpec.column_datatype_to_string(original, mssql.dialect())
@@ -239,9 +234,7 @@ select 'USD' as cur
         ),
     ],
 )
-def test_cte_query_parsing(
-    app_context: AppContext, original: TypeEngine, expected: str
-) -> None:
+def test_cte_query_parsing(original: TypeEngine, expected: str) -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     actual = MssqlEngineSpec.get_cte_query(original)
@@ -270,16 +263,14 @@ select TOP 100 * from currency""",
         ),
     ],
 )
-def test_top_query_parsing(
-    app_context: AppContext, original: TypeEngine, expected: str, top: int
-) -> None:
+def test_top_query_parsing(original: TypeEngine, expected: str, top: int) -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     actual = MssqlEngineSpec.apply_top_to_sql(original, top)
     assert actual == expected
 
 
-def test_extract_errors(app_context: AppContext) -> None:
+def test_extract_errors() -> None:
     """
     Test that custom error messages are extracted correctly.
     """

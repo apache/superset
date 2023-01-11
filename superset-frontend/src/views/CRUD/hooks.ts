@@ -316,11 +316,13 @@ export function useSingleViewResource<D extends object = any>(
   );
 
   const updateResource = useCallback(
-    (resourceID: number, resource: D, hideToast = false) => {
+    (resourceID: number, resource: D, hideToast = false, setLoading = true) => {
       // Set loading state
-      updateState({
-        loading: true,
-      });
+      if (setLoading) {
+        updateState({
+          loading: true,
+        });
+      }
 
       return SupersetClient.put({
         endpoint: `/api/v1/${resourceName}/${resourceID}`,
@@ -354,11 +356,14 @@ export function useSingleViewResource<D extends object = any>(
           }),
         )
         .finally(() => {
-          updateState({ loading: false });
+          if (setLoading) {
+            updateState({ loading: false });
+          }
         });
     },
     [handleErrorMsg, resourceName, resourceLabel],
   );
+
   const clearError = () =>
     updateState({
       error: null,
@@ -463,8 +468,8 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    t('Please re-export your file and try importing again'),
-                  ].join('\n'),
+                    t('Please re-export your file and try importing again.'),
+                  ].join('.\n'),
                 ),
               );
             } else {
@@ -611,8 +616,10 @@ export const copyQueryLink = (
   addDangerToast: (arg0: string) => void,
   addSuccessToast: (arg0: string) => void,
 ) => {
-  copyTextToClipboard(
-    `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+  copyTextToClipboard(() =>
+    Promise.resolve(
+      `${window.location.origin}/superset/sqllab?savedQueryId=${id}`,
+    ),
   )
     .then(() => {
       addSuccessToast(t('Link Copied!'));
@@ -634,7 +641,7 @@ export const testDatabaseConnection = (
   addSuccessToast: (arg0: string) => void,
 ) => {
   SupersetClient.post({
-    endpoint: 'api/v1/database/test_connection',
+    endpoint: 'api/v1/database/test_connection/',
     body: JSON.stringify(connection),
     headers: { 'Content-Type': 'application/json' },
   }).then(
@@ -661,6 +668,21 @@ export function useAvailableDatabases() {
   return [availableDbs, getAvailable] as const;
 }
 
+const transformDB = (db: Partial<DatabaseObject> | null) => {
+  if (db && Array.isArray(db?.catalog)) {
+    return {
+      ...db,
+      catalog: Object.assign(
+        {},
+        ...db.catalog.map((x: { name: string; value: string }) => ({
+          [x.name]: x.value,
+        })),
+      ),
+    };
+  }
+  return db;
+};
+
 export function useDatabaseValidation() {
   const [validationErrors, setValidationErrors] = useState<JsonObject | null>(
     null,
@@ -668,8 +690,8 @@ export function useDatabaseValidation() {
   const getValidation = useCallback(
     (database: Partial<DatabaseObject> | null, onCreate = false) =>
       SupersetClient.post({
-        endpoint: '/api/v1/database/validate_parameters',
-        body: JSON.stringify(database),
+        endpoint: '/api/v1/database/validate_parameters/',
+        body: JSON.stringify(transformDB(database)),
         headers: { 'Content-Type': 'application/json' },
       })
         .then(() => {
@@ -923,4 +945,15 @@ export const useObjectTags = (
     addTag,
     fetchObjects,
   };
+};
+
+export const reportSelector = (
+  state: Record<string, any>,
+  resourceType: string,
+  resourceId?: number,
+) => {
+  if (resourceId) {
+    return state.reports[resourceType]?.[resourceId];
+  }
+  return {};
 };

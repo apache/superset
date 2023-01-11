@@ -20,7 +20,7 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { Select, Row, Col, AntdForm } from 'src/components';
+import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import { t, SupersetClient, styled } from '@superset-ui/core';
@@ -69,7 +69,7 @@ function PropertiesModal({
       errorText = t('You do not have permission to edit this chart');
     }
     Modal.error({
-      title: 'Error',
+      title: t('Error'),
       content: errorText,
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
@@ -83,7 +83,7 @@ function PropertiesModal({
         });
         const chart = response.json.result;
         setSelectedOwners(
-          chart.owners.map((owner: any) => ({
+          chart?.owners?.map((owner: any) => ({
             value: owner.id,
             label: `${owner.first_name} ${owner.last_name}`,
           })),
@@ -107,12 +107,12 @@ function PropertiesModal({
         return SupersetClient.get({
           endpoint: `/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
-          data: response.json.result.map(
-            (item: { value: number; text: string }) => ({
+          data: response.json.result
+            .filter((item: { extra: { active: boolean } }) => item.extra.active)
+            .map((item: { value: number; text: string }) => ({
               value: item.value,
               label: item.text,
-            }),
-          ),
+            })),
           totalCount: response.json.count,
         }));
       },
@@ -159,6 +159,7 @@ function PropertiesModal({
         ...payload,
         ...res.json.result,
         id: slice.slice_id,
+        owners: selectedOwners,
       };
       onSave(updatedChart);
       addSuccessToast(t('Chart properties updated'));
@@ -186,7 +187,7 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
-      title="Edit Chart Properties"
+      title={t('Edit Chart Properties')}
       footer={
         <>
           <Button
@@ -298,7 +299,7 @@ function PropertiesModal({
             </FormItem>
             <h3 style={{ marginTop: '1em' }}>{t('Access')}</h3>
             <FormItem label={ownersLabel}>
-              <Select
+              <AsyncSelect
                 ariaLabel={ownersLabel}
                 mode="multiple"
                 name="owners"

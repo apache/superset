@@ -24,6 +24,7 @@ import { ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
 import getSharedLabelColor from './SharedLabelColorSingleton';
 import { getAnalogousColors } from './utils';
+import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 // Use type augmentation to correct the fact that
 // an instance of CategoricalScale is also a function
@@ -50,7 +51,7 @@ class CategoricalColorScale extends ExtensibleFunction {
    * @param {*} parentForcedColors optional parameter that comes from parent
    * (usually CategoricalColorNamespace) and supersede this.forcedColors
    */
-  constructor(colors: string[], parentForcedColors?: ColorsLookup) {
+  constructor(colors: string[], parentForcedColors: ColorsLookup = {}) {
     super((value: string, sliceId?: number) => this.getColor(value, sliceId));
 
     this.originColors = colors;
@@ -66,29 +67,26 @@ class CategoricalColorScale extends ExtensibleFunction {
     const cleanedValue = stringifyAndTrim(value);
     const sharedLabelColor = getSharedLabelColor();
 
-    const parentColor =
-      this.parentForcedColors && this.parentForcedColors[cleanedValue];
-    if (parentColor) {
-      sharedLabelColor.addSlice(cleanedValue, parentColor, sliceId);
-      return parentColor;
-    }
+    // priority: parentForcedColors > forcedColors > labelColors
+    let color =
+      this.parentForcedColors?.[cleanedValue] ||
+      this.forcedColors?.[cleanedValue] ||
+      sharedLabelColor.getColorMap().get(cleanedValue);
 
-    const forcedColor = this.forcedColors[cleanedValue];
-    if (forcedColor) {
-      sharedLabelColor.addSlice(cleanedValue, forcedColor, sliceId);
-      return forcedColor;
+    if (isFeatureEnabled(FeatureFlag.USE_ANALAGOUS_COLORS)) {
+      const multiple = Math.floor(
+        this.domain().length / this.originColors.length,
+      );
+      if (multiple > this.multiple) {
+        this.multiple = multiple;
+        const newRange = getAnalogousColors(this.originColors, multiple);
+        this.range(this.originColors.concat(newRange));
+      }
     }
-
-    const multiple = Math.floor(
-      this.domain().length / this.originColors.length,
-    );
-    if (multiple > this.multiple) {
-      this.multiple = multiple;
-      const newRange = getAnalogousColors(this.originColors, multiple);
-      this.range(this.originColors.concat(newRange));
+    const newColor = this.scale(cleanedValue);
+    if (!color) {
+      color = newColor;
     }
-
-    const color = this.scale(cleanedValue);
     sharedLabelColor.addSlice(cleanedValue, color, sliceId);
 
     return color;

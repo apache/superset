@@ -105,6 +105,7 @@ well in your environment. Here’s an async setup known to work well in producti
 ```
       -w 10 \
       -k gevent \
+      --worker-connections 1000 \
       --timeout 120 \
       -b  0.0.0.0:6666 \
       --limit-request-line 0 \
@@ -148,7 +149,11 @@ Make sure the pip package [`Authlib`](https://authlib.org/) is installed on the 
 First, configure authorization in Superset `superset_config.py`.
 
 ```python
+from flask_appbuilder.security.manager import AUTH_OAUTH
+
+# Set the authentication type to OAuth
 AUTH_TYPE = AUTH_OAUTH
+
 OAUTH_PROVIDERS = [
     {   'name':'egaSSO',
         'token_key':'access_token', # Name of the token in the response of access_token_url

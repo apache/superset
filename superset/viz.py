@@ -80,6 +80,7 @@ from superset.utils import core as utils, csv
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
+    DateColumn,
     DTTM_ALIAS,
     ExtraFiltersReasonType,
     get_column_name,
@@ -301,9 +302,15 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         if not df.empty:
             utils.normalize_dttm_col(
                 df=df,
-                timestamp_format=timestamp_format,
-                offset=self.datasource.offset,
-                time_shift=self.time_shift,
+                dttm_cols=tuple(
+                    [
+                        DateColumn.get_legacy_time_column(
+                            timestamp_format=timestamp_format,
+                            offset=self.datasource.offset,
+                            time_shift=self.form_data.get("time_shift"),
+                        )
+                    ]
+                ),
             )
 
             if self.enforce_numerical_metrics:
@@ -397,9 +404,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
         extras = {
-            "druid_time_origin": self.form_data.get("druid_time_origin", ""),
             "having": self.form_data.get("having", ""),
-            "having_druid": self.form_data.get("having_filters", []),
             "time_grain_sqla": self.form_data.get("time_grain_sqla"),
             "where": self.form_data.get("where", ""),
         }
@@ -900,7 +905,7 @@ class PivotTableViz(BaseViz):
             groupby = []
         if not groupby:
             raise QueryObjectValidationError(
-                _("Please choose at least one 'Group by' field ")
+                _("Please choose at least one 'Group by' field")
             )
         if transpose and not columns:
             raise QueryObjectValidationError(
@@ -2174,14 +2179,14 @@ class FilterBoxViz(BaseViz):
             if df is not None and not df.empty:
                 if metric:
                     df = df.sort_values(
-                        utils.get_metric_name(metric), ascending=flt.get("asc")
+                        utils.get_metric_name(metric), ascending=flt.get("asc", False)
                     )
                     data[col] = [
                         {"id": row[0], "text": row[0], "metric": row[1]}
                         for row in df.itertuples(index=False)
                     ]
                 else:
-                    df = df.sort_values(col, ascending=flt.get("asc"))
+                    df = df.sort_values(col, ascending=flt.get("asc", False))
                     data[col] = [
                         {"id": row[0], "text": row[0]}
                         for row in df.itertuples(index=False)

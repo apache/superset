@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FC, useRef, useEffect, useState } from 'react';
+import React, { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   CategoricalColorNamespace,
   FeatureFlag,
   getSharedLabelColor,
   isFeatureEnabled,
+  SharedLabelColorSource,
   t,
   useTheme,
 } from '@superset-ui/core';
+import pick from 'lodash/pick';
 import { useDispatch, useSelector } from 'react-redux';
 import { Global } from '@emotion/react';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -44,8 +47,8 @@ import { addWarningToast } from 'src/components/MessageToasts/actions';
 
 import {
   getItem,
-  setItem,
   LocalStorageKeys,
+  setItem,
 } from 'src/utils/localStorageHelpers';
 import {
   FILTER_BOX_MIGRATION_STATES,
@@ -53,18 +56,24 @@ import {
 } from 'src/explore/constants';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { canUserEditDashboard } from 'src/dashboard/util/findPermission';
-import { getFilterSets } from '../actions/nativeFilters';
-import { setDatasetsStatus } from '../actions/dashboardState';
+import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import { getFilterSets } from 'src/dashboard/actions/nativeFilters';
+import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import {
   getFilterValue,
   getPermalinkValue,
-} from '../components/nativeFilters/FilterBar/keyValue';
-import { filterCardPopoverStyle } from '../styles';
+} from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import { filterCardPopoverStyle } from 'src/dashboard/styles';
+import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
+import shortid from 'shortid';
+import { RootState } from '../types';
+import { getActiveFilters } from '../util/activeDashboardFilters';
 
 export const MigrationContext = React.createContext(
   FILTER_BOX_MIGRATION_STATES.NOOP,
 );
+
+export const DashboardPageIdContext = React.createContext('');
 
 setupPlugins();
 const DashboardContainer = React.lazy(
@@ -82,12 +91,77 @@ type PageProps = {
   idOrSlug: string;
 };
 
+const getDashboardContextLocalStorage = () => {
+  const dashboardsContexts = getItem(
+    LocalStorageKeys.dashboard__explore_context,
+    {},
+  );
+  // A new dashboard tab id is generated on each dashboard page opening.
+  // We mark ids as redundant when user leaves the dashboard, because they won't be reused.
+  // Then we remove redundant dashboard contexts from local storage in order not to clutter it
+  return Object.fromEntries(
+    Object.entries(dashboardsContexts).filter(
+      ([, value]) => !value.isRedundant,
+    ),
+  );
+};
+
+const updateDashboardTabLocalStorage = (
+  dashboardPageId: string,
+  dashboardContext: DashboardContextForExplore,
+) => {
+  const dashboardsContexts = getDashboardContextLocalStorage();
+  setItem(LocalStorageKeys.dashboard__explore_context, {
+    ...dashboardsContexts,
+    [dashboardPageId]: dashboardContext,
+  });
+};
+
+const useSyncDashboardStateWithLocalStorage = () => {
+  const dashboardPageId = useMemo(() => shortid.generate(), []);
+  const dashboardContextForExplore = useSelector<
+    RootState,
+    DashboardContextForExplore
+  >(({ dashboardInfo, dashboardState, nativeFilters, dataMask }) => ({
+    labelColors: dashboardInfo.metadata?.label_colors || {},
+    sharedLabelColors: dashboardInfo.metadata?.shared_label_colors || {},
+    colorScheme: dashboardState?.colorScheme,
+    chartConfiguration: dashboardInfo.metadata?.chart_configuration || {},
+    nativeFilters: Object.entries(nativeFilters.filters).reduce(
+      (acc, [key, filterValue]) => ({
+        ...acc,
+        [key]: pick(filterValue, ['chartsInScope']),
+      }),
+      {},
+    ),
+    dataMask,
+    dashboardId: dashboardInfo.id,
+    filterBoxFilters: getActiveFilters(),
+    dashboardPageId,
+  }));
+
+  useEffect(() => {
+    updateDashboardTabLocalStorage(dashboardPageId, dashboardContextForExplore);
+    return () => {
+      // mark tab id as redundant when dashboard unmounts - case when user opens
+      // Explore in the same tab
+      updateDashboardTabLocalStorage(dashboardPageId, {
+        ...dashboardContextForExplore,
+        isRedundant: true,
+      });
+    };
+  }, [dashboardContextForExplore, dashboardPageId]);
+  return dashboardPageId;
+};
+
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const theme = useTheme();
+  const history = useHistory();
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const dashboardPageId = useSyncDashboardStateWithLocalStorage();
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
     useDashboard(idOrSlug);
@@ -114,14 +188,33 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   );
 
   useEffect(() => {
+    // mark tab id as redundant when user closes browser tab - a new id will be
+    // generated next time user opens a dashboard and the old one won't be reused
+    const handleTabClose = () => {
+      const dashboardsContexts = getDashboardContextLocalStorage();
+      setItem(LocalStorageKeys.dashboard__explore_context, {
+        ...dashboardsContexts,
+        [dashboardPageId]: {
+          ...dashboardsContexts[dashboardPageId],
+          isRedundant: true,
+        },
+      });
+    };
+    window.addEventListener('beforeunload', handleTabClose);
+    return () => {
+      window.removeEventListener('beforeunload', handleTabClose);
+    };
+  }, [dashboardPageId]);
+
+  useEffect(() => {
     dispatch(setDatasetsStatus(status));
   }, [dispatch, status]);
 
   useEffect(() => {
     // should convert filter_box to filter component?
-    const hasFilterBox =
-      charts &&
-      charts.some(chart => chart.form_data?.viz_type === 'filter_box');
+    const hasFilterBox = charts?.some(
+      chart => chart.form_data?.viz_type === 'filter_box',
+    );
     const canEdit = dashboard && canUserEditDashboard(dashboard, user);
 
     if (canEdit) {
@@ -183,19 +276,22 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     async function getDataMaskApplied() {
       const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
-      let dataMaskFromUrl = nativeFilterKeyValue || {};
-
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+
+      let dataMask = nativeFilterKeyValue || {};
+      // activeTabs is initialized with undefined so that it doesn't override
+      // the currently stored value when hydrating
+      let activeTabs: string[] | undefined;
       if (permalinkKey) {
         const permalinkValue = await getPermalinkValue(permalinkKey);
         if (permalinkValue) {
-          dataMaskFromUrl = permalinkValue.state.filterState;
+          ({ dataMask, activeTabs } = permalinkValue.state);
         }
       } else if (nativeFilterKeyValue) {
-        dataMaskFromUrl = await getFilterValue(id, nativeFilterKeyValue);
+        dataMask = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-        dataMaskFromUrl = isOldRison;
+        dataMask = isOldRison;
       }
 
       if (readyToRender) {
@@ -207,12 +303,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           }
         }
         dispatch(
-          hydrateDashboard(
+          hydrateDashboard({
+            history,
             dashboard,
             charts,
+            activeTabs,
             filterboxMigrationState,
-            dataMaskFromUrl,
-          ),
+            dataMask,
+          }),
         );
       }
       return null;
@@ -239,17 +337,18 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     return () => {};
   }, [css]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    const sharedLabelColor = getSharedLabelColor();
+    sharedLabelColor.source = SharedLabelColorSource.dashboard;
+    return () => {
       // clean up label color
       const categoricalNamespace = CategoricalColorNamespace.getNamespace(
         metadata?.color_namespace,
       );
       categoricalNamespace.resetColors();
-      getSharedLabelColor().clear();
-    },
-    [metadata?.color_namespace],
-  );
+      sharedLabelColor.clear();
+    };
+  }, [metadata?.color_namespace]);
 
   useEffect(() => {
     if (datasetsApiError) {
@@ -291,7 +390,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       />
 
       <MigrationContext.Provider value={filterboxMigrationState}>
-        <DashboardContainer />
+        <DashboardPageIdContext.Provider value={dashboardPageId}>
+          <DashboardContainer />
+        </DashboardPageIdContext.Provider>
       </MigrationContext.Provider>
     </>
   );

@@ -29,8 +29,6 @@ from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource
 from superset.key_value.utils import decode_permalink_id
 from superset.models.dashboard import Dashboard
-from tests.integration_tests.base_tests import login
-from tests.integration_tests.fixtures.client import client
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -38,8 +36,8 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from tests.integration_tests.test_app import app
 
 STATE = {
-    "filterState": {"FILTER_1": "foo"},
-    "hash": "my-anchor",
+    "dataMask": {"FILTER_1": "foo"},
+    "activeTabs": ["my-anchor"],
 }
 
 
@@ -67,43 +65,48 @@ def permalink_salt() -> Iterator[str]:
     db.session.commit()
 
 
-def test_post(client, dashboard_id: int, permalink_salt: str) -> None:
-    login(client, "admin")
-    resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
+def test_post(
+    test_client, login_as_admin, dashboard_id: int, permalink_salt: str
+) -> None:
+    resp = test_client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
     assert resp.status_code == 201
-    data = json.loads(resp.data.decode("utf-8"))
+    data = resp.json
     key = data["key"]
     url = data["url"]
     assert key in url
     id_ = decode_permalink_id(key, permalink_salt)
+
+    assert (
+        data
+        == test_client.post(
+            f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE
+        ).json
+    ), "Should always return the same permalink key for the same payload"
+
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()
 
 
-@patch("superset.security.SupersetSecurityManager.raise_for_dashboard_access")
-def test_post_access_denied(mock_raise_for_dashboard_access, client, dashboard_id: int):
-    login(client, "admin")
-    mock_raise_for_dashboard_access.side_effect = DashboardAccessDeniedError()
-    resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
-    assert resp.status_code == 403
+def test_post_access_denied(test_client, login_as, dashboard_id: int):
+    login_as("gamma")
+    resp = test_client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
+    assert resp.status_code == 404
 
 
-def test_post_invalid_schema(client, dashboard_id: int):
-    login(client, "admin")
-    resp = client.post(
+def test_post_invalid_schema(test_client, login_as_admin, dashboard_id: int):
+    resp = test_client.post(
         f"api/v1/dashboard/{dashboard_id}/permalink", json={"foo": "bar"}
     )
     assert resp.status_code == 400
 
 
-def test_get(client, dashboard_id: int, permalink_salt: str):
-    login(client, "admin")
-    resp = client.post(f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE)
-    data = json.loads(resp.data.decode("utf-8"))
-    key = data["key"]
-    resp = client.get(f"api/v1/dashboard/permalink/{key}")
+def test_get(test_client, login_as_admin, dashboard_id: int, permalink_salt: str):
+    key = test_client.post(
+        f"api/v1/dashboard/{dashboard_id}/permalink", json=STATE
+    ).json["key"]
+    resp = test_client.get(f"api/v1/dashboard/permalink/{key}")
     assert resp.status_code == 200
-    result = json.loads(resp.data.decode("utf-8"))
+    result = resp.json
     assert result["dashboardId"] == str(dashboard_id)
     assert result["state"] == STATE
     id_ = decode_permalink_id(key, permalink_salt)

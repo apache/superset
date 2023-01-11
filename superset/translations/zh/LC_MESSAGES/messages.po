@@ -969,21 +969,21 @@ msgid "Alert query returned a non-number value."
 msgstr "警报查询返回非数字值。"
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr "警报查询返回多个列。"
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr "警报查询返回多个列。%s 列被返回"
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr "警报查询返回了多行。"
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr "警报查询返回了多行。%s 行被返回"
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:75
@@ -1192,10 +1192,6 @@ msgstr "发生了一个错误"
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:347
 msgid "An error occurred saving dataset"
 msgstr "保存数据集时发生错误"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:132
-msgid "An error occurred when refreshing queries"
-msgstr "创建数据源时发生错误"
 
 #: superset/key_value/commands/exceptions.py:33
 #, fuzzy
@@ -3071,7 +3067,7 @@ msgstr "字段作为数据文件的行标签使用。如果没有索引字段，
 #: superset/views/database/forms.py:385
 #, fuzzy
 msgid "Columnar File"
-msgstr "列"
+msgstr "列式存储文件"
 
 #: superset/views/database/views.py:550
 #, fuzzy, python-format
@@ -3079,13 +3075,13 @@ msgid ""
 "Columnar file \"%(columnar_filename)s\" uploaded to table "
 "\"%(table_name)s\" in database \"%(db_name)s\""
 msgstr ""
-"Excel 文件 \"%(excel_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 "
+"Excel 文件 \"%(columnar_filename)s\" 上传到数据库 \"%(db_name)s\" 中的表 "
 "\"%(table_name)s\""
 
 #: superset/views/database/views.py:414
 #, fuzzy
 msgid "Columnar to Database configuration"
-msgstr "Excel 到数据库配置"
+msgstr "列式存储文件到数据库配置"
 
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/dndControls.tsx:55
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:214
@@ -5740,18 +5736,6 @@ msgstr "过滤用户"
 msgid "Filter box"
 msgstr "过滤器"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:204
-msgid "Filter by database"
-msgstr "过滤数据库"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:240
-msgid "Filter by status"
-msgstr "过滤状态"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:195
-msgid "Filter by user"
-msgstr "过滤用户"
-
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:282
 msgid "Filter configuration"
 msgstr "过滤配置"
@@ -5924,7 +5908,7 @@ msgstr "列表中最小值的字体大小"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:179
 #, fuzzy
 msgid ""
-"For Presto and Postgres, shows a button to compute cost before running a "
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a "
 "query."
 msgstr "在运行查询之前计算执行计划"
 
@@ -6620,7 +6604,6 @@ msgstr "Issue 1000 - 数据源太大，无法进行查询。"
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Issue 1001 - 数据库负载异常。"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:180
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.jsx:125
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:183
 msgid "It seems you don't have access to any database"
@@ -9256,10 +9239,6 @@ msgstr "查询名称"
 msgid "Query preview"
 msgstr "查询预览"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:213
-msgid "Query search string"
-msgstr "查询搜索字符串"
-
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:682
 #, fuzzy
 msgid "Query was stopped"
@@ -10290,7 +10269,6 @@ msgid "Scoping"
 msgstr "范围"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:256
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:77
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
@@ -10315,12 +10293,12 @@ msgstr "搜索指标和列"
 #: superset-frontend/src/explore/components/controls/VizTypeControl/VizTypeGallery.tsx:703
 #, fuzzy
 msgid "Search all charts"
-msgstr "所有图表"
+msgstr "搜索所有图表"
 
 #: superset-frontend/src/components/OmniContainer/index.tsx:102
 #, fuzzy
 msgid "Search all dashboards"
-msgstr "刷新看板"
+msgstr "搜索所有看板"
 
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:232
 #: superset-frontend/src/filters/components/Select/controlPanel.ts:137
@@ -11522,7 +11500,7 @@ msgstr "报告计划意外错误。"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/index.tsx:670
 #, fuzzy
 msgid "Supported databases"
-msgstr "删除数据库"
+msgstr "已支持数据库"
 
 #: superset-frontend/plugins/legacy-plugin-chart-sankey/src/index.js:34
 msgid "Survey Responses"
@@ -12324,14 +12302,14 @@ msgstr "详细提示显示了该时间点的所有序列的列表。"
 msgid ""
 "The schema \"%(schema)s\" does not exist. A valid schema must be used to "
 "run this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "表 \"%(schema)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/db_engine_specs/presto.py:187
 #, fuzzy, python-format
 msgid ""
 "The schema \"%(schema_name)s\" does not exist. A valid schema must be "
 "used to run this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "表 \"%(schema_name)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/errors.py:111
 #, fuzzy
@@ -12355,7 +12333,7 @@ msgstr ""
 msgid ""
 "The table \"%(table)s\" does not exist. A valid table must be used to run"
 " this query."
-msgstr "表 \"%(table_name)s\" 不存在。必须使用有效的表来运行此查询。"
+msgstr "表 \"%(table)s\" 不存在。必须使用有效的表来运行此查询。"
 
 #: superset/db_engine_specs/presto.py:179
 #, python-format
@@ -13641,10 +13619,10 @@ msgstr "上传"
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:134
 #, fuzzy
 msgid "Upload Credentials"
-msgstr "上传Excel"
+msgstr "上传验证文件"
 
 #: superset/initialization/__init__.py:400
-msgid "Upload Excel"
+msgid "Upload Excel file to database"
 msgstr "上传Excel"
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/DatabaseConnectionForm/EncryptedField.tsx:102
@@ -13652,12 +13630,12 @@ msgid "Upload JSON file"
 msgstr ""
 
 #: superset/initialization/__init__.py:369
-msgid "Upload a CSV"
+msgid "Upload CSV to database"
 msgstr "上传CSV文件"
 
 #: superset/initialization/__init__.py:383
 msgid "Upload a Columnar File"
-msgstr ""
+msgstr "上传列式存储文件"
 
 #: superset-frontend/plugins/legacy-plugin-chart-rose/src/controlPanel.tsx:112
 #, fuzzy
@@ -14765,7 +14743,7 @@ msgid ""
 "\"%(columnar_table.table)s\" and in the schema field: "
 "\"%(columnar_table.schema)s\". Please remove one"
 msgstr ""
-"不能同时在表名 \"%(excel_table.table)s\" 和schema字段 \"%(excel_table.schema)s\" "
+"不能同时在表名 \"%(columnar_table.table)s\" 和schema字段 \"%(columnar_table.schema)s\" "
 "中指定命名空间。请删除一个。"
 
 #: superset/views/database/views.py:146
@@ -14908,10 +14886,6 @@ msgstr "地图缩放等级"
 msgid "[Alert] %(label)s"
 msgstr "[警报] %(label)s"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:219
-msgid "[From]-"
-msgstr "[从]-"
-
 #: superset/viz.py:2349
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr "[经度] 和 [纬度] 的选择项必须出现在 [Group By]"
@@ -14929,10 +14903,6 @@ msgstr "丢失数据集"
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] 允许访问数据源 %(name)s"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:231
-msgid "[To]-"
-msgstr "[至]-"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:94
 #, fuzzy, python-format
@@ -15572,4 +15542,4 @@ msgstr "年"
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 msgid "yellow"
-msgstr ""
+msgstr "黄色"

@@ -16,28 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption } from 'echarts';
 import {
   AnnotationLayer,
   TimeGranularity,
-  DataRecordValue,
-  SetDataMaskHook,
   QueryFormData,
-  ChartProps,
-  ChartDataResponseResult,
   QueryFormColumn,
+  ContributionType,
+  TimeFormatter,
+  AxisType,
 } from '@superset-ui/core';
 import {
-  DEFAULT_LEGEND_FORM_DATA,
-  EchartsLegendFormData,
-  EchartsTitleFormData,
-  DEFAULT_TITLE_FORM_DATA,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  EchartsTimeseriesSeriesType,
+  LegendFormData,
+  StackType,
+  TitleFormData,
 } from '../types';
 import {
+  DEFAULT_LEGEND_FORM_DATA,
+  DEFAULT_TITLE_FORM_DATA,
   DEFAULT_FORM_DATA as TIMESERIES_DEFAULTS,
-  EchartsTimeseriesContributionType,
-  EchartsTimeseriesSeriesType,
-} from '../Timeseries/types';
+} from '../constants';
 
 export type EchartsMixedTimeseriesFormData = QueryFormData & {
   annotationLayers: AnnotationLayer[];
@@ -62,8 +64,8 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   // types specific to Query A and Query B
   area: boolean;
   areaB: boolean;
-  contributionMode?: EchartsTimeseriesContributionType;
-  contributionModeB?: EchartsTimeseriesContributionType;
+  contributionMode?: ContributionType;
+  contributionModeB?: ContributionType;
   markerEnabled: boolean;
   markerEnabledB: boolean;
   markerSize: number;
@@ -78,15 +80,15 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   seriesTypeB: EchartsTimeseriesSeriesType;
   showValue: boolean;
   showValueB: boolean;
-  stack: boolean;
-  stackB: boolean;
+  stack: StackType;
+  stackB: StackType;
   yAxisIndex?: number;
   yAxisIndexB?: number;
   groupby: QueryFormColumn[];
   groupbyB: QueryFormColumn[];
   emitFilter: boolean;
-} & EchartsLegendFormData &
-  EchartsTitleFormData;
+} & LegendFormData &
+  TitleFormData;
 
 // @ts-ignore
 export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
@@ -132,23 +134,22 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   ...DEFAULT_TITLE_FORM_DATA,
 };
 
-export interface EchartsMixedTimeseriesProps extends ChartProps {
+export interface EchartsMixedTimeseriesProps
+  extends BaseChartProps<EchartsMixedTimeseriesFormData> {
   formData: EchartsMixedTimeseriesFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
-export type EchartsMixedTimeseriesChartTransformedProps = {
-  formData: EchartsMixedTimeseriesFormData;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  emitFilterB: boolean;
-  setDataMask: SetDataMaskHook;
-  groupby: QueryFormColumn[];
-  groupbyB: QueryFormColumn[];
-  labelMap: Record<string, DataRecordValue[]>;
-  labelMapB: Record<string, DataRecordValue[]>;
-  selectedValues: Record<number, string>;
-  seriesBreakdown: number;
-};
+export type EchartsMixedTimeseriesChartTransformedProps =
+  BaseTransformedProps<EchartsMixedTimeseriesFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps & {
+      emitFilterB: boolean;
+      groupbyB: QueryFormColumn[];
+      labelMapB: Record<string, string[]>;
+      seriesBreakdown: number;
+      xValueFormatter: TimeFormatter | StringConstructor;
+      xAxis: {
+        label: string;
+        type: AxisType;
+      };
+    };

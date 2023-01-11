@@ -19,11 +19,10 @@
 from textwrap import dedent
 
 import pytest
-from flask.ctx import AppContext
 from sqlalchemy.types import TypeEngine
 
 
-def test_get_text_clause_with_colon(app_context: AppContext) -> None:
+def test_get_text_clause_with_colon() -> None:
     """
     Make sure text clauses are correctly escaped
     """
@@ -36,7 +35,7 @@ def test_get_text_clause_with_colon(app_context: AppContext) -> None:
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
 
 
-def test_parse_sql_single_statement(app_context: AppContext) -> None:
+def test_parse_sql_single_statement() -> None:
     """
     `parse_sql` should properly strip leading and trailing spaces and semicolons
     """
@@ -47,7 +46,7 @@ def test_parse_sql_single_statement(app_context: AppContext) -> None:
     assert queries == ["SELECT foo FROM tbl"]
 
 
-def test_parse_sql_multi_statement(app_context: AppContext) -> None:
+def test_parse_sql_multi_statement() -> None:
     """
     For string with multiple SQL-statements `parse_sql` method should return list
     where each element represents the single SQL-statement
@@ -95,9 +94,7 @@ select 'USD' as cur
         ),
     ],
 )
-def test_cte_query_parsing(
-    app_context: AppContext, original: TypeEngine, expected: str
-) -> None:
+def test_cte_query_parsing(original: TypeEngine, expected: str) -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
 
     actual = BaseEngineSpec.get_cte_query(original)

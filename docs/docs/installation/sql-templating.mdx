@@ -10,7 +10,7 @@ version: 1
 ### Jinja Templates
 
 SQL Lab and Explore supports [Jinja templating](https://jinja.palletsprojects.com/en/2.11.x/) in queries.
-To enable templating, the `ENABLE_TEMPLATE_PROCESSING` feature flag needs to be enabled in
+To enable templating, the `ENABLE_TEMPLATE_PROCESSING` [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) needs to be enabled in
 `superset_config.py`. When templating is enabled, python code can be embedded in virtual datasets and
 in Custom SQL in the filter and metric controls in Explore. By default, the following variables are
 made available in the Jinja context:
@@ -32,6 +32,26 @@ For example, to add a time range to a virtual dataset, you can write the followi
 ```sql
 SELECT * from tbl where dttm_col > '{{ from_dttm }}' and dttm_col < '{{ to_dttm }}'
 ```
+
+You can also use [Jinja's logic](https://jinja.palletsprojects.com/en/2.11.x/templates/#tests)
+to make your query robust to clearing the timerange filter:
+
+```sql
+SELECT *
+FROM tbl
+WHERE (
+    {% if from_dttm is not none %}
+        dttm_col > '{{ from_dttm }}' AND
+    {% endif %}
+    {% if to_dttm is not none %}
+        dttm_col < '{{ to_dttm }}' AND
+    {% endif %}
+    true
+)
+```
+
+Note how the Jinja parameters are called within double brackets in the query, and without in the
+logic blocks.
 
 To add custom functionality to the Jinja context, you need to overload the default Jinja
 context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
@@ -272,4 +292,28 @@ Here's a concrete example:
     FROM
     superiors
     order by lineage, level
+```
+
+**Datasets**
+
+It's possible to query physical and virtual datasets using the `dataset` macro. This is useful if you've defined computed columns and metrics on your datasets, and want to reuse the definition in adhoc SQL Lab queries.
+
+To use the macro, first you need to find the ID of the dataset. This can be done by going to the view showing all the datasets, hovering over the dataset you're interested in, and looking at its URL. For example, if the URL for a dataset is https://superset.example.org/explore/?dataset_type=table&dataset_id=42 its ID is 42.
+
+Once you have the ID you can query it as if it were a table:
+
+```
+SELECT * FROM {{ dataset(42) }} LIMIT 10
+```
+
+If you want to select the metric definitions as well, in addition to the columns, you need to pass an additional keyword argument:
+
+```
+SELECT * FROM {{ dataset(42, include_metrics=True) }} LIMIT 10
+```
+
+Since metrics are aggregations, the resulting SQL expression will be grouped by all non-metric columns. You can specify a subset of columns to group by instead:
+
+```
+SELECT * FROM {{ dataset(42, include_metrics=True, columns=["ds", "category"]) }} LIMIT 10
 ```

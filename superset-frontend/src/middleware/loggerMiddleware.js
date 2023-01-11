@@ -44,6 +44,10 @@ const sendBeacon = events => {
   if (navigator.sendBeacon) {
     const formData = new FormData();
     formData.append('events', safeStringify(events));
+    if (SupersetClient.getGuestToken()) {
+      // if we have a guest token, we need to send it for auth via the form
+      formData.append('guest_token', SupersetClient.getGuestToken());
+    }
     navigator.sendBeacon(endpoint, formData);
   } else {
     SupersetClient.post({
@@ -74,13 +78,13 @@ const loggerMiddleware = store => next => action => {
     impression_id: impressionId,
     version: 'v2',
   };
-  if (dashboardInfo) {
+  if (dashboardInfo?.id) {
     logMetadata = {
       source: 'dashboard',
       source_id: dashboardInfo.id,
       ...logMetadata,
     };
-  } else if (explore) {
+  } else if (explore?.slice) {
     logMetadata = {
       source: 'explore',
       source_id: explore.slice ? explore.slice.slice_id : 0,

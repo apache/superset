@@ -75,7 +75,6 @@ class PinotEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         col: ColumnClause,
         pdf: Optional[str],
         time_grain: Optional[str],
-        type_: Optional[str] = None,
     ) -> TimestampExpression:
         if not pdf:
             raise NotImplementedError(f"Empty date format for '{col}'")

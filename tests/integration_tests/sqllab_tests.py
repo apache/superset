@@ -18,6 +18,7 @@
 """Unit tests for Sql Lab"""
 import json
 from datetime import datetime, timedelta
+from math import ceil, floor
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
@@ -65,12 +66,13 @@ QUERY_3 = "SELECT * FROM birth_names LIMIT 10"
 class TestSqlLab(SupersetTestCase):
     """Testings for Sql Lab"""
 
+    @pytest.mark.usefixtures("load_birth_names_data")
     def run_some_queries(self):
         db.session.query(Query).delete()
         db.session.commit()
-        self.run_sql(QUERY_1, client_id="client_id_1", user_name="admin")
-        self.run_sql(QUERY_2, client_id="client_id_3", user_name="admin")
-        self.run_sql(QUERY_3, client_id="client_id_2", user_name="gamma_sqllab")
+        self.run_sql(QUERY_1, client_id="client_id_1", username="admin")
+        self.run_sql(QUERY_2, client_id="client_id_2", username="admin")
+        self.run_sql(QUERY_3, client_id="client_id_3", username="gamma_sqllab")
         self.logout()
 
     def tearDown(self):
@@ -162,7 +164,7 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
 
         with freeze_time(datetime.now().isoformat(timespec="seconds")):
-            self.run_sql(sql_statement, "1")
+            self.run_sql(sql_statement, "1", username="admin")
             saved_query_ = (
                 db.session.query(SavedQuery)
                 .filter(
@@ -205,19 +207,21 @@ class TestSqlLab(SupersetTestCase):
             # assertions
             db.session.commit()
             examples_db = get_example_database()
-            engine = examples_db.get_sqla_engine()
-            data = engine.execute(
-                f"SELECT * FROM admin_database.{tmp_table_name}"
-            ).fetchall()
-            names_count = engine.execute(f"SELECT COUNT(*) FROM birth_names").first()
-            self.assertEqual(
-                names_count[0], len(data)
-            )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
+            with examples_db.get_sqla_engine_with_context() as engine:
+                data = engine.execute(
+                    f"SELECT * FROM admin_database.{tmp_table_name}"
+                ).fetchall()
+                names_count = engine.execute(
+                    f"SELECT COUNT(*) FROM birth_names"
+                ).first()
+                self.assertEqual(
+                    names_count[0], len(data)
+                )  # SQL_MAX_ROW not applied due to the SQLLAB_CTAS_NO_LIMIT set to True
 
-            # cleanup
-            engine.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
-            examples_db.allow_ctas = old_allow_ctas
-            db.session.commit()
+                # cleanup
+                engine.execute(f"DROP {ctas_method} admin_database.{tmp_table_name}")
+                examples_db.allow_ctas = old_allow_ctas
+                db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_multi_sql(self):
@@ -248,10 +252,26 @@ class TestSqlLab(SupersetTestCase):
         # Gamma user, with sqllab and db permission
         self.create_user_with_roles("Gagarin", ["ExampleDBAccess", "Gamma", "sql_lab"])
 
-        data = self.run_sql(QUERY_1, "1", user_name="Gagarin")
+        data = self.run_sql(QUERY_1, "1", username="Gagarin")
         db.session.query(Query).delete()
         db.session.commit()
         self.assertLess(0, len(data["data"]))
+
+    def test_sqllab_has_access(self):
+        for username in ("admin", "gamma_sqllab"):
+            self.login(username)
+            for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
+                resp = self.client.get(endpoint)
+                self.assertEqual(200, resp.status_code)
+
+            self.logout()
+
+    def test_sqllab_no_access(self):
+        self.login("gamma")
+        for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
+            resp = self.client.get(endpoint)
+            # Redirects to the main page
+            self.assertEqual(302, resp.status_code)
 
     def test_sql_json_schema_access(self):
         examples_db = get_example_database()
@@ -273,19 +293,20 @@ class TestSqlLab(SupersetTestCase):
             "SchemaUser", ["SchemaPermission", "Gamma", "sql_lab"]
         )
 
-        examples_db.get_sqla_engine().execute(
-            f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
-        )
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute(
+                f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
+            )
 
         data = self.run_sql(
-            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", user_name="SchemaUser"
+            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
         )
         self.assertEqual(1, len(data["data"]))
 
         data = self.run_sql(
             f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",
             "4",
-            user_name="SchemaUser",
+            username="SchemaUser",
             schema=CTAS_SCHEMA_NAME,
         )
         self.assertEqual(1, len(data["data"]))
@@ -295,15 +316,14 @@ class TestSqlLab(SupersetTestCase):
             data = self.run_sql(
                 "SELECT * FROM test_table",
                 "5",
-                user_name="SchemaUser",
+                username="SchemaUser",
                 schema=CTAS_SCHEMA_NAME,
             )
             self.assertEqual(1, len(data["data"]))
 
         db.session.query(Query).delete()
-        get_example_database().get_sqla_engine().execute(
-            f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table"
-        )
+        with get_example_database().get_sqla_engine_with_context() as engine:
+            engine.execute(f"DROP TABLE IF EXISTS {CTAS_SCHEMA_NAME}.test_table")
         db.session.commit()
 
     def test_queries_endpoint(self):
@@ -405,22 +425,17 @@ class TestSqlLab(SupersetTestCase):
         self.assertEqual(2, len(data))
         self.assertIn("birth", data[0]["sql"])
 
-    def test_search_query_on_time(self):
+    def test_search_query_filter_by_time(self):
         self.run_some_queries()
         self.login("admin")
-        first_query_time = (
-            db.session.query(Query).filter_by(sql=QUERY_1).one()
-        ).start_time
-        second_query_time = (
-            db.session.query(Query).filter_by(sql=QUERY_3).one()
-        ).start_time
-        # Test search queries on time filter
-        from_time = "from={}".format(int(first_query_time))
-        to_time = "to={}".format(int(second_query_time))
-        params = [from_time, to_time]
-        resp = self.get_resp("/superset/search_queries?" + "&".join(params))
-        data = json.loads(resp)
-        self.assertEqual(2, len(data))
+        from_time = floor(
+            (db.session.query(Query).filter_by(sql=QUERY_1).one()).start_time
+        )
+        to_time = ceil(
+            (db.session.query(Query).filter_by(sql=QUERY_2).one()).start_time
+        )
+        url = f"/superset/search_queries?from={from_time}&to={to_time}"
+        assert len(self.client.get(url).json) == 2
 
     def test_search_query_only_owned(self) -> None:
         """
@@ -441,7 +456,7 @@ class TestSqlLab(SupersetTestCase):
         self.run_sql(
             "SELECT name as col, gender as col FROM birth_names LIMIT 10",
             client_id="2e2df3",
-            user_name="admin",
+            username="admin",
             raise_on_error=True,
         )
 
@@ -523,12 +538,10 @@ class TestSqlLab(SupersetTestCase):
     def test_sqllab_table_viz(self):
         self.login("admin")
         examples_db = get_example_database()
-        examples_db.get_sqla_engine().execute(
-            "DROP TABLE IF EXISTS test_sqllab_table_viz"
-        )
-        examples_db.get_sqla_engine().execute(
-            "CREATE TABLE test_sqllab_table_viz AS SELECT 2 as col"
-        )
+        with examples_db.get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE IF EXISTS test_sqllab_table_viz")
+            engine.execute("CREATE TABLE test_sqllab_table_viz AS SELECT 2 as col")
+
         examples_dbid = examples_db.id
 
         payload = {
@@ -546,9 +559,9 @@ class TestSqlLab(SupersetTestCase):
         table = db.session.query(SqlaTable).filter_by(id=table_id).one()
         self.assertEqual([owner.username for owner in table.owners], ["admin"])
         db.session.delete(table)
-        get_example_database().get_sqla_engine().execute(
-            "DROP TABLE test_sqllab_table_viz"
-        )
+
+        with get_example_database().get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE test_sqllab_table_viz")
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -736,7 +749,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -747,7 +760,6 @@ class TestSqlLab(SupersetTestCase):
             rendered_query=sql,
             return_results=True,
             store_results=False,
-            user_name="admin",
             session=mock_session,
             start_time=None,
             expand_data=False,
@@ -758,7 +770,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SET @value = 42",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -767,7 +778,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SELECT @value AS foo",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -792,7 +802,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = True
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -804,7 +814,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,
@@ -843,7 +852,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine.return_value.raw_connection.return_value.cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -858,7 +867,6 @@ class TestSqlLab(SupersetTestCase):
             rendered_query=sql,
             return_results=True,
             store_results=False,
-            user_name="admin",
             session=mock_session,
             start_time=None,
             expand_data=False,
@@ -869,7 +877,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SET @value = 42",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -878,7 +885,6 @@ class TestSqlLab(SupersetTestCase):
                 mock.call(
                     "SELECT @value AS foo",
                     mock_query,
-                    "admin",
                     mock_session,
                     mock_cursor,
                     None,
@@ -895,7 +901,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,
@@ -929,7 +934,6 @@ class TestSqlLab(SupersetTestCase):
                 rendered_query=sql,
                 return_results=True,
                 store_results=False,
-                user_name="admin",
                 session=mock_session,
                 start_time=None,
                 expand_data=False,

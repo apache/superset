@@ -111,7 +111,7 @@ export const useInitialization = () => {
     // do not load filter_box in reviewing
     if (filterboxMigrationState === FILTER_BOX_MIGRATION_STATES.REVIEWING) {
       charts = keyBy(
-        filter(charts, chart => chart.formData?.viz_type !== 'filter_box'),
+        filter(charts, chart => chart.form_data?.viz_type !== 'filter_box'),
         'id',
       );
       const numberOfFilterbox = document.querySelectorAll(

@@ -925,21 +925,21 @@ msgid "Alert query returned a non-number value."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:186
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr ""
 
 #: superset/reports/commands/alert.py:105
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:177
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr ""
 
 #: superset/reports/commands/alert.py:96
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/alert/components/AlertStatusIcon.tsx:75
@@ -1145,10 +1145,6 @@ msgstr ""
 
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:347
 msgid "An error occurred saving dataset"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:132
-msgid "An error occurred when refreshing queries"
 msgstr ""
 
 #: superset/key_value/commands/exceptions.py:33
@@ -5526,18 +5522,6 @@ msgstr ""
 msgid "Filter box"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:204
-msgid "Filter by database"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:240
-msgid "Filter by status"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:195
-msgid "Filter by user"
-msgstr ""
-
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:282
 msgid "Filter configuration"
 msgstr ""
@@ -5698,7 +5682,7 @@ msgstr ""
 
 #: superset-frontend/src/views/CRUD/data/database/DatabaseModal/ExtraOptions.tsx:179
 msgid ""
-"For Presto and Postgres, shows a button to compute cost before running a "
+"For Bigquery, Presto and Postgres, shows a button to compute cost before running a "
 "query."
 msgstr ""
 
@@ -5907,6 +5891,7 @@ msgid "Histogram"
 msgstr ""
 
 #: superset/initialization/__init__.py:222
+#: superset-frontend/src/views/CRUD/welcome/Welcome.tsx:278
 msgid "Home"
 msgstr ""
 
@@ -6350,7 +6335,6 @@ msgstr ""
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:180
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.jsx:125
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:183
 msgid "It seems you don't have access to any database"
@@ -7605,6 +7589,7 @@ msgstr ""
 #: superset-frontend/packages/superset-ui-chart-controls/src/shared-controls/index.tsx:313
 #: superset-frontend/src/explore/components/controls/DateFilterControl/utils/constants.ts:35
 #: superset-frontend/src/explore/controls.jsx:342
+#: superset-frontend/src/explore/components/controls/DateFilterControl/DateFilterLabel.tsx:320
 msgid "No filter"
 msgstr ""
 
@@ -8894,10 +8879,6 @@ msgstr ""
 msgid "Query preview"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:213
-msgid "Query search string"
-msgstr ""
-
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:682
 msgid "Query was stopped"
 msgstr ""
@@ -9890,7 +9871,6 @@ msgid "Scoping"
 msgstr ""
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:256
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:77
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
@@ -14284,10 +14264,6 @@ msgstr ""
 msgid "[Alert] %(label)s"
 msgstr ""
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:219
-msgid "[From]-"
-msgstr ""
-
 #: superset/viz.py:2349
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
@@ -14303,10 +14279,6 @@ msgstr ""
 #: superset/utils/core.py:864
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr ""
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:231
-msgid "[To]-"
 msgstr ""
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:94
@@ -14918,4 +14890,12 @@ msgstr ""
 
 #: superset-frontend/src/explore/components/controls/ConditionalFormattingControl/FormattingPopoverContent.tsx:42
 msgid "yellow"
+msgstr ""
+
+#: superset-frontend/src/dashboard/components/nativeFilters/FilterBar/Header/index.tsx:104
+msgid "Add/Edit Filters"
+msgstr ""
+
+#: superset-frontend/src/views/components/MenuRight.tsx:105
+msgid "Connect database"
 msgstr ""

@@ -1788,12 +1788,12 @@ msgstr[1] ""
 
 #: superset/reports/commands/alert.py:74
 #, python-format
-msgid "Alert query returned more then one row. %s rows returned"
+msgid "Alert query returned more than one row. %s rows returned"
 msgstr ""
 
 #: superset/reports/commands/alert.py:83
 #, python-format
-msgid "Alert query returned more then one column. %s columns returned"
+msgid "Alert query returned more than one column. %s columns returned"
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:44
@@ -1861,7 +1861,7 @@ msgid "Report Schedule reached a working timeout."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:138
-msgid "Alert query returned more then one row."
+msgid "Alert query returned more than one row."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:143
@@ -1869,7 +1869,7 @@ msgid "Alert validator config error."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:147
-msgid "Alert query returned more then one column."
+msgid "Alert query returned more than one column."
 msgstr ""
 
 #: superset/reports/commands/exceptions.py:151
@@ -2033,7 +2033,6 @@ msgstr "Nenhum registo encontrado"
 msgid "Filter List"
 msgstr "Filtros"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:296
 #: superset-frontend/src/explore/components/DataTableControl.tsx:73
 #: superset-frontend/src/explore/components/controls/VizTypeControl.jsx:226
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:398
@@ -3599,39 +3598,10 @@ msgstr "SQL"
 msgid "No query history yet..."
 msgstr "Ainda não há histórico de queries ..."
 
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:193
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar.jsx:101
 #: superset-frontend/src/components/DatabaseSelector.tsx:151
 msgid "It seems you don't have access to any database"
 msgstr "Parece que não tem acesso a nenhuma base de dados"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:220
-msgid "An error occurred when refreshing queries"
-msgstr "Ocorreu um erro ao criar a origem dos dados"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:235
-msgid "Filter by user"
-msgstr "Valor de filtro"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:244
-msgid "Filter by database"
-msgstr "Selecione uma base de dados"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:253
-msgid "Query search string"
-msgstr "Pesquisa de Query"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:259
-msgid "[From]-"
-msgstr "[A partir de]-"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:271
-msgid "[To]-"
-msgstr "[Para]-"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch.jsx:280
-msgid "Filter by status"
-msgstr "Valor de filtro"
 
 #: superset-frontend/src/SqlLab/components/QueryTable.jsx:128
 #: superset-frontend/src/dashboard/components/menu/MarkdownModeDropdown.jsx:34

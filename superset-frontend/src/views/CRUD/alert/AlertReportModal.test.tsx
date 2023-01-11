@@ -40,3 +40,37 @@ test('allows change to None in log retention', async () => {
   // check if None is selected
   expect(selectedItem).toHaveTextContent('None');
 });
+
+test('renders the appropriate dropdown in Message Content section', async () => {
+  render(<AlertReportModal show />, { useRedux: true });
+
+  const chartRadio = screen.getByRole('radio', { name: /chart/i });
+
+  // Dashboard is initially checked by default
+  expect(
+    await screen.findByRole('radio', {
+      name: /dashboard/i,
+    }),
+  ).toBeChecked();
+  expect(chartRadio).not.toBeChecked();
+  // Only the dashboard dropdown should show
+  expect(screen.getByRole('combobox', { name: /dashboard/i })).toBeVisible();
+  expect(
+    screen.queryByRole('combobox', { name: /chart/i }),
+  ).not.toBeInTheDocument();
+
+  // Click the chart radio option
+  userEvent.click(chartRadio);
+
+  expect(await screen.findByRole('radio', { name: /chart/i })).toBeChecked();
+  expect(
+    screen.getByRole('radio', {
+      name: /dashboard/i,
+    }),
+  ).not.toBeChecked();
+  // Now that chart is checked, only the chart dropdown should show
+  expect(screen.getByRole('combobox', { name: /chart/i })).toBeVisible();
+  expect(
+    screen.queryByRole('combobox', { name: /dashboard/i }),
+  ).not.toBeInTheDocument();
+});

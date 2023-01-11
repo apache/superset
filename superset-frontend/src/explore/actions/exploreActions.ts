@@ -17,35 +17,28 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { DatasourceMeta } from '@superset-ui/chart-controls';
-import {
-  t,
-  SupersetClient,
-  DatasourceType,
-  QueryFormData,
-} from '@superset-ui/core';
+import { Dataset } from '@superset-ui/chart-controls';
+import { t, SupersetClient, QueryFormData } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import {
   addDangerToast,
   toastActions,
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
+import { SaveActionType } from 'src/explore/types';
 
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
-export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
-export function setDatasourceType(datasourceType: DatasourceType) {
-  return { type: SET_DATASOURCE_TYPE, datasourceType };
-}
-
-export const SET_DATASOURCE = 'SET_DATASOURCE';
-export function setDatasource(datasource: DatasourceMeta) {
-  return { type: SET_DATASOURCE, datasource };
-}
-
-export const SET_DATASOURCES = 'SET_DATASOURCES';
-export function setDatasources(datasources: DatasourceMeta[]) {
-  return { type: SET_DATASOURCES, datasources };
+export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
+export function updateFormDataByDatasource(
+  prevDatasource: Dataset,
+  newDatasource: Dataset,
+) {
+  return {
+    type: UPDATE_FORM_DATA_BY_DATASOURCE,
+    prevDatasource,
+    newDatasource,
+  };
 }
 
 export const POST_DATASOURCE_STARTED = 'POST_DATASOURCE_STARTED';
@@ -112,9 +105,19 @@ export function setExploreControls(formData: QueryFormData) {
   return { type: SET_EXPLORE_CONTROLS, formData };
 }
 
+export const SET_FORM_DATA = 'UPDATE_FORM_DATA';
+export function setFormData(formData: QueryFormData) {
+  return { type: SET_FORM_DATA, formData };
+}
+
 export const UPDATE_CHART_TITLE = 'UPDATE_CHART_TITLE';
 export function updateChartTitle(sliceName: string) {
   return { type: UPDATE_CHART_TITLE, sliceName };
+}
+
+export const SET_SAVE_ACTION = 'SET_SAVE_ACTION';
+export function setSaveAction(saveAction: SaveActionType | null) {
+  return { type: SET_SAVE_ACTION, saveAction };
 }
 
 export const CREATE_NEW_SLICE = 'CREATE_NEW_SLICE';
@@ -140,30 +143,6 @@ export function sliceUpdated(slice: Slice) {
   return { type: SLICE_UPDATED, slice };
 }
 
-export const SET_TIME_FORMATTED_COLUMN = 'SET_TIME_FORMATTED_COLUMN';
-export function setTimeFormattedColumn(
-  datasourceId: string,
-  columnName: string,
-) {
-  return {
-    type: SET_TIME_FORMATTED_COLUMN,
-    datasourceId,
-    columnName,
-  };
-}
-
-export const UNSET_TIME_FORMATTED_COLUMN = 'UNSET_TIME_FORMATTED_COLUMN';
-export function unsetTimeFormattedColumn(
-  datasourceId: string,
-  columnIndex: number,
-) {
-  return {
-    type: UNSET_TIME_FORMATTED_COLUMN,
-    datasourceId,
-    columnIndex,
-  };
-}
-
 export const SET_FORCE_QUERY = 'SET_FORCE_QUERY';
 export function setForceQuery(force: boolean) {
   return {
@@ -174,9 +153,6 @@ export function setForceQuery(force: boolean) {
 
 export const exploreActions = {
   ...toastActions,
-  setDatasourceType,
-  setDatasource,
-  setDatasources,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,
   toggleFaveStar,
@@ -187,8 +163,6 @@ export const exploreActions = {
   updateChartTitle,
   createNewSlice,
   sliceUpdated,
-  setTimeFormattedColumn,
-  unsetTimeFormattedColumn,
   setForceQuery,
 };
 

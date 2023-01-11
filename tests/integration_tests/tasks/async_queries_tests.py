@@ -28,10 +28,10 @@ from superset.exceptions import SupersetException
 from superset.extensions import async_query_manager, security_manager
 from superset.tasks import async_queries
 from superset.tasks.async_queries import (
-    ensure_user_is_set,
     load_chart_data_into_cache,
     load_explore_json_into_cache,
 )
+from superset.utils.core import get_user_id
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
@@ -57,12 +57,7 @@ class TestAsyncQueries(SupersetTestCase):
             "errors": [],
         }
 
-        with mock.patch.object(
-            async_queries, "ensure_user_is_set"
-        ) as ensure_user_is_set:
-            load_chart_data_into_cache(job_metadata, query_context)
-
-        ensure_user_is_set.assert_called_once_with(user.id)
+        load_chart_data_into_cache(job_metadata, query_context)
         mock_set_form_data.assert_called_once_with(query_context)
         mock_update_job.assert_called_once_with(
             job_metadata, "done", result_url=mock.ANY
@@ -84,11 +79,7 @@ class TestAsyncQueries(SupersetTestCase):
             "errors": [],
         }
         with pytest.raises(ChartDataQueryFailedError):
-            with mock.patch.object(
-                async_queries, "ensure_user_is_set"
-            ) as ensure_user_is_set:
-                load_chart_data_into_cache(job_metadata, query_context)
-            ensure_user_is_set.assert_called_once_with(user.id)
+            load_chart_data_into_cache(job_metadata, query_context)
 
         mock_run_command.assert_called_once_with(cache=True)
         errors = [{"message": "Error: foo"}]
@@ -114,11 +105,11 @@ class TestAsyncQueries(SupersetTestCase):
         with pytest.raises(SoftTimeLimitExceeded):
             with mock.patch.object(
                 async_queries,
-                "ensure_user_is_set",
-            ) as ensure_user_is_set:
-                ensure_user_is_set.side_effect = SoftTimeLimitExceeded()
+                "set_form_data",
+            ) as set_form_data:
+                set_form_data.side_effect = SoftTimeLimitExceeded()
                 load_chart_data_into_cache(job_metadata, form_data)
-            ensure_user_is_set.assert_called_once_with(user.id, "error", errors=errors)
+            set_form_data.assert_called_once_with(form_data, "error", errors=errors)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @mock.patch.object(async_query_manager, "update_job")
@@ -144,12 +135,7 @@ class TestAsyncQueries(SupersetTestCase):
             "errors": [],
         }
 
-        with mock.patch.object(
-            async_queries, "ensure_user_is_set"
-        ) as ensure_user_is_set:
-            load_explore_json_into_cache(job_metadata, form_data)
-
-        ensure_user_is_set.assert_called_once_with(user.id)
+        load_explore_json_into_cache(job_metadata, form_data)
         mock_update_job.assert_called_once_with(
             job_metadata, "done", result_url=mock.ANY
         )
@@ -171,11 +157,7 @@ class TestAsyncQueries(SupersetTestCase):
         }
 
         with pytest.raises(SupersetException):
-            with mock.patch.object(
-                async_queries, "ensure_user_is_set"
-            ) as ensure_user_is_set:
-                load_explore_json_into_cache(job_metadata, form_data)
-            ensure_user_is_set.assert_called_once_with(user.id)
+            load_explore_json_into_cache(job_metadata, form_data)
 
         mock_set_form_data.assert_called_once_with(form_data)
         errors = ["The dataset associated with this chart no longer exists"]
@@ -201,49 +183,8 @@ class TestAsyncQueries(SupersetTestCase):
         with pytest.raises(SoftTimeLimitExceeded):
             with mock.patch.object(
                 async_queries,
-                "ensure_user_is_set",
-            ) as ensure_user_is_set:
-                ensure_user_is_set.side_effect = SoftTimeLimitExceeded()
+                "set_form_data",
+            ) as set_form_data:
+                set_form_data.side_effect = SoftTimeLimitExceeded()
                 load_explore_json_into_cache(job_metadata, form_data)
-            ensure_user_is_set.assert_called_once_with(user.id, "error", errors=errors)
-
-    def test_ensure_user_is_set(self):
-        g_user_is_set = hasattr(g, "user")
-        original_g_user = g.user if g_user_is_set else None
-
-        if g_user_is_set:
-            del g.user
-
-        self.assertFalse(hasattr(g, "user"))
-        ensure_user_is_set(1)
-        self.assertTrue(hasattr(g, "user"))
-        self.assertFalse(g.user.is_anonymous)
-        self.assertEqual("1", g.user.get_id())
-
-        del g.user
-
-        self.assertFalse(hasattr(g, "user"))
-        ensure_user_is_set(None)
-        self.assertTrue(hasattr(g, "user"))
-        self.assertTrue(g.user.is_anonymous)
-        self.assertEqual(None, g.user.get_id())
-
-        del g.user
-
-        g.user = security_manager.get_user_by_id(2)
-        self.assertEqual("2", g.user.get_id())
-
-        ensure_user_is_set(1)
-        self.assertTrue(hasattr(g, "user"))
-        self.assertFalse(g.user.is_anonymous)
-        self.assertEqual("2", g.user.get_id())
-
-        ensure_user_is_set(None)
-        self.assertTrue(hasattr(g, "user"))
-        self.assertFalse(g.user.is_anonymous)
-        self.assertEqual("2", g.user.get_id())
-
-        if g_user_is_set:
-            g.user = original_g_user
-        else:
-            del g.user
+            set_form_data.assert_called_once_with(form_data, "error", errors=errors)

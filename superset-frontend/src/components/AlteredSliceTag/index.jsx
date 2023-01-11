@@ -147,15 +147,19 @@ export default class AlteredSliceTag extends React.Component {
     if (controlsMap[key]?.type === 'CollectionControl') {
       return value.map(v => safeStringify(v)).join(', ');
     }
-    if (controlsMap[key]?.type === 'MetricsControl' && Array.isArray(value)) {
-      const formattedValue = value.map(v => (v.label ? v.label : v));
+    if (
+      controlsMap[key]?.type === 'MetricsControl' &&
+      value.constructor === Array
+    ) {
+      const formattedValue = value.map(v => v?.label ?? v);
       return formattedValue.length ? formattedValue.join(', ') : '[]';
     }
     if (typeof value === 'boolean') {
       return value ? 'true' : 'false';
     }
     if (value.constructor === Array) {
-      return value.length ? value.join(', ') : '[]';
+      const formattedValue = value.map(v => v?.label ?? v);
+      return formattedValue.length ? formattedValue.join(', ') : '[]';
     }
     if (typeof value === 'string' || typeof value === 'number') {
       return value;
@@ -167,15 +171,15 @@ export default class AlteredSliceTag extends React.Component {
     const columns = [
       {
         accessor: 'control',
-        Header: 'Control',
+        Header: t('Control'),
       },
       {
         accessor: 'before',
-        Header: 'Before',
+        Header: t('Before'),
       },
       {
         accessor: 'after',
-        Header: 'After',
+        Header: t('After'),
       },
     ];
     // set the wrap text in the specific columns.

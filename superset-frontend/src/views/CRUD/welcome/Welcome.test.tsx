@@ -27,6 +27,9 @@ import * as featureFlags from 'src/featureFlags';
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 import { ReactWrapper } from 'enzyme';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { render, screen } from 'spec/helpers/testing-library';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import setupExtensions from 'src/setup/setupExtensions';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -103,10 +106,15 @@ const mockedProps = {
     userId: 5,
     email: 'alpha@alpha.com',
     isActive: true,
+    isAnonymous: false,
+    permissions: {},
+    roles: {
+      sql_lab: [],
+    },
   },
 };
 
-describe('Welcome', () => {
+describe('Welcome with sql role', () => {
   let wrapper: ReactWrapper;
 
   beforeAll(async () => {
@@ -117,6 +125,10 @@ describe('Welcome', () => {
         </Provider>,
       );
     });
+  });
+
+  afterAll(() => {
+    fetchMock.resetHistory();
   });
 
   it('renders', () => {
@@ -135,6 +147,50 @@ describe('Welcome', () => {
     expect(chartCall).toHaveLength(2);
     expect(recentCall).toHaveLength(1);
     expect(savedQueryCall).toHaveLength(1);
+    expect(dashboardCall).toHaveLength(2);
+  });
+});
+
+describe('Welcome without sql role', () => {
+  let wrapper: ReactWrapper;
+
+  beforeAll(async () => {
+    await act(async () => {
+      const props = {
+        ...mockedProps,
+        user: {
+          ...mockedProps.user,
+          roles: {},
+        },
+      };
+      wrapper = mount(
+        <Provider store={store}>
+          <Welcome {...props} />
+        </Provider>,
+      );
+    });
+  });
+
+  afterAll(() => {
+    fetchMock.resetHistory();
+  });
+
+  it('renders', () => {
+    expect(wrapper).toExist();
+  });
+
+  it('renders all panels on the page on page load', () => {
+    expect(wrapper.find('CollapsePanel')).toHaveLength(6);
+  });
+
+  it('calls api methods in parallel on page load', () => {
+    const chartCall = fetchMock.calls(/chart\/\?q/);
+    const savedQueryCall = fetchMock.calls(/saved_query\/\?q/);
+    const recentCall = fetchMock.calls(/superset\/recent_activity\/*/);
+    const dashboardCall = fetchMock.calls(/dashboard\/\?q/);
+    expect(chartCall).toHaveLength(2);
+    expect(recentCall).toHaveLength(1);
+    expect(savedQueryCall).toHaveLength(0);
     expect(dashboardCall).toHaveLength(2);
   });
 });
@@ -178,4 +234,24 @@ describe('Welcome page with toggle switch', () => {
     await waitForComponentToPaint(wrapper);
     expect(wrapper.find('ImageLoader')).not.toExist();
   });
+});
+
+test('should render an extension component if one is supplied', () => {
+  const extensionsRegistry = getExtensionsRegistry();
+
+  extensionsRegistry.set('welcome.banner', () => (
+    <>welcome.banner extension component</>
+  ));
+
+  setupExtensions();
+
+  render(
+    <Provider store={store}>
+      <Welcome {...mockedProps} />
+    </Provider>,
+  );
+
+  expect(
+    screen.getByText('welcome.banner extension component'),
+  ).toBeInTheDocument();
 });

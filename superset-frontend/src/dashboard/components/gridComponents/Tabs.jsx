@@ -48,7 +48,12 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
+  activeTabs: PropTypes.arrayOf(PropTypes.string),
+  filterboxMigrationState: PropTypes.oneOf(
+    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
+      key => FILTER_BOX_MIGRATION_STATES[key],
+    ),
+  ),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
@@ -74,6 +79,7 @@ const defaultProps = {
   renderHoverMenu: true,
   availableColumnCount: 0,
   columnWidth: 0,
+  activeTabs: [],
   directPathToChild: [],
   filterboxMigrationState: FILTER_BOX_MIGRATION_STATES.NOOP,
   setActiveTabs() {},
@@ -112,15 +118,7 @@ const StyledTabsContainer = styled.div`
 export class Tabs extends React.PureComponent {
   constructor(props) {
     super(props);
-    const tabIndex = Math.max(
-      0,
-      findTabIndexByComponentId({
-        currentComponent: props.component,
-        directPathToChild: props.directPathToChild,
-      }),
-    );
-    const { children: tabIds } = props.component;
-    const activeKey = tabIds[tabIndex];
+    const { tabIndex, activeKey } = this.getTabInfo(props);
 
     this.state = {
       tabIndex,
@@ -155,6 +153,15 @@ export class Tabs extends React.PureComponent {
       this.setState(() => ({ tabIndex: maxIndex }));
     }
 
+    // reset tab index if dashboard was changed
+    if (nextProps.dashboardId !== this.props.dashboardId) {
+      const { tabIndex, activeKey } = this.getTabInfo(nextProps);
+      this.setState(() => ({
+        tabIndex,
+        activeKey,
+      }));
+    }
+
     if (nextProps.isComponentVisible) {
       const nextFocusComponent = getLeafComponentIdFromPath(
         nextProps.directPathToChild,
@@ -187,15 +194,42 @@ export class Tabs extends React.PureComponent {
     }
   }
 
+  getTabInfo = props => {
+    let tabIndex = Math.max(
+      0,
+      findTabIndexByComponentId({
+        currentComponent: props.component,
+        directPathToChild: props.directPathToChild,
+      }),
+    );
+    if (tabIndex === 0 && props.activeTabs?.length) {
+      props.component.children.forEach((tabId, index) => {
+        if (tabIndex === 0 && props.activeTabs.includes(tabId)) {
+          tabIndex = index;
+        }
+      });
+    }
+    const { children: tabIds } = props.component;
+    const activeKey = tabIds[tabIndex];
+
+    return {
+      tabIndex,
+      activeKey,
+    };
+  };
+
   showDeleteConfirmModal = key => {
     const { component, deleteComponent } = this.props;
     AntdModal.confirm({
       title: t('Delete dashboard tab?'),
       content: (
         <span>
-          Deleting a tab will remove all content within it. You may still
-          reverse this action with the <b>undo</b> button (cmd + z) until you
-          save your changes.
+          {t(
+            'Deleting a tab will remove all content within it. You may still ' +
+              'reverse this action with the',
+          )}{' '}
+          <b>{t('undo')}</b>{' '}
+          {t('button (cmd + z) until you save your changes.')}
         </span>
       ),
       onOk: () => {
@@ -204,8 +238,8 @@ export class Tabs extends React.PureComponent {
         this.handleDeleteTab(tabIndex);
       },
       okType: 'danger',
-      okText: 'DELETE',
-      cancelText: 'CANCEL',
+      okText: t('DELETE'),
+      cancelText: t('CANCEL'),
       icon: null,
     });
   };
@@ -309,9 +343,10 @@ export class Tabs extends React.PureComponent {
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
     let tabsToHighlight;
-    if (nativeFilters?.focusedFilterId) {
-      tabsToHighlight =
-        nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
+    const highlightedFilterId =
+      nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
+    if (highlightedFilterId) {
+      tabsToHighlight = nativeFilters.filters[highlightedFilterId]?.tabsInScope;
     }
     return (
       <DragDroppable
@@ -361,6 +396,7 @@ export class Tabs extends React.PureComponent {
                       availableColumnCount={availableColumnCount}
                       columnWidth={columnWidth}
                       onDropOnTab={this.handleDropOnTab}
+                      onHoverTab={() => this.handleClickTab(tabIndex)}
                       isFocused={activeKey === tabId}
                       isHighlighted={
                         activeKey !== tabId && tabsToHighlight?.includes(tabId)
@@ -408,6 +444,7 @@ Tabs.defaultProps = defaultProps;
 function mapStateToProps(state) {
   return {
     nativeFilters: state.nativeFilters,
+    activeTabs: state.dashboardState.activeTabs,
     directPathToChild: state.dashboardState.directPathToChild,
     filterboxMigrationState: state.dashboardState.filterboxMigrationState,
   };

@@ -18,31 +18,32 @@ import json
 from collections import Counter
 from typing import Any
 
-from flask import g, request
-from flask_appbuilder import expose
+from flask import current_app, redirect, request
+from flask_appbuilder import expose, permission_name
 from flask_appbuilder.api import rison
-from flask_appbuilder.security.decorators import has_access_api
+from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm.exc import NoResultFound
 
-from superset import db, event_logger
+from superset import db, event_logger, security_manager
 from superset.commands.utils import populate_owners
-from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.datasets.commands.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
+from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetException, SupersetSecurityException
-from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
+from superset.utils.core import DatasourceType
+from superset.utils.urls import is_safe_url
 from superset.views.base import (
     api,
     BaseSupersetView,
-    check_ownership,
     handle_api_exception,
     json_error_response,
 )
@@ -50,7 +51,10 @@ from superset.views.datasource.schemas import (
     ExternalMetadataParams,
     ExternalMetadataSchema,
     get_external_metadata_schema,
+    SamplesPayloadSchema,
+    SamplesRequestSchema,
 )
+from superset.views.datasource.utils import get_samples
 from superset.views.utils import sanitize_datasource_data
 
 
@@ -74,21 +78,34 @@ class Datasource(BaseSupersetView):
         datasource_id = datasource_dict.get("id")
         datasource_type = datasource_dict.get("type")
         database_id = datasource_dict["database"].get("id")
-        orm_datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
+        default_endpoint = datasource_dict["default_endpoint"]
+        if (
+            default_endpoint
+            and not is_safe_url(default_endpoint)
+            and current_app.config["PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET"]
+        ):
+            return json_error_response(
+                _(
+                    "The submitted URL is not considered safe,"
+                    " only use URLs with the same domain as Superset."
+                ),
+                status=400,
+            )
+
+        orm_datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), datasource_id
         )
         orm_datasource.database_id = database_id
 
         if "owners" in datasource_dict and orm_datasource.owner_class is not None:
             # Check ownership
             try:
-                check_ownership(orm_datasource)
+                security_manager.raise_for_ownership(orm_datasource)
             except SupersetSecurityException as ex:
                 raise DatasetForbiddenError() from ex
 
-        user = security_manager.get_user_by_id(g.user.id)
         datasource_dict["owners"] = populate_owners(
-            user, datasource_dict["owners"], default_to_user=False
+            datasource_dict["owners"], default_to_user=False
         )
 
         duplicates = [
@@ -117,8 +134,8 @@ class Datasource(BaseSupersetView):
     @api
     @handle_api_exception
     def get(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
+        datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), datasource_id
         )
         return self.json_response(sanitize_datasource_data(datasource.data))
 
@@ -130,8 +147,10 @@ class Datasource(BaseSupersetView):
         self, datasource_type: str, datasource_id: int
     ) -> FlaskResponse:
         """Gets column info from the source system"""
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, db.session
+        datasource = DatasourceDAO.get_datasource(
+            db.session,
+            DatasourceType(datasource_type),
+            datasource_id,
         )
         try:
             external_metadata = datasource.external_metadata()
@@ -153,9 +172,8 @@ class Datasource(BaseSupersetView):
         except ValidationError as err:
             return json_error_response(str(err), status=400)
 
-        datasource = ConnectorRegistry.get_datasource_by_name(
+        datasource = SqlaTable.get_datasource_by_name(
             session=db.session,
-            datasource_type=params["datasource_type"],
             database_name=params["database_name"],
             schema=params["schema_name"],
             datasource_name=params["table_name"],
@@ -179,3 +197,48 @@ class Datasource(BaseSupersetView):
         except (NoResultFound, NoSuchTableError) as ex:
             raise DatasetNotFoundError() from ex
         return self.json_response(external_metadata)
+
+    @expose("/samples", methods=["POST"])
+    @has_access_api
+    @api
+    @handle_api_exception
+    def samples(self) -> FlaskResponse:
+        try:
+            params = SamplesRequestSchema().load(request.args)
+            payload = SamplesPayloadSchema().load(request.json)
+        except ValidationError as err:
+            return json_error_response(err.messages, status=400)
+
+        rv = get_samples(
+            datasource_type=params["datasource_type"],
+            datasource_id=params["datasource_id"],
+            force=params["force"],
+            page=params["page"],
+            per_page=params["per_page"],
+            payload=payload,
+        )
+        return self.json_response({"result": rv})
+
+
+class DatasetEditor(BaseSupersetView):
+    route_base = "/dataset"
+    class_permission_name = "Dataset"
+
+    @expose("/add/")
+    @has_access
+    @permission_name("read")
+    def root(self) -> FlaskResponse:
+        dev = request.args.get("testing")
+        if dev is not None:
+            return super().render_app_template()
+        return redirect("/")
+
+    @expose("/<pk>", methods=["GET"])
+    @has_access
+    @permission_name("read")
+    # pylint: disable=unused-argument
+    def show(self, pk: int) -> FlaskResponse:
+        dev = request.args.get("testing")
+        if dev is not None:
+            return super().render_app_template()
+        return redirect("/")

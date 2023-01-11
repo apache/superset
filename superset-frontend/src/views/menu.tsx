@@ -26,14 +26,16 @@ import createCache from '@emotion/cache';
 import { ThemeProvider } from '@superset-ui/core';
 import Menu from 'src/views/components/Menu';
 import { theme } from 'src/preamble';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 import { Provider } from 'react-redux';
-import { store } from './store';
+import { setupStore } from './store';
 
-const container = document.getElementById('app');
-const bootstrapJson = container?.getAttribute('data-bootstrap') ?? '{}';
-const bootstrap = JSON.parse(bootstrapJson);
-const menu = { ...bootstrap.common.menu_data };
+// Disable connecting to redux debugger so that the React app injected
+// Below the menu like SqlLab or Explore can connect its redux store to the debugger
+const store = setupStore(true);
+const bootstrapData = getBootstrapData();
+const menu = { ...bootstrapData.common.menu_data };
 
 const emotionCache = createCache({
   key: 'menu',

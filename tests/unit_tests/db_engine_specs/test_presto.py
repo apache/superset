@@ -19,7 +19,6 @@ from typing import Optional
 
 import pytest
 import pytz
-from flask.ctx import AppContext
 
 
 @pytest.mark.parametrize(
@@ -30,22 +29,21 @@ from flask.ctx import AppContext
         (
             "TIMESTAMP",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01T01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600000'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000),
-            "TIMESTAMP '2022-01-01T01:23:45.600000'",
+            "TIMESTAMP '2022-01-01 01:23:45.600000'",
         ),
         (
             "TIMESTAMP WITH TIME ZONE",
             datetime(2022, 1, 1, 1, 23, 45, 600000, tzinfo=pytz.UTC),
-            "TIMESTAMP '2022-01-01T01:23:45.600000+00:00'",
+            "TIMESTAMP '2022-01-01 01:23:45.600000+00:00'",
         ),
     ],
 )
 def test_convert_dttm(
-    app_context: AppContext,
     target_type: str,
     dttm: datetime,
     result: Optional[str],

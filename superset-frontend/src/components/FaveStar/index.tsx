@@ -23,7 +23,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useComponentDidMount } from 'src/hooks/useComponentDidMount';
 import Icons from 'src/components/Icons';
 
-interface FaveStarProps {
+export interface FaveStarProps {
   itemId: number;
   isStarred?: boolean;
   showTooltip?: boolean;

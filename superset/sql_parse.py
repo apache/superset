@@ -494,7 +494,7 @@ class InsertRLSState(str, Enum):
 
 def has_table_query(token_list: TokenList) -> bool:
     """
-    Return if a stament has a query reading from a table.
+    Return if a statement has a query reading from a table.
 
         >>> has_table_query(sqlparse.parse("COUNT(*)")[0])
         False

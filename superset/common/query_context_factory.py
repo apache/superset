@@ -19,11 +19,13 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from superset import app, db
+from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.connectors.connector_registry import ConnectorRegistry
-from superset.utils.core import DatasourceDict
+from superset.datasource.dao import DatasourceDAO
+from superset.models.slice import Slice
+from superset.utils.core import DatasourceDict, DatasourceType
 
 if TYPE_CHECKING:
     from superset.connectors.base.models import BaseDatasource
@@ -32,7 +34,7 @@ config = app.config
 
 
 def create_query_object_factory() -> QueryObjectFactory:
-    return QueryObjectFactory(config, ConnectorRegistry(), db.session)
+    return QueryObjectFactory(config, DatasourceDAO(), db.session)
 
 
 class QueryContextFactory:  # pylint: disable=too-few-public-methods
@@ -55,10 +57,17 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         datasource_model_instance = None
         if datasource:
             datasource_model_instance = self._convert_to_model(datasource)
+
+        slice_ = None
+        if form_data and form_data.get("slice_id") is not None:
+            slice_ = self._get_slice(form_data.get("slice_id"))
+
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
         queries_ = [
-            self._query_object_factory.create(result_type, **query_obj)
+            self._query_object_factory.create(
+                result_type, datasource=datasource, **query_obj
+            )
             for query_obj in queries
         ]
         cache_values = {
@@ -70,6 +79,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         return QueryContext(
             datasource=datasource_model_instance,
             queries=queries_,
+            slice_=slice_,
             form_data=form_data,
             result_type=result_type,
             result_format=result_format,
@@ -80,6 +90,12 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
     # pylint: disable=no-self-use
     def _convert_to_model(self, datasource: DatasourceDict) -> BaseDatasource:
-        return ConnectorRegistry.get_datasource(
-            str(datasource["type"]), int(datasource["id"]), db.session
+
+        return DatasourceDAO.get_datasource(
+            session=db.session,
+            datasource_type=DatasourceType(datasource["type"]),
+            datasource_id=int(datasource["id"]),
         )
+
+    def _get_slice(self, slice_id: Any) -> Optional[Slice]:
+        return ChartDAO.find_by_id(slice_id)

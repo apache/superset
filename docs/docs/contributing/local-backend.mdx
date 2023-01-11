@@ -14,7 +14,7 @@ You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
 Ensure that you are using Python version 3.8 or 3.9, then proceed with:
 
-````bash
+```bash
 # Create a virtual environment and activate it (recommended)
 python3 -m venv venv # setup a python3 virtualenv
 source venv/bin/activate
@@ -47,18 +47,18 @@ Or you can install via our Makefile
 
 ```bash
 # Create a virtual environment and activate it (recommended)
-$ python3 -m venv venv # setup a python3 virtualenv
-$ source venv/bin/activate
+python3 -m venv venv # setup a python3 virtualenv
+source venv/bin/activate
 
 # install pip packages + pre-commit
-$ make install
+make install
 
 # Install superset pip packages and setup env only
-$ make superset
+make superset
 
 # Setup pre-commit only
-$ make pre-commit
-````
+make pre-commit
+```
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
 via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
@@ -103,4 +103,5 @@ app.logger.info(form_data)
 ```
 
 ### Frontend Assets
+
 See [Building Frontend Assets Locally](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#frontend)

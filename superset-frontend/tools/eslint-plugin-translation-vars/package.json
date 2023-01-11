@@ -12,9 +12,5 @@
   "dependencies": {},
   "peerDependencies": {
     "eslint": ">=0.8.0"
-  },
-  "engines": {
-    "node": "^16.9.1",
-    "npm": "^7.5.4"
   }
 }

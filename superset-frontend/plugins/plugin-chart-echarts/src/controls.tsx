@@ -17,15 +17,15 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
   ControlSetRow,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_LEGEND_FORM_DATA } from './types';
-import { DEFAULT_FORM_DATA } from './Timeseries/types';
+import { DEFAULT_LEGEND_FORM_DATA } from './constants';
+import { DEFAULT_FORM_DATA } from './Timeseries/constants';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
@@ -60,10 +60,10 @@ const legendTypeControl: ControlSetItem = {
   config: {
     type: 'SelectControl',
     freeForm: false,
-    label: 'Type',
+    label: t('Type'),
     choices: [
-      ['scroll', 'Scroll'],
-      ['plain', 'Plain'],
+      ['scroll', t('Scroll')],
+      ['plain', t('Plain')],
     ],
     default: legendType,
     renderTrigger: true,
@@ -78,16 +78,16 @@ const legendOrientationControl: ControlSetItem = {
   config: {
     type: 'SelectControl',
     freeForm: false,
-    label: 'Orientation',
+    label: t('Orientation'),
     choices: [
-      ['top', 'Top'],
-      ['bottom', 'Bottom'],
-      ['left', 'Left'],
-      ['right', 'Right'],
+      ['top', t('Top')],
+      ['bottom', t('Bottom')],
+      ['left', t('Left')],
+      ['right', t('Right')],
     ],
     default: legendOrientation,
     renderTrigger: true,
-    description: t('Legend type'),
+    description: t('Legend Orientation'),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_legend?.value),
   },
@@ -101,7 +101,7 @@ export const legendSection: ControlSetRow[] = [
   [legendMarginControl],
 ];
 
-const showValueControl: ControlSetItem = {
+export const showValueControl: ControlSetItem = {
   name: 'show_value',
   config: {
     type: 'CheckboxControl',
@@ -112,7 +112,7 @@ const showValueControl: ControlSetItem = {
   },
 };
 
-const stackControl: ControlSetItem = {
+export const stackControl: ControlSetItem = {
   name: 'stack',
   config: {
     type: 'CheckboxControl',
@@ -123,7 +123,7 @@ const stackControl: ControlSetItem = {
   },
 };
 
-const onlyTotalControl: ControlSetItem = {
+export const onlyTotalControl: ControlSetItem = {
   name: 'only_total',
   config: {
     type: 'CheckboxControl',
@@ -135,18 +135,6 @@ const onlyTotalControl: ControlSetItem = {
     ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.show_value?.value) && Boolean(controls?.stack?.value),
-  },
-};
-
-export const xAxisControl: ControlSetItem = {
-  name: 'x_axis',
-  config: {
-    ...sharedControls.groupby,
-    label: t('X-axis'),
-    default: null,
-    multi: false,
-    description: t('Dimension to use on x-axis.'),
-    validators: [validateNonEmpty],
   },
 };
 

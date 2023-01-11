@@ -17,153 +17,416 @@
  * under the License.
  */
 
-import React, { FunctionComponent } from 'react';
-import { AutoCompleteProps } from 'antd/lib/auto-complete';
+import React, { useCallback, useState } from 'react';
 import { Radio } from 'src/components/Radio';
-import { AutoComplete, RadioChangeEvent } from 'src/components';
+import { RadioChangeEvent, AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
-import { styled, t } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  SupersetClient,
+  JsonResponse,
+  JsonObject,
+  QueryResponse,
+  QueryFormData,
+} from '@superset-ui/core';
+import { useSelector, useDispatch } from 'react-redux';
+import moment from 'moment';
+import rison from 'rison';
+import { createDatasource } from 'src/SqlLab/actions/sqlLab';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
+import {
+  DatasetRadioState,
+  EXPLORE_CHART_DEFAULT,
+  DatasetOwner,
+  SqlLabExploreRootState,
+  getInitialState,
+  SqlLabRootState,
+} from 'src/SqlLab/types';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
+import { URL_PARAMS } from 'src/constants';
+import { SelectValue } from 'antd/lib/select';
+import { isEmpty, isString } from 'lodash';
+
+interface QueryDatabase {
+  id?: number;
+}
+
+export type ExploreQuery = QueryResponse & {
+  database?: QueryDatabase | null | undefined;
+};
+
+export interface ISimpleColumn {
+  name?: string | null;
+  type?: string | null;
+  is_dttm?: boolean | null;
+}
+
+export type Database = {
+  backend: string;
+  id: number;
+  parameter: object;
+};
+
+export interface ISaveableDatasource {
+  columns: ISimpleColumn[];
+  name: string;
+  dbId: number;
+  sql: string;
+  templateParams?: string | object | null;
+  schema?: string | null;
+  database?: Database;
+}
 
 interface SaveDatasetModalProps {
   visible: boolean;
-  onOk: () => void;
   onHide: () => void;
-  handleDatasetNameChange: (e: React.FormEvent<HTMLInputElement>) => void;
-  handleSaveDatasetModalSearch: (searchText: string) => Promise<void>;
-  filterAutocompleteOption: (
-    inputValue: string,
-    option: { value: string; datasetId: number },
-  ) => boolean;
-  handleSaveDatasetRadioBtnState: (e: RadioChangeEvent) => void;
-  handleOverwriteCancel: () => void;
-  handleOverwriteDataset: () => void;
-  handleOverwriteDatasetOption: (
-    data: string,
-    option: Record<string, any>,
-  ) => void;
-  onChangeAutoComplete: () => void;
-  defaultCreateDatasetValue: string;
-  disableSaveAndExploreBtn: boolean;
-  saveDatasetRadioBtnState: number;
-  shouldOverwriteDataset: boolean;
-  userDatasetOptions: AutoCompleteProps['options'];
+  buttonTextOnSave: string;
+  buttonTextOnOverwrite: string;
+  modalDescription?: string;
+  datasource: ISaveableDatasource;
+  openWindow?: boolean;
+  formData?: Omit<QueryFormData, 'datasource'>;
 }
 
 const Styles = styled.div`
-  .smd-body {
+  .sdm-body {
     margin: 0 8px;
   }
-  .smd-input {
+  .sdm-input {
     margin-left: 45px;
     width: 401px;
   }
-  .smd-autocomplete {
-    margin-left: 8px;
+  .sdm-autocomplete {
     width: 401px;
+    align-self: center;
   }
-  .smd-radio {
+  .sdm-radio {
     display: block;
     height: 30px;
     margin: 10px 0px;
     line-height: 30px;
   }
-  .smd-overwrite-msg {
+  .sdm-overwrite-msg {
     margin: 7px;
+  }
+  .sdm-overwrite-container {
+    flex: 1 1 auto;
+    display: flex;
   }
 `;
 
-// eslint-disable-next-line no-empty-pattern
-export const SaveDatasetModal: FunctionComponent<SaveDatasetModalProps> = ({
+const updateDataset = async (
+  dbId: number,
+  datasetId: number,
+  sql: string,
+  columns: Array<Record<string, any>>,
+  owners: [number],
+  overrideColumns: boolean,
+) => {
+  const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
+  const headers = { 'Content-Type': 'application/json' };
+  const body = JSON.stringify({
+    sql,
+    columns,
+    owners,
+    database_id: dbId,
+  });
+
+  const data: JsonResponse = await SupersetClient.put({
+    endpoint,
+    headers,
+    body,
+  });
+  return data.json.result;
+};
+
+const UNTITLED = t('Untitled Dataset');
+
+export const SaveDatasetModal = ({
   visible,
-  onOk,
   onHide,
-  handleDatasetNameChange,
-  handleSaveDatasetRadioBtnState,
-  saveDatasetRadioBtnState,
-  shouldOverwriteDataset,
-  handleOverwriteCancel,
-  handleOverwriteDataset,
-  handleOverwriteDatasetOption,
-  defaultCreateDatasetValue,
-  disableSaveAndExploreBtn,
-  handleSaveDatasetModalSearch,
-  filterAutocompleteOption,
-  userDatasetOptions,
-  onChangeAutoComplete,
-}) => (
-  <StyledModal
-    show={visible}
-    title="Save or Overwrite Dataset"
-    onHide={onHide}
-    footer={
-      <>
+  buttonTextOnSave,
+  buttonTextOnOverwrite,
+  modalDescription,
+  datasource,
+  openWindow = true,
+  formData = {},
+}: SaveDatasetModalProps) => {
+  const defaultVizType = useSelector<SqlLabRootState, string>(
+    state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
+  );
+
+  const getDefaultDatasetName = () =>
+    `${datasource?.name || UNTITLED} ${moment().format('MM/DD/YYYY HH:mm:ss')}`;
+  const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
+  const [newOrOverwrite, setNewOrOverwrite] = useState(
+    DatasetRadioState.SAVE_NEW,
+  );
+  const [shouldOverwriteDataset, setShouldOverwriteDataset] = useState(false);
+  const [datasetToOverwrite, setDatasetToOverwrite] = useState<
+    Record<string, any>
+  >({});
+  const [selectedDatasetToOverwrite, setSelectedDatasetToOverwrite] = useState<
+    SelectValue | undefined
+  >(undefined);
+
+  const user = useSelector<SqlLabExploreRootState, User>(user =>
+    getInitialState(user),
+  );
+  const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
+
+  const createWindow = (url: string) => {
+    if (openWindow) {
+      window.open(url, '_blank', 'noreferrer');
+    } else {
+      window.location.href = url;
+    }
+  };
+  const formDataWithDefaults = {
+    ...EXPLORE_CHART_DEFAULT,
+    ...(formData || {}),
+  };
+  const handleOverwriteDataset = async () => {
+    // if user wants to overwrite a dataset we need to prompt them
+    if (!shouldOverwriteDataset) {
+      setShouldOverwriteDataset(true);
+      return;
+    }
+    const [, key] = await Promise.all([
+      updateDataset(
+        datasource?.dbId,
+        datasetToOverwrite?.datasetid,
+        datasource?.sql,
+        datasource?.columns?.map(
+          (d: { name: string; type: string; is_dttm: boolean }) => ({
+            column_name: d.name,
+            type: d.type,
+            is_dttm: d.is_dttm,
+          }),
+        ),
+        datasetToOverwrite?.owners?.map((o: DatasetOwner) => o.id),
+        true,
+      ),
+      postFormData(datasetToOverwrite.datasetid, 'table', {
+        ...formDataWithDefaults,
+        datasource: `${datasetToOverwrite.datasetid}__table`,
+        ...(defaultVizType === 'table' && {
+          all_columns: datasource?.columns?.map(column => column.name),
+        }),
+      }),
+    ]);
+
+    const url = mountExploreUrl(null, {
+      [URL_PARAMS.formDataKey.name]: key,
+    });
+    createWindow(url);
+
+    setShouldOverwriteDataset(false);
+    setDatasetName(getDefaultDatasetName());
+    onHide();
+  };
+
+  const loadDatasetOverwriteOptions = useCallback(
+    async (input = '') => {
+      const { userId } = user;
+      const queryParams = rison.encode({
+        filters: [
+          {
+            col: 'table_name',
+            opr: 'ct',
+            value: input,
+          },
+          {
+            col: 'owners',
+            opr: 'rel_m_m',
+            value: userId,
+          },
+        ],
+        order_column: 'changed_on_delta_humanized',
+        order_direction: 'desc',
+      });
+
+      return SupersetClient.get({
+        endpoint: `/api/v1/dataset?q=${queryParams}`,
+      }).then(response => ({
+        data: response.json.result.map(
+          (r: { table_name: string; id: number; owners: [DatasetOwner] }) => ({
+            value: r.table_name,
+            label: r.table_name,
+            datasetid: r.id,
+            owners: r.owners,
+          }),
+        ),
+        totalCount: response.json.count,
+      }));
+    },
+    [user],
+  );
+
+  const handleSaveInDataset = () => {
+    const selectedColumns = datasource?.columns ?? [];
+
+    // The filters param is only used to test jinja templates.
+    // Remove the special filters entry from the templateParams
+    // before saving the dataset.
+    let templateParams;
+    if (isString(datasource?.templateParams)) {
+      const p = JSON.parse(datasource.templateParams);
+      /* eslint-disable-next-line no-underscore-dangle */
+      if (p._filters) {
+        /* eslint-disable-next-line no-underscore-dangle */
+        delete p._filters;
+        // eslint-disable-next-line no-param-reassign
+        templateParams = JSON.stringify(p);
+      }
+    }
+
+    dispatch(
+      createDatasource({
+        schema: datasource.schema,
+        sql: datasource.sql,
+        dbId: datasource.dbId || datasource?.database?.id,
+        templateParams,
+        datasourceName: datasetName,
+        columns: selectedColumns,
+      }),
+    )
+      .then((data: { table_id: number }) =>
+        postFormData(data.table_id, 'table', {
+          ...formDataWithDefaults,
+          datasource: `${data.table_id}__table`,
+          ...(defaultVizType === 'table' && {
+            all_columns: selectedColumns.map(column => column.name),
+          }),
+        }),
+      )
+      .then((key: string) => {
+        const url = mountExploreUrl(null, {
+          [URL_PARAMS.formDataKey.name]: key,
+        });
+        createWindow(url);
+        setDatasetName(getDefaultDatasetName());
+        onHide();
+      })
+      .catch(() => {
+        addDangerToast(t('An error occurred saving dataset'));
+      });
+  };
+
+  const handleOverwriteDatasetOption = (value: SelectValue, option: any) => {
+    setDatasetToOverwrite(option);
+    setSelectedDatasetToOverwrite(value);
+  };
+
+  const handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+    // @ts-expect-error
+    setDatasetName(e.target.value);
+  };
+
+  const handleOverwriteCancel = () => {
+    setShouldOverwriteDataset(false);
+    setDatasetToOverwrite({});
+  };
+
+  const disableSaveAndExploreBtn =
+    (newOrOverwrite === DatasetRadioState.SAVE_NEW &&
+      datasetName.length === 0) ||
+    (newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET &&
+      isEmpty(selectedDatasetToOverwrite));
+
+  const filterAutocompleteOption = (
+    inputValue: string,
+    option: { value: string; datasetid: number },
+  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
+
+  return (
+    <StyledModal
+      show={visible}
+      title={t('Save or Overwrite Dataset')}
+      onHide={onHide}
+      footer={
+        <>
+          {newOrOverwrite === DatasetRadioState.SAVE_NEW && (
+            <Button
+              disabled={disableSaveAndExploreBtn}
+              buttonStyle="primary"
+              onClick={handleSaveInDataset}
+            >
+              {buttonTextOnSave}
+            </Button>
+          )}
+          {newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET && (
+            <>
+              {shouldOverwriteDataset && (
+                <Button onClick={handleOverwriteCancel}>{t('Back')}</Button>
+              )}
+              <Button
+                className="md"
+                buttonStyle="primary"
+                onClick={handleOverwriteDataset}
+                disabled={disableSaveAndExploreBtn}
+              >
+                {buttonTextOnOverwrite}
+              </Button>
+            </>
+          )}
+        </>
+      }
+    >
+      <Styles>
         {!shouldOverwriteDataset && (
-          <Button
-            disabled={disableSaveAndExploreBtn}
-            buttonStyle="primary"
-            onClick={onOk}
-          >
-            {t('Save & Explore')}
-          </Button>
+          <div className="sdm-body">
+            {modalDescription && (
+              <div className="sdm-prompt">{modalDescription}</div>
+            )}
+            <Radio.Group
+              onChange={(e: RadioChangeEvent) => {
+                setNewOrOverwrite(Number(e.target.value));
+              }}
+              value={newOrOverwrite}
+            >
+              <Radio className="sdm-radio" value={1}>
+                {t('Save as new')}
+                <Input
+                  className="sdm-input"
+                  value={datasetName}
+                  onChange={handleDatasetNameChange}
+                  disabled={newOrOverwrite !== 1}
+                />
+              </Radio>
+              <div className="sdm-overwrite-container">
+                <Radio className="sdm-radio" value={2}>
+                  {t('Overwrite existing')}
+                </Radio>
+                <div className="sdm-autocomplete">
+                  <AsyncSelect
+                    allowClear
+                    showSearch
+                    placeholder={t('Select or type dataset name')}
+                    ariaLabel={t('Existing dataset')}
+                    onChange={handleOverwriteDatasetOption}
+                    options={input => loadDatasetOverwriteOptions(input)}
+                    value={selectedDatasetToOverwrite}
+                    filterOption={filterAutocompleteOption}
+                    disabled={newOrOverwrite !== 2}
+                    getPopupContainer={() => document.body}
+                  />
+                </div>
+              </div>
+            </Radio.Group>
+          </div>
         )}
         {shouldOverwriteDataset && (
-          <>
-            <Button onClick={handleOverwriteCancel}>Back</Button>
-            <Button
-              className="md"
-              buttonStyle="primary"
-              onClick={handleOverwriteDataset}
-              disabled={disableSaveAndExploreBtn}
-            >
-              {t('Overwrite & Explore')}
-            </Button>
-          </>
-        )}
-      </>
-    }
-  >
-    <Styles>
-      {!shouldOverwriteDataset && (
-        <div className="smd-body">
-          <div className="smd-prompt">
-            Save this query as a virtual dataset to continue exploring
+          <div className="sdm-overwrite-msg">
+            {t('Are you sure you want to overwrite this dataset?')}
           </div>
-          <Radio.Group
-            onChange={handleSaveDatasetRadioBtnState}
-            value={saveDatasetRadioBtnState}
-          >
-            <Radio className="smd-radio" value={1}>
-              Save as new
-              <Input
-                className="smd-input"
-                defaultValue={defaultCreateDatasetValue}
-                onChange={handleDatasetNameChange}
-                disabled={saveDatasetRadioBtnState !== 1}
-              />
-            </Radio>
-            <Radio className="smd-radio" value={2}>
-              Overwrite existing
-              <AutoComplete
-                className="smd-autocomplete"
-                options={userDatasetOptions}
-                onSelect={handleOverwriteDatasetOption}
-                onSearch={handleSaveDatasetModalSearch}
-                onChange={onChangeAutoComplete}
-                placeholder="Select or type dataset name"
-                filterOption={filterAutocompleteOption}
-                disabled={saveDatasetRadioBtnState !== 2}
-              />
-            </Radio>
-          </Radio.Group>
-        </div>
-      )}
-      {shouldOverwriteDataset && (
-        <div className="smd-overwrite-msg">
-          Are you sure you want to overwrite this dataset?
-        </div>
-      )}
-    </Styles>
-  </StyledModal>
-);
+        )}
+      </Styles>
+    </StyledModal>
+  );
+};

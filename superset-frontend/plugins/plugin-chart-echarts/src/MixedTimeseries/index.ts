@@ -17,19 +17,20 @@
  * under the License.
  */
 import {
-  t,
-  ChartMetadata,
-  ChartPlugin,
   AnnotationType,
   Behavior,
+  ChartMetadata,
+  ChartPlugin,
+  hasGenericChartAxes,
+  t,
 } from '@superset-ui/core';
 import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import {
-  EchartsMixedTimeseriesProps,
   EchartsMixedTimeseriesFormData,
+  EchartsMixedTimeseriesProps,
 } from './types';
 
 export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
@@ -52,30 +53,35 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsMixedTimeseries'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.INTERACTIVE_CHART],
+        behaviors: [Behavior.INTERACTIVE_CHART, Behavior.DRILL_TO_DETAIL],
         category: t('Evolution'),
         credits: ['https://echarts.apache.org'],
-        description: t(
-          'Visualize two different time series using the same x-axis time range. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).',
-        ),
+        description: hasGenericChartAxes
+          ? t(
+              'Visualize two different series using the same x-axis. Note that both series can be visualized with a different chart type (e.g. 1 using bars and 1 using a line).',
+            )
+          : t(
+              'Visualize two different time series using the same x-axis. Note that each time series can be visualized differently (e.g. 1 using bars and 1 using a line).',
+            ),
         supportedAnnotationTypes: [
           AnnotationType.Event,
           AnnotationType.Formula,
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
-        name: t('Mixed Time-Series'),
+        name: hasGenericChartAxes ? t('Mixed Chart') : t('Mixed Time-Series'),
         thumbnail,
         tags: [
+          t('Advanced-Analytics'),
           t('Aesthetic'),
           t('ECharts'),
           t('Experimental'),
           t('Line'),
           t('Multi-Variables'),
-          t('Predictive'),
           t('Time'),
           t('Transformable'),
         ],
+        queryObjectCount: 2,
       }),
       // @ts-ignore
       transformProps,

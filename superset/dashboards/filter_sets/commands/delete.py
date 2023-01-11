@@ -17,7 +17,6 @@
 import logging
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.dashboards.filter_sets.commands.base import BaseFilterSetCommand
@@ -32,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteFilterSetCommand(BaseFilterSetCommand):
-    def __init__(self, user: User, dashboard_id: int, filter_set_id: int):
-        super().__init__(user, dashboard_id)
+    def __init__(self, dashboard_id: int, filter_set_id: int):
+        super().__init__(dashboard_id)
         self._filter_set_id = filter_set_id
 
     def run(self) -> Model:

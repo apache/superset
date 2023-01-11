@@ -17,6 +17,11 @@
  * under the License.
  */
 describe('Visualization > Sankey', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+  });
+
   const SANKEY_FORM_DATA = {
     datasource: '1__table',
     viz_type: 'sankey',
@@ -24,7 +29,7 @@ describe('Visualization > Sankey', () => {
     url_params: {},
     granularity_sqla: null,
     time_grain_sqla: 'P1D',
-    time_range: 'Last+week',
+    time_range: 'Last week',
     groupby: ['source', 'target'],
     metric: 'sum__value',
     adhoc_filters: [],
@@ -33,14 +38,9 @@ describe('Visualization > Sankey', () => {
   };
 
   function verify(formData) {
-    cy.visitChartByParams(JSON.stringify(formData));
+    cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@getJson', chartSelector: 'svg' });
   }
-
-  beforeEach(() => {
-    cy.login();
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
-  });
 
   it('should work', () => {
     verify(SANKEY_FORM_DATA);
@@ -53,7 +53,7 @@ describe('Visualization > Sankey', () => {
       adhoc_filters: [
         {
           expressionType: 'SQL',
-          sqlExpression: 'SUM(value)+>+0',
+          sqlExpression: 'SUM(value) > 0',
           clause: 'HAVING',
           subject: null,
           operator: null,
@@ -72,5 +72,18 @@ describe('Visualization > Sankey', () => {
       ],
     });
     cy.get('.chart-container svg g.node rect').should('have.length', 6);
+  });
+
+  it('should allow type to search color schemes', () => {
+    verify(SANKEY_FORM_DATA);
+
+    cy.get('#controlSections-tab-display').click();
+    cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
+      .focus()
+      .type('bnbColors{enter}');
+    cy.get(
+      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
+    ).should('exist');
   });
 });

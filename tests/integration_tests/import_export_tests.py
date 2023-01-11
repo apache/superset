@@ -40,7 +40,7 @@ from superset.dashboards.commands.importers.v0 import import_chart, import_dashb
 from superset.datasets.commands.importers.v0 import import_dataset
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import DatasourceType, get_example_default_schema
 from superset.utils.database import get_example_database
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
@@ -50,32 +50,30 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 from .base_tests import SupersetTestCase
 
 
+def delete_imports():
+    with app.app_context():
+        # Imported data clean up
+        session = db.session
+        for slc in session.query(Slice):
+            if "remote_id" in slc.params_dict:
+                session.delete(slc)
+        for dash in session.query(Dashboard):
+            if "remote_id" in dash.params_dict:
+                session.delete(dash)
+        for table in session.query(SqlaTable):
+            if "remote_id" in table.params_dict:
+                session.delete(table)
+        session.commit()
+
+
+@pytest.fixture(autouse=True, scope="module")
+def clean_imports():
+    yield
+    delete_imports()
+
+
 class TestImportExport(SupersetTestCase):
     """Testing export import functionality for dashboards"""
-
-    @classmethod
-    def delete_imports(cls):
-        with app.app_context():
-            # Imported data clean up
-            session = db.session
-            for slc in session.query(Slice):
-                if "remote_id" in slc.params_dict:
-                    session.delete(slc)
-            for dash in session.query(Dashboard):
-                if "remote_id" in dash.params_dict:
-                    session.delete(dash)
-            for table in session.query(SqlaTable):
-                if "remote_id" in table.params_dict:
-                    session.delete(table)
-            session.commit()
-
-    @classmethod
-    def setUpClass(cls):
-        cls.delete_imports()
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.delete_imports()
 
     def create_slice(
         self,
@@ -103,7 +101,7 @@ class TestImportExport(SupersetTestCase):
 
         return Slice(
             slice_name=name,
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             viz_type="bubble",
             params=json.dumps(params),
             datasource_id=ds_id,

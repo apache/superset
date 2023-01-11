@@ -22,13 +22,28 @@ from typing import Sequence, Union
 
 import backoff
 from flask_babel import gettext as __
-from slack import WebClient
-from slack.errors import SlackApiError, SlackClientError
+from slack_sdk import WebClient
+from slack_sdk.errors import (
+    BotUserAccessError,
+    SlackApiError,
+    SlackClientConfigurationError,
+    SlackClientError,
+    SlackClientNotConnectedError,
+    SlackObjectFormationError,
+    SlackRequestError,
+    SlackTokenRotationError,
+)
 
 from superset import app
-from superset.models.reports import ReportRecipientType
+from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
-from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.notifications.exceptions import (
+    NotificationAuthorizationException,
+    NotificationMalformedException,
+    NotificationParamException,
+    NotificationUnprocessableException,
+)
+from superset.utils.decorators import statsd_gauge
 from superset.utils.urls import modify_url_query
 
 logger = logging.getLogger(__name__)
@@ -147,6 +162,7 @@ Error: %(text)s
         return []
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
+    @statsd_gauge("reports.slack.send")
     def send(self) -> None:
         files = self._get_inline_files()
         title = self._content.name
@@ -171,5 +187,15 @@ Error: %(text)s
             else:
                 client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")
-        except SlackClientError as ex:
-            raise NotificationError(ex) from ex
+        except (
+            BotUserAccessError,
+            SlackRequestError,
+            SlackClientConfigurationError,
+        ) as ex:
+            raise NotificationParamException from ex
+        except SlackObjectFormationError as ex:
+            raise NotificationMalformedException from ex
+        except SlackTokenRotationError as ex:
+            raise NotificationAuthorizationException from ex
+        except (SlackClientNotConnectedError, SlackClientError, SlackApiError) as ex:
+            raise NotificationUnprocessableException from ex

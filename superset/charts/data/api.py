@@ -21,7 +21,7 @@ import logging
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
 import simplejson
-from flask import current_app, g, make_response, request, Response
+from flask import current_app, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from marshmallow import ValidationError
@@ -41,10 +41,11 @@ from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.base.models import BaseDatasource
+from superset.dao.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
-from superset.utils.core import create_zip, json_int_dttm_ser
+from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
 from superset.views.base import CsvResponse, generate_download_headers
 from superset.views.base_api import statsd_metrics
 
@@ -89,6 +90,11 @@ class ChartDataRestApi(ChartRestApi):
             description: The type in which the data should be returned
             schema:
               type: string
+          - in: query
+            name: force
+            description: Should the queries be forced to load from the source
+            schema:
+                type: boolean
           responses:
             200:
               description: Query result
@@ -130,11 +136,14 @@ class ChartDataRestApi(ChartRestApi):
             "format", ChartDataResultFormat.JSON
         )
         json_body["result_type"] = request.args.get("type", ChartDataResultType.FULL)
+        json_body["force"] = request.args.get("force")
 
         try:
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
+        except DatasourceNotFound as error:
+            return self.response_404()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
@@ -223,6 +232,8 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
+        except DatasourceNotFound as error:
+            return self.response_404()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
         except ValidationError as error:
@@ -324,7 +335,7 @@ class ChartDataRestApi(ChartRestApi):
         except AsyncQueryTokenException:
             return self.response_401()
 
-        result = async_command.run(form_data, g.user.get_id())
+        result = async_command.run(form_data, get_user_id())
         return self.response(202, **result)
 
     def _send_chart_response(

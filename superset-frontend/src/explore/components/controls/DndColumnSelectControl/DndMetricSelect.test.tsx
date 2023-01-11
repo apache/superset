@@ -17,15 +17,25 @@
  * under the License.
  */
 import React from 'react';
+import userEvent from '@testing-library/user-event';
+import { FeatureFlag } from '@superset-ui/core';
 import {
   render,
   screen,
   within,
   fireEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
+
+jest.mock(
+  'src/components/Icons/Icon',
+  () =>
+    ({ fileName }: { fileName: string }) =>
+      <span role="img" aria-label={fileName.replace('_', '-')} />,
+);
 
 const defaultProps = {
   savedMetrics: [
@@ -64,6 +74,14 @@ const adhocMetricB = {
   aggregate: AGGREGATES.SUM,
   optionName: 'def',
 };
+
+beforeAll(() => {
+  window.featureFlags = { [FeatureFlag.ENABLE_EXPLORE_DRAG_AND_DROP]: true };
+});
+
+afterAll(() => {
+  window.featureFlags = {};
+});
 
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, { useDnd: true });
@@ -122,6 +140,7 @@ test('remove selected custom metric when metric gets removed from dataset', () =
   );
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.queryByText('Metric B')).not.toBeInTheDocument();
+  expect(screen.queryByText('metric_b')).not.toBeInTheDocument();
   expect(screen.getByText('SUM(column_a)')).toBeVisible();
   expect(screen.getByText('SUM(Column B)')).toBeVisible();
 });
@@ -160,15 +179,6 @@ test('remove selected custom metric when metric gets removed from dataset for si
     ],
   };
 
-  // rerender twice - first to update columns, second to update value
-  rerender(
-    <DndMetricSelect
-      {...newPropsWithRemovedMetric}
-      value={metricValue}
-      onChange={onChange}
-      multi={false}
-    />,
-  );
   rerender(
     <DndMetricSelect
       {...newPropsWithRemovedMetric}
@@ -209,15 +219,6 @@ test('remove selected adhoc metric when column gets removed from dataset', async
     ],
   };
 
-  // rerender twice - first to update columns, second to update value
-  rerender(
-    <DndMetricSelect
-      {...newPropsWithRemovedColumn}
-      value={metricValues}
-      onChange={onChange}
-      multi
-    />,
-  );
   rerender(
     <DndMetricSelect
       {...newPropsWithRemovedColumn}
@@ -316,4 +317,82 @@ test('can drag metrics', async () => {
 
   expect(within(firstMetric).getByText('SUM(Column B)')).toBeVisible();
   expect(within(lastMetric).getByText('metric_a')).toBeVisible();
+});
+
+test('title changes on custom SQL text change', async () => {
+  let metricValues = [adhocMetricA, 'metric_b'];
+  const onChange = (val: any[]) => {
+    metricValues = [...val];
+  };
+
+  const { rerender } = render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={metricValues}
+      onChange={onChange}
+      multi
+    />,
+    {
+      useDnd: true,
+    },
+  );
+
+  expect(screen.getByText('SUM(column_a)')).toBeVisible();
+
+  metricValues = [adhocMetricA, 'metric_b', 'metric_a'];
+  rerender(
+    <DndMetricSelect
+      {...defaultProps}
+      value={metricValues}
+      onChange={onChange}
+      multi
+    />,
+  );
+
+  expect(screen.getByText('SUM(column_a)')).toBeVisible();
+  expect(screen.getByText('metric_a')).toBeVisible();
+
+  fireEvent.click(screen.getByText('metric_a'));
+  expect(await screen.findByText('Custom SQL')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByText('Custom SQL'));
+  expect(screen.getByText('Custom SQL').parentElement).toHaveClass(
+    'ant-tabs-tab-active',
+  );
+
+  const container = screen.getByTestId('adhoc-metric-edit-tabs');
+  await waitFor(() => {
+    const textArea = container.getElementsByClassName(
+      'ace_text-input',
+    ) as HTMLCollectionOf<HTMLTextAreaElement>;
+    expect(textArea.length).toBe(1);
+    expect(textArea[0].value).toBe('');
+  });
+
+  expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
+    'metric_a',
+  );
+
+  const textArea = container.getElementsByClassName(
+    'ace_text-input',
+  )[0] as HTMLTextAreaElement;
+
+  // Changing the ACE editor via pasting, since the component
+  // handles the textarea value internally, and changing it doesn't
+  // trigger the onChange
+  await userEvent.paste(textArea, 'New metric');
+
+  await waitFor(() => {
+    expect(
+      screen.getByTestId('AdhocMetricEditTitle#trigger'),
+    ).toHaveTextContent('New metric');
+  });
+
+  // Ensure the title does not reset on mouse over
+  fireEvent.mouseEnter(screen.getByTestId('AdhocMetricEditTitle#trigger'));
+  fireEvent.mouseOut(screen.getByTestId('AdhocMetricEditTitle#trigger'));
+
+  expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
+    'New metric',
+  );
 });

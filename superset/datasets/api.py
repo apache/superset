@@ -22,7 +22,7 @@ from typing import Any
 from zipfile import is_zipfile, ZipFile
 
 import yaml
-from flask import g, request, Response, send_file
+from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -37,6 +37,7 @@ from superset.databases.filters import DatabaseFilter
 from superset.datasets.commands.bulk_delete import BulkDeleteDatasetCommand
 from superset.datasets.commands.create import CreateDatasetCommand
 from superset.datasets.commands.delete import DeleteDatasetCommand
+from superset.datasets.commands.duplicate import DuplicateDatasetCommand
 from superset.datasets.commands.exceptions import (
     DatasetBulkDeleteFailedError,
     DatasetCreateFailedError,
@@ -52,8 +53,9 @@ from superset.datasets.commands.importers.dispatcher import ImportDatasetsComman
 from superset.datasets.commands.refresh import RefreshDatasetCommand
 from superset.datasets.commands.update import UpdateDatasetCommand
 from superset.datasets.dao import DatasetDAO
-from superset.datasets.filters import DatasetIsNullOrEmptyFilter
+from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
+    DatasetDuplicateSchema,
     DatasetPostSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
@@ -69,7 +71,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +92,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "bulk_delete",
         "refresh",
         "related_objects",
+        "duplicate",
     }
     list_columns = [
         "id",
@@ -139,10 +142,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "cache_timeout",
         "is_sqllab_view",
         "template_params",
+        "select_star",
         "owners.id",
         "owners.username",
         "owners.first_name",
         "owners.last_name",
+        "columns.advanced_data_type",
         "columns.changed_on",
         "columns.column_name",
         "columns.created_on",
@@ -158,19 +163,41 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "columns.type",
         "columns.uuid",
         "columns.verbose_name",
-        "metrics",
+        "metrics",  # TODO(john-bodley): Deprecate in 3.0.
+        "metrics.changed_on",
+        "metrics.created_on",
+        "metrics.d3format",
+        "metrics.description",
+        "metrics.expression",
+        "metrics.extra",
+        "metrics.id",
+        "metrics.metric_name",
+        "metrics.metric_type",
+        "metrics.verbose_name",
+        "metrics.warning_text",
         "datasource_type",
         "url",
         "extra",
+        "kind",
+        "created_on",
+        "created_on_humanized",
+        "created_by.first_name",
+        "created_by.last_name",
+        "changed_on",
+        "changed_on_humanized",
+        "changed_by.first_name",
+        "changed_by.last_name",
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
         "database.backend",
+        "columns.advanced_data_type",
         "is_managed_externally",
     ]
     add_model_schema = DatasetPostSchema()
     edit_model_schema = DatasetPutSchema()
-    add_columns = ["database", "schema", "table_name", "owners"]
+    duplicate_model_schema = DatasetDuplicateSchema()
+    add_columns = ["database", "schema", "table_name", "sql", "owners"]
     edit_columns = [
         "table_name",
         "sql",
@@ -190,19 +217,30 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "extra",
     ]
     openapi_spec_tag = "Datasets"
+
+    base_related_field_filters = {
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "database": [["id", DatabaseFilter, lambda: []]],
+    }
     related_field_filters = {
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "database": "database_name",
     }
-    search_filters = {"sql": [DatasetIsNullOrEmptyFilter]}
-    filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
+    search_filters = {
+        "sql": [DatasetIsNullOrEmptyFilter],
+        "id": [DatasetCertifiedFilter],
+    }
+    search_columns = ["id", "database", "owners", "schema", "sql", "table_name"]
     allowed_rel_fields = {"database", "owners"}
     allowed_distinct_fields = {"schema"}
 
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
     }
-    openapi_spec_component_schemas = (DatasetRelatedObjectsResponse,)
+    openapi_spec_component_schemas = (
+        DatasetRelatedObjectsResponse,
+        DatasetDuplicateSchema,
+    )
 
     @expose("/", methods=["POST"])
     @protect()
@@ -254,7 +292,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            new_model = CreateDatasetCommand(g.user, item).run()
+            new_model = CreateDatasetCommand(item).run()
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
@@ -334,11 +372,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            changed_model = UpdateDatasetCommand(
-                g.user, pk, item, override_columns
-            ).run()
+            changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
             if override_columns:
-                RefreshDatasetCommand(g.user, pk).run()
+                RefreshDatasetCommand(pk).run()
             response = self.response(200, id=changed_model.id, result=item)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -397,7 +433,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            DeleteDatasetCommand(g.user, pk).run()
+            DeleteDatasetCommand(pk).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
@@ -496,6 +532,77 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             mimetype="application/text",
         )
 
+    @expose("/duplicate", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".duplicate",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def duplicate(self) -> Response:
+        """Duplicates a Dataset
+        ---
+        post:
+          description: >-
+            Duplicates a Dataset
+          requestBody:
+            description: Dataset schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DatasetDuplicateSchema'
+          responses:
+            201:
+              description: Dataset duplicated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: number
+                      result:
+                        $ref: '#/components/schemas/DatasetDuplicateSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.duplicate_model_schema.load(request.json)
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            new_model = DuplicateDatasetCommand(item).run()
+            return self.response(201, id=new_model.id, result=item)
+        except DatasetInvalidError as ex:
+            return self.response_422(
+                message=ex.normalized_messages()
+                if isinstance(ex, ValidationError)
+                else str(ex)
+            )
+        except DatasetCreateFailedError as ex:
+            logger.error(
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+
     @expose("/<pk>/refresh", methods=["PUT"])
     @protect()
     @safe
@@ -537,7 +644,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         try:
-            RefreshDatasetCommand(g.user, pk).run()
+            RefreshDatasetCommand(pk).run()
             return self.response(200, message="OK")
         except DatasetNotFoundError:
             return self.response_404()
@@ -661,7 +768,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         """
         item_ids = kwargs["rison"]
         try:
-            BulkDeleteDatasetCommand(g.user, item_ids).run()
+            BulkDeleteDatasetCommand(item_ids).run()
             return self.response(
                 200,
                 message=ngettext(
@@ -711,6 +818,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     overwrite:
                       description: overwrite existing datasets?
                       type: boolean
+                    sync_columns:
+                      description: sync columns?
+                      type: boolean
+                    sync_metrics:
+                      description: sync metrics?
+                      type: boolean
           responses:
             200:
               description: Dataset import result
@@ -749,9 +862,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        sync_columns = request.form.get("sync_columns") == "true"
+        sync_metrics = request.form.get("sync_metrics") == "true"
 
         command = ImportDatasetsCommand(
-            contents, passwords=passwords, overwrite=overwrite
+            contents,
+            passwords=passwords,
+            overwrite=overwrite,
+            sync_columns=sync_columns,
+            sync_metrics=sync_metrics,
         )
         command.run()
         return self.response(200, message="OK")

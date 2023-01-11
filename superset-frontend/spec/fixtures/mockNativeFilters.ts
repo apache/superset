@@ -145,6 +145,7 @@ export const singleNativeFiltersState = {
       inverseSelection: false,
       allowsMultipleValues: false,
       isRequired: false,
+      chartsInScope: [230],
     },
   },
 };

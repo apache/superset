@@ -18,7 +18,6 @@ import logging
 from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
-from flask_appbuilder.security.sqla.models import User
 from flask_babel import lazy_gettext as _
 
 from superset.commands.base import BaseCommand
@@ -37,8 +36,7 @@ logger = logging.getLogger(__name__)
 
 
 class DeleteDatabaseCommand(BaseCommand):
-    def __init__(self, user: User, model_id: int):
-        self._actor = user
+    def __init__(self, model_id: int):
         self._model_id = model_id
         self._model: Optional[Database] = None
 

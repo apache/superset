@@ -19,12 +19,13 @@ from datetime import datetime
 
 import pytest
 from pandas import Timestamp
+from pandas._libs.tslibs import NaT
 
 from superset.dataframe import df_to_records
 from superset.superset_typing import DbapiDescription
 
 
-def test_df_to_records(app_context: None) -> None:
+def test_df_to_records() -> None:
     from superset.db_engine_specs import BaseEngineSpec
     from superset.result_set import SupersetResultSet
 
@@ -41,7 +42,24 @@ def test_df_to_records(app_context: None) -> None:
     ]
 
 
-def test_js_max_int(app_context: None) -> None:
+def test_df_to_records_NaT_type() -> None:
+    from superset.db_engine_specs import BaseEngineSpec
+    from superset.result_set import SupersetResultSet
+
+    data = [(NaT,), (Timestamp("2023-01-06 20:50:31.749000+0000", tz="UTC"),)]
+    cursor_descr: DbapiDescription = [
+        ("date", "timestamp with time zone", None, None, None, None, False)
+    ]
+    results = SupersetResultSet(data, cursor_descr, BaseEngineSpec)
+    df = results.to_pandas_df()
+
+    assert df_to_records(df) == [
+        {"date": None},
+        {"date": '"2023-01-06T20:50:31.749000+00:00"'},
+    ]
+
+
+def test_js_max_int() -> None:
     from superset.db_engine_specs import BaseEngineSpec
     from superset.result_set import SupersetResultSet
 

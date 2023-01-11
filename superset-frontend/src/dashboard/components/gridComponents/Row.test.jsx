@@ -22,6 +22,7 @@ import { mount } from 'enzyme';
 import sinon from 'sinon';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { MemoryRouter } from 'react-router-dom';
 
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -67,9 +68,11 @@ describe('Row', () => {
     });
     const wrapper = mount(
       <Provider store={mockStore}>
-        <DndProvider backend={HTML5Backend}>
-          <Row {...props} {...overrideProps} />
-        </DndProvider>
+        <MemoryRouter>
+          <DndProvider backend={HTML5Backend}>
+            <Row {...props} {...overrideProps} />
+          </DndProvider>
+        </MemoryRouter>
       </Provider>,
       {
         wrappingComponent: ThemeProvider,

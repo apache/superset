@@ -35,187 +35,170 @@ interface TableCollectionProps {
 }
 
 export const Table = styled.table`
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  border-collapse: separate;
-  border-radius: ${({ theme }) => theme.borderRadius}px;
+  ${({ theme }) => `
+    background-color: ${theme.colors.grayscale.light5};
+    border-collapse: separate;
+    border-radius: ${theme.borderRadius}px;
 
-  thead > tr > th {
-    border: 0;
-  }
-
-  tbody {
-    tr:first-of-type > td {
-      border-top: 0;
-    }
-  }
-  th {
-    background: ${({ theme }) => theme.colors.grayscale.light5};
-    position: sticky;
-    top: 0;
-
-    &:first-of-type {
-      padding-left: ${({ theme }) => theme.gridUnit * 4}px;
+    thead > tr > th {
+      border: 0;
     }
 
-    &.xs {
-      min-width: 25px;
+    tbody {
+      tr:first-of-type > td {
+        border-top: 0;
+      }
     }
-    &.sm {
-      min-width: 50px;
-    }
-    &.md {
-      min-width: 75px;
-    }
-    &.lg {
-      min-width: 100px;
-    }
-    &.xl {
-      min-width: 150px;
-    }
-    &.xxl {
-      min-width: 200px;
-    }
+    th {
+      background: ${theme.colors.grayscale.light5};
+      position: sticky;
+      top: 0;
 
-    span {
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      line-height: 2;
-    }
+      &:first-of-type {
+        padding-left: ${theme.gridUnit * 4}px;
+      }
 
-    svg {
-      display: inline-block;
-      position: relative;
-    }
-  }
-
-  td {
-    &.xs {
-      width: 25px;
-    }
-    &.sm {
-      width: 50px;
-    }
-    &.md {
-      width: 75px;
-    }
-    &.lg {
-      width: 100px;
-    }
-    &.xl {
-      width: 150px;
-    }
-    &.xxl {
-      width: 200px;
-    }
-  }
-
-  .table-cell-loader {
-    position: relative;
-
-    .loading-bar {
-      background-color: ${({ theme }) => theme.colors.secondary.light4};
-      border-radius: 7px;
+      &.xs {
+        min-width: 25px;
+      }
+      &.sm {
+        min-width: 50px;
+      }
+      &.md {
+        min-width: 75px;
+      }
+      &.lg {
+        min-width: 100px;
+      }
+      &.xl {
+        min-width: 150px;
+      }
+      &.xxl {
+        min-width: 200px;
+      }
 
       span {
-        visibility: hidden;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        line-height: 2;
+      }
+
+      svg {
+        display: inline-block;
+        position: relative;
       }
     }
 
-    .empty-loading-bar {
-      display: inline-block;
-      width: 100%;
-      height: 1.2em;
+    td {
+      &.xs {
+        width: 25px;
+      }
+      &.sm {
+        width: 50px;
+      }
+      &.md {
+        width: 75px;
+      }
+      &.lg {
+        width: 100px;
+      }
+      &.xl {
+        width: 150px;
+      }
+      &.xxl {
+        width: 200px;
+      }
     }
 
-    &:after {
-      position: absolute;
-      transform: translateY(-50%);
-      top: 50%;
-      left: 0;
-      content: '';
-      display: block;
-      width: 100%;
-      height: 48px;
-      background-image: linear-gradient(
-        100deg,
-        rgba(255, 255, 255, 0),
-        rgba(255, 255, 255, 0.5) 60%,
-        rgba(255, 255, 255, 0) 80%
-      );
-      background-size: 200px 48px;
-      background-position: -100px 0;
-      background-repeat: no-repeat;
-      animation: loading-shimmer 1s infinite;
+    .table-cell-loader {
+      position: relative;
+
+      .loading-bar {
+        background-color: ${theme.colors.secondary.light4};
+        border-radius: 7px;
+
+        span {
+          visibility: hidden;
+        }
+      }
+
+      .empty-loading-bar {
+        display: inline-block;
+        width: 100%;
+        height: 1.2em;
+      }
     }
-  }
 
-  .actions {
-    white-space: nowrap;
-    min-width: 100px;
+    .actions {
+      white-space: nowrap;
+      min-width: 100px;
 
-    svg,
-    i {
-      margin-right: 8px;
+      svg,
+      i {
+        margin-right: 8px;
 
-      &:hover {
-        path {
-          fill: ${({ theme }) => theme.colors.primary.base};
+        &:hover {
+          path {
+            fill: ${theme.colors.primary.base};
+          }
         }
       }
     }
-  }
 
-  .table-row {
-    .actions {
-      opacity: 0;
-      font-size: ${({ theme }) => theme.typography.sizes.xl}px;
-    }
-
-    &:hover {
-      background-color: ${({ theme }) => theme.colors.secondary.light5};
-
+    .table-row {
       .actions {
-        opacity: 1;
-        transition: opacity ease-in ${({ theme }) => theme.transitionTiming}s;
+        opacity: 0;
+        font-size: ${theme.typography.sizes.xl}px;
+        display: flex;
+      }
+
+      &:hover {
+        background-color: ${theme.colors.secondary.light5};
+
+        .actions {
+          opacity: 1;
+          transition: opacity ease-in ${theme.transitionTiming}s;
+        }
       }
     }
-  }
 
-  .table-row-selected {
-    background-color: ${({ theme }) => theme.colors.secondary.light4};
+    .table-row-selected {
+      background-color: ${theme.colors.secondary.light4};
 
-    &:hover {
-      background-color: ${({ theme }) => theme.colors.secondary.light4};
-    }
-  }
-
-  .table-cell {
-    text-overflow: ellipsis;
-    overflow: hidden;
-    max-width: 320px;
-    line-height: 1;
-    vertical-align: middle;
-    &:first-of-type {
-      padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-    }
-    &__wrap {
-      white-space: normal;
-    }
-    &__nowrap {
-      white-space: nowrap;
-    }
-  }
-
-  @keyframes loading-shimmer {
-    40% {
-      background-position: 100% 0;
+      &:hover {
+        background-color: ${theme.colors.secondary.light4};
+      }
     }
 
-    100% {
-      background-position: 100% 0;
+    .table-cell {
+      font-feature-settings: 'tnum' 1;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      max-width: 320px;
+      line-height: 1;
+      vertical-align: middle;
+      &:first-of-type {
+        padding-left: ${theme.gridUnit * 4}px;
+      }
+      &__wrap {
+        white-space: normal;
+      }
+      &__nowrap {
+        white-space: nowrap;
+      }
     }
-  }
+
+    @keyframes loading-shimmer {
+      40% {
+        background-position: 100% 0;
+      }
+
+      100% {
+        background-position: 100% 0;
+      }
+    }
+  `}
 `;
 
 Table.displayName = 'table';
@@ -309,9 +292,9 @@ export default React.memo(
                 {row.cells.map(cell => {
                   if (cell.column.hidden) return null;
                   const columnCellProps = cell.column.cellProps || {};
-                  const isWrapText =
-                    columnsForWrapText &&
-                    columnsForWrapText.includes(cell.column.Header as string);
+                  const isWrapText = columnsForWrapText?.includes(
+                    cell.column.Header as string,
+                  );
 
                   return (
                     <td

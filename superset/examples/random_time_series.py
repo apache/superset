@@ -21,9 +21,10 @@ from sqlalchemy import DateTime, inspect, String
 import superset.utils.database as database_utils
 from superset import app, db
 from superset.models.slice import Slice
+from superset.utils.core import DatasourceType
 
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_slice_json,
     get_table_connector_registry,
     merge_slice,
@@ -36,28 +37,28 @@ def load_random_time_series_data(
     """Loading random time series data from a zip file in the repo"""
     tbl_name = "random_time_series"
     database = database_utils.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
+    with database.get_sqla_engine_with_context() as engine:
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table_by_name(tbl_name)
 
-    if not only_metadata and (not table_exists or force):
-        data = get_example_data("random_time_series.json.gz")
-        pdf = pd.read_json(data)
-        if database.backend == "presto":
-            pdf.ds = pd.to_datetime(pdf.ds, unit="s")
-            pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d %H:%M%:%S")
-        else:
-            pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("random_time_series.json.gz")
+            pdf = pd.read_json(url, compression="gzip")
+            if database.backend == "presto":
+                pdf.ds = pd.to_datetime(pdf.ds, unit="s")
+                pdf.ds = pdf.ds.dt.strftime("%Y-%m-%d %H:%M%:%S")
+            else:
+                pdf.ds = pd.to_datetime(pdf.ds, unit="s")
 
-        pdf.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=500,
-            dtype={"ds": DateTime if database.backend != "presto" else String(255)},
-            index=False,
-        )
+            pdf.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=500,
+                dtype={"ds": DateTime if database.backend != "presto" else String(255)},
+                index=False,
+            )
         print("Done loading table!")
         print("-" * 80)
 
@@ -89,7 +90,7 @@ def load_random_time_series_data(
     slc = Slice(
         slice_name="Calendar Heatmap",
         viz_type="cal_heatmap",
-        datasource_type="table",
+        datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )

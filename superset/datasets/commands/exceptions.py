@@ -173,6 +173,10 @@ class DatasetRefreshFailedError(UpdateFailedError):
     message = _("Dataset could not be updated.")
 
 
+class DatasetSamplesFailedError(CommandInvalidError):
+    message = _("Samples for dataset could not be retrieved.")
+
+
 class DatasetForbiddenError(ForbiddenError):
     message = _("Changing this dataset is forbidden")
 
@@ -183,3 +187,7 @@ class DatasetImportError(ImportFailedError):
 
 class DatasetAccessDeniedError(ForbiddenError):
     message = _("You don't have access to this dataset.")
+
+
+class DatasetDuplicateFailedError(CreateFailedError):
+    message = _("Dataset could not be duplicated.")

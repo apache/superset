@@ -20,6 +20,8 @@ import { SupersetClient, t, styled } from '@superset-ui/core';
 import React, { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
+import { useQueryParams, BooleanParam } from 'use-query-params';
+
 import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -27,14 +29,16 @@ import { createErrorHandler, uploadUserPerms } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import DeleteModal from 'src/components/DeleteModal';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { isUserAdmin } from 'src/dashboard/util/findPermission';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import ListView, { FilterOperator, Filters } from 'src/components/ListView';
-import { commonMenuData } from 'src/views/CRUD/data/common';
 import handleResourceExport from 'src/utils/export';
 import { ExtentionConfigs } from 'src/views/components/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from './DatabaseModal';
 
 import { DatabaseObject } from './types';
@@ -90,8 +94,15 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
   const user = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
+  const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
 
-  const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(false);
+  const [query, setQuery] = useQueryParams({
+    databaseAdded: BooleanParam,
+  });
+
+  const [databaseModalOpen, setDatabaseModalOpen] = useState<boolean>(
+    showDatabaseModal || false,
+  );
   const [databaseCurrentlyDeleting, setDatabaseCurrentlyDeleting] =
     useState<DatabaseDeleteObject | null>(null);
   const [currentDatabase, setCurrentDatabase] = useState<DatabaseObject | null>(
@@ -109,6 +120,13 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     EXCEL_EXTENSIONS,
     ALLOWED_EXTENSIONS,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
+
+  useEffect(() => {
+    if (query?.databaseAdded) {
+      setQuery({ databaseAdded: undefined });
+      refreshData();
+    }
+  }, [query, setQuery, refreshData]);
 
   const openDatabaseDeleteModal = (database: DatabaseObject) =>
     SupersetClient.get({
@@ -211,22 +229,30 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      setAllowUploads(json.count >= 1);
+      // There might be some existings Gsheets and Clickhouse DBs
+      // with allow_file_upload set as True which is not possible from now on
+      const allowedDatabasesWithFileUpload =
+        json?.result?.filter(
+          (database: any) => database?.engine_information?.supports_file_upload,
+        ) || [];
+      setAllowUploads(allowedDatabasesWithFileUpload?.length >= 1);
     });
   };
 
   useEffect(() => hasFileUploadEnabled(), [databaseModalOpen]);
 
-  const filteredDropDown = uploadDropdownMenu.map(link => {
+  const filteredDropDown = uploadDropdownMenu.reduce((prev, cur) => {
     // eslint-disable-next-line no-param-reassign
-    link.childs = link.childs.filter(item => item.perm);
-    return link;
-  });
+    cur.childs = cur.childs.filter(item => item.perm);
+    if (!cur.childs.length) return prev;
+    prev.push(cur);
+    return prev;
+  }, [] as MenuObjectProps[]);
 
   const menuData: SubMenuProps = {
     activeChild: 'Databases',
     dropDownLinks: filteredDropDown,
-    ...commonMenuData,
+    name: t('Databases'),
   };
 
   if (canCreate) {
@@ -429,13 +455,14 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
     () => [
       {
         Header: t('Expose in SQL Lab'),
+        key: 'expose_in_sql_lab',
         id: 'expose_in_sqllab',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
@@ -448,17 +475,19 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
             <span>{t('AQE')}</span>
           </Tooltip>
         ),
+        key: 'allow_run_async',
         id: 'allow_run_async',
         input: 'select',
         operator: FilterOperator.equals,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         selects: [
-          { label: 'Yes', value: true },
-          { label: 'No', value: false },
+          { label: t('Yes'), value: true },
+          { label: t('No'), value: false },
         ],
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'database_name',
         input: 'search',
         operator: FilterOperator.contains,

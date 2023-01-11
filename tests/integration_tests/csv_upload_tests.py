@@ -29,13 +29,12 @@ import pytest
 
 import superset.utils.database
 from superset.sql_parse import Table
-from superset import security_manager
-from tests.integration_tests.conftest import ADMIN_SCHEMA_NAME
-from tests.integration_tests.test_app import app  # isort:skip
 from superset import db
 from superset.models.core import Database
 from superset.utils import core as utils
-from tests.integration_tests.base_tests import get_resp, login, SupersetTestCase
+from tests.integration_tests.test_app import app, login
+from tests.integration_tests.base_tests import get_resp
+
 
 logger = logging.getLogger(__name__)
 
@@ -59,23 +58,20 @@ CSV_UPLOAD_TABLE_W_EXPLORE = "csv_upload_w_explore"
 
 
 @pytest.fixture(scope="module")
-def setup_csv_upload():
-    with app.app_context():
-        login(test_client, username="admin")
+def setup_csv_upload(login_as_admin):
+    upload_db = superset.utils.database.get_or_create_db(
+        CSV_UPLOAD_DATABASE, app.config["SQLALCHEMY_EXAMPLES_URI"]
+    )
+    extra = upload_db.get_extra()
+    extra["explore_database_id"] = superset.utils.database.get_example_database().id
+    upload_db.extra = json.dumps(extra)
+    upload_db.allow_file_upload = True
+    db.session.commit()
 
-        upload_db = superset.utils.database.get_or_create_db(
-            CSV_UPLOAD_DATABASE, app.config["SQLALCHEMY_EXAMPLES_URI"]
-        )
-        extra = upload_db.get_extra()
-        extra["explore_database_id"] = superset.utils.database.get_example_database().id
-        upload_db.extra = json.dumps(extra)
-        upload_db.allow_file_upload = True
-        db.session.commit()
+    yield
 
-        yield
-
-        upload_db = get_upload_db()
-        engine = upload_db.get_sqla_engine()
+    upload_db = get_upload_db()
+    with upload_db.get_sqla_engine_with_context() as engine:
         engine.execute(f"DROP TABLE IF EXISTS {EXCEL_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {CSV_UPLOAD_TABLE}")
         engine.execute(f"DROP TABLE IF EXISTS {PARQUET_UPLOAD_TABLE}")
@@ -126,12 +122,12 @@ def upload_csv(filename: str, table_name: str, extra: Optional[Dict[str, str]] =
     schema = utils.get_example_default_schema()
     form_data = {
         "csv_file": open(filename, "rb"),
-        "sep": ",",
-        "name": table_name,
-        "con": csv_upload_db_id,
+        "delimiter": ",",
+        "table_name": table_name,
+        "database": csv_upload_db_id,
         "if_exists": "fail",
         "index_label": "test_label",
-        "mangle_dupe_cols": False,
+        "overwrite_duplicate": False,
     }
     if schema:
         form_data["schema"] = schema
@@ -148,7 +144,7 @@ def upload_excel(
     form_data = {
         "excel_file": open(filename, "rb"),
         "name": table_name,
-        "con": excel_upload_db_id,
+        "database": excel_upload_db_id,
         "sheet_name": "Sheet1",
         "if_exists": "fail",
         "index_label": "test_label",
@@ -169,7 +165,7 @@ def upload_columnar(
     form_data = {
         "columnar_file": open(filename, "rb"),
         "name": table_name,
-        "con": columnar_upload_db_id,
+        "database": columnar_upload_db_id,
         "if_exists": "fail",
         "index_label": "test_label",
     }

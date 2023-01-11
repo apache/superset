@@ -41,6 +41,7 @@ describe('RefreshIntervalModal - Enzyme', () => {
     refreshFrequency: 10,
     onChange: jest.fn(),
     editMode: true,
+    refreshIntervalOptions: [],
   };
   it('should show warning message', () => {
     const props = {
@@ -68,7 +69,8 @@ describe('RefreshIntervalModal - Enzyme', () => {
 const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
-  customCss: '#save-dash-split-button{margin-left: 100px;}',
+  customCss:
+    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,
@@ -77,7 +79,20 @@ const createProps = () => ({
     userId: '1',
     metadata: {},
     common: {
-      conf: {},
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: [
+          [0, "Don't refresh"],
+          [10, '10 seconds'],
+          [30, '30 seconds'],
+          [60, '1 minute'],
+          [300, '5 minutes'],
+          [1800, '30 minutes'],
+          [3600, '1 hour'],
+          [21600, '6 hours'],
+          [43200, '12 hours'],
+          [86400, '24 hours'],
+        ],
+      },
     },
   },
   dashboardTitle: 'Title',
@@ -100,6 +115,7 @@ const createProps = () => ({
   userCanSave: false,
   userCanShare: false,
   lastModifiedTime: 0,
+  isDropdownVisible: true,
 });
 
 const editModeOnProps = {
@@ -116,9 +132,6 @@ const setup = (overrides?: any) => (
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
 const openRefreshIntervalModal = async () => {
-  const headerActionsButton = screen.getByRole('img', { name: 'more-horiz' });
-  userEvent.click(headerActionsButton);
-
   const autoRefreshOption = screen.getByText('Set auto-refresh interval');
   userEvent.click(autoRefreshOption);
 };
@@ -134,6 +147,7 @@ const defaultRefreshIntervalModalProps = {
   onChange: jest.fn(),
   editMode: true,
   addSuccessToast: jest.fn(),
+  refreshIntervalOptions: [],
 };
 
 describe('RefreshIntervalModal - RTL', () => {

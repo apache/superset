@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
+
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 
@@ -65,10 +67,22 @@ export const URL_PARAMS = {
   },
   sliceId: {
     name: 'slice_id',
+    type: 'number',
+  },
+  datasourceId: {
+    name: 'datasource_id',
     type: 'string',
   },
   datasetId: {
     name: 'dataset_id',
+    type: 'string',
+  },
+  datasourceType: {
+    name: 'datasource_type',
+    type: 'string',
+  },
+  dashboardId: {
+    name: 'dashboard_id',
     type: 'string',
   },
   force: {
@@ -79,11 +93,33 @@ export const URL_PARAMS = {
     name: 'permalink_key',
     type: 'string',
   },
+  vizType: {
+    name: 'viz_type',
+    type: 'string',
+  },
+  showDatabaseModal: {
+    name: 'show_database_modal',
+    type: 'boolean',
+  },
+  saveAction: {
+    name: 'save_action',
+    type: 'string',
+  },
+  dashboardPageId: {
+    name: 'dashboard_page_id',
+    type: 'string',
+  },
+  dashboardFocusedChart: {
+    name: 'focused_chart',
+    type: 'number',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
   URL_PARAMS.formDataKey.name,
   URL_PARAMS.sliceId.name,
+  URL_PARAMS.datasourceId.name,
+  URL_PARAMS.datasourceType.name,
   URL_PARAMS.datasetId.name,
 ];
 export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
@@ -107,3 +143,55 @@ export const SLOW_DEBOUNCE = 500;
  * Display null as `N/A`
  */
 export const NULL_DISPLAY = 'N/A';
+
+export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
+  flash_messages: [],
+  conf: {},
+  locale: 'en',
+  feature_flags: {},
+  language_pack: {
+    domain: '',
+    locale_data: {
+      superset: {
+        '': {
+          domain: 'superset',
+          lang: 'en',
+          plural_forms: '',
+        },
+      },
+    },
+  },
+  extra_categorical_color_schemes: [],
+  extra_sequential_color_schemes: [],
+  theme_overrides: {},
+  menu_data: {
+    menu: [],
+    brand: {
+      path: '',
+      icon: '',
+      alt: '',
+      tooltip: '',
+      text: '',
+    },
+    navbar_right: {
+      show_watermark: true,
+      languages: {},
+      show_language_picker: true,
+      user_is_anonymous: false,
+      user_info_url: '',
+      user_login_url: '',
+      user_logout_url: '',
+      user_profile_url: '',
+      locale: '',
+    },
+    settings: [],
+    environment_tag: {
+      text: '',
+      color: '',
+    },
+  },
+};
+
+export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
+  common: DEFAULT_COMMON_BOOTSTRAP_DATA,
+};

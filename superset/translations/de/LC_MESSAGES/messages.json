@@ -279,16 +279,16 @@
       "Alert query returned a non-number value.": [
         "Die Alarm-Abfrage hat einen nicht-numerischen Wert zurückgegeben."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "Die Alarm-Abfrage hat mehr als eine Spalte zurückgegeben."
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "Die Alarmabfrage hat mehr als eine Spalte zurückgegeben. %s Spalten zurückgegegeben"
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "Die Alarm-Abfrage hat mehr als eine Zeile zurückgegeben."
       ],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "Die Alarmabfrage hat mehr als eine Zeile zurückgegeben. %s zurückgegebene Zeilen"
       ],
       "Alert running": ["Alarm wird ausgeführt"],
@@ -1963,7 +1963,7 @@
       "Font size for the smallest value in the list": [
         "Schriftgröße für den kleinsten Wert in der Liste"
       ],
-      "For Presto and Postgres, shows a button to compute cost before running a query.": [
+      "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         "Für Presto und Postgres wird ein Buttons angezeigt, um Kosten vor dem Ausführen einer Abfrage zu schätzen."
       ],
       "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.": [

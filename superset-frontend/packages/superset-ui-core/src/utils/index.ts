@@ -26,5 +26,7 @@ export { default as makeSingleton } from './makeSingleton';
 export { default as promiseTimeout } from './promiseTimeout';
 export { default as logging } from './logging';
 export { default as removeDuplicates } from './removeDuplicates';
+export { lruCache } from './lruCache';
 export * from './featureFlags';
 export * from './random';
+export * from './typedMemo';

@@ -18,11 +18,11 @@
 import copy
 import json
 import time
-
+from unittest.mock import patch
 import pytest
 
 import tests.integration_tests.test_app  # pylint: disable=unused-import
-from superset import db
+from superset import db, security_manager
 from superset.dashboards.dao import DashboardDAO
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -35,15 +35,17 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
 class TestDashboardDAO(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_set_dash_metadata(self):
-        dash = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        dash: Dashboard = (
+            db.session.query(Dashboard).filter_by(slug="world_health").first()
+        )
         data = dash.data
         positions = data["position_json"]
         data.update({"positions": positions})
         original_data = copy.deepcopy(data)
 
         # add filter scopes
-        filter_slice = dash.slices[0]
-        immune_slices = dash.slices[2:]
+        filter_slice = next(slc for slc in dash.slices if slc.viz_type == "filter_box")
+        immune_slices = [slc for slc in dash.slices if slc != filter_slice]
         filter_scopes = {
             str(filter_slice.id): {
                 "region": {
@@ -59,14 +61,15 @@ class TestDashboardDAO(SupersetTestCase):
 
         # remove a slice and change slice ids (as copy slices)
         removed_slice = immune_slices.pop()
-        removed_component = [
+        removed_components = [
             key
             for (key, value) in positions.items()
             if isinstance(value, dict)
             and value.get("type") == "CHART"
             and value["meta"]["chartId"] == removed_slice.id
         ]
-        positions.pop(removed_component[0], None)
+        for component_id in removed_components:
+            del positions[component_id]
 
         data.update({"positions": positions})
         DashboardDAO.set_dash_metadata(dash, data)
@@ -85,37 +88,42 @@ class TestDashboardDAO(SupersetTestCase):
         DashboardDAO.set_dash_metadata(dash, original_data)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_dashboard_changed_on(self):
-        self.login(username="admin")
-        session = db.session()
-        dashboard = session.query(Dashboard).filter_by(slug="world_health").first()
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_get_dashboard_changed_on(self, mock_sm_g, mock_g):
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
+        with self.client.application.test_request_context():
+            self.login(username="admin")
+            dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").first()
+            )
 
-        changed_on = dashboard.changed_on.replace(microsecond=0)
-        assert changed_on == DashboardDAO.get_dashboard_changed_on(dashboard)
-        assert changed_on == DashboardDAO.get_dashboard_changed_on("world_health")
+            changed_on = dashboard.changed_on.replace(microsecond=0)
+            assert changed_on == DashboardDAO.get_dashboard_changed_on(dashboard)
+            assert changed_on == DashboardDAO.get_dashboard_changed_on("world_health")
 
-        old_changed_on = dashboard.changed_on
+            old_changed_on = dashboard.changed_on
 
-        # freezegun doesn't work for some reason, so we need to sleep here :(
-        time.sleep(1)
-        data = dashboard.data
-        positions = data["position_json"]
-        data.update({"positions": positions})
-        original_data = copy.deepcopy(data)
+            # freezegun doesn't work for some reason, so we need to sleep here :(
+            time.sleep(1)
+            data = dashboard.data
+            positions = data["position_json"]
+            data.update({"positions": positions})
+            original_data = copy.deepcopy(data)
 
-        data.update({"foo": "bar"})
-        DashboardDAO.set_dash_metadata(dashboard, data)
-        session.merge(dashboard)
-        session.commit()
-        new_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
-        assert old_changed_on.replace(microsecond=0) < new_changed_on
-        assert new_changed_on == DashboardDAO.get_dashboard_and_datasets_changed_on(
-            dashboard
-        )
-        assert new_changed_on == DashboardDAO.get_dashboard_and_slices_changed_on(
-            dashboard
-        )
+            data.update({"foo": "bar"})
+            DashboardDAO.set_dash_metadata(dashboard, data)
+            db.session.merge(dashboard)
+            db.session.commit()
+            new_changed_on = DashboardDAO.get_dashboard_changed_on(dashboard)
+            assert old_changed_on.replace(microsecond=0) < new_changed_on
+            assert new_changed_on == DashboardDAO.get_dashboard_and_datasets_changed_on(
+                dashboard
+            )
+            assert new_changed_on == DashboardDAO.get_dashboard_and_slices_changed_on(
+                dashboard
+            )
 
-        DashboardDAO.set_dash_metadata(dashboard, original_data)
-        session.merge(dashboard)
-        session.commit()
+            DashboardDAO.set_dash_metadata(dashboard, original_data)
+            db.session.merge(dashboard)
+            db.session.commit()

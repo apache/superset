@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/plugin-chart-handlebars",
-  "version": "0.0.0",
+  "version": "0.18.26",
   "description": "Superset Chart - Write a handlebars template to render the data",
   "sideEffects": false,
   "main": "lib/index.js",
@@ -26,7 +26,8 @@
     "access": "public"
   },
   "dependencies": {
-    "handlebars": "^4.7.7"
+    "handlebars": "^4.7.7",
+    "just-handlebars-helpers": "^1.0.19"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
@@ -35,12 +36,12 @@
     "lodash": "^4.17.11",
     "moment": "^2.26.0",
     "react": "^16.13.1",
-    "react-ace": "^9.4.4",
+    "react-ace": "^10.1.0",
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.149",
     "@types/jest": "^26.0.0",
+    "@types/lodash": "^4.14.149",
     "jest": "^26.0.1"
   }
 }

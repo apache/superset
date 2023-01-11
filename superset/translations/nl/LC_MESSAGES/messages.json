@@ -909,10 +909,10 @@
         "Verwijderde %(num)d rapport schema’s"
       ],
       "Value must be greater than 0": ["Waarde moet groter zijn dan 0"],
-      "Alert query returned more then one row. %s rows returned": [
+      "Alert query returned more than one row. %s rows returned": [
         "Alert query heeft meer dan één rij geretourneerd. %s rijen geretourneerd"
       ],
-      "Alert query returned more then one column. %s columns returned": [
+      "Alert query returned more than one column. %s columns returned": [
         "Alert query retourneerde meer dan één kolom. %s kolommen geretourneerd"
       ],
       "Dashboard does not exist": ["Het dashboard bestaat niet"],
@@ -965,13 +965,13 @@
       "Report Schedule reached a working timeout.": [
         "Rapportage planning heeft een werk time-out bereikt."
       ],
-      "Alert query returned more then one row.": [
+      "Alert query returned more than one row.": [
         "Alert query retourneerde meer dan één rij."
       ],
       "Alert validator config error.": [
         "Waarschuwing validator configuratiefout."
       ],
-      "Alert query returned more then one column.": [
+      "Alert query returned more than one column.": [
         "Alert query heeft meer dan één kolom geretourneerd."
       ],
       "Alert query returned a non-number value.": [
@@ -2454,6 +2454,8 @@
       ],
       "X-axis": [""],
       "Dimension to use on x-axis.": [""],
+      "Y-axis": [""],
+      "Dimension to use on y-axis.": [""],
       "Percentage threshold": [""],
       "Minimum threshold in percentage points for showing labels.": [""],
       "Rich tooltip": [""],
@@ -3478,7 +3480,7 @@
       "This dashboard was saved successfully.": [
         "Dit dashboard is succesvol opgeslagen."
       ],
-      "Sorry, an unknown error occured": [""],
+      "Sorry, an unknown error occurred": [""],
       "Sorry, there was an error saving this dashboard: %s": [""],
       "You do not have permission to edit this dashboard": [
         "U hebt geen toestemming om dit dashboard te bewerken"
@@ -4485,7 +4487,7 @@
         "Sta manipulatie van de database toe met niet-SELECT statements zoals UPDATE, DELETE, CREATE, enz."
       ],
       "Enable query cost estimation": [""],
-      "For Presto and Postgres, shows a button to compute cost before running a query.": [
+      "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.": [
         ""
       ],
       "Allow this database to be explored": [""],

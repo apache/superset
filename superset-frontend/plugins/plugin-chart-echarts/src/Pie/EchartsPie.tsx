@@ -19,18 +19,20 @@
 import React, { useCallback } from 'react';
 import { PieChartTransformedProps } from './types';
 import Echart from '../components/Echart';
-import { EventHandlers } from '../types';
+import { allEventHandlers } from '../utils/eventHandlers';
 
-export default function EchartsPie({
-  height,
-  width,
-  echartOptions,
-  setDataMask,
-  labelMap,
-  groupby,
-  selectedValues,
-  formData,
-}: PieChartTransformedProps) {
+export default function EchartsPie(props: PieChartTransformedProps) {
+  const {
+    height,
+    width,
+    echartOptions,
+    setDataMask,
+    labelMap,
+    groupby,
+    selectedValues,
+    formData,
+    refs,
+  } = props;
   const handleChange = useCallback(
     (values: string[]) => {
       if (!formData.emitFilter) {
@@ -67,20 +69,11 @@ export default function EchartsPie({
     [groupby, labelMap, setDataMask, selectedValues],
   );
 
-  const eventHandlers: EventHandlers = {
-    click: props => {
-      const { name } = props;
-      const values = Object.values(selectedValues);
-      if (values.includes(name)) {
-        handleChange(values.filter(v => v !== name));
-      } else {
-        handleChange([name]);
-      }
-    },
-  };
+  const eventHandlers = allEventHandlers(props, handleChange);
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

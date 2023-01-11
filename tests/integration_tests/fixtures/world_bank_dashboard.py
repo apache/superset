@@ -50,21 +50,22 @@ def load_world_bank_data():
             "country_name": String(255),
             "region": String(255),
         }
-        _get_dataframe(database).to_sql(
-            WB_HEALTH_POPULATION,
-            get_example_database().get_sqla_engine(),
-            if_exists="replace",
-            chunksize=500,
-            dtype=dtype,
-            index=False,
-            method="multi",
-            schema=get_example_default_schema(),
-        )
+        with database.get_sqla_engine_with_context() as engine:
+            _get_dataframe(database).to_sql(
+                WB_HEALTH_POPULATION,
+                engine,
+                if_exists="replace",
+                chunksize=500,
+                dtype=dtype,
+                index=False,
+                method="multi",
+                schema=get_example_default_schema(),
+            )
 
     yield
     with app.app_context():
-        engine = get_example_database().get_sqla_engine()
-        engine.execute("DROP TABLE IF EXISTS wb_health_population")
+        with get_example_database().get_sqla_engine_with_context() as engine:
+            engine.execute("DROP TABLE IF EXISTS wb_health_population")
 
 
 @pytest.fixture()
@@ -87,7 +88,7 @@ def create_dashboard_for_loaded_data():
     with app.app_context():
         table = create_table_metadata(WB_HEALTH_POPULATION, get_example_database())
         slices = _create_world_bank_slices(table)
-        dash = _create_world_bank_dashboard(table, slices)
+        dash = _create_world_bank_dashboard(table)
         slices_ids_to_delete = [slice.id for slice in slices]
         dash_id_to_delete = dash.id
         return dash_id_to_delete, slices_ids_to_delete
@@ -110,12 +111,12 @@ def _commit_slices(slices: List[Slice]):
         db.session.commit()
 
 
-def _create_world_bank_dashboard(table: SqlaTable, slices: List[Slice]) -> Dashboard:
+def _create_world_bank_dashboard(table: SqlaTable) -> Dashboard:
     from superset.examples.helpers import update_slice_ids
     from superset.examples.world_bank import dashboard_positions
 
     pos = dashboard_positions
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
 
     table.fetch_metadata()
 

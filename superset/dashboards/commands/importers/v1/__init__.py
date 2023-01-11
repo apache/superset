@@ -139,5 +139,4 @@ class ImportDashboardsCommand(ImportModelsCommand):
             {"dashboard_id": dashboard_id, "slice_id": chart_id}
             for (dashboard_id, chart_id) in dashboard_chart_ids
         ]
-        # pylint: disable=no-value-for-parameter # sqlalchemy/issues/4656
         session.execute(dashboard_slices.insert(), values)

@@ -29,10 +29,11 @@ from superset.connectors.sqla.models import SqlMetric
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import core as utils
+from superset.utils.core import DatasourceType
 
 from ..connectors.base.models import BaseDatasource
 from .helpers import (
-    get_example_data,
+    get_example_url,
     get_examples_folder,
     get_slice_json,
     get_table_connector_registry,
@@ -50,37 +51,38 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
     """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = "wb_health_population"
     database = superset.utils.database.get_example_database()
-    engine = database.get_sqla_engine()
-    schema = inspect(engine).default_schema_name
-    table_exists = database.has_table_by_name(tbl_name)
+    with database.get_sqla_engine_with_context() as engine:
 
-    if not only_metadata and (not table_exists or force):
-        data = get_example_data("countries.json.gz")
-        pdf = pd.read_json(data)
-        pdf.columns = [col.replace(".", "_") for col in pdf.columns]
-        if database.backend == "presto":
-            pdf.year = pd.to_datetime(pdf.year)
-            pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
-        else:
-            pdf.year = pd.to_datetime(pdf.year)
-        pdf = pdf.head(100) if sample else pdf
+        schema = inspect(engine).default_schema_name
+        table_exists = database.has_table_by_name(tbl_name)
 
-        pdf.to_sql(
-            tbl_name,
-            engine,
-            schema=schema,
-            if_exists="replace",
-            chunksize=50,
-            dtype={
-                # TODO(bkyryliuk): use TIMESTAMP type for presto
-                "year": DateTime if database.backend != "presto" else String(255),
-                "country_code": String(3),
-                "country_name": String(255),
-                "region": String(255),
-            },
-            method="multi",
-            index=False,
-        )
+        if not only_metadata and (not table_exists or force):
+            url = get_example_url("countries.json.gz")
+            pdf = pd.read_json(url, compression="gzip")
+            pdf.columns = [col.replace(".", "_") for col in pdf.columns]
+            if database.backend == "presto":
+                pdf.year = pd.to_datetime(pdf.year)
+                pdf.year = pdf.year.dt.strftime("%Y-%m-%d %H:%M%:%S")
+            else:
+                pdf.year = pd.to_datetime(pdf.year)
+            pdf = pdf.head(100) if sample else pdf
+
+            pdf.to_sql(
+                tbl_name,
+                engine,
+                schema=schema,
+                if_exists="replace",
+                chunksize=50,
+                dtype={
+                    # TODO(bkyryliuk): use TIMESTAMP type for presto
+                    "year": DateTime if database.backend != "presto" else String(255),
+                    "country_code": String(3),
+                    "country_name": String(255),
+                    "region": String(255),
+                },
+                method="multi",
+                index=False,
+            )
 
     print("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()
@@ -128,13 +130,12 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-s
         dash = Dashboard()
     dash.published = True
     pos = dashboard_positions
-    update_slice_ids(pos, slices)
+    slices = update_slice_ids(pos)
 
     dash.dashboard_title = dash_name
     dash.position_json = json.dumps(pos, indent=4)
     dash.slug = slug
-
-    dash.slices = slices[:-1]
+    dash.slices = slices
     db.session.merge(dash)
     db.session.commit()
 
@@ -173,7 +174,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Region Filter",
             viz_type="filter_box",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -202,7 +203,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="World's Population",
             viz_type="big_number",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -216,7 +217,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Most Populated Countries",
             viz_type="table",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -228,7 +229,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Growth Rate",
             viz_type="line",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -242,7 +243,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="% Rural",
             viz_type="world_map",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -255,7 +256,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Life Expectancy VS Rural %",
             viz_type="bubble",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -299,7 +300,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Rural Breakdown",
             viz_type="sunburst",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -314,7 +315,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="World's Pop Growth",
             viz_type="area",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -328,7 +329,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Box plot",
             viz_type="box_plot",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -344,7 +345,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Treemap",
             viz_type="treemap",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -358,7 +359,7 @@ def create_slices(tbl: BaseDatasource) -> List[Slice]:
         Slice(
             slice_name="Parallel Coordinates",
             viz_type="para",
-            datasource_type="table",
+            datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
@@ -458,12 +459,6 @@ dashboard_positions = {
         "children": [],
         "id": "CHART-a4808bba",
         "meta": {"chartId": 49, "height": 50, "sliceName": "Treemap", "width": 8},
-        "type": "CHART",
-    },
-    "CHART-3nc0d8sk": {
-        "children": [],
-        "id": "CHART-3nc0d8sk",
-        "meta": {"chartId": 50, "height": 50, "sliceName": "Treemap", "width": 8},
         "type": "CHART",
     },
     "COLUMN-071bbbad": {

@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { ensureIsInt, t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -26,6 +26,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   sections,
   emitFilterControl,
+  getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -100,12 +101,12 @@ const config: ControlPanelConfig = {
               default: labelType,
               renderTrigger: true,
               choices: [
-                ['key', 'Category Name'],
-                ['value', 'Value'],
-                ['percent', 'Percentage'],
-                ['key_value', 'Category and Value'],
-                ['key_percent', 'Category and Percentage'],
-                ['key_value_percent', 'Category, Value and Percentage'],
+                ['key', t('Category Name')],
+                ['value', t('Value')],
+                ['percent', t('Percentage')],
+                ['key_value', t('Category and Value')],
+                ['key_percent', t('Category and Percentage')],
+                ['key_value_percent', t('Category, Value and Percentage')],
               ],
               description: t('What should be shown on the label?'),
             },
@@ -124,6 +125,7 @@ const config: ControlPanelConfig = {
               description: `${t(
                 'D3 format syntax: https://github.com/d3/d3-format',
               )} ${t('Only applies when "Label Type" is set to show values.')}`,
+              tokenSeparators: ['\n', '\t', ';'],
             },
           },
         ],
@@ -253,6 +255,13 @@ const config: ControlPanelConfig = {
       default: 100,
     },
   },
+  formDataOverrides: formData => ({
+    ...formData,
+    metric: getStandardizedControls().shiftMetric(),
+    groupby: getStandardizedControls().popAllColumns(),
+    row_limit:
+      ensureIsInt(formData.row_limit, 100) >= 100 ? 100 : formData.row_limit,
+  }),
 };
 
 export default config;

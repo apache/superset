@@ -21,7 +21,7 @@ import copy
 from sqlalchemy.orm.session import Session
 
 
-def test_import_chart(app_context: None, session: Session) -> None:
+def test_import_chart(session: Session) -> None:
     """
     Test importing a chart.
     """
@@ -45,7 +45,7 @@ def test_import_chart(app_context: None, session: Session) -> None:
     assert chart.external_url is None
 
 
-def test_import_chart_managed_externally(app_context: None, session: Session) -> None:
+def test_import_chart_managed_externally(session: Session) -> None:
     """
     Test importing a chart that is managed externally.
     """

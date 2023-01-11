@@ -19,7 +19,7 @@
 /* eslint-disable camelcase */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { t, styled, ensureIsArray } from '@superset-ui/core';
+import { t, styled, ensureIsArray, DatasourceType } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
 import Button from 'src/components/Button';
 import { Select } from 'src/components';
@@ -323,15 +323,6 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
       autoFocus: true,
     };
 
-    if (
-      this.props.datasource?.type === 'druid' &&
-      aggregateSelectProps.options
-    ) {
-      aggregateSelectProps.options = aggregateSelectProps.options.filter(
-        aggregate => aggregate !== 'AVG',
-      );
-    }
-
     const stateIsValid = adhocMetric.isValid() || savedMetric?.metric_name;
     const hasUnsavedChanges =
       !adhocMetric.equals(propsAdhocMetric) ||
@@ -379,13 +370,33 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
                   {...savedSelectProps}
                 />
               </FormItem>
-            ) : (
+            ) : datasource.type === DatasourceType.Table ? (
               <EmptyStateSmall
                 image="empty.svg"
                 title={t('No saved metrics found')}
                 description={t(
                   'Add metrics to dataset in "Edit datasource" modal',
                 )}
+              />
+            ) : (
+              <EmptyStateSmall
+                image="empty.svg"
+                title={t('No saved metrics found')}
+                description={
+                  <>
+                    <span
+                      tabIndex={0}
+                      role="button"
+                      onClick={() => {
+                        this.props.handleDatasetModal(true);
+                        this.props.onClose();
+                      }}
+                    >
+                      {t('Create a dataset')}
+                    </span>
+                    {t(' to add metrics')}
+                  </>
+                }
               />
             )}
           </Tabs.TabPane>
@@ -431,18 +442,11 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
           <Tabs.TabPane
             key={EXPRESSION_TYPES.SQL}
             tab={
-              extra.disallow_adhoc_metrics ||
-              this.props.datasource?.type === 'druid' ? (
+              extra.disallow_adhoc_metrics ? (
                 <Tooltip
-                  title={
-                    this.props.datasource?.type === 'druid'
-                      ? t(
-                          'Custom SQL ad-hoc metrics are not available for the native Druid connector',
-                        )
-                      : t(
-                          'Custom SQL ad-hoc metrics are not enabled for this dataset',
-                        )
-                  }
+                  title={t(
+                    'Custom SQL ad-hoc metrics are not enabled for this dataset',
+                  )}
                 >
                   {t('Custom SQL')}
                 </Tooltip>
@@ -451,10 +455,7 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
               )
             }
             data-test="adhoc-metric-edit-tab#custom"
-            disabled={
-              extra.disallow_adhoc_metrics ||
-              this.props.datasource?.type === 'druid'
-            }
+            disabled={extra.disallow_adhoc_metrics}
           >
             <SQLEditor
               data-test="sql-editor"
@@ -486,10 +487,8 @@ export default class AdhocMetricEditPopover extends React.PureComponent {
             {t('Close')}
           </Button>
           <Button
-            disabled={!stateIsValid}
-            buttonStyle={
-              hasUnsavedChanges && stateIsValid ? 'primary' : 'default'
-            }
+            disabled={!stateIsValid || !hasUnsavedChanges}
+            buttonStyle="primary"
             buttonSize="small"
             data-test="AdhocMetricEdit#save"
             onClick={this.onSave}

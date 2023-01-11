@@ -89,3 +89,13 @@ export type FrameComponentProps = {
   onChange: (timeRange: string) => void;
   value: string;
 };
+
+export interface DateFilterControlProps {
+  name: string;
+  onChange: (timeRange: string) => void;
+  value?: string;
+  onOpenPopover?: () => void;
+  onClosePopover?: () => void;
+  overlayStyle?: 'Modal' | 'Popover';
+  isOverflowingFilterBar?: boolean;
+}

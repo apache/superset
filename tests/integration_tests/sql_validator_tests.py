@@ -48,12 +48,15 @@ class TestSqlValidatorEndpoint(SupersetTestCase):
     def tearDown(self):
         self.logout()
 
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        {},
+        clear=True,
+    )
     def test_validate_sql_endpoint_noconfig(self):
         """Assert that validate_sql_json errors out when no validators are
         configured for any db"""
         self.login("admin")
-
-        app.config["SQL_VALIDATORS_BY_ENGINE"] = {}
 
         resp = self.validate_sql(
             "SELECT * FROM birth_names", client_id="1", raise_on_error=False
@@ -171,7 +174,9 @@ class TestPrestoValidator(SupersetTestCase):
     def setUp(self):
         self.validator = PrestoDBSQLValidator
         self.database = MagicMock()
-        self.database_engine = self.database.get_sqla_engine.return_value
+        self.database_engine = (
+            self.database.get_sqla_engine_with_context.return_value.__enter__.return_value
+        )
         self.database_conn = self.database_engine.raw_connection.return_value
         self.database_cursor = self.database_conn.cursor.return_value
         self.database_cursor.poll.return_value = None
@@ -184,7 +189,7 @@ class TestPrestoValidator(SupersetTestCase):
         "message": "your query isn't how I like it",
     }
 
-    @patch("superset.sql_validators.presto_db.g")
+    @patch("superset.utils.core.g")
     def test_validator_success(self, flask_g):
         flask_g.user.username = "nobody"
         sql = "SELECT 1 FROM default.notarealtable"
@@ -194,7 +199,7 @@ class TestPrestoValidator(SupersetTestCase):
 
         self.assertEqual([], errors)
 
-    @patch("superset.sql_validators.presto_db.g")
+    @patch("superset.utils.core.g")
     def test_validator_db_error(self, flask_g):
         flask_g.user.username = "nobody"
         sql = "SELECT 1 FROM default.notarealtable"
@@ -206,7 +211,7 @@ class TestPrestoValidator(SupersetTestCase):
         with self.assertRaises(PrestoSQLValidationError):
             self.validator.validate(sql, schema, self.database)
 
-    @patch("superset.sql_validators.presto_db.g")
+    @patch("superset.utils.core.g")
     def test_validator_unexpected_error(self, flask_g):
         flask_g.user.username = "nobody"
         sql = "SELECT 1 FROM default.notarealtable"
@@ -218,7 +223,7 @@ class TestPrestoValidator(SupersetTestCase):
         with self.assertRaises(Exception):
             self.validator.validate(sql, schema, self.database)
 
-    @patch("superset.sql_validators.presto_db.g")
+    @patch("superset.utils.core.g")
     def test_validator_query_error(self, flask_g):
         flask_g.user.username = "nobody"
         sql = "SELECT 1 FROM default.notarealtable"
@@ -231,6 +236,11 @@ class TestPrestoValidator(SupersetTestCase):
 
         self.assertEqual(1, len(errors))
 
+    @patch.dict(
+        "superset.config.SQL_VALIDATORS_BY_ENGINE",
+        {},
+        clear=True,
+    )
     def test_validate_sql_endpoint(self):
         self.login("admin")
         # NB this is effectively an integration test -- when there's a default

@@ -16,21 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  DataRecordValue,
+  BinaryQueryObjectFilterClause,
+} from '@superset-ui/core';
 import React, { useCallback } from 'react';
 import Echart from '../components/Echart';
+import { NULL_STRING } from '../constants';
 import { EventHandlers } from '../types';
 import { extractTreePathInfo } from './constants';
 import { TreemapTransformedProps } from './types';
 
 export default function EchartsTreemap({
-  height,
-  width,
   echartOptions,
-  setDataMask,
-  labelMap,
-  groupby,
-  selectedValues,
   formData,
+  groupby,
+  height,
+  labelMap,
+  onContextMenu,
+  refs,
+  setDataMask,
+  selectedValues,
+  width,
 }: TreemapTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
@@ -46,7 +53,7 @@ export default function EchartsTreemap({
             values.length === 0
               ? []
               : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
+                  const val: DataRecordValue[] = groupbyValues.map(v => v[idx]);
                   if (val === null || val === undefined)
                     return {
                       col,
@@ -71,7 +78,7 @@ export default function EchartsTreemap({
   const eventHandlers: EventHandlers = {
     click: props => {
       const { data, treePathInfo } = props;
-      // do noting when clicking the parent node
+      // do nothing when clicking on the parent node
       if (data?.children) {
         return;
       }
@@ -84,10 +91,30 @@ export default function EchartsTreemap({
         handleChange([name]);
       }
     },
+    contextmenu: eventParams => {
+      if (onContextMenu) {
+        eventParams.event.stop();
+        const { treePath } = extractTreePathInfo(eventParams.treePathInfo);
+        if (treePath.length > 0) {
+          const pointerEvent = eventParams.event.event;
+          const filters: BinaryQueryObjectFilterClause[] = [];
+          treePath.forEach((path, i) =>
+            filters.push({
+              col: groupby[i],
+              op: '==',
+              val: path === 'null' ? NULL_STRING : path,
+              formattedVal: path,
+            }),
+          );
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+        }
+      }
+    },
   };
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

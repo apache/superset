@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { styled, t } from '@superset-ui/core';
+import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { Form, FormItem, FormProps } from 'src/components/Form';
 import Select from 'src/components/Select/Select';
 import { Col, Row } from 'src/components';
@@ -38,14 +38,14 @@ const JustifyEnd = styled.div`
   justify-content: flex-end;
 `;
 
-const colorSchemeOptions = [
-  { value: 'rgb(0,255,0)', label: t('green') },
-  { value: 'rgb(255,255,0)', label: t('yellow') },
-  { value: 'rgb(255,0,0)', label: t('red') },
+const colorSchemeOptions = (theme: SupersetTheme) => [
+  { value: theme.colors.success.light1, label: t('green') },
+  { value: theme.colors.alert.light1, label: t('yellow') },
+  { value: theme.colors.error.light1, label: t('red') },
 ];
 
 const operatorOptions = [
-  { value: COMPARATOR.NONE, label: 'None' },
+  { value: COMPARATOR.NONE, label: t('None') },
   { value: COMPARATOR.GREATER_THAN, label: '>' },
   { value: COMPARATOR.LESS_THAN, label: '<' },
   { value: COMPARATOR.GREATER_OR_EQUAL, label: '≥' },
@@ -187,44 +187,48 @@ export const FormattingPopoverContent = ({
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string }[];
-}) => (
-  <Form
-    onFinish={onChange}
-    initialValues={config}
-    requiredMark="optional"
-    layout="vertical"
-  >
-    <Row gutter={12}>
-      <Col span={12}>
-        <FormItem
-          name="column"
-          label={t('Column')}
-          rules={rulesRequired}
-          initialValue={columns[0]?.value}
-        >
-          <Select ariaLabel={t('Select column')} options={columns} />
-        </FormItem>
-      </Col>
-      <Col span={12}>
-        <FormItem
-          name="colorScheme"
-          label={t('Color scheme')}
-          rules={rulesRequired}
-          initialValue={colorSchemeOptions[0].value}
-        >
-          <Select ariaLabel={t('Color scheme')} options={colorSchemeOptions} />
-        </FormItem>
-      </Col>
-    </Row>
-    <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
-      {renderOperatorFields}
-    </FormItem>
-    <FormItem>
-      <JustifyEnd>
-        <Button htmlType="submit" buttonStyle="primary">
-          {t('Apply')}
-        </Button>
-      </JustifyEnd>
-    </FormItem>
-  </Form>
-);
+}) => {
+  const theme = useTheme();
+  const colorScheme = colorSchemeOptions(theme);
+  return (
+    <Form
+      onFinish={onChange}
+      initialValues={config}
+      requiredMark="optional"
+      layout="vertical"
+    >
+      <Row gutter={12}>
+        <Col span={12}>
+          <FormItem
+            name="column"
+            label={t('Column')}
+            rules={rulesRequired}
+            initialValue={columns[0]?.value}
+          >
+            <Select ariaLabel={t('Select column')} options={columns} />
+          </FormItem>
+        </Col>
+        <Col span={12}>
+          <FormItem
+            name="colorScheme"
+            label={t('Color scheme')}
+            rules={rulesRequired}
+            initialValue={colorScheme[0].value}
+          >
+            <Select ariaLabel={t('Color scheme')} options={colorScheme} />
+          </FormItem>
+        </Col>
+      </Row>
+      <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
+        {renderOperatorFields}
+      </FormItem>
+      <FormItem>
+        <JustifyEnd>
+          <Button htmlType="submit" buttonStyle="primary">
+            {t('Apply')}
+          </Button>
+        </JustifyEnd>
+      </FormItem>
+    </Form>
+  );
+};

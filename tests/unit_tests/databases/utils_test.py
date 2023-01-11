@@ -21,7 +21,7 @@ from sqlalchemy.orm.session import Session
 from superset.databases.utils import make_url_safe
 
 
-def test_make_url_safe_string(app_context: None, session: Session) -> None:
+def test_make_url_safe_string(session: Session) -> None:
     """
     Test converting a string to a safe uri
     """
@@ -31,7 +31,7 @@ def test_make_url_safe_string(app_context: None, session: Session) -> None:
     assert uri_safe == make_url(uri_string)
 
 
-def test_make_url_safe_url(app_context: None, session: Session) -> None:
+def test_make_url_safe_url(session: Session) -> None:
     """
     Test converting a url to a safe uri
     """

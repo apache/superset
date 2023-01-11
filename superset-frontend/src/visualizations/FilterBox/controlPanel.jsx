@@ -32,7 +32,7 @@ export default {
             name: 'filter_configs',
             config: {
               type: 'CollectionControl',
-              label: 'Filters',
+              label: t('Filters'),
               description: t('Filter configuration for the filter box'),
               validators: [],
               controlName: 'FilterBoxItemControl',
@@ -63,6 +63,28 @@ export default {
               description: t(
                 'Check to apply filters instantly as they change instead of displaying [Apply] button',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_sqla_time_granularity',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show time grain dropdown'),
+              default: false,
+              description: t('Check to include time grain dropdown'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'show_sqla_time_column',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show time column'),
+              default: false,
+              description: t('Check to include time column dropdown'),
             },
           },
         ],

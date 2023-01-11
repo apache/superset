@@ -49,10 +49,6 @@ const StyledDatasourceModal = styled(Modal)`
   .modal-footer {
     flex: 0 1 auto;
   }
-
-  .ant-modal-body {
-    overflow: visible;
-  }
 `;
 
 interface DatasourceModalProps {
@@ -88,6 +84,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const [errors, setErrors] = useState<any[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
   const dialog = useRef<any>(null);
   const [modal, contextHolder] = Modal.useModal();
 
@@ -136,7 +133,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         setIsSaving(false);
         getClientErrorObject(response).then(({ error }) => {
           modal.error({
-            title: 'Error',
+            title: t('Error'),
             content: error || t('An error has occurred'),
             okButtonProps: { danger: true, className: 'btn-danger' },
           });
@@ -197,6 +194,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
           <strong>{currentDatasource.table_name}</strong>
         </span>
       }
+      maskClosable={!isEditing}
       footer={
         <>
           {showLegacyDatasourceEditor && (
@@ -250,6 +248,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         height={500}
         datasource={currentDatasource}
         onChange={onDatasourceChange}
+        setIsEditing={setIsEditing}
       />
       {contextHolder}
     </StyledDatasourceModal>

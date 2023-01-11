@@ -22,13 +22,14 @@ metadata:
   annotations:
     "helm.sh/hook": post-install,post-upgrade
     "helm.sh/hook-delete-policy": "before-hook-creation"
+  namespace: {{ .Release.Namespace }}
 spec:
   template:
     metadata:
       name: {{ template "superset.name" . }}-init-db
       {{- if .Values.init.podAnnotations }}
       annotations:
-        {{ toYaml .Values.init.podAnnotations | nindent 8 }}
+        {{- toYaml .Values.init.podAnnotations | nindent 8 }}
       {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
@@ -36,6 +37,9 @@ spec:
       {{- end }}
       securityContext:
         runAsUser: {{ .Values.runAsUser }}
+      {{- if .Values.init.podSecurityContext }}
+        {{- toYaml .Values.init.podSecurityContext | nindent 8 }}
+      {{- end }}
       {{- if .Values.init.initContainers }}
       initContainers:
       {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
@@ -61,6 +65,9 @@ spec:
               name: {{ tpl . $ }}
           {{- end }}
         imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- if .Values.init.containerSecurityContext }}
+        securityContext: {{- toYaml .Values.init.containerSecurityContext | nindent 12 }}
+        {{- end }}
         volumeMounts:
           - name: superset-config
             mountPath: {{ .Values.configMountPath | quote }}
@@ -75,10 +82,10 @@ spec:
         {{- end }}
         command: {{  tpl (toJson .Values.init.command) . }}
         resources:
-{{ toYaml .Values.init.resources | indent 10 }}
-{{- if .Values.imagePullSecrets }}
+          {{- toYaml .Values.init.resources | nindent 10 }}
+      {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
-{{ toYaml .Values.imagePullSecrets | indent 8 }}
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
       {{- end }}
       volumes:
         - name: superset-config

@@ -23,12 +23,20 @@ import {
   TAB_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
-import { NativeFilterScope, t } from '@superset-ui/core';
+import { logging, NativeFilterScope, t } from '@superset-ui/core';
 import { BuildTreeLeafTitle, TreeItem } from './types';
 
 export const isShowTypeInTree = ({ type, meta }: LayoutItem, charts?: Charts) =>
   (type === TAB_TYPE || type === CHART_TYPE || type === DASHBOARD_ROOT_TYPE) &&
-  (!charts || charts[meta?.chartId]?.formData?.viz_type !== 'filter_box');
+  (!charts || charts[meta?.chartId]?.form_data?.viz_type !== 'filter_box');
+
+export const getNodeTitle = (node: LayoutItem) =>
+  node?.meta?.sliceNameOverride ??
+  node?.meta?.sliceName ??
+  node?.meta?.text ??
+  node?.meta?.defaultText ??
+  node?.id?.toString?.() ??
+  '';
 
 export const buildTree = (
   node: LayoutItem,
@@ -41,17 +49,15 @@ export const buildTree = (
 ) => {
   let itemToPass: TreeItem = treeItem;
   if (
+    node &&
+    treeItem &&
     isShowTypeInTree(node, charts) &&
     node.type !== DASHBOARD_ROOT_TYPE &&
-    validNodes.includes(node.id)
+    validNodes?.includes?.(node.id)
   ) {
     const title = buildTreeLeafTitle(
-      node.meta.sliceNameOverride ||
-        node.meta.sliceName ||
-        node.meta.text ||
-        node.meta.defaultText ||
-        node.id.toString(),
-      initiallyExcludedCharts.includes(node.meta?.chartId),
+      getNodeTitle(node),
+      initiallyExcludedCharts?.includes?.(node.meta?.chartId),
       t(
         "This chart might be incompatible with the filter (datasets don't match)",
       ),
@@ -65,17 +71,24 @@ export const buildTree = (
     treeItem.children.push(currentTreeItem);
     itemToPass = currentTreeItem;
   }
-  node.children.forEach(child =>
-    buildTree(
-      layout[child],
-      itemToPass,
-      layout,
-      charts,
-      validNodes,
-      initiallyExcludedCharts,
-      buildTreeLeafTitle,
-    ),
-  );
+  node?.children?.forEach?.(child => {
+    const node = layout?.[child];
+    if (node) {
+      buildTree(
+        node,
+        itemToPass,
+        layout,
+        charts,
+        validNodes,
+        initiallyExcludedCharts,
+        buildTreeLeafTitle,
+      );
+    } else {
+      logging.warn(
+        `Unable to find item with id: ${child} in the dashboard layout.  This may indicate you have invalid references in your dashboard and the references to id: ${child} should be removed.`,
+      );
+    }
+  });
 };
 
 const addInvisibleParents = (layout: Layout, item: string) => [

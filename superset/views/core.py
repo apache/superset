@@ -61,13 +61,13 @@ from superset.charts.dao import ChartDAO
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.base.models import BaseDatasource
-from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import (
     AnnotationDatasource,
     SqlaTable,
     SqlMetric,
     TableColumn,
 )
+from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -77,6 +77,7 @@ from superset.databases.dao import DatabaseDAO
 from superset.databases.filters import DatabaseFilter
 from superset.databases.utils import make_url_safe
 from superset.datasets.commands.exceptions import DatasetNotFoundError
+from superset.datasource.dao import DatasourceDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     CacheLoadError,
@@ -90,6 +91,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
+from superset.explore.form_data.commands.create import CreateFormDataCommand
 from superset.explore.form_data.commands.get import GetFormDataCommand
 from superset.explore.form_data.commands.parameters import CommandParameters
 from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
@@ -113,7 +115,7 @@ from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
-from superset.sqllab.execution_context_convertor import ExecutionContextConvertorImpl
+from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.query_render import SqlQueryRenderImpl
 from superset.sqllab.sql_json_executer import (
@@ -129,17 +131,22 @@ from superset.tasks.async_queries import load_explore_json_into_cache
 from superset.utils import core as utils, csv
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.cache import etag_cache
-from superset.utils.core import apply_max_row_limit, ReservedUrlParameters
+from superset.utils.core import (
+    apply_max_row_limit,
+    DatasourceType,
+    get_user_id,
+    ReservedUrlParameters,
+)
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import check_dashboard_access
 from superset.views.base import (
     api,
     BaseSupersetView,
-    check_ownership,
     common_bootstrap_payload,
     create_table_permissions,
     CsvResponse,
     data_payload_response,
+    deprecated,
     generate_download_headers,
     get_error_msg,
     handle_api_exception,
@@ -148,6 +155,7 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
+from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
     _deserialize_results_payload,
     bootstrap_user_data,
@@ -159,7 +167,7 @@ from superset.views.utils import (
     get_datasource_info,
     get_form_data,
     get_viz,
-    is_owner,
+    loads_request_json,
     sanitize_datasource_data,
 )
 from superset.viz import BaseViz
@@ -175,7 +183,6 @@ DATABASE_KEYS = [
     "allow_ctas",
     "allow_cvas",
     "allow_dml",
-    "allow_multi_schema_metadata_fetch",
     "allow_run_async",
     "allows_subquery",
     "backend",
@@ -188,7 +195,7 @@ DATABASE_KEYS = [
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
-PARAMETER_MISSING_ERR = (
+PARAMETER_MISSING_ERR = __(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."
@@ -205,6 +212,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/datasources/")
+    @deprecated()
     def datasources(self) -> FlaskResponse:
         return self.json_response(
             sorted(
@@ -250,7 +258,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     )
                     db_ds_names.add(fullname)
 
-        existing_datasources = ConnectorRegistry.get_all_datasources(db.session)
+        existing_datasources = SqlaTable.get_all_datasources(db.session)
         datasources = [d for d in existing_datasources if d.full_name in db_ds_names]
         role = security_manager.find_role(role_name)
         # remove all permissions
@@ -272,7 +280,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/request_access/")
+    @expose("/request_access/", methods=["POST"])
+    @deprecated()
     def request_access(self) -> FlaskResponse:
         datasources = set()
         dashboard_id = request.args.get("dashboard_id")
@@ -282,7 +291,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id = request.args.get("datasource_id")
         datasource_type = request.args.get("datasource_type")
         if datasource_id and datasource_type:
-            ds_class = ConnectorRegistry.sources.get(datasource_type)
+            ds_class = DatasourceDAO.sources.get(datasource_type)
             datasource = (
                 db.session.query(ds_class).filter_by(id=int(datasource_id)).one()
             )
@@ -315,14 +324,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/approve")
+    @expose("/approve", methods=["POST"])
+    @deprecated()
     def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
             for dar in session.query(DAR).all():
-                datasource = ConnectorRegistry.get_datasource(
-                    dar.datasource_type,
-                    dar.datasource_id,
-                    session,
+                datasource = DatasourceDAO.get_datasource(
+                    session, DatasourceType(dar.datasource_type), dar.datasource_id
                 )
                 if not datasource or security_manager.can_access_datasource(datasource):
                     # Dataset does not exist anymore
@@ -336,8 +344,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         role_to_extend = request.args.get("role_to_extend")
 
         session = db.session
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type, datasource_id, session
+        datasource = DatasourceDAO.get_datasource(
+            session, DatasourceType(datasource_type), int(datasource_id)
         )
 
         if not datasource:
@@ -365,8 +373,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(err)
 
         # check if you can approve
-        if security_manager.can_access_all_datasources() or check_ownership(
-            datasource, raise_if_false=False
+        if security_manager.can_access_all_datasources() or security_manager.is_owner(
+            datasource
         ):
             # can by done by admin only
             if role_to_grant:
@@ -426,13 +434,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         _, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
             abort(404)
-        endpoint = "/superset/explore/?form_data={}".format(
+        endpoint = "/explore/?form_data={}".format(
             parse.quote(json.dumps({"slice_id": slice_id}))
         )
 
         is_standalone_mode = ReservedUrlParameters.is_standalone_mode()
         if is_standalone_mode:
-            endpoint += f"&{ReservedUrlParameters.STANDALONE}={is_standalone_mode}"
+            endpoint += f"&{ReservedUrlParameters.STANDALONE}=true"
         return redirect(endpoint)
 
     def get_query_string_response(self, viz_obj: BaseViz) -> FlaskResponse:
@@ -630,7 +638,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             and not security_manager.can_access("can_csv", "Superset")
         ):
             return json_error_response(
-                _("You don't have the rights to ") + _("download as csv"),
+                _("You don't have the rights to download as csv"),
                 status=403,
             )
 
@@ -639,7 +647,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             datasource_id, datasource_type = get_datasource_info(
                 datasource_id, datasource_type, form_data
             )
-
             force = request.args.get("force") == "true"
 
             # TODO: support CSV, SQL query and other non-JSON types
@@ -672,7 +679,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         request
                     )["channel"]
                     job_metadata = async_query_manager.init_job(
-                        async_channel_id, g.user.get_id()
+                        async_channel_id, get_user_id()
                     )
                     load_explore_json_into_cache.delay(
                         job_metadata, form_data, response_type, force
@@ -736,11 +743,49 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "superset/import_dashboards.html", databases=databases
         )
 
+    @staticmethod
+    def get_redirect_url() -> str:
+        """Assembles the redirect URL to the new endpoint. It also replaces
+        the form_data param with a form_data_key by saving the original content
+        to the cache layer.
+        """
+        redirect_url = request.url.replace("/superset/explore", "/explore")
+        form_data_key = None
+        request_form_data = request.args.get("form_data")
+        if request_form_data:
+            parsed_form_data = loads_request_json(request_form_data)
+            slice_id = parsed_form_data.get(
+                "slice_id", int(request.args.get("slice_id", 0))
+            )
+            datasource = parsed_form_data.get("datasource")
+            if datasource:
+                datasource_id, datasource_type = datasource.split("__")
+                parameters = CommandParameters(
+                    datasource_id=datasource_id,
+                    datasource_type=datasource_type,
+                    chart_id=slice_id,
+                    form_data=request_form_data,
+                )
+                form_data_key = CreateFormDataCommand(parameters).run()
+        if form_data_key:
+            url = parse.urlparse(redirect_url)
+            query = parse.parse_qs(url.query)
+            query.pop("form_data")
+            query["form_data_key"] = [form_data_key]
+            url = url._replace(query=parse.urlencode(query, True))
+            redirect_url = parse.urlunparse(url)
+
+        # Return a relative URL
+        url = parse.urlparse(redirect_url)
+        if url.query:
+            return f"{url.path}?{url.query}"
+        return url.path
+
     @has_access
     @event_logger.log_this
     @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
     @expose("/explore/", methods=["GET", "POST"])
-    @expose("/explore/p/<key>/", methods=["GET"])
+    @deprecated()
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def explore(
         self,
@@ -748,11 +793,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource_id: Optional[int] = None,
         key: Optional[str] = None,
     ) -> FlaskResponse:
+        if request.method == "GET":
+            return redirect(Superset.get_redirect_url())
+
         initial_form_data = {}
 
         form_data_key = request.args.get("form_data_key")
         if key is not None:
-            command = GetExplorePermalinkCommand(g.user, key)
+            command = GetExplorePermalinkCommand(key)
             try:
                 permalink_value = command.run()
                 if permalink_value:
@@ -769,7 +817,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 flash(__("Error: %(msg)s", msg=ex.message), "danger")
                 return redirect("/chart/list/")
         elif form_data_key:
-            parameters = CommandParameters(actor=g.user, key=form_data_key)
+            parameters = CommandParameters(key=form_data_key)
             value = GetFormDataCommand(parameters).run()
             initial_form_data = json.loads(value) if value else {}
 
@@ -809,8 +857,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         datasource: Optional[BaseDatasource] = None
         if datasource_id is not None:
             try:
-                datasource = ConnectorRegistry.get_datasource(
-                    cast(str, datasource_type), datasource_id, db.session
+                datasource = DatasourceDAO.get_datasource(
+                    db.session,
+                    DatasourceType("table"),
+                    datasource_id,
                 )
             except DatasetNotFoundError:
                 pass
@@ -834,9 +884,22 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
 
+        selectedColumns = []
+
+        if "selectedColumns" in form_data:
+            selectedColumns = form_data.pop("selectedColumns")
+
+        if "viz_type" not in form_data:
+            form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
+            if app.config["DEFAULT_VIZ_TYPE"] == "table":
+                all_columns = []
+                for x in selectedColumns:
+                    all_columns.append(x["name"])
+                form_data["all_columns"] = all_columns
+
         # slc perms
         slice_add_perm = security_manager.can_access("can_write", "Chart")
-        slice_overwrite_perm = is_owner(slc, g.user) if slc else False
+        slice_overwrite_perm = security_manager.is_owner(slc) if slc else False
         slice_download_perm = security_manager.can_access("can_csv", "Superset")
 
         form_data["datasource"] = str(datasource_id) + "__" + cast(str, datasource_type)
@@ -854,13 +917,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if action == "overwrite" and not slice_overwrite_perm:
             return json_error_response(
-                _("You don't have the rights to ") + _("alter this ") + _("chart"),
+                _("You don't have the rights to alter this chart"),
                 status=403,
             )
 
         if action == "saveas" and not slice_add_perm:
             return json_error_response(
-                _("You don't have the rights to ") + _("create a ") + _("chart"),
+                _("You don't have the rights to create a chart"),
                 status=403,
             )
 
@@ -891,6 +954,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if datasource:
             datasource_data["owners"] = datasource.owners_data
+            if isinstance(datasource, Query):
+                datasource_data["columns"] = datasource.columns
 
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -904,7 +969,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             "force": force,
             "user": bootstrap_user_data(g.user, include_perms=True),
             "forced_height": request.args.get("height"),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
         if slc:
             title = slc.slice_name
@@ -946,10 +1011,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # TODO: Cache endpoint by user, datasource and column
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+        datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), datasource_id
         )
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -964,14 +1027,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(payload)
 
     @staticmethod
-    def remove_extra_filters(filters: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Extra filters are ones inherited from the dashboard's temporary context
-        Those should not be saved when saving the chart"""
-        return [f for f in filters if not f.get("isExtra")]
-
     def save_or_overwrite_slice(
         # pylint: disable=too-many-arguments,too-many-locals
-        self,
         slc: Optional[Slice],
         slice_add_perm: bool,
         slice_overwrite_perm: bool,
@@ -991,9 +1048,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 form_data.pop("slice_id")  # don't save old slice_id
             slc = Slice(owners=[g.user] if g.user else [])
 
-        form_data["adhoc_filters"] = self.remove_extra_filters(
-            form_data.get("adhoc_filters") or []
-        )
+        utils.remove_extra_adhoc_filters(form_data)
 
         assert slc
         slc.params = json.dumps(form_data, indent=2, sort_keys=True)
@@ -1029,12 +1084,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 .one(),
             )
             # check edit dashboard permissions
-            dash_overwrite_perm = check_ownership(dash, raise_if_false=False)
+            dash_overwrite_perm = security_manager.is_owner(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
-                    _("You don't have the rights to ")
-                    + _("alter this ")
-                    + _("dashboard"),
+                    _("You don't have the rights to alter this dashboard"),
                     status=403,
                 )
 
@@ -1050,9 +1103,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dash_add_perm = security_manager.can_access("can_write", "Dashboard")
             if not dash_add_perm:
                 return json_error_response(
-                    _("You don't have the rights to ")
-                    + _("create a ")
-                    + _("dashboard"),
+                    _("You don't have the rights to create a dashboard"),
                     status=403,
                 )
 
@@ -1088,132 +1139,99 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/tables/<int:db_id>/<schema>/<substr>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/")
-    @expose("/tables/<int:db_id>/<schema>/<substr>/<force_refresh>/<exact_match>")
-    def tables(  # pylint: disable=too-many-locals,no-self-use,too-many-arguments
+    @expose("/tables/<int:db_id>/<schema>/")
+    @expose("/tables/<int:db_id>/<schema>/<force_refresh>/")
+    def tables(  # pylint: disable=no-self-use
         self,
         db_id: int,
         schema: str,
-        substr: str,
         force_refresh: str = "false",
-        exact_match: str = "false",
     ) -> FlaskResponse:
         """Endpoint to fetch the list of tables for given database"""
-        # Guarantees database filtering by security access
-        query = db.session.query(Database)
-        query = DatabaseFilter("id", SQLAInterface(Database, db.session)).apply(
-            query, None
-        )
-        database = query.filter_by(id=db_id).one_or_none()
-        if not database:
-            return json_error_response("Not found", 404)
 
         force_refresh_parsed = force_refresh.lower() == "true"
-        exact_match_parsed = exact_match.lower() == "true"
         schema_parsed = utils.parse_js_uri_path_item(schema, eval_undefined=True)
-        substr_parsed = utils.parse_js_uri_path_item(substr, eval_undefined=True)
 
-        if schema_parsed:
-            tables = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_schema(
-                    schema=schema_parsed,
-                    force=force_refresh_parsed,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ] or []
-            views = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_schema(
-                    schema=schema_parsed,
-                    force=force_refresh_parsed,
-                    cache=database.table_cache_enabled,
-                    cache_timeout=database.table_cache_timeout,
-                )
-            ] or []
-        else:
-            tables = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_table_names_in_database(
-                    cache=True, force=False, cache_timeout=24 * 60 * 60
-                )
-            ]
-            views = [
-                utils.DatasourceName(*datasource_name)
-                for datasource_name in database.get_all_view_names_in_database(
-                    cache=True, force=False, cache_timeout=24 * 60 * 60
-                )
-            ]
-        tables = security_manager.get_datasources_accessible_by_user(
-            database, tables, schema_parsed
-        )
-        views = security_manager.get_datasources_accessible_by_user(
-            database, views, schema_parsed
+        if not schema_parsed:
+            return json_error_response(_("Schema undefined"), status=422)
+
+        # Guarantees database filtering by security access
+        database = (
+            DatabaseFilter("id", SQLAInterface(Database, db.session))
+            .apply(
+                db.session.query(Database),
+                None,
+            )
+            .filter_by(id=db_id)
+            .one_or_none()
         )
 
-        def get_datasource_label(ds_name: utils.DatasourceName) -> str:
-            return (
-                ds_name.table if schema_parsed else f"{ds_name.schema}.{ds_name.table}"
+        if not database:
+            return json_error_response(
+                __("Database not found: %(id)s", id=db_id), status=404
             )
 
-        def is_match(src: str, target: utils.DatasourceName) -> bool:
-            target_label = get_datasource_label(target)
-            if exact_match_parsed:
-                return src == target_label
-            return src in target_label
-
-        if substr_parsed:
-            tables = [tn for tn in tables if is_match(substr_parsed, tn)]
-            views = [vn for vn in views if is_match(substr_parsed, vn)]
-
-        if not schema_parsed and database.default_schemas:
-            user_schemas = (
-                [g.user.email.split("@")[0]] if hasattr(g.user, "email") else []
+        try:
+            tables = security_manager.get_datasources_accessible_by_user(
+                database=database,
+                schema=schema_parsed,
+                datasource_names=sorted(
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_table_names_in_schema(
+                        schema=schema_parsed,
+                        force=force_refresh_parsed,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
+                ),
             )
-            valid_schemas = set(database.default_schemas + user_schemas)
 
-            tables = [tn for tn in tables if tn.schema in valid_schemas]
-            views = [vn for vn in views if vn.schema in valid_schemas]
+            views = security_manager.get_datasources_accessible_by_user(
+                database=database,
+                schema=schema_parsed,
+                datasource_names=sorted(
+                    utils.DatasourceName(*datasource_name)
+                    for datasource_name in database.get_all_view_names_in_schema(
+                        schema=schema_parsed,
+                        force=force_refresh_parsed,
+                        cache=database.table_cache_enabled,
+                        cache_timeout=database.table_cache_timeout,
+                    )
+                ),
+            )
+        except SupersetException as ex:
+            return json_error_response(ex.message, ex.status)
 
-        max_items = config["MAX_TABLE_NAMES"] or len(tables)
-        total_items = len(tables) + len(views)
-        max_tables = len(tables)
-        max_views = len(views)
-        if total_items and substr_parsed:
-            max_tables = max_items * len(tables) // total_items
-            max_views = max_items * len(views) // total_items
+        extra_dict_by_name = {
+            table.name: table.extra_dict
+            for table in (
+                db.session.query(SqlaTable).filter(
+                    SqlaTable.database_id == database.id,
+                    SqlaTable.schema == schema_parsed,
+                )
+            ).all()
+        }
 
-        dataset_tables = {table.name: table for table in database.tables}
-
-        table_options = [
-            {
-                "value": tn.table,
-                "schema": tn.schema,
-                "label": get_datasource_label(tn),
-                "title": get_datasource_label(tn),
-                "type": "table",
-                "extra": dataset_tables[f"{tn.schema}.{tn.table}"].extra_dict
-                if (f"{tn.schema}.{tn.table}" in dataset_tables)
-                else None,
-            }
-            for tn in tables[:max_tables]
-        ]
-        table_options.extend(
+        options = sorted(
             [
                 {
-                    "value": vn.table,
-                    "schema": vn.schema,
-                    "label": get_datasource_label(vn),
-                    "title": get_datasource_label(vn),
+                    "value": table.table,
+                    "type": "table",
+                    "extra": extra_dict_by_name.get(table.table, None),
+                }
+                for table in tables
+            ]
+            + [
+                {
+                    "value": view.table,
                     "type": "view",
                 }
-                for vn in views[:max_views]
-            ]
+                for view in views
+            ],
+            key=lambda item: item["value"],
         )
-        table_options.sort(key=lambda value: value["label"])
-        payload = {"tableLength": len(tables) + len(views), "options": table_options}
+
+        payload = {"tableLength": len(tables) + len(views), "options": options}
         return json_success(json.dumps(payload))
 
     @api
@@ -1276,7 +1294,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """Save a dashboard's metadata"""
         session = db.session()
         dash = session.query(Dashboard).get(dashboard_id)
-        check_ownership(dash, raise_if_false=True)
+        security_manager.raise_for_ownership(dash)
         data = json.loads(request.form["data"])
         # client-side send back last_modified_time which was set when
         # the dashboard was open. it was use to avoid mid-air collision.
@@ -1319,7 +1337,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         data = json.loads(request.form["data"])
         session = db.session()
         dash = session.query(Dashboard).get(dashboard_id)
-        check_ownership(dash, raise_if_false=True)
+        security_manager.raise_for_ownership(dash)
         new_slices = session.query(Slice).filter(Slice.id.in_(data["slice_ids"]))
         dash.slices += new_slices
         session.merge(dash)
@@ -1331,6 +1349,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/testconn", methods=["POST", "GET"])
+    @deprecated()
     def testconn(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Tests a sqla connection"""
         db_name = request.json.get("name")
@@ -1363,14 +1382,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
-            username = (
-                g.user.username if g.user and hasattr(g.user, "username") else None
-            )
-            engine = database.get_sqla_engine(user_name=username)
-
-            with closing(engine.raw_connection()) as conn:
-                if engine.dialect.do_ping(conn):
-                    return json_success('"OK"')
+            with database.get_sqla_engine_with_context() as engine:
+                with closing(engine.raw_connection()) as conn:
+                    if engine.dialect.do_ping(conn):
+                        return json_success('"OK"')
 
                 raise DBAPIError(None, None, None)
         except CertificateException as ex:
@@ -1533,6 +1548,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/available_domains/", methods=["GET"])
+    @deprecated()
     def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Returns the list of available Superset Webserver domains (if any)
@@ -1547,13 +1563,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/fave_dashboards_by_username/<username>/", methods=["GET"])
+    @deprecated()
     def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
         """This lets us use a user's username to pull favourite dashboards"""
-        logger.warning(
-            "%s.fave_dashboards_by_username "
-            "This API endpoint is deprecated and will be removed in version 3.0.0",
-            self.__class__.__name__,
-        )
         user = security_manager.find_user(username=username)
         return self.fave_dashboards(user.id)
 
@@ -1561,12 +1573,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/fave_dashboards/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def fave_dashboards(self, user_id: int) -> FlaskResponse:
-        logger.warning(
-            "%s.fave_dashboards "
-            "This API endpoint is deprecated and will be removed in version 3.0.0",
-            self.__class__.__name__,
-        )
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1602,13 +1610,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/created_dashboards/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def created_dashboards(self, user_id: int) -> FlaskResponse:
-        logger.warning(
-            "%s.created_dashboards "
-            "This API endpoint is deprecated and will be removed in version 3.0.0",
-            self.__class__.__name__,
-        )
-
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1642,7 +1645,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def user_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
-            user_id = cast(int, g.user.id)
+            user_id = cast(int, get_user_id())
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1692,10 +1695,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/created_slices", methods=["GET"])
     @expose("/created_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def created_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices created by this user"""
         if not user_id:
-            user_id = cast(int, g.user.id)
+            user_id = cast(int, get_user_id())
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1726,7 +1730,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     def fave_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """Favorite slices for a user"""
         if user_id is None:
-            user_id = g.user.id
+            user_id = cast(int, get_user_id())
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
@@ -1863,13 +1867,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:
         """Toggle favorite stars on Slices and Dashboard"""
-        if not g.user.get_id():
+        if not get_user_id():
             return json_error_response("ERROR: Favstar toggling denied", status=403)
         session = db.session()
         count = 0
         favs = (
             session.query(FavStar)
-            .filter_by(class_name=class_name, obj_id=obj_id, user_id=g.user.get_id())
+            .filter_by(class_name=class_name, obj_id=obj_id, user_id=get_user_id())
             .all()
         )
         if action == "select":
@@ -1878,7 +1882,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                     FavStar(
                         class_name=class_name,
                         obj_id=obj_id,
-                        user_id=g.user.get_id(),
+                        user_id=get_user_id(),
                         dttm=datetime.now(),
                     )
                 )
@@ -1917,8 +1921,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if config["ENABLE_ACCESS_REQUEST"]:
             for datasource in dashboard.datasources:
-                datasource = ConnectorRegistry.get_datasource(
-                    datasource_type=datasource.type,
+                datasource = DatasourceDAO.get_datasource(
+                    datasource_type=DatasourceType(datasource.type),
                     datasource_id=datasource.id,
                     session=db.session(),
                 )
@@ -1935,8 +1939,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                         f"/superset/request_access/?dashboard_id={dashboard.id}"
                     )
 
-        dash_edit_perm = check_ownership(
-            dashboard, raise_if_false=False
+        dash_edit_perm = security_manager.is_owner(
+            dashboard
         ) and security_manager.can_access("can_save_dash", "Superset")
         edit_mode = (
             request.args.get(utils.ReservedUrlParameters.EDIT_MODE.value) == "true"
@@ -1953,12 +1957,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         bootstrap_data = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
 
         return self.render_template(
             "superset/spa.html",
             entry="spa",
+            # dashboard title is always visible
+            title=dashboard.dashboard_title,
             bootstrap_data=json.dumps(
                 bootstrap_data, default=utils.pessimistic_json_iso_dttm_ser
             ),
@@ -1972,19 +1978,19 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         key: str,
     ) -> FlaskResponse:
         try:
-            value = GetDashboardPermalinkCommand(g.user, key).run()
+            value = GetDashboardPermalinkCommand(key).run()
         except DashboardPermalinkGetFailedError as ex:
             flash(__("Error: %(msg)s", msg=ex.message), "danger")
             return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
-        dashboard_id = value["dashboardId"]
+        dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
-        url_params = value["state"].get("urlParams")
+        url_params = state.get("urlParams")
         if url_params:
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
-        hash_ = value["state"].get("hash")
+        hash_ = state.get("anchor", state.get("hash"))
         if hash_:
             url = f"{url}#{hash_}"
         return redirect(url)
@@ -2068,8 +2074,20 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             .filter_by(database_id=database_id, table_name=table_name)
             .one_or_none()
         )
-        if not table:
-            table = SqlaTable(table_name=table_name, owners=[g.user])
+
+        if table:
+            return json_errors_response(
+                [
+                    SupersetError(
+                        message=f"Dataset [{table_name}] already exists",
+                        error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+                        level=ErrorLevel.WARNING,
+                    )
+                ],
+                status=422,
+            )
+
+        table = SqlaTable(table_name=table_name, owners=[g.user])
         table.database = database
         table.schema = data.get("schema")
         table.template_params = data.get("templateParams")
@@ -2091,20 +2109,20 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         table.columns = cols
         table.metrics = [SqlMetric(metric_name="count", expression="count(*)")]
         db.session.commit()
-        return json_success(json.dumps({"table_id": table.id}))
+
+        return json_success(
+            json.dumps(
+                {"table_id": table.id, "data": sanitize_datasource_data(table.data)}
+            )
+        )
 
     @has_access
     @expose("/extra_table_metadata/<int:database_id>/<table_name>/<schema>/")
     @event_logger.log_this
+    @deprecated()
     def extra_table_metadata(  # pylint: disable=no-self-use
         self, database_id: int, table_name: str, schema: str
     ) -> FlaskResponse:
-        logger.warning(
-            "%s.extra_table_metadata "
-            "This API endpoint is deprecated and will be removed in version 3.0.0",
-            self.__class__.__name__,
-        )
-
         parsed_schema = utils.parse_js_uri_path_item(schema, eval_undefined=True)
         table_name = utils.parse_js_uri_path_item(table_name)  # type: ignore
         mydb = db.session.query(Database).filter_by(id=database_id).one()
@@ -2293,10 +2311,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             )
             return self.json_response("OK")
 
-        if not sql_lab.cancel_query(query, g.user.username if g.user else None):
+        if not sql_lab.cancel_query(query):
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
+        # Add the stop identity attribute because the sqlalchemy thread is unsafe
+        # because of multiple updates to the status in the query table
+        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+        query.end_time = now_as_float()
         db.session.commit()
 
         return self.json_response("OK")
@@ -2304,6 +2326,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/validate_sql_json/", methods=["POST", "GET"])
+    @deprecated()
     def validate_sql_json(
         # pylint: disable=too-many-locals,no-self-use
         self,
@@ -2377,6 +2400,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/sql_json/", methods=["POST"])
     def sql_json(self) -> FlaskResponse:
+        errors = SqlJsonPayloadSchema().validate(request.json)
+        if errors:
+            return json_error_response(status=400, payload=errors)
+
         try:
             log_params = {
                 "user_agent": cast(Optional[str], request.headers.get("USER_AGENT"))
@@ -2399,7 +2426,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         sql_json_executor = Superset._create_sql_json_executor(
             execution_context, query_dao
         )
-        execution_context_convertor = ExecutionContextConvertorImpl()
+        execution_context_convertor = ExecutionContextConvertor()
         execution_context_convertor.set_max_row_in_display(
             int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
         )
@@ -2449,9 +2476,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/csv/<client_id>")
-    def csv(  # pylint: disable=no-self-use,too-many-locals
-        self, client_id: str
-    ) -> FlaskResponse:
+    def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
         """Download the query results as csv."""
         logger.info("Exporting CSV file [%s]", client_id)
         query = db.session.query(Query).filter_by(client_id=client_id).one()
@@ -2474,8 +2499,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             obj = _deserialize_results_payload(
                 payload, query, cast(bool, results_backend_use_msgpack)
             )
-            columns = [c["name"] for c in obj["columns"]]
-            df = pd.DataFrame.from_records(obj["data"], columns=columns)
+
+            df = pd.DataFrame(
+                data=obj["data"],
+                dtype=object,
+                columns=[c["name"] for c in obj["columns"]],
+            )
+
             logger.info("Using pandas to convert to CSV")
         else:
             logger.info("Running a query to turn into CSV")
@@ -2519,6 +2549,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/fetch_datasource_metadata")
+    @deprecated()
     def fetch_datasource_metadata(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Fetch the datasource metadata.
@@ -2526,12 +2557,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         :returns: The Flask response
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-
         datasource_id, datasource_type = request.args["datasourceKey"].split("__")
-        datasource = ConnectorRegistry.get_datasource(
-            datasource_type,
-            datasource_id,
-            db.session,
+        datasource = DatasourceDAO.get_datasource(
+            db.session, DatasourceType(datasource_type), int(datasource_id)
         )
         # Check if datasource exists
         if not datasource:
@@ -2556,7 +2584,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @staticmethod
     def queries_exec(last_updated_ms: Union[float, int]) -> FlaskResponse:
         stats_logger.incr("queries")
-        if not g.user.get_id():
+        if not get_user_id():
             return json_error_response(
                 "Please login to access the queries.", status=403
             )
@@ -2566,9 +2594,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         sql_queries = (
             db.session.query(Query)
-            .filter(
-                Query.user_id == g.user.get_id(), Query.changed_on >= last_updated_dt
-            )
+            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
             .all()
         )
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
@@ -2577,6 +2603,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/search_queries")
+    @deprecated()
     def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Search for previously run sqllab queries. Used for Sqllab Query Search
@@ -2594,10 +2621,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
                 search_user_id = int(cast(int, request.args.get("user_id")))
             except ValueError:
                 return Response(status=400, mimetype="application/json")
-            if search_user_id != g.user.get_user_id():
+            if search_user_id != get_user_id():
                 return Response(status=403, mimetype="application/json")
         else:
-            search_user_id = g.user.get_user_id()
+            search_user_id = get_user_id()
         database_id = request.args.get("database_id")
         search_text = request.args.get("search_text")
         status = request.args.get("status")
@@ -2650,14 +2677,14 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/welcome/")
     def welcome(self) -> FlaskResponse:
         """Personalized welcome page"""
-        if not g.user or not g.user.get_id():
+        if not g.user or not get_user_id():
             if conf["PUBLIC_ROLE_LIKE"]:
                 return self.render_template("superset/public_welcome.html")
             return redirect(appbuilder.get_url_for_login)
 
         welcome_dashboard_id = (
             db.session.query(UserAttribute.welcome_dashboard_id)
-            .filter_by(user_id=g.user.get_id())
+            .filter_by(user_id=get_user_id())
             .scalar()
         )
         if welcome_dashboard_id:
@@ -2665,7 +2692,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         payload = {
             "user": bootstrap_user_data(g.user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
 
         return self.render_template(
@@ -2684,12 +2711,17 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         user = (
             db.session.query(ab_models.User).filter_by(username=username).one_or_none()
         )
-        if not user:
-            abort(404, description=f"User: {username} does not exist.")
+        # Prevent returning 404 when user is not found to prevent username scanning
+        user_id = -1 if not user else user.id
+        # Prevent unauthorized access to other user's profiles,
+        # unless configured to do so on with ENABLE_BROAD_ACTIVITY_ACCESS
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
+            return error_obj
 
         payload = {
             "user": bootstrap_user_data(user, include_perms=True),
-            "common": common_bootstrap_payload(),
+            "common": common_bootstrap_payload(g.user),
         }
 
         return self.render_template(
@@ -2702,7 +2734,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @staticmethod
-    def _get_sqllab_tabs(user_id: int) -> Dict[str, Any]:
+    def _get_sqllab_tabs(user_id: Optional[int]) -> Dict[str, Any]:
         # send list of tab state ids
         tabs_state = (
             db.session.query(TabState.id, TabState.label)
@@ -2753,8 +2785,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """SQL Editor"""
         payload = {
             "defaultDbId": config["SQLLAB_DEFAULT_DBID"],
-            "common": common_bootstrap_payload(),
-            **self._get_sqllab_tabs(g.user.get_id()),
+            "common": common_bootstrap_payload(g.user),
+            **self._get_sqllab_tabs(get_user_id()),
         }
 
         form_data = request.form.get("form_data")

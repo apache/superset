@@ -18,10 +18,13 @@
  */
 import {
   buildQueryContext,
-  QueryFormData,
-  QueryObject,
+  ensureIsArray,
   normalizeOrderBy,
   PostProcessingPivot,
+  QueryFormData,
+  QueryObject,
+  isXAxisSet,
+  getXAxisColumn,
 } from '@superset-ui/core';
 import {
   pivotOperator,
@@ -41,10 +44,8 @@ import {
 export default function buildQuery(formData: QueryFormData) {
   const baseFormData = {
     ...formData,
-    is_timeseries: true,
-    columns: formData.groupby,
-    columns_b: formData.groupby_b,
   };
+
   const formData1 = removeFormDataSuffix(baseFormData, '_b');
   const formData2 = retainFormDataSuffix(baseFormData, '_b');
 
@@ -52,7 +53,14 @@ export default function buildQuery(formData: QueryFormData) {
     buildQueryContext(fd, baseQueryObject => {
       const queryObject = {
         ...baseQueryObject,
-        is_timeseries: true,
+        columns: [
+          ...(isXAxisSet(formData)
+            ? ensureIsArray(getXAxisColumn(formData))
+            : []),
+          ...ensureIsArray(fd.groupby),
+        ],
+        series_columns: fd.groupby,
+        ...(isXAxisSet(formData) ? {} : { is_timeseries: true }),
       };
 
       const pivotOperatorInRuntime: PostProcessingPivot = isTimeComparison(
@@ -60,7 +68,10 @@ export default function buildQuery(formData: QueryFormData) {
         queryObject,
       )
         ? timeComparePivotOperator(fd, queryObject)
-        : pivotOperator(fd, queryObject);
+        : pivotOperator(fd, {
+            ...queryObject,
+            columns: fd.groupby,
+          });
 
       const tmpQueryObject = {
         ...queryObject,
@@ -70,7 +81,10 @@ export default function buildQuery(formData: QueryFormData) {
           rollingWindowOperator(fd, queryObject),
           timeCompareOperator(fd, queryObject),
           resampleOperator(fd, queryObject),
-          renameOperator(fd, queryObject),
+          renameOperator(fd, {
+            ...queryObject,
+            columns: fd.groupby,
+          }),
           flattenOperator(fd, queryObject),
         ],
       } as QueryObject;

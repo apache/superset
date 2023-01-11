@@ -22,7 +22,6 @@ export * from './utils';
 export * from './types';
 export * from './translation';
 export * from './connection';
-export * from './dashboard';
 export * from './dynamic-plugins';
 export * from './query';
 export * from './number-format';

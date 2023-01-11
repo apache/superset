@@ -236,7 +236,7 @@ const StyledTabs = styled(Tabs)`
   .ant-tabs-nav {
     position: sticky;
     top: 0;
-    background: white;
+    background: ${({ theme }) => theme.colors.grayscale.light5};
     z-index: 1;
   }
 
@@ -332,6 +332,7 @@ const FiltersConfigForm = (
     setErroredFilters,
     validateDependencies,
     getDependencySuggestion,
+    isActive,
   }: FiltersConfigFormProps,
   ref: React.RefObject<any>,
 ) => {
@@ -346,7 +347,7 @@ const FiltersConfigForm = (
     string,
     any
   > | null>(null);
-  const forceUpdate = useForceUpdate();
+  const forceUpdate = useForceUpdate(isActive);
   const [datasetDetails, setDatasetDetails] = useState<Record<string, any>>();
   const defaultFormFilter = useMemo(() => ({}), []);
   const filters = form.getFieldValue('filters');
@@ -688,7 +689,7 @@ const FiltersConfigForm = (
     }
 
     Object.values(charts).forEach((chart: Chart) => {
-      const chartDatasetUid = chart.formData?.datasource;
+      const chartDatasetUid = chart.form_data?.datasource;
       if (chartDatasetUid === undefined) {
         return;
       }
@@ -839,7 +840,7 @@ const FiltersConfigForm = (
           </StyledRowContainer>
         )}
         <StyledCollapse
-          activeKey={activeFilterPanelKeys}
+          defaultActiveKey={activeFilterPanelKeys}
           onChange={key => {
             handleActiveFilterPanelChange(key);
           }}
@@ -1240,6 +1241,8 @@ const FiltersConfigForm = (
   );
 };
 
-export default forwardRef<typeof FiltersConfigForm, FiltersConfigFormProps>(
-  FiltersConfigForm,
+export default React.memo(
+  forwardRef<typeof FiltersConfigForm, FiltersConfigFormProps>(
+    FiltersConfigForm,
+  ),
 );

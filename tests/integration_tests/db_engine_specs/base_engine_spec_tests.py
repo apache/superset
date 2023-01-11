@@ -20,7 +20,7 @@ from unittest import mock
 import pytest
 
 from superset.connectors.sqla.models import TableColumn
-from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
@@ -195,7 +195,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
     def test_engine_time_grain_validity(self):
         time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
-        for engine in get_engine_specs().values():
+        for engine in load_engine_specs():
             if engine is not BaseEngineSpec:
                 # make sure time grain functions have been defined
                 self.assertGreater(len(engine.get_time_grain_expressions()), 0)
@@ -229,11 +229,11 @@ class TestDbEngineSpecs(TestDbEngineSpec):
 
         """ Make sure base engine spec removes schema name from table name
         ie. when try_remove_schema_from_table_name == True. """
-        base_result_expected = ["table", "table_2"]
+        base_result_expected = {"table", "table_2"}
         base_result = BaseEngineSpec.get_table_names(
             database=mock.ANY, schema="schema", inspector=inspector
         )
-        self.assertListEqual(base_result_expected, base_result)
+        assert base_result_expected == base_result
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_column_datatype_to_string(self):
@@ -293,8 +293,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             table=table,
             expression="""
             case
-              when gender=true then "male"
-              else "female"
+              when gender='boy' then 'male'
+              else 'female'
             end
             """,
         )
@@ -309,8 +309,8 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         sql = table.get_query_str(query_obj)
         assert (
             """ORDER BY case
-             when gender=true then "male"
-             else "female"
+             when gender='boy' then 'male'
+             else 'female'
          end ASC;"""
             in sql
         )
@@ -421,28 +421,32 @@ def test_validate(is_port_open, is_hostname_valid):
     is_hostname_valid.return_value = True
     is_port_open.return_value = True
 
-    parameters = {
-        "host": "localhost",
-        "port": 5432,
-        "username": "username",
-        "password": "password",
-        "database": "dbname",
-        "query": {"sslmode": "verify-full"},
+    properties = {
+        "parameters": {
+            "host": "localhost",
+            "port": 5432,
+            "username": "username",
+            "password": "password",
+            "database": "dbname",
+            "query": {"sslmode": "verify-full"},
+        }
     }
-    errors = BasicParametersMixin.validate_parameters(parameters)
+    errors = BasicParametersMixin.validate_parameters(properties)
     assert errors == []
 
 
 def test_validate_parameters_missing():
-    parameters = {
-        "host": "",
-        "port": None,
-        "username": "",
-        "password": "",
-        "database": "",
-        "query": {},
+    properties = {
+        "parameters": {
+            "host": "",
+            "port": None,
+            "username": "",
+            "password": "",
+            "database": "",
+            "query": {},
+        }
     }
-    errors = BasicParametersMixin.validate_parameters(parameters)
+    errors = BasicParametersMixin.validate_parameters(properties)
     assert errors == [
         SupersetError(
             message=(
@@ -459,15 +463,17 @@ def test_validate_parameters_missing():
 def test_validate_parameters_invalid_host(is_hostname_valid):
     is_hostname_valid.return_value = False
 
-    parameters = {
-        "host": "localhost",
-        "port": None,
-        "username": "username",
-        "password": "password",
-        "database": "dbname",
-        "query": {"sslmode": "verify-full"},
+    properties = {
+        "parameters": {
+            "host": "localhost",
+            "port": None,
+            "username": "username",
+            "password": "password",
+            "database": "dbname",
+            "query": {"sslmode": "verify-full"},
+        }
     }
-    errors = BasicParametersMixin.validate_parameters(parameters)
+    errors = BasicParametersMixin.validate_parameters(properties)
     assert errors == [
         SupersetError(
             message="One or more parameters are missing: port",
@@ -490,15 +496,17 @@ def test_validate_parameters_port_closed(is_port_open, is_hostname_valid):
     is_hostname_valid.return_value = True
     is_port_open.return_value = False
 
-    parameters = {
-        "host": "localhost",
-        "port": 5432,
-        "username": "username",
-        "password": "password",
-        "database": "dbname",
-        "query": {"sslmode": "verify-full"},
+    properties = {
+        "parameters": {
+            "host": "localhost",
+            "port": 5432,
+            "username": "username",
+            "password": "password",
+            "database": "dbname",
+            "query": {"sslmode": "verify-full"},
+        }
     }
-    errors = BasicParametersMixin.validate_parameters(parameters)
+    errors = BasicParametersMixin.validate_parameters(properties)
     assert errors == [
         SupersetError(
             message="The port is closed.",
