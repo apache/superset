@@ -367,7 +367,11 @@ def menu_data(user: User) -> Dict[str, Any]:
             # show the watermark if the default app icon has been overriden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
+            "bug_report_icon": appbuilder.app.config["BUG_REPORT_ICON"],
+            "bug_report_text": appbuilder.app.config["BUG_REPORT_TEXT"],
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
+            "documentation_icon": appbuilder.app.config["DOCUMENTATION_ICON"],
+            "documentation_text": appbuilder.app.config["DOCUMENTATION_TEXT"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
             "version_sha": appbuilder.app.config["VERSION_SHA"],
             "build_number": build_number,
