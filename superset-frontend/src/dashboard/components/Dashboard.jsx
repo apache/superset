@@ -22,6 +22,7 @@ import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 import DashboardBuilder from './DashboardBuilder/DashboardBuilder';
@@ -97,8 +98,7 @@ class Dashboard extends React.PureComponent {
   }
 
   componentDidMount() {
-    const appContainer = document.getElementById('app');
-    const bootstrapData = appContainer?.getAttribute('data-bootstrap') || '{}';
+    const bootstrapData = getBootstrapData();
     const { dashboardState, layout } = this.props;
     const eventData = {
       is_soft_navigation: Logger.timeOriginOffset > 0,

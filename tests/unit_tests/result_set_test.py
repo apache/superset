@@ -106,3 +106,37 @@ def test_stringify_with_null_integers():
     )
 
     assert np.array_equal(result_set, expected)
+
+
+def test_stringify_with_null_timestamps():
+    """
+    Test that we can safely handle type errors when a timestamp column has a null value
+    """
+
+    data = [
+        ("foo", "bar", pd.NaT, None),
+        ("foo", "bar", pd.NaT, True),
+        ("foo", "bar", pd.NaT, None),
+    ]
+    numpy_dtype = [
+        ("id", "object"),
+        ("value", "object"),
+        ("num", "object"),
+        ("bool", "object"),
+    ]
+
+    array2 = np.array(data, dtype=numpy_dtype)
+    column_names = ["id", "value", "num", "bool"]
+
+    result_set = np.array([stringify_values(array2[column]) for column in column_names])
+
+    expected = np.array(
+        [
+            array(['"foo"', '"foo"', '"foo"'], dtype=object),
+            array(['"bar"', '"bar"', '"bar"'], dtype=object),
+            array([None, None, None], dtype=object),
+            array([None, "true", None], dtype=object),
+        ]
+    )
+
+    assert np.array_equal(result_set, expected)
