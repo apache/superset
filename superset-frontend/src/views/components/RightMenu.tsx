@@ -561,7 +561,7 @@ const RightMenu = ({
             href={navbarRight.bug_report_url}
             target="_blank"
             rel="noreferrer"
-            title={t(navbarRight.bug_report_text || 'Report a bug')}
+            title={navbarRight.bug_report_text || t('Report a bug')}
           >
             {navbarRight.bug_report_icon ? (
               <i className={navbarRight.bug_report_icon} />
