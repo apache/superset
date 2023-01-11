@@ -122,6 +122,12 @@ const ErrorAlertContainer = styled.div`
   `};
 `;
 
+const SSHTunnelContainer = styled.div`
+  ${({ theme }) => `
+    padding: 0px ${theme.gridUnit * 4}px;
+  `};
+`;
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -1281,7 +1287,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     });
   };
 
-  const renderSomething = () => (
+  const renderSSHTunnelForm = () => (
     <SSHTunnelForm
       isEditMode={isEditMode}
       sshTunneling={sshTunneling}
@@ -1518,7 +1524,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                {sshTunneling && renderSomething()}
+                {sshTunneling && renderSSHTunnelForm()}
               </SqlAlchemyForm>
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
@@ -1804,7 +1810,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   getPlaceholder={getPlaceholder}
                 />
                 {sshTunneling && (
-                  <div style={{ padding: '0 15px' }}>{renderSomething()}</div>
+                  <SSHTunnelContainer>{renderSomething()}</SSHTunnelContainer>
                 )}
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
