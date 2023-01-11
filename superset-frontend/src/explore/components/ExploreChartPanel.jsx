@@ -324,9 +324,7 @@ const ExploreChartPanel = ({
                 <span
                   role="button"
                   tabIndex={0}
-                  onClick={() => {
-                    window.location.href = '/dataset/add/';
-                  }}
+                  onClick={() => setShowDatasetModal(true)}
                   css={{ textDecoration: 'underline' }}
                 >
                   {t('Create a dataset')}

@@ -100,8 +100,7 @@ function Footer({
         if (typeof response === 'number') {
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
-          window.location.href =
-            '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
+          history.push('/chart/add/');
         }
       });
     }
