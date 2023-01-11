@@ -63,6 +63,7 @@ export enum FeatureFlag {
   USE_ANALAGOUS_COLORS = 'USE_ANALAGOUS_COLORS',
   UX_BETA = 'UX_BETA',
   VERSIONED_EXPORT = 'VERSIONED_EXPORT',
+  SSH_TUNNELING = 'SSH_TUNNELING',
 }
 export type ScheduleQueriesProps = {
   JSONSCHEMA: {

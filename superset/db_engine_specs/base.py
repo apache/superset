@@ -1696,9 +1696,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Construct a Dict with properties we want to expose.
 
         :returns: Dict with properties of our class like supports_file_upload
+        and allow_ssh_tunneling
         """
         return {
             "supports_file_upload": cls.supports_file_upload,
+            "allow_ssh_tunneling": cls.allow_ssh_tunneling,
         }
 
 
