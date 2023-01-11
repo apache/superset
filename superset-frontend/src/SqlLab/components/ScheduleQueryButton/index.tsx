@@ -206,7 +206,7 @@ const ScheduleQueryButton: FunctionComponent<ScheduleQueryButtonProps> = ({
                 htmlType="submit"
                 css={{ float: 'right' }}
               >
-                Submit
+                {t('Submit')}
               </Button>
             </SchemaForm>
           </StyledJsonSchema>

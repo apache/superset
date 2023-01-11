@@ -399,7 +399,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             menuItems={[
               <IconButton
                 icon={<Icons.FallOutlined iconSize="xl" />}
-                label="Collapse tab content"
+                label={t('Collapse tab content')}
                 onClick={handleDeleteTopLevelTabs}
               />,
             ]}
