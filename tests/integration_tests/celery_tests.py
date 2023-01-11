@@ -316,9 +316,7 @@ def test_run_async_cta_query(test_client, ctas_method):
 
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
-    temp_query = (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-    )
+    temp_query = f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{table_name} AS \n{QUERY}"
     updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
     assert updated_query == query.executed_sql
 
