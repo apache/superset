@@ -48,6 +48,18 @@ from superset.utils.ssh_tunnel import unmask_password_info
 logger = logging.getLogger(__name__)
 
 
+def get_log_connection_action(
+    action: str, ssh_tunnel: Optional[Any], exc: Optional[Exception] = None
+) -> str:
+    action_modified = action
+    if exc:
+        action_modified += f".{exc.__class__.__name__}"
+    if ssh_tunnel:
+        action_modified += ".ssh_tunnel"
+    return action_modified
+
+
+
 class TestConnectionDatabaseCommand(BaseCommand):
     def __init__(self, data: Dict[str, Any]):
         self._properties = data.copy()
@@ -105,7 +117,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 ssh_tunnel = SSHTunnel(**ssh_tunnel)
 
             event_logger.log_with_context(
-                action=self._get_log_connection_action(
+                action=get_log_connection_action(
                     "test_connection_attempt", ssh_tunnel
                 ),
                 engine=database.db_engine_spec.__name__,
@@ -149,7 +161,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             # Log succesful connection test with engine
             event_logger.log_with_context(
-                action=self._get_log_connection_action(
+                action=get_log_connection_action(
                     "test_connection_success", ssh_tunnel
                 ),
                 engine=database.db_engine_spec.__name__,
@@ -157,7 +169,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
             event_logger.log_with_context(
-                action=self._get_log_connection_action(
+                action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel
                 ),
                 engine=database.db_engine_spec.__name__,
@@ -169,7 +181,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             ) from ex
         except DBAPIError as ex:
             event_logger.log_with_context(
-                action=self._get_log_connection_action(
+                action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel
                 ),
                 engine=database.db_engine_spec.__name__,
@@ -179,7 +191,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             raise SupersetErrorsException(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
-                action=self._get_log_connection_action(
+                action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel
                 ),
                 engine=database.db_engine_spec.__name__,
@@ -188,7 +200,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         except SupersetTimeoutException as ex:
 
             event_logger.log_with_context(
-                action=self._get_log_connection_action(
+                action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel
                 ),
                 engine=database.db_engine_spec.__name__,
@@ -197,7 +209,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             raise ex
         except Exception as ex:
             event_logger.log_with_context(
-                action=self._get_log_connection_action(
+                action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel
                 ),
                 engine=database.db_engine_spec.__name__,
@@ -209,13 +221,3 @@ class TestConnectionDatabaseCommand(BaseCommand):
         database_name = self._properties.get("database_name")
         if database_name is not None:
             self._model = DatabaseDAO.get_database_by_name(database_name)
-
-    def _get_log_connection_action(
-        self, action: str, ssh_tunnel: Optional[Any], exc: Optional[Exception] = None
-    ) -> str:
-        action_modified = action
-        if exc:
-            action_modified += f".{exc.__class__.__name__}"
-        if ssh_tunnel:
-            action_modified += ".ssh_tunnel"
-        return action_modified
