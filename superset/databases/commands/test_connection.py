@@ -70,6 +70,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         uri = self._properties.get("sqlalchemy_uri", "")
         if self._model and uri == self._model.safe_sqlalchemy_uri():
             uri = self._model.sqlalchemy_uri_decrypted
+        ssh_tunnel = self._properties.get("ssh_tunnel")
 
         # context for error messages
         url = make_url_safe(uri)
@@ -105,7 +106,6 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
             # Generate tunnel if present in the properties
-            ssh_tunnel = self._properties.get("ssh_tunnel")
             if ssh_tunnel:
                 # If there's an existing tunnel for that DB we need to use the stored
                 # password, private_key and private_key_password instead
