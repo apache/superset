@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { t } from '@superset-ui/core';
 import { useTruncation } from 'src/hooks/useTruncation';
 import { useFilterScope } from './useFilterScope';
@@ -43,25 +43,32 @@ const getTooltipSection = (items: string[] | undefined, label: string) =>
     </>
   ) : null;
 
-export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
+export const ScopeRow = ({
+  filter,
+  isContainerVisible = true,
+}: FilterCardRowProps) => {
+  const [isVisible, setIsVisible] = useState(true);
   const scope = useFilterScope(filter);
   const scopeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    setIsVisible(isContainerVisible);
+  }, [isContainerVisible]);
 
-  const [isTruncated, hiddenElementCount] = useTruncation(scopeRef);
-  const tooltipText = useMemo(() => {
-    if (!isTruncated || !scope) {
+  const [isTruncated, hiddenElementCount] = useTruncation(scopeRef, isVisible);
+  const tooltipText = () => {
+    if (!isTruncated && !scope) {
       return null;
     }
-    if (scope.all) {
+    if (scope?.all) {
       return <span>{t('All charts')}</span>;
     }
     return (
       <div>
-        {getTooltipSection(scope.tabs, t('Tabs'))}
-        {getTooltipSection(scope.charts, t('Charts'))}
+        {getTooltipSection(scope?.tabs, t('Tabs'))}
+        {getTooltipSection(scope?.charts, t('Charts'))}
       </div>
     );
-  }, [isTruncated, scope]);
+  };
 
   return (
     <Row>
@@ -78,10 +85,10 @@ export const ScopeRow = React.memo(({ filter }: FilterCardRowProps) => {
                 ))
             : t('None')}
         </RowValue>
-        {hiddenElementCount && (
+        {hiddenElementCount > 0 && (
           <RowTruncationCount>+{hiddenElementCount}</RowTruncationCount>
         )}
       </TooltipWithTruncation>
     </Row>
   );
-});
+};

@@ -116,7 +116,7 @@ describe('Charts list', () => {
       cy.getBySel('sort-header').eq(1).contains('Chart');
       cy.getBySel('sort-header').eq(2).contains('Visualization type');
       cy.getBySel('sort-header').eq(3).contains('Dataset');
-      // cy.getBySel('sort-header').eq(4).contains('Dashboards added to');
+      cy.getBySel('sort-header').eq(4).contains('Dashboards added to');
       cy.getBySel('sort-header').eq(4).contains('Modified by');
       cy.getBySel('sort-header').eq(5).contains('Last modified');
       cy.getBySel('sort-header').eq(6).contains('Created by');

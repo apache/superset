@@ -33,7 +33,7 @@ export type CrossLinksProps = {
   linkPrefix?: string;
 };
 
-const StyledCrossLinks = styled.div`
+const StyledCrossLinks = styled.span`
   ${({ theme }) => `
     & > span {
       width: 100%;
@@ -78,7 +78,7 @@ export default function CrossLinks({
       <span className="truncated" ref={crossLinksRef} data-test="crosslinks">
         {crossLinks.map((link, index) => (
           <Link
-            key={link.id}
+            key={link.id + index}
             to={linkPrefix + link.id}
             target="_blank"
             rel="noreferer noopener"
@@ -88,15 +88,16 @@ export default function CrossLinks({
         ))}
       </span>
     ),
-    [crossLinks],
+    [linkPrefix, crossLinks],
   );
+
   const tooltipLinks = useMemo(
     () =>
       crossLinks.slice(0, maxLinks).map(l => ({
         title: l.title,
         to: linkPrefix + l.id,
       })),
-    [crossLinks, maxLinks],
+    [crossLinks, maxLinks, linkPrefix],
   );
 
   return (
@@ -107,7 +108,7 @@ export default function CrossLinks({
         show={!!isTruncated}
       >
         {links}
-        {hiddenElementCount && (
+        {hiddenElementCount > 0 && (
           <span className="count" data-test="count-crosslinks">
             +{hiddenElementCount}
           </span>

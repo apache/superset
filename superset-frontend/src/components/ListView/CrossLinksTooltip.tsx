@@ -49,10 +49,10 @@ export default function CrossLinksTooltip({
       title={
         show && (
           <StyledLinkedTooltip>
-            {crossLinks.map(link => (
+            {crossLinks.map((link, index) => (
               <Link
                 className="link"
-                key={link.to}
+                key={`${link.to}-${index}`}
                 to={link.to}
                 target="_blank"
                 rel="noreferer noopener"

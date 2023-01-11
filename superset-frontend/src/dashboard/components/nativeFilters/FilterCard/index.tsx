@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Popover from 'src/components/Popover';
 import { FilterCardContent } from './FilterCardContent';
 import { FilterCardProps } from './types';
@@ -30,6 +30,8 @@ export const FilterCard = ({
   placement,
 }: FilterCardProps) => {
   const [internalIsVisible, setInternalIsVisible] = useState(false);
+  const [popoverVisible, setPopoverVisible] = useState(false);
+  const visibilityTimer = useRef<number | null>();
 
   const hidePopover = () => {
     setInternalIsVisible(false);
@@ -47,10 +49,29 @@ export const FilterCard = ({
       mouseEnterDelay={0.2}
       mouseLeaveDelay={0.2}
       onVisibleChange={visible => {
+        const vis = visible;
+        // The popover has a delay while it transitions to visible where its is display: hidden
+        // and child DOM elements will all provide widths of zero.  This timeout provides
+        // a delay to ensure the elements are truly visible when they receive the visibility change event
+        // and can safely measure child DOM element widths if needed
+        if (visibilityTimer.current) {
+          window.clearTimeout(visibilityTimer.current);
+          visibilityTimer.current = null;
+        }
+        visibilityTimer.current = window.setTimeout(
+          () => setPopoverVisible(vis),
+          500,
+        );
         setInternalIsVisible(externalIsVisible && visible);
       }}
       visible={externalIsVisible && internalIsVisible}
-      content={<FilterCardContent filter={filter} hidePopover={hidePopover} />}
+      content={
+        <FilterCardContent
+          filter={filter}
+          hidePopover={hidePopover}
+          isContainerVisible={popoverVisible}
+        />
+      }
       getPopupContainer={getPopupContainer ?? (() => document.body)}
     >
       {children}

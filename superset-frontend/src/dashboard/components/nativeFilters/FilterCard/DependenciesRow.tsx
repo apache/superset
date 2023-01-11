@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useRef, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { css, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -52,66 +52,71 @@ const DependencyValue = ({
   );
 };
 
-export const DependenciesRow = React.memo(({ filter }: FilterCardRowProps) => {
-  const dependencies = useFilterDependencies(filter);
-  const dependenciesRef = useRef<HTMLDivElement>(null);
-  const [isTruncated, hiddenElementCount] = useTruncation(dependenciesRef);
-  const theme = useTheme();
+export const DependenciesRow = React.memo(
+  ({ filter, isContainerVisible = true }: FilterCardRowProps) => {
+    const dependencies = useFilterDependencies(filter);
+    const dependenciesRef = useRef<HTMLDivElement>(null);
+    const [isTruncated, hiddenElementCount] = useTruncation(
+      dependenciesRef,
+      isContainerVisible,
+    );
+    const theme = useTheme();
 
-  const tooltipText = useMemo(
-    () =>
-      isTruncated && dependencies ? (
-        <TooltipList>
-          {dependencies.map(dependency => (
-            <li>
-              <DependencyValue dependency={dependency} />
-            </li>
-          ))}
-        </TooltipList>
-      ) : null,
-    [isTruncated, dependencies],
-  );
+    const tooltipText = useMemo(
+      () =>
+        isTruncated && dependencies ? (
+          <TooltipList>
+            {dependencies.map(dependency => (
+              <li>
+                <DependencyValue dependency={dependency} />
+              </li>
+            ))}
+          </TooltipList>
+        ) : null,
+      [isTruncated, dependencies],
+    );
 
-  if (!Array.isArray(dependencies) || dependencies.length === 0) {
-    return null;
-  }
-  return (
-    <Row>
-      <RowLabel
-        css={css`
-          display: inline-flex;
-          align-items: center;
-        `}
-      >
-        {t('Dependent on')}{' '}
-        <TooltipWithTruncation
-          title={t(
-            'Filter only displays values relevant to selections made in other filters.',
-          )}
+    if (!Array.isArray(dependencies) || dependencies.length === 0) {
+      return null;
+    }
+    return (
+      <Row>
+        <RowLabel
+          css={css`
+            display: inline-flex;
+            align-items: center;
+          `}
         >
-          <Icons.Info
-            iconSize="m"
-            iconColor={theme.colors.grayscale.light1}
-            css={css`
-              margin-left: ${theme.gridUnit}px;
-            `}
-          />
-        </TooltipWithTruncation>
-      </RowLabel>
-      <TooltipWithTruncation title={tooltipText}>
-        <RowValue ref={dependenciesRef}>
-          {dependencies.map((dependency, index) => (
-            <DependencyValue
-              key={dependency.id}
-              dependency={dependency}
-              hasSeparator={index !== 0}
+          {t('Dependent on')}{' '}
+          <TooltipWithTruncation
+            title={t(
+              'Filter only displays values relevant to selections made in other filters.',
+            )}
+          >
+            <Icons.Info
+              iconSize="m"
+              iconColor={theme.colors.grayscale.light1}
+              css={css`
+                margin-left: ${theme.gridUnit}px;
+              `}
             />
-          ))}
-        </RowValue>
-        {hiddenElementCount && (
-          <RowTruncationCount>+{hiddenElementCount}</RowTruncationCount>
-        )}
-      </TooltipWithTruncation>
-    </Row>
-  );
-});
+          </TooltipWithTruncation>
+        </RowLabel>
+        <TooltipWithTruncation title={tooltipText}>
+          <RowValue ref={dependenciesRef}>
+            {dependencies.map((dependency, index) => (
+              <DependencyValue
+                key={dependency.id}
+                dependency={dependency}
+                hasSeparator={index !== 0}
+              />
+            ))}
+          </RowValue>
+          {hiddenElementCount > 0 && (
+            <RowTruncationCount>+{hiddenElementCount}</RowTruncationCount>
+          )}
+        </TooltipWithTruncation>
+      </Row>
+    );
+  },
+);

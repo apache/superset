@@ -27,16 +27,18 @@ import { TypeRow } from './TypeRow';
 interface FilterCardContentProps {
   filter: Filter;
   hidePopover: () => void;
+  isContainerVisible?: boolean;
 }
 
 export const FilterCardContent = ({
   filter,
   hidePopover,
+  isContainerVisible = false,
 }: FilterCardContentProps) => (
   <div>
     <NameRow filter={filter} hidePopover={hidePopover} />
     <TypeRow filter={filter} />
-    <ScopeRow filter={filter} />
-    <DependenciesRow filter={filter} />
+    <ScopeRow filter={filter} isContainerVisible={isContainerVisible} />
+    <DependenciesRow filter={filter} isContainerVisible={isContainerVisible} />
   </div>
 );

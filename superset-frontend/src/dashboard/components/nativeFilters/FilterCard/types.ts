@@ -35,6 +35,7 @@ export interface FilterCardProps {
 
 export interface FilterCardRowProps {
   filter: Filter;
+  isContainerVisible?: boolean;
 }
 
 export interface DependencyValueProps {
