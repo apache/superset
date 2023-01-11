@@ -410,7 +410,9 @@ test('should show missing params state', () => {
 });
 
 test('should show missing dataset state', () => {
+  // @ts-ignore
   delete window.location;
+  // @ts-ignore
   window.location = { search: '?slice_id=152' };
   const props = createProps({ datasource: fallbackExploreInitialData.dataset });
   render(<DatasourceControl {...props} />, { useRedux: true });

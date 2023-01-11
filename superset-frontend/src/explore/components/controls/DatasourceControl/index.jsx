@@ -272,13 +272,7 @@ class DatasourceControl extends React.PureComponent {
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
       const sliceId = getUrlParam(URL_PARAMS.sliceId);
-      console.log(
-        'HELLO',
-        datasourceId,
-        sliceId,
-        window.location.search,
-        'hello',
-      );
+
       if (!datasourceId && !sliceId) {
         isMissingParams = true;
       }
