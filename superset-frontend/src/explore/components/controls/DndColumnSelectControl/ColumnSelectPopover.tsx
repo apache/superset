@@ -231,7 +231,9 @@ const ColumnSelectPopover = ({
   }, []);
 
   const setDatasetAndClose = () => {
-    window.location.href = '/dataset/add/';
+    if (setDatasetModal) {
+      setDatasetModal(true);
+    }
     onClose();
   };
 

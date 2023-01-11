@@ -40,6 +40,7 @@ import {
   emptyStateComponent,
 } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
 import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
@@ -210,6 +211,16 @@ export default function LeftPanel({
   };
 
   const encodedSchema = schema ? encodeURIComponent(schema) : undefined;
+
+  useEffect(() => {
+    const currentUserSelectedDb = getItem(
+      LocalStorageKeys.db,
+      null,
+    ) as DatabaseObject;
+    if (currentUserSelectedDb) {
+      setDatabase(currentUserSelectedDb);
+    }
+  }, []);
 
   useEffect(() => {
     if (loadTables) {
