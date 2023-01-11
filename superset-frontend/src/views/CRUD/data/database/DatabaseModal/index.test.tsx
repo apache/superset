@@ -204,7 +204,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        allow_ssh_tunneling: true,
       },
     },
     {
