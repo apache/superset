@@ -92,6 +92,10 @@ export const ExploreChartHeader = ({
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
 
+  const StyledObjectTagsContainer = styled.div`
+    padding-left: 8px;
+  `;
+
   const updateCategoricalNamespace = async () => {
     const { dashboards } = metadata || {};
     const dashboard =
@@ -114,10 +118,6 @@ export const ExploreChartHeader = ({
           ...sharedLabelColors,
           ...customLabelColors,
         };
-
-        const StyledObjectTagsContainer = styled.div`
-          padding-left: 8px;
-        `;
 
         const categoricalNamespace = CategoricalColorNamespace.getNamespace();
 

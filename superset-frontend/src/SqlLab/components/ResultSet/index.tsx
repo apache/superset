@@ -499,10 +499,7 @@ const ResultSet = ({
       return (
         <>
           <StyledObjectTagsContainer>
-            <ObjectTags
-              objectId={Number(this.props.query.queryId)}
-              objectType="query"
-            />
+            <ObjectTags objectId={Number(query.queryId)} objectType="query" />
           </StyledObjectTagsContainer>
           {renderControls()}
           {renderRowsReturned()}

@@ -152,7 +152,6 @@ const undoRedoStyle = theme => css`
   }
 `;
 
-
 const StyledObjectTagsContainer = styled.div`
   display: flex;
   padding-left: 8px;
