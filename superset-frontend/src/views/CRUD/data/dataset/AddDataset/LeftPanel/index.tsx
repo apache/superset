@@ -41,7 +41,6 @@ import {
 } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
