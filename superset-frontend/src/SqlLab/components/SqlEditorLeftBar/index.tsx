@@ -103,22 +103,12 @@ const SqlEditorLeftBar = ({
   setEmptyState,
 }: SqlEditorLeftBarProps) => {
   const dispatch = useDispatch();
-  const queryEditor = useQueryEditor(queryEditorId, [
-    'dbId',
-    'schema',
-    'schemaOptions',
-  ]);
+  const queryEditor = useQueryEditor(queryEditorId, ['dbId', 'schema']);
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
-  const schemaOptionsMap = useMemo(
-    () => new Set(queryEditor.schemaOptions?.map(({ value }) => value)),
-    [queryEditor.schemaOptions],
-  );
-  const schema = schemaOptionsMap.has(queryEditor.schema)
-    ? queryEditor.schema
-    : undefined;
+  const { schema } = queryEditor;
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
