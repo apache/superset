@@ -312,10 +312,7 @@ def test_run_async_cta_query(test_client, ctas_method):
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
     updated_query = query.executed_sql[query.executed_sql.index("*/") + 2 :]
-    assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{table_name} AS \n{QUERY}"
-        == updated_query
-    )
+    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == updated_query
 
     assert QUERY == query.sql
     assert query.rows == (1 if backend() == "presto" else 0)
@@ -351,10 +348,7 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
         else get_select_star(tmp_table, query.limit)
     )
     updated_query = query.executed_sql[query.executed_sql.index("*/") + 2 :]
-    assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table} AS \n{QUERY}"
-        == updated_query
-    )
+    assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == updated_query
 
     assert QUERY == query.sql
 
