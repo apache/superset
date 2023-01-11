@@ -20,6 +20,7 @@ import React, { useReducer, Reducer, useEffect, useState } from 'react';
 import { logging } from '@superset-ui/core';
 import { UseGetDatasetsList } from 'src/views/CRUD/data/hooks';
 import rison from 'rison';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
@@ -96,9 +97,10 @@ export default function AddDataset() {
       .then(json => {
         setDatasets(json?.result);
       })
-      .catch(error =>
-        logging.error('There was an error fetching dataset', error),
-      );
+      .catch(error => {
+        addDangerToast('There was an error fetching dataset');
+        logging.error('There was an error fetching dataset', error);
+      });
   };
 
   useEffect(() => {

@@ -17,8 +17,9 @@
  * under the License.
  */
 import React, { useEffect, useState, useRef } from 'react';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, logging } from '@superset-ui/core';
 import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import DatasetPanel from './DatasetPanel';
 import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
 
@@ -94,8 +95,10 @@ const DatasetPanelWrapper = ({
         setColumnList([]);
         setHasColumns?.(false);
         setHasError(true);
-        // eslint-disable-next-line no-console
-        console.error(
+        addDangerToast(
+          `The API response from ${path} does not match the IDatabaseTable interface.`,
+        );
+        logging.error(
           `The API response from ${path} does not match the IDatabaseTable interface.`,
         );
       }
