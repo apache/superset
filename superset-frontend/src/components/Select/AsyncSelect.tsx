@@ -442,7 +442,7 @@ const AsyncSelect = forwardRef(
       fetchedQueries.current.clear();
       setAllValuesLoaded(false);
       setSelectOptions(initialOptions);
-    }, [initialOptions]);
+    }, [initialOptions, options]);
 
     useEffect(() => {
       setSelectValue(value);
