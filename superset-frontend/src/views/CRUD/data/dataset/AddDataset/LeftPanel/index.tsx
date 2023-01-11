@@ -41,6 +41,7 @@ import {
 } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetActionType } from '../types';
 
 interface LeftPanelProps {
@@ -193,9 +194,10 @@ export default function LeftPanel({
         setResetTables(false);
         setRefresh(false);
       })
-      .catch(error =>
-        logging.error('There was an error fetching tables', error),
-      );
+      .catch(error => {
+        addDangerToast('There was an error fetching tables');
+        logging.error('There was an error fetching tables', error);
+      });
   };
 
   const setSchema = (schema: string) => {
