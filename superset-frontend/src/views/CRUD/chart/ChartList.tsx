@@ -401,7 +401,6 @@ function ChartList(props: ChartListProps) {
         accessor: 'dashboards',
         disableSortBy: true,
         size: 'xxl',
-        hidden: true,
       },
       {
         Cell: ({
