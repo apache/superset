@@ -105,7 +105,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
             # Generate tunnel if present in the properties
-            if ssh_tunnel := self._properties.get("ssh_tunnel"):
+            ssh_tunnel = self._properties.get("ssh_tunnel")
+            if ssh_tunnel:
                 # If there's an existing tunnel for that DB we need to use the stored
                 # password, private_key and private_key_password instead
                 if ssh_tunnel_id := ssh_tunnel.pop("id", None):
