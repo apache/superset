@@ -539,25 +539,38 @@ const RightMenu = ({
         )}
       </Menu>
       {navbarRight.documentation_url && (
-        <StyledAnchor
-          href={navbarRight.documentation_url}
-          target="_blank"
-          rel="noreferrer"
-          title={t('Documentation')}
-        >
-          <i className="fa fa-question" />
-          &nbsp;
-        </StyledAnchor>
+        <>
+          <StyledAnchor
+            href={navbarRight.documentation_url}
+            target="_blank"
+            rel="noreferrer"
+            title={navbarRight.documentation_text || t('Documentation')}
+          >
+            {navbarRight.documentation_icon ? (
+              <i className={navbarRight.documentation_icon} />
+            ) : (
+              <i className="fa fa-question" />
+            )}
+          </StyledAnchor>
+          <span>&nbsp;</span>
+        </>
       )}
       {navbarRight.bug_report_url && (
-        <StyledAnchor
-          href={navbarRight.bug_report_url}
-          target="_blank"
-          rel="noreferrer"
-          title={t('Report a bug')}
-        >
-          <i className="fa fa-bug" />
-        </StyledAnchor>
+        <>
+          <StyledAnchor
+            href={navbarRight.bug_report_url}
+            target="_blank"
+            rel="noreferrer"
+            title={navbarRight.bug_report_text || t('Report a bug')}
+          >
+            {navbarRight.bug_report_icon ? (
+              <i className={navbarRight.bug_report_icon} />
+            ) : (
+              <i className="fa fa-bug" />
+            )}
+          </StyledAnchor>
+          <span>&nbsp;</span>
+        </>
       )}
       {navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>
