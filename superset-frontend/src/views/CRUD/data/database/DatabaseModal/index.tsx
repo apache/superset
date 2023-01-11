@@ -549,7 +549,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
-  const sshTunneling = isFeatureEnabled(FeatureFlag.SSH_TUNNELING);
+  const engineAllowsSSHTunneling = (
+    availableDbs?.databases?.find(
+      (DB: DatabaseObject) =>
+        DB.backend === db?.engine || DB.engine === db?.engine,
+    ) as DatabaseObject
+  )?.engine_information?.allow_ssh_tunneling;
+  const sshTunneling =
+    isFeatureEnabled(FeatureFlag.SSH_TUNNELING) && engineAllowsSSHTunneling;
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
@@ -1556,7 +1563,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             </StyledAlignment>
           ) : (
             <div>
-              hello1
               <DatabaseConnectionForm
                 isEditMode
                 sslForced={sslForced}
@@ -1810,7 +1816,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   getPlaceholder={getPlaceholder}
                 />
                 {sshTunneling && (
-                  <SSHTunnelContainer>{renderSomething()}</SSHTunnelContainer>
+                  <SSHTunnelContainer>
+                    {renderSSHTunnelForm()}
+                  </SSHTunnelContainer>
                 )}
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (

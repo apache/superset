@@ -344,7 +344,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
               <div className="switch">
                 <AntdSwitch checked={checked} onChange={handleToggle} />
-                <span>Thumbnails</span>
+                <span>{t('Thumbnails')}</span>
               </div>
             ) : null}
           </WelcomeNav>

@@ -23,6 +23,7 @@ import {
   Method,
   makeApi,
   SupersetApiError,
+  t,
 } from '@superset-ui/core';
 import ErrorMessage from './ErrorMessage';
 
@@ -121,7 +122,7 @@ export default class VerifyCORS extends React.Component<Props, State> {
             className="btn btn-primary btn-sm"
             onClick={this.handleVerify}
           >
-            Verify
+            {t('Verify')}
           </button>
           <br />
           <br />

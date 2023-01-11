@@ -53,8 +53,8 @@ const TabsContainer = styled.div`
 `;
 
 const options = [
-  { label: 'Filter', type: NativeFilterType.NATIVE_FILTER },
-  { label: 'Divider', type: NativeFilterType.DIVIDER },
+  { label: t('Filter'), type: NativeFilterType.NATIVE_FILTER },
+  { label: t('Divider'), type: NativeFilterType.DIVIDER },
 ];
 
 const FilterTitlePane: React.FC<Props> = ({
