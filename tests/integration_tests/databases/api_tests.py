@@ -2495,7 +2495,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "engine_information": {
                         "supports_file_upload": True,
-                        "allow_ssh_tunneling": True,
+                        "allow_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2505,7 +2505,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "engine_information": {
                         "supports_file_upload": True,
-                        "allow_ssh_tunneling": True,
+                        "allow_ssh_tunneling": False,
                     },
                 },
             ]
