@@ -18,6 +18,7 @@
 from typing import Any, Dict
 
 from superset.constants import PASSWORD_MASK
+from superset.databases.ssh_tunnel.models import SSHTunnel
 
 
 def mask_password_info(ssh_tunnel: Dict[str, Any]) -> Dict[str, Any]:
@@ -27,4 +28,16 @@ def mask_password_info(ssh_tunnel: Dict[str, Any]) -> Dict[str, Any]:
         ssh_tunnel["private_key"] = PASSWORD_MASK
     if ssh_tunnel.pop("private_key_password", None) is not None:
         ssh_tunnel["private_key_password"] = PASSWORD_MASK
+    return ssh_tunnel
+
+
+def unmask_password_info(
+    ssh_tunnel: Dict[str, Any], model: SSHTunnel
+) -> Dict[str, Any]:
+    if ssh_tunnel.get("password") == PASSWORD_MASK:
+        ssh_tunnel["password"] = model.password
+    if ssh_tunnel.get("private_key") == PASSWORD_MASK:
+        ssh_tunnel["private_key"] = model.private_key
+    if ssh_tunnel.get("private_key_password") == PASSWORD_MASK:
+        ssh_tunnel["private_key_password"] = model.private_key_password
     return ssh_tunnel
