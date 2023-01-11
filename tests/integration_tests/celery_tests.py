@@ -39,7 +39,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
-from superset.sql_parse import ParsedQuery, CtasMethod
+from superset.sql_parse import ParsedQuery, CtasMethod, strip_comments_from_sql
 from superset.utils.core import add_metadata, backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
@@ -238,7 +238,7 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
     )
     # updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
-    assert temp_query == ParsedQuery(query.executed_sql, strip_comments=True)
+    assert temp_query == strip_comments_from_sql(query.executed_sql)
     assert query.select_sql == get_select_star(
         tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME
     )
@@ -277,7 +277,7 @@ def test_run_async_query_cta_config(test_client, ctas_method):
     )
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == ParsedQuery(query.executed_sql, strip_comments=True)
+        == strip_comments_from_sql(query.executed_sql)
     )
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
@@ -305,8 +305,8 @@ def test_run_async_cta_query(test_client, ctas_method):
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
 
-    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == ParsedQuery(
-        query.executed_sql, strip_comments=True
+    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == strip_comments_from_sql(
+        query.executed_sql
     )
     assert QUERY == query.sql
     assert query.rows == (1 if backend() == "presto" else 0)
@@ -342,8 +342,8 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
         else get_select_star(tmp_table, query.limit)
     )
 
-    assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == ParsedQuery(
-        query.executed_sql, strip_comments=True
+    assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == strip_comments_from_sql(
+        query.executed_sql
     )
     assert QUERY == query.sql
 
