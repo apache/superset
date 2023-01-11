@@ -53,7 +53,7 @@ function safeJsonObjectParse(
 
   // We know `data` is a string starting with '{' or '[', so try to parse it as a valid object
   try {
-    const jsonData = JSON.parse(data);
+    const jsonData = JSONbig({ storeAsString: true }).parse(data);
     if (jsonData && typeof jsonData === 'object') {
       return jsonData;
     }
@@ -61,6 +61,13 @@ function safeJsonObjectParse(
   } catch (_) {
     return null;
   }
+}
+
+export function renderBigIntStrToNumber(value: string) {
+  if (typeof value === 'string' && /^"-?\d+"$/.test(value)) {
+    return value.substring(1, value.length - 1);
+  }
+  return value;
 }
 
 const GRID_POSITION_ADJUSTMENT = 4;
@@ -405,7 +412,13 @@ const FilterableTable = ({
     jsonString: CellDataType,
   ) => (
     <ModalTrigger
-      modalBody={<JSONTree data={jsonObject} theme={getJsonTreeTheme()} />}
+      modalBody={
+        <JSONTree
+          data={jsonObject}
+          theme={getJsonTreeTheme()}
+          valueRenderer={renderBigIntStrToNumber}
+        />
+      }
       modalFooter={
         <Button>
           <CopyToClipboard shouldShowText={false} text={jsonString} />
