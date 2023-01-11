@@ -40,7 +40,7 @@ from superset.errors import ErrorLevel, SupersetErrorType
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
-from superset.utils.core import backend
+from superset.utils.core import add_metadata, backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.test_app import app
@@ -234,8 +234,10 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
     assert cta_result(ctas_method) == (result["data"], result["columns"])
 
     query = get_query_by_id(result["query"]["serverId"])
+    temp_query = f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
+    updated_query = add_metadata(temp_query,query_id = query.id,query_source = "Sql Lab")
     assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
+        updated_query
         == query.executed_sql
     )
     assert query.select_sql == get_select_star(

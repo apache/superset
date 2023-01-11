@@ -1994,7 +1994,8 @@ def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
 def add_metadata(sql: str, **kwargs: any) -> str:
     """Return sql query after appending meta-data"""
     hash = gen_query_hash(sql)
-    return f"/* Username: {kwargs['username']}, Query_id: {kwargs['query_id']}, Query_hash: {hash}, Query_source: {kwargs['query_source']} */ \n{sql}"
+    username = get_username()
+    return f"/* Username: {username}, Query_id: {kwargs['query_id']}, Query_hash: {hash}, Query_source: {kwargs['query_source']} */ \n{sql}"
 
 
 def gen_query_hash(sql: str):
