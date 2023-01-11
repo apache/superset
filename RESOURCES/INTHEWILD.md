@@ -156,7 +156,7 @@ Join our growing community!
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
 
 ### Government
-- [City of Ann Arbor](https://www.a2gov.org/) [@sfirke]
+- [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 
 ### Others
 - [AI inside](https://inside.ai/en/)
