@@ -2327,7 +2327,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                     "engine_information": {
                         "supports_file_upload": True,
-                        "allow_ssh_tunneling": True,
+                        "allow_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2379,7 +2379,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
-                        "allow_ssh_tunneling": True,
+                        "allow_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2402,7 +2402,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
                         "supports_file_upload": False,
-                        "allow_ssh_tunneling": True,
+                        "allow_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2454,7 +2454,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
-                        "allow_ssh_tunneling": True,
+                        "allow_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2464,7 +2464,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "engine_information": {
                         "supports_file_upload": True,
-                        "allow_ssh_tunneling": True,
+                        "allow_ssh_tunneling": False,
                     },
                 },
             ]
