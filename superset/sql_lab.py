@@ -253,13 +253,12 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
             query.limit = SQL_MAX_ROW
         sql = apply_limit_if_exists(database, increased_limit, query, sql)
 
-
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(
         sql,
-        query_source = "Sql Lab",
-        query_hash = gen_query_hash(sql),
-        query_id = query.id,
+        query_source="Sql Lab",
+        query_hash=gen_query_hash(sql),
+        query_id=query.id,
         username=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
         security_manager=security_manager,
         database=database,

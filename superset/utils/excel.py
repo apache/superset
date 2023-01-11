@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import io
 import logging
 import re
 import urllib.request
@@ -23,8 +24,6 @@ from urllib.error import URLError
 import numpy as np
 import pandas as pd
 import simplejson
-import io
-from typing import Any
 
 from superset.utils.core import GenericDataType
 

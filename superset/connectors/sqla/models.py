@@ -127,8 +127,8 @@ from superset.superset_typing import (
 from superset.tables.models import Table as NewTable
 from superset.utils import core as utils
 from superset.utils.core import (
-    GenericDataType,
     gen_query_hash,
+    GenericDataType,
     get_column_name,
     get_username,
     is_adhoc_column,
@@ -981,9 +981,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             sql = sql_query_mutator(
                 sql,
                 # TODO(john-bodley): Deprecate in 3.0.
-                query_source = "Charts",
-                query_hash = query_hash,
-                query_id = None,
+                query_source="Charts",
+                query_hash=query_hash,
+                query_id=None,
                 username=get_username(),
                 security_manager=security_manager,
                 database=self.database,

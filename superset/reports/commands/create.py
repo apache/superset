@@ -113,9 +113,14 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
             self._properties["validator_config_json"] = json.dumps(
                 self._properties["validator_config_json"]
             )
-        
+
         if "sql" in self._properties:
-            self._properties["sql"] = add_metadata(sql=self._properties["sql"],username= get_username(),query_id=None,query_source="Alerts")
+            self._properties["sql"] = add_metadata(
+                sql=self._properties["sql"],
+                username=get_username(),
+                query_id=None,
+                query_source="Alerts",
+            )
 
         try:
             owners = self.populate_owners(owner_ids)
@@ -151,4 +156,3 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
                     "extra",
                 )
             )
-

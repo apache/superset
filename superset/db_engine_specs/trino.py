@@ -17,8 +17,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, TYPE_CHECKING
 from contextlib import closing
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 import simplejson as json
 from flask import current_app

@@ -14,13 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder import expose
+from flask_appbuilder import expose, permission_name
 from flask_appbuilder.security.decorators import has_access
 
 from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
-from flask_appbuilder import permission_name
 
 
 class Flash(BaseSupersetView):

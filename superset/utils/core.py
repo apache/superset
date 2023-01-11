@@ -1990,18 +1990,20 @@ def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
             filter_ for filter_ in value or [] if not filter_.get("isExtra")
         ]
 
-def add_metadata(sql:str,**kwargs: any) -> str:
+
+def add_metadata(sql: str, **kwargs: any) -> str:
     """Return sql query after appending meta-data"""
     hash = gen_query_hash(sql)
     return f"/* Username: {kwargs['username']}, Query_id: {kwargs['query_id']}, Query_hash: {hash}, Query_source: {kwargs['query_source']} */ \n{sql}"
 
-def gen_query_hash(sql:str):
-        """Return hash of the given query after stripping all comments, line breaks
-        and multiple spaces, and lower casing all text.
-        TODO: possible issue - the following queries will get the same id:
-            1. SELECT 1 FROM table WHERE column='Value';
-            2. SELECT 1 FROM table where column='value';
-        """
-        sql = re.sub(r"(?m)\s+#\w+(?=\n)","", sql)
-        sql = "".join(sql.split()).lower()
-        return hashlib.md5(sql.encode("utf-8")).hexdigest()
+
+def gen_query_hash(sql: str):
+    """Return hash of the given query after stripping all comments, line breaks
+    and multiple spaces, and lower casing all text.
+    TODO: possible issue - the following queries will get the same id:
+        1. SELECT 1 FROM table WHERE column='Value';
+        2. SELECT 1 FROM table where column='value';
+    """
+    sql = re.sub(r"(?m)\s+#\w+(?=\n)", "", sql)
+    sql = "".join(sql.split()).lower()
+    return hashlib.md5(sql.encode("utf-8")).hexdigest()

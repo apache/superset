@@ -465,8 +465,11 @@ class BaseTemplateProcessor:
         self._context.update(kwargs)
         self._context.update(context_addons())
 
-
-    def process_template(self, sql: str, **kwargs: Any,) -> str:
+    def process_template(
+        self,
+        sql: str,
+        **kwargs: Any,
+    ) -> str:
         """Processes a sql template
 
         >>> sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
@@ -517,6 +520,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
     """
 
     engine = "presto"
+
     def set_context(self, **kwargs: Any) -> None:
         super().set_context(**kwargs)
         self._context[self.engine] = {
