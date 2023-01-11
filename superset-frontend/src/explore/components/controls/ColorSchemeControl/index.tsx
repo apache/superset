@@ -112,7 +112,7 @@ const ColorSchemeControl = ({
       return [
         {
           value: 'dashboard',
-          label: 'dashboard',
+          label: t('dashboard'),
           customLabel: (
             <Tooltip title={DASHBOARD_ALERT}>{t('Dashboard scheme')}</Tooltip>
           ),

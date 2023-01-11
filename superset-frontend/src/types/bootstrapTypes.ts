@@ -94,10 +94,14 @@ export interface BrandProps {
 export interface NavBarProps {
   show_watermark: boolean;
   bug_report_url?: string;
+  bug_report_text?: string;
+  bug_report_icon?: string;
   version_string?: string;
   version_sha?: string;
   build_number?: string;
   documentation_url?: string;
+  documentation_text?: string;
+  documentation_icon?: string;
   languages: Languages;
   show_language_picker: boolean;
   user_is_anonymous: boolean;

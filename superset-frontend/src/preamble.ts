@@ -26,47 +26,34 @@ import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
 import setupDashboardComponents from './setup/setupDasboardComponents';
-import { BootstrapData, User } from './types/bootstrapTypes';
+import { User } from './types/bootstrapTypes';
 import { initFeatureFlags } from './featureFlags';
-import { DEFAULT_COMMON_BOOTSTRAP_DATA } from './constants';
+import getBootstrapData from './utils/getBootstrapData';
 
 if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
 // eslint-disable-next-line import/no-mutable-exports
-export let bootstrapData: BootstrapData = {
-  common: {
-    ...DEFAULT_COMMON_BOOTSTRAP_DATA,
-  },
-};
+const bootstrapData = getBootstrapData();
 
 // Configure translation
 if (typeof window !== 'undefined') {
-  const root = document.getElementById('app');
-  bootstrapData = root
-    ? JSON.parse(root.getAttribute('data-bootstrap') || '{}')
-    : {};
-  if (bootstrapData?.common?.language_pack) {
-    const languagePack = bootstrapData.common.language_pack;
-    configure({ languagePack });
-    moment.locale(bootstrapData.common.locale);
-  } else {
-    configure();
-  }
+  configure({ languagePack: bootstrapData.common.language_pack });
+  moment.locale(bootstrapData.common.locale);
 } else {
   configure();
 }
 
 // Configure feature flags
-initFeatureFlags(bootstrapData?.common?.feature_flags);
+initFeatureFlags(bootstrapData.common.feature_flags);
 
 // Setup SupersetClient
 setupClient();
 
 setupColors(
-  bootstrapData?.common?.extra_categorical_color_schemes,
-  bootstrapData?.common?.extra_sequential_color_schemes,
+  bootstrapData.common.extra_categorical_color_schemes,
+  bootstrapData.common.extra_sequential_color_schemes,
 );
 
 // Setup number formatters
@@ -76,7 +63,7 @@ setupDashboardComponents();
 
 export const theme = merge(
   supersetTheme,
-  bootstrapData?.common?.theme_overrides ?? {},
+  bootstrapData.common.theme_overrides ?? {},
 );
 
 const getMe = makeApi<void, User>({
