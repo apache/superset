@@ -1803,7 +1803,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                   getPlaceholder={getPlaceholder}
                 />
-                {sshTunneling && renderSomething()}
+                {sshTunneling && (
+                  <div style={{ padding: '0 15px' }}>{renderSomething()}</div>
+                )}
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
                     <>
