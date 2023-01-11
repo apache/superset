@@ -58,9 +58,9 @@ export const controlPanelSectionsChartOptions: (ControlPanelSectionConfig | null
               label: t('Stacked Style'),
               renderTrigger: true,
               choices: [
-                ['stack', 'stack'],
-                ['stream', 'stream'],
-                ['expand', 'expand'],
+                ['stack', t('stack')],
+                ['stream', t('stream')],
+                ['expand', t('expand')],
               ],
               default: 'stack',
               description: '',

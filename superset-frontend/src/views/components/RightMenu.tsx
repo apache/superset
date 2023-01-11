@@ -514,17 +514,17 @@ const RightMenu = ({
                 )}
                 {navbarRight.version_string && (
                   <div css={versionInfoStyles}>
-                    Version: {navbarRight.version_string}
+                    {t('Version')}: {navbarRight.version_string}
                   </div>
                 )}
                 {navbarRight.version_sha && (
                   <div css={versionInfoStyles}>
-                    SHA: {navbarRight.version_sha}
+                    {t('SHA')}: {navbarRight.version_sha}
                   </div>
                 )}
                 {navbarRight.build_number && (
                   <div css={versionInfoStyles}>
-                    Build: {navbarRight.build_number}
+                    {t('Build')}: {navbarRight.build_number}
                   </div>
                 )}
               </div>
