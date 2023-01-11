@@ -242,7 +242,7 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
     )
     updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
-    assert temp_query == updated_query
+    assert updated_query == query.executed_sql
 
     print(
         "executed sql,",
