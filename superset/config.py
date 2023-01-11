@@ -1131,8 +1131,8 @@ BLUEPRINTS: List[Blueprint] = []
 TRACKING_URL_TRANSFORMER = lambda url: url
 
 
-# Interval between consecutive polls when using Hive Engine
-HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
+# customize the polling time of each engine
+DB_POLL_INTERVAL_SECONDS: Dict[str, int] = {}
 
 # Interval between consecutive polls when using Presto Engine
 # See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
@@ -1258,6 +1258,9 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
+
+# The text for call-to-action link in Alerts & Reports emails
+EMAIL_REPORTS_CTA = "Explore in Superset"
 
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None

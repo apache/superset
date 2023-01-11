@@ -40,7 +40,7 @@ import {
 } from '@superset-ui/plugin-chart-echarts';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { LineChartPlugin } from '@superset-ui/preset-chart-xy';
-import TimeTableChartPlugin from '../../../../visualizations/TimeTable';
+import TimeTableChartPlugin from 'src/visualizations/TimeTable';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 jest.useFakeTimers();
