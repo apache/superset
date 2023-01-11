@@ -241,7 +241,7 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
     )
     # updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
     assert temp_query == sqlparse.format(
-        query.executed_sql.strip("\t\r\n; "), strip_comments=True
+        query.executed_sql.strip("\t\r; "), strip_comments=True
     )
     assert query.select_sql == get_select_star(
         tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME
@@ -281,7 +281,7 @@ def test_run_async_query_cta_config(test_client, ctas_method):
     )
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == sqlparse.format(query.executed_sql.strip("\t\r\n; "), strip_comments=True)
+        == sqlparse.format(query.executed_sql.strip("\t\r; "), strip_comments=True)
     )
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
@@ -310,7 +310,7 @@ def test_run_async_cta_query(test_client, ctas_method):
     assert get_select_star(table_name, query.limit) in query.select_sql
 
     assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == sqlparse.format(
-        query.executed_sql.strip("\t\r\n; "), strip_comments=True
+        query.executed_sql.strip("\t\r; "), strip_comments=True
     )
     assert QUERY == query.sql
     assert query.rows == (1 if backend() == "presto" else 0)
@@ -347,7 +347,7 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     )
 
     assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == sqlparse.format(
-        query.executed_sql.strip("\t\r\n; "), strip_comments=True
+        query.executed_sql.strip("\t\r; "), strip_comments=True
     )
     assert QUERY == query.sql
 
