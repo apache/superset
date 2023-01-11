@@ -543,6 +543,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
+  const engineAllowsSSHTunneling = (
+    availableDbs?.databases?.find(
+      (DB: DatabaseObject) =>
+        DB.backend === db?.engine || DB.engine === db?.engine,
+    ) as DatabaseObject
+  )?.engine_information?.allow_ssh_tunneling;
   const sshTunneling = isFeatureEnabled(FeatureFlag.SSH_TUNNELING);
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
@@ -1487,7 +1493,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                {sshTunneling && (
+                {sshTunneling && engineAllowsSSHTunneling && (
                   <SSHTunnelForm
                     isEditMode={isEditMode}
                     sshTunneling={sshTunneling}

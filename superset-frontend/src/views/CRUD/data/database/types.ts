@@ -98,6 +98,7 @@ export type DatabaseObject = {
   // DB Engine Spec information
   engine_information?: {
     supports_file_upload?: boolean;
+    allow_ssh_tunneling?: boolean;
   };
 
   // SSH Tunnel information
