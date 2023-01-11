@@ -58,7 +58,7 @@ describe('Charts list', () => {
     cy.preserveLogin();
   });
 
-  describe.skip('Cross-referenced dashboards', () => {
+  describe('Cross-referenced dashboards', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.createSampleCharts([0]);
@@ -105,8 +105,6 @@ describe('Charts list', () => {
 
   describe('list mode', () => {
     before(() => {
-      cy.createSampleDashboards([0, 1, 2, 3]);
-      cy.createSampleCharts([0]);
       visitChartList();
       setGridMode('list');
     });
@@ -117,10 +115,10 @@ describe('Charts list', () => {
       cy.getBySel('sort-header').eq(2).contains('Visualization type');
       cy.getBySel('sort-header').eq(3).contains('Dataset');
       cy.getBySel('sort-header').eq(4).contains('Dashboards added to');
-      cy.getBySel('sort-header').eq(4).contains('Modified by');
-      cy.getBySel('sort-header').eq(5).contains('Last modified');
-      cy.getBySel('sort-header').eq(6).contains('Created by');
-      cy.getBySel('sort-header').eq(7).contains('Actions');
+      cy.getBySel('sort-header').eq(5).contains('Modified by');
+      cy.getBySel('sort-header').eq(6).contains('Last modified');
+      cy.getBySel('sort-header').eq(7).contains('Created by');
+      cy.getBySel('sort-header').eq(8).contains('Actions');
     });
 
     it('should sort correctly in list mode', () => {
