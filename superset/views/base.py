@@ -272,10 +272,17 @@ def create_table_permissions(table: models.SqlaTable) -> None:
         security_manager.add_permission_view_menu("schema_access", table.schema_perm)
 
 
-def is_user_admin() -> bool:
+def user_has_role(desired_role: str) -> bool:
     user_roles = [role.name.lower() for role in list(security_manager.get_user_roles())]
-    return "admin" in user_roles
+    return desired_role in user_roles
 
+
+def is_user_admin() -> bool:
+    return user_has_role("admin")
+
+
+def is_user_alpha() -> bool:
+    return user_has_role("alpha")
 
 class BaseSupersetView(BaseView):
     @staticmethod

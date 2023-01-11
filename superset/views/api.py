@@ -21,7 +21,7 @@ from typing import Any, TYPE_CHECKING
 import simplejson as json
 from flask import request
 from flask_appbuilder import expose
-from flask_appbuilder.api import rison
+from flask_appbuilder.api import rison, protect
 from flask_appbuilder.security.decorators import has_access_api
 
 from superset import db, event_logger
@@ -44,9 +44,11 @@ get_time_range_schema = {"type": "string"}
 
 class Api(BaseSupersetView):
     query_context_factory = None
+    allow_browser_login = True
 
     @event_logger.log_this
     @api
+    @protect
     @handle_api_exception
     @has_access_api
     @expose("/v1/query/", methods=["POST"])
@@ -69,6 +71,7 @@ class Api(BaseSupersetView):
 
     @event_logger.log_this
     @api
+    @protect
     @handle_api_exception
     @has_access_api
     @expose("/v1/form_data/", methods=["GET"])
@@ -89,6 +92,7 @@ class Api(BaseSupersetView):
         return json.dumps(form_data)
 
     @api
+    @protect
     @handle_api_exception
     @has_access_api
     @rison(get_time_range_schema)

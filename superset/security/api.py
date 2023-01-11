@@ -17,7 +17,7 @@
 import logging
 from typing import Any, Dict
 
-from flask import request, Response
+from flask import request, Response, g
 from flask_appbuilder import expose
 from flask_appbuilder.api import BaseApi, safe
 from flask_appbuilder.security.decorators import permission_name, protect
@@ -30,6 +30,8 @@ from superset.embedded_dashboard.commands.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
+from superset.views.base import common_bootstrap_payload
+from superset.views.utils import bootstrap_user_data
 
 logger = logging.getLogger(__name__)
 
@@ -160,3 +162,36 @@ class SecurityRestApi(BaseApi):
             return self.response_400(message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+
+
+@expose("/bootstrap_data/", methods=["GET"])
+@protect()
+@safe
+@permission_name("read")
+def bootstrap_data(self) -> Response:
+    """
+    Return the bootstrap data for the Dodo IS frontend
+    ---
+    get:
+      description: >-
+        Fetch the bootstrap data
+      responses:
+        200:
+          description: Result contains bootstrap data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                    result:
+                      type: object
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+    """
+    payload = {
+        "user": bootstrap_user_data(g.user, include_perms=True),
+        "common": common_bootstrap_payload(),
+    }
+    return self.response(200, result=payload)

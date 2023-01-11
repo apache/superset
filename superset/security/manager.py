@@ -1277,7 +1277,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.dashboards.commands.exceptions import DashboardAccessDeniedError
-        from superset.views.base import is_user_admin
+        from superset.views.base import is_user_admin, is_user_alpha
         from superset.views.utils import is_owner
 
         def has_rbac_access() -> bool:
@@ -1292,6 +1292,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         else:
             can_access = (
                 is_user_admin()
+                or is_user_alpha()
                 or is_owner(dashboard, g.user)
                 or (dashboard.published and has_rbac_access())
                 or (not dashboard.published and not dashboard.roles)

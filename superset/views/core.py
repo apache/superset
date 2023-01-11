@@ -31,6 +31,7 @@ import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.api import protect
 from flask_appbuilder.security.decorators import (
     has_access,
     has_access_api,
@@ -201,6 +202,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     """The base views for Superset!"""
 
     logger = logging.getLogger(__name__)
+    allow_browser_login = True
 
     @has_access_api
     @event_logger.log_this
@@ -506,6 +508,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @event_logger.log_this
     @api
+    @protect
     @has_access_api
     @expose("/slice_json/<int:slice_id>")
     @etag_cache()
