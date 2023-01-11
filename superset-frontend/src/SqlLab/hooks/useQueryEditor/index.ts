@@ -25,7 +25,10 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
   sqlEditorId: string,
   attributes: ReadonlyArray<T>,
 ) {
-  const queryEditor = useSelector<SqlLabRootState, Pick<QueryEditor, T | 'id'>>(
+  const queryEditor = useSelector<
+    SqlLabRootState,
+    Pick<QueryEditor, T | 'id' | 'schema'>
+  >(
     ({ sqlLab: { unsavedQueryEditor, queryEditors } }) =>
       pick(
         {
@@ -33,7 +36,7 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
           ...(sqlEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
         },
         ['id'].concat(attributes),
-      ) as Pick<QueryEditor, T | 'id'>,
+      ) as Pick<QueryEditor, T | 'id' | 'schema'>,
     shallowEqual,
   );
   const { schema, schemaOptions } = useSelector<
@@ -56,9 +59,9 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
     [schemaOptions],
   );
 
-  if ('schema' in queryEditor && !schemaOptionsMap.has(schema)) {
+  if ('schema' in queryEditor && schema && !schemaOptionsMap.has(schema)) {
     delete queryEditor.schema;
   }
 
-  return queryEditor;
+  return queryEditor as Pick<QueryEditor, T | 'id'>;
 }
