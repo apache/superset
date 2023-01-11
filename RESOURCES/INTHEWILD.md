@@ -74,6 +74,7 @@ Join our growing community!
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [CnOvit](http://www.cnovit.com/) [@xieshaohu]
+- [Careem](https://www.careem.com/) [@SamraHanifCareem]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
 - [Dial Once](https://www.dial-once.com/)
 - [Dremio](https://dremio.com) [@narendrans]
@@ -110,7 +111,6 @@ Join our growing community!
 - [Whale](http://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
-- [Careem](https://www.careem.com/) [@SamraHanifCareem]
 
 ### Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
