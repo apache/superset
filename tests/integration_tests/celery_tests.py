@@ -286,10 +286,11 @@ def test_run_async_query_cta_config(test_client, ctas_method):
         get_select_star(tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME)
         == query.select_sql
     )
-    assert (
+    temp_query = (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == sqlparse.format(query.executed_sql.strip("\t\r; "), strip_comments=True)
     )
+    updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
+    assert updated_query == query.executed_sql
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
 
@@ -315,10 +316,12 @@ def test_run_async_cta_query(test_client, ctas_method):
 
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
-
-    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == sqlparse.format(
-        query.executed_sql.strip("\t\r; "), strip_comments=True
+    temp_query = (
+        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
     )
+    updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
+    assert updated_query == query.executed_sql
+
     assert QUERY == query.sql
     assert query.rows == (1 if backend() == "presto" else 0)
     assert query.select_as_cta
@@ -353,9 +356,12 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
         else get_select_star(tmp_table, query.limit)
     )
 
-    assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == sqlparse.format(
-        query.executed_sql.strip("\t\r; "), strip_comments=True
-    )
+    temp_query = f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table} AS \n{QUERY}"
+    updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
+    assert updated_query == query.executed_sql
+    # assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == sqlparse.format(
+    #     query.executed_sql.strip("\t\r; "), strip_comments=True
+    # )
     assert QUERY == query.sql
 
     assert query.rows == (1 if backend() == "presto" else 0)
