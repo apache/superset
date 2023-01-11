@@ -1281,6 +1281,37 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     });
   };
 
+  const renderSomething = () => (
+    <SSHTunnelForm
+      isEditMode={isEditMode}
+      sshTunneling={sshTunneling}
+      db={db as DatabaseObject}
+      dbFetched={dbFetched as DatabaseObject}
+      onSSHTunnelParametersChange={({
+        target,
+      }: {
+        target: HTMLInputElement | HTMLTextAreaElement;
+      }) =>
+        onChange(ActionType.parametersSSHTunnelChange, {
+          type: target.type,
+          name: target.name,
+          value: target.value,
+        })
+      }
+      setSSHTunnelLoginMethod={(method: AuthType) =>
+        setDB({
+          type: ActionType.setSSHTunnelLoginMethod,
+          payload: { login_method: method },
+        })
+      }
+      removeSSHTunnelConfig={() =>
+        setDB({
+          type: ActionType.removeSSHTunnelConfig,
+        })
+      }
+    />
+  );
+
   const renderCTABtns = () => (
     <StyledBtns>
       <Button
@@ -1487,36 +1518,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                {sshTunneling && (
-                  <SSHTunnelForm
-                    isEditMode={isEditMode}
-                    sshTunneling={sshTunneling}
-                    db={db as DatabaseObject}
-                    dbFetched={dbFetched as DatabaseObject}
-                    onSSHTunnelParametersChange={({
-                      target,
-                    }: {
-                      target: HTMLInputElement | HTMLTextAreaElement;
-                    }) =>
-                      onChange(ActionType.parametersSSHTunnelChange, {
-                        type: target.type,
-                        name: target.name,
-                        value: target.value,
-                      })
-                    }
-                    setSSHTunnelLoginMethod={(method: AuthType) =>
-                      setDB({
-                        type: ActionType.setSSHTunnelLoginMethod,
-                        payload: { login_method: method },
-                      })
-                    }
-                    removeSSHTunnelConfig={() =>
-                      setDB({
-                        type: ActionType.removeSSHTunnelConfig,
-                      })
-                    }
-                  />
-                )}
+                {sshTunneling && renderSomething()}
               </SqlAlchemyForm>
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
@@ -1547,49 +1549,60 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               )}
             </StyledAlignment>
           ) : (
-            <DatabaseConnectionForm
-              isEditMode
-              sslForced={sslForced}
-              dbModel={dbModel}
-              db={db as DatabaseObject}
-              onParametersChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.parametersChange, {
-                  type: target.type,
-                  name: target.name,
-                  checked: target.checked,
-                  value: target.value,
-                })
-              }
-              onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.extraInputChange, {
-                  name: target.name,
-                  value: target.value,
-                })
-              }
-              onChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.textChange, {
-                  name: target.name,
-                  value: target.value,
-                })
-              }
-              onQueryChange={({ target }: { target: HTMLInputElement }) =>
-                onChange(ActionType.queryChange, {
-                  name: target.name,
-                  value: target.value,
-                })
-              }
-              onAddTableCatalog={() =>
-                setDB({ type: ActionType.addTableCatalogSheet })
-              }
-              onRemoveTableCatalog={(idx: number) =>
-                setDB({
-                  type: ActionType.removeTableCatalogSheet,
-                  payload: { indexToDelete: idx },
-                })
-              }
-              getValidation={() => getValidation(db)}
-              validationErrors={validationErrors}
-            />
+            <div>
+              hello1
+              <DatabaseConnectionForm
+                isEditMode
+                sslForced={sslForced}
+                dbModel={dbModel}
+                db={db as DatabaseObject}
+                onParametersChange={({
+                  target,
+                }: {
+                  target: HTMLInputElement;
+                }) =>
+                  onChange(ActionType.parametersChange, {
+                    type: target.type,
+                    name: target.name,
+                    checked: target.checked,
+                    value: target.value,
+                  })
+                }
+                onExtraInputChange={({
+                  target,
+                }: {
+                  target: HTMLInputElement;
+                }) =>
+                  onChange(ActionType.extraInputChange, {
+                    name: target.name,
+                    value: target.value,
+                  })
+                }
+                onChange={({ target }: { target: HTMLInputElement }) =>
+                  onChange(ActionType.textChange, {
+                    name: target.name,
+                    value: target.value,
+                  })
+                }
+                onQueryChange={({ target }: { target: HTMLInputElement }) =>
+                  onChange(ActionType.queryChange, {
+                    name: target.name,
+                    value: target.value,
+                  })
+                }
+                onAddTableCatalog={() =>
+                  setDB({ type: ActionType.addTableCatalogSheet })
+                }
+                onRemoveTableCatalog={(idx: number) =>
+                  setDB({
+                    type: ActionType.removeTableCatalogSheet,
+                    payload: { indexToDelete: idx },
+                  })
+                }
+                getValidation={() => getValidation(db)}
+                validationErrors={validationErrors}
+              />
+            </div>
           )}
           {!isEditMode && (
             <StyledAlertMargin>
@@ -1790,6 +1803,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                   getPlaceholder={getPlaceholder}
                 />
+                {sshTunneling && renderSomething()}
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
                     <>
