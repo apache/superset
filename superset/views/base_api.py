@@ -205,6 +205,8 @@ class BaseSupersetApiMixin:
         """
         if 200 <= response.status_code < 400:
             self.incr_stats("success", key)
+        elif 400 <= response.status_code < 500:
+            self.incr_stats("warning", key)
         else:
             self.incr_stats("error", key)
         if time_delta:
