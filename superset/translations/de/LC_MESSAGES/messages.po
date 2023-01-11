@@ -1271,10 +1271,6 @@ msgstr "Ein Fehler ist aufgetreten"
 msgid "An error occurred saving dataset"
 msgstr "Beim Speichern des Datensatz ist ein Fehler aufgetreten"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:132
-msgid "An error occurred when refreshing queries"
-msgstr "Beim Aktualisieren von Abfragen ist ein Fehler aufgetreten"
-
 #: superset/key_value/commands/exceptions.py:33
 msgid "An error occurred while accessing the value."
 msgstr "Beim Zugriff auf den Wert ist ein Fehler aufgetreten."
@@ -5929,18 +5925,6 @@ msgstr "Filtertyp"
 msgid "Filter box"
 msgstr "Filterkomponente"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:204
-msgid "Filter by database"
-msgstr "Filtern nach Datenbank"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:240
-msgid "Filter by status"
-msgstr "Nach Status filtern"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:195
-msgid "Filter by user"
-msgstr "Filtern nach Benutzer*in"
-
 #: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:282
 msgid "Filter configuration"
 msgstr "Filterkonfiguration"
@@ -6822,7 +6806,6 @@ msgstr "Problem 1000 - Die Datenquelle ist zu groß, um sie abzufragen."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problem 1001 - Die Datenbank ist ungewöhnlich belastet."
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:180
 #: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.jsx:125
 #: superset-frontend/src/components/DatabaseSelector/index.tsx:183
 msgid "It seems you don't have access to any database"
@@ -9495,10 +9478,6 @@ msgstr "Abfragename"
 msgid "Query preview"
 msgstr "Abfragen-Voransicht"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:213
-msgid "Query search string"
-msgstr "Abfragen suchen"
-
 #: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:682
 msgid "Query was stopped"
 msgstr "Abfrage wurde angehalten"
@@ -10541,7 +10520,6 @@ msgid "Scoping"
 msgstr "Auswahlverfahren"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:256
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:77
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
@@ -15498,10 +15476,6 @@ msgstr "Zoomstufe der Karte"
 msgid "[Alert] %(label)s"
 msgstr "[Alarm] %(label)s"
 
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:219
-msgid "[From]-"
-msgstr "[Von]-"
-
 #: superset/viz.py:2349
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr ""
@@ -15520,10 +15494,6 @@ msgstr "[Fehlender Datensatz]"
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
 msgstr "[Superset] Zugriff auf die Datenquelle %(name)s wurde gewährt"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:231
-msgid "[To]-"
-msgstr "[Bis]-"
 
 #: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:94
 msgid "[Untitled]"

@@ -2607,6 +2607,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/search_queries")
+    @deprecated()
     def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Search for previously run sqllab queries. Used for Sqllab Query Search
