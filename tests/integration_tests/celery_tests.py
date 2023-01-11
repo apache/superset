@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset Celery worker"""
 import datetime
+import logging
 import random
 import string
 import time
@@ -29,6 +30,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,
 )
 
+logger = logging.getLogger()
 import pytest
 
 import flask
@@ -240,9 +242,16 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
     )
     # updated_query = add_metadata(temp_query, query_id=query.id, query_source="Sql Lab")
-    assert temp_query == sqlparse.format(
-        query.executed_sql.strip("\t\r; "), strip_comments=True
+    assert (
+        temp_query == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
+
+    logger.info(
+        "executed sql,",
+        sqlparse.format(query.executed_sql, strip_comments=True).strip(),
+    )
+
+    logger.info("temp,", temp_query)
     assert query.select_sql == get_select_star(
         tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME
     )
