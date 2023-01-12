@@ -26,7 +26,7 @@ export enum DatasetActionType {
 }
 
 export interface DatasetObject {
-  db: DatabaseObject;
+  db: DatabaseObject & { owners: [number] };
   schema?: string | null;
   dataset_name: string;
   table_name?: string | null;
