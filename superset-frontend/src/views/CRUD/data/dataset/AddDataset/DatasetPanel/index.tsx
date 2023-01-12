@@ -98,11 +98,13 @@ const DatasetPanelWrapper = ({
         addDangerToast(
           t(
             'The API response from %s does not match the IDatabaseTable interface.',
+            path,
           ),
         );
         logging.error(
           t(
             'The API response from %s does not match the IDatabaseTable interface.',
+            path,
           ),
         );
       }
