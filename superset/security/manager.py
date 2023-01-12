@@ -81,6 +81,7 @@ from superset.security.guest_token import (
 from superset.utils.core import (
     DatasourceName,
     DatasourceType,
+    get_datasource_full_name,
     get_user_id,
     RowLevelSecurityFilterType,
 )
@@ -645,7 +646,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return [d for d in datasource_names if d.table in names]
 
         full_names = {d.full_name for d in user_datasources}
-        return [d for d in datasource_names if f"[{database}].[{d}]" in full_names]
+        return [d for d in datasource_names if get_datasource_full_name(database, d.table, schema=d.schema) in full_names]
 
     def merge_perm(self, permission_name: str, view_menu_name: str) -> None:
         """
