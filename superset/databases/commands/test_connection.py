@@ -165,7 +165,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
         except (NoSuchModuleError, ModuleNotFoundError) as ex:
             event_logger.log_with_context(
-                action=get_log_connection_action("test_connection_error", ssh_tunnel),
+                action=get_log_connection_action(
+                    "test_connection_error", ssh_tunnel, ex
+                ),
                 engine=database.db_engine_spec.__name__,
             )
             raise DatabaseTestConnectionDriverError(
@@ -175,7 +177,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
             ) from ex
         except DBAPIError as ex:
             event_logger.log_with_context(
-                action=get_log_connection_action("test_connection_error", ssh_tunnel),
+                action=get_log_connection_action(
+                    "test_connection_error", ssh_tunnel, ex
+                ),
                 engine=database.db_engine_spec.__name__,
             )
             # check for custom errors (wrong username, wrong password, etc)
@@ -183,21 +187,27 @@ class TestConnectionDatabaseCommand(BaseCommand):
             raise SupersetErrorsException(errors) from ex
         except SupersetSecurityException as ex:
             event_logger.log_with_context(
-                action=get_log_connection_action("test_connection_error", ssh_tunnel),
+                action=get_log_connection_action(
+                    "test_connection_error", ssh_tunnel, ex
+                ),
                 engine=database.db_engine_spec.__name__,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
         except SupersetTimeoutException as ex:
 
             event_logger.log_with_context(
-                action=get_log_connection_action("test_connection_error", ssh_tunnel),
+                action=get_log_connection_action(
+                    "test_connection_error", ssh_tunnel, ex
+                ),
                 engine=database.db_engine_spec.__name__,
             )
             # bubble up the exception to return a 408
             raise ex
         except Exception as ex:
             event_logger.log_with_context(
-                action=get_log_connection_action("test_connection_error", ssh_tunnel),
+                action=get_log_connection_action(
+                    "test_connection_error", ssh_tunnel, ex
+                ),
                 engine=database.db_engine_spec.__name__,
             )
             errors = database.db_engine_spec.extract_errors(ex, context)
