@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useReducer, Reducer, useEffect, useState } from 'react';
-import { logging } from '@superset-ui/core';
+import React, {
+  useReducer,
+  Reducer,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react';
+import { logging, t } from '@superset-ui/core';
 import { UseGetDatasetsList } from 'src/views/CRUD/data/hooks';
 import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -92,22 +98,22 @@ export default function AddDataset() {
       })
     : undefined;
 
-  const getDatasetsList = async () => {
+  const getDatasetsList = useCallback(async () => {
     await UseGetDatasetsList(queryParams)
       .then(json => {
         setDatasets(json?.result);
       })
       .catch(error => {
-        addDangerToast('There was an error fetching dataset');
-        logging.error('There was an error fetching dataset', error);
+        addDangerToast(t('There was an error fetching dataset'));
+        logging.error(t('There was an error fetching dataset'), error);
       });
-  };
+  }, [queryParams]);
 
   useEffect(() => {
     if (dataset?.schema) {
       getDatasetsList();
     }
-  }, [dataset?.schema]);
+  }, [dataset?.schema, getDatasetsList]);
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -116,9 +122,8 @@ export default function AddDataset() {
   const LeftPanelComponent = () => (
     <LeftPanel
       setDataset={setDataset}
-      schema={dataset?.schema}
-      dbId={dataset?.db?.id}
-      datasets={datasetNames}
+      dataset={dataset}
+      datasetNames={datasetNames}
     />
   );
 
