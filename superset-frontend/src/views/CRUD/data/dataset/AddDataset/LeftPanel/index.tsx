@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, SetStateAction, Dispatch } from 'react';
+import React, {
+  useEffect,
+  useState,
+  SetStateAction,
+  Dispatch,
+  useCallback,
+} from 'react';
 import {
   SupersetClient,
   t,
@@ -41,13 +47,15 @@ import {
 } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
-import { DatasetActionType } from '../types';
+import {
+  DatasetActionType,
+  DatasetObject,
+} from 'src/views/CRUD/data/dataset/AddDataset/types';
 
 interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
-  schema?: string | null | undefined;
-  dbId?: number;
-  datasets?: (string | null | undefined)[] | undefined;
+  dataset?: Partial<DatasetObject> | null;
+  datasetNames?: (string | null | undefined)[] | undefined;
 }
 
 const SearchIcon = styled(Icons.Search)`
@@ -146,9 +154,8 @@ const LeftPanelStyle = styled.div`
 
 export default function LeftPanel({
   setDataset,
-  schema,
-  dbId,
-  datasets,
+  dataset,
+  datasetNames,
 }: LeftPanelProps) {
   const theme = useTheme();
 
@@ -161,11 +168,14 @@ export default function LeftPanel({
 
   const { addDangerToast } = useToasts();
 
-  const setDatabase = (db: Partial<DatabaseObject>) => {
-    setDataset({ type: DatasetActionType.selectDatabase, payload: { db } });
-    setSelectedTable(null);
-    setResetTables(true);
-  };
+  const setDatabase = useCallback(
+    (db: Partial<DatabaseObject>) => {
+      setDataset({ type: DatasetActionType.selectDatabase, payload: { db } });
+      setSelectedTable(null);
+      setResetTables(true);
+    },
+    [setDataset],
+  );
 
   const setTable = (tableName: string, index: number) => {
     setSelectedTable(index);
@@ -175,29 +185,32 @@ export default function LeftPanel({
     });
   };
 
-  const getTablesList = (url: string) => {
-    SupersetClient.get({ url })
-      .then(({ json }) => {
-        const options: TableOption[] = json.options.map((table: Table) => {
-          const option: TableOption = {
-            value: table.value,
-            label: <TableOption table={table} />,
-            text: table.label,
-          };
+  const getTablesList = useCallback(
+    (url: string) => {
+      SupersetClient.get({ url })
+        .then(({ json }) => {
+          const options: TableOption[] = json.options.map((table: Table) => {
+            const option: TableOption = {
+              value: table.value,
+              label: <TableOption table={table} />,
+              text: table.label,
+            };
 
-          return option;
+            return option;
+          });
+
+          setTableOptions(options);
+          setLoadTables(false);
+          setResetTables(false);
+          setRefresh(false);
+        })
+        .catch(error => {
+          addDangerToast(t('There was an error fetching tables'));
+          logging.error(t('There was an error fetching tables'), error);
         });
-
-        setTableOptions(options);
-        setLoadTables(false);
-        setResetTables(false);
-        setRefresh(false);
-      })
-      .catch(error => {
-        addDangerToast('There was an error fetching tables');
-        logging.error('There was an error fetching tables', error);
-      });
-  };
+    },
+    [addDangerToast],
+  );
 
   const setSchema = (schema: string) => {
     if (schema) {
@@ -211,7 +224,9 @@ export default function LeftPanel({
     setResetTables(true);
   };
 
-  const encodedSchema = schema ? encodeURIComponent(schema) : undefined;
+  const encodedSchema = dataset?.schema
+    ? encodeURIComponent(dataset?.schema)
+    : undefined;
 
   useEffect(() => {
     const currentUserSelectedDb = getItem(
@@ -221,16 +236,16 @@ export default function LeftPanel({
     if (currentUserSelectedDb) {
       setDatabase(currentUserSelectedDb);
     }
-  }, []);
+  }, [setDatabase]);
 
   useEffect(() => {
     if (loadTables) {
       const endpoint = encodeURI(
-        `/superset/tables/${dbId}/${encodedSchema}/${refresh}/`,
+        `/superset/tables/${dataset?.db?.id}/${encodedSchema}/${refresh}/`,
       );
       getTablesList(endpoint);
     }
-  }, [loadTables]);
+  }, [loadTables, dataset?.db?.id, encodedSchema, getTablesList, refresh]);
 
   useEffect(() => {
     if (resetTables) {
@@ -274,6 +289,7 @@ export default function LeftPanel({
         {SELECT_DATABASE_AND_SCHEMA_TEXT}
       </p>
       <DatabaseSelector
+        db={dataset?.db}
         handleError={addDangerToast}
         onDbChange={setDatabase}
         onSchemaChange={setSchema}
@@ -281,7 +297,7 @@ export default function LeftPanel({
         onEmptyResults={onEmptyResults}
       />
       {loadTables && !refresh && Loader(TABLE_LOADING_TEXT)}
-      {schema && !loadTables && !tableOptions.length && !searchVal && (
+      {dataset?.schema && !loadTables && !tableOptions.length && !searchVal && (
         <div className="emptystate">
           <EmptyStateMedium
             image="empty-table.svg"
@@ -291,7 +307,7 @@ export default function LeftPanel({
         </div>
       )}
 
-      {schema && (tableOptions.length > 0 || searchVal.length > 0) && (
+      {dataset?.schema && (tableOptions.length > 0 || searchVal.length > 0) && (
         <>
           <Form>
             <p className="table-title">{SELECT_DATABASE_TABLE_TEXT}</p>
@@ -335,7 +351,7 @@ export default function LeftPanel({
                   onClick={() => setTable(option.value, i)}
                 >
                   {option.label}
-                  {datasets?.includes(option.value) && (
+                  {datasetNames?.includes(option.value) && (
                     <Icons.Warning
                       iconColor={
                         selectedTable === i

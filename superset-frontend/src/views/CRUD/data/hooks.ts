@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { SupersetClient, logging } from '@superset-ui/core';
+import { SupersetClient, logging, t } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 
 type BaseQueryObject = {
@@ -82,6 +82,6 @@ export const UseGetDatasetsList = (queryParams: string | undefined) =>
   })
     .then(({ json }) => json)
     .catch(error => {
-      addDangerToast('There was an error fetching dataset');
-      logging.error('There was an error fetching dataset', error);
+      addDangerToast(t('There was an error fetching dataset'));
+      logging.error(t('There was an error fetching dataset'), error);
     });
