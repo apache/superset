@@ -280,10 +280,9 @@ def test_run_async_query_cta_config(test_client, ctas_method):
         == query.select_sql
     )
 
-    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == updated_query.strip(" \t\n\r;").format(updated_query, strip_comments=True)
+        == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
@@ -314,6 +313,7 @@ def test_run_async_cta_query(test_client, ctas_method):
         f"CREATE {ctas_method} {table_name} AS \n{QUERY}"
         == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
+
     assert QUERY == query.sql
     assert query.rows == (1 if backend() == "presto" else 0)
     assert query.select_as_cta
@@ -342,7 +342,7 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     assert QueryStatus.SUCCESS == query.status
 
     sqllite_select_sql = f"SELECT *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
-    assert sqlparse.format(query.select_Sql, strip_comments=True).strip() == (
+    assert sqlparse.format(query.select_sql, strip_comments=True).strip() == (
         sqllite_select_sql
         if backend() == "sqlite"
         else get_select_star(tmp_table, query.limit)
