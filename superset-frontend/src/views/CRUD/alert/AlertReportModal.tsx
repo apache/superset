@@ -1463,11 +1463,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   key={`NotificationMethod-${i}`}
                   onUpdate={updateNotificationSetting}
                   onRemove={removeNotificationSetting}
-                  css={css`
-                    .input-container {
-                      margin-left: 0 !important;
-                    }
-                  `}
                 />
               </StyledNotificationMethodWrapper>
             ))}
