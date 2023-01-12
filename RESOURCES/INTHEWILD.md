@@ -150,6 +150,7 @@ Join our growing community!
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
+- [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
 
 ### News
