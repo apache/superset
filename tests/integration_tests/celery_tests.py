@@ -238,10 +238,10 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
     assert cta_result(ctas_method) == (result["data"], result["columns"])
 
     query = get_query_by_id(result["query"]["serverId"])
-    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
+    updated_query = query.executed_sql[query.executed_sql.index("*/") + 2 :]
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == updated_query
+        == updated_query.strip(" \t\n\r;").format(updated_query, strip_comments=True)
     )
 
     assert query.select_sql == get_select_star(
