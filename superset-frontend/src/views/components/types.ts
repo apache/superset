@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { NavBarProps, MenuObjectProps } from './Menu';
+import { NavBarProps, MenuObjectProps } from 'src/types/bootstrapTypes';
 
 export interface ExtentionConfigs {
   ALLOWED_EXTENSIONS: Array<any>;

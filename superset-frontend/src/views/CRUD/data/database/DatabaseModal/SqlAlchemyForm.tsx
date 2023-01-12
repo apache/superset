@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { EventHandler, ChangeEvent, MouseEvent } from 'react';
+import React, { EventHandler, ChangeEvent, MouseEvent, ReactNode } from 'react';
 import { t, SupersetTheme } from '@superset-ui/core';
 import SupersetText from 'src/utils/textUtils';
 import Button from 'src/components/Button';
@@ -30,12 +30,14 @@ const SqlAlchemyTab = ({
   testConnection,
   conf,
   testInProgress = false,
+  children,
 }: {
   db: DatabaseObject | null;
   onInputChange: EventHandler<ChangeEvent<HTMLInputElement>>;
   testConnection: EventHandler<MouseEvent<HTMLElement>>;
   conf: { SQLALCHEMY_DOCS_URL: string; SQLALCHEMY_DISPLAY_TEXT: string };
   testInProgress?: boolean;
+  children?: ReactNode;
 }) => {
   let fallbackDocsUrl;
   let fallbackDisplayText;
@@ -99,6 +101,7 @@ const SqlAlchemyTab = ({
           {t('for more information on how to structure your URI.')}
         </div>
       </StyledInputContainer>
+      {children}
       <Button
         onClick={testConnection}
         loading={testInProgress}

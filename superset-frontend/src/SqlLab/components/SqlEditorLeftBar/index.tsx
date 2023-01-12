@@ -49,7 +49,7 @@ import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { emptyStateComponent } from 'src/components/EmptyState';
 import {
   getItem,
   LocalStorageKeys,
@@ -197,23 +197,6 @@ const SqlEditorLeftBar = ({
   const shouldShowReset = window.location.search === '?reset=1';
   const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
-  const emptyStateComponent = (
-    <EmptyStateSmall
-      image="empty.svg"
-      title={
-        emptyResultsWithSearch
-          ? t('No databases match your search')
-          : t('There are no databases available')
-      }
-      description={
-        <p>
-          {t('Manage your databases')}{' '}
-          <a href="/databaseview/list">{t('here')}</a>
-        </p>
-      }
-    />
-  );
-
   const handleSchemaChange = useCallback((schema: string) => {
     if (queryEditor) {
       dispatch(queryEditorSetSchema(queryEditor, schema));
@@ -248,7 +231,7 @@ const SqlEditorLeftBar = ({
     <div data-test="sql-editor-left-bar" className="SqlEditorLeftBar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
-        emptyState={emptyStateComponent}
+        emptyState={emptyStateComponent(emptyResultsWithSearch)}
         database={userSelectedDb}
         getDbList={handleDbList}
         handleError={handleError}

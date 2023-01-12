@@ -194,18 +194,8 @@ const AsyncSelect = forwardRef(
       [sortComparator, sortSelectedFirst],
     );
 
-    const initialOptions = useMemo(
-      () =>
-        options && Array.isArray(options) ? options.slice() : EMPTY_OPTIONS,
-      [options],
-    );
-    const initialOptionsSorted = useMemo(
-      () => initialOptions.slice().sort(sortComparatorForNoSearch),
-      [initialOptions, sortComparatorForNoSearch],
-    );
-
     const [selectOptions, setSelectOptions] =
-      useState<SelectOptionsType>(initialOptionsSorted);
+      useState<SelectOptionsType>(EMPTY_OPTIONS);
 
     // add selected values to options list if they are not in it
     const fullSelectOptions = useMemo(() => {
@@ -441,8 +431,8 @@ const AsyncSelect = forwardRef(
       // when `options` list is updated from component prop, reset states
       fetchedQueries.current.clear();
       setAllValuesLoaded(false);
-      setSelectOptions(initialOptions);
-    }, [initialOptions]);
+      setSelectOptions(EMPTY_OPTIONS);
+    }, [options]);
 
     useEffect(() => {
       setSelectValue(value);

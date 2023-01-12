@@ -98,7 +98,7 @@ class TestSavedQueryApi(SupersetTestCase):
                 self.insert_default_saved_query(
                     label=f"label{SAVED_QUERIES_FIXTURE_COUNT}",
                     schema=f"schema{SAVED_QUERIES_FIXTURE_COUNT}",
-                    username="gamma",
+                    username="gamma_sqllab",
                 )
             )
 
@@ -157,12 +157,12 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         Saved Query API: Test get list saved query
         """
-        gamma = self.get_user("gamma")
+        user = self.get_user("gamma_sqllab")
         saved_queries = (
-            db.session.query(SavedQuery).filter(SavedQuery.created_by == gamma).all()
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == user).all()
         )
 
-        self.login(username="gamma")
+        self.login(username=user.username)
         uri = f"api/v1/saved_query/"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200

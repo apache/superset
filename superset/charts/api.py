@@ -199,9 +199,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "created_by",
         "changed_by",
         "last_saved_at",
-        "last_saved_by.id",
-        "last_saved_by.first_name",
-        "last_saved_by.last_name",
+        "last_saved_by",
         "datasource_id",
         "datasource_name",
         "datasource_type",
@@ -245,7 +243,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "slices": ("slice_name", "asc"),
         "owners": ("first_name", "asc"),
     }
-    filter_rel_fields = {
+    base_related_field_filters = {
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }

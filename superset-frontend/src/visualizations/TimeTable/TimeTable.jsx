@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import Mustache from 'mustache';
 import { scaleLinear } from 'd3-scale';
 import TableView from 'src/components/TableView';
-import { formatNumber, formatTime, styled } from '@superset-ui/core';
+import { formatNumber, formatTime, styled, t } from '@superset-ui/core';
 import {
   InfoTooltipWithTrigger,
   MetricOption,
@@ -119,7 +119,7 @@ const TimeTable = ({
 }) => {
   const memoizedColumns = useMemo(
     () => [
-      { accessor: 'metric', Header: 'Metric' },
+      { accessor: 'metric', Header: t('Metric') },
       ...columnConfigs.map((columnConfig, i) => ({
         accessor: columnConfig.key,
         cellProps: columnConfig.colType === 'spark' && {
