@@ -33,7 +33,7 @@
     "prop-types": "^15.6.2"
   },
   "peerDependencies": {
-    "react": "^15 || ^16",
+    "react": "^15 || ^16 || ^17",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*"
   }

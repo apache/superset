@@ -31,7 +31,7 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "enzyme": "*",
-    "react": "^16.13.1"
+    "react": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"
