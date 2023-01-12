@@ -87,7 +87,7 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     DatasetDAO.find_by_id.return_value = dataset
     temp_qry = dataset_macro(1)[dataset_macro(1).index("*/") + 2 :]
     assert (
-        temp_qry.replace('\n',"")
+        temp_qry[2:]
         == """(SELECT ds AS ds,
        num_boys AS num_boys,
        revenue AS revenue,

@@ -312,7 +312,7 @@ def test_run_async_cta_query(test_client, ctas_method):
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
     updated_query = query.executed_sql[query.executed_sql.index("*/") + 2 :]
-    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == updated_query.replace('\n','')
+    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == updated_query[2:]
 
     assert QUERY == query.sql
     assert query.rows == (1 if backend() == "presto" else 0)
