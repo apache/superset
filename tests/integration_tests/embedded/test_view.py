@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
 from unittest import mock
 
@@ -39,7 +41,7 @@ if TYPE_CHECKING:
     "superset.extensions.feature_flag_manager._feature_flags",
     EMBEDDED_SUPERSET=True,
 )
-def test_get_embedded_dashboard(client: "FlaskClient[Any]"):
+def test_get_embedded_dashboard(client: FlaskClient[Any]):
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     embedded = EmbeddedDAO.upsert(dash, [])
     uri = f"embedded/{embedded.uuid}"
@@ -52,7 +54,7 @@ def test_get_embedded_dashboard(client: "FlaskClient[Any]"):
     "superset.extensions.feature_flag_manager._feature_flags",
     EMBEDDED_SUPERSET=True,
 )
-def test_get_embedded_dashboard_referrer_not_allowed(client: "FlaskClient[Any]"):
+def test_get_embedded_dashboard_referrer_not_allowed(client: FlaskClient[Any]):
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     embedded = EmbeddedDAO.upsert(dash, ["test.example.com"])
     uri = f"embedded/{embedded.uuid}"
@@ -64,7 +66,7 @@ def test_get_embedded_dashboard_referrer_not_allowed(client: "FlaskClient[Any]")
     "superset.extensions.feature_flag_manager._feature_flags",
     EMBEDDED_SUPERSET=True,
 )
-def test_get_embedded_dashboard_non_found(client: "FlaskClient[Any]"):
+def test_get_embedded_dashboard_non_found(client: FlaskClient[Any]):
     uri = f"embedded/bad-uuid"
     response = client.get(uri)
     assert response.status_code == 404
