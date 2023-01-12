@@ -321,6 +321,10 @@ const Select = forwardRef(
     }, [isLoading, loading]);
 
     useEffect(() => {
+      setSelectValue(value);
+    }, [value]);
+
+    useEffect(() => {
       // if all values are selected, add select all to value
       if (
         !isSingleMode &&
@@ -335,11 +339,8 @@ const Select = forwardRef(
                 SELECT_ALL_VALUE,
               ] as AntdLabeledValue[]),
         );
-      } else {
-        setSelectValue(value);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value, isSingleMode, labelInValue]);
+    }, [value, isSingleMode, labelInValue, fullSelectOptions.length]);
 
     useEffect(() => {
       const checkSelectAll = ensureIsArray(selectValue).some(
