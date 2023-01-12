@@ -87,17 +87,17 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     DatasetDAO.find_by_id.return_value = dataset
     temp_qry = dataset_macro(1)[dataset_macro(1).index("*/") + 2 :]
     assert (
-        """{}""".format(temp_qry)
-        == """(SELECT ds AS ds,
+        temp_qry == """(SELECT ds AS ds,
        num_boys AS num_boys,
        revenue AS revenue,
        expenses AS expenses,
        revenue-expenses AS profit
 FROM my_schema.old_dataset) AS dataset_1"""
     )
+    temp_qry2 = dataset_macro(1,include_metrics=True)[dataset_macro(1).index("*/") + 2 :]
 
     assert (
-        dataset_macro(1, include_metrics=True)
+        temp_qry2
         == """(SELECT ds AS ds,
        num_boys AS num_boys,
        revenue AS revenue,

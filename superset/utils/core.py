@@ -2005,6 +2005,6 @@ def gen_query_hash(sql: str):
         1. SELECT 1 FROM table WHERE column='Value';
         2. SELECT 1 FROM table where column='value';
     """
-    sql = re.sub(r"(?m)\s+#\w+(?=\n)", "", sql)
-    sql = "".join(sql.split()).lower()
+    # sql = re.sub(r"(?m)\s+#\w+(?=\n)", "", sql)
+    # sql = "".join(sql.split()).lower()
     return hashlib.md5(sql.encode("utf-8")).hexdigest()

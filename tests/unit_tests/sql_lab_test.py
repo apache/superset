@@ -44,6 +44,8 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     session = mocker.MagicMock()
     cursor = mocker.MagicMock()
     SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
+    mocker.patch("superset.sql_lab.SQL_QUERY_MUTATOR", return_value = "SELECT 42 AS answer LIMIT 2")
+
 
     execute_sql_statement(
         sql_statement,
@@ -91,6 +93,8 @@ def test_execute_sql_statement_with_rls(
         return_value=sqlparse.parse("SELECT * FROM sales WHERE organization_id=42")[0],
     )
     mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
+    mocker.patch("superset.sql_lab.SQL_QUERY_MUTATOR", return_value = "SELECT * FROM sales WHERE organization_id=42 LIMIT 101")
+
 
     execute_sql_statement(
         sql_statement,
