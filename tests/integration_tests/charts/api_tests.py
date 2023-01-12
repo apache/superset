@@ -32,7 +32,7 @@ from superset.extensions import cache_manager, db
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule, ReportScheduleType
-from superset.models.slice import Slice
+from superset.models.slice import Slice, slice_user
 from superset.utils.core import get_example_default_schema
 
 from tests.integration_tests.base_api_tests import ApiOwnersTestCaseMixin
@@ -228,7 +228,11 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         rv = self.delete_assert_metric(uri, "delete")
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
+        slice_user_model = db.session.execute(
+            slice_user.select().where(slice_user.user_id == admin_id)
+        )
         self.assertEqual(model, None)
+        self.assertEqual(slice_user_model, None)
 
     def test_delete_bulk_charts(self):
         """
