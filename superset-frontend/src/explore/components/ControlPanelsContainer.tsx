@@ -66,6 +66,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
+import { Operators } from '../constants';
 
 export type ControlPanelsContainerProps = {
   exploreState: ExplorePageState['explore'];
@@ -430,6 +431,34 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       typeof baseDescription === 'function'
         ? baseDescription(exploreState, controls[name], chart)
         : baseDescription;
+
+    if (name === 'adhoc_filters') {
+      restProps.confirmDeletion = {
+        triggerCondition: (
+          valueToBeDeleted: Record<string, any>,
+          values: Record<string, any>[],
+        ) => {
+          const isTemporalRange =
+            valueToBeDeleted.operator === Operators.TEMPORAL_RANGE;
+          if (isTemporalRange) {
+            const count = values.filter(
+              value => value.operator === Operators.TEMPORAL_RANGE,
+            ).length;
+            if (count < 2) {
+              return true;
+            }
+          }
+          return false;
+        },
+        confirmationTitle: t(
+          'Are you sure you want to remove the last temporal filter?',
+        ),
+        confirmationText: t(
+          `This filter is the last temporal filter. If you proceed,
+          your charts won't be affected by time range filters in dashboards.`,
+        ),
+      };
+    }
 
     return (
       <Control
