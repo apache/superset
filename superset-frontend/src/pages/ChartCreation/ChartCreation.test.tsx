@@ -25,7 +25,7 @@ import {
   ChartCreation,
   ChartCreationProps,
   ChartCreationState,
-} from 'src/pages/ChartCreation/ChartCreation';
+} from 'src/pages/ChartCreation';
 import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 import { act } from 'spec/helpers/testing-library';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
