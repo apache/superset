@@ -22,12 +22,21 @@ import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { DropdownButtonProps } from 'antd/lib/dropdown';
 import { Menu, MenuProps } from 'src/components/Menu';
+import { css, Global } from '@emotion/react';
+
+const { SubMenu } = Menu;
+
+type SubMenuItemProps = { key: string; label: React.ReactNode };
 
 export interface DropDownSelectableProps extends Pick<MenuProps, 'onSelect'> {
   ref?: RefObject<HTMLDivElement>;
   icon: React.ReactNode;
   info?: string;
-  menuItems: { key: string; label: React.ReactNode }[];
+  menuItems: {
+    key: string;
+    label: React.ReactNode;
+    children?: SubMenuItemProps[];
+  }[];
   selectedKeys?: string[];
 }
 
@@ -67,17 +76,23 @@ const StyledMenu = styled(Menu)`
       color: ${theme.colors.grayscale.dark1};
       background-color: ${theme.colors.primary.light5};
     }
-    .ant-dropdown-menu-item > span.anticon {
-      float: right;
-      margin-right: 0;
-      font-size: ${theme.typography.sizes.xl}px;
-    }
   `}
 `;
 
 export default (props: DropDownSelectableProps) => {
   const theme = useTheme();
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
+  const menuItem = (label: string | React.ReactNode, key: string) => (
+    <Menu.Item key={key}>
+      {label}
+      {selectedKeys?.includes(key) && (
+        <Icons.Check
+          iconColor={theme.colors.primary.base}
+          className="tick-menu-item"
+        />
+      )}
+    </Menu.Item>
+  );
   const overlayMenu = useMemo(
     () => (
       <StyledMenu selectedKeys={selectedKeys} onSelect={onSelect} selectable>
@@ -86,24 +101,36 @@ export default (props: DropDownSelectableProps) => {
             {info}
           </div>
         )}
-        {menuItems.map(m => (
-          <Menu.Item key={m.key}>
-            {m.label}
-            {selectedKeys?.includes(m.key) && (
-              <Icons.Check iconColor={theme.colors.primary.base} />
-            )}
-          </Menu.Item>
-        ))}
+        {menuItems.map(m =>
+          m.children?.length ? (
+            <SubMenu title={m.label}>
+              {m.children.map(s => menuItem(s.label, s.key))}
+            </SubMenu>
+          ) : (
+            menuItem(m.label, m.key)
+          ),
+        )}
       </StyledMenu>
     ),
     [info, menuItems],
   );
 
   return (
-    <StyledDropdownButton
-      overlay={overlayMenu}
-      trigger={['click']}
-      icon={icon}
-    />
+    <>
+      <Global
+        styles={css`
+          .ant-dropdown-menu .ant-dropdown-menu-item > .tick-menu-item {
+            float: right;
+            margin-right: 0;
+            font-size: ${theme.typography.sizes.xl}px;
+          }
+        `}
+      />
+      <StyledDropdownButton
+        overlay={overlayMenu}
+        trigger={['click']}
+        icon={icon}
+      />
+    </>
   );
 };

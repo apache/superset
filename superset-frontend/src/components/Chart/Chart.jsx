@@ -77,6 +77,8 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
+  // cross-filters
+  emitCrossFilters: PropTypes.bool,
 };
 
 const BLANK = {};

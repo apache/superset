@@ -529,6 +529,7 @@ class Chart extends React.Component {
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
             isInView={isInView}
+            emitCrossFilters
           />
         </div>
       </SliceContainer>

@@ -24,7 +24,7 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
-import FilterBarOrientationSelect from '.';
+import FilterBarSettings from '.';
 
 const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {
@@ -51,7 +51,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
 };
 
 const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
-  render(<FilterBarOrientationSelect />, {
+  render(<FilterBarSettings />, {
     useRedux: true,
     initialState: {
       ...initialState,

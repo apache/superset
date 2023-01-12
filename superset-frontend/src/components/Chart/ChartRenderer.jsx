@@ -62,6 +62,8 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
+  // cross filters
+  emitCrossFilters: PropTypes.bool,
 };
 
 const BLANK = {};
@@ -223,7 +225,7 @@ class ChartRenderer extends React.Component {
   }
 
   render() {
-    const { chartAlert, chartStatus, chartId } = this.props;
+    const { chartAlert, chartStatus, chartId, emitCrossFilters } = this.props;
 
     // Skip chart rendering
     if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
@@ -341,6 +343,7 @@ class ChartRenderer extends React.Component {
             onRenderFailure={this.handleRenderFailure}
             noResults={noResultsComponent}
             postTransformProps={postTransformProps}
+            emitCrossFilters={emitCrossFilters}
             {...drillToDetailProps}
           />
         </div>
