@@ -241,7 +241,7 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
     updated_query = query.executed_sql[query.executed_sql.index("*/") + 2 :]
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == updated_query
+        == updated_query.strip(" \t\n\r;").format(updated_query, strip_comments=True)
     )
 
     assert query.select_sql == get_select_star(
@@ -281,10 +281,10 @@ def test_run_async_query_cta_config(test_client, ctas_method):
         == query.select_sql
     )
 
-    updated_query = query.executed_sql[query.executed_sql.index("*/") + 2 :]
+    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
     assert (
         f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == updated_query
+        == updated_query.strip(" \t\n\r;").format(updated_query, strip_comments=True)
     )
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
@@ -311,8 +311,10 @@ def test_run_async_cta_query(test_client, ctas_method):
 
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
-    updated_query = query.executed_sql[query.executed_sql.index("*/") + 2 :]
-    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == updated_query[2:]
+    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
+    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == updated_query.strip(
+        " \t\n\r;"
+    ).format(updated_query, strip_comments=True)
 
     assert QUERY == query.sql
     assert query.rows == (1 if backend() == "presto" else 0)
@@ -347,8 +349,10 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
         if backend() == "sqlite"
         else get_select_star(tmp_table, query.limit)
     )
-    updated_query = query.executed_sql[query.executed_sql.index("*/") + 2 :]
-    assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == updated_query
+    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
+    assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == updated_query.strip(
+        " \t\n\r;"
+    ).format(updated_query, strip_comments=True)
 
     assert QUERY == query.sql
 
