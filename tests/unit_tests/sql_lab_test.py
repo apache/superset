@@ -180,7 +180,11 @@ def test_sql_lab_insert_rls(
 |  3 |   3 |
 |  4 |   4 |""".strip()
     )
-    assert query.executed_sql == "SELECT c FROM t\nLIMIT 6"
+    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
+    assert (
+        updated_query.strip(" \t\n\r;").format(updated_query, strip_comments=True)
+        == "SELECT c FROM t\nLIMIT 6"
+    )
 
     # now with RLS
     rls = RowLevelSecurityFilter(
@@ -215,4 +219,8 @@ def test_sql_lab_insert_rls(
 |  2 |   8 |
 |  3 |   9 |""".strip()
     )
-    assert query.executed_sql == "SELECT c FROM t WHERE (t.c > 5)\nLIMIT 6"
+    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
+    assert (
+        updated_query.strip(" \t\n\r;").format(updated_query, strip_comments=True)
+        == "SELECT c FROM t WHERE (t.c > 5)\nLIMIT 6"
+    )
