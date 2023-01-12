@@ -44,8 +44,9 @@ def test_execute_sql_statement(mocker: MockerFixture, app: None) -> None:
     session = mocker.MagicMock()
     cursor = mocker.MagicMock()
     SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")
-    mocker.patch("superset.sql_lab.SQL_QUERY_MUTATOR", return_value = "SELECT 42 AS answer LIMIT 2")
-
+    mocker.patch(
+        "superset.sql_lab.SQL_QUERY_MUTATOR", return_value="SELECT 42 AS answer LIMIT 2"
+    )
 
     execute_sql_statement(
         sql_statement,
@@ -93,8 +94,10 @@ def test_execute_sql_statement_with_rls(
         return_value=sqlparse.parse("SELECT * FROM sales WHERE organization_id=42")[0],
     )
     mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
-    mocker.patch("superset.sql_lab.SQL_QUERY_MUTATOR", return_value = "SELECT * FROM sales WHERE organization_id=42 LIMIT 101")
-
+    mocker.patch(
+        "superset.sql_lab.SQL_QUERY_MUTATOR",
+        return_value="SELECT * FROM sales WHERE organization_id=42 LIMIT 101",
+    )
 
     execute_sql_statement(
         sql_statement,
@@ -184,9 +187,9 @@ def test_sql_lab_insert_rls(
 |  3 |   3 |
 |  4 |   4 |""".strip()
     )
-    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
+
     assert (
-        updated_query.strip(" \t\n\r;").format(updated_query, strip_comments=True)
+        sqlparse.format(query.executed_sql, strip_comments=True).strip()
         == "SELECT c FROM t\nLIMIT 6"
     )
 
@@ -223,8 +226,8 @@ def test_sql_lab_insert_rls(
 |  2 |   8 |
 |  3 |   9 |""".strip()
     )
-    updated_query = query.executed_sql[query.executed_sql.index("*/") + 3 :]
+
     assert (
-        updated_query.strip(" \t\n\r;").format(updated_query, strip_comments=True)
+        sqlparse.format(query.executed_sql, strip_comments=True).strip()
         == "SELECT c FROM t WHERE (t.c > 5)\nLIMIT 6"
     )

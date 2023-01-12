@@ -51,7 +51,6 @@ from superset.sql_parse import CtasMethod, insert_rls, ParsedQuery
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.celery import session_scope
 from superset.utils.core import (
-    gen_query_hash,
     get_username,
     json_iso_dttm_ser,
     override_user,
@@ -256,10 +255,9 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(
         sql,
+        # TODO(john-bodley): Deprecate in 3.0.
         query_source="Sql Lab",
-        query_hash=gen_query_hash(sql),
         query_id=query.id,
-        username=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
         security_manager=security_manager,
         database=database,
     )

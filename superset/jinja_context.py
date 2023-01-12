@@ -478,6 +478,7 @@ class BaseTemplateProcessor:
         """
         template = self._env.from_string(sql)
         kwargs.update(self._context)
+
         context = validate_template_context(self.engine, kwargs)
         return template.render(context)
 

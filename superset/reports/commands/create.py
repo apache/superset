@@ -117,7 +117,6 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         if "sql" in self._properties:
             self._properties["sql"] = add_metadata(
                 sql=self._properties["sql"],
-                username=get_username(),
                 query_id=None,
                 query_source="Alerts",
             )

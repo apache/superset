@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=too-many-lines, redefined-outer-name
 import dataclasses
-import hashlib
 import json
 import logging
 import re
@@ -127,7 +126,6 @@ from superset.superset_typing import (
 from superset.tables.models import Table as NewTable
 from superset.utils import core as utils
 from superset.utils.core import (
-    gen_query_hash,
     GenericDataType,
     get_column_name,
     get_username,
@@ -976,13 +974,11 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         Typically adds comments to the query with context"""
         sql_query_mutator = config["SQL_QUERY_MUTATOR"]
-        query_hash = gen_query_hash(sql)
         if sql_query_mutator:
             sql = sql_query_mutator(
                 sql,
                 # TODO(john-bodley): Deprecate in 3.0.
                 query_source="Charts",
-                query_hash=query_hash,
                 query_id=None,
                 username=get_username(),
                 security_manager=security_manager,
