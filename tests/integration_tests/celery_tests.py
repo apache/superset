@@ -310,7 +310,7 @@ def test_run_async_cta_query(test_client, ctas_method):
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
     assert (
-        f"CREATE {ctas_method} {table_name} AS \n{QUERY}"
+        sqlparse.format(f"CREATE {ctas_method} {table_name} AS \n{QUERY}").strip()
         == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
 
@@ -348,7 +348,7 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
         else get_select_star(tmp_table, query.limit)
     )
     assert (
-        f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}"
+        sqlparse.format(f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}").strip()
         == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
 
