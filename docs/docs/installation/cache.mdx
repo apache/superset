@@ -29,10 +29,6 @@ FILTER_STATE_CACHE_CONFIG = {
 }
 ```
 
-For chart data, Superset goes up a “timeout search path”, from the chart's configuration
-to the dataset’s, the database’s, then ultimately falls back to the global default
-defined in `DATA_CACHE_CONFIG`.
-
 ### Dependencies
 
 In order to use dedicated cache stores, additional python libraries must be installed
@@ -56,6 +52,10 @@ DATA_CACHE_CONFIG = {
     "CACHE_DEFAULT_TIMEOUT": 86400,  # 60 seconds * 60 minutes * 24 hours
 }
 ```
+
+### Chart Cache Timeout
+
+The cache timeout for charts may be overridden by the settings for an individual chart, dataset, or database. Each of these configurations will be checked in order before falling back to the default value defined in `DATA_CACHE_CONFIG.
 
 ### SQL Lab Query Results
 
