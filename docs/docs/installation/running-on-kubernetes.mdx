@@ -123,9 +123,20 @@ init:
 
 #### Dependencies
 
-Install additional packages and do any other bootstrap configuration in this script. For production clusters it's
-recommended to build own image with this step done in CI. The following example installs the Big Query and Elasticsearch
-database drivers so that you can connect to those datasources in your Superset installation.
+Install additional packages and do any other bootstrap configuration in the bootstrap script.
+For production clusters it's recommended to build own image with this step done in CI.
+
+:::note
+
+Superset requires a Python DB-API database driver and a SQLAlchemy
+dialect to be installed for each datastore you want to connect to.
+
+See [Install Database Drivers](/docs/databases/installing-database-drivers) for more information
+
+:::
+
+The following example installs the Big Query and Elasticsearch database drivers so that you can
+connect to those datasources in your Superset installation:
 
 ```yaml
 bootstrapScript: |
