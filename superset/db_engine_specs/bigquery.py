@@ -93,6 +93,7 @@ class BigQueryEngineSpec(BaseEngineSpec):
     engine = "bigquery"
     engine_name = "Google BigQuery"
     max_column_name_length = 128
+    allow_ssh_tunneling = False
 
     parameters_schema = BigQueryParametersSchema()
     default_driver = "bigquery"

@@ -141,7 +141,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        allow_ssh_tunneling: true,
       },
     },
     {
@@ -194,7 +194,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'mysql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        allow_ssh_tunneling: true,
       },
     },
     {
@@ -214,7 +214,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        allow_ssh_tunneling: true,
       },
     },
     {

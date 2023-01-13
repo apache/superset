@@ -33,6 +33,7 @@ class AthenaEngineSpec(BaseEngineSpec):
     engine = "awsathena"
     engine_name = "Amazon Athena"
     allows_escaped_colons = False
+    allow_ssh_tunneling = False
 
     _time_grain_expressions = {
         None: "{col}",
