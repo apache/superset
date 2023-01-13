@@ -2007,6 +2007,6 @@ def gen_query_hash(sql: str):
     """
     # sql = re.sub(r"(?m)\s+#\w+(?=\n)", "", sql)
     # sql = "".join(sql.split()).lower()
-    if sql:
+    if sql is not None:
         return hashlib.md5(sql.encode("utf-8")).hexdigest()
     return None
