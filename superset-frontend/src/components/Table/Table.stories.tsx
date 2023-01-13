@@ -24,8 +24,8 @@ import {
   TableSize,
   SUPERSET_TABLE_COLUMN,
   ColumnsType,
-  OnChangeFunction,
   ETableAction,
+  OnChangeFunction,
 } from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
@@ -404,7 +404,7 @@ export const ServerPagination: ComponentStory<typeof Table> = args => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
 
-  const handleChange: OnChangeFunction = (
+  const handleChange: OnChangeFunction<BasicData> = (
     pagination,
     filters,
     sorter,
@@ -610,7 +610,7 @@ const shoppingData: ShoppingData[] = [
   },
 ];
 
-export const HeaderRenderers: ComponentStory<typeof Table> = args => {
+export const HeaderRenderers: ComponentStory<typeof Table> = () => {
   const [orderDateFormatting, setOrderDateFormatting] = useState('formatted');
   const [priceLocale, setPriceLocale] = useState(LocaleCode.en_US);
   const shoppingColumns: ColumnsType<ShoppingData> = [
@@ -672,7 +672,7 @@ export const HeaderRenderers: ComponentStory<typeof Table> = args => {
   ];
 
   return (
-    <Table
+    <Table<ShoppingData>
       data={shoppingData}
       columns={shoppingColumns}
       size={TableSize.SMALL}

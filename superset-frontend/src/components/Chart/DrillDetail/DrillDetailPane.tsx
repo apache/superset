@@ -42,11 +42,7 @@ import NullCell from 'src/components/Table/cell-renderers/NullCell';
 import TimeCell from 'src/components/Table/cell-renderers/TimeCell';
 import { EmptyStateMedium } from 'src/components/EmptyState';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
-import Table, {
-  ColumnsType,
-  TablePaginationConfig,
-  TableSize,
-} from 'src/components/Table';
+import Table, { ColumnsType, TableSize } from 'src/components/Table';
 import MetadataBar, {
   ContentType,
   MetadataType,
@@ -302,7 +298,7 @@ export default function DrillDetailPane({
           recordCount={resultsPage?.total}
           usePagination
           loading={isLoading}
-          onChange={(pagination: TablePaginationConfig) =>
+          onChange={pagination =>
             setPageIndex(pagination.current ? pagination.current - 1 : 0)
           }
           resizable
