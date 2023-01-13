@@ -281,7 +281,7 @@ def test_run_async_query_cta_config(test_client, ctas_method):
     )
 
     assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
+        sqlparse.fornmat(f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}").strip()
         == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
 

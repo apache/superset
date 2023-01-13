@@ -2006,7 +2006,7 @@ def gen_query_hash(sql: str):
         2. SELECT 1 FROM table where column='value';
     """
     if sql is not None:
-        sql = re.sub(r"(?m)\s+#\w+(?=\n)", "", sql)
+        sql = re.sub(r"(?m)\s+#\w+(?=\n)", "", str(sql))
         sql = "".join(sql.split()).lower()
         return hashlib.md5(sql.encode("utf-8")).hexdigest()
     return None
