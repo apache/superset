@@ -100,7 +100,7 @@ function Footer({
         if (typeof response === 'number') {
           logEvent(LOG_ACTIONS_DATASET_CREATION_SUCCESS, datasetObject);
           // When a dataset is created the response we get is its ID number
-          history.push('/chart/add/');
+          history.push(`/chart/add/?dataset=${datasetObject.table_name}`);
         }
       });
     }
