@@ -117,25 +117,14 @@ const CONDITIONS = [
 
 const RETENTION_OPTIONS = [
   {
-    label: t('None'),
-    value: 0,
-  },
-  {
     label: t('30 days'),
     value: 30,
   },
-  {
-    label: t('60 days'),
-    value: 60,
-  },
-  {
-    label: t('90 days'),
-    value: 90,
-  },
 ];
 
-const DEFAULT_RETENTION = 90;
-const DEFAULT_WORKING_TIMEOUT = 3600;
+const DEFAULT_RETENTION = 30;
+const DEFAULT_WORKING_TIMEOUT = 60;
+const MAX_WORKING_TIMEOUT = 300;
 const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_ALERT = {
   active: true,
@@ -263,6 +252,14 @@ export const StyledInputContainer = styled.div`
   .helper {
     display: block;
     color: ${({ theme }) => theme.colors.grayscale.base};
+    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    padding: ${({ theme }) => theme.gridUnit}px 0;
+    text-align: left;
+  }
+
+  .error {
+    display: block;
+    color: ${({ theme }) => theme.colors.error.base};
     font-size: ${({ theme }) => theme.typography.sizes.s}px;
     padding: ${({ theme }) => theme.gridUnit}px 0;
     text-align: left;
@@ -939,6 +936,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       currentAlert.owners?.length &&
       currentAlert.crontab?.length &&
       currentAlert.working_timeout !== undefined &&
+      currentAlert.working_timeout < MAX_WORKING_TIMEOUT &&
       ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
         (contentType === 'chart' && !!currentAlert.chart) ||
         (contentType === 'text_message' && !!currentAlert.msg_content)) &&
@@ -1307,6 +1305,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
               <div className="input-container">
                 <Select
+                  disabled
                   ariaLabel={t('Log retention')}
                   placeholder={t('Log retention')}
                   onChange={onLogRetentionChange}
@@ -1335,6 +1334,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onChange={onTimeoutVerifyChange}
                 />
                 <span className="input-label">seconds</span>
+              </div>
+              <div
+                className={
+                  currentAlert?.working_timeout &&
+                  currentAlert.working_timeout > MAX_WORKING_TIMEOUT
+                    ? 'error'
+                    : 'helper'
+                }
+              >
+                Minimum and Maximum working timeout can be 1 second and{' '}
+                {MAX_WORKING_TIMEOUT} seconds respectively
               </div>
             </StyledInputContainer>
             {!isReport && (
