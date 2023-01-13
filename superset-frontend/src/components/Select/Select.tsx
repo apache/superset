@@ -407,10 +407,13 @@ const Select = forwardRef(
       onChange?.(newValues, newOptions);
     };
 
-    const customMaxTagPlaceholder = (ommitedValues: AntdLabeledValue[]) =>
-      selectAllMode
-        ? `+ ${ommitedValues.length - 1} ...`
-        : `+ ${ommitedValues.length} ...`;
+    const customMaxTagPlaceholder = () => {
+      const num_selected = ensureIsArray(selectValue).length;
+      return selectAllMode
+        ? `+ ${num_selected - 1} ...`
+        : `+ ${num_selected} ...`;
+    }
+      
 
     return (
       <StyledContainer headerPosition={headerPosition}>
