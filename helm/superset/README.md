@@ -105,6 +105,7 @@ helm install my-superset superset/superset
 | service.loadBalancerIP | string | `nil` |  |
 | service.port | int | `8088` |  |
 | service.type | string | `"ClusterIP"` |  |
+| service.nodePorts.http | int | `""` |  |
 | serviceAccount.annotations | object | `{}` |  |
 | serviceAccount.create | bool | `false` | Create custom service account for Superset. If create: true and name is not provided, `superset.fullname` will be used. |
 | supersetCeleryBeat.command | list | a `celery beat` command | Command |
@@ -144,6 +145,7 @@ helm install my-superset superset/superset
 | supersetCeleryFlower.service.annotations | object | `{}` |  |
 | supersetCeleryFlower.service.port | int | `5555` |  |
 | supersetCeleryFlower.service.type | string | `"ClusterIP"` |  |
+| supersetCeleryFlowerservice.nodePorts.http | int | `""` |  |
 | supersetCeleryFlower.startupProbe.failureThreshold | int | `60` |  |
 | supersetCeleryFlower.startupProbe.httpGet.path | string | `"/api/workers"` |  |
 | supersetCeleryFlower.startupProbe.httpGet.port | string | `"flower"` |  |
@@ -224,6 +226,7 @@ helm install my-superset superset/superset
 | supersetWebsockets.service.annotations | object | `{}` |  |
 | supersetWebsockets.service.port | int | `8080` |  |
 | supersetWebsockets.service.type | string | `"ClusterIP"` |  |
+| supersetWebsockets.nodePorts.http | int | `""` |  |
 | supersetWebsockets.startupProbe.failureThreshold | int | `60` |  |
 | supersetWebsockets.startupProbe.httpGet.path | string | `"/health"` |  |
 | supersetWebsockets.startupProbe.httpGet.port | string | `"ws"` |  |
