@@ -135,6 +135,10 @@ export interface TableProps<RecordType> {
    * Invoked when the tables sorting, paging, or filtering is changed.
    */
   onChange?: AntTableProps<RecordType>['onChange'];
+  /**
+   * Returns props that should be applied to each row component.
+   */
+  onRow?: AntTableProps<RecordType>['onRow'];
 }
 
 export enum TableSize {
@@ -246,6 +250,7 @@ export function Table<RecordType extends object>(
     virtualize = false,
     onChange = noop,
     recordCount,
+    onRow,
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -375,6 +380,7 @@ export function Table<RecordType extends object>(
     locale: mergedLocale,
     showSorterTooltip: false,
     onChange,
+    onRow,
     theme,
     height: bodyHeight,
   };
