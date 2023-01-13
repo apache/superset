@@ -122,10 +122,10 @@ class TaggedObjectView(BaseSupersetView):
                 type_ = TagTypes[type_name]
             else:
                 type_ = TagTypes.custom
-
-            tag = db.session.query(Tag).filter_by(name=name, type=type_).first()
+            tag_name = name.strip()
+            tag = db.session.query(Tag).filter_by(name=tag_name, type=type_).first()
             if not tag:
-                tag = Tag(name=name, type=type_)
+                tag = Tag(name=tag_name, type=type_)
 
             tagged_objects.append(
                 TaggedObject(object_id=object_id, object_type=object_type, tag=tag)

@@ -41,8 +41,10 @@ from typing import (
     Literal,
     Optional,
     Set,
+    Tuple,
     Type,
     TYPE_CHECKING,
+    TypedDict,
     Union,
 )
 
@@ -51,8 +53,10 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
+from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
+from sqlalchemy.orm.query import Query
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -475,7 +479,34 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "DRILL_TO_DETAIL": False,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
     "HORIZONTAL_FILTER_BAR": False,
+    # The feature is off by default, and currently only supported in Presto and Postgres,
+    # and Bigquery.
+    # It also needs to be enabled on a per-database basis, by adding the key/value pair
+    # `cost_estimate_enabled: true` to the database `extra` attribute.
+    "ESTIMATE_QUERY_COST": False,
+    # Allow users to enable ssh tunneling when creating a DB.
+    # Users must check whether the DB engine supports SSH Tunnels
+    # otherwise enabling this flag won't have any effect on the DB.
+    "SSH_TUNNELING": False,
 }
+
+# ------------------------------
+# SSH Tunnel
+# ------------------------------
+# Allow users to set the host used when connecting to the SSH Tunnel
+# as localhost and any other alias (0.0.0.0)
+# ----------------------------------------------------------------------
+#                             |
+# -------------+              |    +----------+
+#     LOCAL    |              |    |  REMOTE  | :22 SSH
+#     CLIENT   | <== SSH ========> |  SERVER  | :8080 web service
+# -------------+              |    +----------+
+#                             |
+#                          FIREWALL (only port 22 is open)
+
+# ----------------------------------------------------------------------
+SSH_TUNNEL_MANAGER_CLASS = "superset.extensions.ssh.SSHManager"
+SSH_TUNNEL_LOCAL_BIND_ADDRESS = "127.0.0.1"
 
 # Feature flags may also be set via 'SUPERSET_FEATURE_' prefixed environment vars.
 DEFAULT_FEATURE_FLAGS.update(
@@ -907,16 +938,14 @@ SQLLAB_ASYNC_TIME_LIMIT_SEC = int(timedelta(hours=6).total_seconds())
 # query costs before they run. These EXPLAIN queries should have a small
 # timeout.
 SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
-# The feature is off by default, and currently only supported in Presto and Postgres.
-# It also need to be enabled on a per-database basis, by adding the key/value pair
-# `cost_estimate_enabled: true` to the database `extra` attribute.
-ESTIMATE_QUERY_COST = False
+
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
 # your specific infrastructure. For example, you could analyze queries a posteriori by
 # running EXPLAIN on them, and compute a histogram of relative costs to present the
-# cost as a percentile:
-#
+# cost as a percentile, this step is optional as every db engine spec has its own
+# query cost formatter, but it you wanna customize it you can define it inside the config:
+
 # def postgres_query_cost_formatter(
 #     result: List[Dict[str, Any]]
 # ) -> List[Dict[str, str]]:
@@ -934,9 +963,7 @@ ESTIMATE_QUERY_COST = False
 #
 #     return out
 #
-#  Then on define the formatter on the config:
-#
-# "QUERY_COST_FORMATTERS_BY_ENGINE": {"postgresql": postgres_query_cost_formatter},
+# QUERY_COST_FORMATTERS_BY_ENGINE: {"postgresql": postgres_query_cost_formatter}
 QUERY_COST_FORMATTERS_BY_ENGINE: Dict[
     str, Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]
 ] = {}
@@ -1104,8 +1131,8 @@ BLUEPRINTS: List[Blueprint] = []
 TRACKING_URL_TRANSFORMER = lambda url: url
 
 
-# Interval between consecutive polls when using Hive Engine
-HIVE_POLL_INTERVAL = int(timedelta(seconds=5).total_seconds())
+# customize the polling time of each engine
+DB_POLL_INTERVAL_SECONDS: Dict[str, int] = {}
 
 # Interval between consecutive polls when using Presto Engine
 # See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
@@ -1166,6 +1193,14 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     return sql
 
 
+# A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query
+# It allows for using the SQL_QUERY_MUTATOR function for more than comments
+# Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True
+# An example use case is if data has role based access controls, and you want to apply
+# a SET ROLE statement alongside every user query. Changing this variable maintains
+# functionality for both the SQL_Lab and Charts.
+MUTATE_AFTER_SPLIT = False
+
 # This allows for a user to add header data to any outgoing emails. For example,
 # if you need to include metadata in the header or you want to change the specifications
 # of the email title, header, or sender.
@@ -1185,7 +1220,7 @@ EXCLUDE_USERS_FROM_LISTS: Optional[List[str]] = None
 # list/dropdown if you do not want these dbs to show as available.
 # The available list is generated by driver installed, and some engines have multiple
 # drivers.
-# e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": ("pyhive", "pyodbc")}
+# e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": {"pyhive", "pyodbc"}}
 DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {}
 
 # This auth provider is used by background (offline) tasks that need to access
@@ -1232,6 +1267,9 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
+# The text for call-to-action link in Alerts & Reports emails
+EMAIL_REPORTS_CTA = "Explore in Superset"
+
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Optional[Union[Callable[[], str], str]] = None
 SLACK_PROXY = None
@@ -1273,6 +1311,8 @@ EMAIL_PAGE_RENDER_WAIT = int(timedelta(seconds=30).total_seconds())
 
 # Send user to a link where they can report bugs
 BUG_REPORT_URL = None
+BUG_REPORT_TEXT = "Report a bug"
+BUG_REPORT_ICON = None  # Recommended size: 16x16
 
 # Send user to a link where they can read more about Superset
 DOCUMENTATION_URL = None
@@ -1325,15 +1365,16 @@ TALISMAN_CONFIG = {
 }
 
 # It is possible to customize which tables and roles are featured in the RLS
-# dropdown. When set, this dict is assigned to `add_form_query_rel_fields` and
-# `edit_form_query_rel_fields` on `RowLevelSecurityFiltersModelView`. Example:
+# dropdown. When set, this dict is assigned to `filter_rel_fields`
+# on `RLSRestApi`. Example:
 #
 # from flask_appbuilder.models.sqla import filters
-# RLS_FORM_QUERY_REL_FIELDS = {
-#     "roles": [["name", filters.FilterStartsWith, "RlsRole"]]
-#     "tables": [["table_name", filters.FilterContains, "rls"]]
+
+# RLS_BASE_RELATED_FIELD_FILTERS = {
+#     "tables": [["table_name", filters.FilterStartsWith, "birth"]],
+#     "roles": [["name", filters.FilterContains, "Admin"]]
 # }
-RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
+RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
 
 #
 # Flask session cookie options
@@ -1452,6 +1493,17 @@ ADVANCED_DATA_TYPES: Dict[str, AdvancedDataType] = {
     "port": internet_port,
 }
 
+# By default, the Welcome page features example charts and dashboards. This can be
+# changed to show all charts/dashboards the user has access to, or a custom view
+# by providing the title and a FAB filter:
+# WELCOME_PAGE_LAST_TAB = (
+#     "Xyz",
+#     [{"col": 'created_by', "opr": 'rel_o_m', "value": 10}],
+# )
+WELCOME_PAGE_LAST_TAB: Union[
+    Literal["examples", "all"], Tuple[str, List[Dict[str, Any]]]
+] = "examples"
+
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
 ENVIRONMENT_TAG_CONFIG = {
@@ -1467,6 +1519,32 @@ ENVIRONMENT_TAG_CONFIG = {
         },
     },
 }
+
+
+# Extra related query filters make it possible to limit which objects are shown
+# in the UI. For examples, to only show "admin" or users starting with the letter "b" in
+# the "Owners" dropdowns, you could add the following in your config:
+# def user_filter(query: Query, *args, *kwargs):
+#     from superset import security_manager
+#
+#     user_model = security_manager.user_model
+#     filters = [
+#         user_model.username == "admin",
+#         user_model.username.ilike("b%"),
+#     ]
+#     return query.filter(or_(*filters))
+#
+#  EXTRA_RELATED_QUERY_FILTERS = {"user": user_filter}
+#
+# Similarly, to restrict the roles in the "Roles" dropdown you can provide a custom
+# filter callback for the "role" key.
+class ExtraRelatedQueryFilters(TypedDict, total=False):
+    role: Callable[[Query], Query]
+    user: Callable[[Query], Query]
+
+
+EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
+
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
@@ -1494,7 +1572,7 @@ elif importlib.util.find_spec("superset_config") and not is_test():
     try:
         # pylint: disable=import-error,wildcard-import,unused-wildcard-import
         import superset_config
-        from superset_config import *  # type:ignore
+        from superset_config import *  # type: ignore
 
         print(f"Loaded your LOCAL configuration at [{superset_config.__file__}]")
     except Exception:

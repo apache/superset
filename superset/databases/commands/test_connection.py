@@ -32,6 +32,8 @@ from superset.databases.commands.exceptions import (
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.dao import DatabaseDAO
+from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
+from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
@@ -41,6 +43,7 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +93,17 @@ class TestConnectionDatabaseCommand(BaseCommand):
             database.set_sqlalchemy_uri(uri)
             database.db_engine_spec.mutate_db_for_connection_test(database)
 
+            # Generate tunnel if present in the properties
+            if ssh_tunnel := self._properties.get("ssh_tunnel"):
+                # If there's an existing tunnel for that DB we need to use the stored
+                # password, private_key and private_key_password instead
+                if ssh_tunnel_id := ssh_tunnel.pop("id", None):
+                    if existing_ssh_tunnel := SSHTunnelDAO.find_by_id(ssh_tunnel_id):
+                        ssh_tunnel = unmask_password_info(
+                            ssh_tunnel, existing_ssh_tunnel
+                        )
+                ssh_tunnel = SSHTunnel(**ssh_tunnel)
+
             event_logger.log_with_context(
                 action="test_connection_attempt",
                 engine=database.db_engine_spec.__name__,
@@ -99,7 +113,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 with closing(engine.raw_connection()) as conn:
                     return engine.dialect.do_ping(conn)
 
-            with database.get_sqla_engine_with_context() as engine:
+            with database.get_sqla_engine_with_context(
+                override_ssh_tunnel=ssh_tunnel
+            ) as engine:
                 try:
                     alive = func_timeout(
                         app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds(),

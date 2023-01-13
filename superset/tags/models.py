@@ -103,9 +103,10 @@ class TaggedObject(Model, AuditMixinNullable):
 
 
 def get_tag(name: str, session: Session, type_: TagTypes) -> Tag:
-    tag = session.query(Tag).filter_by(name=name, type=type_).one_or_none()
+    tag_name = name.strip()
+    tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
-        tag = Tag(name=name, type=type_)
+        tag = Tag(name=tag_name, type=type_)
         session.add(tag)
         session.commit()
     return tag

@@ -126,8 +126,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           clearable: false,
           label: t('AXIS TITLE POSITION'),
           renderTrigger: true,
-          default: sections.TITLE_POSITION_OPTIONS[0],
-          choices: formatSelectOptions(sections.TITLE_POSITION_OPTIONS),
+          default: sections.TITLE_POSITION_OPTIONS[0][0],
+          choices: sections.TITLE_POSITION_OPTIONS,
           description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizental(controls) : isVertical(controls),

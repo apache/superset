@@ -22,11 +22,9 @@ import React, { lazy } from 'react';
 // not lazy loaded since this is the home page.
 import Welcome from 'src/views/CRUD/welcome/Welcome';
 
-const AddSliceContainer = lazy(
+const ChartCreation = lazy(
   () =>
-    import(
-      /* webpackChunkName: "AddSliceContainer" */ 'src/addSlice/AddSliceContainer'
-    ),
+    import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 const AnnotationLayersList = lazy(
   () =>
@@ -47,10 +45,7 @@ const AnnotationList = lazy(
     ),
 );
 const ChartList = lazy(
-  () =>
-    import(
-      /* webpackChunkName: "ChartList" */ 'src/views/CRUD/chart/ChartList'
-    ),
+  () => import(/* webpackChunkName: "ChartList" */ 'src/pages/ChartList'),
 );
 const CssTemplatesList = lazy(
   () =>
@@ -120,6 +115,12 @@ const AllEntitiesPage = lazy(
 const TagsPage = lazy(
   () => import(/* webpackChunkName: "TagList" */ 'src/views/CRUD/tags/TagList'),
 );
+const RowLevelSecurity = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RowLevelSecurity" */ 'src/views/CRUD/rowlevelsecurity/RowLevelSecurityList'
+    ),
+);
 
 type Routes = {
   path: string;
@@ -143,7 +144,7 @@ export const routes: Routes = [
   },
   {
     path: '/chart/add',
-    Component: AddSliceContainer,
+    Component: ChartCreation,
   },
   {
     path: '/chart/list/',
@@ -214,6 +215,10 @@ export const routes: Routes = [
   {
     path: '/dataset/:datasetId',
     Component: AddDataset,
+  },
+  {
+    path: '/rowlevelsecurity/list',
+    Component: RowLevelSecurity,
   },
 ];
 

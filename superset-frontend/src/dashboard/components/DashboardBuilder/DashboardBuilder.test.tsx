@@ -249,6 +249,20 @@ describe('DashboardBuilder', () => {
     (setDirectPathToChild as jest.Mock).mockReset();
   });
 
+  it('should not display a loading spinner when saving is not in progress', () => {
+    const { queryByAltText } = setup();
+
+    expect(queryByAltText('Loading...')).not.toBeInTheDocument();
+  });
+
+  it('should display a loading spinner when saving is in progress', async () => {
+    const { findByAltText } = setup({
+      dashboardState: { dashboardIsSaving: true },
+    });
+
+    expect(await findByAltText('Loading...')).toBeVisible();
+  });
+
   describe('when nativeFiltersEnabled', () => {
     beforeEach(() => {
       (isFeatureEnabled as jest.Mock).mockImplementation(

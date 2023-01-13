@@ -54,8 +54,9 @@ class TestTagApi(SupersetTestCase):
         name: str,
         tag_type: str,
     ) -> Tag:
+        tag_name = name.strip()
         tag = Tag(
-            name=name,
+            name=tag_name,
             type=tag_type,
         )
         db.session.add(tag)

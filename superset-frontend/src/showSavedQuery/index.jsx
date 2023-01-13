@@ -21,11 +21,10 @@ import ReactDom from 'react-dom';
 import Form from 'react-jsonschema-form';
 import { interpolate } from 'src/showSavedQuery/utils';
 import { styled } from '@superset-ui/core';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const scheduleInfoContainer = document.getElementById('schedule-info');
-const bootstrapData = JSON.parse(
-  scheduleInfoContainer.getAttribute('data-bootstrap'),
-);
+const bootstrapData = getBootstrapData();
 const config = bootstrapData.common.conf.SCHEDULED_QUERIES;
 const { query } = bootstrapData.common;
 const scheduleInfo = query.extra_json.schedule_info;

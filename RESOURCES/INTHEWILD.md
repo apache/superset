@@ -40,6 +40,7 @@ Join our growing community!
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [KarrotPay](https://www.daangnpay.com/)
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
@@ -72,6 +73,7 @@ Join our growing community!
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
+- [Careem](https://www.careem.com/) [@SamraHanifCareem]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [CnOvit](http://www.cnovit.com/) [@xieshaohu]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
@@ -152,6 +154,9 @@ Join our growing community!
 
 ### News
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
+
+### Government
+- [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 
 ### Others
 - [AI inside](https://inside.ai/en/)

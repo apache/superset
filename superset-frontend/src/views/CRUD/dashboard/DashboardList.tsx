@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient, t } from '@superset-ui/core';
+import { styled, SupersetClient, t } from '@superset-ui/core';
 import React, { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
@@ -25,7 +25,6 @@ import {
   createFetchRelated,
   createErrorHandler,
   handleDashboardDelete,
-  Actions,
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -52,8 +51,8 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
-import { bootstrapData } from 'src/preamble';
 import { loadTags } from 'src/components/Tags/utils';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
 
@@ -95,6 +94,12 @@ interface Dashboard {
   tags: Tag[];
   created_by: object;
 }
+
+const Actions = styled.div`
+  color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
+const bootstrapData = getBootstrapData();
 
 function DashboardList(props: DashboardListProps) {
   const {

@@ -41,8 +41,8 @@ class TagDAO(BaseDAO):
                 type_ = TagTypes[type_name]
             else:
                 type_ = TagTypes.custom
-
-            tag = TagDAO.get_by_name(name, type_)
+            tag_name = name.strip()
+            tag = TagDAO.get_by_name(tag_name, type_)
             tagged_objects.append(
                 TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
             )
@@ -55,5 +55,4 @@ class TagDAO(BaseDAO):
         tag = db.session.query(Tag).filter(Tag.name == name, Tag.type == type_).first()
         if not tag:
             tag = Tag(name=name, type=type_)
-        # security_manager.raise_for_tag_access(tag)
         return tag

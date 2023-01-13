@@ -52,6 +52,7 @@ import Tag from 'src/types/TagType';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -71,9 +72,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-  };
+  user: BootstrapUser;
 }
 
 const StyledTableLabel = styled.div`

@@ -26,6 +26,16 @@ from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from flask_sqlalchemy import BaseQuery
 from freezegun import freeze_time
+from slack_sdk.errors import (
+    BotUserAccessError,
+    SlackApiError,
+    SlackClientConfigurationError,
+    SlackClientError,
+    SlackClientNotConnectedError,
+    SlackObjectFormationError,
+    SlackRequestError,
+    SlackTokenRotationError,
+)
 from sqlalchemy.sql import func
 
 from superset import db
@@ -1161,6 +1171,48 @@ def test_slack_chart_report_schedule(
 
 
 @pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
+)
+@patch("superset.reports.notifications.slack.WebClient")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_slack_chart_report_schedule_with_errors(
+    screenshot_mock,
+    web_client_mock,
+    create_report_slack_chart,
+):
+    """
+    ExecuteReport Command: Test that all slack errors will
+    properly log something
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+
+    slack_errors = [
+        BotUserAccessError(),
+        SlackRequestError(),
+        SlackClientConfigurationError(),
+        SlackObjectFormationError(),
+        SlackTokenRotationError(api_error="foo"),
+        SlackClientNotConnectedError(),
+        SlackClientError(),
+        SlackApiError(message="foo", response="bar"),
+    ]
+
+    for idx, er in enumerate(slack_errors):
+        web_client_mock.side_effect = er
+
+        with pytest.raises(ReportScheduleClientErrorsException):
+
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+            ).run()
+
+        db.session.commit()
+        # Assert errors are being logged)
+        assert get_error_logs_query(create_report_slack_chart).count() == (idx + 1) * 2
+
+
+@pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chart_with_csv"
 )
 @patch("superset.reports.notifications.slack.WebClient.files_upload")
@@ -1406,6 +1458,32 @@ def test_email_dashboard_report_fails(
         ).run()
 
     assert_log(ReportState.ERROR, error_message="Could not connect to SMTP XPTO")
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "create_report_email_dashboard"
+)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
+def test_email_dashboard_report_fails_uncaught_exception(
+    screenshot_mock, email_mock, create_report_email_dashboard
+):
+    """
+    ExecuteReport Command: Test dashboard email report schedule notification fails
+    and logs with uncaught exception
+    """
+    # setup screenshot mock
+    from smtplib import SMTPException
+
+    screenshot_mock.return_value = SCREENSHOT_FILE
+    email_mock.side_effect = Exception("Uncaught exception")
+
+    with pytest.raises(Exception):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
+        ).run()
+
+    assert_log(ReportState.ERROR, error_message="Uncaught exception")
 
 
 @pytest.mark.usefixtures(
@@ -1763,11 +1841,9 @@ def test_invalid_sql_alert(email_mock, create_invalid_sql_alert_email_chart):
                 TEST_ID, create_invalid_sql_alert_email_chart.id, datetime.utcnow()
             ).run()
 
-        notification_targets = get_target_from_report_schedule(
-            create_invalid_sql_alert_email_chart
-        )
         # Assert the email smtp address, asserts a notification was sent with the error
         assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
+        assert_log(ReportState.ERROR)
 
 
 @pytest.mark.usefixtures("create_invalid_sql_alert_email_chart")
@@ -1784,9 +1860,7 @@ def test_grace_period_error(email_mock, create_invalid_sql_alert_email_chart):
 
         # Only needed for MySQL, understand why
         db.session.commit()
-        notification_targets = get_target_from_report_schedule(
-            create_invalid_sql_alert_email_chart
-        )
+
         # Assert the email smtp address, asserts a notification was sent with the error
         assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
         assert (
