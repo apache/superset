@@ -226,6 +226,14 @@ Those will also be mounted as secrets and can include sensitive parameters.
 
 #### Setting up OAuth
 
+:::note
+
+OAuth setup requires that the [authlib](https://authlib.org/) Python library is installed. This can
+be done using `pip` by updating the `bootstrapScript`. See the [Dependencies](#dependencies) section
+for more information.
+
+:::
+
 ```yaml
 extraEnv:
   AUTH_DOMAIN: example.com
