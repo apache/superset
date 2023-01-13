@@ -362,8 +362,8 @@ const StyledNotificationAddButton = styled.div`
 `;
 
 const StyledNotificationMethodWrapper = styled.div`
-  .input-container {
-    margin-left: 0 !important;
+  .inline-container .input-container {
+    margin-left: 0;
   }
 `;
 
