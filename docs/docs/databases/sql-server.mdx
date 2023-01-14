@@ -15,6 +15,15 @@ The connection string for SQL Server looks like this:
 mssql+pymssql://<Username>:<Password>@<Host>:<Port-default:1433>/<Database Name>/?Encrypt=yes
 ```
 
+You might need to install pymssql if you're running superset with docker-compose. 
+
+1. Enter docker container `docker exec -it superset_app bash`
+2. `pip install pymssql`
+3. exit container and run `docker-compose restart`
+4. remove `Encrypt=yes` if you have trouble connecting with it
+
+---
+
 It is also possible to connect using [pyodbc](https://pypi.org/project/pyodbc) with the parameter [odbc_connect](https://docs.sqlalchemy.org/en/14/dialects/mssql.html#pass-through-exact-pyodbc-string)
 
 The connection string for SQL Server looks like this:
