@@ -18,9 +18,9 @@
     "cookie": "^0.5.0",
     "hot-shots": "^9.3.0",
     "ioredis": "^4.28.0",
-    "jsonwebtoken": "^8.5.1",
+    "jsonwebtoken": "^9.0.0",
     "uuid": "^9.0.0",
-    "winston": "^3.3.3",
+    "winston": "^3.8.2",
     "ws": "^8.11.0"
   },
   "devDependencies": {
@@ -31,7 +31,7 @@
     "@types/node": "^18.11.13",
     "@types/uuid": "^9.0.0",
     "@types/ws": "^8.5.3",
-    "@typescript-eslint/eslint-plugin": "^5.45.0",
+    "@typescript-eslint/eslint-plugin": "^5.48.1",
     "@typescript-eslint/parser": "^5.47.0",
     "eslint": "^8.29.0",
     "eslint-config-prettier": "^7.1.0",

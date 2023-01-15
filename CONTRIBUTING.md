@@ -52,7 +52,9 @@ little bit helps, and credit will always be given.
   - [Revert Guidelines](#revert-guidelines)
   - [Setup Local Environment for Development](#setup-local-environment-for-development)
     - [Documentation](#documentation)
-      - [Images](#images)
+      - [Local Development](#local-development)
+      - [Build](#build)
+      - [Deployment](#deployment)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
       - [Dependencies](#dependencies)
@@ -1293,7 +1295,7 @@ To do this, you'll need to:
 - Start up a celery worker
 
   ```shell script
-  celery --app=superset.tasks.celery_app:app worker -Ofair
+  celery --app=superset.tasks.celery_app:app worker -O fair
   ```
 
 Note that:

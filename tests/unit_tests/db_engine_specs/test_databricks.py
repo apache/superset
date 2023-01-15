@@ -175,3 +175,25 @@ def test_get_extra_params(mocker: MockerFixture) -> None:
             }
         }
     }
+
+    # it should also remove whitespace from http_path
+    database.extra = json.dumps(
+        {
+            "engine_params": {
+                "connect_args": {
+                    "http_headers": [("User-Agent", "Custom user agent")],
+                    "_user_agent_entry": "Custom user agent",
+                    "http_path": "/some_path_here_with_whitespace ",
+                }
+            }
+        }
+    )
+    assert DatabricksNativeEngineSpec.get_extra_params(database) == {
+        "engine_params": {
+            "connect_args": {
+                "http_headers": [["User-Agent", "Custom user agent"]],
+                "_user_agent_entry": "Custom user agent",
+                "http_path": "/some_path_here_with_whitespace",
+            }
+        }
+    }
