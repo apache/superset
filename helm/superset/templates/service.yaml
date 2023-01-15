@@ -35,10 +35,8 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
-      {{- if and (or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer")) (not (empty .Values.service.nodePorts.http)) }}
-      nodePort: {{ .Values.service.nodePorts.http }}
-      {{- else if eq .Values.service.type "ClusterIP" }}
-      nodePort: null
+      {{- if and (or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer")) (not (empty .Values.service.nodePort.http)) }}
+      nodePort: {{ .Values.service.nodePort.http }}
       {{- end }}
   selector:
     app: {{ template "superset.name" . }}
@@ -69,10 +67,8 @@ spec:
       targetPort: flower
       protocol: TCP
       name: flower
-      {{- if and (or (eq .Values.supersetCeleryFlower.service.type "NodePort") (eq .Values.supersetCeleryFlower.service.type "LoadBalancer")) (not (empty .Values.supersetCeleryFlower.service.nodePorts.http)) }}
-      nodePort: {{ .Values.supersetCeleryFlower.service.nodePorts.http }}
-      {{- else if eq .Values.supersetCeleryFlower.service.type "ClusterIP" }}
-      nodePort: null
+      {{- if and (or (eq .Values.supersetCeleryFlower.service.type "NodePort") (eq .Values.supersetCeleryFlower.service.type "LoadBalancer")) (not (empty .Values.supersetCeleryFlower.service.nodePort.http)) }}
+      nodePort: {{ .Values.supersetCeleryFlower.service.nodePort.http }}
       {{- end }}
   selector:
     app: {{ template "superset.name" . }}-flower
@@ -104,10 +100,8 @@ spec:
       targetPort: ws
       protocol: TCP
       name: ws
-      {{- if and (or (eq .Values.supersetWebsockets.service.type "NodePort") (eq .Values.supersetWebsockets.service.type "LoadBalancer")) (not (empty .Values.supersetWebsockets.service.nodePorts.http)) }}
-      nodePort: {{ .Values.supersetWebsockets.service.nodePorts.http }}
-      {{- else if eq .Values.supersetWebsockets.service.type "ClusterIP" }}
-      nodePort: null
+      {{- if and (or (eq .Values.supersetWebsockets.service.type "NodePort") (eq .Values.supersetWebsockets.service.type "LoadBalancer")) (not (empty .Values.supersetWebsockets.service.nodePort.http)) }}
+      nodePort: {{ .Values.supersetWebsockets.service.nodePort.http }}
       {{- end }}
   selector:
     app: "{{ template "superset.name" . }}-ws"
