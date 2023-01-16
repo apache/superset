@@ -16,23 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
-import { TreePathInfo } from '../types';
-
-export const COLOR_SATURATION = [0.7, 0.4];
-export const LABEL_FONTSIZE = 11;
-export const BORDER_WIDTH = 2;
-export const GAP_WIDTH = 2;
-export const BORDER_COLOR = '#fff';
-
-export const extractTreePathInfo = (
-  treePathInfo: TreePathInfo[] | undefined,
-) => {
-  const treePath = (treePathInfo ?? [])
-    .map(pathInfo => pathInfo?.name || '')
-    .filter(path => path !== '');
-
-  // the 1st tree path is metric label
-  const metricLabel = treePath.shift() || '';
-  return { metricLabel, treePath };
-};
+export default function buildQuery(formData: QueryFormData) {
+  const { metric, sort_by_metric } = formData;
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      ...(sort_by_metric && { orderby: [[metric, false]] }),
+    },
+  ]);
+}
