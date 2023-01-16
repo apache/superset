@@ -26,7 +26,6 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from jinja2.sandbox import SandboxedEnvironment
-from marshmallow import ValidationError
 from sqlalchemy import and_, func
 from werkzeug.exceptions import NotFound
 
@@ -39,8 +38,7 @@ from superset.models.sql_lab import SavedQuery
 from superset.superset_typing import FlaskResponse
 from superset.tags.commands.create import CreateCustomTagCommand
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
-from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
-from superset.tags.schemas import TagPostSchema
+from superset.tags.models import ObjectTypes, Tag, TaggedObject
 from superset.views.base import SupersetModelView
 
 from .base import BaseSupersetView, json_success
@@ -139,7 +137,7 @@ class TagView(BaseSupersetView):
 
     @has_access_api
     @expose("/tags/<object_type:object_type>/<int:object_id>/", methods=["POST"])
-    def post(  # pylint: disable=no-self-use
+    def post(
         self, object_type: ObjectTypes, object_id: int
     ) -> FlaskResponse:
         """

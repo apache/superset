@@ -20,7 +20,6 @@ from typing import Any, Dict
 from superset.dao.base import BaseDAO
 from superset.dao.exceptions import DAOCreateFailedError
 from superset.extensions import db
-from superset.tags.exceptions import InvalidTagNameError
 from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
 
 logger = logging.getLogger(__name__)
@@ -44,7 +43,6 @@ class TagDAO(BaseDAO):
         tagged_objects = []
         for name in tag_names:
             if not TagDAO.validate_tag_name(name):
-                logger.error(f"failed create tag: {name}")
                 raise DAOCreateFailedError(
                     message="Invalid Tag Name (cannot contain ':')"
                 )
