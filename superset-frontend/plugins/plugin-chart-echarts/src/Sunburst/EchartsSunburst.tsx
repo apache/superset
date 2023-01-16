@@ -34,14 +34,13 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     echartOptions,
     setDataMask,
     labelMap,
-    groupby,
     selectedValues,
     formData,
     onContextMenu,
     refs,
   } = props;
 
-  const { emitFilter } = formData;
+  const { emitFilter, columns } = formData;
 
   const handleChange = useCallback(
     (values: string[]) => {
@@ -49,15 +48,15 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         return;
       }
 
-      const groupbyValues = values.map(value => labelMap[value]);
+      const labels = values.map(value => labelMap[value]);
 
       setDataMask({
         extraFormData: {
           filters:
-            values.length === 0
+            values.length === 0 || !columns
               ? []
-              : groupby.map((col, idx) => {
-                  const val = groupbyValues.map(v => v[idx]);
+              : columns.map((col, idx) => {
+                  const val = labels.map(v => v[idx]);
                   if (val === null || val === undefined)
                     return {
                       col,
@@ -71,12 +70,12 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
                 }),
         },
         filterState: {
-          value: groupbyValues.length ? groupbyValues : null,
+          value: labels.length ? labels : null,
           selectedValues: values.length ? values : null,
         },
       });
     },
-    [emitFilter, setDataMask, groupby, labelMap],
+    [emitFilter, setDataMask, columns, labelMap],
   );
 
   const eventHandlers: EventHandlers = {
@@ -98,14 +97,16 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
           const filters: BinaryQueryObjectFilterClause[] = [];
-          treePath.forEach((path, i) =>
-            filters.push({
-              col: groupby[i],
-              op: '==',
-              val: path,
-              formattedVal: path,
-            }),
-          );
+          if (columns) {
+            treePath.forEach((path, i) =>
+              filters.push({
+                col: columns[i],
+                op: '==',
+                val: path,
+                formattedVal: path,
+              }),
+            );
+          }
           onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
         }
       }

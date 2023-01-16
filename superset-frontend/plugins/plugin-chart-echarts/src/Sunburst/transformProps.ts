@@ -168,6 +168,7 @@ export default function transformProps(
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     groupby = [],
+    columns = [],
     metric = '',
     secondaryMetric = '',
     colorScheme,
@@ -190,7 +191,12 @@ export default function transformProps(
       labelType,
     });
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
-  const padding = { top: 10, right: 5, bottom: 10, left: 5 };
+  const padding = {
+    top: theme.gridUnit * 3,
+    right: theme.gridUnit,
+    bottom: theme.gridUnit * 3,
+    left: theme.gridUnit,
+  };
   const containerWidth = width;
   const containerHeight = height;
   const visWidth = containerWidth - padding.left - padding.right;
@@ -202,10 +208,10 @@ export default function transformProps(
   const secondaryMetricLabel = secondaryMetric
     ? getMetricLabel(secondaryMetric)
     : undefined;
-  const groupbyLabels = groupby.map(getColumnLabel);
+  const columnLabels = columns.map(getColumnLabel);
   const treeData = treeBuilder(
     data,
-    groupbyLabels,
+    columnLabels,
     metricLabel,
     secondaryMetricLabel,
   );
@@ -314,7 +320,7 @@ export default function transformProps(
           },
         },
         label: {
-          width: (radius * 0.6) / groupby.length,
+          width: (radius * 0.6) / (columns.length || 1),
           show: showLabels,
           formatter,
           color: theme.colors.grayscale.dark2,

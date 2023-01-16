@@ -68,7 +68,6 @@ import {
   EchartsTreemapChartPlugin,
   EchartsMixedTimeseriesChartPlugin,
   EchartsTreeChartPlugin,
-  EchartsSunburstChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
   SelectFilterPlugin,
@@ -133,7 +132,6 @@ export default class MainPreset extends Preset {
         new RoseChartPlugin().configure({ key: 'rose' }),
         new SankeyChartPlugin().configure({ key: 'sankey' }),
         new SunburstChartPlugin().configure({ key: 'sunburst' }),
-        new EchartsSunburstChartPlugin().configure({ key: 'sunburst_v2' }),
         new TableChartPlugin().configure({ key: 'table' }),
         new TimePivotChartPlugin().configure({ key: 'time_pivot' }),
         new TimeTableChartPlugin().configure({ key: 'time_table' }),

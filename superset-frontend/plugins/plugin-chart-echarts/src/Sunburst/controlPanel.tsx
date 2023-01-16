@@ -39,7 +39,7 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
-        ['groupby'],
+        ['columns'],
         ['metric'],
         ['secondary_metric'],
         ['adhoc_filters'],
@@ -114,9 +114,9 @@ const config: ControlPanelConfig = {
               default: labelType,
               renderTrigger: true,
               choices: [
-                ['key', 'Category Name'],
-                ['value', 'Value'],
-                ['key_value', 'Category and Value'],
+                ['key', t('Category Name')],
+                ['value', t('Value')],
+                ['key_value', t('Category and Value')],
               ],
               description: t('What should be shown on the label?'),
             },
