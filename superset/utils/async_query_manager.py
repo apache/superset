@@ -17,7 +17,7 @@
 import json
 import logging
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 import jwt
 import redis
@@ -80,6 +80,7 @@ class AsyncQueryManager:
         self._jwt_cookie_name: str = ""
         self._jwt_cookie_secure: bool = False
         self._jwt_cookie_domain: Optional[str]
+        self._jwt_cookie_samesite: Optional[Literal["None", "Lax", "Strict"]] = None
         self._jwt_secret: str
 
     def init_app(self, app: Flask) -> None:
