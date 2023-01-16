@@ -17,6 +17,7 @@
 # isort:skip_file
 """Unit tests for Superset"""
 from datetime import datetime, timedelta
+from unittest import mock
 import json
 import random
 import string
@@ -392,3 +393,54 @@ class TestQueryApi(SupersetTestCase):
         # rollback changes
         db.session.delete(query)
         db.session.commit()
+
+    @mock.patch("superset.sql_lab.cancel_query")
+    @mock.patch("superset.views.core.db.session")
+    def test_stop_query_not_found(
+        self, mock_superset_db_session, mock_sql_lab_cancel_query
+    ):
+        """
+        Handles stop query when the DB engine spec does not
+        have a cancel query method (with invalid client_id).
+        """
+        form_data = {"client_id": "foo2"}
+        query_mock = mock.Mock()
+        query_mock.return_value = None
+        self.login(username="admin")
+        mock_superset_db_session.query().filter_by().one_or_none = query_mock
+        mock_sql_lab_cancel_query.return_value = True
+        rv = self.client.post(
+            "/api/v1/query/stop",
+            data=json.dumps(form_data),
+            content_type="application/json",
+        )
+
+        assert rv.status_code == 404
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["message"] == "Query with client_id foo2 not found"
+
+    @mock.patch("superset.sql_lab.cancel_query")
+    @mock.patch("superset.views.core.db.session")
+    def test_stop_query(self, mock_superset_db_session, mock_sql_lab_cancel_query):
+        """
+        Handles stop query when the DB engine spec does not
+        have a cancel query method.
+        """
+        form_data = {"client_id": "foo"}
+        query_mock = mock.Mock()
+        query_mock.client_id = "foo"
+        query_mock.status = QueryStatus.RUNNING
+        self.login(username="admin")
+        mock_superset_db_session.query().filter_by().one_or_none().return_value = (
+            query_mock
+        )
+        mock_sql_lab_cancel_query.return_value = True
+        rv = self.client.post(
+            "/api/v1/query/stop",
+            data=json.dumps(form_data),
+            content_type="application/json",
+        )
+
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert data["result"] == "OK"
