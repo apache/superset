@@ -20,7 +20,7 @@ import React from 'react';
 import { t, styled } from '@superset-ui/core';
 import { Row, Col } from 'src/components';
 import Tabs from 'src/components/Tabs';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
 import Favorites from './Favorites';
 import UserInfo from './UserInfo';
 import Security from './Security';
@@ -28,7 +28,7 @@ import RecentActivity from './RecentActivity';
 import CreatedContent from './CreatedContent';
 
 interface AppProps {
-  user: UserWithPermissionsAndRoles;
+  user: BootstrapUser;
 }
 
 const StyledTabPane = styled(Tabs.TabPane)`

@@ -42,7 +42,10 @@ import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import { URL_PARAMS } from 'src/constants';
 import { getDatasourceAsSaveableDataset } from 'src/utils/datasourceUtils';
-import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
+import {
+  canUserAccessSqlLab,
+  isUserAdmin,
+} from 'src/dashboard/util/permissionUtils';
 import ModalTrigger from 'src/components/ModalTrigger';
 import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModalFooter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
@@ -264,11 +267,12 @@ class DatasourceControl extends React.PureComponent {
       showSaveDatasetModal,
     } = this.state;
     const { datasource, onChange, theme } = this.props;
-    const isMissingDatasource = datasource?.id == null;
+    const isMissingDatasource = !datasource?.id;
     let isMissingParams = false;
     if (isMissingDatasource) {
       const datasourceId = getUrlParam(URL_PARAMS.datasourceId);
       const sliceId = getUrlParam(URL_PARAMS.sliceId);
+
       if (!datasourceId && !sliceId) {
         isMissingParams = true;
       }
@@ -279,11 +283,13 @@ class DatasourceControl extends React.PureComponent {
       datasource.owners?.map(o => o.id || o.value).includes(user.userId) ||
       isUserAdmin(user);
 
+    const canAccessSqlLab = canUserAccessSqlLab(user);
+
     const editText = t('Edit dataset');
 
     const defaultDatasourceMenu = (
       <Menu onClick={this.handleMenuItemClick}>
-        {this.props.isEditable && (
+        {this.props.isEditable && !isMissingDatasource && (
           <Menu.Item
             key={EDIT_DATASET}
             data-test="edit-dataset"
@@ -303,7 +309,7 @@ class DatasourceControl extends React.PureComponent {
           </Menu.Item>
         )}
         <Menu.Item key={CHANGE_DATASET}>{t('Swap dataset')}</Menu.Item>
-        {datasource && (
+        {!isMissingDatasource && canAccessSqlLab && (
           <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
         )}
       </Menu>
@@ -333,7 +339,9 @@ class DatasourceControl extends React.PureComponent {
             responsive
           />
         </Menu.Item>
-        <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+        {canAccessSqlLab && (
+          <Menu.Item key={VIEW_IN_SQL_LAB}>{t('View in SQL Lab')}</Menu.Item>
+        )}
         <Menu.Item key={SAVE_AS_DATASET}>{t('Save as dataset')}</Menu.Item>
       </Menu>
     );
@@ -351,7 +359,10 @@ class DatasourceControl extends React.PureComponent {
       }
     }
 
-    const titleText = getDatasourceTitle(datasource);
+    const titleText = isMissingDatasource
+      ? t('Missing dataset')
+      : getDatasourceTitle(datasource);
+
     const tooltip = titleText;
 
     return (

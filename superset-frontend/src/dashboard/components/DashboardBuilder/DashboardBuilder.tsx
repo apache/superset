@@ -246,6 +246,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
+  const dashboardIsSaving = useSelector<RootState, boolean>(
+    ({ dashboardState }) => dashboardState.dashboardIsSaving,
+  );
   const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
   const focusedFilterId = nativeFilters?.focusedFilterId;
   const fullSizeChartId = useSelector<RootState, number | null>(
@@ -396,7 +399,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
             menuItems={[
               <IconButton
                 icon={<Icons.FallOutlined iconSize="xl" />}
-                label="Collapse tab content"
+                label={t('Collapse tab content')}
                 onClick={handleDeleteTopLevelTabs}
               />,
             ]}
@@ -533,6 +536,15 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
           </StyledDashboardContent>
         </div>
       </StyledContent>
+      {dashboardIsSaving && (
+        <Loading
+          css={css`
+            && {
+              position: fixed;
+            }
+          `}
+        />
+      )}
     </StyledDiv>
   );
 };

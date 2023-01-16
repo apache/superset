@@ -39,7 +39,6 @@ from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import (
     NotificationAuthorizationException,
-    NotificationError,
     NotificationMalformedException,
     NotificationParamException,
     NotificationUnprocessableException,
@@ -198,8 +197,5 @@ Error: %(text)s
             raise NotificationMalformedException from ex
         except SlackTokenRotationError as ex:
             raise NotificationAuthorizationException from ex
-        except SlackClientNotConnectedError as ex:
+        except (SlackClientNotConnectedError, SlackClientError, SlackApiError) as ex:
             raise NotificationUnprocessableException from ex
-        except (SlackClientError, SlackApiError) as ex:
-            # any other slack errors not caught above
-            raise NotificationError(ex) from ex

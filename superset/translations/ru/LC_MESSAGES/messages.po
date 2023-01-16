@@ -1639,10 +1639,8 @@ msgstr "Произошла ошибка"
 msgid "An error occurred saving dataset"
 msgstr "Произошла ошибка при сохранении датасета"
 
-#: superset/dashboards/permalink/exceptions.py:31
-#: superset/explore/permalink/exceptions.py:31
-#: superset/key_value/exceptions.py:38
-#: superset/temporary_cache/commands/exceptions.py:33
+#: superset/key_value/commands/exceptions.py:33
+#, fuzzy
 msgid "An error occurred while accessing the value."
 msgstr "Произошла ошибка при доступе к значению"
 
@@ -7059,7 +7057,7 @@ msgstr "Тип фильтра"
 msgid "Filter box"
 msgstr "Фильтр-виджет"
 
-#: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:281
+#: superset-frontend/src/explore/components/controls/FilterBoxItemControl/index.jsx:282
 msgid "Filter configuration"
 msgstr "Настройки фильтра"
 
@@ -8120,6 +8118,11 @@ msgstr "Ошибка 1000 - Источник данных слишком вел�
 #: superset-frontend/src/utils/getClientErrorObject.ts:126
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Ошибка 1001 - Нетипичная загрузка базы данных."
+
+#: superset-frontend/src/SqlLab/components/SqlEditorLeftBar/index.jsx:125
+#: superset-frontend/src/components/DatabaseSelector/index.tsx:183
+msgid "It seems you don't have access to any database"
+msgstr "Кажется у Вас нет доступа к базе данных"
 
 #: superset-frontend/plugins/plugin-chart-echarts/src/Timeseries/Regular/Bar/controlPanel.tsx:230
 msgid "It’s not recommended to truncate axis in Bar chart."
@@ -11400,7 +11403,8 @@ msgstr "Имя запроса"
 msgid "Query preview"
 msgstr "Предпросмотр запроса"
 
-#: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:412
+#: superset-frontend/src/SqlLab/components/ResultSet/index.tsx:682
+#, fuzzy
 msgid "Query was stopped"
 msgstr "Запрос прерван"
 
@@ -12672,17 +12676,16 @@ msgstr "Прокрутка"
 msgid "Scroll down to the bottom to enable overwriting changes. "
 msgstr ""
 
-#: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:157
-#: superset-frontend/src/explore/components/DataTableControl/index.tsx:107
-#: superset-frontend/src/explore/components/useExploreAdditionalActionsMenu/DashboardsSubMenu.tsx:59
-#: superset-frontend/src/pages/ChartList/index.tsx:682
-#: superset-frontend/src/views/CRUD/alert/AlertList.tsx:508
-#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:303
-#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:293
-#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:471
-#: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:489
-#: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:581
-#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:464
+#: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:121
+#: superset-frontend/src/explore/components/DataTableControl/index.tsx:77
+#: superset-frontend/src/views/CRUD/alert/AlertList.tsx:419
+#: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:305
+#: superset-frontend/src/views/CRUD/chart/ChartList.tsx:542
+#: superset-frontend/src/views/CRUD/csstemplates/CssTemplatesList.tsx:292
+#: superset-frontend/src/views/CRUD/dashboard/DashboardList.tsx:516
+#: superset-frontend/src/views/CRUD/data/database/DatabaseList.tsx:417
+#: superset-frontend/src/views/CRUD/data/dataset/DatasetList.tsx:477
+#: superset-frontend/src/views/CRUD/data/savedquery/SavedQueryList.tsx:461
 #: superset/templates/appbuilder/general/widgets/search.html:40
 msgid "Search"
 msgstr "Поиск"
@@ -18201,7 +18204,7 @@ msgstr "Уровень масштабирования карты"
 msgid "[ untitled dashboard ]"
 msgstr "[ безымянный дашборд ]"
 
-#: superset/viz.py:2383
+#: superset/viz.py:2349
 msgid "[Longitude] and [Latitude] columns must be present in [Group By]"
 msgstr "Столбцы [Долгота] и [Широта] должны присутствовать в [Группировать по]"
 
@@ -18216,9 +18219,10 @@ msgstr "[отсутствующий датасет]"
 #: superset/utils/core.py:923
 #, python-format
 msgid "[Superset] Access to the datasource %(name)s was granted"
-msgstr ""
+msgstr "Доступ к базе данных предоставлен для пользователя — %(name)s"
 
-#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:87
+#: superset-frontend/src/views/CRUD/welcome/ActivityTable.tsx:94
+#, fuzzy, python-format
 msgid "[Untitled]"
 msgstr "[Без названия]"
 

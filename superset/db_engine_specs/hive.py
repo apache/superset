@@ -225,22 +225,23 @@ class HiveEngineSpec(PrestoEngineSpec):
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
-            engine.execute(
-                text(
-                    f"""
-                    CREATE TABLE {str(table)} ({schema_definition})
-                    STORED AS PARQUET
-                    LOCATION :location
-                    """
-                ),
-                location=upload_to_s3(
-                    filename=file.name,
-                    upload_prefix=current_app.config[
-                        "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                    ](database, g.user, table.schema),
-                    table=table,
-                ),
-            )
+            with cls.get_engine(database) as engine:
+                engine.execute(
+                    text(
+                        f"""
+                        CREATE TABLE {str(table)} ({schema_definition})
+                        STORED AS PARQUET
+                        LOCATION :location
+                        """
+                    ),
+                    location=upload_to_s3(
+                        filename=file.name,
+                        upload_prefix=current_app.config[
+                            "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
+                        ](database, g.user, table.schema),
+                        table=table,
+                    ),
+                )
 
     @classmethod
     def convert_dttm(
@@ -374,7 +375,15 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
-            time.sleep(current_app.config["HIVE_POLL_INTERVAL"])
+            if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
+                logger.warning(
+                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"
+                )
+            else:
+                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                    cls.engine, 5
+                )
+            time.sleep(sleep_interval)
             polled = cursor.poll()
 
     @classmethod
@@ -558,7 +567,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def has_implicit_cancel(cls) -> bool:
         """
         Return True if the live cursor handles the implicit cancelation of the query,
-        False otherise.
+        False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query
         :see: handle_cursor

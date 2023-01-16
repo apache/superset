@@ -162,12 +162,19 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     def get_extra_params(database: "Database") -> Dict[str, Any]:
         """
         Add a user agent to be used in the requests.
+        Trim whitespace from connect_args to avoid databricks driver errors
         """
-        extra = {
-            "http_headers": [("User-Agent", USER_AGENT)],
-            "_user_agent_entry": USER_AGENT,
-        }
-        extra.update(BaseEngineSpec.get_extra_params(database))
+        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+
+        connect_args.setdefault("http_headers", [("User-Agent", USER_AGENT)])
+        connect_args.setdefault("_user_agent_entry", USER_AGENT)
+
+        # trim whitespace from http_path to avoid databricks errors on connecting
+        if http_path := connect_args.get("http_path"):
+            connect_args["http_path"] = http_path.strip()
+
         return extra
 
     @classmethod

@@ -50,6 +50,7 @@ interface VizTypeGalleryProps {
   onDoubleClick: () => void;
   selectedViz: string | null;
   className?: string;
+  denyList: string[];
 }
 
 type VizEntry = {
@@ -506,6 +507,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
   const chartMetadata: VizEntry[] = useMemo(() => {
     const result = Object.entries(mountedPluginMetadata)
       .map(([key, value]) => ({ key, value }))
+      .filter(({ key }) => !props.denyList.includes(key))
       .filter(
         ({ value }) =>
           nativeFilterGate(value.behaviors || []) && !value.deprecated,

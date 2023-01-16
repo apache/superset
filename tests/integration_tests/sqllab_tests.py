@@ -257,6 +257,22 @@ class TestSqlLab(SupersetTestCase):
         db.session.commit()
         self.assertLess(0, len(data["data"]))
 
+    def test_sqllab_has_access(self):
+        for username in ("admin", "gamma_sqllab"):
+            self.login(username)
+            for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
+                resp = self.client.get(endpoint)
+                self.assertEqual(200, resp.status_code)
+
+            self.logout()
+
+    def test_sqllab_no_access(self):
+        self.login("gamma")
+        for endpoint in ("/superset/sqllab/", "/superset/sqllab/history/"):
+            resp = self.client.get(endpoint)
+            # Redirects to the main page
+            self.assertEqual(302, resp.status_code)
+
     def test_sql_json_schema_access(self):
         examples_db = get_example_database()
         db_backend = examples_db.backend
@@ -733,7 +749,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -786,7 +802,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = True
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
@@ -836,7 +852,7 @@ class TestSqlLab(SupersetTestCase):
         mock_query = mock.MagicMock()
         mock_query.database.allow_run_async = False
         mock_cursor = mock.MagicMock()
-        mock_query.database.get_sqla_engine_with_context().__enter__().raw_connection().cursor.return_value = (
+        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
             mock_cursor
         )
         mock_query.database.db_engine_spec.run_multiple_statements_as_one = False

@@ -22,6 +22,8 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example1 from './images/example1.jpg';
+import example2 from './images/example2.jpg';
 import { EchartsRadarChartProps, EchartsRadarFormData } from './types';
 
 export default class EchartsRadarChartPlugin extends ChartPlugin<
@@ -50,6 +52,7 @@ export default class EchartsRadarChartPlugin extends ChartPlugin<
         description: t(
           'Visualize a parallel set of metrics across multiple groups. Each group is visualized using its own line of points and each metric is represented as an edge in the chart.',
         ),
+        exampleGallery: [{ url: example1 }, { url: example2 }],
         name: t('Radar Chart'),
         tags: [
           t('Business'),

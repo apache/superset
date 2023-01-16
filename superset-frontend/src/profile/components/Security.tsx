@@ -21,10 +21,10 @@ import Badge from 'src/components/Badge';
 import { t } from '@superset-ui/core';
 
 import Label from 'src/components/Label';
-import { UserWithPermissionsAndRoles } from '../../types/bootstrapTypes';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
 
 interface SecurityProps {
-  user: UserWithPermissionsAndRoles;
+  user: BootstrapUser;
 }
 
 export default function Security({ user }: SecurityProps) {
@@ -32,15 +32,16 @@ export default function Security({ user }: SecurityProps) {
     <div>
       <div className="roles">
         <h4>
-          {t('Roles')} <Badge count={Object.keys(user.roles).length} showZero />
+          {t('Roles')}{' '}
+          <Badge count={Object.keys(user?.roles || {}).length} showZero />
         </h4>
-        {Object.keys(user.roles).map(role => (
+        {Object.keys(user?.roles || {}).map(role => (
           <Label key={role}>{role}</Label>
         ))}
         <hr />
       </div>
       <div className="databases">
-        {user.permissions.database_access && (
+        {user?.permissions.database_access && (
           <div>
             <h4>
               {t('Databases')}{' '}
@@ -54,7 +55,7 @@ export default function Security({ user }: SecurityProps) {
         )}
       </div>
       <div className="datasources">
-        {user.permissions.datasource_access && (
+        {user?.permissions.datasource_access && (
           <div>
             <h4>
               {t('Datasets')}{' '}
