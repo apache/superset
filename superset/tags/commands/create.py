@@ -28,7 +28,7 @@ from superset.tags.models import ObjectTypes
 logger = logging.getLogger(__name__)
 
 
-class CreateTagCommand(CreateMixin, BaseCommand):
+class CreateCustomTagCommand(CreateMixin, BaseCommand):
     def __init__(self, object_type: ObjectTypes, object_id: int, data: Dict[str, Any]):
         self._object_type = object_type
         self._object_id = object_id
@@ -37,7 +37,7 @@ class CreateTagCommand(CreateMixin, BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            tag = TagDAO.create_tagged_objects(
+            tag = TagDAO.create_custom_tagged_objects(
                 self._object_type, self._object_id, self._properties
             )
         except DAOCreateFailedError as ex:
@@ -51,7 +51,6 @@ class CreateTagCommand(CreateMixin, BaseCommand):
         # Validate object_id
         if self._object_id == 0:
             exceptions.append(TagCreateFailedError())
-
         if exceptions:
             exception = TagInvalidError()
             exception.add_list(exceptions)

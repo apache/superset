@@ -18,7 +18,9 @@ import logging
 from typing import Any, Dict
 
 from superset.dao.base import BaseDAO
+from superset.dao.exceptions import DAOCreateFailedError
 from superset.extensions import db
+from superset.tags.exceptions import InvalidTagNameError
 from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
 
 logger = logging.getLogger(__name__)
@@ -27,20 +29,26 @@ logger = logging.getLogger(__name__)
 class TagDAO(BaseDAO):
     model_cls = Tag
     # base_filter = TagAccessFilter
+    @staticmethod
+    def validate_tag_name(tag_name: str) -> bool:
+        if ":" in tag_name:
+            return False
+        return True
 
     @staticmethod
-    def create_tagged_objects(
+    def create_custom_tagged_objects(
         object_type: ObjectTypes, object_id: int, properties: Dict[str, Any]
     ) -> None:
         tag_names = properties["tags"]
 
         tagged_objects = []
         for name in tag_names:
-            if ":" in name:
-                type_name = name.split(":", 1)[0]
-                type_ = TagTypes[type_name]
-            else:
-                type_ = TagTypes.custom
+            if not TagDAO.validate_tag_name(name):
+                logger.error(f"failed create tag: {name}")
+                raise DAOCreateFailedError(
+                    message="Invalid Tag Name (cannot contain ':')"
+                )
+            type_ = TagTypes.custom
             tag_name = name.strip()
             tag = TagDAO.get_by_name(tag_name, type_)
             tagged_objects.append(

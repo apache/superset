@@ -724,11 +724,13 @@ const PropertiesModal = ({
             </p>
           </Col>
         </Row>
-        <Row gutter={16}>
-          <Col xs={24} md={12}>
-            <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
-          </Col>
-        </Row>
+        {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <h3 css={{ marginTop: '1em' }}>{t('Tags')}</h3>
+            </Col>
+          </Row>
+        ) : null}
         {isFeatureEnabled(FeatureFlag.TAGGING_SYSTEM) ? (
           <Row gutter={16}>
             <Col xs={24} md={12}>

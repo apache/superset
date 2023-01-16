@@ -23,7 +23,7 @@ from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.extensions import event_logger
-from superset.tags.commands.create import CreateTagCommand
+from superset.tags.commands.create import CreateCustomTagCommand
 from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
 from superset.tags.models import ObjectTypes, Tag
 from superset.tags.schemas import (
@@ -148,7 +148,7 @@ class TagRestApi(BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
         try:
-            new_model = CreateTagCommand(object_type, object_id, item).run()
+            new_model = CreateCustomTagCommand(object_type, object_id, item).run()
             return self.response(201, id=new_model.id, result=item)
         except TagInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())

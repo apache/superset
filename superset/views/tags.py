@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import absolute_import, division, print_function, unicode_literals
 
+import logging
 from typing import Any, Dict, List
 
 import simplejson as json
@@ -25,6 +26,7 @@ from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from jinja2.sandbox import SandboxedEnvironment
+from marshmallow import ValidationError
 from sqlalchemy import and_, func
 from werkzeug.exceptions import NotFound
 
@@ -35,10 +37,15 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.superset_typing import FlaskResponse
+from superset.tags.commands.create import CreateCustomTagCommand
+from superset.tags.commands.exceptions import TagCreateFailedError, TagInvalidError
 from superset.tags.models import ObjectTypes, Tag, TaggedObject, TagTypes
+from superset.tags.schemas import TagPostSchema
 from superset.views.base import SupersetModelView
 
 from .base import BaseSupersetView, json_success
+
+logger = logging.getLogger(__name__)
 
 
 def process_template(content: str) -> str:
@@ -135,30 +142,33 @@ class TagView(BaseSupersetView):
     def post(  # pylint: disable=no-self-use
         self, object_type: ObjectTypes, object_id: int
     ) -> FlaskResponse:
-        """Add new tags to an object."""
-        if object_id == 0:
-            return Response(status=404)
-
-        tagged_objects = []
-        for name in request.get_json(force=True):
-            if ":" in name:
-                type_name = name.split(":", 1)[0]
-                type_ = TagTypes[type_name]
-            else:
-                type_ = TagTypes.custom
-            tag_name = name.strip()
-            tag = db.session.query(Tag).filter_by(name=tag_name, type=type_).first()
-            if not tag:
-                tag = Tag(name=tag_name, type=type_)
-
-            tagged_objects.append(
-                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
+        """
+        ---
+        post:
+          description: >-
+            Add new tags to an object..
+          requestBody:
+            array of tag names
+        """
+        data = dict()
+        data["tags"] = request.get_json(force=True)
+        try:
+            CreateCustomTagCommand(object_type, object_id, data).run()
+            return Response(status=201)
+        except TagInvalidError as ex:
+            logger.error(
+                "Invalid tag: %s",
+                str(ex),
             )
-
-        db.session.add_all(tagged_objects)
-        db.session.commit()
-
-        return Response(status=201)  # 201 CREATED
+            return Response(response="tag invalid", status=422)
+        except TagCreateFailedError as ex:
+            logger.error(
+                "Error creating model %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return Response(response="Error creating model", status=422)
 
     @has_access_api
     @expose("/tags/<object_type:object_type>/<int:object_id>/", methods=["DELETE"])
