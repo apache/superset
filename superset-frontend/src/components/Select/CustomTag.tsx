@@ -73,7 +73,7 @@ export const customTagRender = (props: CustomTagProps) => {
 
   if (value !== SELECT_ALL_VALUE) {
     return (
-      <Tag onMouseDown={onPreventMouseDown} {...props as object}>
+      <Tag onMouseDown={onPreventMouseDown} {...(props as object)}>
         {label}
       </Tag>
     );

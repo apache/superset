@@ -412,8 +412,7 @@ const Select = forwardRef(
       return selectAllMode
         ? `+ ${num_selected - 1} ...`
         : `+ ${num_selected} ...`;
-    }
-      
+    };
 
     return (
       <StyledContainer headerPosition={headerPosition}>
