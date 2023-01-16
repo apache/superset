@@ -24,7 +24,11 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { EChartTransformedProps } from '../types';
+import {
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+} from '../types';
 
 export type EchartsSunburstFormData = QueryFormData & {
   groupby: QueryFormColumn[];
@@ -57,4 +61,6 @@ export interface EchartsSunburstChartProps
 }
 
 export type SunburstTransformedProps =
-  EChartTransformedProps<EchartsSunburstFormData>;
+  BaseTransformedProps<EchartsSunburstFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;

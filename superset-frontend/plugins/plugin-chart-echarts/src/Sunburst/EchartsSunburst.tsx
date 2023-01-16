@@ -17,7 +17,7 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
-import { QueryObjectFilterClause } from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
@@ -38,11 +38,14 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     selectedValues,
     formData,
     onContextMenu,
+    refs,
   } = props;
+
+  const { emitFilter } = formData;
 
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitFilter) {
         return;
       }
 
@@ -73,7 +76,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         },
       });
     },
-    [groupby, labelMap, setDataMask, selectedValues],
+    [emitFilter, setDataMask, groupby, labelMap],
   );
 
   const eventHandlers: EventHandlers = {
@@ -94,7 +97,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const treePath = extractTreePathInfo(eventParams.treePathInfo);
         if (treePath.length > 0) {
           const pointerEvent = eventParams.event.event;
-          const filters: QueryObjectFilterClause[] = [];
+          const filters: BinaryQueryObjectFilterClause[] = [];
           treePath.forEach((path, i) =>
             filters.push({
               col: groupby[i],
@@ -103,7 +106,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
               formattedVal: path,
             }),
           );
-          onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
         }
       }
     },
@@ -111,6 +114,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

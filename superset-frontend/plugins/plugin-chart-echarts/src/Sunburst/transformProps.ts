@@ -33,6 +33,7 @@ import { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/S
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { OpacityEnum } from '../constants';
 import { defaultGrid, defaultTooltip } from '../defaults';
+import { Refs } from '../types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
 import { treeBuilder, TreeNode } from '../utils/treeBuilder';
 import {
@@ -180,6 +181,7 @@ export default function transformProps(
     sliceId,
     emitFilter,
   } = formData;
+  const refs: Refs = {};
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: CallbackDataParams) =>
     formatLabel({
@@ -349,5 +351,6 @@ export default function transformProps(
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    refs,
   };
 }
