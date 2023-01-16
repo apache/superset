@@ -17,7 +17,6 @@
 # isort:skip_file
 """Unit tests for Superset Celery worker"""
 import datetime
-import logging
 import random
 import string
 import time
@@ -30,7 +29,6 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,
 )
 
-logger = logging.getLogger()
 import pytest
 
 import flask
@@ -44,7 +42,7 @@ from superset.errors import ErrorLevel, SupersetErrorType
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.sql_parse import ParsedQuery, CtasMethod
-from superset.utils.core import add_metadata, backend
+from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 from tests.integration_tests.test_app import app

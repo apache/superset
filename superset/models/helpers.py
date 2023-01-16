@@ -799,7 +799,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if sql_query_mutator:
             sql = sql_query_mutator(
                 sql,
-                username=utils.get_username(),  # TODO(john-bodley): Deprecate in 3.0.
+                user_name=utils.get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=self.database,
             )

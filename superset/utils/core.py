@@ -1991,7 +1991,7 @@ def remove_extra_adhoc_filters(form_data: Dict[str, Any]) -> None:
         ]
 
 
-def add_metadata(sql: str, **kwargs: any) -> str:
+def add_metadata_to_queries(sql: str, **kwargs: any) -> str:
     """Return sql query after appending meta-data"""
     hash = gen_query_hash(sql)
     username = get_username()
