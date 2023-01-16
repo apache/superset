@@ -317,11 +317,15 @@ describe('async actions', () => {
   });
 
   describe('postStopQuery', () => {
-    const stopQueryEndpoint = 'glob:*/superset/stop_query/*';
+    const stopQueryEndpoint = 'glob:*/api/v1/query/stop';
     fetchMock.post(stopQueryEndpoint, {});
+    const baseQuery = {
+      ...query,
+      id: 'test_foo',
+    };
 
     const makeRequest = () => {
-      const request = actions.postStopQuery(query);
+      const request = actions.postStopQuery(baseQuery);
       return request(dispatch);
     };
 
@@ -346,7 +350,8 @@ describe('async actions', () => {
 
       return makeRequest().then(() => {
         const call = fetchMock.calls(stopQueryEndpoint)[0];
-        expect(call[1].body.get('client_id')).toBe(query.id);
+        const body = JSON.parse(call[1].body);
+        expect(body.client_id).toBe(baseQuery.id);
       });
     });
   });
