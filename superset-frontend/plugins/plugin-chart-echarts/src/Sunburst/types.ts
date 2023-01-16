@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import {
   ChartDataResponseResult,
   ChartProps,
@@ -23,56 +24,43 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
-  LabelPositionEnum,
-  TreePathInfo,
 } from '../types';
 
-export type EchartsTreemapFormData = QueryFormData & {
-  colorScheme?: string;
+export type EchartsSunburstFormData = QueryFormData & {
   groupby: QueryFormColumn[];
-  metric?: QueryFormMetric;
-  labelType: EchartsTreemapLabelType;
-  labelPosition: LabelPositionEnum;
-  showLabels: boolean;
-  showUpperLabels: boolean;
-  numberFormat: string;
-  dateFormat: string;
-  dashboardId?: number;
+  metric: QueryFormMetric;
+  secondaryMetric?: QueryFormMetric;
+  colorScheme?: string;
+  linearColorScheme?: string;
   emitFilter: boolean;
 };
 
-export enum EchartsTreemapLabelType {
+export enum EchartsSunburstLabelType {
   Key = 'key',
   Value = 'value',
   KeyValue = 'key_value',
 }
 
-export interface EchartsTreemapChartProps
-  extends ChartProps<EchartsTreemapFormData> {
-  formData: EchartsTreemapFormData;
-  queriesData: ChartDataResponseResult[];
-}
-
-export const DEFAULT_FORM_DATA: Partial<EchartsTreemapFormData> = {
+export const DEFAULT_FORM_DATA: Partial<EchartsSunburstFormData> = {
   groupby: [],
-  labelType: EchartsTreemapLabelType.KeyValue,
-  labelPosition: LabelPositionEnum.InsideTopLeft,
   numberFormat: 'SMART_NUMBER',
-  showLabels: true,
-  showUpperLabels: true,
+  labelType: EchartsSunburstLabelType.Key,
+  showLabels: false,
   dateFormat: 'smart_date',
   emitFilter: false,
 };
-export interface TreemapSeriesCallbackDataParams extends CallbackDataParams {
-  treePathInfo?: TreePathInfo[];
+
+export interface EchartsSunburstChartProps
+  extends ChartProps<EchartsSunburstFormData> {
+  formData: EchartsSunburstFormData;
+  queriesData: ChartDataResponseResult[];
 }
 
-export type TreemapTransformedProps =
-  BaseTransformedProps<EchartsTreemapFormData> &
+export type SunburstTransformedProps =
+  BaseTransformedProps<EchartsSunburstFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps;
