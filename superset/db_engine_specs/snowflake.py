@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import json
+import logging
 import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
@@ -22,12 +23,17 @@ from urllib import parse
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from flask import current_app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy.engine.url import URL
 from typing_extensions import TypedDict
 
+from superset.constants import USER_AGENT
 from superset.databases.utils import make_url_safe
+from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
@@ -45,6 +51,8 @@ SYNTAX_ERROR_REGEX = re.compile(
     "syntax error line (?P<line>.+?) at position (?P<position>.+?) "
     "unexpected '(?P<syntax_error>.+?)'."
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SnowflakeParametersSchema(Schema):
@@ -110,6 +118,19 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             {},
         ),
     }
+
+    @staticmethod
+    def get_extra_params(database: "Database") -> Dict[str, Any]:
+        """
+        Add a user agent to be used in the requests.
+        """
+        extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
+        engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
+        connect_args: Dict[str, Any] = engine_params.setdefault("connect_args", {})
+
+        connect_args.setdefault("application", USER_AGENT)
+
+        return extra
 
     @classmethod
     def adjust_database_uri(
@@ -236,7 +257,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
     @classmethod
     def validate_parameters(
-        cls, parameters: SnowflakeParametersType
+        cls, properties: BasicPropertiesType
     ) -> List[SupersetError]:
         errors: List[SupersetError] = []
         required = {
@@ -247,6 +268,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             "role",
             "password",
         }
+        parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
         missing = sorted(required - present)
 
@@ -279,3 +301,52 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         spec.components.schema(cls.__name__, schema=cls.parameters_schema)
         return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: "Database",
+        params: Dict[str, Any],
+    ) -> None:
+        if not database.encrypted_extra:
+            return
+        try:
+            encrypted_extra = json.loads(database.encrypted_extra)
+        except json.JSONDecodeError as ex:
+            logger.error(ex, exc_info=True)
+            raise ex
+        auth_method = encrypted_extra.get("auth_method", None)
+        auth_params = encrypted_extra.get("auth_params", {})
+        if not auth_method:
+            return
+        connect_args = params.setdefault("connect_args", {})
+        if auth_method == "keypair":
+            privatekey_body = auth_params.get("privatekey_body", None)
+            key = None
+            if privatekey_body:
+                key = privatekey_body.encode()
+            else:
+                with open(auth_params["privatekey_path"], "rb") as key_temp:
+                    key = key_temp.read()
+            p_key = serialization.load_pem_private_key(
+                key,
+                password=auth_params["privatekey_pass"].encode(),
+                backend=default_backend(),
+            )
+            pkb = p_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+            connect_args["private_key"] = pkb
+        else:
+            allowed_extra_auths = current_app.config[
+                "ALLOWED_EXTRA_AUTHENTICATIONS"
+            ].get("snowflake", {})
+            if auth_method in allowed_extra_auths:
+                snowflake_auth = allowed_extra_auths.get(auth_method)
+            else:
+                raise ValueError(
+                    f"For security reason, custom authentication '{auth_method}' "
+                    f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
+                )
+            connect_args["auth"] = snowflake_auth(**auth_params)

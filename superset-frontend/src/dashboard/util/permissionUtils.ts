@@ -21,15 +21,16 @@ import {
   UndefinedUser,
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
-import Dashboard from 'src/types/Dashboard';
+import { Dashboard } from 'src/types/Dashboard';
 import { findPermission } from 'src/utils/findPermission';
 
 // this should really be a config value,
 // but is hardcoded in backend logic already, so...
 const ADMIN_ROLE_NAME = 'admin';
+const SQL_LAB_ROLE = 'sql_lab';
 
 export const isUserAdmin = (
-  user: UserWithPermissionsAndRoles | UndefinedUser,
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
   Object.keys(user.roles || {}).some(
@@ -50,3 +51,15 @@ export const canUserEditDashboard = (
   isUserWithPermissionsAndRoles(user) &&
   (isUserAdmin(user) || isUserDashboardOwner(dashboard, user)) &&
   findPermission('can_write', 'Dashboard', user.roles);
+
+export function canUserAccessSqlLab(
+  user?: UserWithPermissionsAndRoles | UndefinedUser,
+) {
+  return (
+    isUserAdmin(user) ||
+    (isUserWithPermissionsAndRoles(user) &&
+      Object.keys(user.roles || {}).some(
+        role => role.toLowerCase() === SQL_LAB_ROLE,
+      ))
+  );
+}

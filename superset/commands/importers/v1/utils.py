@@ -14,7 +14,7 @@
 # under the License.
 
 import logging
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Optional
 from zipfile import ZipFile
 
@@ -34,8 +34,8 @@ logger = logging.getLogger(__name__)
 
 def remove_root(file_path: str) -> str:
     """Remove the first directory of a path"""
-    full_path = Path(file_path)
-    relative_path = Path(*full_path.parts[1:])
+    full_path = PurePosixPath(file_path)
+    relative_path = PurePosixPath(*full_path.parts[1:])
     return str(relative_path)
 
 

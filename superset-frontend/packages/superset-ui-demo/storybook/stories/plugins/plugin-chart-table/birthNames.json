@@ -13,7 +13,6 @@
       "id": 1,
       "name": "examples",
       "backend": "postgresql",
-      "allow_multi_schema_metadata_fetch": false,
       "allows_subquery": true,
       "allows_cost_estimate": null,
       "allows_virtual_table_explore": true,

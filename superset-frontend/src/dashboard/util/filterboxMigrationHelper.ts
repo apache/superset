@@ -99,10 +99,7 @@ enum FILTER_COMPONENT_FILTER_TYPES {
 const getPreselectedValuesFromDashboard =
   (preselectedFilters: PreselectedFiltersMeatadata) =>
   (filterKey: string, column: string) => {
-    if (
-      preselectedFilters[filterKey] &&
-      preselectedFilters[filterKey][column]
-    ) {
+    if (preselectedFilters[filterKey]?.[column]) {
       // overwrite default values by dashboard default_filters
       return preselectedFilters[filterKey][column];
     }

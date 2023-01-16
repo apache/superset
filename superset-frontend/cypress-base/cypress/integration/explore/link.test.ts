@@ -101,8 +101,8 @@ describe('Test explore links', () => {
 
       cy.request(apiURL('/api/v1/chart/', query)).then(response => {
         expect(response.body.count).equals(1);
-        cy.request('DELETE', `/api/v1/chart/${response.body.ids[0]}`);
       });
+      cy.deleteChartByName(newChartName, true);
     });
   });
 
@@ -183,5 +183,6 @@ describe('Test explore links', () => {
     cy.request(apiURL('/api/v1/dashboard/', query)).then(response => {
       expect(response.body.count).equals(1);
     });
+    cy.deleteDashboardByName(dashboardTitle, true);
   });
 });

@@ -53,7 +53,7 @@ import Button from 'src/components/Button';
 import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import Modal from 'src/components/Modal';
-import DrillDetailPane from 'src/dashboard/components/DrillDetailPane';
+import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -156,7 +156,7 @@ const dropdownIconsStyles = css`
   }
 `;
 
-const DashboardChartModalTrigger = ({
+const ViewResultsModalTrigger = ({
   exploreUrl,
   triggerNode,
   modalTitle,
@@ -281,25 +281,22 @@ class SliceHeaderControls extends React.PureComponent<
         break;
       case MENU_KEYS.TOGGLE_CHART_DESCRIPTION:
         // eslint-disable-next-line no-unused-expressions
-        this.props.toggleExpandSlice &&
-          this.props.toggleExpandSlice(this.props.slice.slice_id);
+        this.props.toggleExpandSlice?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.EXPLORE_CHART:
         // eslint-disable-next-line no-unused-expressions
-        this.props.logExploreChart &&
-          this.props.logExploreChart(this.props.slice.slice_id);
+        this.props.logExploreChart?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.EXPORT_CSV:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportCSV && this.props.exportCSV(this.props.slice.slice_id);
+        this.props.exportCSV?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.FULLSCREEN:
         this.props.handleToggleFullSize();
         break;
       case MENU_KEYS.EXPORT_FULL_CSV:
         // eslint-disable-next-line no-unused-expressions
-        this.props.exportFullCSV &&
-          this.props.exportFullCSV(this.props.slice.slice_id);
+        this.props.exportFullCSV?.(this.props.slice.slice_id);
         break;
       case MENU_KEYS.DOWNLOAD_AS_IMAGE: {
         // menu closes with a delay, we need to hide it manually,
@@ -432,7 +429,7 @@ class SliceHeaderControls extends React.PureComponent<
 
         {this.props.supersetCanExplore && (
           <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
-            <DashboardChartModalTrigger
+            <ViewResultsModalTrigger
               exploreUrl={this.props.exploreUrl}
               triggerNode={
                 <span data-test="view-query-menu-item">
@@ -455,18 +452,10 @@ class SliceHeaderControls extends React.PureComponent<
 
         {isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) &&
           this.props.supersetCanExplore && (
-            <Menu.Item key={MENU_KEYS.DRILL_TO_DETAIL}>
-              <DashboardChartModalTrigger
-                exploreUrl={this.props.exploreUrl}
-                triggerNode={
-                  <span data-test="view-query-menu-item">
-                    {t('Drill to detail')}
-                  </span>
-                }
-                modalTitle={t('Drill to detail: %s', slice.slice_name)}
-                modalBody={<DrillDetailPane formData={this.props.formData} />}
-              />
-            </Menu.Item>
+            <DrillDetailMenuItems
+              chartId={slice.slice_id}
+              formData={this.props.formData}
+            />
           )}
 
         {(slice.description || this.props.supersetCanExplore) && (

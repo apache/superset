@@ -290,10 +290,6 @@ git tag ${SUPERSET_VERSION_RC}
 git push origin ${SUPERSET_VERSION_RC}
 ```
 
-### Create a release on Github
-
-After submitting the tag, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release canditates. You can check previous releases if you need an example.
-
 ## Preparing the release candidate
 
 The first step of preparing an Apache Release is packaging a release candidate
@@ -347,7 +343,11 @@ To build and run the recently created tarball **from SVN**:
 # login using admin/admin
 ```
 
-### Voting
+## Create a release on Github
+
+After submitting the tag and testing the release candidate, follow the steps [here](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) to create the release on GitHub. Use the vote email text as the content for the release description. Make sure to check the "This is a pre-release" checkbox for release candidates. You can check previous releases if you need an example.
+
+## Voting
 
 Now you're ready to start the [VOTE] thread. Here's an example of a
 previous release vote thread:
@@ -385,7 +385,7 @@ A List of people with -1 vote (ex: John):
 
 The script will generate the email text that should be sent to dev@superset.apache.org using an email client. The release version and release candidate number are fetched from the previously set environment variables.
 
-### Validating a release
+## Validating a release
 
 https://www.apache.org/info/verification.html
 

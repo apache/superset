@@ -52,7 +52,9 @@ little bit helps, and credit will always be given.
   - [Revert Guidelines](#revert-guidelines)
   - [Setup Local Environment for Development](#setup-local-environment-for-development)
     - [Documentation](#documentation)
-      - [Images](#images)
+      - [Local Development](#local-development)
+      - [Build](#build)
+      - [Deployment](#deployment)
     - [Flask server](#flask-server)
       - [OS Dependencies](#os-dependencies)
       - [Dependencies](#dependencies)
@@ -411,7 +413,7 @@ yarn serve
 
 #### Deployment
 
-Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documention with the `docs:` prefix.
+Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documentation with the `docs:` prefix.
 
 ### Flask server
 
@@ -420,7 +422,7 @@ Commits to `master` trigger a rebuild and redeploy of the documentation site. Su
 Make sure your machine meets the [OS dependencies](https://superset.apache.org/docs/installation/installing-superset-from-scratch#os-dependencies) before following these steps.
 You also need to install MySQL or [MariaDB](https://mariadb.com/downloads).
 
-Ensure that you are using Python version 3.8, 3.9 or 3.10, then proceed with:
+Ensure that you are using Python version 3.8, 3.9, 3.10 or 3.11, then proceed with:
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -1028,7 +1030,7 @@ When contributing new React components to Superset, please try to add a Story al
 
 ## Translating
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset.
+We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate Superset.
 In Python files, we import the magic `_` function using:
 
 ```python
@@ -1293,7 +1295,7 @@ To do this, you'll need to:
 - Start up a celery worker
 
   ```shell script
-  celery --app=superset.tasks.celery_app:app worker -Ofair
+  celery --app=superset.tasks.celery_app:app worker -O fair
   ```
 
 Note that:

@@ -24,6 +24,8 @@ import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
+  logging,
+  t,
 } from '@superset-ui/core';
 import Datamap from 'datamaps/dist/datamaps.world.min';
 import { ColorBy } from './utils';
@@ -50,6 +52,7 @@ const formatter = getNumberFormatter();
 
 function WorldMap(element, props) {
   const {
+    countryFieldtype,
     entity,
     data,
     width,
@@ -108,17 +111,26 @@ function WorldMap(element, props) {
   const handleContextMenu = source => {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
-    const val = source.id || source.country;
-    const formattedVal = mapData[val].name;
-    const filters = [
-      {
-        col: entity,
-        op: '==',
-        val,
-        formattedVal,
-      },
-    ];
-    onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+    const key = source.id || source.country;
+    const val = countryFieldtype === 'name' ? mapData[key]?.name : key;
+    if (val) {
+      const filters = [
+        {
+          col: entity,
+          op: '==',
+          val,
+          formattedVal: val,
+        },
+      ];
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
+    } else {
+      logging.warn(
+        t(
+          `Unable to process right-click on %s. Check you chart configuration.`,
+        ),
+        key,
+      );
+    }
   };
 
   const map = new Datamap({

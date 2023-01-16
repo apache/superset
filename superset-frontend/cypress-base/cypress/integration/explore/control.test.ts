@@ -23,51 +23,52 @@ import { interceptChart } from 'cypress/utils';
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 
 describe('Datasource control', () => {
+  beforeEach(() => {
+    cy.preserveLogin();
+  });
+
   const newMetricName = `abc${Date.now()}`;
 
-  // TODO: uncomment when adding metrics from dataset is fixed
-  xit('should allow edit dataset', () => {
-    let numScripts = 0;
-
-    cy.login();
-    interceptChart({ legacy: false }).as('chartData');
+  it('should allow edit dataset', () => {
+    interceptChart({ legacy: true }).as('chartData');
 
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
-    cy.get('[data-test="open-datasource-tab').click({ force: true });
     cy.get('[data-test="datasource-menu-trigger"]').click();
-
-    cy.get('script').then(nodes => {
-      numScripts = nodes.length;
-    });
 
     cy.get('[data-test="edit-dataset"]').click();
 
-    // should load additional scripts for the modal
-    cy.get('script').then(nodes => {
-      expect(nodes.length).to.greaterThan(numScripts);
-    });
     cy.get('[data-test="edit-dataset-tabs"]').within(() => {
       cy.contains('Metrics').click();
     });
     // create new metric
     cy.get('[data-test="crud-add-table-item"]', { timeout: 10000 }).click();
-    cy.get('[data-test="table-content-rows"]')
-      .find('input[value="<new metric>"]')
+    cy.wait(1000);
+    cy.get(
+      '[data-test="table-content-rows"] [data-test="editable-title-input"]',
+    )
+      .first()
       .click();
-    cy.get('[data-test="table-content-rows"]')
-      .find('input[value="<new metric>"]')
+
+    cy.get(
+      '[data-test="table-content-rows"] [data-test="editable-title-input"]',
+    )
+      .first()
       .focus()
       .clear()
       .type(`${newMetricName}{enter}`);
+
     cy.get('[data-test="datasource-modal-save"]').click();
     cy.get('.ant-modal-confirm-btns button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
-      .find('.Select__control input')
-      .focus()
-      .type(newMetricName, { force: true });
+      .contains('Drop columns/metrics here or click')
+      .click();
+
+    cy.get('input[aria-label="Select saved metrics"]').type(
+      `${newMetricName}{enter}`,
+    );
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
@@ -78,13 +79,11 @@ describe('Datasource control', () => {
     });
     cy.get(`input[value="${newMetricName}"]`)
       .closest('tr')
-      .find('.fa-trash')
+      .find('[data-test="crud-delete-icon"]')
       .click();
     cy.get('[data-test="datasource-modal-save"]').click();
     cy.get('.ant-modal-confirm-btns button').contains('OK').click();
-    cy.get('.Select__multi-value__label')
-      .contains(newMetricName)
-      .should('not.exist');
+    cy.get('[data-test="metrics"]').contains(newMetricName).should('not.exist');
   });
 });
 
@@ -199,7 +198,8 @@ describe('Time range filter', () => {
           cy.get('input[value="now"]');
         });
         cy.get('[data-test=cancel-button]').click();
-        cy.get('.ant-popover').should('not.be.visible');
+        cy.wait(500);
+        cy.get('.ant-popover').should('not.exist');
       });
   });
 

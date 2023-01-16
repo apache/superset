@@ -21,13 +21,13 @@ import logging
 from typing import Any, Dict, Iterator, Tuple
 
 import yaml
-from werkzeug.utils import secure_filename
 
 from superset.databases.commands.exceptions import DatabaseNotFoundError
 from superset.databases.dao import DatabaseDAO
 from superset.commands.export.models import ExportModelsCommand
 from superset.models.core import Database
 from superset.utils.dict_import_export import EXPORT_VERSION
+from superset.utils.file import get_filename
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +58,8 @@ class ExportDatabasesCommand(ExportModelsCommand):
     def _export(
         model: Database, export_related: bool = True
     ) -> Iterator[Tuple[str, str]]:
-        database_slug = secure_filename(model.database_name)
-        file_name = f"databases/{database_slug}.yaml"
+        db_file_name = get_filename(model.database_name, model.id, skip_id=True)
+        file_path = f"databases/{db_file_name}.yaml"
 
         payload = model.export_to_dict(
             recursive=False,
@@ -90,12 +90,14 @@ class ExportDatabasesCommand(ExportModelsCommand):
         payload["version"] = EXPORT_VERSION
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
-        yield file_name, file_content
+        yield file_path, file_content
 
         if export_related:
             for dataset in model.tables:
-                dataset_slug = secure_filename(dataset.table_name)
-                file_name = f"datasets/{database_slug}/{dataset_slug}.yaml"
+                ds_file_name = get_filename(
+                    dataset.table_name, dataset.id, skip_id=True
+                )
+                file_path = f"datasets/{db_file_name}/{ds_file_name}.yaml"
 
                 payload = dataset.export_to_dict(
                     recursive=True,
@@ -107,4 +109,4 @@ class ExportDatabasesCommand(ExportModelsCommand):
                 payload["database_uuid"] = str(model.uuid)
 
                 file_content = yaml.safe_dump(payload, sort_keys=False)
-                yield file_name, file_content
+                yield file_path, file_content

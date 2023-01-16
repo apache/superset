@@ -27,10 +27,12 @@ from typing import Dict, List
 from urllib.parse import quote
 
 import superset.utils.database
+from superset.utils.core import backend
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from sqlalchemy import Table
 
 import pytest
 import pytz
@@ -79,6 +81,7 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
 )
+from tests.integration_tests.conftest import CTAS_SCHEMA_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +159,7 @@ class TestCore(SupersetTestCase):
         example_db = superset.utils.database.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
         self.login(username="gamma")
-        uri = f"superset/tables/{example_db.id}/{schema_name}/undefined/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -185,7 +188,7 @@ class TestCore(SupersetTestCase):
 
         example_db = utils.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
 
@@ -197,7 +200,6 @@ class TestCore(SupersetTestCase):
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_get_superset_tables_not_allowed_with_out_permissions(self):
         session = db.session
-        table_name = "energy_usage"
         role_name = "dummy_role_no_table_access"
         self.logout()
         self.login(username="gamma")
@@ -210,7 +212,7 @@ class TestCore(SupersetTestCase):
 
         example_db = utils.get_example_database()
         schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/{table_name}/"
+        uri = f"superset/tables/{example_db.id}/{schema_name}/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
@@ -219,73 +221,18 @@ class TestCore(SupersetTestCase):
         gamma_user.roles.remove(security_manager.find_role(role_name))
         session.commit()
 
-    def test_get_superset_tables_substr(self):
-        example_db = superset.utils.database.get_example_database()
-        if example_db.backend in {"presto", "hive", "sqlite"}:
-            # TODO: change table to the real table that is in examples.
-            return
+    def test_get_superset_tables_database_not_found(self):
         self.login(username="admin")
-        schema_name = self.default_schema_backend_map[example_db.backend]
-        uri = f"superset/tables/{example_db.id}/{schema_name}/ab_role/"
-        rv = self.client.get(uri)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(rv.status_code, 200)
-
-        expected_response = {
-            "options": [
-                {
-                    "label": "ab_role",
-                    "schema": schema_name,
-                    "title": "ab_role",
-                    "type": "table",
-                    "value": "ab_role",
-                    "extra": None,
-                }
-            ],
-            "tableLength": 1,
-        }
-        self.assertEqual(response, expected_response)
-
-    def test_get_superset_tables_not_found(self):
-        self.login(username="admin")
-        uri = f"superset/tables/invalid/public/undefined/"
+        uri = f"superset/tables/invalid/public/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 404)
 
-    def test_annotation_json_endpoint(self):
-        # Set up an annotation layer and annotation
-        layer = AnnotationLayer(name="foo", descr="bar")
-        db.session.add(layer)
-        db.session.commit()
-
-        annotation = Annotation(
-            layer_id=layer.id,
-            short_descr="my_annotation",
-            start_dttm=datetime.datetime(2020, 5, 20, 18, 21, 51),
-            end_dttm=datetime.datetime(2020, 5, 20, 18, 31, 51),
-        )
-
-        db.session.add(annotation)
-        db.session.commit()
-
-        self.login()
-        resp_annotations = json.loads(
-            self.get_resp("annotationlayermodelview/api/read")
-        )
-        # the UI needs id and name to function
-        self.assertIn("id", resp_annotations["result"][0])
-        self.assertIn("name", resp_annotations["result"][0])
-
-        response = self.get_resp(
-            f"/superset/annotation_json/{layer.id}?form_data="
-            + quote(json.dumps({"time_range": "100 years ago : now"}))
-        )
-        assert "my_annotation" in response
-
-        # Rollback changes
-        db.session.delete(annotation)
-        db.session.delete(layer)
-        db.session.commit()
+    def test_get_superset_tables_schema_undefined(self):
+        example_db = superset.utils.database.get_example_database()
+        self.login(username="gamma")
+        uri = f"superset/tables/{example_db.id}/undefined/"
+        rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 422)
 
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
@@ -682,7 +629,7 @@ class TestCore(SupersetTestCase):
 
         self.login(username="admin")
         response = self.client.get(f"/r/{model_url.id}")
-        assert response.headers["Location"] == "http://localhost/"
+        assert response.headers["Location"] == "/"
         db.session.delete(model_url)
         db.session.commit()
 
@@ -893,6 +840,18 @@ class TestCore(SupersetTestCase):
         for endpoint in self._get_user_activity_endpoints(username):
             data = self.get_json_resp(endpoint)
             self.assertNotIn("message", data)
+
+    def test_user_profile_optional_access(self):
+        self.login(username="gamma")
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 200)
+
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = False
+        resp = self.client.get(f"/superset/profile/admin/")
+        self.assertEqual(resp.status_code, 403)
+
+        # Restore config
+        app.config["ENABLE_BROAD_ACTIVITY_ACCESS"] = True
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_user_activity_access(self, username="gamma"):
@@ -1463,7 +1422,7 @@ class TestCore(SupersetTestCase):
             "/superset/welcome",
             f"/superset/dashboard/{dash_id}/",
             "/superset/profile/admin/",
-            f"/explore/?dataset_type=table&dataset_id={tbl_id}",
+            f"/explore/?datasource_type=table&datasource_id={tbl_id}",
         ]
         for url in urls:
             data = self.get_resp(url)
@@ -1702,6 +1661,32 @@ class TestCore(SupersetTestCase):
         )
 
         assert rv.status_code == 422
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch("superset.explore.form_data.commands.create.CreateFormDataCommand.run")
+    def test_explore_redirect(self, mock_command: mock.Mock):
+        self.login(username="admin")
+        random_key = "random_key"
+        mock_command.return_value = random_key
+        slice_name = f"Energy Sankey"
+        slice_id = self.get_slice(slice_name, db.session).id
+        form_data = {"slice_id": slice_id, "viz_type": "line", "datasource": "1__table"}
+        rv = self.client.get(
+            f"/superset/explore/?form_data={quote(json.dumps(form_data))}"
+        )
+        self.assertEqual(
+            rv.headers["Location"], f"/explore/?form_data_key={random_key}"
+        )
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_has_table_by_name(self):
+        if backend() in ("sqlite", "mysql"):
+            return
+        example_db = superset.utils.database.get_example_database()
+        assert (
+            example_db.has_table_by_name(table_name="birth_names", schema="public")
+            is True
+        )
 
 
 if __name__ == "__main__":

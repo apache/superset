@@ -18,12 +18,9 @@
  */
 /* eslint-env browser */
 import React from 'react';
+import { rgba } from 'emotion-rgba';
 import Tabs from 'src/components/Tabs';
-import { StickyContainer, Sticky } from 'react-sticky';
-import { ParentSize } from '@vx/responsive';
-
-import { t, styled } from '@superset-ui/core';
-
+import { t, css, SupersetTheme } from '@superset-ui/core';
 import SliceAdder from 'src/dashboard/containers/SliceAdder';
 import dashboardComponents from 'src/visualizations/presets/dashboardComponents';
 import NewColumn from '../gridComponents/new/NewColumn';
@@ -34,98 +31,72 @@ import NewTabs from '../gridComponents/new/NewTabs';
 import NewMarkdown from '../gridComponents/new/NewMarkdown';
 import NewDynamicComponent from '../gridComponents/new/NewDynamicComponent';
 
-export interface BCPProps {
-  isStandalone: boolean;
-  topOffset: number;
-}
+const BUILDER_PANE_WIDTH = 374;
 
-const SUPERSET_HEADER_HEIGHT = 59;
-const SIDEPANE_ADJUST_OFFSET = 4;
-const TOP_PANEL_OFFSET = 210;
-
-const BuilderComponentPaneTabs = styled(Tabs)`
-  line-height: inherit;
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
-`;
-
-const DashboardBuilderSidepane = styled.div<{
-  topOffset: number;
-}>`
-  height: calc(100% - ${TOP_PANEL_OFFSET}px);
-  position: fixed;
-  right: 0;
-  top: 0;
-`;
-
-const BuilderComponentPane: React.FC<BCPProps> = ({
-  isStandalone,
-  topOffset = 0,
-}) => (
-  <DashboardBuilderSidepane
-    topOffset={topOffset}
-    className="dashboard-builder-sidepane"
+const BuilderComponentPane = ({ topOffset = 0 }) => (
+  <div
+    data-test="dashboard-builder-sidepane"
+    css={css`
+      position: sticky;
+      right: 0;
+      top: ${topOffset}px;
+      height: calc(100vh - ${topOffset}px);
+      width: ${BUILDER_PANE_WIDTH}px;
+    `}
   >
-    <ParentSize>
-      {({ height }) => (
-        <StickyContainer>
-          <Sticky topOffset={-topOffset} bottomOffset={Infinity}>
-            {({ style, isSticky }: { style: any; isSticky: boolean }) => {
-              const { pageYOffset } = window;
-              const hasHeader =
-                pageYOffset < SUPERSET_HEADER_HEIGHT && !isStandalone;
-              const withHeaderTopOffset =
-                topOffset +
-                (SUPERSET_HEADER_HEIGHT - pageYOffset - SIDEPANE_ADJUST_OFFSET);
+    <div
+      css={(theme: SupersetTheme) => css`
+        position: absolute;
+        height: 100%;
+        width: ${BUILDER_PANE_WIDTH}px;
+        box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
+        background-color: ${theme.colors.grayscale.light5};
+      `}
+    >
+      <Tabs
+        data-test="dashboard-builder-component-pane-tabs-navigation"
+        id="tabs"
+        css={(theme: SupersetTheme) => css`
+          line-height: inherit;
+          margin-top: ${theme.gridUnit * 2}px;
+          height: 100%;
 
-              return (
-                <div
-                  className="viewport"
-                  style={{
-                    ...style,
-                    top: hasHeader ? withHeaderTopOffset : topOffset,
-                  }}
-                >
-                  <BuilderComponentPaneTabs
-                    id="tabs"
-                    className="tabs-components"
-                    data-test="dashboard-builder-component-pane-tabs-navigation"
-                  >
-                    <Tabs.TabPane
-                      key={1}
-                      tab={t('Charts')}
-                      className="tab-charts"
-                    >
-                      <SliceAdder
-                        height={
-                          height + (isSticky ? SUPERSET_HEADER_HEIGHT : 0)
-                        }
-                      />
-                    </Tabs.TabPane>
-                    <Tabs.TabPane key={2} tab={t('Layout elements')}>
-                      <NewTabs />
-                      <NewRow />
-                      <NewColumn />
-                      <NewHeader />
-                      <NewMarkdown />
-                      <NewDivider />
-                      {dashboardComponents
-                        .getAll()
-                        .map(({ key: componentKey, metadata }) => (
-                          <NewDynamicComponent
-                            metadata={metadata}
-                            componentKey={componentKey}
-                          />
-                        ))}
-                    </Tabs.TabPane>
-                  </BuilderComponentPaneTabs>
-                </div>
-              );
-            }}
-          </Sticky>
-        </StickyContainer>
-      )}
-    </ParentSize>
-  </DashboardBuilderSidepane>
+          & .ant-tabs-content-holder {
+            height: 100%;
+            & .ant-tabs-content {
+              height: 100%;
+            }
+          }
+        `}
+      >
+        <Tabs.TabPane
+          key={1}
+          tab={t('Charts')}
+          css={css`
+            height: 100%;
+          `}
+        >
+          <SliceAdder />
+        </Tabs.TabPane>
+        <Tabs.TabPane key={2} tab={t('Layout elements')}>
+          <NewTabs />
+          <NewRow />
+          <NewColumn />
+          <NewHeader />
+          <NewMarkdown />
+          <NewDivider />
+          {dashboardComponents
+            .getAll()
+            .map(({ key: componentKey, metadata }) => (
+              <NewDynamicComponent
+                metadata={metadata}
+                componentKey={componentKey}
+              />
+            ))}
+        </Tabs.TabPane>
+      </Tabs>
+    </div>
+  </div>
 );
 
 export default BuilderComponentPane;

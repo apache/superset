@@ -65,4 +65,5 @@ class DatasourceTypeNotSupportedError(DAOException):
 
 
 class DatasourceNotFound(DAOException):
+    status = 404
     message = "Datasource does not exist"

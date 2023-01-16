@@ -19,7 +19,6 @@
 import {
   CategoricalColorNamespace,
   DataRecord,
-  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -39,7 +38,6 @@ import {
   TreemapTransformedProps,
 } from './types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
-import { defaultTooltip } from '../defaults';
 import {
   COLOR_SATURATION,
   BORDER_WIDTH,
@@ -49,6 +47,8 @@ import {
   BORDER_COLOR,
 } from './constants';
 import { OpacityEnum } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
 
 export function formatLabel({
   params,
@@ -140,7 +140,7 @@ export default function transformProps(
     ...DEFAULT_TREEMAP_FORM_DATA,
     ...formData,
   };
-
+  const refs: Refs = {};
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: TreemapSeriesCallbackDataParams) =>
@@ -150,7 +150,7 @@ export default function transformProps(
       labelType,
     });
 
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+  const columnsLabelMap = new Map<string, string[]>();
 
   const transformer = (
     data: DataRecord[],
@@ -310,7 +310,7 @@ export default function transformProps(
 
   const echartOptions: EChartsCoreOption = {
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
@@ -333,5 +333,6 @@ export default function transformProps(
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    refs,
   };
 }

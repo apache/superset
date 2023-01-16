@@ -58,6 +58,8 @@ class ClickHouseEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     _show_functions_column = "name"
 
+    supports_file_upload = False
+
     @classmethod
     def get_dbapi_exception_mapping(cls) -> Dict[Type[Exception], Type[Exception]]:
         return {NewConnectionError: SupersetDBAPIDatabaseError}

@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections import defaultdict
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, DefaultDict, Dict, List, Optional, Tuple, Union
 from urllib import parse
 
 import msgpack
@@ -93,11 +94,29 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> Dict[str, An
         }
 
     if include_perms:
-        roles, permissions = security_manager.get_permissions(user)
+        roles, permissions = get_permissions(user)
         payload["roles"] = roles
         payload["permissions"] = permissions
 
     return payload
+
+
+def get_permissions(
+    user: User,
+) -> Tuple[Dict[str, List[Tuple[str]]], DefaultDict[str, List[str]]]:
+    if not user.roles:
+        raise AttributeError("User object does not have roles")
+
+    data_permissions = defaultdict(set)
+    roles_permissions = security_manager.get_user_roles_permissions(user)
+    for _, permissions in roles_permissions.items():
+        for permission in permissions:
+            if permission[0] in ("datasource_access", "database_access"):
+                data_permissions[permission[0]].add(permission[1])
+    transformed_permissions = defaultdict(list)
+    for perm in data_permissions:
+        transformed_permissions[perm] = list(data_permissions[perm])
+    return roles_permissions, transformed_permissions
 
 
 def get_viz(

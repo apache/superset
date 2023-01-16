@@ -22,9 +22,9 @@ import userEvent from '@testing-library/user-event';
 import {
   render,
   waitForElementToBeRemoved,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import { exploreActions } from 'src/explore/actions/exploreActions';
-import { promiseTimeout } from '@superset-ui/core';
 import { SamplesPane } from '../components';
 import { createSamplesPaneProps } from './fixture';
 
@@ -72,9 +72,9 @@ describe('SamplesPane', () => {
     expect(
       await findByText('No samples were returned for this dataset'),
     ).toBeVisible();
-    await promiseTimeout(() => {
+    await waitFor(() => {
       expect(setForceQuery).toHaveBeenCalledTimes(0);
-    }, 10);
+    });
   });
 
   test('error response', async () => {
@@ -100,9 +100,9 @@ describe('SamplesPane', () => {
       },
     );
 
-    await promiseTimeout(() => {
+    await waitFor(() => {
       expect(setForceQuery).toHaveBeenCalledTimes(1);
-    }, 10);
+    });
     expect(queryByText('2 rows')).toBeVisible();
     expect(queryByText('Action')).toBeVisible();
     expect(queryByText('Horror')).toBeVisible();

@@ -16,21 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React, { RefObject } from 'react';
 import {
-  DataRecordValue,
+  BinaryQueryObjectFilterClause,
+  ChartDataResponseResult,
+  ChartProps,
   HandlerFunction,
   QueryFormColumn,
-  QueryObjectFilterClause,
   SetDataMaskHook,
 } from '@superset-ui/core';
 import { EChartsCoreOption, ECharts } from 'echarts';
 import { TooltipMarker } from 'echarts/types/src/util/format';
-import { OptionName } from 'echarts/types/src/util/types';
 import { AreaChartExtraControlsValue } from './constants';
 
 export type EchartsStylesProps = {
   height: number;
   width: number;
+};
+
+export type Refs = {
+  echartRef?: React.Ref<EchartsHandler>;
+  divRef?: RefObject<HTMLDivElement>;
 };
 
 export interface EchartsProps {
@@ -41,6 +47,7 @@ export interface EchartsProps {
   zrEventHandlers?: EventHandlers;
   selectedValues?: Record<number, string>;
   forceClear?: boolean;
+  refs: Refs;
 }
 
 export interface EchartsHandler {
@@ -79,7 +86,7 @@ export type ForecastValue = {
   forecastUpper?: number;
 };
 
-export type EchartsLegendFormData = {
+export type LegendFormData = {
   legendMargin: number | null | string;
   legendOrientation: LegendOrientation;
   legendType: LegendType;
@@ -104,26 +111,41 @@ export enum LabelPositionEnum {
   InsideBottomRight = 'insideBottomRight',
 }
 
-export interface EChartTransformedProps<F> {
-  formData: F;
-  height: number;
-  width: number;
-  echartOptions: EChartsCoreOption;
-  emitFilter: boolean;
-  setDataMask: SetDataMaskHook;
-  setControlValue?: HandlerFunction;
-  labelMap: Record<string, DataRecordValue[]>;
-  groupby: QueryFormColumn[];
-  selectedValues: Record<number, string>;
-  legendData?: OptionName[];
-  onContextMenu?: (
-    filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
-  ) => void;
+export interface BaseChartProps<T> extends ChartProps<T> {
+  queriesData: ChartDataResponseResult[];
 }
 
-export interface EchartsTitleFormData {
+export interface BaseTransformedProps<F> {
+  echartOptions: EChartsCoreOption;
+  formData: F;
+  height: number;
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
+  ) => void;
+  refs: Refs;
+  width: number;
+}
+
+export type CrossFilterTransformedProps = {
+  emitFilter: boolean;
+  groupby: QueryFormColumn[];
+  labelMap: Record<string, string[]>;
+  setControlValue?: HandlerFunction;
+  setDataMask: SetDataMaskHook;
+  selectedValues: Record<number, string>;
+};
+
+export type ContextMenuTransformedProps = {
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
+  ) => void;
+};
+
+export interface TitleFormData {
   xAxisTitle: string;
   xAxisTitleMargin: number;
   yAxisTitle: string;
@@ -132,7 +154,5 @@ export interface EchartsTitleFormData {
 }
 
 export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
-
-export type AxisType = 'time' | 'value' | 'category';
 
 export * from './Timeseries/types';

@@ -30,6 +30,13 @@ CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"
 # UUID for the examples database
 EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
 
+PASSWORD_MASK = "X" * 10
+
+NO_TIME_RANGE = "No filter"
+
+QUERY_CANCEL_KEY = "cancel_query"
+QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
+
 
 class RouteMethod:  # pylint: disable=too-few-public-methods
     """
@@ -132,6 +139,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "validate_sql": "read",
     "get_data": "read",
     "samples": "read",
+    "delete_ssh_tunnel": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

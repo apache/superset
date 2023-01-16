@@ -17,7 +17,13 @@
  * under the License.
  */
 import { Preset } from '@superset-ui/core';
-import { render, cleanup, screen, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  cleanup,
+  screen,
+  within,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
@@ -34,7 +40,7 @@ import {
 } from '@superset-ui/plugin-chart-echarts';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { LineChartPlugin } from '@superset-ui/preset-chart-xy';
-import TimeTableChartPlugin from '../../../../visualizations/TimeTable';
+import TimeTableChartPlugin from 'src/visualizations/TimeTable';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 jest.useFakeTimers();
@@ -90,30 +96,31 @@ describe('VizTypeControl', () => {
     isModalOpenInit: true,
   };
 
-  const renderWrapper = (
+  const waitForRenderWrapper = (
     props: typeof defaultProps = defaultProps,
     state: object = stateWithoutNativeFilters,
-  ) => {
-    render(
-      <DynamicPluginProvider>
-        <VizTypeControl {...props} />
-      </DynamicPluginProvider>,
-      { useRedux: true, initialState: state },
-    );
-  };
+  ) =>
+    waitFor(() => {
+      render(
+        <DynamicPluginProvider>
+          <VizTypeControl {...props} />
+        </DynamicPluginProvider>,
+        { useRedux: true, initialState: state },
+      );
+    });
 
   afterEach(() => {
     cleanup();
     jest.clearAllMocks();
   });
 
-  it('Fast viz switcher tiles render', () => {
+  it('Fast viz switcher tiles render', async () => {
     const props = {
       ...defaultProps,
       value: 'echarts_timeseries_line',
       isModalOpenInit: false,
     };
-    renderWrapper(props);
+    await waitForRenderWrapper(props);
     expect(screen.getByLabelText('line-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('table-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('big-number-chart-tile')).toBeVisible();
@@ -139,7 +146,7 @@ describe('VizTypeControl', () => {
     ).toBeInTheDocument();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText(
-        'Time-series Bar Chart v2',
+        'Time-series Bar Chart',
       ),
     ).toBeInTheDocument();
     expect(
@@ -152,13 +159,13 @@ describe('VizTypeControl', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('Render viz tiles when non-featured chart is selected', () => {
+  it('Render viz tiles when non-featured chart is selected', async () => {
     const props = {
       ...defaultProps,
       value: 'line',
       isModalOpenInit: false,
     };
-    renderWrapper(props);
+    await waitForRenderWrapper(props);
 
     expect(screen.getByLabelText('monitor')).toBeVisible();
     expect(
@@ -166,7 +173,7 @@ describe('VizTypeControl', () => {
     ).toBeVisible();
   });
 
-  it('Render viz tiles when non-featured is rendered', () => {
+  it('Render viz tiles when non-featured is rendered', async () => {
     const props = {
       ...defaultProps,
       value: 'line',
@@ -186,20 +193,20 @@ describe('VizTypeControl', () => {
         },
       },
     };
-    renderWrapper(props, state);
+    await waitForRenderWrapper(props, state);
     expect(screen.getByLabelText('check-square')).toBeVisible();
     expect(
       within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
     ).toBeVisible();
   });
 
-  it('Change viz type on click', () => {
+  it('Change viz type on click', async () => {
     const props = {
       ...defaultProps,
       value: 'echarts_timeseries_line',
       isModalOpenInit: false,
     };
-    renderWrapper(props);
+    await waitForRenderWrapper(props);
     userEvent.click(
       within(screen.getByTestId('fast-viz-switcher')).getByText(
         'Time-series Line Chart',
@@ -213,7 +220,7 @@ describe('VizTypeControl', () => {
   });
 
   it('Open viz gallery modal on "View all charts" click', async () => {
-    renderWrapper({ ...defaultProps, isModalOpenInit: false });
+    await waitForRenderWrapper({ ...defaultProps, isModalOpenInit: false });
     expect(
       screen.queryByText('Select a visualization type'),
     ).not.toBeInTheDocument();
@@ -224,7 +231,7 @@ describe('VizTypeControl', () => {
   });
 
   it('Search visualization type', async () => {
-    renderWrapper();
+    await waitForRenderWrapper();
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
 
@@ -251,7 +258,7 @@ describe('VizTypeControl', () => {
       within(visualizations).getByText('Time-series Line Chart'),
     ).toBeVisible();
     expect(
-      within(visualizations).getByText('Time-series Bar Chart v2'),
+      within(visualizations).getByText('Time-series Bar Chart'),
     ).toBeVisible();
     expect(
       within(visualizations).queryByText('Line Chart'),
@@ -265,13 +272,11 @@ describe('VizTypeControl', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('Submit on viz type double-click', () => {
-    renderWrapper();
+  it('Submit on viz type double-click', async () => {
+    await waitForRenderWrapper();
     userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
     const visualizations = screen.getByTestId(getTestId('viz-row'));
-    userEvent.click(
-      within(visualizations).getByText('Time-series Bar Chart v2'),
-    );
+    userEvent.click(within(visualizations).getByText('Time-series Bar Chart'));
 
     expect(defaultProps.onChange).not.toBeCalled();
     userEvent.dblClick(

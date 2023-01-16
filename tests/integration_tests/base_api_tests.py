@@ -16,6 +16,8 @@
 # under the License.
 # isort:skip_file
 import json
+from unittest.mock import patch
+
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,
     load_world_bank_data,
@@ -32,6 +34,7 @@ from superset.models.dashboard import Dashboard
 from superset.views.base_api import BaseSupersetModelRestApi, requires_json
 
 from .base_tests import SupersetTestCase
+from .conftest import with_config
 
 
 class Model1Api(BaseSupersetModelRestApi):
@@ -216,6 +219,26 @@ class ApiOwnersTestCaseMixin:
         for expected_user in expected_users:
             assert expected_user in response_users
 
+    def test_get_related_owners_with_extra_filters(self):
+        """
+        API: Test get related owners with extra related query filters
+        """
+        self.login(username="admin")
+
+        def _base_filter(query):
+            return query.filter_by(username="alpha")
+
+        with patch.dict(
+            "superset.views.filters.current_app.config",
+            {"EXTRA_RELATED_QUERY_FILTERS": {"user": _base_filter}},
+        ):
+            uri = f"api/v1/{self.resource_name}/related/owners"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            response_users = [result["text"] for result in response["result"]]
+            assert response_users == ["alpha user"]
+
     def test_get_related_owners_paginated(self):
         """
         API: Test get related owners with pagination
@@ -264,13 +287,78 @@ class ApiOwnersTestCaseMixin:
         assert 4 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma2 user", "value": 3},
-            {"text": "gamma_no_csv user", "value": 6},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma2@fab.org"},
+                "text": "gamma2 user",
+                "value": 3,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_no_csv@fab.org"},
+                "text": "gamma_no_csv user",
+                "value": 6,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         # TODO Check me
         assert expected_results == sorted_results
+
+    @with_config({"EXCLUDE_USERS_FROM_LISTS": ["gamma"]})
+    def test_get_base_filter_related_owners(self):
+        """
+        API: Test get base filter related owners
+        """
+        self.login(username="admin")
+        uri = f"api/v1/{self.resource_name}/related/owners"
+        gamma_user = (
+            db.session.query(security_manager.user_model)
+            .filter(security_manager.user_model.username == "gamma")
+            .one_or_none()
+        )
+        assert gamma_user is not None
+        users = db.session.query(security_manager.user_model).all()
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] == len(users) - 1
+        response_users = [result["text"] for result in response["result"]]
+        assert "gamma user" not in response_users
+
+    @patch(
+        "superset.security.SupersetSecurityManager.get_exclude_users_from_lists",
+        return_value=["gamma"],
+    )
+    def test_get_base_filter_related_owners_on_sm(
+        self, mock_get_exclude_users_from_list
+    ):
+        """
+        API: Test get base filter related owners using security manager
+        """
+        self.login(username="admin")
+        uri = f"api/v1/{self.resource_name}/related/owners"
+        gamma_user = (
+            db.session.query(security_manager.user_model)
+            .filter(security_manager.user_model.username == "gamma")
+            .one_or_none()
+        )
+        assert gamma_user is not None
+        users = db.session.query(security_manager.user_model).all()
+
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] == len(users) - 1
+        response_users = [result["text"] for result in response["result"]]
+        assert "gamma user" not in response_users
 
     def test_get_ids_related_owners(self):
         """
@@ -286,8 +374,16 @@ class ApiOwnersTestCaseMixin:
         assert 2 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         assert expected_results == sorted_results
 
@@ -305,8 +401,16 @@ class ApiOwnersTestCaseMixin:
         assert 2 == response["count"]
         sorted_results = sorted(response["result"], key=lambda value: value["text"])
         expected_results = [
-            {"text": "gamma user", "value": 2},
-            {"text": "gamma_sqllab user", "value": 4},
+            {
+                "extra": {"active": True, "email": "gamma@fab.org"},
+                "text": "gamma user",
+                "value": 2,
+            },
+            {
+                "extra": {"active": True, "email": "gamma_sqllab@fab.org"},
+                "text": "gamma_sqllab user",
+                "value": 4,
+            },
         ]
         assert expected_results == sorted_results
 

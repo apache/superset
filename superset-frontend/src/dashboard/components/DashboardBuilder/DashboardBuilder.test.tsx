@@ -23,7 +23,7 @@ import { render } from 'spec/helpers/testing-library';
 import { fireEvent, within } from '@testing-library/react';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
-import useStoredFilterBarWidth from 'src/dashboard/components/DashboardBuilder/useStoredFilterBarWidth';
+import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
   fetchFaveStar,
   setActiveTabs,
@@ -46,16 +46,16 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
   setDirectPathToChild: jest.fn(),
 }));
 jest.mock('src/featureFlags');
-jest.mock('src/dashboard/components/DashboardBuilder/useStoredFilterBarWidth');
+jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
 // mock following dependant components to fix the prop warnings
 jest.mock('src/components/Icons/Icon', () => () => (
   <div data-test="mock-icon" />
 ));
-jest.mock('src/components/Select/WindowedSelect', () => () => (
+jest.mock('src/components/DeprecatedSelect/WindowedSelect', () => () => (
   <div data-test="mock-windowed-select" />
 ));
-jest.mock('src/components/Select', () => () => (
+jest.mock('src/components/DeprecatedSelect', () => () => (
   <div data-test="mock-deprecated-select" />
 ));
 jest.mock('src/components/Select/Select', () => () => (
@@ -98,7 +98,7 @@ describe('DashboardBuilder', () => {
     activeTabsStub = (setActiveTabs as jest.Mock).mockReturnValue({
       type: 'mock-action',
     });
-    (useStoredFilterBarWidth as jest.Mock).mockImplementation(() => [
+    (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
       100,
       jest.fn(),
     ]);
@@ -108,7 +108,7 @@ describe('DashboardBuilder', () => {
   afterAll(() => {
     favStarStub.mockReset();
     activeTabsStub.mockReset();
-    (useStoredFilterBarWidth as jest.Mock).mockReset();
+    (useStoredSidebarWidth as jest.Mock).mockReset();
   });
 
   function setup(overrideState = {}, overrideStore?: Store) {
@@ -249,6 +249,20 @@ describe('DashboardBuilder', () => {
     (setDirectPathToChild as jest.Mock).mockReset();
   });
 
+  it('should not display a loading spinner when saving is not in progress', () => {
+    const { queryByAltText } = setup();
+
+    expect(queryByAltText('Loading...')).not.toBeInTheDocument();
+  });
+
+  it('should display a loading spinner when saving is in progress', async () => {
+    const { findByAltText } = setup({
+      dashboardState: { dashboardIsSaving: true },
+    });
+
+    expect(await findByAltText('Loading...')).toBeVisible();
+  });
+
   describe('when nativeFiltersEnabled', () => {
     beforeEach(() => {
       (isFeatureEnabled as jest.Mock).mockImplementation(
@@ -259,10 +273,10 @@ describe('DashboardBuilder', () => {
       (isFeatureEnabled as jest.Mock).mockReset();
     });
 
-    it('should set FilterBar width by useStoredFilterBarWidth', () => {
+    it('should set FilterBar width by useStoredSidebarWidth', () => {
       const expectedValue = 200;
       const setter = jest.fn();
-      (useStoredFilterBarWidth as jest.Mock).mockImplementation(() => [
+      (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
         expectedValue,
         setter,
       ]);

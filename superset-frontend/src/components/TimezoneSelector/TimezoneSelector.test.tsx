@@ -39,7 +39,7 @@ const loadComponent = (mockCurrentTime?: string) => {
 const getSelectOptions = () =>
   waitFor(() => document.querySelectorAll('.ant-select-item-option-content'));
 
-const openSelectMenu = async () => {
+const openSelectMenu = () => {
   const searchInput = screen.getByRole('combobox');
   userEvent.click(searchInput);
 };
@@ -86,7 +86,7 @@ test('render timezones in correct oder for standard time', async () => {
       timezone="America/Nassau"
     />,
   );
-  await openSelectMenu();
+  openSelectMenu();
   const options = await getSelectOptions();
   expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
   expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Pago_Pago)');
@@ -103,7 +103,7 @@ test('render timezones in correct order for daylight saving time', async () => {
       timezone="America/Nassau"
     />,
   );
-  await openSelectMenu();
+  openSelectMenu();
   const options = await getSelectOptions();
   // first option is always current timezone
   expect(options[0]).toHaveTextContent('GMT -04:00 (Eastern Daylight Time)');
@@ -122,7 +122,7 @@ test('can select a timezone values and returns canonical timezone name', async (
     />,
   );
 
-  await openSelectMenu();
+  openSelectMenu();
 
   const searchInput = screen.getByRole('combobox');
   // search for mountain time

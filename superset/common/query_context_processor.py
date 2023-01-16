@@ -35,6 +35,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.utils import dataframe_utils
 from superset.common.utils.query_cache_manager import QueryCacheManager
+from superset.common.utils.time_range_utils import get_since_until_from_query_object
 from superset.connectors.base.models import BaseDatasource
 from superset.constants import CacheRegion
 from superset.exceptions import (
@@ -49,11 +50,14 @@ from superset.utils import csv
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     DatasourceType,
+    DateColumn,
     DTTM_ALIAS,
     error_msg_from_exception,
+    get_base_axis_labels,
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
+    get_xaxis_label,
     normalize_dttm_col,
     TIME_COMPARISON,
 )
@@ -124,7 +128,7 @@ class QueryContextProcessor:
                 if invalid_columns:
                     raise QueryObjectValidationError(
                         _(
-                            "Columns missing in datasource: %(invalid_columns)s",
+                            "Columns missing in dataset: %(invalid_columns)s",
                             invalid_columns=invalid_columns,
                         )
                     )
@@ -238,18 +242,58 @@ class QueryContextProcessor:
         return result
 
     def normalize_df(self, df: pd.DataFrame, query_object: QueryObject) -> pd.DataFrame:
-        datasource = self._qc_datasource
-        timestamp_format = None
-        if datasource.type == "table":
-            dttm_col = datasource.get_column(query_object.granularity)
-            if dttm_col:
-                timestamp_format = dttm_col.python_date_format
+        # todo: should support "python_date_format" and "get_column" in each datasource
+        def _get_timestamp_format(
+            source: BaseDatasource, column: Optional[str]
+        ) -> Optional[str]:
+            column_obj = source.get_column(column)
+            if (
+                column_obj
+                # only sqla column was supported
+                and hasattr(column_obj, "python_date_format")
+                and (formatter := column_obj.python_date_format)
+            ):
+                return str(formatter)
 
+            return None
+
+        datasource = self._qc_datasource
+        labels = tuple(
+            label
+            for label in [
+                *get_base_axis_labels(query_object.columns),
+                query_object.granularity,
+            ]
+            if datasource
+            # Query datasource didn't support `get_column`
+            and hasattr(datasource, "get_column")
+            and (col := datasource.get_column(label))
+            # todo(hugh) standardize column object in Query datasource
+            and (col.get("is_dttm") if isinstance(col, dict) else col.is_dttm)
+        )
+        dttm_cols = [
+            DateColumn(
+                timestamp_format=_get_timestamp_format(datasource, label),
+                offset=datasource.offset,
+                time_shift=query_object.time_shift,
+                col_label=label,
+            )
+            for label in labels
+            if label
+        ]
+        if DTTM_ALIAS in df:
+            dttm_cols.append(
+                DateColumn.get_legacy_time_column(
+                    timestamp_format=_get_timestamp_format(
+                        datasource, query_object.granularity
+                    ),
+                    offset=datasource.offset,
+                    time_shift=query_object.time_shift,
+                )
+            )
         normalize_dttm_col(
             df=df,
-            timestamp_format=timestamp_format,
-            offset=datasource.offset,
-            time_shift=query_object.time_shift,
+            dttm_cols=tuple(dttm_cols),
         )
 
         if self.enforce_numerical_metrics:
@@ -272,15 +316,36 @@ class QueryContextProcessor:
         rv_dfs: List[pd.DataFrame] = [df]
 
         time_offsets = query_object.time_offsets
-        outer_from_dttm = query_object.from_dttm
-        outer_to_dttm = query_object.to_dttm
+        outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
+        if not outer_from_dttm or not outer_to_dttm:
+            raise QueryObjectValidationError(
+                _(
+                    "An enclosed time range (both start and end) must be specified "
+                    "when using a Time Comparison."
+                )
+            )
         for offset in time_offsets:
             try:
+                # pylint: disable=line-too-long
+                # Since the xaxis is also a column name for the time filter, xaxis_label will be set as granularity
+                # these query object are equivalent:
+                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
+                # 2) { columns: [
+                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }
+                #      ],
+                #      time_offsets: ['1 year ago'],
+                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],
+                #    }
                 query_object_clone.from_dttm = get_past_or_future(
                     offset,
                     outer_from_dttm,
                 )
                 query_object_clone.to_dttm = get_past_or_future(offset, outer_to_dttm)
+
+                xaxis_label = get_xaxis_label(query_object.columns)
+                query_object_clone.granularity = (
+                    query_object_clone.granularity or xaxis_label
+                )
             except ValueError as ex:
                 raise QueryObjectValidationError(str(ex)) from ex
             # make sure subquery use main query where clause
@@ -288,14 +353,12 @@ class QueryContextProcessor:
             query_object_clone.inner_to_dttm = outer_to_dttm
             query_object_clone.time_offsets = []
             query_object_clone.post_processing = []
+            query_object_clone.filter = [
+                flt
+                for flt in query_object_clone.filter
+                if flt.get("col") != xaxis_label
+            ]
 
-            if not query_object.from_dttm or not query_object.to_dttm:
-                raise QueryObjectValidationError(
-                    _(
-                        "An enclosed time range (both start and end) must be specified "
-                        "when using a Time Comparison."
-                    )
-                )
             # `offset` is added to the hash function
             cache_key = self.query_cache_key(query_object_clone, time_offset=offset)
             cache = QueryCacheManager.get(
@@ -344,10 +407,7 @@ class QueryContextProcessor:
                 offset_metrics_df = offset_metrics_df.rename(columns=metrics_mapping)
 
                 # 3. set time offset for index
-                # TODO: add x-axis to QueryObject, potentially as an array for
-                #  multi-dimensional charts
-                granularity = query_object.granularity
-                index = granularity if granularity in df.columns else DTTM_ALIAS
+                index = (get_base_axis_labels(query_object.columns) or [DTTM_ALIAS])[0]
                 if not dataframe_utils.is_datetime_series(offset_metrics_df.get(index)):
                     raise QueryObjectValidationError(
                         _(
@@ -434,6 +494,12 @@ class QueryContextProcessor:
         cache_timeout_rv = self._query_context.get_cache_timeout()
         if cache_timeout_rv:
             return cache_timeout_rv
+        if (
+            data_cache_timeout := config["DATA_CACHE_CONFIG"].get(
+                "CACHE_DEFAULT_TIMEOUT"
+            )
+        ) is not None:
+            return data_cache_timeout
         return config["CACHE_DEFAULT_TIMEOUT"]
 
     def cache_key(self, **extra: Any) -> str:

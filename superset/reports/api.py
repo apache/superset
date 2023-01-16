@@ -43,7 +43,7 @@ from superset.reports.commands.exceptions import (
     ReportScheduleUpdateFailedError,
 )
 from superset.reports.commands.update import UpdateReportScheduleCommand
-from superset.reports.filters import ReportScheduleAllTextFilter
+from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (
     get_delete_ids_schema,
@@ -57,7 +57,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +79,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     resource_name = "report"
     allow_browser_login = True
+
+    base_filters = [
+        ["id", ReportScheduleFilter, lambda: []],
+    ]
 
     show_columns = [
         "id",
@@ -204,10 +208,13 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     ]
     search_filters = {"name": [ReportScheduleAllTextFilter]}
     allowed_rel_fields = {"owners", "chart", "dashboard", "database", "created_by"}
-    filter_rel_fields = {
+
+    base_related_field_filters = {
         "chart": [["id", ChartFilter, lambda: []]],
         "dashboard": [["id", DashboardAccessFilter, lambda: []]],
         "database": [["id", DatabaseFilter, lambda: []]],
+        "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     text_field_rel_fields = {
         "dashboard": "dashboard_title",

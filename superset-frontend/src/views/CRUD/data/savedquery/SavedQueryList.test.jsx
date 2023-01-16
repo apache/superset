@@ -153,6 +153,24 @@ describe('SavedQueryList', () => {
     expect(wrapper.find(SubMenu)).toExist();
   });
 
+  it('renders a SubMenu with Saved queries and Query History links', () => {
+    expect(wrapper.find(SubMenu).props().tabs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Saved queries' }),
+        expect.objectContaining({ label: 'Query history' }),
+      ]),
+    );
+  });
+
+  it('renders a SubMenu without Databases and Datasets links', () => {
+    expect(wrapper.find(SubMenu).props().tabs).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Databases' }),
+        expect.objectContaining({ label: 'Datasets' }),
+      ]),
+    );
+  });
+
   it('renders a ListView', () => {
     expect(wrapper.find(ListView)).toExist();
   });

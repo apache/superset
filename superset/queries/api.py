@@ -24,7 +24,7 @@ from superset.models.sql_lab import Query
 from superset.queries.filters import QueryFilter
 from superset.queries.schemas import openapi_spec_methods_override, QuerySchema
 from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
-from superset.views.filters import FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +109,10 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "tab_name",
         "user.first_name",
     ]
-
+    base_related_field_filters = {
+        "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "user": [["id", BaseFilterRelatedUsers, lambda: []]],
+    }
     related_field_filters = {
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "user": RelatedFieldFilter("first_name", FilterRelatedOwners),
@@ -117,6 +120,6 @@ class QueryRestApi(BaseSupersetModelRestApi):
 
     search_columns = ["changed_on", "database", "sql", "status", "user", "start_time"]
 
-    filter_rel_fields = {"database": [["id", DatabaseFilter, lambda: []]]}
+    base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "user"}
     allowed_distinct_fields = {"status"}

@@ -32,6 +32,7 @@ import {
 import { useResizeDetector } from 'react-resize-detector';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import ChartContainer from 'src/components/Chart/ChartContainer';
+import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import {
   getItem,
   setItem,
@@ -98,6 +99,7 @@ const Styles = styled.div`
   }
 
   .gutter.gutter-vertical {
+    display: ${({ showSplite }) => (showSplite ? 'block' : 'none')};
     cursor: row-resize;
   }
 
@@ -147,7 +149,14 @@ const ExploreChartPanel = ({
     refreshRate: 300,
   });
   const [splitSizes, setSplitSizes] = useState(
-    getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? INITIAL_SIZES
+      : getItem(LocalStorageKeys.chart_split_sizes, INITIAL_SIZES),
+  );
+  const [showSplite, setShowSplit] = useState(
+    isFeatureEnabled(FeatureFlag.DATAPANEL_CLOSED_BY_DEFAULT)
+      ? false
+      : getItem(LocalStorageKeys.is_datapanel_open, false),
   );
 
   const [showDatasetModal, setShowDatasetModal] = useState(false);
@@ -225,6 +234,7 @@ const ExploreChartPanel = ({
       ];
     }
     setSplitSizes(splitSizes);
+    setShowSplit(isOpen);
   }, []);
 
   const renderChart = useCallback(
@@ -411,7 +421,10 @@ const ExploreChartPanel = ({
   }
 
   return (
-    <Styles className="panel panel-default chart-container">
+    <Styles
+      className="panel panel-default chart-container"
+      showSplite={showSplite}
+    >
       {vizType === 'filter_box' ? (
         panelBody
       ) : (

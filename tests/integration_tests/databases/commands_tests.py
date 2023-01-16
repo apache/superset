@@ -32,7 +32,6 @@ from superset.databases.commands.exceptions import (
     DatabaseNotFoundError,
     DatabaseSecurityUnsafeError,
     DatabaseTestConnectionDriverError,
-    DatabaseTestConnectionFailedError,
     DatabaseTestConnectionUnexpectedError,
 )
 from superset.databases.commands.export import ExportDatabasesCommand
@@ -642,7 +641,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
 
 
 class TestTestConnectionDatabaseCommand(SupersetTestCase):
-    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
@@ -665,7 +664,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             )
         mock_event_logger.assert_called()
 
-    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
@@ -683,7 +682,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
+        with pytest.raises(SupersetErrorsException) as excinfo:
             command_without_db_name.run()
         assert (
             excinfo.value.errors[0].error_type
@@ -714,7 +713,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
             == SupersetErrorType.CONNECTION_DATABASE_TIMEOUT
         )
 
-    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
@@ -739,7 +738,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
 
         mock_event_logger.assert_called()
 
-    @mock.patch("superset.databases.dao.Database.get_sqla_engine")
+    @mock.patch("superset.databases.dao.Database._get_sqla_engine")
     @mock.patch(
         "superset.databases.commands.test_connection.event_logger.log_with_context"
     )
@@ -757,7 +756,7 @@ class TestTestConnectionDatabaseCommand(SupersetTestCase):
         json_payload = {"sqlalchemy_uri": db_uri}
         command_without_db_name = TestConnectionDatabaseCommand(json_payload)
 
-        with pytest.raises(DatabaseTestConnectionFailedError) as excinfo:
+        with pytest.raises(SupersetErrorsException) as excinfo:
             command_without_db_name.run()
             assert str(excinfo.value) == (
                 "Connection failed, please check your connection settings"

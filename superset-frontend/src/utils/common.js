@@ -36,17 +36,6 @@ export const SHORT_TIME = 'h:m a';
 
 const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
-export function getParamFromQuery(query, param) {
-  const vars = query.split('&');
-  for (let i = 0; i < vars.length; i += 1) {
-    const pair = vars[i].split('=');
-    if (decodeURIComponent(pair[0]) === param) {
-      return decodeURIComponent(pair[1]);
-    }
-  }
-  return null;
-}
-
 export function storeQuery(query) {
   return SupersetClient.post({
     endpoint: '/kv/store/',
@@ -66,10 +55,10 @@ export function optionLabel(opt) {
     return EMPTY_STRING;
   }
   if (opt === true) {
-    return '<true>';
+    return TRUE_STRING;
   }
   if (opt === false) {
-    return '<false>';
+    return FALSE_STRING;
   }
   if (typeof opt !== 'string' && opt.toString) {
     return opt.toString();
@@ -97,7 +86,7 @@ export function prepareCopyToClipboardTabularData(data, columns) {
       // JavaScript does not maintain the order of a mixed set of keys (i.e integers and strings)
       // the below function orders the keys based on the column names.
       const key = columns[j].name || columns[j];
-      if (data[i][key]) {
+      if (key in data[i]) {
         row[j] = data[i][key];
       } else {
         row[j] = data[i][parseFloat(key)];
@@ -150,5 +139,3 @@ export const isSafari = () => {
 
   return userAgent && /^((?!chrome|android).)*safari/i.test(userAgent);
 };
-
-export const isNullish = value => value === null || value === undefined;

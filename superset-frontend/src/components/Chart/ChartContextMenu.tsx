@@ -23,66 +23,84 @@ import React, {
   useImperativeHandle,
   useState,
 } from 'react';
-import { QueryObjectFilterClause, t, styled } from '@superset-ui/core';
+import ReactDOM from 'react-dom';
+import { useSelector } from 'react-redux';
+import {
+  BinaryQueryObjectFilterClause,
+  FeatureFlag,
+  isFeatureEnabled,
+  QueryFormData,
+} from '@superset-ui/core';
+import { RootState } from 'src/dashboard/types';
+import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components';
+import { DrillDetailMenuItems } from './DrillDetail';
+import { getMenuAdjustedY } from './utils';
 
 export interface ChartContextMenuProps {
-  id: string;
-  onSelection: (filters: QueryObjectFilterClause[]) => void;
+  id: number;
+  formData: QueryFormData;
+  onSelection: () => void;
   onClose: () => void;
 }
 
 export interface Ref {
   open: (
-    filters: QueryObjectFilterClause[],
-    offsetX: number,
-    offsetY: number,
+    clientX: number,
+    clientY: number,
+    filters?: BinaryQueryObjectFilterClause[],
   ) => void;
 }
 
-const Filter = styled.span`
-  ${({ theme }) => `
-    font-weight: ${theme.typography.weights.bold};
-    color: ${theme.colors.primary.base};
-  `}
-`;
-
 const ChartContextMenu = (
-  { id, onSelection, onClose }: ChartContextMenuProps,
+  { id, formData, onSelection, onClose }: ChartContextMenuProps,
   ref: RefObject<Ref>,
 ) => {
-  const [state, setState] = useState<{
-    filters: QueryObjectFilterClause[];
-    offsetX: number;
-    offsetY: number;
-  }>({ filters: [], offsetX: 0, offsetY: 0 });
-
-  const menu = (
-    <Menu>
-      {state.filters.map((filter, i) => (
-        <Menu.Item key={i} onClick={() => onSelection([filter])}>
-          {`${t('Drill to detail by')} `}
-          <Filter>{filter.formattedVal}</Filter>
-        </Menu.Item>
-      ))}
-      {state.filters.length === 0 && (
-        <Menu.Item key="none" onClick={() => onSelection([])}>
-          {t('Drill to detail')}
-        </Menu.Item>
-      )}
-      {state.filters.length > 1 && (
-        <Menu.Item key="all" onClick={() => onSelection(state.filters)}>
-          {`${t('Drill to detail by')} `}
-          <Filter>{t('all')}</Filter>
-        </Menu.Item>
-      )}
-    </Menu>
+  const canExplore = useSelector((state: RootState) =>
+    findPermission('can_explore', 'Superset', state.user?.roles),
   );
 
+  const [{ filters, clientX, clientY }, setState] = useState<{
+    clientX: number;
+    clientY: number;
+    filters?: BinaryQueryObjectFilterClause[];
+  }>({ clientX: 0, clientY: 0 });
+
+  const menuItems = [];
+  const showDrillToDetail =
+    isFeatureEnabled(FeatureFlag.DRILL_TO_DETAIL) && canExplore;
+
+  if (showDrillToDetail) {
+    menuItems.push(
+      <DrillDetailMenuItems
+        chartId={id}
+        formData={formData}
+        filters={filters}
+        isContextMenu
+        contextMenuY={clientY}
+        onSelection={onSelection}
+      />,
+    );
+  }
+
   const open = useCallback(
-    (filters: QueryObjectFilterClause[], offsetX: number, offsetY: number) => {
-      setState({ filters, offsetX, offsetY });
+    (
+      clientX: number,
+      clientY: number,
+      filters?: BinaryQueryObjectFilterClause[],
+    ) => {
+      const itemsCount =
+        [
+          showDrillToDetail ? 2 : 0, // Drill to detail always has 2 top-level menu items
+        ].reduce((a, b) => a + b, 0) || 1; // "No actions" appears if no actions in menu
+
+      const adjustedY = getMenuAdjustedY(clientY, itemsCount);
+      setState({
+        clientX,
+        clientY: adjustedY,
+        filters,
+      });
 
       // Since Ant Design's Dropdown does not offer an imperative API
       // and we can't attach event triggers to charts SVG elements, we
@@ -90,7 +108,7 @@ const ChartContextMenu = (
       // from the charts.
       document.getElementById(`hidden-span-${id}`)?.click();
     },
-    [id],
+    [id, showDrillToDetail],
   );
 
   useImperativeHandle(
@@ -101,9 +119,17 @@ const ChartContextMenu = (
     [open],
   );
 
-  return (
+  return ReactDOM.createPortal(
     <Dropdown
-      overlay={menu}
+      overlay={
+        <Menu>
+          {menuItems.length ? (
+            menuItems
+          ) : (
+            <Menu.Item disabled>No actions</Menu.Item>
+          )}
+        </Menu>
+      }
       trigger={['click']}
       onVisibleChange={value => !value && onClose()}
     >
@@ -111,12 +137,15 @@ const ChartContextMenu = (
         id={`hidden-span-${id}`}
         css={{
           visibility: 'hidden',
-          position: 'absolute',
-          top: state.offsetY,
-          left: state.offsetX,
+          position: 'fixed',
+          top: clientY,
+          left: clientX,
+          width: 1,
+          height: 1,
         }}
       />
-    </Dropdown>
+    </Dropdown>,
+    document.body,
   );
 };
 

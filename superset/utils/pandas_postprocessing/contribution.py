@@ -49,9 +49,6 @@ def contribution(
     """
     contribution_df = df.copy()
     numeric_df = contribution_df.select_dtypes(include=["number", Decimal])
-    # TODO: copy needed due to following regression in 1.4, remove if not needed:
-    # https://github.com/pandas-dev/pandas/issues/48090
-    numeric_df = numeric_df.copy()
     numeric_df.fillna(0, inplace=True)
     # verify column selections
     if columns:

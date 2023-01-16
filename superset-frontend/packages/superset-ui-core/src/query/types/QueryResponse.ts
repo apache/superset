@@ -83,7 +83,7 @@ export interface ChartDataResponseResult {
 export interface TimeseriesChartDataResponseResult
   extends ChartDataResponseResult {
   data: TimeseriesDataRecord[];
-  label_map: Record<string, DataRecordValue[]>;
+  label_map: Record<string, string[]>;
 }
 
 /**

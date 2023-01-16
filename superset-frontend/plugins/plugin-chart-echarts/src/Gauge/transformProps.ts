@@ -23,7 +23,6 @@ import {
   DataRecord,
   getNumberFormatter,
   getMetricLabel,
-  DataRecordValue,
   getColumnLabel,
 } from '@superset-ui/core';
 import { EChartsCoreOption, GaugeSeriesOption } from 'echarts';
@@ -45,6 +44,8 @@ import {
   FONT_SIZE_MULTIPLIERS,
 } from './constants';
 import { OpacityEnum } from '../constants';
+import { getDefaultTooltip } from '../utils/tooltip';
+import { Refs } from '../types';
 
 const setIntervalBoundsAndColors = (
   intervals: string,
@@ -119,6 +120,7 @@ export default function transformProps(
     emitFilter,
     sliceId,
   }: EchartsGaugeFormData = { ...DEFAULT_GAUGE_FORM_DATA, ...formData };
+  const refs: Refs = {};
   const data = (queriesData[0]?.data || []) as DataRecord[];
   const numberFormatter = getNumberFormatter(numberFormat);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -132,7 +134,7 @@ export default function transformProps(
     FONT_SIZE_MULTIPLIERS.titleOffsetFromTitle * fontSize;
   const detailOffsetFromTitle =
     FONT_SIZE_MULTIPLIERS.detailOffsetFromTitle * fontSize;
-  const columnsLabelMap = new Map<string, DataRecordValue[]>();
+  const columnsLabelMap = new Map<string, string[]>();
 
   const transformedData: GaugeDataItemOption[] = data.map(
     (data_point, index) => {
@@ -141,7 +143,7 @@ export default function transformProps(
         .join(', ');
       columnsLabelMap.set(
         name,
-        groupbyLabels.map(col => data_point[col]),
+        groupbyLabels.map(col => data_point[col] as string),
       );
       let item: GaugeDataItemOption = {
         value: data_point[getMetricLabel(metric as QueryFormMetric)] as number,
@@ -259,6 +261,7 @@ export default function transformProps(
     color: gaugeSeriesOptions.detail?.color,
   };
   const tooltip = {
+    ...getDefaultTooltip(refs),
     formatter: (params: CallbackDataParams) => {
       const { name, value } = params;
       return `${name} : ${formatValue(value as number)}`;
@@ -301,6 +304,7 @@ export default function transformProps(
       axisTick,
       pointer,
       detail,
+      // @ts-ignore
       tooltip,
       radius:
         Math.min(width, height) / 2 - axisLabelDistance - axisTickDistance,
@@ -311,7 +315,7 @@ export default function transformProps(
 
   const echartOptions: EChartsCoreOption = {
     tooltip: {
-      appendToBody: true,
+      ...getDefaultTooltip(refs),
       trigger: 'item',
     },
     series,
@@ -328,5 +332,6 @@ export default function transformProps(
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    refs,
   };
 }

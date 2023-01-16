@@ -21,21 +21,23 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
+import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
-  styled,
-  t,
-  SupersetClient,
-  getCategoricalSchemeRegistry,
+  CategoricalColorNamespace,
   ensureIsArray,
+  getCategoricalSchemeRegistry,
   getSharedLabelColor,
+  styled,
+  SupersetClient,
+  t,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
+import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
@@ -56,7 +58,6 @@ type PropertiesModalProps = {
   show?: boolean;
   onHide?: () => void;
   colorScheme?: string;
-  setColorSchemeAndUnsavedChanges?: () => void;
   onSubmit?: (params: Record<string, any>) => void;
   addSuccessToast: (message: string) => void;
   addDangerToast: (message: string) => void;
@@ -116,7 +117,7 @@ const PropertiesModal = ({
     }
 
     Modal.error({
-      title: 'Error',
+      title: t('Error'),
       content: errorText,
       okButtonProps: { danger: true, className: 'btn-danger' },
     });
@@ -132,12 +133,14 @@ const PropertiesModal = ({
       return SupersetClient.get({
         endpoint: `/api/v1/dashboard/related/${accessType}?q=${query}`,
       }).then(response => ({
-        data: response.json.result.map(
-          (item: { value: number; text: string }) => ({
+        data: response.json.result
+          .filter((item: { extra: { active: boolean } }) =>
+            item.extra.active !== undefined ? item.extra.active : true,
+          )
+          .map((item: { value: number; text: string }) => ({
             value: item.value,
             label: item.text,
-          }),
-        ),
+          })),
         totalCount: response.json.count,
       }));
     },
@@ -178,9 +181,7 @@ const PropertiesModal = ({
       }
       const metaDataCopy = { ...metadata };
 
-      if (metaDataCopy?.shared_label_colors) {
-        delete metaDataCopy.shared_label_colors;
-      }
+      delete metaDataCopy.shared_label_colors;
 
       delete metaDataCopy.color_scheme_domain;
 
@@ -265,7 +266,7 @@ const PropertiesModal = ({
   };
 
   const onColorSchemeChange = (
-    colorScheme?: string,
+    colorScheme = '',
     { updateMetadata = true } = {},
   ) => {
     // check that color_scheme is valid
@@ -275,7 +276,7 @@ const PropertiesModal = ({
     // only fire if the color_scheme is present and invalid
     if (colorScheme && !colorChoices.includes(colorScheme)) {
       Modal.error({
-        title: 'Error',
+        title: t('Error'),
         content: t('A valid color scheme is required'),
         okButtonProps: { danger: true, className: 'btn-danger' },
       });
@@ -299,42 +300,51 @@ const PropertiesModal = ({
     let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;
 
-    // color scheme in json metadata has precedence over selection
-    if (currentJsonMetadata?.length) {
-      let metadata;
-      try {
-        metadata = JSON.parse(currentJsonMetadata);
-      } catch (error) {
-        addDangerToast(t('JSON metadata is invalid!'));
+    // validate currentJsonMetadata
+    let metadata;
+    try {
+      if (
+        !currentJsonMetadata.startsWith('{') ||
+        !currentJsonMetadata.endsWith('}')
+      ) {
+        throw new Error();
       }
-      currentColorScheme = metadata?.color_scheme || colorScheme;
-      colorNamespace = metadata?.color_namespace || '';
-
-      // filter shared_label_color from user input
-      if (metadata?.shared_label_colors) {
-        delete metadata.shared_label_colors;
-      }
-      if (metadata?.color_scheme_domain) {
-        delete metadata.color_scheme_domain;
-      }
-
-      const colorMap = getSharedLabelColor().getColorMap(
-        colorNamespace,
-        currentColorScheme,
-        true,
-      );
-
-      metadata.shared_label_colors = colorMap;
-
-      if (metadata?.color_scheme) {
-        metadata.color_scheme_domain =
-          categoricalSchemeRegistry.get(colorScheme)?.colors || [];
-      } else {
-        metadata.color_scheme_domain = [];
-      }
-
-      currentJsonMetadata = jsonStringify(metadata);
+      metadata = JSON.parse(currentJsonMetadata);
+    } catch (error) {
+      addDangerToast(t('JSON metadata is invalid!'));
+      return;
     }
+
+    // color scheme in json metadata has precedence over selection
+    currentColorScheme = metadata?.color_scheme || colorScheme;
+    colorNamespace = metadata?.color_namespace;
+
+    // filter shared_label_color from user input
+    if (metadata?.shared_label_colors) {
+      delete metadata.shared_label_colors;
+    }
+    if (metadata?.color_scheme_domain) {
+      delete metadata.color_scheme_domain;
+    }
+
+    const sharedLabelColor = getSharedLabelColor();
+    const categoricalNamespace =
+      CategoricalColorNamespace.getNamespace(colorNamespace);
+    categoricalNamespace.resetColors();
+    if (currentColorScheme) {
+      sharedLabelColor.updateColorMap(colorNamespace, currentColorScheme);
+      metadata.shared_label_colors = Object.fromEntries(
+        sharedLabelColor.getColorMap(),
+      );
+      metadata.color_scheme_domain =
+        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
+    } else {
+      sharedLabelColor.reset();
+      metadata.shared_label_colors = {};
+      metadata.color_scheme_domain = [];
+    }
+
+    currentJsonMetadata = jsonStringify(metadata);
 
     onColorSchemeChange(currentColorScheme, {
       updateMetadata: false,
@@ -359,9 +369,9 @@ const PropertiesModal = ({
       ...moreOnSubmitProps,
     };
     if (onlyApply) {
-      addSuccessToast(t('Dashboard properties updated'));
       onSubmit(onSubmitProps);
       onHide();
+      addSuccessToast(t('Dashboard properties updated'));
     } else {
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
@@ -377,9 +387,9 @@ const PropertiesModal = ({
           ...morePutProps,
         }),
       }).then(() => {
-        addSuccessToast(t('The dashboard has been saved'));
         onSubmit(onSubmitProps);
         onHide();
+        addSuccessToast(t('The dashboard has been saved'));
       }, handleErrorResponse);
     }
   };
@@ -538,6 +548,7 @@ const PropertiesModal = ({
             {t('Cancel')}
           </Button>
           <Button
+            data-test="properties-modal-apply-button"
             onClick={form.submit}
             buttonSize="small"
             buttonStyle="primary"
@@ -649,6 +660,23 @@ const PropertiesModal = ({
                 <p className="help-block">
                   {t(
                     'This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter specific parameters.',
+                  )}
+                  {onlyApply && (
+                    <>
+                      {' '}
+                      {t(
+                        'Please DO NOT overwrite the "filter_scopes" key.',
+                      )}{' '}
+                      <FilterScopeModal
+                        triggerNode={
+                          <span className="alert-link">
+                            {t('Use "%(menuName)s" menu instead.', {
+                              menuName: t('Set filter mapping'),
+                            })}
+                          </span>
+                        }
+                      />
+                    </>
                   )}
                 </p>
               </>

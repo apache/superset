@@ -139,6 +139,7 @@ const legacyChartDataRequest = async (
     ...requestParams,
     url,
     postPayload: { form_data: formData },
+    parseMethod: 'json-bigint',
   };
 
   const clientMethod =
@@ -196,6 +197,7 @@ const v1ChartDataRequest = async (
     url,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    parseMethod: 'json-bigint',
   };
 
   return SupersetClient.post(querySettings);

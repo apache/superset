@@ -20,7 +20,7 @@ from unittest import mock
 from sqlalchemy import column, literal_column
 from sqlalchemy.dialects import postgresql
 
-from superset.db_engine_specs import get_engine_specs
+from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
@@ -45,11 +45,11 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         inspector.get_table_names = mock.Mock(return_value=["schema.table", "table_2"])
         inspector.get_foreign_table_names = mock.Mock(return_value=["table_3"])
 
-        pg_result_expected = ["schema.table", "table_2", "table_3"]
+        pg_result_expected = {"schema.table", "table_2", "table_3"}
         pg_result = PostgresEngineSpec.get_table_names(
             database=mock.ANY, schema="schema", inspector=inspector
         )
-        self.assertListEqual(pg_result_expected, pg_result)
+        assert pg_result_expected == pg_result
 
     def test_time_exp_literal_no_grain(self):
         """
@@ -137,7 +137,11 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         DB Eng Specs (postgres): Test "postgres" in engine spec
         """
-        self.assertIn("postgres", get_engine_specs())
+        backends = set()
+        for engine in load_engine_specs():
+            backends.add(engine.engine)
+            backends.update(engine.engine_aliases)
+        assert "postgres" in backends
 
     def test_extras_without_ssl(self):
         db = mock.Mock()
@@ -500,7 +504,15 @@ def test_base_parameters_mixin():
     )
 
     parameters_from_uri = PostgresEngineSpec.get_parameters_from_uri(sqlalchemy_uri)
-    assert parameters_from_uri == parameters
+    assert parameters_from_uri == {
+        "username": "username",
+        "password": "password",
+        "host": "localhost",
+        "port": 5432,
+        "database": "dbname",
+        "query": {"foo": "bar"},
+        "encryption": True,
+    }
 
     json_schema = PostgresEngineSpec.parameters_json_schema()
     assert json_schema == {

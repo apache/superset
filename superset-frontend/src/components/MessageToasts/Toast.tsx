@@ -18,7 +18,7 @@
  */
 import { styled, css, SupersetTheme } from '@superset-ui/core';
 import cx from 'classnames';
-import Interweave from 'interweave';
+import { Interweave } from 'interweave';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Icons from 'src/components/Icons';
 import { ToastType, ToastMeta } from './types';
@@ -97,7 +97,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
       role="alert"
     >
       {icon}
-      <Interweave content={toast.text} />
+      <Interweave content={toast.text} noHtml={!toast.allowHtml} />
       <i
         className="fa fa-close pull-right pointer"
         role="button"

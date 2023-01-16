@@ -51,7 +51,7 @@ const {
 } = DEFAULT_FORM_DATA;
 const config: ControlPanelConfig = {
   controlPanelSections: [
-    sections.legacyTimeseriesTime,
+    sections.genericTime,
     sections.echartsTimeSeriesQuery,
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
@@ -71,13 +71,13 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: seriesType,
               choices: [
-                [EchartsTimeseriesSeriesType.Line, 'Line'],
-                [EchartsTimeseriesSeriesType.Scatter, 'Scatter'],
-                [EchartsTimeseriesSeriesType.Smooth, 'Smooth Line'],
-                [EchartsTimeseriesSeriesType.Bar, 'Bar'],
-                [EchartsTimeseriesSeriesType.Start, 'Step - start'],
-                [EchartsTimeseriesSeriesType.Middle, 'Step - middle'],
-                [EchartsTimeseriesSeriesType.End, 'Step - end'],
+                [EchartsTimeseriesSeriesType.Line, t('Line')],
+                [EchartsTimeseriesSeriesType.Scatter, t('Scatter')],
+                [EchartsTimeseriesSeriesType.Smooth, t('Smooth Line')],
+                [EchartsTimeseriesSeriesType.Bar, t('Bar')],
+                [EchartsTimeseriesSeriesType.Start, t('Step - start')],
+                [EchartsTimeseriesSeriesType.Middle, t('Step - middle')],
+                [EchartsTimeseriesSeriesType.End, t('Step - end')],
               ],
               description: t('Series chart type (line, bar etc)'),
             },

@@ -29,7 +29,9 @@ describe('Advanced analytics', () => {
     cy.visitChartByName('Num Births Trend');
     cy.verifySliceSuccess({ waitAlias: '@postJson' });
 
-    cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
+    cy.get('.ant-collapse-header')
+      .contains('Advanced Analytics')
+      .click({ force: true });
 
     cy.get('[data-test=time_compare]').find('.ant-select').click();
     cy.get('[data-test=time_compare]')
@@ -43,13 +45,16 @@ describe('Advanced analytics', () => {
     cy.get('button[data-test="run-query-button"]').click();
     cy.wait('@postJson');
     cy.wait('@putExplore');
+
     cy.reload();
     cy.verifySliceSuccess({
       waitAlias: '@postJson',
       chartSelector: 'svg',
     });
     cy.wait('@getExplore');
-    cy.get('.ant-collapse-header').contains('Advanced Analytics').click();
+    cy.get('.ant-collapse-header')
+      .contains('Advanced Analytics')
+      .click({ force: true });
     cy.get('[data-test=time_compare]')
       .find('.ant-select-selector')
       .contains('28 days');

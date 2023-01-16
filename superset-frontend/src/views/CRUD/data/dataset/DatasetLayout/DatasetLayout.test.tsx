@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import DatasetLayout from 'src/views/CRUD/data/dataset/DatasetLayout';
 import Header from 'src/views/CRUD/data/dataset/AddDataset/Header';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
@@ -33,21 +33,31 @@ describe('DatasetLayout', () => {
     expect(layoutWrapper).toHaveTextContent('');
   });
 
-  it('renders a Header when passed in', () => {
-    render(<DatasetLayout header={Header()} />);
+  const mockSetDataset = jest.fn();
 
-    expect(screen.getByText(/header/i)).toBeVisible();
+  const waitForRender = () =>
+    waitFor(() => render(<Header setDataset={mockSetDataset} />));
+
+  it('renders a Header when passed in', async () => {
+    await waitForRender();
+
+    expect(screen.getByText(/new dataset/i)).toBeVisible();
   });
 
-  it('renders a LeftPanel when passed in', () => {
-    render(<DatasetLayout leftPanel={LeftPanel()} />);
+  it('renders a LeftPanel when passed in', async () => {
+    render(
+      <DatasetLayout leftPanel={<LeftPanel setDataset={() => null} />} />,
+      { useRedux: true },
+    );
 
-    expect(screen.getByRole('img', { name: /empty/i })).toBeVisible();
-    expect(screen.getByText(/no database tables found/i)).toBeVisible();
+    expect(
+      await screen.findByText(/select database & schema/i),
+    ).toBeInTheDocument();
+    expect(LeftPanel).toBeTruthy();
   });
 
   it('renders a DatasetPanel when passed in', () => {
-    render(<DatasetLayout datasetPanel={DatasetPanel()} />);
+    render(<DatasetLayout datasetPanel={<DatasetPanel />} />);
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     const blankDatasetTitle = screen.getByText(/select dataset source/i);
@@ -63,8 +73,8 @@ describe('DatasetLayout', () => {
   });
 
   it('renders a Footer when passed in', () => {
-    render(<DatasetLayout footer={Footer()} />);
+    render(<DatasetLayout footer={<Footer url="" />} />, { useRedux: true });
 
-    expect(screen.getByText(/footer/i)).toBeVisible();
+    expect(screen.getByText(/Cancel/i)).toBeVisible();
   });
 });

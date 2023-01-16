@@ -29,7 +29,7 @@ const overlayMenu = (
 );
 
 describe('SaveDatasetActionButton', () => {
-  it('renders a split save button', () => {
+  test('renders a split save button', async () => {
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
@@ -40,11 +40,14 @@ describe('SaveDatasetActionButton', () => {
     const saveBtn = screen.getByRole('button', { name: /save/i });
     const caretBtn = screen.getByRole('button', { name: /caret-down/i });
 
+    expect(
+      await screen.findByRole('button', { name: /save/i }),
+    ).toBeInTheDocument();
     expect(saveBtn).toBeVisible();
     expect(caretBtn).toBeVisible();
   });
 
-  it('renders a "save dataset" dropdown menu item when user clicks caret button', () => {
+  test('renders a "save dataset" dropdown menu item when user clicks caret button', async () => {
     render(
       <SaveDatasetActionButton
         setShowSave={() => true}
@@ -53,6 +56,9 @@ describe('SaveDatasetActionButton', () => {
     );
 
     const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    expect(
+      await screen.findByRole('button', { name: /caret-down/i }),
+    ).toBeInTheDocument();
     userEvent.click(caretBtn);
 
     const saveDatasetMenuItem = screen.getByText(/save dataset/i);

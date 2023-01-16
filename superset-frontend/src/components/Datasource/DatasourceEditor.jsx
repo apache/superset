@@ -134,10 +134,10 @@ const checkboxGenerator = (d, onChange) => (
   <CheckboxControl value={d} onChange={onChange} />
 );
 const DATA_TYPES = [
-  { value: 'STRING', label: 'STRING' },
-  { value: 'NUMERIC', label: 'NUMERIC' },
-  { value: 'DATETIME', label: 'DATETIME' },
-  { value: 'BOOLEAN', label: 'BOOLEAN' },
+  { value: 'STRING', label: t('STRING') },
+  { value: 'NUMERIC', label: t('NUMERIC') },
+  { value: 'DATETIME', label: t('DATETIME') },
+  { value: 'BOOLEAN', label: t('BOOLEAN') },
 ];
 
 const DATASOURCE_TYPES_ARR = [
@@ -540,10 +540,12 @@ function OwnersSelector({ datasource, onChange }) {
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/related/owners?q=${query}`,
     }).then(response => ({
-      data: response.json.result.map(item => ({
-        value: item.value,
-        label: item.text,
-      })),
+      data: response.json.result
+        .filter(item => item.extra.active)
+        .map(item => ({
+          value: item.value,
+          label: item.text,
+        })),
       totalCount: response.json.count,
     }));
   }, []);

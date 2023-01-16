@@ -77,6 +77,11 @@ const findSelectOption = (text: string) =>
     within(getElementByClassName('.rc-virtual-list')).getByText(text),
   );
 
+const querySelectOption = (text: string) =>
+  waitFor(() =>
+    within(getElementByClassName('.rc-virtual-list')).queryByText(text),
+  );
+
 const findAllSelectOptions = () =>
   waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
@@ -533,6 +538,80 @@ test('triggers getPopupContainer if passed', async () => {
   render(<Select {...defaultProps} getPopupContainer={getPopupContainer} />);
   await open();
   expect(getPopupContainer).toHaveBeenCalled();
+});
+
+test('does not render a helper text by default', async () => {
+  render(<Select {...defaultProps} />);
+  await open();
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
+});
+
+test('renders a helper text when one is provided', async () => {
+  const helperText = 'Helper text';
+  render(<Select {...defaultProps} helperText={helperText} />);
+  await open();
+  expect(screen.getByRole('note')).toBeInTheDocument();
+  expect(screen.queryByText(helperText)).toBeInTheDocument();
+});
+
+test('finds an element with a numeric value and does not duplicate the options', async () => {
+  const options = [
+    { label: 'a', value: 11 },
+    { label: 'b', value: 12 },
+  ];
+  render(<Select {...defaultProps} options={options} allowNewOptions />);
+  await open();
+  await type('11');
+  expect(await findSelectOption('a')).toBeInTheDocument();
+  expect(await querySelectOption('11')).not.toBeInTheDocument();
+});
+
+test('Renders only 1 tag and an overflow tag in oneLine mode', () => {
+  render(
+    <Select
+      {...defaultProps}
+      value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+      mode="multiple"
+      oneLine
+    />,
+  );
+  expect(screen.getByText(OPTIONS[0].label)).toBeVisible();
+  expect(screen.queryByText(OPTIONS[1].label)).not.toBeInTheDocument();
+  expect(screen.queryByText(OPTIONS[2].label)).not.toBeInTheDocument();
+  expect(screen.getByText('+ 2 ...')).toBeVisible();
+});
+
+test('Renders only an overflow tag if dropdown is open in oneLine mode', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+      mode="multiple"
+      oneLine
+    />,
+  );
+  await open();
+
+  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  await waitFor(() => {
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(
+      withinSelector.queryByText(OPTIONS[1].label),
+    ).not.toBeInTheDocument();
+    expect(
+      withinSelector.queryByText(OPTIONS[2].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  await type('{esc}');
+
+  expect(await withinSelector.findByText(OPTIONS[0].label)).toBeVisible();
+  expect(withinSelector.queryByText(OPTIONS[1].label)).not.toBeInTheDocument();
+  expect(withinSelector.queryByText(OPTIONS[2].label)).not.toBeInTheDocument();
+  expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
 /*

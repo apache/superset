@@ -72,10 +72,10 @@ test('should pivot on any type of timeCompare', () => {
           ...formData,
           comparison_type: cType,
           time_compare: ['1 year ago', '1 year later'],
+          granularity_sqla: 'time_column',
         },
         {
           ...queryObject,
-          is_timeseries: true,
         },
       ),
     ).toEqual({
@@ -146,7 +146,7 @@ test('should pivot on adhoc x-axis', () => {
         x_axis: {
           label: 'my_case_expr',
           expressionType: 'SQL',
-          expression: 'case when a = 1 then 1 else 0 end',
+          sqlExpression: 'case when a = 1 then 1 else 0 end',
         },
       },
       queryObject,

@@ -17,7 +17,12 @@
  * under the License.
  */
 import React, { useCallback } from 'react';
-import { DataRecordValue, QueryObjectFilterClause } from '@superset-ui/core';
+import {
+  AxisType,
+  DataRecordValue,
+  DTTM_ALIAS,
+  BinaryQueryObjectFilterClause,
+} from '@superset-ui/core';
 import { EchartsMixedTimeseriesChartTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
@@ -37,6 +42,8 @@ export default function EchartsMixedTimeseries({
   seriesBreakdown,
   onContextMenu,
   xValueFormatter,
+  xAxis,
+  refs,
 }: EchartsMixedTimeseriesChartTransformedProps) {
   const isFirstQuery = useCallback(
     (seriesIndex: number) => seriesIndex < seriesBreakdown,
@@ -55,7 +62,7 @@ export default function EchartsMixedTimeseries({
       const currentGroupBy = isFirstQuery(seriesIndex) ? groupby : groupbyB;
       const currentLabelMap = isFirstQuery(seriesIndex) ? labelMap : labelMapB;
       const groupbyValues = values
-        .map(value => currentLabelMap[value])
+        .map(value => currentLabelMap?.[value])
         .filter(value => !!value);
 
       setDataMask({
@@ -94,7 +101,7 @@ export default function EchartsMixedTimeseries({
   const eventHandlers: EventHandlers = {
     click: props => {
       const { seriesName, seriesIndex } = props;
-      const values: string[] = Object.values(selectedValues);
+      const values: string[] = Object.values(selectedValues || {});
       if (values.includes(seriesName)) {
         handleChange(
           values.filter(v => v !== seriesName),
@@ -116,18 +123,31 @@ export default function EchartsMixedTimeseries({
         const { data, seriesIndex } = eventParams;
         if (data) {
           const pointerEvent = eventParams.event.event;
-          const values = labelMap[eventParams.seriesName];
-          const { queryIndex } = (echartOptions.series as any)[seriesIndex];
-          const groupby = queryIndex > 0 ? formData.groupbyB : formData.groupby;
-          const filters: QueryObjectFilterClause[] = [];
-          filters.push({
-            col: formData.granularitySqla,
-            grain: formData.timeGrainSqla,
-            op: '==',
-            val: data[0],
-            formattedVal: xValueFormatter(data[0]),
-          });
-          groupby.forEach((dimension, i) =>
+          const values = [
+            ...(eventParams.name ? [eventParams.name] : []),
+            ...(isFirstQuery(seriesIndex) ? labelMap : labelMapB)[
+              eventParams.seriesName
+            ],
+          ];
+          const filters: BinaryQueryObjectFilterClause[] = [];
+          if (xAxis.type === AxisType.time) {
+            filters.push({
+              col:
+                xAxis.label === DTTM_ALIAS
+                  ? formData.granularitySqla
+                  : xAxis.label,
+              grain: formData.timeGrainSqla,
+              op: '==',
+              val: data[0],
+              formattedVal: xValueFormatter(data[0]),
+            });
+          }
+          [
+            ...(xAxis.type === AxisType.category ? [xAxis.label] : []),
+            ...(isFirstQuery(seriesIndex)
+              ? formData.groupby
+              : formData.groupbyB),
+          ].forEach((dimension, i) =>
             filters.push({
               col: dimension,
               op: '==',
@@ -135,7 +155,7 @@ export default function EchartsMixedTimeseries({
               formattedVal: String(values[i]),
             }),
           );
-          onContextMenu(filters, pointerEvent.offsetX, pointerEvent.offsetY);
+          onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
         }
       }
     },
@@ -143,6 +163,7 @@ export default function EchartsMixedTimeseries({
 
   return (
     <Echart
+      refs={refs}
       height={height}
       width={width}
       echartOptions={echartOptions}

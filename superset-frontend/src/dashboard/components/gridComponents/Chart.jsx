@@ -70,7 +70,11 @@ const propTypes = {
   sliceName: PropTypes.string.isRequired,
   timeout: PropTypes.number.isRequired,
   maxRows: PropTypes.number.isRequired,
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
+  filterboxMigrationState: PropTypes.oneOf(
+    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
+      key => FILTER_BOX_MIGRATION_STATES[key],
+    ),
+  ),
   // all active filter fields in dashboard
   filters: PropTypes.object.isRequired,
   refreshChart: PropTypes.func.isRequired,
@@ -92,6 +96,7 @@ const propTypes = {
   filterState: PropTypes.object,
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
+  isInView: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -185,7 +190,9 @@ class Chart extends React.Component {
 
       if (
         nextProps.width !== this.props.width ||
-        nextProps.height !== this.props.height
+        nextProps.height !== this.props.height ||
+        nextProps.width !== this.state.width ||
+        nextProps.height !== this.state.height
       ) {
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(this.resize, RESIZE_TIMEOUT);
@@ -199,6 +206,15 @@ class Chart extends React.Component {
           return true;
         }
       }
+    } else if (
+      // chart should re-render if color scheme or label color was changed
+      nextProps.formData?.color_scheme !== this.props.formData?.color_scheme ||
+      !areObjectsEqual(
+        nextProps.formData?.label_colors,
+        this.props.formData?.label_colors,
+      )
+    ) {
+      return true;
     }
 
     // `cacheBusterProp` is jected by react-hot-loader
@@ -382,6 +398,7 @@ class Chart extends React.Component {
       filterboxMigrationState,
       postTransformProps,
       datasetsStatus,
+      isInView,
     } = this.props;
 
     const { width } = this.state;
@@ -511,6 +528,7 @@ class Chart extends React.Component {
             filterboxMigrationState={filterboxMigrationState}
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
+            isInView={isInView}
           />
         </div>
       </SliceContainer>
