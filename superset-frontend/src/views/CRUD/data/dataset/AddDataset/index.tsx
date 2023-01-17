@@ -92,6 +92,7 @@ export default function AddDataset() {
   const queryParams = dataset?.schema
     ? rison.encode_uri({
         filters: [
+          { col: 'database', opr: 'rel_o_m', value: dataset?.db?.id },
           { col: 'schema', opr: 'eq', value: encodedSchema },
           { col: 'sql', opr: 'dataset_is_null_or_empty', value: '!t' },
         ],
