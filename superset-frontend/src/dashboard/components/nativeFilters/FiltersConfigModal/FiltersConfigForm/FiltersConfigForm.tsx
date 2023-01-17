@@ -808,7 +808,7 @@ const FiltersConfigForm = (
             />
           </StyledFormItem>
         </StyledContainer>
-        {filterToEdit?.filterType === 'filter_time' && (
+        {formFilter?.filterType === 'filter_time' && (
           <TimeRangeInfo>
             {t(`Dashboard time range filters apply to temporal columns defined in
           the filter section of each chart. Add temporal columns to the chart

@@ -487,12 +487,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           valueToBeDeleted: Record<string, any>,
           values: Record<string, any>[],
         ) => {
-          const isTemporalRange =
-            valueToBeDeleted.operator === Operators.TEMPORAL_RANGE;
-          if (isTemporalRange) {
-            const count = values.filter(
-              value => value.operator === Operators.TEMPORAL_RANGE,
-            ).length;
+          const isTemporalRange = (filter: Record<string, any>) =>
+            filter.operator === Operators.TEMPORAL_RANGE;
+          if (isTemporalRange(valueToBeDeleted)) {
+            const count = values.filter(isTemporalRange).length;
             if (count < 2) {
               return true;
             }
@@ -504,7 +502,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         ),
         confirmationText: t(
           `This filter is the last temporal filter. If you proceed,
-          your charts won't be affected by time range filters in dashboards.`,
+          this chart won't be affected by time range filters in dashboards.`,
         ),
       };
     }
