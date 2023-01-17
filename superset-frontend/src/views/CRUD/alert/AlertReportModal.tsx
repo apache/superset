@@ -936,7 +936,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       currentAlert.owners?.length &&
       currentAlert.crontab?.length &&
       currentAlert.working_timeout !== undefined &&
-      currentAlert.working_timeout < MAX_WORKING_TIMEOUT &&
+      currentAlert.working_timeout <= MAX_WORKING_TIMEOUT &&
       ((contentType === 'dashboard' && !!currentAlert.dashboard) ||
         (contentType === 'chart' && !!currentAlert.chart) ||
         (contentType === 'text_message' && !!currentAlert.msg_content)) &&
