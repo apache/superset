@@ -31,12 +31,17 @@ import ListView, { Filters, FilterOperator } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TooltipPlacement } from 'antd/lib/tooltip';
+import ConfirmationModal from 'src/components/ConfirmationModal';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
 import FlashExtendTTL from '../FlashExtendTTl/FlashExtendTTl';
 import FlashSchedule from '../FlashSchedule/FlashSchedule';
-import { fetchDatabases, removeFlash } from '../../services/flash.service';
+import {
+  fetchDatabases,
+  recoverFlashObject,
+  removeFlash,
+} from '../../services/flash.service';
 import FlashQuery from '../FlashQuery/FlashQuery';
 import { FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
@@ -76,6 +81,9 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const [showFlashSchedule, setShowFlashSchedule] = useState<boolean>(false);
   const [showFlashQuery, setShowFlashQuery] = useState<boolean>(false);
   const [showFlashView, setShowFlashView] = useState<boolean>(false);
+  const [recoverFlash, setRecoverFlash] = useState<FlashServiceObject | null>(
+    null,
+  );
 
   useEffect(() => {
     fetchDatabaseDropdown();
@@ -131,6 +139,10 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
     flashDeleteService(flash);
   };
 
+  const handleRecoverFlash = (flash: FlashServiceObject) => {
+    flashRecoverService(flash);
+  };
+
   const flashDeleteService = (flash: FlashServiceObject) => {
     if (flash && flash?.id) {
       removeFlash(flash?.id).then(
@@ -147,6 +159,25 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       );
     } else {
       addDangerToast('There is an issue deleting the flash');
+    }
+  };
+
+  const flashRecoverService = (flash: FlashServiceObject) => {
+    if (flash && flash?.id) {
+      recoverFlashObject(flash?.id).then(
+        () => {
+          setRecoverFlash(null);
+          addSuccessToast(t('Recovered: %s', flash?.tableName));
+          refreshData();
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue recovering %s: %s', flash?.tableName, errMsg),
+          ),
+        ),
+      );
+    } else {
+      addDangerToast('There is an issue recovering the selected flash');
     }
   };
 
@@ -219,6 +250,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           const handleSqlQuery = () => {
             changeSqlQuery(original);
           };
+          const handleRecover = () => setRecoverFlash(original);
           const handleChangeSchedule = () => changeSchedule(original);
           const handleChangeOwnership = () => changeOwnership(original);
           const handleChangeTtl = () => changeTtl(original);
@@ -228,6 +260,13 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
             history.push(`/flash/auditlogs/${original.id}`);
 
           const actions: ActionProps[] | [] = [
+            {
+              label: 'recover-action',
+              tooltip: t('Recover Flash'),
+              placement: 'bottom' as TooltipPlacement,
+              icon: 'Undo',
+              onClick: handleRecover,
+            },
             original?.flashType !== FlashTypesEnum.ONE_TIME &&
               (original?.owner === user?.email || user?.roles?.Admin) && {
                 label: 'export-action',
@@ -409,6 +448,22 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           onHide={() => setDeleteFlash(null)}
           open
           title={t('Delete Flash Object?')}
+        />
+      )}
+
+      {recoverFlash && (
+        <ConfirmationModal
+          description={t(
+            'This action will recover your selected flash object.',
+          )}
+          onConfirm={() => {
+            if (recoverFlash) {
+              handleRecoverFlash(recoverFlash);
+            }
+          }}
+          onHide={() => setRecoverFlash(null)}
+          open
+          title={t('Recover Flash Object?')}
         />
       )}
 
