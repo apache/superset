@@ -404,7 +404,7 @@ class TestDatasetApi(SupersetTestCase):
                 query_parameter,
                 {
                     "count": len(schema_values),
-                    "result": expected_response["result"][0],
+                    "result": [expected_response["result"][0]],
                 },
             )
 
