@@ -30,13 +30,13 @@ const mockedProps = {
 fetchMock.get(DATASET_ENDPOINT, { charts: { results: [], count: 2 } });
 
 test('should render edit dataset view with tabs', async () => {
-  fetchMock.calls(DATASET_ENDPOINT);
   render(<EditDataset {...mockedProps} />);
 
   const columnTab = await screen.findByRole('tab', { name: /columns/i });
   const metricsTab = screen.getByRole('tab', { name: /metrics/i });
   const usageTab = screen.getByRole('tab', { name: /usage/i });
 
+  expect(fetchMock.calls(DATASET_ENDPOINT)).toBeTruthy();
   expect(columnTab).toBeInTheDocument();
   expect(metricsTab).toBeInTheDocument();
   expect(usageTab).toBeInTheDocument();

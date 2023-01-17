@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetObject } from 'src/views/CRUD/data/dataset/AddDataset/types';
@@ -81,7 +81,7 @@ export function useQueryPreviewState<D extends BaseQueryObject = any>({
 export const useGetDatasetsList = () => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
 
-  const getDatasetsList = async (filters: object[]) => {
+  const getDatasetsList = useCallback(async (filters: object[]) => {
     let results: DatasetObject[] = [];
     let page = 0;
     let count;
@@ -114,7 +114,7 @@ export const useGetDatasetsList = () => {
 
     setDatasets(results);
     return results;
-  };
+  }, []);
 
   const datasetNames = datasets?.map(dataset => dataset.table_name);
 

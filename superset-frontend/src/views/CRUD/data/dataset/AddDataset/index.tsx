@@ -17,6 +17,7 @@
  * under the License.
  */
 import React, { useReducer, Reducer, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useGetDatasetsList } from 'src/views/CRUD/data/hooks';
 import Header from './Header';
 import EditPage from './EditDataset';
@@ -94,9 +95,9 @@ export default function AddDataset() {
     }
   }, [dataset?.db?.id, dataset?.schema, encodedSchema, getDatasetsList]);
 
-  const id = window.location.pathname.split('/')[2];
+  const { datasetId: id } = useParams<{ datasetId: string }>();
   useEffect(() => {
-    if (!Number.isNaN(parseFloat(id))) {
+    if (!Number.isNaN(parseInt(id, 10))) {
       setEditPageIsVisible(true);
     }
   }, [id]);
