@@ -1564,59 +1564,49 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               )}
             </StyledAlignment>
           ) : (
-            <div>
-              <DatabaseConnectionForm
-                isEditMode
-                sslForced={sslForced}
-                dbModel={dbModel}
-                db={db as DatabaseObject}
-                onParametersChange={({
-                  target,
-                }: {
-                  target: HTMLInputElement;
-                }) =>
-                  onChange(ActionType.parametersChange, {
-                    type: target.type,
-                    name: target.name,
-                    checked: target.checked,
-                    value: target.value,
-                  })
-                }
-                onExtraInputChange={({
-                  target,
-                }: {
-                  target: HTMLInputElement;
-                }) =>
-                  onChange(ActionType.extraInputChange, {
-                    name: target.name,
-                    value: target.value,
-                  })
-                }
-                onChange={({ target }: { target: HTMLInputElement }) =>
-                  onChange(ActionType.textChange, {
-                    name: target.name,
-                    value: target.value,
-                  })
-                }
-                onQueryChange={({ target }: { target: HTMLInputElement }) =>
-                  onChange(ActionType.queryChange, {
-                    name: target.name,
-                    value: target.value,
-                  })
-                }
-                onAddTableCatalog={() =>
-                  setDB({ type: ActionType.addTableCatalogSheet })
-                }
-                onRemoveTableCatalog={(idx: number) =>
-                  setDB({
-                    type: ActionType.removeTableCatalogSheet,
-                    payload: { indexToDelete: idx },
-                  })
-                }
-                getValidation={() => getValidation(db)}
-                validationErrors={validationErrors}
-              />
-            </div>
+            <DatabaseConnectionForm
+              isEditMode
+              sslForced={sslForced}
+              dbModel={dbModel}
+              db={db as DatabaseObject}
+              onParametersChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.parametersChange, {
+                  type: target.type,
+                  name: target.name,
+                  checked: target.checked,
+                  value: target.value,
+                })
+              }
+              onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.extraInputChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
+              onChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.textChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
+              onQueryChange={({ target }: { target: HTMLInputElement }) =>
+                onChange(ActionType.queryChange, {
+                  name: target.name,
+                  value: target.value,
+                })
+              }
+              onAddTableCatalog={() =>
+                setDB({ type: ActionType.addTableCatalogSheet })
+              }
+              onRemoveTableCatalog={(idx: number) =>
+                setDB({
+                  type: ActionType.removeTableCatalogSheet,
+                  payload: { indexToDelete: idx },
+                })
+              }
+              getValidation={() => getValidation(db)}
+              validationErrors={validationErrors}
+            />
           )}
           {!isEditMode && (
             <StyledAlertMargin>

@@ -1204,8 +1204,8 @@ describe('DatabaseModal', () => {
               name: /postgresql/i,
             }),
           );
-
-          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          screen.logTestingPlaygroundURL();
+          expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
           const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
           userEvent.click(SSHTunnelingToggle);
           const SSHTunnelServerAddressInput = screen.getByTestId(
@@ -1233,6 +1233,7 @@ describe('DatabaseModal', () => {
           userEvent.type(SSHTunnelPasswordInput, 'pass');
           expect(SSHTunnelPasswordInput).toHaveValue('pass');
         });
+
         test('properly interacts with SSH Tunnel form textboxes', async () => {
           userEvent.click(
             screen.getByRole('button', {
