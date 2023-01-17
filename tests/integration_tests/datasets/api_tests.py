@@ -403,10 +403,8 @@ class TestDatasetApi(SupersetTestCase):
             pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 2,
-                    "result": [
-                        {"text": "information_schema", "value": "information_schema"}
-                    ],
+                    "count": len(schema_values),
+                    "result": expected_response["result"][0],
                 },
             )
 
