@@ -21,7 +21,7 @@
     "jsonwebtoken": "^9.0.0",
     "uuid": "^9.0.0",
     "winston": "^3.8.2",
-    "ws": "^8.11.0"
+    "ws": "^8.12.0"
   },
   "devDependencies": {
     "@types/cookie": "^0.5.1",
@@ -30,7 +30,7 @@
     "@types/jsonwebtoken": "^8.5.9",
     "@types/node": "^18.11.13",
     "@types/uuid": "^9.0.0",
-    "@types/ws": "^8.5.3",
+    "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^5.48.1",
     "@typescript-eslint/parser": "^5.48.1",
     "eslint": "^8.29.0",
