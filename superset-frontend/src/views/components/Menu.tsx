@@ -20,14 +20,14 @@ import React from 'react';
 // import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
 // import { debounce } from 'lodash';
 // import { Global } from '@emotion/react';
-import { getUrlParam } from 'src/utils/urlUtils';
+// import { getUrlParam } from 'src/utils/urlUtils';
 // import { Row, Col, Grid } from 'src/components';
 // import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
 // import { Tooltip } from 'src/components/Tooltip';
 // import { Link } from 'react-router-dom';
 // import Icons from 'src/components/Icons';
-import { useUiConfig } from 'src/components/UiConfigContext';
-import { URL_PARAMS } from 'src/constants';
+// import { useUiConfig } from 'src/components/UiConfigContext';
+// import { URL_PARAMS } from 'src/constants';
 // import RightMenu from './MenuRight';
 import { Languages } from './LanguagePicker';
 
@@ -198,13 +198,10 @@ export interface MenuObjectProps extends MenuObjectChildProps {
 
 // const { useBreakpoint } = Grid;
 
-export function Menu({
-  // data: { menu, brand, navbar_right: navbarRight, settings },
-  // isFrontendRoute = () => false,
-}: MenuProps) {
+export function Menu() {
   // const [setMenu] = useState<MenuMode>('horizontal');
   // const screens = useBreakpoint();
-  const uiConfig = useUiConfig();
+  // const uiConfig = useUiConfig();
   // const theme = useTheme();
 
   // useEffect(() => {
@@ -219,8 +216,8 @@ export function Menu({
   //   return () => window.removeEventListener('resize', windowResize);
   // }, []);
 
-  const standalone = getUrlParam(URL_PARAMS.standalone);
-  if (standalone || uiConfig.hideNav) return <></>;
+  // const standalone = getUrlParam(URL_PARAMS.standalone);
+  // if (standalone || uiConfig.hideNav) return <></>;
 
   // const renderSubMenu = ({
   //   label,
@@ -378,5 +375,5 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
   newMenuData.menu = cleanedMenu;
   newMenuData.settings = settings;
 
-  return <Menu data={newMenuData} {...rest} />;
+  return <Menu />;
 }
