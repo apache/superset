@@ -287,6 +287,11 @@ def test_import_csv_enforced_schema(mock_event_logger):
     )
     assert success_msg in resp
 
+    # Clean up
+    with get_upload_db().get_sqla_engine_with_context() as engine:
+        engine.execute(f"DROP TABLE {full_table_name}")
+        engine.execute(f"DROP SCHEMA IF EXISTS {ADMIN_SCHEMA_NAME}")
+
 
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3", mock_upload_to_s3)
 def test_import_csv_explore_database(setup_csv_upload_with_context, create_csv_files):
