@@ -2,7 +2,7 @@
   "domain": "superset",
   "locale_data": {
     "superset": {
-      "22": [""],
+      "22": ["22"],
       "": {
         "domain": "superset",
         "plural_forms": "nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : 2)",
@@ -14,16 +14,18 @@
       "\n            Error: %(text)s\n            ": [
         "\n            Ошибка: %(text)s\n            "
       ],
-      " (excluded)": [""],
+      " (excluded)": [" (исключено)"],
       " Set the opacity to 0 if you do not want to override the color specified in the GeoJSON": [
-        ""
+        " Установите прозрачность 0, если вы не хотите переписывать цвет, указанный в GeoJSON"
       ],
-      " a dashboard OR ": [" дашборд или"],
-      " a new one": ["новый"],
+      " a dashboard OR ": [" дашборд или "],
+      " a new one": [" новый"],
       " expression which needs to adhere to the ": [
         ", который должен придерживаться "
       ],
-      " source code of Superset's sandboxed parser": [""],
+      " source code of Superset's sandboxed parser": [
+        " исходный код sandboxed парсера Суперсета"
+      ],
       " standard to ensure that the lexicographical ordering\n                      coincides with the chronological ordering. If the\n                      timestamp format does not adhere to the ISO 8601 standard\n                      you will need to define an expression and type for\n                      transforming the string into a date or timestamp. Note\n                      currently time zones are not supported. If time is stored\n                      in epoch format, put `epoch_s` or `epoch_ms`. If no pattern\n                      is specified we fall back to using the optional defaults on a per\n                      database/column name level via the extra parameter.": [
         " стандарта для обеспечения того, чтобы лексикографический порядок совпадал с хронологическим порядком. Если формат временной метки не соответствует стандарту ISO 8601, вам нужно будет определить выражение и тип для преобразования строки в дату или временную метку. В настоящее время часовые пояса не поддерживаются. Если время хранится в формате эпохи, введите \\`epoch_s\\` или \\`epoch_ms\\`. Если шаблон не указан, будут использованы необязательные значения по умолчанию на уровне имен для каждой базы данных/столбца с помощью дополнительного параметра."
       ],
@@ -32,9 +34,13 @@
       " to edit or add columns and metrics.": [
         " для редактирования или добавления столбцов и мер."
       ],
-      " to mark a column as a time column": [""],
-      " to open SQL Lab. From there you can save the query as a dataset.": [""],
-      " to visualize your data.": [""],
+      " to mark a column as a time column": [
+        ", чтобы пометить столбец как столбец даты/времени"
+      ],
+      " to open SQL Lab. From there you can save the query as a dataset.": [
+        " в Лаборатории SQL. Там вы сможете сохранить запрос как датасет."
+      ],
+      " to visualize your data.": [" для визуализации ваших данных."],
       "!= (Is not equal)": ["!= (не равно)"],
       "%(dialect)s cannot be used as a data source for security reasons.": [
         "%(dialect)s не может использоваться в качестве источника данных по соображениям безопасности."
@@ -101,12 +107,12 @@
       "*%(name)s*\n\n%(description)s\n\nError: %(text)s\n": [
         "*%(name)s*\n\n%(description)s\n\nОшибка: %(text)s\n"
       ],
-      "+ %s more": [""],
-      ",": [""],
+      "+ %s more": ["+ еще %s"],
+      ",": [","],
       "-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n\n": [
         "-- Примечание: Пока вы не сохраните ваш запрос, эти вкладки НЕ будут сохранены, если вы очистите куки или смените браузер.\n\n"
       ],
-      ".": [""],
+      ".": ["."],
       "0 Selected": ["0 выбрано"],
       "1 calendar day frequency": ["Дневная частота"],
       "1 day": ["1 день"],
@@ -139,10 +145,10 @@
       "1D": ["1Д"],
       "1H": ["1Ч"],
       "1M": ["1М"],
-      "1T": ["1Г"],
+      "1T": ["1МИН"],
       "2 years": ["2 года"],
       "2 years ago": ["2 года назад"],
-      "2/98 percentiles": [""],
+      "2/98 percentiles": ["2/98 перцентели"],
       "28 days": ["28 дней"],
       "28 days ago": ["28 дней назад"],
       "2D": ["2D карты"],
@@ -171,7 +177,7 @@
       "7 calendar day frequency": ["Недельная частота"],
       "7 days": ["7 дней"],
       "7D": ["7Д"],
-      "9/91 percentiles": [""],
+      "9/91 percentiles": ["9/91 перцентели"],
       "90 days": ["90 дней"],
       ":": [":"],
       "< (Smaller than)": ["< (меньше чем)"],
@@ -193,12 +199,14 @@
         "База данных с таким же именем уже существует"
       ],
       "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)": [
-        ""
+        "Полный URL, указывающий на местоположение плагина (например, ссылка на CDN)"
       ],
-      "A handlebars template that is applied to the data": [""],
-      "A human-friendly name": ["Понятное для людей имя"],
+      "A handlebars template that is applied to the data": [
+        "Шаблон handlebars, примененный к данным"
+      ],
+      "A human-friendly name": ["Человекочитаемое имя"],
       "A list of domain names that can embed this dashboard. Leaving this field empty will allow embedding from any domain.": [
-        ""
+        "Список доменных имен, которые могут встраивать этот дашборд. Если оставить поле пустым, любой домен сможет сделать встраивание."
       ],
       "A list of users who can alter the chart. Searchable by name or username.": [
         "Владельцы - это пользователи, которые могут изменять график"
@@ -222,14 +230,18 @@
       "A report named \"%(name)s\" already exists": [
         "Рассылка с именем \"%(name)s\" уже существует"
       ],
-      "A reusable dataset will be saved with your chart.": [""],
+      "A reusable dataset will be saved with your chart.": [
+        "Переиспользуемый датасет будет сохранен с вашим графиком."
+      ],
       "A screenshot of the dashboard will be sent to your email at": [
         "Скриншот дашборда будет отправлен на ваш электронный адрес"
       ],
       "A set of parameters that become available in the query using Jinja templating syntax": [
         "Набор параметров, которые доступны в запросе через шаблонизацию Jinja."
       ],
-      "A time column must be specified when using a Time Comparison.": [""],
+      "A time column must be specified when using a Time Comparison.": [
+        "Столбец даты/времени должен быть указан при использовании сравнения по времени"
+      ],
       "A time series chart that visualizes how a related metric from multiple groups vary over time. Each group is visualized using a different color.": [
         "Диаграмма временного ряда, которая визуализирует, как связанная метрика из нескольких групп изменяется с течением времени. Для каждой группы используется свой цвет."
       ],
@@ -453,6 +465,7 @@
         "Разрешить управление базой данных, используя запросы UPDATE, DELETE, CREATE и т.п."
       ],
       "Allow multiple selections": ["Разрешить множественный выбор"],
+      "Allow node selections": [""],
       "Allow sending multiple polygons as a filter event": [""],
       "Allow this database to be explored": [
         "Разрешить изучение этой базы данных"
@@ -463,7 +476,9 @@
       "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab": [
         "Разрешить управление базой данных, используя запросы UPDATE, DELETE, CREATE и т.п. в Лаборатории SQL"
       ],
-      "Allowed Domains (comma separated)": [""],
+      "Allowed Domains (comma separated)": [
+        "Разрешенные домены (разделить запятыми)"
+      ],
       "Alphabetical": ["В алфавитном порядке"],
       "Also known as a box and whisker plot, this visualization compares the distributions of a related metric across multiple groups. The box in the middle emphasizes the mean, median, and inner 2 quartiles. The whiskers around each box visualize the min, max, range, and outer 2 quartiles.": [
         ""
@@ -474,10 +489,10 @@
         "Оповещение с именем \"%(name)s\" уже существует"
       ],
       "An enclosed time range (both start and end) must be specified when using a Time Comparison.": [
-        ""
+        "При использовании сравнения времени необходимо указать закрытый временной интервал (как начало, так и конец)."
       ],
       "An engine must be specified when passing individual parameters to a database.": [
-        ""
+        "Движок должен быть указан при передаче индивидуальных параметров к базе."
       ],
       "An error has occurred": ["Произошла ошибка"],
       "An error occurred": ["Произошла ошибка"],
@@ -718,7 +733,7 @@
       "Applied Filters (%d)": ["Применено фильтров: (%d)"],
       "Applied filters: %s": ["Применены фильтры: %s"],
       "Applied rolling window did not return any data. Please make sure the source query satisfies the minimum periods defined in the rolling window.": [
-        ""
+        "Применное скользязее окно не вернуло данных. Убедитесь, что исходный запрос удовлетворяет минимальному количеству периодов скользящего окна."
       ],
       "Apply": ["Применить"],
       "Apply conditional color formatting to metrics": [
@@ -778,7 +793,7 @@
         "Вы уверены, что хотите сохранить и применить изменения?"
       ],
       "Area Chart": ["Диаграмма с областями"],
-      "Area Chart (legacy)": ["Диаграмма с областями (устарела)"],
+      "Area Chart (legacy)": ["Диаграмма с областями (устарело)"],
       "Area chart": ["Диаграмма с областями"],
       "Area chart opacity": ["Непрозрачность диаграммы с областями"],
       "Area charts are similar to line charts in that they represent variables with the same scale, but area charts stack the metrics on top of each other.": [
@@ -813,12 +828,13 @@
       "Bad spatial key": ["Неподходящий пространственный ключ"],
       "Bar": ["Столбчатая"],
       "Bar Chart": ["Столбчатая диаграмма"],
-      "Bar Chart (legacy)": ["Столбчатая диаграмма (устарела)"],
+      "Bar Chart (legacy)": ["Столбчатая диаграмма (устарело)"],
       "Bar Charts are used to show metrics as a series of bars.": [
         "Столбчатые диаграммы используются для отображения показателей в виде серии столбцов."
       ],
       "Bar Values": ["Значения столбцов"],
       "Bar orientation": ["Направление столбцов"],
+      "Base": [""],
       "Base layer map style": [""],
       "Based on a metric": ["На основе меры"],
       "Based on granularity, number of time periods to compare against": [
@@ -953,7 +969,7 @@
       "Category Name": ["Имя категории"],
       "Category and Percentage": ["Категория и процентная доля"],
       "Category and Value": ["Категория и значение"],
-      "Category of target nodes": [""],
+      "Category of target nodes": ["Категория целевых нод"],
       "Category, Value and Percentage": [
         "Категория, значение и процентная доля"
       ],
@@ -1066,6 +1082,8 @@
         "Установите флажок, чтобы применять фильтры мгновенно по мере их изменения вместо отображения кнопки [Применить]"
       ],
       "Check to force date partitions to have the same height": [""],
+      "Check to include time column dropdown": [""],
+      "Check to include time grain dropdown": [""],
       "Child label position": ["Положение метки дочернего элемента"],
       "Choice of [Label] must be present in [Group By]": [
         "[Метка] должна присутствовать в [Группировать по]"
@@ -1140,7 +1158,7 @@
       "Click this link to switch to an alternate form that exposes only the required fields needed to connect this database.": [
         "Нажмите для переключения на альтернативную форму подключения, которая позволит вам ввести все данные в соответствующую форму для данной базы данных."
       ],
-      "Click to cancel sorting": [""],
+      "Click to cancel sorting": ["Нажмите для отмены сортировки"],
       "Click to clear emitted filters": ["Нажмите для сброса кросс-фильтра"],
       "Click to edit": ["Нажмите для редактирования"],
       "Click to edit %s in a new tab": [
@@ -1357,7 +1375,9 @@
       "Copy the account name of that database you are trying to connect to.": [
         "Впишите имя профиля базы данных, к которой вы пытаетесь подключиться."
       ],
-      "Copy the name of the  HTTP Path of your cluster.": [""],
+      "Copy the name of the  HTTP Path of your cluster.": [
+        "Скопировать имя HTTP пути вашего кластера."
+      ],
       "Copy the name of the database you are trying to connect to.": [
         "Впишите имя базы данных, к которой вы пытаетесь подключиться"
       ],
@@ -1396,7 +1416,7 @@
       "Create Dataset": ["Создать датасет"],
       "Create a dataset": ["Создать датасет"],
       "Create a dataset to begin visualizing your data as a chart or go to\n          SQL Lab to query your data.": [
-        ""
+        "Создайте датасет для визуализации ваших данных на графике или перейдите в Лабораторию SQL для просмотра данных."
       ],
       "Create a new chart": ["Создать новый график"],
       "Create chart": ["Создать график"],
@@ -1560,13 +1580,15 @@
       "Dataset metric not found.": ["Мера датасета не найдена."],
       "Dataset name": ["Имя датасета"],
       "Dataset parameters are invalid.": ["Параметры датасета неверны."],
-      "Dataset schema is invalid, caused by: %(error)s": [""],
+      "Dataset schema is invalid, caused by: %(error)s": [
+        "Схема датасета невалидна, причина: %(error)s"
+      ],
       "Dataset(s) could not be bulk deleted.": [
         "Датасет(ы) не могут быть массово удалены."
       ],
       "Datasets": ["Датасеты"],
       "Datasets can be created from database tables or SQL queries. Select a database table to the left or ": [
-        ""
+        "Датасеты могут быть созданы из таблиц базы данных или SQL запросов. Выберите таблицу из базы данных слева или "
       ],
       "Datasets do not contain a temporal column": [
         "Датасет не содержит столбца формата дата/время"
@@ -2131,9 +2153,11 @@
       "Failed at retrieving results": ["Невозможно выполнить запрос"],
       "Failed at stopping query. %s": ["Не удалось остановить запрос. %s"],
       "Failed to create report": ["Не удалось создать рассылку"],
-      "Failed to load chart data": [""],
-      "Failed to load chart data.": [""],
-      "Failed to retrieve advanced type": [""],
+      "Failed to load chart data": ["Не удалось загрузить данные графика"],
+      "Failed to load chart data.": ["Не удалось загрузить данные графика."],
+      "Failed to retrieve advanced type": [
+        "Не удалось получить расширенный тип"
+      ],
       "Failed to start remote query on a worker.": [
         "Не удалось запустить удаленный запрос на сервере."
       ],
@@ -2193,7 +2217,9 @@
         "Фильтровать значения (зависит от регистра)"
       ],
       "Filter value is required": ["Требуется значение фильтра"],
-      "Filter value list cannot be empty": [""],
+      "Filter value list cannot be empty": [
+        "Список для фильтрации не может быть пуст"
+      ],
       "Filter your charts": ["Поиск"],
       "Filterable": ["Фильтруемый"],
       "Filters": ["Фильтры"],
@@ -2238,6 +2264,7 @@
       "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.": [
         ""
       ],
+      "Force": [""],
       "Force all tables and views to be created in this schema when clicking CTAS or CVAS in SQL Lab.": [
         "Принудить создание новых таблиц через CTAS или CVAS в Лаборатории SQL в этой схеме при нажатии соответствующих кнопок"
       ],
@@ -2266,6 +2293,7 @@
       "Found invalid orderby options": [""],
       "Fraction digits": ["Десятичные знаки"],
       "Frequency": ["Частота"],
+      "Friction": [""],
       "Friction between nodes": [""],
       "Friday": ["Пятница"],
       "From date cannot be larger than to date": [
@@ -2296,7 +2324,7 @@
         "Перейдите в режим редактирования для изменения дашборда и добавьте графики"
       ],
       "Gold": ["Золотой"],
-      "Google Sheet Name and URL": [""],
+      "Google Sheet Name and URL": ["Имя или URL Google Таблицы"],
       "Grace period": ["Перерыв между оповещением"],
       "Graph Chart": [""],
       "Graph layout": [""],
@@ -2313,7 +2341,7 @@
       ],
       "Group by": ["Группировать по"],
       "Groupable": ["Группируемый"],
-      "Handlebars": [""],
+      "Handlebars": ["Handlebars"],
       "Handlebars Template": ["Шаблон Handlebars"],
       "Hard value bounds applied for color coding. Is only relevant and applied when the normalization is applied against the whole heatmap.": [
         ""
@@ -2351,10 +2379,10 @@
         "Как отображать смещения во времени: как отдельные линии; как абсолютную разницу между основным временным рядом и каждым смещением; как процентное изменение; или как соотношение между рядами и смещениями."
       ],
       "Huge": ["Огромный"],
-      "ISO 3166-2 Codes": [""],
+      "ISO 3166-2 Codes": ["Коды ISO 3166-2"],
       "ISO 8601": ["ISO 8601"],
       "Id": ["ID"],
-      "Id of root node of the tree.": [""],
+      "Id of root node of the tree.": ["Id корневого узла дерева."],
       "If Presto or Trino, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.": [
         "Если вы используете Presto или Trino, все запросы в Лаборатории SQL будут выполняться от авторизованного пользователя, который должен иметь разрешение на их выполнение. Если включены Hive и hive.server2.enable.doAs, то запросы будут выполняться через техническую учетную запись, но имперсонировать зарегистрированного пользователя можно через свойство hive.server2.proxy.user."
       ],
@@ -2452,7 +2480,9 @@
       "Interval start column": ["Столбец с началом интервала"],
       "Intervals": ["Интервалы"],
       "Invalid JSON": ["Недопустимый формат JSON"],
-      "Invalid advanced data type: %(advanced_data_type)s": [""],
+      "Invalid advanced data type: %(advanced_data_type)s": [
+        "Невалидный расширенный тип данных: %(advanced_data_type)s"
+      ],
       "Invalid certificate": ["Неверный сертификат"],
       "Invalid connection string, a valid string usually follows:\n'DRIVER://USER:PASSWORD@DB-HOST/DATABASE-NAME'": [
         "Недопустимая строка для подключения, валидная строка соответствует шаблону: ДРАЙВЕР://ИМЯ-ПОЛЬЗОВАТЕЛЯ:ПАРОЛЬ@ХОСТ/ИМЯ-БАЗЫ-ДАННЫХ"
@@ -2466,7 +2496,9 @@
       "Invalid cron expression": ["Недопустимое CRON выражение"],
       "Invalid cumulative operator: %(operator)s": [""],
       "Invalid date/timestamp format": ["Недопустимый формат дата/время"],
-      "Invalid filter configuration, please select a column": [""],
+      "Invalid filter configuration, please select a column": [
+        "Неверная конфигурация фильтра, пожалуйста, выберите столбец"
+      ],
       "Invalid filter operation type: %(op)s": [""],
       "Invalid geodetic string": [""],
       "Invalid geohash string": [""],
@@ -2491,6 +2523,7 @@
       "Invalid state.": [""],
       "Invalid tab ids: %s(tab_ids)": [""],
       "Inverse selection": ["Выбрать противоположные значения"],
+      "Invert current page": [""],
       "Is certified": ["Одобрено"],
       "Is dimension": ["Является измерением"],
       "Is favorite": ["В избранном"],
@@ -2516,9 +2549,11 @@
       "JUL": ["ИЮЛ"],
       "JUN": ["ИЮН"],
       "January": ["Январь"],
-      "Javascript data interceptor": [""],
-      "Javascript onClick href": [""],
-      "Javascript tooltip generator": [""],
+      "Javascript data interceptor": ["Javascript редактор данных"],
+      "Javascript onClick href": ["Javascript onClick href"],
+      "Javascript tooltip generator": [
+        "Javascript генератор всплывающих подсказок"
+      ],
       "Jinja templating": ["Шаблонизацию Jinja"],
       "Json list of the column names that should be read": [
         "Список столбцов в формате JSON из файла, которые будут использованы."
@@ -2609,7 +2644,7 @@
       ],
       "Line": ["Линейный"],
       "Line Chart": ["Линейный график"],
-      "Line Chart (legacy)": [""],
+      "Line Chart (legacy)": ["Линейный график (устарело)"],
       "Line Style": ["Тип линии"],
       "Line chart is used to visualize measurements taken over a given category. Line chart is a type of chart which displays information as a series of data points connected by straight line segments. It is a basic type of chart common in many fields.": [
         "Линейная диаграмма используется для визуализации показателей, полученных в рамках одной категории. Линейная диаграмма - это тип диаграммы, который отображает информацию в виде ряда точек данных, соединенных прямыми отрезками. Это базовый тип диаграммы, распространенный во многих областях."
@@ -3259,7 +3294,7 @@
       "Pin": ["Закрепить"],
       "Pivot Options": ["Параметры сводной таблицы"],
       "Pivot Table": ["Сводная таблица"],
-      "Pivot Table (legacy)": [""],
+      "Pivot Table (legacy)": ["Сводная таблица (устарело)"],
       "Pivot operation must include at least one aggregate": [""],
       "Pivot operation requires at least one index": [""],
       "Pivoted": ["Сводные данные"],
@@ -4900,7 +4935,8 @@
       "Time-series Area chart are similar to line chart in that they represent variables with the same scale, but area charts stack the metrics on top of each other. An area chart in Superset can be stream, stack, or expand.": [
         "Диаграмма с наполнением похожа на линейную диаграмму тем, что они представляют переменные с одинаковым масштабом, но диаграммы с наполнением накладывают показатели друг на друга."
       ],
-      "Time-series Bar Chart": ["Столбчатая диаграмма (временные ряды)"],
+      "Time-series Bar Chart": ["Столбчатая диаграмма"],
+      "Time-series Bar Chart (legacy)": ["Столбчатая диаграмма (устарело)"],
       "Time-series Bar Charts are used to show the changes in a metric over time as a series of bars.": [
         "Столбчатые диаграммы временных рядов используются для отображения изменений меры с течением времени в виде серии столбцов."
       ],
@@ -4964,6 +5000,7 @@
       "Tree layout": ["Оформление дерева"],
       "Tree orientation": ["Ориентация дерева"],
       "Treemap": ["Плоское дерево"],
+      "Treemap (legacy)": ["Плоское дерево (устарело)"],
       "Trend": ["Тенденция"],
       "Triangle": ["Треугольник"],
       "Trigger Alert If...": ["Оповестить, если..."],
@@ -5015,7 +5052,7 @@
         "Не удалось найти такой праздник: [%(holiday)s]"
       ],
       "Unable to load columns for the selected table. Please select a different table.": [
-        ""
+        "Не удалось загрузить столбцы для выбранной таблицы. Пожалуйста, выберите другую таблицу."
       ],
       "Unable to migrate query editor state to backend. Superset will retry later. Please contact your administrator if this problem persists.": [
         "Не удается перенести состояние редактора запроса на сервер. Суперсет повторит попытку позже. Пожалуйста, свяжитесь с вашим администратором, если эта проблема не устранена."
@@ -5027,7 +5064,7 @@
         "Не удается перенести состояние схемы таблицы на сервер. Суперсет повторит попытку позже. Пожалуйста, свяжитесь с вашим администратором, если эта проблема не устранена."
       ],
       "Unable to process right-click on %s. Check you chart configuration.": [
-        ""
+        "Не удалось обработать ПКМ на %s. Проверьте настройки графика."
       ],
       "Unable to retrieve dashboard colors": [
         "Не удалось получать цветовую схему дашборда"
@@ -5104,7 +5141,9 @@
         "Загрузить файл столбчатого формата в базу данных"
       ],
       "Upload file to database": ["Загрузить файл в базу данных"],
-      "Use \"%(menuName)s\" menu instead.": [""],
+      "Use \"%(menuName)s\" menu instead.": [
+        "Использовать меню \"%(menuName)s\" взамен."
+      ],
       "Use %s to open in a new tab.": [
         "Используйте %s для открытия в отдельной вкладке."
       ],
@@ -5283,7 +5322,7 @@
       ],
       "Was unable to check your query": ["Не удалось проверить запрос"],
       "We are unable to connect to your database. Click \"See more\" for database-provided information that may help troubleshoot the issue.": [
-        ""
+        "Не удалось подключиться к базе данных. Нажмите \"Подробнее\" для информации, предоставленной базой данных в ответ, для решения проблемы."
       ],
       "We can't seem to resolve column \"%(column)s\" at line %(location)s.": [
         "Не удалось обнаружить столбец \"%(column)s\" в строке %(location)s."
@@ -5294,7 +5333,7 @@
       "We can't seem to resolve the column \"%(column_name)s\" at line %(location)s.": [
         "Не удалось обнаружить столбец \"%(column_name)s\" в строке %(location)s."
       ],
-      "We have the following keys: %s": [""],
+      "We have the following keys: %s": ["У нас есть следующие ключи: %s"],
       "We were unable to active or deactivate this report.": [
         "Не удалось включить или выключить эту рассылку."
       ],
@@ -5528,6 +5567,7 @@
       "X-Axis Sort Ascending": ["Сортировать по возрастанию оси X"],
       "X-Axis Sort By": [""],
       "X-axis": ["Ось X"],
+      "XScale Interval": [""],
       "Y 2 bounds": ["Границы оси Y 2"],
       "Y AXIS TITLE MARGIN": ["Отступ названия оси Y"],
       "Y AXIS TITLE POSITION": ["Положение названия оси Y"],
@@ -5687,7 +5727,9 @@
         "[Долгота] и [Широта] должны быть заданы"
       ],
       "[Missing Dataset]": ["[отсутствующий датасет]"],
-      "[Superset] Access to the datasource %(name)s was granted": [""],
+      "[Superset] Access to the datasource %(name)s was granted": [
+        "[Суперсет] Предоставлен доступ к источнику данных %(name)s"
+      ],
       "[Untitled]": ["[Без названия]"],
       "[dashboard name]": ["[имя дашборда]"],
       "[optional] this secondary metric is used to define the color as a ratio against the primary metric. When omitted, the color is categorical and based on labels": [
@@ -5745,9 +5787,9 @@
       ],
       "column": ["столбец"],
       "connecting to %(dbModelName)s.": ["подключении к %(dbModelName)s"],
-      "create": ["создайте"],
+      "create": ["создать"],
       "create a new chart": ["создать новый график"],
-      "create dataset from SQL query": ["создать датасет из SQL запроса"],
+      "create dataset from SQL query": ["создайте датасет из SQL запроса"],
       "css": ["css"],
       "css_template": ["шаблон_css"],
       "cumsum": ["Кумулятивная сумма"],
@@ -5859,10 +5901,10 @@
         "или использовать уже существующие из панели справа"
       ],
       "p-value precision": ["точность p-значения"],
-      "p1": [""],
-      "p5": [""],
-      "p95": [""],
-      "p99": [""],
+      "p1": ["p1"],
+      "p5": ["p5"],
+      "p95": ["p95"],
+      "p99": ["p99"],
       "page_size.all": [""],
       "page_size.entries": [""],
       "page_size.show": [""],
@@ -5896,6 +5938,7 @@
         ""
       ],
       "std": ["Стандартное отклонение"],
+      "step-after": [""],
       "step-before": [""],
       "stream": ["поток"],
       "string type icon": [""],
@@ -5905,21 +5948,23 @@
       "textarea": ["текстовая область"],
       "top": ["сверху"],
       "undo": ["отмены"],
+      "unknown type icon": [""],
       "upper percentile must be greater than 0 and less than 100. Must be higher than lower percentile.": [
         ""
       ],
       "value ascending": ["Значение по возрастанию"],
       "value descending": ["Значение по убыванию"],
       "var": ["Дисперсия"],
+      "variance": ["Дисперсия"],
       "virtual": ["Виртуальный"],
       "viz type": ["тип визуализации"],
       "was created": ["создан(а)"],
       "week": ["неделя"],
       "week ending Saturday": ["неделя, заканчивающаяся в субботу"],
       "week starting Sunday": ["неделя, начинающаяся в воскресенье"],
-      "x": [""],
+      "x": ["x"],
       "x: values are normalized within each column": [""],
-      "y": [""],
+      "y": ["y"],
       "y: values are normalized within each row": [""],
       "year": ["год"],
       "yellow": ["Желтая"],
