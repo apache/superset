@@ -1204,7 +1204,6 @@ describe('DatabaseModal', () => {
               name: /postgresql/i,
             }),
           );
-          screen.logTestingPlaygroundURL();
           expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
           const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
           userEvent.click(SSHTunnelingToggle);
