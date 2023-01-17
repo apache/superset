@@ -409,9 +409,10 @@ const Select = forwardRef(
 
     const customMaxTagPlaceholder = () => {
       const num_selected = ensureIsArray(selectValue).length;
+      const num_shown = maxTagCount as number;
       return selectAllMode
-        ? `+ ${num_selected - 1} ...`
-        : `+ ${num_selected} ...`;
+        ? `+ ${num_selected - num_shown - 1} ...`
+        : `+ ${num_selected - num_shown} ...`;
     };
 
     return (
