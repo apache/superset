@@ -555,7 +555,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         DB.backend === db?.engine || DB.engine === db?.engine,
     ) as DatabaseObject
   )?.engine_information?.allow_ssh_tunneling;
-  const sshTunneling =
+  const isSSHTunneling =
     isFeatureEnabled(FeatureFlag.SSH_TUNNELING) &&
     engineAllowsSSHTunneling !== undefined &&
     engineAllowsSSHTunneling;
@@ -1299,7 +1299,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const renderSSHTunnelForm = () => (
     <SSHTunnelForm
       isEditMode={isEditMode}
-      sshTunneling={sshTunneling}
+      isSSHTunneling={isSSHTunneling}
       db={db as DatabaseObject}
       dbFetched={dbFetched as DatabaseObject}
       onSSHTunnelParametersChange={({
@@ -1533,7 +1533,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                {sshTunneling && renderSSHTunnelForm()}
+                {isSSHTunneling && renderSSHTunnelForm()}
               </SqlAlchemyForm>
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
@@ -1807,7 +1807,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                   getPlaceholder={getPlaceholder}
                 />
-                {sshTunneling && (
+                {isSSHTunneling && (
                   <SSHTunnelContainer>
                     {renderSSHTunnelForm()}
                   </SSHTunnelContainer>
