@@ -50,19 +50,6 @@ export interface PluginFilterSelectChartProps extends ChartProps {
   queriesData: ChartDataResponseResult[];
 }
 
-export type PluginFilterSelectProps = PluginFilterStylesProps & {
-  coltypeMap: Record<string, GenericDataType>;
-  data: DataRecord[];
-  behaviors: Behavior[];
-  appSection: AppSection;
-  formData: PluginFilterSelectQueryFormData;
-  filterState: FilterState;
-  isRefreshing: boolean;
-  showOverflow: boolean;
-  parentRef?: RefObject<any>;
-  inputRef?: RefObject<any>;
-} & PluginFilterHooks;
-
 export type PluginFilterAdhocProps = PluginFilterStylesProps & {
   coltypeMap: Record<string, GenericDataType>;
   data: DataRecord[];

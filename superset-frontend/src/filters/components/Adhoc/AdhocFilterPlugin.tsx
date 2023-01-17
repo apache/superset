@@ -41,13 +41,9 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 // eslint-disable-next-line import/no-unresolved
 import { useChangeEffect } from 'src/hooks/useChangeEffect';
 import { PluginFilterAdhocProps } from './types';
-import {
-  StyledFormItem,
-  FilterPluginStyle,
-  StatusMessage,
-  ControlContainer,
-} from '../common';
+import { StyledFormItem, FilterPluginStyle, StatusMessage } from '../common';
 import { getDataRecordFormatter, getAdhocExtraFormData } from '../../utils';
+import { AdhocControlContainer } from './styles';
 
 type DataMaskAction =
   | { type: 'ownState'; ownState: JsonObject }
@@ -94,6 +90,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
     setFocusedFilter,
     unsetFocusedFilter,
     appSection,
+    inputRef,
   } = props;
   const { enableEmptyFilter, inverseSelection, defaultToFirstItem } = formData;
   const datasetId = useMemo(
@@ -131,7 +128,8 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
           const dataset = response.json?.result;
           // modify the response to fit structure expected by AdhocFilterControl
           dataset.type = dataset.datasource_type;
-          dataset.filter_select = true;
+          // setting filter_select to false will disable suggestions
+          dataset.filter_select = false;
           setDatasetDetails(dataset);
         })
         .catch((response: SupersetApiError) => {
@@ -231,10 +229,14 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
         validateStatus={filterState.validateStatus}
         extra={formItemExtra}
       >
-        <ControlContainer
+        <AdhocControlContainer
+          tabIndex={-1}
+          ref={inputRef}
+          validateStatus={filterState.validateStatus}
+          onFocus={setFocusedFilter}
+          onBlur={unsetFocusedFilter}
           onMouseEnter={setFocusedFilter}
           onMouseLeave={unsetFocusedFilter}
-          validateStatus={filterState.validateStatus}
         >
           <AdhocFilterControl
             columns={columns || []}
@@ -247,7 +249,7 @@ export default function PluginFilterAdhoc(props: PluginFilterAdhocProps) {
             label={' '}
             value={filterState.filters || []}
           />
-        </ControlContainer>
+        </AdhocControlContainer>
       </StyledFormItem>
     </FilterPluginStyle>
   );
