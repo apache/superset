@@ -134,7 +134,7 @@ export type CrossFilterTransformedProps = {
   setControlValue?: HandlerFunction;
   setDataMask: SetDataMaskHook;
   selectedValues: Record<number, string>;
-  emitCrossFilters: boolean;
+  emitCrossFilters?: boolean;
 };
 
 export type ContextMenuTransformedProps = {

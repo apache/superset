@@ -26,7 +26,7 @@ import { css, Global } from '@emotion/react';
 
 const { SubMenu } = Menu;
 
-type SubMenuItemProps = { key: string; label: React.ReactNode };
+type SubMenuItemProps = { key: string; label: string | React.ReactNode };
 
 export interface DropDownSelectableProps extends Pick<MenuProps, 'onSelect'> {
   ref?: RefObject<HTMLDivElement>;
@@ -34,7 +34,7 @@ export interface DropDownSelectableProps extends Pick<MenuProps, 'onSelect'> {
   info?: string;
   menuItems: {
     key: string;
-    label: React.ReactNode;
+    label: string | React.ReactNode;
     children?: SubMenuItemProps[];
   }[];
   selectedKeys?: string[];
@@ -103,7 +103,7 @@ export default (props: DropDownSelectableProps) => {
         )}
         {menuItems.map(m =>
           m.children?.length ? (
-            <SubMenu title={m.label}>
+            <SubMenu title={m.label} key={m.key}>
               {m.children.map(s => menuItem(s.label, s.key))}
             </SubMenu>
           ) : (

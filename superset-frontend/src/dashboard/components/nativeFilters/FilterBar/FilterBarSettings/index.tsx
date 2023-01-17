@@ -17,14 +17,14 @@
  * under the License.
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, styled, t, useTheme } from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import { saveFilterBarOrientation } from 'src/dashboard/actions/dashboardInfo';
+import { saveFilterBarOrientation, saveCrossFiltersSetting } from 'src/dashboard/actions/dashboardInfo';
 import Icons from 'src/components/Icons';
-import DropdownSelectableIcon from 'src/components/DropdownSelectableIcon';
+import DropdownSelectableIcon, { DropDownSelectableProps } from 'src/components/DropdownSelectableIcon';
 import Checkbox from 'src/components/Checkbox';
 
 type SelectedKey = FilterBarOrientation | string | number;
@@ -38,18 +38,33 @@ const StyledMenuLabel = styled.span`
 const FilterBarSettings = () => {
   const dispatch = useDispatch();
   const theme = useTheme();
+  const isCrossFiltersEnabled = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
+  );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
   const [selectedFilterBarOrientation, setSelectedFilterBarOrientation] =
     useState(filterBarOrientation);
+  const isCrossFiltersFeatureEnabled = isFeatureEnabled(
+    FeatureFlag.DASHBOARD_CROSS_FILTERS,
+  );
+  const shouldEnableCrossFilters = !!isCrossFiltersEnabled && isCrossFiltersFeatureEnabled;
   const [crossFiltersEnabled, setCrossFiltersEnabled] =
-    useState<boolean>(false);
+    useState<boolean>(shouldEnableCrossFilters);
   const crossFiltersMenuKey = 'cross-filters-menu-key';
   const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
     o === FilterBarOrientation.VERTICAL ||
     o === FilterBarOrientation.HORIZONTAL;
-  const toggleFilterBarOrientation = useCallback(
+  const updateCrossFiltersSetting = useCallback(
+    async (isEnabled) => {
+      await dispatch(
+        saveCrossFiltersSetting(isEnabled),
+      );
+    },
+    [dispatch, crossFiltersEnabled],
+  );
+  const changeFilterBarSettings = useCallback(
     async (
       selection: Parameters<
         Required<Pick<MenuProps, 'onSelect'>>['onSelect']
@@ -58,6 +73,7 @@ const FilterBarSettings = () => {
       const selectedKey: SelectedKey = selection.key;
       if (selectedKey === crossFiltersMenuKey) {
         setCrossFiltersEnabled(!crossFiltersEnabled);
+        updateCrossFiltersSetting(!crossFiltersEnabled);
         return;
       }
       if (isOrientation(selectedKey) && selectedKey !== filterBarOrientation) {
@@ -76,7 +92,6 @@ const FilterBarSettings = () => {
     },
     [dispatch, crossFiltersEnabled, filterBarOrientation],
   );
-
   const crossFiltersMenuItem = useMemo(
     () => (
       <StyledMenuLabel>
@@ -90,10 +105,33 @@ const FilterBarSettings = () => {
     ),
     [crossFiltersEnabled],
   );
+  const menuItems: DropDownSelectableProps["menuItems"] = [
+    {
+      key: 'placement',
+      label: t('Placement of the filter bar'),
+      children: [
+        {
+          key: FilterBarOrientation.VERTICAL,
+          label: t('Vertical (Left)'),
+        },
+        {
+          key: FilterBarOrientation.HORIZONTAL,
+          label: t('Horizontal (Top)'),
+        },
+      ],
+    },
+  ];
+
+  if (isCrossFiltersFeatureEnabled) {
+    menuItems.unshift({
+      key: crossFiltersMenuKey,
+      label: crossFiltersMenuItem,
+    });
+  }
 
   return (
     <DropdownSelectableIcon
-      onSelect={toggleFilterBarOrientation}
+      onSelect={changeFilterBarSettings}
       icon={
         <Icons.Gear
           name="gear"
@@ -101,26 +139,7 @@ const FilterBarSettings = () => {
           data-test="filterbar-orientation-icon"
         />
       }
-      menuItems={[
-        {
-          key: crossFiltersMenuKey,
-          label: crossFiltersMenuItem,
-        },
-        {
-          key: 'placement',
-          label: t('Placement of the filter bar'),
-          children: [
-            {
-              key: FilterBarOrientation.VERTICAL,
-              label: t('Vertical (Left)'),
-            },
-            {
-              key: FilterBarOrientation.HORIZONTAL,
-              label: t('Horizontal (Top)'),
-            },
-          ],
-        },
-      ]}
+      menuItems={menuItems}
       selectedKeys={[selectedFilterBarOrientation]}
     />
   );

@@ -109,6 +109,7 @@ export type DashboardInfo = {
     label_colors: JsonObject;
     shared_label_colors: JsonObject;
   };
+  crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
 };
 
