@@ -26,6 +26,7 @@ jest.mock('react-router-dom', () => ({
   useHistory: () => ({
     push: mockHistoryPush,
   }),
+  useParams: () => ({ datasetId: undefined }),
 }));
 
 describe('AddDataset', () => {
