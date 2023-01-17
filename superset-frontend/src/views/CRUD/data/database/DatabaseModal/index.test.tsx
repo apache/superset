@@ -1201,7 +1201,7 @@ describe('DatabaseModal', () => {
         test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
           userEvent.click(
             screen.getByRole('button', {
-              name: /postgres/i,
+              name: /postgresql/i,
             }),
           );
 
