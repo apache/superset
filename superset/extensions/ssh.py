@@ -16,9 +16,11 @@
 # under the License.
 
 import importlib
+from io import StringIO
 from typing import TYPE_CHECKING
 
 from flask import Flask
+from paramiko import RSAKey
 from sshtunnel import open_tunnel, SSHTunnelForwarder
 
 from superset.databases.utils import make_url_safe
@@ -59,7 +61,9 @@ class SSHManager:
         if ssh_tunnel.password:
             params["ssh_password"] = ssh_tunnel.password
         elif ssh_tunnel.private_key:
-            params["private_key"] = ssh_tunnel.private_key
+            private_key_file = StringIO(ssh_tunnel.private_key)
+            private_key = RSAKey.from_private_key(private_key_file)
+            params["private_key"] = private_key
             params["private_key_password"] = ssh_tunnel.private_key_password
 
         return open_tunnel(**params)
