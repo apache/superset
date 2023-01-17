@@ -367,7 +367,13 @@ class TestDatasetApi(SupersetTestCase):
                 )
             )
             all_datasets = db.session.query(SqlaTable).all()
-            schema_values = set([dataset.schema for dataset in all_datasets])
+            schema_values = set(
+                [
+                    dataset.schema
+                    for dataset in all_datasets
+                    if dataset.schema is not None
+                ]
+            )
             expected_response = {
                 "count": len(schema_values),
                 "result": [{"text": val, "value": val} for val in schema_values],
