@@ -272,61 +272,62 @@ export function Menu({
     );
   };
   return (
-    <StyledHeader className="top" id="main-menu" role="navigation">
-      <Global styles={globalStyles(theme)} />
-      <Row>
-        <Col md={16} xs={24}>
-          <Tooltip
-            id="brand-tooltip"
-            placement="bottomLeft"
-            title={brand.tooltip}
-            arrowPointAtCenter
-          >
-            <a className="navbar-brand" href={brand.path}>
-              <img src={brand.icon} alt={brand.alt} />
-            </a>
-          </Tooltip>
-          {brand.text && (
-            <div className="navbar-brand-text">
-              <span>{brand.text}</span>
-            </div>
-          )}
-          <DropdownMenu
-            mode={showMenu}
-            data-test="navbar-top"
-            className="main-nav"
-          >
-            {menu.map((item, index) => {
-              const props = {
-                index,
-                ...item,
-                isFrontendRoute: isFrontendRoute(item.url),
-                childs: item.childs?.map(c => {
-                  if (typeof c === 'string') {
-                    return c;
-                  }
+    <></>
+    // <StyledHeader className="top" id="main-menu" role="navigation"> Uncomment to renable top bar
+    //   <Global styles={globalStyles(theme)} />
+    //   <Row>
+    //     <Col md={16} xs={24}>
+    //       <Tooltip
+    //         id="brand-tooltip"
+    //         placement="bottomLeft"
+    //         title={brand.tooltip}
+    //         arrowPointAtCenter
+    //       >
+    //         <a className="navbar-brand" href={brand.path}>
+    //           <img src={brand.icon} alt={brand.alt} />
+    //         </a>
+    //       </Tooltip>
+    //       {brand.text && (
+    //         <div className="navbar-brand-text">
+    //           <span>{brand.text}</span>
+    //         </div>
+    //       )}
+    //       <DropdownMenu
+    //         mode={showMenu}
+    //         data-test="navbar-top"
+    //         className="main-nav"
+    //       >
+    //         {menu.map((item, index) => {
+    //           const props = {
+    //             index,
+    //             ...item,
+    //             isFrontendRoute: isFrontendRoute(item.url),
+    //             childs: item.childs?.map(c => {
+    //               if (typeof c === 'string') {
+    //                 return c;
+    //               }
 
-                  return {
-                    ...c,
-                    isFrontendRoute: isFrontendRoute(c.url),
-                  };
-                }),
-              };
+    //               return {
+    //                 ...c,
+    //                 isFrontendRoute: isFrontendRoute(c.url),
+    //               };
+    //             }),
+    //           };
 
-              return renderSubMenu(props);
-            })}
-          </DropdownMenu>
-        </Col>
-        <Col md={8} xs={24}>
-          <RightMenu
-            align={screens.md ? 'flex-end' : 'flex-start'}
-            settings={settings}
-            navbarRight={navbarRight}
-            isFrontendRoute={isFrontendRoute}
-          />
-        </Col>
-      </Row>
-    </StyledHeader>
+    //           return renderSubMenu(props);
+    //         })}
+    //       </DropdownMenu>
+    //     </Col>
+    //     <Col md={8} xs={24}>
+    //       <RightMenu
+    //         align={screens.md ? 'flex-end' : 'flex-start'}
+    //         settings={settings}
+    //         navbarRight={navbarRight}
+    //         isFrontendRoute={isFrontendRoute}
+    //       />
+    //     </Col>
+    //   </Row>
+    // </StyledHeader>
   );
 }
 
