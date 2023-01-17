@@ -27,7 +27,6 @@ import {
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
 } from 'antd/lib/select';
-import { TagProps } from 'antd/lib/tag';
 
 export type RawValue = string | number;
 
@@ -64,6 +63,7 @@ export type AntdExposedProps = Pick<
   | 'value'
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
+  | 'tagRender'
 >;
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
@@ -100,7 +100,7 @@ export interface BaseSelectProps extends AntdExposedProps {
    * It adds a helper text on top of the Select options
    * with additional context to help with the interaction.
    */
-  helperText?: string;
+  helperText?: ReactNode;
   /**
    * It allows to define which properties of the option object
    * should be looked for when searching.
@@ -210,8 +210,6 @@ export interface AsyncSelectProps extends BaseSelectProps {
   onError?: (error: string) => void;
 }
 
-export type CustomTagProps = HTMLSpanElement &
-  TagProps & {
-    label: ReactNode;
-    value: string;
-  };
+export type CustomTagProps = Parameters<
+  Required<Pick<SelectProps, 'tagRender'>>['tagRender']
+>[0];

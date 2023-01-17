@@ -113,6 +113,19 @@ export interface ExplorePageState {
     standalone: boolean;
     force: boolean;
     common: JsonObject;
+    saveAction: SaveActionType | null;
+    metadata: {
+      changed_by: string;
+      changed_on_humanized: string;
+      created_on_humanized: string;
+      owners: string[];
+      dashboards: { id: number; dashboard_title: string }[];
+    };
+  };
+  saveModal: {
+    dashboards: { value: number; label: string }[];
+    saveModalAlert: string;
+    isVisible: boolean;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }

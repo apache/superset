@@ -23,7 +23,6 @@ import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import * as chartAction from 'src/components/Chart/chartAction';
-import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { FeatureFlag } from '@superset-ui/core';
@@ -118,6 +117,7 @@ const createProps = (additionalProps = {}) => ({
   canOverwrite: false,
   canDownload: false,
   isStarred: false,
+  showSaveModal: jest.fn(),
   ...additionalProps,
 });
 
@@ -192,29 +192,21 @@ test('does not render the metadata bar when not saved', async () => {
 });
 
 test('Save chart', async () => {
-  const setSaveChartModalVisibility = jest.spyOn(
-    saveModalActions,
-    'setSaveChartModalVisibility',
-  );
   const props = createProps();
   render(<ExploreHeader {...props} />, { useRedux: true });
   expect(await screen.findByText('Save')).toBeInTheDocument();
   userEvent.click(screen.getByText('Save'));
-  expect(setSaveChartModalVisibility).toHaveBeenCalledWith(true);
-  setSaveChartModalVisibility.mockClear();
+  expect(props.showSaveModal).toHaveBeenCalled();
+  props.showSaveModal.mockClear();
 });
 
 test('Save disabled', async () => {
-  const setSaveChartModalVisibility = jest.spyOn(
-    saveModalActions,
-    'setSaveChartModalVisibility',
-  );
   const props = createProps();
   render(<ExploreHeader {...props} saveDisabled />, { useRedux: true });
   expect(await screen.findByText('Save')).toBeInTheDocument();
   userEvent.click(screen.getByText('Save'));
-  expect(setSaveChartModalVisibility).not.toHaveBeenCalled();
-  setSaveChartModalVisibility.mockClear();
+  expect(props.showSaveModal).not.toHaveBeenCalled();
+  props.showSaveModal.mockClear();
 });
 
 describe('Additional actions tests', () => {

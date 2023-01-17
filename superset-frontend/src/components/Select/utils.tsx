@@ -18,7 +18,7 @@
  */
 import { ensureIsArray, t } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import React, { ReactElement, RefObject } from 'react';
+import React, { ReactElement, ReactNode, RefObject } from 'react';
 import { DownOutlined, SearchOutlined } from '@ant-design/icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
@@ -142,7 +142,7 @@ export const dropDownRenderHelper = (
   isDropdownVisible: boolean,
   isLoading: boolean | undefined,
   optionsLength: number,
-  helperText: string | undefined,
+  helperText: ReactNode | undefined,
   errorComponent?: JSX.Element,
 ) => {
   if (!isDropdownVisible) {

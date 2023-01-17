@@ -18,28 +18,40 @@
  */
 import React from 'react';
 import { Tag as AntdTag } from 'antd';
-import { styled } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
 import { useCSSTextTruncation } from 'src/hooks/useTruncation';
 import { Tooltip } from '../Tooltip';
 import { CustomTagProps } from './types';
 import { SELECT_ALL_VALUE } from './utils';
 import { NoElement } from './styles';
 
-const StyledTag = styled(AntdTag)`
-  & .ant-tag-close-icon {
-    display: inline-flex;
-    align-items: center;
-    margin-left: ${({ theme }) => theme.gridUnit}px;
-  }
+export const StyledTag = styled(AntdTag)`
+  ${({ theme }) => css`
+    & .ant-tag-close-icon {
+      display: inline-flex;
+      align-items: center;
+      margin-left: ${theme.gridUnit}px;
+    }
 
-  & .tag-content {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+    & .tag-content {
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      &:last-child {
+        padding-right: ${theme.gridUnit}px;
+      }
+    }
+  `}
 `;
 
 // TODO: use antd Tag props instead of any. Currently it's causing a typescript error
-const Tag = (props: any) => {
+export const Tag = (props: any) => (
+  <StyledTag {...props} className="ant-select-selection-item">
+    <span className="tag-content">{props.children}</span>
+  </StyledTag>
+);
+
+export const OneLineTag = (props: any) => {
   const [tagRef, tagIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
   return (
     <Tooltip title={tagIsTruncated ? props.children : null}>
@@ -73,9 +85,9 @@ export const customTagRender = (props: CustomTagProps) => {
 
   if (value !== SELECT_ALL_VALUE) {
     return (
-      <Tag onMouseDown={onPreventMouseDown} {...(props as object)}>
+      <OneLineTag onMouseDown={onPreventMouseDown} {...(props as object)}>
         {label}
-      </Tag>
+      </OneLineTag>
     );
   }
   return <NoElement />;

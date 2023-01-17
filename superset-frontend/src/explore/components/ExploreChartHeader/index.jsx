@@ -36,7 +36,6 @@ import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
-import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 
 const propTypes = {
@@ -53,6 +52,7 @@ const propTypes = {
   timeout: PropTypes.number,
   chart: chartPropShape,
   saveDisabled: PropTypes.bool,
+  showSaveModal: PropTypes.func.isRequired,
 };
 
 const saveButtonStyles = theme => css`
@@ -85,6 +85,7 @@ export const ExploreChartHeader = ({
   sliceName,
   saveDisabled,
   metadata,
+  showSaveModal,
 }) => {
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
@@ -139,10 +140,6 @@ export const ExploreChartHeader = ({
   const closePropertiesModal = () => {
     setIsPropertiesModalOpen(false);
   };
-
-  const showModal = useCallback(() => {
-    dispatch(setSaveChartModalVisibility(true));
-  }, [dispatch]);
 
   const updateSlice = useCallback(
     slice => {
@@ -259,7 +256,7 @@ export const ExploreChartHeader = ({
             <div>
               <Button
                 buttonStyle="secondary"
-                onClick={showModal}
+                onClick={showSaveModal}
                 disabled={saveDisabled}
                 data-test="query-save-button"
                 css={saveButtonStyles}

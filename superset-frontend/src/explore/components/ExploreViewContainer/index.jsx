@@ -81,7 +81,6 @@ const propTypes = {
   impressionId: PropTypes.string,
   vizType: PropTypes.string,
   saveAction: PropTypes.string,
-  isSaveModalVisible: PropTypes.bool,
 };
 
 const ExploreContainer = styled.div`
@@ -244,6 +243,7 @@ function ExploreViewContainer(props) {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [shouldForceUpdate, setShouldForceUpdate] = useState(-1);
+  const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
   const tabId = useTabId();
 
   const theme = useTheme();
@@ -523,25 +523,29 @@ function ExploreViewContainer(props) {
     return errorMessage;
   }, [props.controls]);
 
-  function renderChartContainer() {
-    return (
-      <ExploreChartPanel
-        {...props}
-        errorMessage={errorMessage}
-        chartIsStale={chartIsStale}
-        onQuery={onQuery}
-      />
-    );
-  }
+  const showSaveModal = () => {
+    setIsSaveModalVisible(true);
+  };
 
-  function getSidebarWidths(key) {
-    return getItem(key, defaultSidebarsWidth[key]);
-  }
+  const closeSaveModal = () => {
+    setIsSaveModalVisible(false);
+  };
 
-  function setSidebarWidths(key, dimension) {
+  const renderChartContainer = () => (
+    <ExploreChartPanel
+      {...props}
+      errorMessage={errorMessage}
+      chartIsStale={chartIsStale}
+      onQuery={onQuery}
+    />
+  );
+
+  const getSidebarWidths = key => getItem(key, defaultSidebarsWidth[key]);
+
+  const setSidebarWidths = (key, dimension) => {
     const newDimension = Number(getSidebarWidths(key)) + dimension.width;
     setItem(key, newDimension);
-  }
+  };
 
   if (props.standalone) {
     return renderChartContainer();
@@ -565,6 +569,7 @@ function ExploreViewContainer(props) {
         reports={props.reports}
         saveDisabled={errorMessage || props.chart.chartStatus === 'loading'}
         metadata={props.metadata}
+        showSaveModal={showSaveModal}
       />
       <ExplorePanelContainer id="explore-container">
         <Global
@@ -687,13 +692,15 @@ function ExploreViewContainer(props) {
           {renderChartContainer()}
         </div>
       </ExplorePanelContainer>
-      {props.isSaveModalVisible && (
+      {isSaveModalVisible && (
         <SaveModal
           addDangerToast={props.addDangerToast}
           actions={props.actions}
           form_data={props.form_data}
           sliceName={props.sliceName}
           dashboardId={props.dashboardId}
+          isVisible={isSaveModalVisible}
+          onClose={closeSaveModal}
         />
       )}
     </ExploreContainer>
@@ -761,7 +768,6 @@ function mapStateToProps(state) {
     reports,
     metadata,
     saveAction: explore.saveAction,
-    isSaveModalVisible: saveModal.isVisible,
   };
 }
 
