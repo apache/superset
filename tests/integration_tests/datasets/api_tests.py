@@ -366,12 +366,10 @@ class TestDatasetApi(SupersetTestCase):
                     schema="information_schema",
                 )
             )
-            schema_values = [
-                "information_schema",
-                "public",
-            ]
+            all_datasets = db.session.query(SqlaTable).all()
+            schema_values = set([dataset.schema for dataset in all_datasets])
             expected_response = {
-                "count": 2,
+                "count": len(schema_values),
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
