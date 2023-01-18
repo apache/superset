@@ -33,7 +33,7 @@ import rison from 'rison';
 import { LabeledErrorBoundInput } from 'src/components/Form';
 import { noBottomMargin } from 'src/components/ReportModal/styles';
 import InfoTooltip from 'src/components/InfoTooltip';
-import { useSingleViewResource } from '../hooks';
+import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FilterOptions } from './constants';
 import { FilterType, RLSObject, RoleObject, TableObject } from './types';
 

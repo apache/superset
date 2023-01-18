@@ -31,10 +31,10 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { Tooltip } from 'src/components/Tooltip';
 import SubMenu, { SubMenuProps } from 'src/views/components/SubMenu';
 import rison from 'rison';
-import { useListViewResource } from '../hooks';
+import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import RowLevelSecurityModal from './RowLevelSecurityModal';
 import { RLSObject } from './types';
-import { createErrorHandler } from '../utils';
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};

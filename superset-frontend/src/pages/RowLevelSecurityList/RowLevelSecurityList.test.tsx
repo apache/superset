@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import RowLevelSecurityList from 'src/views/CRUD/rowlevelsecurity/RowLevelSecurityList';
+import RowLevelSecurityList from 'src/pages/RowLevelSecurityList';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { act } from 'react-dom/test-utils';
 import { MemoryRouter } from 'react-router-dom';

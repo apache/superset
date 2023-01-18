@@ -108,7 +108,7 @@ const SavedQueryList = lazy(
 const RowLevelSecurity = lazy(
   () =>
     import(
-      /* webpackChunkName: "RowLevelSecurity" */ 'src/views/CRUD/rowlevelsecurity/RowLevelSecurityList'
+      /* webpackChunkName: "RowLevelSecurity" */ 'src/pages/RowLevelSecurityList'
     ),
 );
 
