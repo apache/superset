@@ -121,8 +121,6 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
     flashType: '',
   });
 
-  // const [flashType, setFlashType] = useState(flash?.flashType);
-
   useEffect(() => {
     if (flash) {
       formData.ttl = flash?.ttl ? flash?.ttl : '';
