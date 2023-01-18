@@ -16,14 +16,29 @@
 # under the License.
 import logging
 
+import backoff
+from flask_appbuilder.api import expose, protect, request, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
+from superset import db, event_logger
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.filters import DatabaseFilter
+from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
+from superset.queries.dao import QueryDAO
 from superset.queries.filters import QueryFilter
-from superset.queries.schemas import openapi_spec_methods_override, QuerySchema
-from superset.views.base_api import BaseSupersetModelRestApi, RelatedFieldFilter
+from superset.queries.schemas import (
+    openapi_spec_methods_override,
+    QuerySchema,
+    StopQuerySchema,
+)
+from superset.superset_typing import FlaskResponse
+from superset.views.base_api import (
+    BaseSupersetModelRestApi,
+    RelatedFieldFilter,
+    requires_json,
+    statsd_metrics,
+)
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -43,6 +58,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         RouteMethod.GET_LIST,
         RouteMethod.RELATED,
         RouteMethod.DISTINCT,
+        "stop_query",
     }
 
     list_columns = [
@@ -95,9 +111,11 @@ class QueryRestApi(BaseSupersetModelRestApi):
     base_filters = [["id", QueryFilter, lambda: []]]
     base_order = ("changed_on", "desc")
     list_model_schema = QuerySchema()
+    stop_query_schema = StopQuerySchema()
 
     openapi_spec_tag = "Queries"
     openapi_spec_methods = openapi_spec_methods_override
+    openapi_spec_component_schemas = (StopQuerySchema,)
 
     order_columns = [
         "changed_on",
@@ -123,3 +141,59 @@ class QueryRestApi(BaseSupersetModelRestApi):
     base_related_field_filters = {"database": [["id", DatabaseFilter, lambda: []]]}
     allowed_rel_fields = {"database", "user"}
     allowed_distinct_fields = {"status"}
+
+    @expose("/stop", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".stop_query",
+        log_to_statsd=False,
+    )
+    @backoff.on_exception(
+        backoff.constant,
+        Exception,
+        interval=1,
+        on_backoff=lambda details: db.session.rollback(),
+        on_giveup=lambda details: db.session.rollback(),
+        max_tries=5,
+    )
+    @requires_json
+    def stop_query(self) -> FlaskResponse:
+        """Manually stop a query with client_id
+        ---
+        post:
+          summary: Manually stop a query with client_id
+          requestBody:
+            description: Stop query schema
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/StopQuerySchema'
+          responses:
+            200:
+              description: Query stopped
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                        result:
+                            type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            body = self.stop_query_schema.load(request.json)
+            QueryDAO.stop_query(body["client_id"])
+            return self.response(200, result="OK")
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)

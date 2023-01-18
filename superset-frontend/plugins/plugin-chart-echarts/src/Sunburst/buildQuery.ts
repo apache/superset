@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type ChartObject = {
-  slice_name?: string;
-  description?: string;
-  viz_type?: string;
-  params?: string;
-  cache_timeout?: number;
-  datasource_id?: number;
-  datasource_type?: number;
-  is_managed_externally: boolean;
-};
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
+
+export default function buildQuery(formData: QueryFormData) {
+  const { metric, sort_by_metric } = formData;
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      ...(sort_by_metric && { orderby: [[metric, false]] }),
+    },
+  ]);
+}

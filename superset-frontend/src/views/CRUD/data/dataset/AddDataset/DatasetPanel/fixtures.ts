@@ -40,6 +40,7 @@ export const exampleDataset: DatasetObject[] = [
       id: 1,
       database_name: 'test_database',
       owners: [1],
+      backend: 'test_backend',
     },
     schema: 'test_schema',
     dataset_name: 'example_dataset',

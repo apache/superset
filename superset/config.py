@@ -875,7 +875,6 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = ("superset.sql_lab",)
     result_backend = "db+sqlite:///celery_results.sqlite"
-    worker_log_level = "DEBUG"
     worker_prefetch_multiplier = 1
     task_acks_late = False
     task_annotations = {
@@ -1193,6 +1192,14 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
     return sql
 
 
+# A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query
+# It allows for using the SQL_QUERY_MUTATOR function for more than comments
+# Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True
+# An example use case is if data has role based access controls, and you want to apply
+# a SET ROLE statement alongside every user query. Changing this variable maintains
+# functionality for both the SQL_Lab and Charts.
+MUTATE_AFTER_SPLIT = False
+
 # This allows for a user to add header data to any outgoing emails. For example,
 # if you need to include metadata in the header or you want to change the specifications
 # of the email title, header, or sender.
@@ -1376,7 +1383,7 @@ RLS_BASE_RELATED_FIELD_FILTERS: Dict[str, BaseFilter] = {}
 #
 SESSION_COOKIE_HTTPONLY = True  # Prevent cookie from being read by frontend JS?
 SESSION_COOKIE_SECURE = False  # Prevent cookie from being transmitted over non-tls?
-SESSION_COOKIE_SAMESITE = "Lax"  # One of [None, 'None', 'Lax', 'Strict']
+SESSION_COOKIE_SAMESITE: Optional[Literal["None", "Lax", "Strict"]] = "Lax"
 
 # Cache static resources.
 SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
@@ -1424,6 +1431,9 @@ GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
+GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: Optional[
+    Literal["None", "Lax", "Strict"]
+] = None
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
 GLOBAL_ASYNC_QUERIES_TRANSPORT = "polling"

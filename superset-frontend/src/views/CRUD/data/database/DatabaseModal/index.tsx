@@ -31,6 +31,7 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
+import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
@@ -524,6 +525,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
+  const history = useHistory();
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
@@ -549,7 +551,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const sslForced = isFeatureEnabled(
     FeatureFlag.FORCE_DATABASE_CONNECTIONS_SSL,
   );
-  const engineAllowsSSHTunneling = (
+  const disableSSHTunnelingForEngine = (
     availableDbs?.databases?.find(
       (DB: DatabaseObject) =>
         DB.backend === db?.engine || DB.engine === db?.engine,
@@ -557,7 +559,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   )?.engine_information?.allow_ssh_tunneling;
   const isSSHTunneling =
     isFeatureEnabled(FeatureFlag.SSH_TUNNELING) &&
-    engineAllowsSSHTunneling !== undefined;
+    disableSSHTunnelingForEngine !== undefined;
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
@@ -1334,7 +1336,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          window.location.href = '/tablemodelview/list#create';
+          history.push('/dataset/add/');
         }}
       >
         {t('CREATE DATASET')}
@@ -1345,7 +1347,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          window.location.href = `/superset/sqllab/?db=true`;
+          history.push(`/superset/sqllab/?db=true`);
         }}
       >
         {t('QUERY DATA IN SQL LAB')}

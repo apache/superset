@@ -21,6 +21,7 @@ import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import LeftPanel from 'src/views/CRUD/data/dataset/AddDataset/LeftPanel';
+import { exampleDataset } from 'src/views/CRUD/data/dataset/AddDataset/DatasetPanel/fixtures';
 
 const databasesEndpoint = 'glob:*/api/v1/database/?q*';
 const schemasEndpoint = 'glob:*/api/v1/database/*/schemas*';
@@ -181,7 +182,7 @@ test('does not render blank state if there is nothing selected', async () => {
 });
 
 test('renders list of options when user clicks on schema', async () => {
-  render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId={1} />, {
+  render(<LeftPanel setDataset={mockFun} dataset={exampleDataset[0]} />, {
     useRedux: true,
   });
 
@@ -189,23 +190,21 @@ test('renders list of options when user clicks on schema', async () => {
   const databaseSelect = screen.getByRole('combobox', {
     name: 'Select database or type database name',
   });
-  // Schema select should be disabled until database is selected
+  userEvent.click(databaseSelect);
+  expect(await screen.findByText('test-postgres')).toBeInTheDocument();
+  userEvent.click(screen.getByText('test-postgres'));
+
+  // Schema select will be automatically populated if there is only one schema
   const schemaSelect = screen.getByRole('combobox', {
     name: /select schema or type schema name/i,
   });
-  userEvent.click(databaseSelect);
-  expect(await screen.findByText('test-postgres')).toBeInTheDocument();
-  expect(schemaSelect).toBeDisabled();
-  userEvent.click(screen.getByText('test-postgres'));
-
-  // Wait for schema field to be enabled
   await waitFor(() => {
     expect(schemaSelect).toBeEnabled();
   });
 });
 
 test('searches for a table name', async () => {
-  render(<LeftPanel setDataset={mockFun} schema="schema_a" dbId={1} />, {
+  render(<LeftPanel setDataset={mockFun} dataset={exampleDataset[0]} />, {
     useRedux: true,
   });
 
@@ -245,9 +244,8 @@ test('renders a warning icon when a table name has a pre-existing dataset', asyn
   render(
     <LeftPanel
       setDataset={mockFun}
-      schema="schema_a"
-      dbId={1}
-      datasets={['Sheet2']}
+      dataset={exampleDataset[0]}
+      datasetNames={['Sheet2']}
     />,
     {
       useRedux: true,

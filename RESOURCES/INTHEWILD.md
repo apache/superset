@@ -88,6 +88,7 @@ Join our growing community!
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
 - [Konfío](http://konfio.mx) [@uis-rodriguez]
+- [Mainstrat](https://mainstrat.com/)
 - [mishmash io](https://mishmash.io/)[@mishmash-io]
 - [Myra Labs](http://www.myralabs.com/) [@viksit]
 - [Nielsen](http://www.nielsen.com/) [@amitNielsen]
@@ -150,10 +151,14 @@ Join our growing community!
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
+- [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
 
 ### News
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
+
+### Government
+- [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 
 ### Others
 - [AI inside](https://inside.ai/en/)
