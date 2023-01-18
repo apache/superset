@@ -131,7 +131,12 @@ export const useGetDatasetRelatedObjects = (id: string) => {
       .then(({ json }) => {
         setUsageCount(json?.charts.count);
       })
-      .catch(error => logging.error(error));
+      .catch(error => {
+        addDangerToast(
+          t(`There was an error fetching dataset's related objects`),
+        );
+        logging.error(error);
+      });
 
   return { getDatasetRelatedObjects, usageCount };
 };
