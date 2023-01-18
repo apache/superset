@@ -139,7 +139,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -149,7 +149,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -202,7 +202,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'mysql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -212,7 +212,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -222,7 +222,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -247,7 +247,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: true,
       },
     },
     {
@@ -258,7 +258,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: false,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: true,
       },
     },
     {
@@ -1925,7 +1925,7 @@ describe('dbReducer', () => {
       payload: {
         engine_information: {
           supports_file_upload: true,
-          allow_ssh_tunneling: true,
+          disable_ssh_tunneling: false,
         },
         ...db,
         driver: db.driver,
@@ -1940,7 +1940,7 @@ describe('dbReducer', () => {
       configuration_method: db.configuration_method,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
       driver: db.driver,
       expose_in_sqllab: true,
