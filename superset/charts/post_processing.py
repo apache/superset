@@ -30,7 +30,7 @@ from io import StringIO
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 import pandas as pd
-from flask_babel import gettext as __, lazy_gettext as _
+from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import (
