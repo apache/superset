@@ -76,7 +76,7 @@ import pandas as pd
 import sqlalchemy as sa
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.backends.openssl.x509 import _Certificate
+from cryptography.hazmat.backends.openssl.x509.base import Certificate
 from flask import current_app, flash, g, Markup, render_template, request
 from flask_appbuilder import SQLA
 from flask_appbuilder.security.sqla.models import Role, User
@@ -1550,7 +1550,7 @@ def override_user(user: Optional[User], force: bool = True) -> Iterator[Any]:
         delattr(g, "user")
 
 
-def parse_ssl_cert(certificate: str) -> _Certificate:
+def parse_ssl_cert(certificate: str) -> Certificate:
     """
     Parses the contents of a certificate and returns a valid certificate object
     if valid.
