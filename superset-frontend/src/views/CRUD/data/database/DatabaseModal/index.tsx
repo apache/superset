@@ -556,7 +556,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (DB: DatabaseObject) =>
         DB.backend === db?.engine || DB.engine === db?.engine,
     ) as DatabaseObject
-  )?.engine_information?.allow_ssh_tunneling;
+  )?.engine_information?.disable_ssh_tunneling;
   const isSSHTunneling =
     isFeatureEnabled(FeatureFlag.SSH_TUNNELING) &&
     disableSSHTunnelingForEngine !== undefined;
