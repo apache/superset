@@ -1995,7 +1995,10 @@ def add_metadata_to_queries(sql: str, **kwargs: any) -> str:
     """Return sql query after appending meta-data"""
     hash = gen_query_hash(sql)
     username = get_username()
-    return f"/* Username: {username}, Query_id: {kwargs['query_id']}, Query_hash: {hash}, Query_source: {kwargs['query_source']} */ \n{sql}"
+    scheduled = False
+    if kwargs["query_source"] == "Alerts":
+        scheduled = True
+    return f"/* Username: {username}, Query_id: {kwargs['query_id']}, Query_hash: {hash}, Query_source: {kwargs['query_source']}, Scheduled: {scheduled} */ \n{sql}"
 
 
 def gen_query_hash(sql: str):
@@ -2006,7 +2009,5 @@ def gen_query_hash(sql: str):
         2. SELECT 1 FROM table where column='value';
     """
     if sql is not None:
-        sql = re.sub(r"(?m)\s+#\w+(?=\n)", "", str(sql))
-        sql = "".join(sql.split()).lower()
         return hashlib.md5(sql.encode("utf-8")).hexdigest()
     return None
