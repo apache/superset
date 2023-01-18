@@ -557,8 +557,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   )?.engine_information?.allow_ssh_tunneling;
   const isSSHTunneling =
     isFeatureEnabled(FeatureFlag.SSH_TUNNELING) &&
-    engineAllowsSSHTunneling !== undefined &&
-    engineAllowsSSHTunneling;
+    engineAllowsSSHTunneling !== undefined;
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
