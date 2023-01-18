@@ -28,7 +28,10 @@ interface QueryStateLabelProps {
 export default function QueryStateLabel({ query }: QueryStateLabelProps) {
   return (
     <Label className="m-r-3" type={STATE_TYPE_MAP[query.state]}>
-      {query.state}
+      {
+        // TODO: localize STATE_TYPE_MAP
+        query.state
+      }
     </Label>
   );
 }

@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any, Dict, List, Optional, Set
 
+from flask_babel import lazy_gettext as _
 from marshmallow import Schema, validate
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session
@@ -90,7 +91,9 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
-            exception = CommandInvalidError(f"Error importing {self.model_name}")
+            exception = CommandInvalidError(
+                _("Error importing %(model_name)s.", model_name=self.model_name)
+            )
             exception.add_list(exceptions)
             raise exception
 
@@ -108,10 +111,11 @@ class ImportModelsCommand(BaseCommand):
                     exceptions.append(
                         ValidationError(
                             {
-                                file_name: (
-                                    f"{self.model_name.title()} already exists "
-                                    "and `overwrite=true` was not passed"
-                                ),
+                                file_name: _(
+                                    "%(model_name)s already exists "
+                                    "and `overwrite=true` was not passed",
+                                    model_name=self.model_name.title(),
+                                )
                             }
                         )
                     )

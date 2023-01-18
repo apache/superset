@@ -51,7 +51,7 @@ const radarMetricMaxValue: { name: string; config: ControlFormItemSpec } = {
       'The maximum value of metrics. It is an optional configuration',
     ),
     width: 120,
-    placeholder: 'auto',
+    placeholder: t('auto'),
     debounceDelay: 400,
     validators: [validateNumber],
   },

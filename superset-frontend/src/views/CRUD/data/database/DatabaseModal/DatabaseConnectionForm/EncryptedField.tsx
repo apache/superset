@@ -117,7 +117,9 @@ export const EncryptedField = ({
             name={encryptedField}
             value={encryptedValue}
             onChange={changeMethods.onParametersChange}
-            placeholder="Paste content of service credentials JSON file here"
+            placeholder={t(
+              'Paste content of service credentials JSON file here',
+            )}
           />
           <span className="label-paste">
             {t('Copy and paste the entire service account .json file here')}

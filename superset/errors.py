@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional
 
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 
 
 class SupersetErrorType(str, Enum):
@@ -95,54 +95,54 @@ class SupersetErrorType(str, Enum):
 
 
 ISSUE_CODES = {
-    1000: _("The datasource is too large to query."),
-    1001: _("The database is under an unusual load."),
-    1002: _("The database returned an unexpected error."),
-    1003: _(
+    1000: __("The datasource is too large to query."),
+    1001: __("The database is under an unusual load."),
+    1002: __("The database returned an unexpected error."),
+    1003: __(
         "There is a syntax error in the SQL query. "
         "Perhaps there was a misspelling or a typo."
     ),
-    1004: _("The column was deleted or renamed in the database."),
-    1005: _("The table was deleted or renamed in the database."),
-    1006: _("One or more parameters specified in the query are missing."),
-    1007: _("The hostname provided can't be resolved."),
-    1008: _("The port is closed."),
-    1009: _("The host might be down, and can't be reached on the provided port."),
-    1010: _("Superset encountered an error while running a command."),
-    1011: _("Superset encountered an unexpected error."),
-    1012: _("The username provided when connecting to a database is not valid."),
-    1013: _("The password provided when connecting to a database is not valid."),
-    1014: _("Either the username or the password is wrong."),
-    1015: _("Either the database is spelled incorrectly or does not exist."),
-    1016: _("The schema was deleted or renamed in the database."),
-    1017: _("User doesn't have the proper permissions."),
-    1018: _("One or more parameters needed to configure a database are missing."),
-    1019: _("The submitted payload has the incorrect format."),
-    1020: _("The submitted payload has the incorrect schema."),
-    1021: _("Results backend needed for asynchronous queries is not configured."),
-    1022: _("Database does not allow data manipulation."),
-    1023: _(
+    1004: __("The column was deleted or renamed in the database."),
+    1005: __("The table was deleted or renamed in the database."),
+    1006: __("One or more parameters specified in the query are missing."),
+    1007: __("The hostname provided can't be resolved."),
+    1008: __("The port is closed."),
+    1009: __("The host might be down, and can't be reached on the provided port."),
+    1010: __("Superset encountered an error while running a command."),
+    1011: __("Superset encountered an unexpected error."),
+    1012: __("The username provided when connecting to a database is not valid."),
+    1013: __("The password provided when connecting to a database is not valid."),
+    1014: __("Either the username or the password is wrong."),
+    1015: __("Either the database is spelled incorrectly or does not exist."),
+    1016: __("The schema was deleted or renamed in the database."),
+    1017: __("User doesn't have the proper permissions."),
+    1018: __("One or more parameters needed to configure a database are missing."),
+    1019: __("The submitted payload has the incorrect format."),
+    1020: __("The submitted payload has the incorrect schema."),
+    1021: __("Results backend needed for asynchronous queries is not configured."),
+    1022: __("Database does not allow data manipulation."),
+    1023: __(
         "The CTAS (create table as select) doesn't have a "
         "SELECT statement at the end. Please make sure your query has a "
         "SELECT as its last statement. Then, try running your query again."
     ),
-    1024: _("CVAS (create view as select) query has more than one statement."),
-    1025: _("CVAS (create view as select) query is not a SELECT statement."),
-    1026: _("Query is too complex and takes too long to run."),
-    1027: _("The database is currently running too many queries."),
-    1028: _("One or more parameters specified in the query are malformatted."),
-    1029: _("The object does not exist in the given database."),
-    1030: _("The query has a syntax error."),
-    1031: _("The results backend no longer has the data from the query."),
-    1032: _("The query associated with the results was deleted."),
-    1033: _(
+    1024: __("CVAS (create view as select) query has more than one statement."),
+    1025: __("CVAS (create view as select) query is not a SELECT statement."),
+    1026: __("Query is too complex and takes too long to run."),
+    1027: __("The database is currently running too many queries."),
+    1028: __("One or more parameters specified in the query are malformatted."),
+    1029: __("The object does not exist in the given database."),
+    1030: __("The query has a syntax error."),
+    1031: __("The results backend no longer has the data from the query."),
+    1032: __("The query associated with the results was deleted."),
+    1033: __(
         "The results stored in the backend were stored in a "
         "different format, and no longer can be deserialized."
     ),
-    1034: _("The port number is invalid."),
-    1035: _("Failed to start remote query on a worker."),
-    1036: _("The database was deleted."),
-    1037: _("Custom SQL fields cannot contain sub-queries."),
+    1034: __("The port number is invalid."),
+    1035: __("Failed to start remote query on a worker."),
+    1036: __("The database was deleted."),
+    1037: __("Custom SQL fields cannot contain sub-queries."),
 }
 
 
@@ -220,7 +220,11 @@ class SupersetError:
                         {
                             "code": issue_code,
                             "message": (
-                                f"Issue {issue_code} - {ISSUE_CODES[issue_code]}"
+                                _(
+                                    "Issue %(issue_code)s - %(issue_msg)s",
+                                    issue_code=issue_code,
+                                    issue_msg=ISSUE_CODES[issue_code],
+                                )
                             ),
                         }
                         for issue_code in issue_codes

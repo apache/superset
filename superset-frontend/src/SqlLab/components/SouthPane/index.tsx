@@ -145,7 +145,10 @@ const SouthPane = ({
   };
   const renderOfflineStatus = () => (
     <Label className="m-r-3" type={STATE_TYPE_MAP[STATUS_OPTIONS.offline]}>
-      {STATUS_OPTIONS.offline}
+      {
+        // TODO: localize STATUS_OPTIONS
+        STATUS_OPTIONS.offline
+      }
     </Label>
   );
 

@@ -111,7 +111,7 @@ class CustomHistogram extends React.PureComponent {
             renderTooltip={({ datum, color }) => (
               <div>
                 <strong style={{ color }}>
-                  {datum.bin0} to {datum.bin1}
+                  {datum.bin0} {t('to')} {datum.bin1}
                 </strong>
                 <div>
                   <strong>{t('count')} </strong>

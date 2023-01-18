@@ -487,7 +487,9 @@ export class TableRenderer extends React.Component {
             true,
           )}
         >
-          {`Total (${this.props.aggregatorName})`}
+          {t('Total (%(aggregatorName)s)', {
+            aggregatorName: t(this.props.aggregatorName),
+          })}
         </th>
       ) : null;
 
@@ -550,7 +552,9 @@ export class TableRenderer extends React.Component {
           )}
         >
           {colAttrs.length === 0
-            ? `Total (${this.props.aggregatorName})`
+            ? t('Total (%(aggregatorName)s)', {
+                aggregatorName: t(this.props.aggregatorName),
+              })
             : null}
         </th>
       </tr>
@@ -764,10 +768,9 @@ export class TableRenderer extends React.Component {
           true,
         )}
       >
-        {
-          // eslint-disable-next-line prefer-template
-          t('Total') + ` (${this.props.aggregatorName})`
-        }
+        {t('Total (%(aggregatorName)s)', {
+          aggregatorName: t(this.props.aggregatorName),
+        })}
       </th>
     );
 

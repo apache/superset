@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { t } from '@superset-ui/core';
 import cx from 'classnames';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
@@ -34,7 +35,10 @@ interface BackgroundStyleDropdownProps {
 function renderButton(option: OptionProps) {
   return (
     <div className={cx('background-style-option', option.className)}>
-      {`${option.label} background`}
+      {
+        // eslint-disable-next-line prefer-template
+        `${option.label} ` + t('background')
+      }
     </div>
   );
 }

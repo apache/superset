@@ -20,6 +20,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder import Model
+from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -39,7 +40,7 @@ from superset.utils.core import get_user_id
 logger = logging.getLogger(__name__)
 
 
-REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
+REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = _("Notification sent with error")
 
 
 class ReportScheduleDAO(BaseDAO):

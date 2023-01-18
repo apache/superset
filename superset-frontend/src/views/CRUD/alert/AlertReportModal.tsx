@@ -614,6 +614,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             return;
           }
 
+          // TODO: localize data.type
           addSuccessToast(t('%s updated', data.type));
 
           if (onAdd) {
@@ -630,6 +631,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           return;
         }
 
+        // TODO: localize data.type
         addSuccessToast(t('%s updated', data.type));
 
         if (onAdd) {

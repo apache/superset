@@ -19,8 +19,12 @@
 
 import { t } from '@superset-ui/core';
 
+const CREATE_CHART = t('Create chart');
+const UPDATE_CHART = t('Update chart');
+
 export const getChartRequiredFieldsMissingMessage = (isCreating: boolean) =>
   t(
     'Select values in highlighted field(s) in the control panel. Then run the query by clicking on the %s button.',
-    isCreating ? '"Create chart"' : '"Update chart"',
+    // eslint-disable-next-line prefer-template
+    isCreating ? '"' + CREATE_CHART + '"' : '"' + UPDATE_CHART + '"',
   );

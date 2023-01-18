@@ -19,7 +19,7 @@
 import PropTypes from 'prop-types';
 import { extent as d3Extent, range as d3Range } from 'd3-array';
 import { select as d3Select } from 'd3-selection';
-import { getSequentialSchemeRegistry } from '@superset-ui/core';
+import { getSequentialSchemeRegistry, t } from '@superset-ui/core';
 import CalHeatMap from './vendor/cal-heatmap';
 
 const propTypes = {
@@ -88,7 +88,8 @@ function Calendar(element, props) {
   Object.keys(metricsData).forEach(metric => {
     const calContainer = div.append('div');
     if (showMetricName) {
-      calContainer.text(`Metric: ${verboseMap[metric] || metric}`);
+      // eslint-disable-next-line prefer-template
+      calContainer.text(t('Metric') + `: ${verboseMap[metric] || metric}`);
     }
     const timestamps = metricsData[metric];
     const extents = d3Extent(Object.keys(timestamps), key => timestamps[key]);

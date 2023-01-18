@@ -85,7 +85,7 @@ const Select = forwardRef(
       loading,
       mode = 'single',
       name,
-      notFoundContent,
+      notFoundContent = t('No data'),
       onChange,
       onClear,
       onDropdownVisibleChange,

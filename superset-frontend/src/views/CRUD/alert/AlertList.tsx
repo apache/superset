@@ -455,7 +455,7 @@ function AlertList({
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
-        unfilteredLabel: 'All',
+        unfilteredLabel: t('All'),
         fetchSelects: createFetchRelated(
           'report',
           'owners',
