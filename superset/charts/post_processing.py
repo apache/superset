@@ -69,7 +69,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     show_columns_total: bool = False,
     apply_metrics_on_rows: bool = False,
 ) -> pd.DataFrame:
-    metric_name = _("Total (%(aggfunc)s)", aggfunc=aggfunc)
+    metric_name = __("Total (%(aggfunc)s)", aggfunc=aggfunc)
 
     if transpose_pivot:
         rows, columns = columns, rows
