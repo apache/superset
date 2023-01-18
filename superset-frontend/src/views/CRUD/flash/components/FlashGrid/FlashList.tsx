@@ -181,6 +181,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
     }
   };
 
+  const isDeletedFlash = (flashStatus: string) => flashStatus === 'Deleted';
+
   const initialSort = [{ id: 'status', desc: true }];
   const columns = useMemo(
     () => [
@@ -260,14 +262,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
             history.push(`/flash/auditlogs/${original.id}`);
 
           const actions: ActionProps[] | [] = [
-            {
+            isDeletedFlash(original?.status) && {
               label: 'recover-action',
               tooltip: t('Recover Flash'),
               placement: 'bottom' as TooltipPlacement,
               icon: 'Undo',
               onClick: handleRecover,
             },
-            original?.flashType !== FlashTypesEnum.ONE_TIME &&
+            !isDeletedFlash(original?.status) &&
+              original?.flashType !== FlashTypesEnum.ONE_TIME &&
               (original?.owner === user?.email || user?.roles?.Admin) && {
                 label: 'export-action',
                 tooltip: t('Extend TTL'),
@@ -275,14 +278,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                 icon: 'Share',
                 onClick: handleChangeTtl,
               },
-            {
+            !isDeletedFlash(original?.status) && {
               label: 'ownership-action',
               tooltip: t('Change Ownership'),
               placement: 'bottom' as TooltipPlacement,
               icon: 'SwitchUser',
               onClick: handleChangeOwnership,
             },
-            original?.flashType !== FlashTypesEnum.ONE_TIME &&
+            !isDeletedFlash(original?.status) &&
+              original?.flashType !== FlashTypesEnum.ONE_TIME &&
               (original?.owner === user?.email || user?.roles?.Admin) && {
                 label: 'copy-action',
                 tooltip: t('Change Schedule'),
@@ -290,20 +294,22 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                 icon: 'Calendar',
                 onClick: handleChangeSchedule,
               },
-            (original?.owner === user?.email || user?.roles?.Admin) && {
-              label: 'copy-action',
-              tooltip: t('Update Sql Query'),
-              placement: 'bottom' as TooltipPlacement,
-              icon: 'Sql',
-              onClick: handleSqlQuery,
-            },
-            original?.owner === user?.email && {
-              label: 'delete-action',
-              tooltip: t('Delete Flash'),
-              placement: 'bottom' as TooltipPlacement,
-              icon: 'Trash',
-              onClick: handleDelete,
-            },
+            !isDeletedFlash(original?.status) &&
+              (original?.owner === user?.email || user?.roles?.Admin) && {
+                label: 'copy-action',
+                tooltip: t('Update Sql Query'),
+                placement: 'bottom' as TooltipPlacement,
+                icon: 'Sql',
+                onClick: handleSqlQuery,
+              },
+            !isDeletedFlash(original?.status) &&
+              original?.owner === user?.email && {
+                label: 'delete-action',
+                tooltip: t('Delete Flash'),
+                placement: 'bottom' as TooltipPlacement,
+                icon: 'Trash',
+                onClick: handleDelete,
+              },
             {
               label: 'view-action',
               tooltip: t('View Flash Information'),
