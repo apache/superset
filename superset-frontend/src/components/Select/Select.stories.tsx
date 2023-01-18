@@ -141,6 +141,13 @@ const ARG_TYPES = {
        Requires '"mode=multiple"'.
      `,
   },
+  maxTagCount: {
+    defaultValue: 4,
+    description: `Sets maxTagCount attribute. The overflow tag is displayed in
+       place of the remaining items.
+       Requires '"mode=multiple"'.
+     `,
+  },
 };
 
 const mountHeader = (type: String) => {
@@ -207,6 +214,7 @@ InteractiveSelect.args = {
   placeholder: 'Select ...',
   optionFilterProps: ['value', 'label', 'custom'],
   oneLine: false,
+  maxTagCount: 4,
 };
 
 InteractiveSelect.argTypes = {
