@@ -51,7 +51,6 @@ import {
   GlobalMenuDataOptions,
   RightMenuProps,
 } from './types';
-import AddDatasetModal from '../CRUD/data/dataset/AddDatasetModal';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -143,7 +142,6 @@ const RightMenu = ({
     HAS_GSHEETS_INSTALLED,
   } = useSelector<any, ExtentionConfigs>(state => state.common.conf);
   const [showDatabaseModal, setShowDatabaseModal] = useState<boolean>(false);
-  const [showDatasetModal, setShowDatasetModal] = useState<boolean>(false);
   const [engine, setEngine] = useState<string>('');
   const canSql = findPermission('can_sqllab', 'Superset', roles);
   const canDashboard = findPermission('can_write', 'Dashboard', roles);
@@ -179,6 +177,7 @@ const RightMenu = ({
         {
           label: t('Create dataset'),
           name: GlobalMenuDataOptions.DATASET_CREATION,
+          url: '/dataset/add/',
           perm: canDataset && nonExamplesDBConnected,
         },
         {
@@ -286,18 +285,12 @@ const RightMenu = ({
     } else if (itemChose.key === GlobalMenuDataOptions.GOOGLE_SHEETS) {
       setShowDatabaseModal(true);
       setEngine('Google Sheets');
-    } else if (itemChose.key === GlobalMenuDataOptions.DATASET_CREATION) {
-      setShowDatasetModal(true);
     }
   };
 
   const handleOnHideModal = () => {
     setEngine('');
     setShowDatabaseModal(false);
-  };
-
-  const handleOnHideDatasetModalModal = () => {
-    setShowDatasetModal(false);
   };
 
   const isDisabled = isAdmin && !allowUploads;
@@ -344,7 +337,6 @@ const RightMenu = ({
   );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
-  const handleDatasetAdd = () => setQuery({ datasetAdded: true });
 
   const theme = useTheme();
 
@@ -356,13 +348,6 @@ const RightMenu = ({
           show={showDatabaseModal}
           dbEngine={engine}
           onDatabaseAdd={handleDatabaseAdd}
-        />
-      )}
-      {canDataset && (
-        <AddDatasetModal
-          onHide={handleOnHideDatasetModalModal}
-          show={showDatasetModal}
-          onDatasetAdd={handleDatasetAdd}
         />
       )}
       {environmentTag?.text && (
