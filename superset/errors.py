@@ -220,11 +220,7 @@ class SupersetError:
                         {
                             "code": issue_code,
                             "message": (
-                                _(
-                                    "Issue %(issue_code)s - %(issue_msg)s",
-                                    issue_code=issue_code,
-                                    issue_msg=ISSUE_CODES[issue_code],
-                                )
+                                f"Issue {issue_code} - {ISSUE_CODES[issue_code]}"
                             ),
                         }
                         for issue_code in issue_codes
