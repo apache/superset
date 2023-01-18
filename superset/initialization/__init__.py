@@ -409,7 +409,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             "Row Level Security",
             label=__("Row Level Security"),
             href="/rowlevelsecurity/list/",
-            label=__("Row Level Security"),
             category="Security",
             category_label=__("Security"),
             icon="fa-lock",
