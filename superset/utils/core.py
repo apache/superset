@@ -2008,6 +2008,6 @@ def gen_query_hash(sql: str):
         1. SELECT 1 FROM table WHERE column='Value';
         2. SELECT 1 FROM table where column='value';
     """
-    if sql is not None:
+    if type(sql) == str:
         return hashlib.md5(sql.encode("utf-8")).hexdigest()
     return None
