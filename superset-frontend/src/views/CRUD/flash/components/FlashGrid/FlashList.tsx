@@ -464,6 +464,8 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           onHide={() => setRecoverFlash(null)}
           open
           title={t('Recover Flash Object?')}
+          primaryButtonName={t('recover')}
+          confirmationType={t('recover')}
         />
       )}
 

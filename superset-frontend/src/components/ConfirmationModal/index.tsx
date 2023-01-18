@@ -42,6 +42,8 @@ interface ConfirmationModalProps {
   onHide: () => void;
   open: boolean;
   title: React.ReactNode;
+  primaryButtonName?: string;
+  confirmationType: string;
 }
 
 export default function ConfirmationModal({
@@ -50,6 +52,8 @@ export default function ConfirmationModal({
   onHide,
   open,
   title,
+  primaryButtonName = t('Ok'),
+  confirmationType,
 }: ConfirmationModalProps) {
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
@@ -66,7 +70,9 @@ export default function ConfirmationModal({
 
   const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const targetValue = event.target.value ?? '';
-    setDisableChange(targetValue.toUpperCase() !== t('RECOVER'));
+    setDisableChange(
+      targetValue.toUpperCase() !== confirmationType.toUpperCase(),
+    );
     setConfirmation(targetValue);
   };
 
@@ -81,7 +87,7 @@ export default function ConfirmationModal({
       disablePrimaryButton={disableChange}
       onHide={hide}
       onHandledPrimaryAction={confirm}
-      primaryButtonName={t('recover')}
+      primaryButtonName={primaryButtonName}
       primaryButtonType="primary"
       show={open}
       title={title}
@@ -89,7 +95,7 @@ export default function ConfirmationModal({
       <DescriptionContainer>{description}</DescriptionContainer>
       <StyledDiv>
         <FormLabel htmlFor="delete">
-          {t('Type "%s" to confirm', t('recover'))}
+          {t('Type "%s" to confirm', confirmationType)}
         </FormLabel>
         <Input
           data-test="delete-modal-input"
