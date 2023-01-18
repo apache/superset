@@ -258,7 +258,7 @@ const StyledAsterisk = styled.span`
   }
 `;
 
-const TimeRangeInfo = styled.div`
+const FilterTypeInfo = styled.div`
   ${({ theme }) => `
     width: 49%;
     font-size: ${theme.typography.sizes.s}px;
@@ -809,11 +809,11 @@ const FiltersConfigForm = (
           </StyledFormItem>
         </StyledContainer>
         {formFilter?.filterType === 'filter_time' && (
-          <TimeRangeInfo>
+          <FilterTypeInfo>
             {t(`Dashboard time range filters apply to temporal columns defined in
           the filter section of each chart. Add temporal columns to the chart
           filters to have this dashboard filter impact those charts.`)}
-          </TimeRangeInfo>
+          </FilterTypeInfo>
         )}
         {hasDataset && (
           <StyledRowContainer>
