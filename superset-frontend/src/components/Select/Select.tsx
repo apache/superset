@@ -467,6 +467,7 @@ const Select = forwardRef(
           {selectAllEnabled && (
             <Option
               id="select-all"
+              className="select-all"
               key={SELECT_ALL_VALUE}
               value={SELECT_ALL_VALUE}
             >

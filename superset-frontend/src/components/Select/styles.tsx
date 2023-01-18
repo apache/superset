@@ -52,7 +52,9 @@ export const StyledSelect = styled(AntdSelect, {
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
       pointer-events: none;
     }
-
+    .select-all {
+      border-bottom: 1px solid ${theme.colors.grayscale.light3};
+    }
     ${
       oneLine &&
       `
