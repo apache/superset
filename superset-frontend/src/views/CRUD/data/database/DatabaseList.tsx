@@ -21,6 +21,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { useQueryParams, BooleanParam } from 'use-query-params';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 
 import Loading from 'src/components/Loading';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -156,6 +157,9 @@ function DatabaseList({ addDangerToast, addSuccessToast }: DatabaseListProps) {
       () => {
         refreshData();
         addSuccessToast(t('Deleted: %s', dbName));
+
+        // Delete user-selected db from local storage
+        setItem(LocalStorageKeys.db, null);
 
         // Close delete modal
         setDatabaseCurrentlyDeleting(null);

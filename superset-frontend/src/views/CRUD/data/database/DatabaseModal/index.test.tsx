@@ -43,6 +43,14 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: () => true,
 }));
 
+const mockHistoryPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+}));
+
 const dbProps = {
   show: true,
   database_name: 'my database',

@@ -20,6 +20,14 @@ import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import Footer from 'src/views/CRUD/data/dataset/AddDataset/Footer';
 
+const mockHistoryPush = jest.fn();
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
+  useHistory: () => ({
+    push: mockHistoryPush,
+  }),
+}));
+
 const mockedProps = {
   url: 'realwebsite.com',
 };
