@@ -50,7 +50,9 @@ export const updateFlash = (
     | FlashExtendTtl
     | FlashUpdateSchedule
     | FlashUpdateQuery,
-): Promise<any> => FlashClient.post<any>(`v1/flash/${id}/${type}`, payload);
+): Promise<any> => {
+  return FlashClient.post<any>(`v1/flash/${id}/${type}`, payload);
+};
 
 export const removeFlash = (id: number): Promise<any> =>
   FlashClient.delete<FlashServiceObject>(`v1/flash/${id}`);

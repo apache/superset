@@ -44,6 +44,7 @@ export interface FlashUpdateOwnership {
 
 export interface FlashExtendTtl {
   ttl: string;
+  flashType: string;
 }
 
 export interface FlashUpdateQuery {

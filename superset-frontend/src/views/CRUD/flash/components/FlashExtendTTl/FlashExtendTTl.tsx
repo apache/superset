@@ -118,7 +118,10 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
 
   const [formData, setFormData] = useState<FlashExtendTtl>({
     ttl: '',
+    flashType: '',
   });
+
+  // const [flashType, setFlashType] = useState(flash?.flashType);
 
   useEffect(() => {
     if (flash) {
@@ -137,8 +140,14 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
     setFormData(formData);
   };
 
+  const onChange = (flashType: any) => {
+    setFormData({ ...formData, flashType });
+  };
+
   const validate = (formData: any, errors: any) => {
-    const flashType = flash.flashType.replace(/([A-Z])/g, ' $1').trim();
+    const updatedFlashType = formData.flashType
+      .replace(/([A-Z])/g, ' $1')
+      .trim();
     if (flash) {
       if (new Date(formData.ttl) < new Date(flash.ttl)) {
         errors.ttl.addError(
@@ -146,7 +155,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
             new Date(flash.ttl).toISOString().split('T')[0]
           })`,
         );
-      } else if (flashType === FlashTypes.SHORT_TERM) {
+      } else if (updatedFlashType === FlashTypes.SHORT_TERM) {
         const maxDate = new Date(flash.ttl);
         maxDate.setDate(maxDate.getDate() + 7);
         if (new Date(formData.ttl) > new Date(maxDate)) {
@@ -157,7 +166,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
             ')',
           );
         }
-      } else if (flashType === FlashTypes.LONG_TERM) {
+      } else if (updatedFlashType === FlashTypes.LONG_TERM) {
         const maxDate = new Date(flash.ttl);
         maxDate.setDate(maxDate.getDate() + 90);
         if (new Date(formData.ttl) > new Date(maxDate)) {
@@ -204,12 +213,23 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
         <Col xs={12}>
           <p>
             <strong>
-              {flash?.flashType
-                ? flash.flashType
+              <select onChange={e => onChange(e.target.value)}>
+                <option value={flash?.flashType}>
+                  {flash?.flashType
                     .replace(/([A-Z])/g, ' $1')
                     .trim()
-                    .toUpperCase()
-                : ''}
+                    .toUpperCase()}
+                </option>
+                {flash?.flashType &&
+                  Object.values(FlashTypes).map(type => (
+                    <option value={type}>
+                      {type
+                        .replace(/([A-Z])/g, ' $1')
+                        .trim()
+                        .toUpperCase()}
+                    </option>
+                  ))}
+              </select>
             </strong>
           </p>
         </Col>
