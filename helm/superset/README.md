@@ -105,7 +105,7 @@ helm install my-superset superset/superset
 | runAsUser | int | `0` | User ID directive. This user must have enough permissions to run the bootstrap script Running containers as root is not recommended in production. Change this to another UID - e.g. 1000 to be more secure |
 | service.annotations | object | `{}` |  |
 | service.loadBalancerIP | string | `nil` |  |
-| service.nodePort.http | string | `""` |  |
+| service.nodePort.http | int | `nil` |  |
 | service.port | int | `8088` |  |
 | service.type | string | `"ClusterIP"` |  |
 | serviceAccount.annotations | object | `{}` |  |
@@ -145,7 +145,7 @@ helm install my-superset superset/superset
 | supersetCeleryFlower.replicaCount | int | `1` |  |
 | supersetCeleryFlower.resources | object | `{}` | Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above. |
 | supersetCeleryFlower.service.annotations | object | `{}` |  |
-| supersetCeleryFlower.service.nodePort.http | string | `""` |  |
+| supersetCeleryFlower.service.nodePort.http | int | `nil` |  |
 | supersetCeleryFlower.service.port | int | `5555` |  |
 | supersetCeleryFlower.service.type | string | `"ClusterIP"` |  |
 | supersetCeleryFlower.startupProbe.failureThreshold | int | `60` |  |
@@ -226,7 +226,7 @@ helm install my-superset superset/superset
 | supersetWebsockets.replicaCount | int | `1` |  |
 | supersetWebsockets.resources | object | `{}` |  |
 | supersetWebsockets.service.annotations | object | `{}` |  |
-| supersetWebsockets.service.nodePort.http | string | `""` |  |
+| supersetWebsockets.service.nodePort.http | int | `nil` |  |
 | supersetWebsockets.service.port | int | `8080` |  |
 | supersetWebsockets.service.type | string | `"ClusterIP"` |  |
 | supersetWebsockets.startupProbe.failureThreshold | int | `60` |  |
