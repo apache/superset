@@ -375,7 +375,15 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
-            time.sleep(current_app.config["HIVE_POLL_INTERVAL"])
+            if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
+                logger.warning(
+                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"
+                )
+            else:
+                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                    cls.engine, 5
+                )
+            time.sleep(sleep_interval)
             polled = cursor.poll()
 
     @classmethod
@@ -559,7 +567,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def has_implicit_cancel(cls) -> bool:
         """
         Return True if the live cursor handles the implicit cancelation of the query,
-        False otherise.
+        False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query
         :see: handle_cursor

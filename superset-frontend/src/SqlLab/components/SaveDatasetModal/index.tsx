@@ -363,7 +363,7 @@ export const SaveDatasetModal = ({
           {newOrOverwrite === DatasetRadioState.OVERWRITE_DATASET && (
             <>
               {shouldOverwriteDataset && (
-                <Button onClick={handleOverwriteCancel}>Back</Button>
+                <Button onClick={handleOverwriteCancel}>{t('Back')}</Button>
               )}
               <Button
                 className="md"

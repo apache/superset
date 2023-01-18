@@ -23,6 +23,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+{{- if .Values.supersetWorker.deploymentLabels }}
+    {{- toYaml .Values.supersetWorker.deploymentLabels | nindent 4 }}
+{{- end }}
 {{- if .Values.supersetWorker.deploymentAnnotations }}
   annotations:
     {{- toYaml .Values.supersetWorker.deploymentAnnotations | nindent 4 }}

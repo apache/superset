@@ -135,6 +135,7 @@ class SupersetResultSet:
                     pa.lib.ArrowInvalid,
                     pa.lib.ArrowTypeError,
                     pa.lib.ArrowNotImplementedError,
+                    ValueError,
                     TypeError,  # this is super hackey,
                     # https://issues.apache.org/jira/browse/ARROW-7855
                 ):

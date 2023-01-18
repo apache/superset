@@ -88,6 +88,7 @@ export interface ControlPanelState {
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
   common: JsonObject;
+  metadata?: JsonObject | null;
 }
 
 /**

@@ -39,7 +39,7 @@ platformdirs==2.2.0
     # via virtualenv
 pluggy==0.13.1
     # via tox
-pre-commit==2.14.0
+pre-commit==2.20.0
     # via -r integration.in
 py==1.10.0
     # via tox
@@ -65,7 +65,7 @@ virtualenv==20.7.2
     # via
     #   pre-commit
     #   tox
-wheel==0.37.0
+wheel==0.38.1
     # via pip-tools
 
 # The following packages are considered to be unsafe in a requirements file:

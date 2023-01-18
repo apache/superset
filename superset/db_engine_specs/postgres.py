@@ -166,6 +166,7 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
 class PostgresEngineSpec(PostgresBaseEngineSpec, BasicParametersMixin):
     engine = "postgresql"
     engine_aliases = {"postgres"}
+    allow_ssh_tunneling = True
 
     default_driver = "psycopg2"
     sqlalchemy_uri_placeholder = (
