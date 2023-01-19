@@ -182,13 +182,13 @@ class TestLogApi(SupersetTestCase):
 
         uri = f"api/v1/log/recent_activity/{admin_user.id}/"
         rv = self.client.get(uri)
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
 
         db.session.delete(log1)
         db.session.delete(log2)
         db.session.commit()
 
-        self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(
             response,
             {
