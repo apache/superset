@@ -109,6 +109,8 @@ class TestLogApi(SupersetTestCase):
         self.login(username="alpha")
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 403)
+        db.session.delete(log)
+        db.session.commit()
 
     def test_get_item(self):
         """
@@ -212,8 +214,8 @@ class TestLogApi(SupersetTestCase):
         admin_user = self.get_user("admin")
         self.login(username="admin")
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
-        dash2 = create_dashboard("dash_slug2", "dash_title2", "{}", [])
-        dash3 = create_dashboard("dash_slug3", "dash_title3", "{}", [])
+        dash2 = create_dashboard("dash2_slug", "dash2_title", "{}", [])
+        dash3 = create_dashboard("dash3_slug", "dash3_title", "{}", [])
         log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
         log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash2.id)
         log3 = self.insert_log("dashboard", admin_user, dashboard_id=dash3.id)
