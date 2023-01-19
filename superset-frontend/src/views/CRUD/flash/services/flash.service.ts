@@ -56,7 +56,7 @@ export const removeFlash = (id: number): Promise<any> =>
   FlashClient.delete<FlashServiceObject>(`v1/flash/${id}`);
 
 export const recoverFlashObject = (id: number): Promise<any> =>
-  FlashClient.delete<FlashServiceObject>(`v1/flash/${id}/recover`);
+  FlashClient.post<FlashServiceObject>(`v1/flash/${id}/recover`);
 
 export const validateSqlQuery = (payload: FlashValidateQuery): Promise<any> =>
   FlashClient.post<any>('v1/utility/sql-validate', payload);
