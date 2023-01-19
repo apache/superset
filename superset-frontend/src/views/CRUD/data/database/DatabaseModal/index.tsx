@@ -31,7 +31,6 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
-import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
@@ -525,7 +524,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-  const history = useHistory();
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
@@ -1336,7 +1334,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          history.push('/dataset/add/');
+          window.location.href = '/tablemodelview/list#create';
         }}
       >
         {t('CREATE DATASET')}
@@ -1347,7 +1345,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          history.push(`/superset/sqllab/?db=true`);
+          window.location.href = `/superset/sqllab/?db=true`;
         }}
       >
         {t('QUERY DATA IN SQL LAB')}

@@ -54,6 +54,12 @@ const defaultProps = {
   scheduleQueryWarning: null,
 };
 
+const StyledEditableTabs = styled(EditableTabs)`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
 const StyledTab = styled.span`
   line-height: 24px;
 `;
@@ -303,7 +309,7 @@ class TabbedSqlEditors extends React.PureComponent {
     );
 
     return (
-      <EditableTabs
+      <StyledEditableTabs
         destroyInactiveTabPane
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
         id="a11y-query-editor-tabs"
@@ -331,7 +337,7 @@ class TabbedSqlEditors extends React.PureComponent {
       >
         {editors}
         {noQueryEditors && emptyTabState}
-      </EditableTabs>
+      </StyledEditableTabs>
     );
   }
 }

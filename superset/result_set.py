@@ -24,6 +24,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+from numpy.typing import NDArray
 
 from superset.db_engine_specs import BaseEngineSpec
 from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
@@ -62,16 +63,16 @@ def stringify(obj: Any) -> str:
     return json.dumps(obj, default=utils.json_iso_dttm_ser)
 
 
-def stringify_values(array: np.ndarray) -> np.ndarray:
+def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
     result = np.copy(array)
 
-    with np.nditer(result, flags=["refs_ok"], op_flags=["readwrite"]) as it:
+    with np.nditer(result, flags=["refs_ok"], op_flags=[["readwrite"]]) as it:
         for obj in it:
-            if pd.isna(obj):
+            if na_obj := pd.isna(obj):
                 # pandas <NA> type cannot be converted to string
-                obj[pd.isna(obj)] = None
+                obj[na_obj] = None  # type: ignore
             else:
-                obj[...] = stringify(obj)
+                obj[...] = stringify(obj)  # type: ignore
 
     return result
 
@@ -106,7 +107,7 @@ class SupersetResultSet:
         pa_data: List[pa.Array] = []
         deduped_cursor_desc: List[Tuple[Any, ...]] = []
         numpy_dtype: List[Tuple[str, ...]] = []
-        stringified_arr: np.ndarray
+        stringified_arr: NDArray[Any]
 
         if cursor_description:
             # get deduped list of column names
@@ -208,7 +209,7 @@ class SupersetResultSet:
             return table.to_pandas(integer_object_nulls=True, timestamp_as_object=True)
 
     @staticmethod
-    def first_nonempty(items: List[Any]) -> Any:
+    def first_nonempty(items: NDArray[Any]) -> Any:
         return next((i for i in items if i), None)
 
     def is_temporal(self, db_type_str: Optional[str]) -> bool:
