@@ -142,7 +142,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
   };
 
   const validate = (formData: any, errors: any) => {
-    const flashType = formData.flashType;
+    const { flashType } = formData;
     if (flash) {
       if (new Date(formData.ttl) < new Date(flash.ttl)) {
         errors.ttl.addError(
