@@ -547,6 +547,10 @@ class TestDashboard(SupersetTestCase):
         # list dashboards as a gamma user
         self.login(gamma_user.username)
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(dash)
+        db.session.commit()
+
         self.assertNotIn(f"/superset/dashboard/{slug}/", resp)
 
 
