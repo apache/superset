@@ -16,7 +16,6 @@
 # under the License.
 from typing import Any, Dict, List, Optional, Set
 
-from flask_babel import lazy_gettext as _
 from marshmallow import Schema, validate
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.orm import Session
