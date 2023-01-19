@@ -20,7 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import Button from 'src/components/Button';
-import { t, styled } from '@superset-ui/core';
+import { css, t, styled } from '@superset-ui/core';
 
 import buildFilterScopeTreeEntry from 'src/dashboard/util/buildFilterScopeTreeEntry';
 import getFilterScopeNodesTree from 'src/dashboard/util/getFilterScopeNodesTree';
@@ -48,6 +48,268 @@ const propTypes = {
   setUnsavedChanges: PropTypes.func.isRequired,
   onCloseModal: PropTypes.func.isRequired,
 };
+
+const ScopeContainer = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: column;
+    height: 80%;
+    margin-right: ${theme.gridUnit * -6}px;
+    font-size: ${theme.typography.sizes.m}px;
+
+    & .nav.nav-tabs {
+      border: none;
+    }
+
+    & .filter-scope-body {
+      flex: 1;
+      max-height: calc(100% - ${theme.gridUnit * 32}px);
+
+      .filter-field-pane,
+      .filter-scope-pane {
+        overflow-y: auto;
+      }
+    }
+
+    & .warning-message {
+      padding: ${theme.gridUnit * 6}px;
+    }
+  `}
+`;
+
+const ScopeBody = styled.div`
+  ${({ theme }) => css`
+    &.filter-scope-body {
+      flex: 1;
+      max-height: calc(100% - ${theme.gridUnit * 32}px);
+
+      .filter-field-pane,
+      .filter-scope-pane {
+        overflow-y: auto;
+      }
+    }
+  `}
+`;
+
+const ScopeHeader = styled.div`
+  ${({ theme }) => css`
+    height: ${theme.gridUnit * 16}px;
+    border-bottom: 1px solid ${theme.colors.grayscale.light2};
+    padding-left: ${theme.gridUnit * 6}px;
+    margin-left: ${theme.gridUnit * -6}px;
+
+    h4 {
+      margin-top: 0;
+    }
+
+    .selected-fields {
+      margin: ${theme.gridUnit * 3}px 0 ${theme.gridUnit * 4}px;
+      visibility: hidden;
+
+      &.multi-edit-mode {
+        visibility: visible;
+      }
+
+      .selected-scopes {
+        padding-left: ${theme.gridUnit}px;
+      }
+    }
+  `}
+`;
+
+const ScopeSelector = styled.div`
+  ${({ theme }) => css`
+    &.filters-scope-selector {
+      display: flex;
+      flex-direction: row;
+      position: relative;
+      height: 100%;
+
+      a,
+      a:active,
+      a:hover {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .react-checkbox-tree .rct-icon.rct-icon-expand-all,
+      .react-checkbox-tree .rct-icon.rct-icon-collapse-all {
+        font-family: ${theme.typography.families.sansSerif};
+        font-size: ${theme.typography.sizes.m}px;
+        color: ${theme.colors.primary.base};
+
+        &::before {
+          content: '';
+        }
+
+        &:hover {
+          text-decoration: underline;
+        }
+
+        &:focus {
+          outline: none;
+        }
+      }
+
+      .filter-field-pane {
+        position: relative;
+        width: 40%;
+        padding: ${theme.gridUnit * 4}px;
+        padding-left: 0;
+        border-right: 1px solid ${theme.colors.grayscale.light2};
+
+        .filter-container label {
+          font-weight: ${theme.typography.weights.normal};
+          margin: 0 0 0 ${theme.gridUnit * 4}px;
+          word-break: break-all;
+        }
+
+        .filter-field-item {
+          height: ${theme.gridUnit * 9}px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 ${theme.gridUnit * 6}px;
+          margin-left: ${theme.gridUnit * -6}px;
+
+          &.is-selected {
+            border: 1px solid ${theme.colors.text.label};
+            border-radius: ${theme.borderRadius}px;
+            background-color: ${theme.colors.grayscale.light4};
+            margin-left: ${theme.gridUnit * -6}px;
+          }
+        }
+
+        .react-checkbox-tree {
+          .rct-title .root {
+            font-weight: ${theme.typography.weights.bold};
+          }
+
+          .rct-text {
+            height: ${theme.gridUnit * 10}px;
+          }
+        }
+      }
+
+      .filter-scope-pane {
+        position: relative;
+        flex: 1;
+        padding: ${theme.gridUnit * 4}px;
+        padding-right: ${theme.gridUnit * 6}px;
+      }
+
+      .react-checkbox-tree {
+        flex-direction: column;
+        color: ${theme.colors.grayscale.dark1};
+        font-size: ${theme.typography.sizes.m}px;
+
+        .filter-scope-type {
+          padding: ${theme.gridUnit * 2}px 0;
+          display: flex;
+          align-items: center;
+
+          &.chart {
+            font-weight: ${theme.typography.weights.normal};
+          }
+
+          &.selected-filter {
+            padding-left: ${theme.gridUnit * 7}px;
+            position: relative;
+            color: ${theme.colors.text.label};
+
+            &::before {
+              content: ' ';
+              position: absolute;
+              left: 0;
+              top: 50%;
+              width: ${theme.gridUnit * 4}px;
+              height: ${theme.gridUnit * 4}px;
+              border-radius: ${theme.borderRadius}px;
+              margin-top: ${theme.gridUnit * -2}px;
+              box-shadow: inset 0 0 0 2px ${theme.colors.grayscale.light2};
+              background: ${theme.colors.grayscale.light3};
+            }
+          }
+
+          &.root {
+            font-weight: ${theme.typography.weights.bold};
+          }
+        }
+
+        .rct-checkbox {
+          svg {
+            position: relative;
+            top: 3px;
+            width: ${theme.gridUnit * 4.5}px;
+          }
+        }
+
+        .rct-node-leaf {
+          .rct-bare-label {
+            &::before {
+              padding-left: ${theme.gridUnit}px;
+            }
+          }
+        }
+
+        .rct-options {
+          text-align: left;
+          margin-left: 0;
+          margin-bottom: ${theme.gridUnit * 2}px;
+        }
+
+        .rct-text {
+          margin: 0;
+          display: flex;
+        }
+
+        .rct-title {
+          display: block;
+        }
+
+        // disable style from react-checkbox-trees.css
+        .rct-node-clickable:hover,
+        .rct-node-clickable:focus,
+        label:hover,
+        label:active {
+          background: none !important;
+        }
+      }
+
+      .multi-edit-mode {
+        &.filter-scope-pane {
+          .rct-node.rct-node-leaf .filter-scope-type.filter_box {
+            display: none;
+          }
+        }
+
+        .filter-field-item {
+          padding: 0 ${theme.gridUnit * 4}px 0 ${theme.gridUnit * 12}px;
+          margin-left: ${theme.gridUnit * -12}px;
+
+          &.is-selected {
+            margin-left: ${theme.gridUnit * -13}px;
+          }
+        }
+      }
+
+      .scope-search {
+        position: absolute;
+        right: ${theme.gridUnit * 4}px;
+        top: ${theme.gridUnit * 4}px;
+        border-radius: ${theme.borderRadius}px;
+        border: 1px solid ${theme.colors.grayscale.light2};
+        padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+        font-size: ${theme.typography.sizes.m}px;
+        outline: none;
+
+        &:focus {
+          border: 1px solid ${theme.colors.primary.base};
+        }
+      }
+    }
+  `}
+`;
 
 const ActionsContainer = styled.div`
   ${({ theme }) => `
@@ -496,28 +758,28 @@ export default class FilterScopeSelector extends React.PureComponent {
     const { showSelector } = this.state;
 
     return (
-      <div className="filter-scope-container">
-        <div className="filter-scope-header">
+      <ScopeContainer>
+        <ScopeHeader>
           <h4>{t('Configure filter scopes')}</h4>
           {showSelector && this.renderEditingFiltersName()}
-        </div>
+        </ScopeHeader>
 
-        <div className="filter-scope-body">
+        <ScopeBody className="filter-scope-body">
           {!showSelector ? (
             <div className="warning-message">
               {t('There are no filters in this dashboard.')}
             </div>
           ) : (
-            <div className="filters-scope-selector">
+            <ScopeSelector className="filters-scope-selector">
               <div className={cx('filter-field-pane multi-edit-mode')}>
                 {this.renderFilterFieldList()}
               </div>
               <div className="filter-scope-pane multi-edit-mode">
                 {this.renderFilterScopeTree()}
               </div>
-            </div>
+            </ScopeSelector>
           )}
-        </div>
+        </ScopeBody>
 
         <ActionsContainer>
           <Button buttonSize="small" onClick={this.onClose}>
@@ -533,7 +795,7 @@ export default class FilterScopeSelector extends React.PureComponent {
             </Button>
           )}
         </ActionsContainer>
-      </div>
+      </ScopeContainer>
     );
   }
 }
