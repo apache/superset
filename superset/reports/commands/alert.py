@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from operator import eq, ge, gt, le, lt, ne
@@ -24,7 +26,6 @@ import numpy as np
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
-from numpy.typing import NDArray
 
 from superset import app, jinja_context, security_manager
 from superset.commands.base import BaseCommand
@@ -85,12 +86,12 @@ class AlertCommand(BaseCommand):
         except (KeyError, json.JSONDecodeError) as ex:
             raise AlertValidatorConfigError() from ex
 
-    def _validate_not_null(self, rows: NDArray[Any]) -> None:
+    def _validate_not_null(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)
         self._result = rows[0][1]
 
     @staticmethod
-    def _validate_result(rows: NDArray[Any]) -> None:
+    def _validate_result(rows: np.recarray[Any, Any]) -> None:
         # check if query return more than one row
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
@@ -109,7 +110,7 @@ class AlertCommand(BaseCommand):
                 )
             )
 
-    def _validate_operator(self, rows: NDArray[Any]) -> None:
+    def _validate_operator(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)
         if rows[0][1] in (0, None, np.nan):
             self._result = 0.0
