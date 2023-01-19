@@ -13,7 +13,6 @@ from superset.models.slice import Slice
 from superset.utils.dates import datetime_to_epoch
 
 
-
 class LogDAO(BaseDAO):
     model_cls = Log
 

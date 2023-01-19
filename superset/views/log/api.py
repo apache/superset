@@ -27,7 +27,11 @@ import superset.models.core as models
 from superset.superset_typing import FlaskResponse
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 from superset.views.log.dao import LogDAO
-from superset.views.log.schemas import get_recent_activity_schema, RecentActivityResponseSchema, RecentActivitySchema
+from superset.views.log.schemas import (
+    get_recent_activity_schema,
+    RecentActivityResponseSchema,
+    RecentActivitySchema,
+)
 
 from ...constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from . import LogMixin
@@ -55,7 +59,10 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "get_recent_activity_schema": get_recent_activity_schema,
     }
-    openapi_spec_component_schemas = (RecentActivityResponseSchema, RecentActivitySchema)
+    openapi_spec_component_schemas = (
+        RecentActivityResponseSchema,
+        RecentActivitySchema,
+    )
 
     @staticmethod
     def is_enabled() -> bool:
@@ -126,5 +133,5 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         distinct = kwargs["rison"].get("distinct", True)
 
         payload = LogDAO.get_recent_activity(user_id, limit, actions, distinct)
-        
+
         return self.response(200, result=payload)

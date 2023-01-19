@@ -25,6 +25,7 @@ get_recent_activity_schema = {
     },
 }
 
+
 class RecentActivitySchema(Schema):
     action = fields.String(description="Action taken describing type of activity")
     item_type = fields.String(description="Type of item, e.g. slice or dashboard")
