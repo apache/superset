@@ -510,8 +510,8 @@ class TestDashboard(SupersetTestCase):
         regular_dash.dashboard_title = "A Plain Ol Dashboard"
         regular_dash.slug = regular_dash_slug
 
-        db.session.merge(favorite_dash)
-        db.session.merge(regular_dash)
+        db.session.add(favorite_dash)
+        db.session.add(regular_dash)
         db.session.commit()
 
         dash = db.session.query(Dashboard).filter_by(slug=fav_dash_slug).first()
@@ -521,12 +521,18 @@ class TestDashboard(SupersetTestCase):
         favorites.class_name = "Dashboard"
         favorites.user_id = user.id
 
-        db.session.merge(favorites)
+        db.session.add(favorites)
         db.session.commit()
 
         self.login(user.username)
 
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(favorites)
+        db.session.delete(regular_dash)
+        db.session.delete(favorite_dash)
+        db.session.commit()
+
         self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", resp)
 
     def test_user_can_not_view_unpublished_dash(self):
