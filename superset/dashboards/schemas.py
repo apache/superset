@@ -18,7 +18,6 @@ import json
 import re
 from typing import Any, Dict, Union
 
-from flask_babel import lazy_gettext as _
 from marshmallow import fields, post_load, Schema
 from marshmallow.validate import Length, ValidationError
 

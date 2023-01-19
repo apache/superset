@@ -17,9 +17,8 @@
  * under the License.
  */
 import React from 'react';
-import { t } from '@superset-ui/core';
 import cx from 'classnames';
-import { css, styled } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {

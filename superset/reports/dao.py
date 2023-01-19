@@ -20,7 +20,6 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from flask_appbuilder import Model
-from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
