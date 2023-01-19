@@ -19,6 +19,7 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import cx from 'classnames';
+import { css, styled } from '@superset-ui/core';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
@@ -32,22 +33,66 @@ interface BackgroundStyleDropdownProps {
   onChange: OnChangeHandler;
 }
 
+const BackgroundStyleOption = styled.div`
+  ${({ theme }) => css`
+    display: inline-block;
+
+    &:before {
+      content: '';
+      width: 1em;
+      height: 1em;
+      margin-right: ${theme.gridUnit * 2}px;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    &.background--white {
+      padding-left: 0;
+      background: transparent;
+
+      &:before {
+        background: ${theme.colors.grayscale.light5};
+        border: 1px solid ${theme.colors.grayscale.light2};
+      }
+    }
+
+    /* Create the transparent rect icon */
+    &.background--transparent:before {
+      background-image: linear-gradient(
+          45deg,
+          ${theme.colors.text.label} 25%,
+          transparent 25%
+        ),
+        linear-gradient(-45deg, ${theme.colors.text.label} 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, ${theme.colors.text.label} 75%),
+        linear-gradient(-45deg, transparent 75%, ${theme.colors.text.label} 75%);
+      background-size: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
+      background-position: 0 0, 0 ${theme.gridUnit}px,
+        ${theme.gridUnit}px ${-theme.gridUnit}px, ${-theme.gridUnit}px 0px;
+    }
+  `}
+`;
+
 function renderButton(option: OptionProps) {
   return (
-    <div className={cx('background-style-option', option.className)}>
+    <BackgroundStyleOption
+      className={cx('background-style-option', option.className)}
+    >
       {
         // eslint-disable-next-line prefer-template
         `${option.label} ` + t('background')
       }
-    </div>
+    </BackgroundStyleOption>
   );
 }
 
 function renderOption(option: OptionProps) {
   return (
-    <div className={cx('background-style-option', option.className)}>
+    <BackgroundStyleOption
+      className={cx('background-style-option', option.className)}
+    >
       {option.label}
-    </div>
+    </BackgroundStyleOption>
   );
 }
 

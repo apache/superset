@@ -16,13 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../assets/stylesheets/less/variables.less';
 
-@import './builder.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-scope-selector.less';
-@import './grid.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+import React from 'react';
+import { Global } from '@emotion/react';
+import { css } from '@superset-ui/core';
+
+export const SqlLabGlobalStyles = () => (
+  <Global
+    styles={theme => css`
+      body {
+        min-height: max(
+          100vh,
+          ${theme.gridUnit * 125}px
+        ); // Set a min height so the gutter is always visible when resizing
+        overflow: hidden;
+      }
+    `}
+  />
+);

@@ -20,6 +20,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Resizable } from 're-resizable';
 import cx from 'classnames';
+import { css, styled } from '@superset-ui/core';
 
 import ResizableHandle from './ResizableHandle';
 import resizableConfig from '../../util/resizableConfig';
@@ -80,6 +81,93 @@ const HANDLE_CLASSES = {
   right: 'resizable-container-handle--right',
   bottom: 'resizable-container-handle--bottom',
 };
+
+const StyledResizable = styled(Resizable)`
+  ${({ theme }) => css`
+    &.resizable-container {
+      background-color: transparent;
+      position: relative;
+
+      /* re-resizable sets an empty div to 100% width and height, which doesn't
+      play well with many 100% height containers we need */
+
+      & ~ div {
+        width: auto !important;
+        height: auto !important;
+      }
+    }
+
+    &.resizable-container--resizing {
+      /* after ensures border visibility on top of any children */
+
+      &:after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        box-shadow: inset 0 0 0 2px ${theme.colors.primary.base};
+      }
+
+      & > span .resize-handle {
+        border-color: ${theme.colors.primary.base};
+      }
+    }
+
+    .resize-handle {
+      opacity: 0;
+      z-index: 10;
+
+      &--bottom-right {
+        position: absolute;
+        border-right: 1px solid ${theme.colors.text.label};
+        border-bottom: 1px solid ${theme.colors.text.label};
+        right: ${theme.gridUnit * 4}px;
+        bottom: ${theme.gridUnit * 4}px;
+        width: ${theme.gridUnit * 2}px;
+        height: ${theme.gridUnit * 2}px;
+      }
+
+      &--right {
+        width: ${theme.gridUnit / 2}px;
+        height: ${theme.gridUnit * 5}px;
+        right: ${theme.gridUnit}px;
+        top: 50%;
+        transform: translate(0, -50%);
+        position: absolute;
+        border-left: 1px solid ${theme.colors.text.label};
+        border-right: 1px solid ${theme.colors.text.label};
+      }
+
+      &--bottom {
+        height: ${theme.gridUnit / 2}px;
+        width: ${theme.gridUnit * 5}px;
+        bottom: ${theme.gridUnit}px;
+        left: 50%;
+        transform: translate(-50%);
+        position: absolute;
+        border-top: 1px solid ${theme.colors.text.label};
+        border-bottom: 1px solid ${theme.colors.text.label};
+      }
+    }
+  `}
+
+  &.resizable-container:hover .resize-handle,
+  &.resizable-container--resizing .resize-handle {
+    opacity: 1;
+  }
+
+  .dragdroppable-column & .resizable-container-handle--right {
+    /* override the default because the inner column's handle's mouse target is very small */
+    right: 0 !important;
+  }
+
+  & .resizable-container-handle--bottom {
+    bottom: 0 !important;
+  }
+`;
+
 class ResizableContainer extends React.PureComponent {
   constructor(props) {
     super(props);
@@ -186,7 +274,7 @@ class ResizableContainer extends React.PureComponent {
     const { isResizing } = this.state;
 
     return (
-      <Resizable
+      <StyledResizable
         enable={enableConfig}
         grid={SNAP_TO_GRID}
         minWidth={
@@ -228,7 +316,7 @@ class ResizableContainer extends React.PureComponent {
         handleClasses={HANDLE_CLASSES}
       >
         {children}
-      </Resizable>
+      </StyledResizable>
     );
   }
 }

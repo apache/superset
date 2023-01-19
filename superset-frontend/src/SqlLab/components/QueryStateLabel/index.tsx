@@ -19,19 +19,23 @@
 import React from 'react';
 import Label from 'src/components/Label';
 import { STATE_TYPE_MAP } from 'src/SqlLab/constants';
-import { Query } from '@superset-ui/core';
+import { styled, Query } from '@superset-ui/core';
 
 interface QueryStateLabelProps {
   query: Query;
 }
 
+const StyledLabel = styled(Label)`
+  margin-right: ${({ theme }) => theme.gridUnit}px;
+`;
+
 export default function QueryStateLabel({ query }: QueryStateLabelProps) {
   return (
-    <Label className="m-r-3" type={STATE_TYPE_MAP[query.state]}>
+    <StyledLabel type={STATE_TYPE_MAP[query.state]}>
       {
         // TODO: localize STATE_TYPE_MAP
         query.state
       }
-    </Label>
+    </StyledLabel>
   );
 }
