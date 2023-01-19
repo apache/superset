@@ -93,7 +93,7 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
     except SupersetException as ex:
-        raise ValidationError(_("JSON not valid")) from ex
+        raise ValidationError("JSON not valid") from ex
 
 
 def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
@@ -102,7 +102,7 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
     try:
         value_obj = json.loads(value)
     except json.decoder.JSONDecodeError as ex:
-        raise ValidationError(_("JSON not valid")) from ex
+        raise ValidationError("JSON not valid") from ex
     errors = DashboardJSONMetadataSchema().validate(value_obj, partial=False)
     if errors:
         raise ValidationError(errors)

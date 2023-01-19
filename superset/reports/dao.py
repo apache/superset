@@ -40,7 +40,7 @@ from superset.utils.core import get_user_id
 logger = logging.getLogger(__name__)
 
 
-REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = _("Notification sent with error")
+REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
 
 
 class ReportScheduleDAO(BaseDAO):

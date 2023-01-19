@@ -16,7 +16,6 @@
 # under the License.
 from typing import Any, Union
 
-from flask_babel import lazy_gettext as _
 from marshmallow import validate, ValidationError
 
 from superset.exceptions import SupersetException
@@ -52,4 +51,4 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
     try:
         utils.validate_json(value)
     except SupersetException as ex:
-        raise ValidationError(_("JSON not valid")) from ex
+        raise ValidationError("JSON not valid") from ex

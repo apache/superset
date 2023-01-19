@@ -18,6 +18,7 @@
  */
 import React from 'react';
 import moment from 'moment';
+import { t } from '@superset-ui/core';
 
 import TableLoader from '../../components/TableLoader';
 import { Activity } from '../types';
@@ -46,6 +47,7 @@ export default function RecentActivity({ user }: RecentActivityProps) {
         mutator={mutator}
         sortable
         dataEndpoint={`/superset/recent_activity/${user?.userId}/?limit=${rowLimit}`}
+        noDataText={t('No Data')}
       />
     </div>
   );
