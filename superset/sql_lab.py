@@ -255,7 +255,9 @@ def execute_sql_statement(  # pylint: disable=too-many-arguments,too-many-statem
     # Hook to allow environment-specific mutation (usually comments) to the SQL
     sql = SQL_QUERY_MUTATOR(
         sql,
-        user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
+        # TODO(john-bodley): Deprecate in 3.0.
+        query_source="Sql Lab",
+        query_id=query.id,
         security_manager=security_manager,
         database=database,
     )

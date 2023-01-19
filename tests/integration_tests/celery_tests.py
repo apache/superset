@@ -22,6 +22,8 @@ import string
 import time
 import unittest.mock as mock
 from typing import Optional
+
+import sqlparse
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -235,9 +237,10 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
 
     query = get_query_by_id(result["query"]["serverId"])
     assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == query.executed_sql
+        sqlparse.format(f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}").strip()
+        == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
+
     assert query.select_sql == get_select_star(
         tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME
     )
@@ -274,9 +277,10 @@ def test_run_async_query_cta_config(test_client, ctas_method):
         get_select_star(tmp_table_name, limit=query.limit, schema=CTAS_SCHEMA_NAME)
         == query.select_sql
     )
+
     assert (
-        f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}"
-        == query.executed_sql
+        sqlparse.format(f"CREATE {ctas_method} {CTAS_SCHEMA_NAME}.{tmp_table_name} AS \n{QUERY}").strip()
+        == sqlparse.format(query.executed_sql, strip_comments=True).strip()
     )
 
     delete_tmp_view_or_table(f"{CTAS_SCHEMA_NAME}.{tmp_table_name}", ctas_method)
@@ -303,8 +307,11 @@ def test_run_async_cta_query(test_client, ctas_method):
 
     assert QueryStatus.SUCCESS == query.status
     assert get_select_star(table_name, query.limit) in query.select_sql
+    assert (
+        sqlparse.format(f"CREATE {ctas_method} {table_name} AS \n{QUERY}").strip()
+        == sqlparse.format(query.executed_sql, strip_comments=True).strip()
+    )
 
-    assert f"CREATE {ctas_method} {table_name} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
     assert query.rows == (1 if backend() == "presto" else 0)
     assert query.select_as_cta
@@ -333,13 +340,16 @@ def test_run_async_cta_query_with_lower_limit(test_client, ctas_method):
     assert QueryStatus.SUCCESS == query.status
 
     sqllite_select_sql = f"SELECT *\nFROM {tmp_table}\nLIMIT {query.limit}\nOFFSET 0"
-    assert query.select_sql == (
+    assert sqlparse.format(query.select_sql, strip_comments=True).strip() == (
         sqllite_select_sql
         if backend() == "sqlite"
         else get_select_star(tmp_table, query.limit)
     )
+    assert (
+        sqlparse.format(f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}").strip()
+        == sqlparse.format(query.executed_sql, strip_comments=True).strip()
+    )
 
-    assert f"CREATE {ctas_method} {tmp_table} AS \n{QUERY}" == query.executed_sql
     assert QUERY == query.sql
 
     assert query.rows == (1 if backend() == "presto" else 0)

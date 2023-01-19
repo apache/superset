@@ -978,6 +978,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             sql = sql_query_mutator(
                 sql,
                 # TODO(john-bodley): Deprecate in 3.0.
+                query_source="Charts",
+                query_id=None,
                 user_name=get_username(),
                 security_manager=security_manager,
                 database=self.database,

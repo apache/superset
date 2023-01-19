@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import json
 # type: ignore
 from typing import Any, cast, Dict, List, Tuple
 from uuid import uuid4
-import json
 
 from flask import g
 
