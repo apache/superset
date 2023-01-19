@@ -30,6 +30,9 @@ jest.mock('react-redux', () => ({
 }));
 
 jest.mock('src/views/CRUD/data/database/DatabaseModal', () => () => <span />);
+jest.mock('src/views/CRUD/data/dataset/AddDatasetModal.tsx', () => () => (
+  <span />
+));
 
 const dropdownItems = [
   {
