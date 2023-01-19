@@ -1,0 +1,115 @@
+from datetime import datetime, timedelta
+from typing import List
+
+import humanize
+from sqlalchemy import and_, or_
+from sqlalchemy.sql import functions as func
+
+from superset import db
+from superset.dao.base import BaseDAO
+from superset.models.core import Log
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils.dates import datetime_to_epoch
+
+
+
+class LogDAO(BaseDAO):
+    model_cls = Log
+
+    @staticmethod
+    def get_recent_activity(
+        user_id: int, limit: int, actions: List[str], distinct: bool
+    ) -> List[dict]:
+        has_subject_title = or_(
+            and_(
+                Dashboard.dashboard_title is not None,
+                Dashboard.dashboard_title != "",
+            ),
+            and_(Slice.slice_name is not None, Slice.slice_name != ""),
+        )
+
+        if distinct:
+            one_year_ago = datetime.today() - timedelta(days=365)
+            subqry = (
+                db.session.query(
+                    Log.dashboard_id,
+                    Log.slice_id,
+                    Log.action,
+                    func.max(Log.dttm).label("dttm"),
+                )
+                .group_by(Log.dashboard_id, Log.slice_id, Log.action)
+                .filter(
+                    and_(
+                        Log.action.in_(actions),
+                        Log.user_id == user_id,
+                        # limit to one year of data to improve performance
+                        Log.dttm > one_year_ago,
+                        or_(Log.dashboard_id.isnot(None), Log.slice_id.isnot(None)),
+                    )
+                )
+                .subquery()
+            )
+            qry = (
+                db.session.query(
+                    subqry,
+                    Dashboard.slug.label("dashboard_slug"),
+                    Dashboard.dashboard_title,
+                    Slice.slice_name,
+                )
+                .outerjoin(Dashboard, Dashboard.id == subqry.c.dashboard_id)
+                .outerjoin(
+                    Slice,
+                    Slice.id == subqry.c.slice_id,
+                )
+                .filter(has_subject_title)
+                .order_by(subqry.c.dttm.desc())
+                .limit(limit)
+            )
+        else:
+            qry = (
+                db.session.query(
+                    Log.dttm,
+                    Log.action,
+                    Log.dashboard_id,
+                    Log.slice_id,
+                    Dashboard.slug.label("dashboard_slug"),
+                    Dashboard.dashboard_title,
+                    Slice.slice_name,
+                )
+                .outerjoin(Dashboard, Dashboard.id == Log.dashboard_id)
+                .outerjoin(Slice, Slice.id == Log.slice_id)
+                .filter(has_subject_title)
+                .filter(Log.action.in_(actions), Log.user_id == user_id)
+                .order_by(Log.dttm.desc())
+                .limit(limit)
+            )
+
+        payload = []
+        for log in qry.all():
+            item_url = None
+            item_title = None
+            item_type = None
+            if log.dashboard_id:
+                item_type = "dashboard"
+                item_url = Dashboard(id=log.dashboard_id, slug=log.dashboard_slug).url
+                item_title = log.dashboard_title
+            elif log.slice_id:
+                slc = Slice(id=log.slice_id, slice_name=log.slice_name)
+                item_type = "slice"
+                item_url = slc.slice_url
+                item_title = slc.chart
+
+            payload.append(
+                {
+                    "action": log.action,
+                    "item_type": item_type,
+                    "item_url": item_url,
+                    "item_title": item_title,
+                    "time": datetime_to_epoch(log.dttm),
+                    "time_delta_humanized": humanize.naturaltime(
+                        datetime.utcnow() - log.dttm
+                    ),
+                }
+            )
+        return payload
