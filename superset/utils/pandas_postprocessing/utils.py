@@ -24,7 +24,7 @@ from pandas import DataFrame, NamedAgg
 
 from superset.exceptions import InvalidPostProcessingError
 
-NUMPY_FUNCTIONS = {
+NUMPY_FUNCTIONS: Dict[str, Callable[..., Any]] = {
     "average": np.average,
     "argmin": np.argmin,
     "argmax": np.argmax,

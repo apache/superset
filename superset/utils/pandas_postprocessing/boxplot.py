@@ -57,10 +57,10 @@ def boxplot(
     """
 
     def quartile1(series: Series) -> float:
-        return np.nanpercentile(series, 25, interpolation="midpoint")
+        return np.nanpercentile(series, 25, interpolation="midpoint")  # type: ignore
 
     def quartile3(series: Series) -> float:
-        return np.nanpercentile(series, 75, interpolation="midpoint")
+        return np.nanpercentile(series, 75, interpolation="midpoint")  # type: ignore
 
     if whisker_type == PostProcessingBoxplotWhiskerType.TUKEY:
 
@@ -99,8 +99,8 @@ def boxplot(
             return np.nanpercentile(series, low)
 
     else:
-        whisker_high = np.max
-        whisker_low = np.min
+        whisker_high = np.max  # type: ignore
+        whisker_low = np.min  # type: ignore
 
     def outliers(series: Series) -> Set[float]:
         above = series[series > whisker_high(series)]
@@ -126,7 +126,7 @@ def boxplot(
     # nanpercentile needs numeric values, otherwise the isnan function
     # that's used in the underlying function will fail
     for column in metrics:
-        if df.dtypes[column] == np.object:
+        if df.dtypes[column] == np.object_:
             df[column] = to_numeric(df[column], errors="coerce")
 
     return aggregate(df, groupby=groupby, aggregates=aggregates)
