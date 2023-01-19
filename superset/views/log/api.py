@@ -21,9 +21,9 @@ from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
+import superset.models.core as models
 from superset import event_logger, security_manager
 from superset.exceptions import SupersetSecurityException
-import superset.models.core as models
 from superset.superset_typing import FlaskResponse
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 from superset.views.log.dao import LogDAO
