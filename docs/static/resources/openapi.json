@@ -136,7 +136,7 @@
             "type": "string"
           },
           "descriptionColumns": {
-            "description": "Columns to use as the description. If none are provided, all will be shown.",
+            "description": "Columns to use as the description. If none are provided,all will be shown.",
             "items": {
               "type": "string"
             },
@@ -219,7 +219,7 @@
             "type": "string"
           },
           "value": {
-            "description": "For formula annotations, this contains the formula. For other types, this is the primary key of the source object."
+            "description": "For formula annotations,this contains the formula. For other types,this is the primary key of the source object."
           },
           "width": {
             "description": "Width of annotation line",
@@ -257,7 +257,7 @@
       "AnnotationLayerRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
           },
           "changed_on": {
             "format": "date-time",
@@ -268,7 +268,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationLayerRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -414,13 +414,13 @@
       "AnnotationRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User1"
+            "$ref": "#/components/schemas/AnnotationRestApi.get_list.User"
           },
           "end_dttm": {
             "format": "date-time",
@@ -657,7 +657,7 @@
             "type": "string"
           },
           "hasCustomLabel": {
-            "description": "When false, the label will be automatically generated based on the aggregate expression. When true, a custom label has to be specified.",
+            "description": "When false,the label will be automatically generated based on the aggregate expression. When true,a custom label has to be specified.",
             "example": true,
             "type": "boolean"
           },
@@ -666,12 +666,12 @@
             "type": "boolean"
           },
           "label": {
-            "description": "Label for the metric. Is automatically generated unless hasCustomLabel is true, in which case label must be defined.",
+            "description": "Label for the metric. Is automatically generated unless hasCustomLabel is true,in which case label must be defined.",
             "example": "Weighted observations",
             "type": "string"
           },
           "optionName": {
-            "description": "Unique identifier. Can be any string value, as long as all metrics have a unique identifier. If undefined, a random name will be generated.",
+            "description": "Unique identifier. Can be any string value,as long as all metrics have a unique identifier. If undefined,a random name will be generated.",
             "example": "metric_aec60732-fac0-4b17-b736-93f1a5c93e30",
             "type": "string"
           },
@@ -694,7 +694,7 @@
       "ChartDataAggregateOptionsSchema": {
         "properties": {
           "aggregates": {
-            "description": "The keys are the name of the aggregate column to be created, and the values specify the details of how to apply the aggregation. If an operator requires additional options, these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average, argmin, argmax, cumsum, cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, percentile, prod, product, std, sum, var. Any options required by the operator can be passed to the `options` object.\n\nIn the example, a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
+            "description": "The keys are the name of the aggregate column to be created,and the values specify the details of how to apply the aggregation. If an operator requires additional options,these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average,argmin,argmax,cumsum,cumprod,max,mean,median,nansum,nanmin,nanmax,nanmean,nanmedian,min,percentile,prod,product,std,sum,var. Any options required by the operator can be passed to the `options` object.\n\nIn the example,a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
             "example": {
               "first_quantile": {
                 "column": "my_col",
@@ -746,7 +746,7 @@
             "type": "array"
           },
           "metrics": {
-            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings), or ad-hoc metricswhich are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics. When metrics is undefined or null, the query is executed without a groupby. However, when metrics is an array (length >= 0), a groupby clause is added to the query.",
+            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings),or ad-hoc metricswhich are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics. When metrics is undefined or null,the query is executed without a groupby. However,when metrics is an array (length >= 0),a groupby clause is added to the query.",
             "items": {},
             "nullable": true,
             "type": "array"
@@ -933,7 +933,7 @@
             "type": "string"
           },
           "val": {
-            "description": "The value or values to compare against. Can be a string, integer, decimal, None or list, depending on the operator.",
+            "description": "The value or values to compare against. Can be a string,integer,decimal,None or list,depending on the operator.",
             "example": [
               "China",
               "France",
@@ -951,7 +951,7 @@
       "ChartDataGeodeticParseOptionsSchema": {
         "properties": {
           "altitude": {
-            "description": "Name of target column for decoded altitude. If omitted, altitude information in geodetic string is ignored.",
+            "description": "Name of target column for decoded altitude. If omitted,altitude information in geodetic string is ignored.",
             "type": "string"
           },
           "geodetic": {
@@ -1021,7 +1021,7 @@
       "ChartDataPivotOptionsSchema": {
         "properties": {
           "aggregates": {
-            "description": "The keys are the name of the aggregate column to be created, and the values specify the details of how to apply the aggregation. If an operator requires additional options, these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average, argmin, argmax, cumsum, cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, percentile, prod, product, std, sum, var. Any options required by the operator can be passed to the `options` object.\n\nIn the example, a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
+            "description": "The keys are the name of the aggregate column to be created,and the values specify the details of how to apply the aggregation. If an operator requires additional options,these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average,argmin,argmax,cumsum,cumprod,max,mean,median,nansum,nanmin,nanmax,nanmean,nanmedian,min,percentile,prod,product,std,sum,var. Any options required by the operator can be passed to the `options` object.\n\nIn the example,a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
             "example": {
               "first_quantile": {
                 "column": "my_col",
@@ -1092,7 +1092,7 @@
             "type": "string"
           },
           "options": {
-            "description": "Options specifying how to perform the operation. Please refer to the respective post processing operation option schemas. For example, `ChartDataPostProcessingOperationOptions` specifies the required options for the pivot operation.",
+            "description": "Options specifying how to perform the operation. Please refer to the respective post processing operation option schemas. For example,`ChartDataPostProcessingOperationOptions` specifies the required options for the pivot operation.",
             "example": {
               "aggregates": {
                 "age_mean": {
@@ -1131,7 +1131,7 @@
             "type": "number"
           },
           "monthly_seasonality": {
-            "description": "Should monthly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+            "description": "Should monthly seasonality be applied. An integer value will specify Fourier order of seasonality,`None` will automatically detect seasonality.",
             "example": false
           },
           "periods": {
@@ -1166,11 +1166,11 @@
             "type": "string"
           },
           "weekly_seasonality": {
-            "description": "Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+            "description": "Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality,`None` will automatically detect seasonality.",
             "example": false
           },
           "yearly_seasonality": {
-            "description": "Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality, `None` will automatically detect seasonality.",
+            "description": "Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality,`None` will automatically detect seasonality.",
             "example": false
           }
         },
@@ -1275,12 +1275,12 @@
             "type": "string"
           },
           "granularity_sqla": {
-            "description": "Name of temporal column used for time filtering for SQL datasources. This field is deprecated, use `granularity` instead.",
+            "description": "Name of temporal column used for time filtering for SQL datasources. This field is deprecated,use `granularity` instead.",
             "nullable": true,
             "type": "string"
           },
           "groupby": {
-            "description": "Columns by which to group the query. This field is deprecated, use `columns` instead.",
+            "description": "Columns by which to group the query. This field is deprecated,use `columns` instead.",
             "items": {},
             "nullable": true,
             "type": "array"
@@ -1309,7 +1309,7 @@
             "type": "boolean"
           },
           "metrics": {
-            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings), or ad-hoc metricswhich are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
+            "description": "Aggregate expressions. Metrics can be passed as both references to datasource metrics (strings),or ad-hoc metricswhich are defined only within the query object. See `ChartDataAdhocMetricSchema` for the structure of ad-hoc metrics.",
             "items": {},
             "nullable": true,
             "type": "array"
@@ -1320,7 +1320,7 @@
             "type": "boolean"
           },
           "orderby": {
-            "description": "Expects a list of lists where the first element is the column name which to sort by, and the second element is a boolean.",
+            "description": "Expects a list of lists where the first element is the column name which to sort by,and the second element is a boolean.",
             "example": [
               [
                 "my_col_1",
@@ -1389,7 +1389,7 @@
             "type": "array"
           },
           "time_range": {
-            "description": "A time rage, either expressed as a colon separated string `since : until` or human readable freeform. Valid formats for `since` and `until` are: \n- ISO 8601\n- X days/years/hours/day/year/weeks\n- X days/years/hours/day/year/weeks ago\n- X days/years/hours/day/year/weeks from now\n\nAdditionally, the following freeform can be used:\n\n- Last day\n- Last week\n- Last month\n- Last quarter\n- Last year\n- No filter\n- Last X seconds/minutes/hours/days/weeks/months/years\n- Next X seconds/minutes/hours/days/weeks/months/years\n",
+            "description": "A time rage,either expressed as a colon separated string `since : until` or human readable freeform. Valid formats for `since` and `until` are: \n- ISO 8601\n- X days/years/hours/day/year/weeks\n- X days/years/hours/day/year/weeks ago\n- X days/years/hours/day/year/weeks from now\n\nAdditionally,the following freeform can be used:\n\n- Last day\n- Last week\n- Last month\n- Last quarter\n- Last year\n- No filter\n- Last X seconds/minutes/hours/days/weeks/months/years\n- Next X seconds/minutes/hours/days/weeks/months/years\n",
             "example": "Last week",
             "nullable": true,
             "type": "string"
@@ -1400,13 +1400,13 @@
             "type": "string"
           },
           "timeseries_limit": {
-            "description": "Maximum row count for timeseries queries. This field is deprecated, use `series_limit` instead.Default: `0`",
+            "description": "Maximum row count for timeseries queries. This field is deprecated,use `series_limit` instead.Default: `0`",
             "format": "int32",
             "nullable": true,
             "type": "integer"
           },
           "timeseries_limit_metric": {
-            "description": "Metric used to limit timeseries queries by. This field is deprecated, use `series_limit_metric` instead.",
+            "description": "Metric used to limit timeseries queries by. This field is deprecated,use `series_limit_metric` instead.",
             "nullable": true
           },
           "url_params": {
@@ -1452,7 +1452,7 @@
             "type": "string"
           },
           "cache_timeout": {
-            "description": "Cache timeout in following order: custom timeout, datasource timeout, cache default timeout, config default cache timeout.",
+            "description": "Cache timeout in following order: custom timeout,datasource timeout,cache default timeout,config default cache timeout.",
             "format": "int32",
             "nullable": true,
             "type": "integer"
@@ -1963,7 +1963,7 @@
             "type": "string"
           },
           "query_context": {
-            "description": "The query context represents the queries that need to run in order to generate the data the visualization, and in what format the data should be returned.",
+            "description": "The query context represents the queries that need to run in order to generate the data the visualization,and in what format the data should be returned.",
             "nullable": true,
             "type": "string"
           },
@@ -2070,7 +2070,7 @@
             "type": "string"
           },
           "query_context": {
-            "description": "The query context represents the queries that need to run in order to generate the data the visualization, and in what format the data should be returned.",
+            "description": "The query context represents the queries that need to run in order to generate the data the visualization,and in what format the data should be returned.",
             "nullable": true,
             "type": "string"
           },
@@ -2148,7 +2148,7 @@
             "type": "object"
           },
           "win_type": {
-            "description": "Type of window function. See [SciPy window functions](https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows) for more details. Some window functions require passing additional parameters to `rolling_type_options`. For instance, to use `gaussian`, the parameter `std` needs to be provided.",
+            "description": "Type of window function. See [SciPy window functions](https://docs.scipy.org/doc/scipy/reference/signal.windows.html#module-scipy.signal.windows) for more details. Some window functions require passing additional parameters to `rolling_type_options`. For instance,to use `gaussian`,the parameter `std` needs to be provided.",
             "enum": [
               "boxcar",
               "triang",
@@ -2184,7 +2184,7 @@
       "ChartDataSelectOptionsSchema": {
         "properties": {
           "columns": {
-            "description": "Columns which to select from the input data, in the desired order. If columns are renamed, the original column name should be referenced here.",
+            "description": "Columns which to select from the input data,in the desired order. If columns are renamed,the original column name should be referenced here.",
             "example": [
               "country",
               "gender",
@@ -2206,7 +2206,7 @@
             "type": "array"
           },
           "rename": {
-            "description": "columns which to rename, mapping source column to target column. For instance, `{'y': 'y2'}` will rename the column `y` to `y2`.",
+            "description": "columns which to rename,mapping source column to target column. For instance,`{'y': 'y2'}` will rename the column `y` to `y2`.",
             "example": [
               {
                 "age": "average_age"
@@ -2223,7 +2223,7 @@
       "ChartDataSortOptionsSchema": {
         "properties": {
           "aggregates": {
-            "description": "The keys are the name of the aggregate column to be created, and the values specify the details of how to apply the aggregation. If an operator requires additional options, these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average, argmin, argmax, cumsum, cumprod, max, mean, median, nansum, nanmin, nanmax, nanmean, nanmedian, min, percentile, prod, product, std, sum, var. Any options required by the operator can be passed to the `options` object.\n\nIn the example, a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
+            "description": "The keys are the name of the aggregate column to be created,and the values specify the details of how to apply the aggregation. If an operator requires additional options,these can be passed here to be unpacked in the operator call. The following numpy operators are supported: average,argmin,argmax,cumsum,cumprod,max,mean,median,nansum,nanmin,nanmax,nanmean,nanmedian,min,percentile,prod,product,std,sum,var. Any options required by the operator can be passed to the `options` object.\n\nIn the example,a new column `first_quantile` is created based on values in the column `my_col` using the `percentile` operator with the `q=0.25` parameter.",
             "example": {
               "first_quantile": {
                 "column": "my_col",
@@ -2236,7 +2236,7 @@
             "type": "object"
           },
           "columns": {
-            "description": "columns by by which to sort. The key specifies the column name, value specifies if sorting in ascending order.",
+            "description": "columns by by which to sort. The key specifies the column name,value specifies if sorting in ascending order.",
             "example": {
               "country": true,
               "gender": false
@@ -2755,7 +2755,7 @@
             "type": "string"
           },
           "query_context": {
-            "description": "The query context represents the queries that need to run in order to generate the data the visualization, and in what format the data should be returned.",
+            "description": "The query context represents the queries that need to run in order to generate the data the visualization,and in what format the data should be returned.",
             "nullable": true,
             "type": "string"
           },
@@ -2862,7 +2862,7 @@
             "type": "string"
           },
           "query_context": {
-            "description": "The query context represents the queries that need to run in order to generate the data the visualization, and in what format the data should be returned.",
+            "description": "The query context represents the queries that need to run in order to generate the data the visualization,and in what format the data should be returned.",
             "nullable": true,
             "type": "string"
           },
@@ -2939,13 +2939,13 @@
       "CssTemplateRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
           },
           "changed_on_delta_humanized": {
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User1"
+            "$ref": "#/components/schemas/CssTemplateRestApi.get_list.User"
           },
           "created_on": {
             "format": "date-time",
@@ -3960,15 +3960,15 @@
             "type": "boolean"
           },
           "allow_dml": {
-            "description": "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab",
+            "description": "Allow users to run non-SELECT statements (UPDATE,DELETE,CREATE,...) in SQL Lab",
             "type": "boolean"
           },
           "allow_file_upload": {
-            "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
+            "description": "Allow to upload CSV file data into this databaseIf selected,please set the schemas allowed for csv upload in Extra.",
             "type": "boolean"
           },
           "allow_run_async": {
-            "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
+            "description": "Operate the database in asynchronous mode,meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
           },
           "cache_timeout": {
@@ -4006,18 +4006,18 @@
             "type": "string"
           },
           "extra": {
-            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
+            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call,while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600,\"table_cache_timeout\": 600}</strong>. If unset,cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\",\"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed,just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
             "type": "string"
           },
           "force_ctas_schema": {
-            "description": "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema",
+            "description": "When allowing CREATE TABLE AS option in SQL Lab,this option forces the table to be created in this schema",
             "maxLength": 250,
             "minLength": 0,
             "nullable": true,
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto,all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled,will run the queries as service account,but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "is_managed_externally": {
@@ -4025,7 +4025,7 @@
             "type": "boolean"
           },
           "masked_encrypted_extra": {
-            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive,Presto,and BigQuery,which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
             "nullable": true,
             "type": "string"
           },
@@ -4073,15 +4073,15 @@
             "type": "boolean"
           },
           "allow_dml": {
-            "description": "Allow users to run non-SELECT statements (UPDATE, DELETE, CREATE, ...) in SQL Lab",
+            "description": "Allow users to run non-SELECT statements (UPDATE,DELETE,CREATE,...) in SQL Lab",
             "type": "boolean"
           },
           "allow_file_upload": {
-            "description": "Allow to upload CSV file data into this databaseIf selected, please set the schemas allowed for csv upload in Extra.",
+            "description": "Allow to upload CSV file data into this databaseIf selected,please set the schemas allowed for csv upload in Extra.",
             "type": "boolean"
           },
           "allow_run_async": {
-            "description": "Operate the database in asynchronous mode, meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
+            "description": "Operate the database in asynchronous mode,meaning  that the queries are executed on remote workers as opposed to on the web server itself. This assumes that you have a Celery worker setup as well as a results backend. Refer to the installation docs for more information.",
             "type": "boolean"
           },
           "cache_timeout": {
@@ -4120,18 +4120,18 @@
             "type": "string"
           },
           "extra": {
-            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
+            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call,while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600,\"table_cache_timeout\": 600}</strong>. If unset,cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\",\"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed,just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
             "type": "string"
           },
           "force_ctas_schema": {
-            "description": "When allowing CREATE TABLE AS option in SQL Lab, this option forces the table to be created in this schema",
+            "description": "When allowing CREATE TABLE AS option in SQL Lab,this option forces the table to be created in this schema",
             "maxLength": 250,
             "minLength": 0,
             "nullable": true,
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto,all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled,will run the queries as service account,but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "is_managed_externally": {
@@ -4139,7 +4139,7 @@
             "type": "boolean"
           },
           "masked_encrypted_extra": {
-            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive,Presto,and BigQuery,which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
             "nullable": true,
             "type": "string"
           },
@@ -4172,6 +4172,12 @@
       },
       "DatabaseSSHTunnel": {
         "properties": {
+          "id": {
+            "description": "SSH Tunnel ID (for updates)",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
           "password": {
             "type": "string"
           },
@@ -4218,15 +4224,15 @@
             "type": "string"
           },
           "extra": {
-            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
+            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call,while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600,\"table_cache_timeout\": 600}</strong>. If unset,cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\",\"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed,just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
             "type": "string"
           },
           "impersonate_user": {
-            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto,all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled,will run the queries as service account,but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "masked_encrypted_extra": {
-            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive,Presto,and BigQuery,which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
             "nullable": true,
             "type": "string"
           },
@@ -4286,7 +4292,7 @@
             "type": "string"
           },
           "extra": {
-            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call, while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600, \"table_cache_timeout\": 600}</strong>. If unset, cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\", \"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed, just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
+            "description": "<p>JSON string containing extra configuration elements.<br>1. The <code>engine_params</code> object gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine\">sqlalchemy.create_engine</a> call,while the <code>metadata_params</code> gets unpacked into the <a href=\"https://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData\">sqlalchemy.MetaData</a> call.<br>2. The <code>metadata_cache_timeout</code> is a cache timeout setting in seconds for metadata fetch of this database. Specify it as <strong>\"metadata_cache_timeout\": {\"schema_cache_timeout\": 600,\"table_cache_timeout\": 600}</strong>. If unset,cache will not be enabled for the functionality. A timeout of 0 indicates that the cache never expires.<br>3. The <code>schemas_allowed_for_file_upload</code> is a comma separated list of schemas that CSVs are allowed to upload to. Specify it as <strong>\"schemas_allowed_for_file_upload\": [\"public\",\"csv_upload\"]</strong>. If database flavor does not support schema or any schema is allowed to be accessed,just leave the list empty<br>4. The <code>version</code> field is a string specifying the this db's version. This should be used with Presto DBs so that the syntax is correct<br>5. The <code>allows_virtual_table_explore</code> field is a boolean specifying whether or not the Explore button in SQL Lab results is shown.<br>6. The <code>disable_data_preview</code> field is a boolean specifying whether or not data preview queries will be run when fetching table metadata in SQL Lab.</p>",
             "type": "string"
           },
           "id": {
@@ -4296,11 +4302,11 @@
             "type": "integer"
           },
           "impersonate_user": {
-            "description": "If Presto, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property.",
+            "description": "If Presto,all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them.<br/>If Hive and hive.server2.enable.doAs is enabled,will run the queries as service account,but impersonate the currently logged on user via hive.server2.proxy.user property.",
             "type": "boolean"
           },
           "masked_encrypted_extra": {
-            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive, Presto, and BigQuery, which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
+            "description": "<p>JSON string containing additional connection configuration.<br>This is used to provide connection information for systems like Hive,Presto,and BigQuery,which do not conform to the username:password syntax normally used by SQLAlchemy.</p>",
             "nullable": true,
             "type": "string"
           },
@@ -4378,7 +4384,7 @@
             "type": "boolean"
           },
           "granularity_sqla": {
-            "description": "Name of temporal column used for time filtering for SQL datasources. This field is deprecated, use `granularity` instead.",
+            "description": "Name of temporal column used for time filtering for SQL datasources. This field is deprecated,use `granularity` instead.",
             "items": {
               "items": {
                 "type": "object"
@@ -5119,7 +5125,7 @@
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -5162,7 +5168,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "schema": {
             "maxLength": 255,
@@ -5206,6 +5212,23 @@
             "maxLength": 64,
             "type": "string"
           },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5222,23 +5245,6 @@
         "required": [
           "first_name",
           "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
           "username"
         ],
         "type": "object"
@@ -6164,6 +6170,279 @@
         },
         "type": "object"
       },
+      "RLSRestApi.get": {
+        "properties": {
+          "clause": {
+            "description": "This is the condition that will be added to the WHERE clause. For example,to only return rows for a particular client,you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role,a base filter can be created with the clause `1 = 0` (always false).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Detailed description",
+            "type": "string"
+          },
+          "filter_type": {
+            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter,base filters apply filters to all queries except the roles defined in the filter,and can be used to define what users can see if no RLS filters within a filter group apply to them.",
+            "enum": [
+              "Regular",
+              "Base"
+            ],
+            "type": "string"
+          },
+          "group_key": {
+            "description": "Filters with the same group key will be ORed together within the group,while different filter groups will be ANDed together. Undefined group keys are treated as unique groups,i.e. are not grouped together. For example,if a table has three filters,of which two are for departments Finance and Marketing (group key = 'department'),and one refers to the region Europe (group key = 'region'),the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique if of rls filter",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Name of rls filter",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/Roles1"
+            },
+            "type": "array"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/Tables"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RLSRestApi.get_list": {
+        "properties": {
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "clause": {
+            "description": "This is the condition that will be added to the WHERE clause. For example,to only return rows for a particular client,you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role,a base filter can be created with the clause `1 = 0` (always false).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Detailed description",
+            "type": "string"
+          },
+          "filter_type": {
+            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter,base filters apply filters to all queries except the roles defined in the filter,and can be used to define what users can see if no RLS filters within a filter group apply to them.",
+            "enum": [
+              "Regular",
+              "Base"
+            ],
+            "type": "string"
+          },
+          "group_key": {
+            "description": "Filters with the same group key will be ORed together within the group,while different filter groups will be ANDed together. Undefined group keys are treated as unique groups,i.e. are not grouped together. For example,if a table has three filters,of which two are for departments Finance and Marketing (group key = 'department'),and one refers to the region Europe (group key = 'region'),the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique if of rls filter",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Name of rls filter",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/Roles1"
+            },
+            "type": "array"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/Tables"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RLSRestApi.post": {
+        "properties": {
+          "clause": {
+            "description": "This is the condition that will be added to the WHERE clause. For example,to only return rows for a particular client,you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role,a base filter can be created with the clause `1 = 0` (always false).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Detailed description",
+            "nullable": true,
+            "type": "string"
+          },
+          "filter_type": {
+            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter,base filters apply filters to all queries except the roles defined in the filter,and can be used to define what users can see if no RLS filters within a filter group apply to them.",
+            "enum": [
+              "Regular",
+              "Base"
+            ],
+            "type": "string"
+          },
+          "group_key": {
+            "description": "Filters with the same group key will be ORed together within the group,while different filter groups will be ANDed together. Undefined group keys are treated as unique groups,i.e. are not grouped together. For example,if a table has three filters,of which two are for departments Finance and Marketing (group key = 'department'),and one refers to the region Europe (group key = 'region'),the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of rls filter",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "For regular filters,these are the roles this filter will be applied to. For base filters,these are the roles that the filter DOES NOT apply to,e.g. Admin if admin should see all data.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "tables": {
+            "description": "These are the tables this filter will be applied to.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "clause",
+          "filter_type",
+          "name",
+          "roles",
+          "tables"
+        ],
+        "type": "object"
+      },
+      "RLSRestApi.put": {
+        "properties": {
+          "clause": {
+            "description": "This is the condition that will be added to the WHERE clause. For example,to only return rows for a particular client,you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role,a base filter can be created with the clause `1 = 0` (always false).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Detailed description",
+            "nullable": true,
+            "type": "string"
+          },
+          "filter_type": {
+            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter,base filters apply filters to all queries except the roles defined in the filter,and can be used to define what users can see if no RLS filters within a filter group apply to them.",
+            "enum": [
+              "Regular",
+              "Base"
+            ],
+            "type": "string"
+          },
+          "group_key": {
+            "description": "Filters with the same group key will be ORed together within the group,while different filter groups will be ANDed together. Undefined group keys are treated as unique groups,i.e. are not grouped together. For example,if a table has three filters,of which two are for departments Finance and Marketing (group key = 'department'),and one refers to the region Europe (group key = 'region'),the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of rls filter",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "For regular filters,these are the roles this filter will be applied to. For base filters,these are the roles that the filter DOES NOT apply to,e.g. Admin if admin should see all data.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "tables": {
+            "description": "These are the tables this filter will be applied to.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RecentActivity": {
+        "properties": {
+          "action": {
+            "description": "Action taken describing type of activity",
+            "type": "string"
+          },
+          "item_title": {
+            "description": "Title of item",
+            "type": "string"
+          },
+          "item_type": {
+            "description": "Type of item,e.g. slice or dashboard",
+            "type": "string"
+          },
+          "item_url": {
+            "description": "URL to item",
+            "type": "string"
+          },
+          "time": {
+            "description": "Time of activity,in epoch milliseconds",
+            "format": "float",
+            "type": "number"
+          },
+          "time_delta_humanized": {
+            "description": "Human-readable description of how long ago activity took place",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "RecentActivityResponseSchema": {
+        "properties": {
+          "result": {
+            "description": "A list of recent activity objects",
+            "items": {
+              "$ref": "#/components/schemas/RecentActivity"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RecentActivitySchema": {
+        "properties": {
+          "action": {
+            "description": "Action taken describing type of activity",
+            "type": "string"
+          },
+          "item_title": {
+            "description": "Title of item",
+            "type": "string"
+          },
+          "item_type": {
+            "description": "Type of item,e.g. slice or dashboard",
+            "type": "string"
+          },
+          "item_url": {
+            "description": "URL to item",
+            "type": "string"
+          },
+          "time": {
+            "description": "Time of activity,in epoch milliseconds",
+            "format": "float",
+            "type": "number"
+          },
+          "time_delta_humanized": {
+            "description": "Human-readable description of how long ago activity took place",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "RelatedResponseSchema": {
         "properties": {
           "count": {
@@ -6320,7 +6599,7 @@
             "$ref": "#/components/schemas/ReportRecipientConfigJSON"
           },
           "type": {
-            "description": "The recipient type, check spec for valid options",
+            "description": "The recipient type,check spec for valid options",
             "enum": [
               "Email",
               "Slack"
@@ -6735,7 +7014,7 @@
             "type": "string"
           },
           "creation_method": {
-            "description": "Creation method is used to inform the frontend whether the report/alert was created in the dashboard, chart, or alerts and reports UI."
+            "description": "Creation method is used to inform the frontend whether the report/alert was created in the dashboard,chart,or alerts and reports UI."
           },
           "crontab": {
             "description": "A CRON expression.[Crontab Guru](https://crontab.guru/) is a helpful resource that can help you craft a CRON expression.",
@@ -6766,7 +7045,7 @@
             "type": "boolean"
           },
           "grace_period": {
-            "description": "Once an alert is triggered, how long, in seconds, before Superset nags you again. (in seconds)",
+            "description": "Once an alert is triggered,how long,in seconds,before Superset nags you again. (in seconds)",
             "example": 14400,
             "format": "int32",
             "minimum": 1,
@@ -7433,7 +7712,7 @@
             "$ref": "#/components/schemas/ValidatorConfigJSON"
           },
           "validator_type": {
-            "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL, Empty, or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, >, >=, ==, and !=",
+            "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL,Empty,or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <,<=,>,>=,==,and !=",
             "enum": [
               "not null",
               "operator"
@@ -7441,7 +7720,7 @@
             "type": "string"
           },
           "working_timeout": {
-            "description": "If an alert is staled at a working state, how long until it's state is reseted to error",
+            "description": "If an alert is staled at a working state,how long until it's state is reseted to error",
             "example": 3600,
             "format": "int32",
             "minimum": 1,
@@ -7471,7 +7750,7 @@
             "type": "string"
           },
           "creation_method": {
-            "description": "Creation method is used to inform the frontend whether the report/alert was created in the dashboard, chart, or alerts and reports UI.",
+            "description": "Creation method is used to inform the frontend whether the report/alert was created in the dashboard,chart,or alerts and reports UI.",
             "nullable": true
           },
           "crontab": {
@@ -7502,7 +7781,7 @@
             "type": "boolean"
           },
           "grace_period": {
-            "description": "Once an alert is triggered, how long, in seconds, before Superset nags you again. (in seconds)",
+            "description": "Once an alert is triggered,how long,in seconds,before Superset nags you again. (in seconds)",
             "example": 14400,
             "format": "int32",
             "minimum": 1,
@@ -8161,7 +8440,7 @@
             "$ref": "#/components/schemas/ValidatorConfigJSON"
           },
           "validator_type": {
-            "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL, Empty, or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <, <=, >, >=, ==, and !=",
+            "description": "Determines when to trigger alert based off value from alert query. Alerts will be triggered with these validator types:\n- Not Null - When the return value is Not NULL,Empty,or 0\n- Operator - When `sql_return_value comparison_operator threshold` is True e.g. `50 <= 75`<br>Supports the comparison operators <,<=,>,>=,==,and !=",
             "enum": [
               "not null",
               "operator"
@@ -8170,7 +8449,7 @@
             "type": "string"
           },
           "working_timeout": {
-            "description": "If an alert is staled at a working state, how long until it's state is reseted to error",
+            "description": "If an alert is staled at a working state,how long until it's state is reseted to error",
             "example": 3600,
             "format": "int32",
             "minimum": 1,
@@ -8209,6 +8488,18 @@
         "type": "object"
       },
       "Roles": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Roles1": {
         "properties": {
           "id": {
             "format": "int32",
@@ -8725,6 +9016,21 @@
         },
         "type": "object"
       },
+      "Tables": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "table_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "TemporaryCachePostSchema": {
         "properties": {
           "value": {
@@ -9063,6 +9369,23 @@
         },
         "type": "object"
       },
+      "get_recent_activity_schema": {
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "distinct": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
       "get_related_schema": {
         "properties": {
           "filter": {
@@ -9279,7 +9602,7 @@
         ]
       },
       "get": {
-        "description": "Get a list of Annotation layers, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "description": "Get a list of Annotation layers,use Rison or JSON query parameters for filtering,sorting,pagination and for selecting specific columns and metadata.",
         "parameters": [
           {
             "content": {
@@ -9314,7 +9637,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -9862,7 +10185,7 @@
         ]
       },
       "get": {
-        "description": "Get a list of Annotation layers, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "description": "Get a list of Annotation layers,use Rison or JSON query parameters for filtering,sorting,pagination and for selecting specific columns and metadata.",
         "parameters": [
           {
             "description": "The annotation layer id for this annotation",
@@ -10217,7 +10540,7 @@
     },
     "/api/v1/assets/export/": {
       "get": {
-        "description": "Returns a ZIP file with all the Superset assets (databases, datasets, charts, dashboards, saved queries) as YAML files.",
+        "description": "Returns a ZIP file with all the Superset assets (databases,datasets,charts,dashboards,saved queries) as YAML files.",
         "responses": {
           "200": {
             "content": {
@@ -10263,7 +10586,7 @@
                     "type": "string"
                   },
                   "passwords": {
-                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`,the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -10314,7 +10637,7 @@
     },
     "/api/v1/async_event/": {
       "get": {
-        "description": "Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received.",
+        "description": "Reads off of the Redis events stream,using the user's JWT token and optional query params for last event received.",
         "parameters": [
           {
             "description": "Last ID received by the client",
@@ -10425,7 +10748,7 @@
     },
     "/api/v1/cachekey/invalidate": {
       "post": {
-        "description": "Takes a list of datasources, finds the associated cache records and invalidates them and removes the database records",
+        "description": "Takes a list of datasources,finds the associated cache records and invalidates them and removes the database records",
         "requestBody": {
           "content": {
             "application/json": {
@@ -10516,7 +10839,7 @@
         ]
       },
       "get": {
-        "description": "Get a list of charts, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
+        "description": "Get a list of charts,use Rison or JSON query parameters for filtering,sorting,pagination and  for selecting specific columns and metadata.",
         "parameters": [
           {
             "content": {
@@ -10551,7 +10874,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -10894,7 +11217,7 @@
                 }
               }
             },
-            "description": "A zip file with chart(s), dataset(s) and database(s) as YAML"
+            "description": "A zip file with chart(s),dataset(s) and database(s) as YAML"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -10986,7 +11309,7 @@
                     "type": "boolean"
                   },
                   "passwords": {
-                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`,the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -11625,7 +11948,7 @@
         ]
       },
       "get": {
-        "description": "Get a list of CSS templates, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "description": "Get a list of CSS templates,use Rison or JSON query parameters for filtering,sorting,pagination and for selecting specific columns and metadata.",
         "parameters": [
           {
             "content": {
@@ -11660,7 +11983,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -12200,7 +12523,7 @@
         ]
       },
       "get": {
-        "description": "Get a list of dashboards, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
+        "description": "Get a list of dashboards,use Rison or JSON query parameters for filtering,sorting,pagination and  for selecting specific columns and metadata.",
         "parameters": [
           {
             "content": {
@@ -12235,7 +12558,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -12567,7 +12890,7 @@
                     "type": "boolean"
                   },
                   "passwords": {
-                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`,the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -13020,7 +13343,7 @@
         "description": "Get a dashboard detail information.",
         "parameters": [
           {
-            "description": "Either the id of the dashboard, or its slug",
+            "description": "Either the id of the dashboard,or its slug",
             "in": "path",
             "name": "id_or_slug",
             "required": true,
@@ -13128,7 +13451,7 @@
         "description": "Returns a list of a dashboard's datasets. Each dataset includes only the information necessary to render the dashboard's charts.",
         "parameters": [
           {
-            "description": "Either the id of the dashboard, or its slug",
+            "description": "Either the id of the dashboard,or its slug",
             "in": "path",
             "name": "id_or_slug",
             "required": true,
@@ -13912,7 +14235,7 @@
                 }
               }
             },
-            "description": "Thumbnail does not exist on cache, fired async to compute"
+            "description": "Thumbnail does not exist on cache,fired async to compute"
           },
           "302": {
             "description": "Redirects to the current digest"
@@ -13977,7 +14300,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -14217,6 +14540,10 @@
                       "engine_information": {
                         "description": "Dict with public properties form the DB Engine",
                         "properties": {
+                          "disable_ssh_tunneling": {
+                            "description": "Whether the engine supports SSH Tunnels",
+                            "type": "boolean"
+                          },
                           "supports_file_upload": {
                             "description": "Whether the engine supports file uploads",
                             "type": "boolean"
@@ -14331,7 +14658,7 @@
                     "type": "boolean"
                   },
                   "passwords": {
-                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`,the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -15294,7 +15621,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -15692,7 +16019,7 @@
                     "type": "boolean"
                   },
                   "passwords": {
-                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`,the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
                   },
                   "sync_columns": {
@@ -16319,7 +16646,7 @@
     },
     "/api/v1/explore/": {
       "get": {
-        "description": "Assembles Explore related information (form_data, slice, dataset)\\n in a single endpoint.<br/><br/>\\nThe information can be assembled from:<br/> - The cache using a form_data_key<br/> - The metadata database using a permalink_key<br/> - Build from scratch using dataset or slice identifiers.",
+        "description": "Assembles Explore related information (form_data,slice,dataset)\\n in a single endpoint.<br/><br/>\\nThe information can be assembled from:<br/> - The cache using a form_data_key<br/> - The metadata database using a permalink_key<br/> - Build from scratch using dataset or slice identifiers.",
         "parameters": [
           {
             "in": "query",
@@ -16389,7 +16716,7 @@
             "jwt": []
           }
         ],
-        "summary": "Assembles Explore related information (form_data, slice, dataset)\\n in a single endpoint.",
+        "summary": "Assembles Explore related information (form_data,slice,dataset)\\n in a single endpoint.",
         "tags": [
           "Explore"
         ]
@@ -16789,7 +17116,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -16914,6 +17241,65 @@
         ]
       }
     },
+    "/api/v1/log/recent_activity/{user_id}/": {
+      "get": {
+        "description": "Get recent activity data for a user",
+        "parameters": [
+          {
+            "description": "The id of the user",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_recent_activity_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecentActivityResponseSchema"
+                }
+              }
+            },
+            "description": "A List of recent activity objects"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "LogRestApi"
+        ]
+      }
+    },
     "/api/v1/log/{pk}": {
       "get": {
         "description": "Get an item model",
@@ -17018,7 +17404,7 @@
     },
     "/api/v1/me/": {
       "get": {
-        "description": "Returns the user object corresponding to the agent making the request, or returns a 401 error if the user is unauthenticated.",
+        "description": "Returns the user object corresponding to the agent making the request,or returns a 401 error if the user is unauthenticated.",
         "responses": {
           "200": {
             "content": {
@@ -17046,7 +17432,7 @@
     },
     "/api/v1/me/roles/": {
       "get": {
-        "description": "Returns the user roles corresponding to the agent making the request, or returns a 401 error if the user is unauthenticated.",
+        "description": "Returns the user roles corresponding to the agent making the request,or returns a 401 error if the user is unauthenticated.",
         "responses": {
           "200": {
             "content": {
@@ -17100,7 +17486,7 @@
                             "type": "string"
                           },
                           "name": {
-                            "description": "The internal menu item name, maps to permission_name",
+                            "description": "The internal menu item name,maps to permission_name",
                             "type": "string"
                           },
                           "url": {
@@ -17135,7 +17521,7 @@
     },
     "/api/v1/query/": {
       "get": {
-        "description": "Get a list of queries, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
+        "description": "Get a list of queries,use Rison or JSON query parameters for filtering,sorting,pagination and  for selecting specific columns and metadata.",
         "parameters": [
           {
             "content": {
@@ -17170,7 +17556,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -17569,7 +17955,7 @@
         ]
       },
       "get": {
-        "description": "Get a list of report schedules, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "description": "Get a list of report schedules,use Rison or JSON query parameters for filtering,sorting,pagination and for selecting specific columns and metadata.",
         "parameters": [
           {
             "content": {
@@ -17604,7 +17990,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -18102,7 +18488,7 @@
     },
     "/api/v1/report/{pk}/log/": {
       "get": {
-        "description": "Get a list of report schedule logs, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "description": "Get a list of report schedule logs,use Rison or JSON query parameters for filtering,sorting,pagination and for selecting specific columns and metadata.",
         "parameters": [
           {
             "description": "The report schedule id for these logs",
@@ -18259,6 +18645,590 @@
         ]
       }
     },
+    "/api/v1/rowlevelsecurity/": {
+      "delete": {
+        "description": "Deletes multiple RLS rules in a bulk operation.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_delete_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "RLS Rule bulk delete"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      },
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids,useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/RLSRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      },
+      "post": {
+        "description": "Create a new RLS Rule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RLSRestApi.post"
+              }
+            }
+          },
+          "description": "RLS schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/RLSRestApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "RLS Rule added"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      }
+    },
+    "/api/v1/rowlevelsecurity/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      }
+    },
+    "/api/v1/rowlevelsecurity/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      }
+    },
+    "/api/v1/rowlevelsecurity/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/RLSRestApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      },
+      "put": {
+        "description": "Updates an RLS Rule",
+        "parameters": [
+          {
+            "description": "The Rule pk",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RLSRestApi.put"
+              }
+            }
+          },
+          "description": "RLS schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/RLSRestApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Rule changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      }
+    },
     "/api/v1/saved_query/": {
       "delete": {
         "description": "Deletes multiple saved queries in a bulk operation.",
@@ -18314,7 +19284,7 @@
         ]
       },
       "get": {
-        "description": "Get a list of saved queries, use Rison or JSON query parameters for filtering, sorting, pagination and for selecting specific columns and metadata.",
+        "description": "Get a list of saved queries,use Rison or JSON query parameters for filtering,sorting,pagination and for selecting specific columns and metadata.",
         "parameters": [
           {
             "content": {
@@ -18349,7 +19319,7 @@
                       "type": "object"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
+                      "description": "A list of item ids,useful when you don't know the column id",
                       "items": {
                         "type": "string"
                       },
@@ -18686,7 +19656,7 @@
                     "type": "boolean"
                   },
                   "passwords": {
-                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`, the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
+                    "description": "JSON map of passwords for each featured database in the ZIP file. If the ZIP includes a database config in the path `databases/MyDatabase.yaml`,the password should be provided in the following format: `{\"databases/MyDatabase.yaml\": \"my_password\"}`.",
                     "type": "string"
                   }
                 },
@@ -19245,7 +20215,7 @@
   },
   "servers": [
     {
-      "url": "http://localhost:8088"
+      "url": "http://localhost:8088/"
     }
   ]
 }
