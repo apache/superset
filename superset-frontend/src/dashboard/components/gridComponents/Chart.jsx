@@ -114,6 +114,15 @@ const SHOULD_UPDATE_ON_PROP_CHANGES = Object.keys(propTypes).filter(
 const OVERFLOWABLE_VIZ_TYPES = new Set(['filter_box']);
 const DEFAULT_HEADER_HEIGHT = 22;
 
+const ChartWrapper = styled.div`
+  overflow: hidden;
+  position: relative;
+
+  &.dashboard-chart--overflowable {
+    overflow: visible;
+  }
+`;
+
 const ChartOverlay = styled.div`
   position: absolute;
   top: 0;
@@ -486,7 +495,7 @@ class Chart extends React.Component {
           />
         )}
 
-        <div
+        <ChartWrapper
           className={cx(
             'dashboard-chart',
             isOverflowable && 'dashboard-chart--overflowable',
@@ -530,7 +539,7 @@ class Chart extends React.Component {
             datasetsStatus={datasetsStatus}
             isInView={isInView}
           />
-        </div>
+        </ChartWrapper>
       </SliceContainer>
     );
   }
