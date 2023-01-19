@@ -571,7 +571,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const shouldEnableForceScreenshot = contentType === 'chart' && !isReport;
     const data: any = {
       ...currentAlert,
-      type: isReport ? 'Report' : 'Alert',
+      type: isReport ? t('Report') : t('Alert'),
       force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
@@ -614,7 +614,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             return;
           }
 
-          // TODO: localize data.type
           addSuccessToast(t('%s updated', data.type));
 
           if (onAdd) {
@@ -631,7 +630,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           return;
         }
 
-        // TODO: localize data.type
         addSuccessToast(t('%s updated', data.type));
 
         if (onAdd) {
