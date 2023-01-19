@@ -111,7 +111,6 @@ export function formatTooltip({
   secondaryMetricLabel?: string;
 }): string {
   const { data, treePathInfo = [] } = params;
-  treePathInfo.shift();
   const node = data as TreeNode;
   const formattedValue = numberFormatter(node.value);
   const formattedSecondaryValue = numberFormatter(node.secondaryValue);
@@ -121,17 +120,19 @@ export function formatTooltip({
     node.secondaryValue / node.value,
   );
   const absolutePercentage = percentFormatter(node.value / totalValue);
-  const parentNode = treePathInfo[treePathInfo.length - 1];
+  const parentNode =
+    treePathInfo.length > 2 ? treePathInfo[treePathInfo.length - 2] : undefined;
   const result = [
-    `<div style="font-size: 14px;font-weight: 600">${absolutePercentage} of total</div>`,
+    `<div style="font-size: 14px;font-weight: 600">${node.name}</div>`,
+    `<div style="font-size: 14px;">${absolutePercentage} of total</div>`,
   ];
   if (parentNode) {
     const conditionalPercentage = percentFormatter(
       node.value / parentNode.value,
     );
     result.push(`
-    <div style="font-size: 12px;">
-      ${conditionalPercentage} of parent
+    <div style="font-size: 14px;">
+      ${conditionalPercentage} of ${parentNode.name}
     </div>`);
   }
   result.push(
