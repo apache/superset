@@ -17,6 +17,7 @@
 from flask_babel import lazy_gettext as _
 from marshmallow.validate import ValidationError
 
+
 class InvalidTagNameError(ValidationError):
     """
     Marshmallow validation error for invalid Tag name

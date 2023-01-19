@@ -137,9 +137,7 @@ class TagView(BaseSupersetView):
 
     @has_access_api
     @expose("/tags/<object_type:object_type>/<int:object_id>/", methods=["POST"])
-    def post(
-        self, object_type: ObjectTypes, object_id: int
-    ) -> FlaskResponse:
+    def post(self, object_type: ObjectTypes, object_id: int) -> FlaskResponse:
         """
         ---
         post:
