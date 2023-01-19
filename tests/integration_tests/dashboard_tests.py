@@ -541,7 +541,7 @@ class TestDashboard(SupersetTestCase):
         dash.owners = [admin_user]
         dash.slices = []
         dash.published = False
-        db.session.merge(dash)
+        db.session.add(dash)
         db.session.commit()
 
         # list dashboards as a gamma user
