@@ -19,11 +19,11 @@
 import json
 
 import pytest
+import sqlparse
 from pytest_mock import MockFixture
 
 from superset.datasets.commands.exceptions import DatasetNotFoundError
 from superset.jinja_context import dataset_macro, where_in
-
 
 def test_where_in() -> None:
     """
@@ -85,9 +85,8 @@ def test_dataset_macro(mocker: MockFixture) -> None:
     )
     DatasetDAO = mocker.patch("superset.datasets.dao.DatasetDAO")
     DatasetDAO.find_by_id.return_value = dataset
-
     assert (
-        dataset_macro(1)
+        sqlparse.format(dataset_macro(1), strip_comments=True).strip()
         == """(SELECT ds AS ds,
        num_boys AS num_boys,
        revenue AS revenue,
@@ -95,9 +94,10 @@ def test_dataset_macro(mocker: MockFixture) -> None:
        revenue-expenses AS profit
 FROM my_schema.old_dataset) AS dataset_1"""
     )
-
     assert (
-        dataset_macro(1, include_metrics=True)
+        sqlparse.format(
+            dataset_macro(1, include_metrics=True), strip_comments=True
+        ).strip()
         == """(SELECT ds AS ds,
        num_boys AS num_boys,
        revenue AS revenue,
@@ -113,7 +113,9 @@ GROUP BY ds,
     )
 
     assert (
-        dataset_macro(1, include_metrics=True, columns=["ds"])
+        sqlparse.format(
+            dataset_macro(1, include_metrics=True, columns=["ds"]), strip_comments=True
+        ).strip()
         == """(SELECT ds AS ds,
        COUNT(*) AS cnt
 FROM my_schema.old_dataset
