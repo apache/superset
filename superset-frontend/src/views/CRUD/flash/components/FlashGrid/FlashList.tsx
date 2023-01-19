@@ -43,7 +43,7 @@ import {
   removeFlash,
 } from '../../services/flash.service';
 import FlashQuery from '../FlashQuery/FlashQuery';
-import { FlashTypesEnum } from '../../enums';
+import { FlashTypes, FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
 
 const PAGE_SIZE = 25;
@@ -163,8 +163,25 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   };
 
   const flashRecoverService = (flash: FlashServiceObject) => {
+    let currentTtl = flash?.ttl;
+    const maxDate = new Date(flash.ttl);
+
+    const flashType = flash.flashType.replace(/([A-Z])/g, ' $1').trim();
+    if (
+      flashType === FlashTypes.SHORT_TERM ||
+      flashType === FlashTypes.ONE_TIME
+    ) {
+      maxDate.setDate(maxDate.getDate() + 7);
+      currentTtl = new Date(maxDate).toISOString().split('T')[0];
+    } else if (flashType === FlashTypes.LONG_TERM) {
+      maxDate.setDate(maxDate.getDate() + 90);
+      currentTtl = new Date(maxDate).toISOString().split('T')[0];
+    }
+    const payload = {
+      ttl: currentTtl,
+    };
     if (flash && flash?.id) {
-      recoverFlashObject(flash?.id).then(
+      recoverFlashObject(flash?.id, payload).then(
         () => {
           setRecoverFlash(null);
           addSuccessToast(t('Recovered: %s', flash?.tableName));
