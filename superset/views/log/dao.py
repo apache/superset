@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime, timedelta
-from typing import List
+from typing import Any, Dict, List
 
 import humanize
 from sqlalchemy import and_, or_
@@ -35,7 +35,7 @@ class LogDAO(BaseDAO):
     @staticmethod
     def get_recent_activity(
         user_id: int, limit: int, actions: List[str], distinct: bool
-    ) -> List[dict]:
+    ) -> List[Dict[str, Any]]:
         has_subject_title = or_(
             and_(
                 Dashboard.dashboard_title is not None,
