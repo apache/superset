@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -206,7 +208,7 @@ class HiveEngineSpec(PrestoEngineSpec):
             with cls.get_engine(database) as engine:
                 engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
 
-        def _get_hive_type(dtype: np.dtype) -> str:
+        def _get_hive_type(dtype: np.dtype[Any]) -> str:
             hive_type_by_dtype = {
                 np.dtype("bool"): "BOOLEAN",
                 np.dtype("float64"): "DOUBLE",

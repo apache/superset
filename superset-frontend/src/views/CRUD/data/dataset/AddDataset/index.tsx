@@ -16,17 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, {
-  useReducer,
-  Reducer,
-  useEffect,
-  useState,
-  useCallback,
-} from 'react';
-import { logging, t } from '@superset-ui/core';
+import React, { useReducer, Reducer, useEffect, useState } from 'react';
+import { logging } from '@superset-ui/core';
 import { UseGetDatasetsList } from 'src/views/CRUD/data/hooks';
 import rison from 'rison';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
 import LeftPanel from './LeftPanel';
@@ -92,29 +85,27 @@ export default function AddDataset() {
   const queryParams = dataset?.schema
     ? rison.encode_uri({
         filters: [
-          { col: 'database', opr: 'rel_o_m', value: dataset?.db?.id },
           { col: 'schema', opr: 'eq', value: encodedSchema },
           { col: 'sql', opr: 'dataset_is_null_or_empty', value: '!t' },
         ],
       })
     : undefined;
 
-  const getDatasetsList = useCallback(async () => {
+  const getDatasetsList = async () => {
     await UseGetDatasetsList(queryParams)
       .then(json => {
         setDatasets(json?.result);
       })
-      .catch(error => {
-        addDangerToast(t('There was an error fetching dataset'));
-        logging.error(t('There was an error fetching dataset'), error);
-      });
-  }, [queryParams]);
+      .catch(error =>
+        logging.error('There was an error fetching dataset', error),
+      );
+  };
 
   useEffect(() => {
     if (dataset?.schema) {
       getDatasetsList();
     }
-  }, [dataset?.schema, getDatasetsList]);
+  }, [dataset?.schema]);
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -123,8 +114,9 @@ export default function AddDataset() {
   const LeftPanelComponent = () => (
     <LeftPanel
       setDataset={setDataset}
-      dataset={dataset}
-      datasetNames={datasetNames}
+      schema={dataset?.schema}
+      dbId={dataset?.db?.id}
+      datasets={datasetNames}
     />
   );
 

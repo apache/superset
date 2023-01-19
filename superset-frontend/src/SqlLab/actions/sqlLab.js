@@ -128,10 +128,22 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
     sqlLab: { unsavedQueryEditor },
   } = rootState;
   const id = key ?? queryEditor.id;
-  return {
+  const updatedQueryEditor = {
     ...queryEditor,
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   };
+
+  if (
+    'schema' in updatedQueryEditor &&
+    !updatedQueryEditor.schemaOptions?.find(
+      ({ value }) => value === updatedQueryEditor.schema,
+    )
+  ) {
+    // remove the deprecated schema option
+    delete updatedQueryEditor.schema;
+  }
+
+  return updatedQueryEditor;
 }
 
 export function resetState() {
