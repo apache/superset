@@ -413,7 +413,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
       .catch(error => {
         const apiError = error?.data?.message
           ? error?.data?.message
-          : t('Please Add a valid Sql Query');
+          : t('Service Error, Please Contact Administrator');
         addDangerToast(apiError);
       });
   };

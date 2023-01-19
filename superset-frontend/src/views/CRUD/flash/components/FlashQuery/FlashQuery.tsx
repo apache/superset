@@ -117,7 +117,7 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
       .catch(error => {
         const apiError = error?.data?.message
           ? error?.data?.message
-          : t('Your sql query is not valid');
+          : t('Service Error, Please Contact Administrator');
         addDangerToast(t(apiError));
       });
   };
