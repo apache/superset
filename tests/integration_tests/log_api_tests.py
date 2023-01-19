@@ -47,6 +47,7 @@ EXPECTED_COLUMNS = [
 
 
 class TestLogApi(SupersetTestCase):
+    maxDiff = None
     def insert_log(
         self,
         action: str,
@@ -189,6 +190,7 @@ class TestLogApi(SupersetTestCase):
 
         db.session.delete(log1)
         db.session.delete(log2)
+        db.session.delete(dash)
         db.session.commit()
 
         self.assertEqual(
@@ -227,6 +229,9 @@ class TestLogApi(SupersetTestCase):
         db.session.delete(log)
         db.session.delete(log2)
         db.session.delete(log3)
+        db.session.delete(dash)
+        db.session.delete(dash2)
+        db.session.delete(dash3)
         db.session.commit()
 
         self.assertEqual(rv.status_code, 200)
@@ -249,6 +254,7 @@ class TestLogApi(SupersetTestCase):
 
         db.session.delete(log)
         db.session.delete(log2)
+        db.session.delete(dash)
         db.session.commit()
 
         self.assertEqual(rv.status_code, 200)
@@ -271,6 +277,7 @@ class TestLogApi(SupersetTestCase):
 
         db.session.delete(log)
         db.session.delete(log2)
+        db.session.delete(dash)
         db.session.commit()
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
