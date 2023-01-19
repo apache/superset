@@ -487,13 +487,18 @@ class TestDashboard(SupersetTestCase):
         hidden_dash.slices = []
         hidden_dash.owners = []
 
-        db.session.merge(dash)
-        db.session.merge(hidden_dash)
+        db.session.add(dash)
+        db.session.add(hidden_dash)
         db.session.commit()
 
         self.login(user.username)
 
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(dash)
+        db.session.delete(hidden_dash)
+        db.session.commit()
+
         self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
         self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
 
