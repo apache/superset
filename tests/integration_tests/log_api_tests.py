@@ -189,16 +189,21 @@ class TestLogApi(SupersetTestCase):
 
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(response, {
-            "result": [{
-                "action": "dashboard",
-                "item_type": "dashboard",
-                "item_url": "/superset/dashboard/dash_slug/",
-                "item_title": "dash_title",
-                "time": ANY,
-                "time_delta_humanized": ANY,
-            }]
-        })
+        self.assertEqual(
+            response,
+            {
+                "result": [
+                    {
+                        "action": "dashboard",
+                        "item_type": "dashboard",
+                        "item_url": "/superset/dashboard/dash_slug/",
+                        "item_title": "dash_title",
+                        "time": ANY,
+                        "time_delta_humanized": ANY,
+                    }
+                ]
+            },
+        )
 
     def test_get_recent_activity_limit(self):
         """

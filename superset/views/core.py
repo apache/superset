@@ -1438,9 +1438,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/recent_activity/<int:user_id>/", methods=["GET"])
     @deprecated()
-    def recent_activity(
-        self, user_id: int
-    ) -> FlaskResponse:
+    def recent_activity(self, user_id: int) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
