@@ -198,11 +198,13 @@ export const createSlice =
   };
 
 //  Create new dashboard
-export const createDashboard = dashboardName => async dispatch => {
+export const createDashboard = dashboardNames => async dispatch => {
   try {
     const response = await SupersetClient.post({
-      endpoint: `/api/v1/dashboard/`,
-      jsonPayload: { dashboard_title: dashboardName },
+      endpoint: `/api/v1/dashboard/batch`,
+      jsonPayload: dashboardNames.map(name => ({
+        dashboard_title: name,
+      })),
     });
 
     return response.json;

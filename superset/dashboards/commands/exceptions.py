@@ -54,6 +54,10 @@ class DashboardCreateFailedError(CreateFailedError):
     message = _("Dashboard could not be created.")
 
 
+class DashboardBulkCreateFailedError(CreateFailedError):
+    message = _("Dashboards could not be created.")
+
+
 class DashboardBulkDeleteFailedError(CreateFailedError):
     message = _("Dashboards could not be deleted.")
 

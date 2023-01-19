@@ -38,11 +38,13 @@ from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.dashboards.commands.bulk_create import BulkCreateDashboardCommand
 from superset.dashboards.commands.bulk_delete import BulkDeleteDashboardCommand
 from superset.dashboards.commands.create import CreateDashboardCommand
 from superset.dashboards.commands.delete import DeleteDashboardCommand
 from superset.dashboards.commands.exceptions import (
     DashboardAccessDeniedError,
+    DashboardBulkCreateFailedError,
     DashboardBulkDeleteFailedError,
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
@@ -139,6 +141,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         RouteMethod.IMPORT,
         RouteMethod.RELATED,
         "bulk_delete",  # not using RouteMethod since locally defined
+        "bulk_create",
         "favorite_status",
         "get_charts",
         "get_datasets",
@@ -537,6 +540,65 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 str(ex),
                 exc_info=True,
             )
+            return self.response_422(message=str(ex))
+
+    @expose("/batch", methods=["POST"])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_create",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def bulk_create(self) -> Response:
+        """Creates new Dashboards
+        ---
+        post:
+          description: >-
+            Create multiple new Dashboards.
+          requestBody:
+            description: Array of Dashboard schemas
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+          responses:
+            201:
+              description: Dashboards added
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/{{self.__class__.__name__}}.post'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            items = [self.add_model_schema.load(item) for item in request.json]
+        # This validates custom Schema with custom validations
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            new_models = BulkCreateDashboardCommand(items).run()
+            ids = [new_model.id for new_model in new_models]
+            return self.response(201, ids=ids, result=items)
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DashboardBulkCreateFailedError as ex:
             return self.response_422(message=str(ex))
 
     @expose("/<pk>", methods=["PUT"])

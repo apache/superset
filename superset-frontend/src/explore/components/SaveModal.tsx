@@ -29,6 +29,7 @@ import {
   DatasourceType,
   SupersetTheme,
   withTheme,
+  ensureIsArray,
 } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form, FormItem } from 'src/components/Form';
@@ -58,8 +59,8 @@ interface SaveModalProps extends RouteComponentProps {
   isVisible: boolean;
   dashboardsAddedTo: { id: number; dashboard_title: string }[];
   dispatch: Dispatch;
-  theme: SupersetTheme;
   onClose: () => void;
+  theme: SupersetTheme;
 }
 
 type SaveModalState = {
@@ -321,16 +322,17 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         );
       }
 
-      // let dashboard: DashboardGetResponse | null = null;
       if (this.state.saveToDashboardIds) {
         const newDashboardNames = this.state.saveToDashboardIds.filter(
           id => typeof id === 'string',
         );
-        const newDashboardIds = (
-          await Promise.all(
-            newDashboardNames.map(id => this.props.actions.createDashboard(id)),
-          )
-        ).map(response => response.id);
+
+        const newDashboardIds =
+          newDashboardNames.length > 0
+            ? (await this.props.actions.createDashboard(newDashboardNames)).map(
+                (response: any) => response.ids,
+              )
+            : [];
         sliceDashboards = this.state.saveToDashboardIds.map(id => {
           if (typeof id === 'number') {
             return id;
@@ -611,6 +613,7 @@ class SaveModal extends React.Component<SaveModalProps, SaveModalState> {
         {...(this.state.isNavigationModalVisible
           ? this.getNavigationModalProps()
           : this.getSaveModalProps())}
+        destroyOnClose
       />
     );
   }
@@ -635,9 +638,9 @@ function mapStateToProps({
     slice: explore.slice,
     userId: user?.userId,
     dashboards: saveModal.dashboards,
-    dashboardsAddedTo: explore.metadata?.dashboards,
+    dashboardsAddedTo: ensureIsArray(explore.metadata?.dashboards),
     alert: saveModal.saveModalAlert,
   };
 }
 
-export default withRouter(withTheme(connect(mapStateToProps)(SaveModal)));
+export default withTheme(withRouter(connect(mapStateToProps)(SaveModal)));

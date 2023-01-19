@@ -23,6 +23,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.dao.base import BaseDAO
+from superset.dao.exceptions import DAOCreateFailedError
 from superset.dashboards.commands.exceptions import DashboardNotFoundError
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.extensions import db
@@ -164,6 +165,18 @@ class DashboardDAO(BaseDAO):
         return model
 
     @staticmethod
+    def bulk_update_charts_owners(
+        models: List[Dashboard], commit: bool = True
+    ) -> List[Dashboard]:
+        for model in models:
+            owners = list(model.owners)
+            for slc in model.slices:
+                slc.owners = list(set(owners) | set(slc.owners))
+        if commit:
+            db.session.commit()
+        return models
+
+    @staticmethod
     def bulk_delete(models: Optional[List[Dashboard]], commit: bool = True) -> None:
         item_ids = [model.id for model in models] if models else []
         # bulk delete, first delete related data
@@ -183,6 +196,25 @@ class DashboardDAO(BaseDAO):
         except SQLAlchemyError as ex:
             db.session.rollback()
             raise ex
+
+    @staticmethod
+    def bulk_create(
+        properties: List[Dict[str, Any]], commit: bool = True
+    ) -> List[Dashboard]:
+        models = []
+        for dashboard_properties in properties:
+            model = DashboardDAO.model_cls()
+            for key, value in dashboard_properties.items():
+                setattr(model, key, value)
+            try:
+                db.session.add(model)
+                models.append(model)
+            except SQLAlchemyError as ex:  # pragma: no cover
+                db.session.rollback()
+                raise DAOCreateFailedError(exception=ex) from ex
+        if commit:
+            db.session.commit()
+        return models
 
     @staticmethod
     def set_dash_metadata(  # pylint: disable=too-many-locals
