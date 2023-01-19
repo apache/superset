@@ -333,9 +333,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           // @ts-ignore
           options={options}
           sortComparator={sortComparator}
-          maxTagPlaceholder={(val: AntdLabeledValue[]) => (
-            <span>+{val.length}</span>
-          )}
           onDropdownVisibleChange={setFilterActive}
         />
       </StyledFormItem>

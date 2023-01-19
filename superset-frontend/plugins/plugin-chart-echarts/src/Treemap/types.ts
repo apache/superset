@@ -29,6 +29,7 @@ import {
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
   LabelPositionEnum,
+  TreePathInfo,
 } from '../types';
 
 export type EchartsTreemapFormData = QueryFormData & {
@@ -65,12 +66,6 @@ export const DEFAULT_FORM_DATA: Partial<EchartsTreemapFormData> = {
   showUpperLabels: true,
   dateFormat: 'smart_date',
 };
-
-export interface TreePathInfo {
-  name: string;
-  dataIndex: number;
-  value: number | number[];
-}
 export interface TreemapSeriesCallbackDataParams extends CallbackDataParams {
   treePathInfo?: TreePathInfo[];
 }

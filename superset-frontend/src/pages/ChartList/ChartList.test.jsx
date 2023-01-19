@@ -30,7 +30,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
 
-import ChartList from 'src/views/CRUD/chart/ChartList';
+import ChartList from 'src/pages/ChartList';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import ListView from 'src/components/ListView';
 import PropertiesModal from 'src/explore/components/PropertiesModal';

@@ -179,7 +179,7 @@
     "react-loadable": "^5.5.0",
     "react-query": "^3.39.2",
     "react-redux": "^7.2.8",
-    "react-resize-detector": "^6.7.6",
+    "react-resize-detector": "^7.1.2",
     "react-reverse-portal": "^2.0.1",
     "react-router-dom": "^5.1.2",
     "react-search-input": "^0.11.3",
@@ -208,7 +208,7 @@
     "yargs": "^15.4.1"
   },
   "devDependencies": {
-    "@applitools/eyes-storybook": "^3.27.6",
+    "@applitools/eyes-storybook": "^3.30.1",
     "@babel/cli": "^7.18.10",
     "@babel/compat-data": "^7.18.8",
     "@babel/core": "^7.18.10",
@@ -311,7 +311,7 @@
     "jest-enzyme": "^7.1.2",
     "jest-websocket-mock": "^2.2.0",
     "jsdom": "^20.0.0",
-    "lerna": "^4.0.0",
+    "lerna": "^6.1.0",
     "less": "^3.12.2",
     "less-loader": "^10.2.0",
     "mini-css-extract-plugin": "^2.3.0",

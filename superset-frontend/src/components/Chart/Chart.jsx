@@ -115,6 +115,10 @@ const Styles = styled.div`
     .pivot_table tbody tr {
       font-feature-settings: 'tnum' 1;
     }
+
+    .alert {
+      margin: ${({ theme }) => theme.gridUnit * 2}px;
+    }
   }
 `;
 

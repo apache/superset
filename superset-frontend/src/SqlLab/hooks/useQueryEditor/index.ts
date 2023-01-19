@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useMemo } from 'react';
 import pick from 'lodash/pick';
 import { shallowEqual, useSelector } from 'react-redux';
 import { SqlLabRootState, QueryEditor } from 'src/SqlLab/types';
@@ -24,7 +25,10 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
   sqlEditorId: string,
   attributes: ReadonlyArray<T>,
 ) {
-  return useSelector<SqlLabRootState, Pick<QueryEditor, T | 'id'>>(
+  const queryEditor = useSelector<
+    SqlLabRootState,
+    Pick<QueryEditor, T | 'id' | 'schema'>
+  >(
     ({ sqlLab: { unsavedQueryEditor, queryEditors } }) =>
       pick(
         {
@@ -32,7 +36,32 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
           ...(sqlEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
         },
         ['id'].concat(attributes),
-      ) as Pick<QueryEditor, T | 'id'>,
+      ) as Pick<QueryEditor, T | 'id' | 'schema'>,
     shallowEqual,
   );
+  const { schema, schemaOptions } = useSelector<
+    SqlLabRootState,
+    Pick<QueryEditor, 'schema' | 'schemaOptions'>
+  >(
+    ({ sqlLab: { unsavedQueryEditor, queryEditors } }) =>
+      pick(
+        {
+          ...queryEditors.find(({ id }) => id === sqlEditorId),
+          ...(sqlEditorId === unsavedQueryEditor.id && unsavedQueryEditor),
+        },
+        ['schema', 'schemaOptions'],
+      ) as Pick<QueryEditor, T | 'schema' | 'schemaOptions'>,
+    shallowEqual,
+  );
+
+  const schemaOptionsMap = useMemo(
+    () => new Set(schemaOptions?.map(({ value }) => value)),
+    [schemaOptions],
+  );
+
+  if ('schema' in queryEditor && schema && !schemaOptionsMap.has(schema)) {
+    delete queryEditor.schema;
+  }
+
+  return queryEditor as Pick<QueryEditor, T | 'id'>;
 }

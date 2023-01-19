@@ -30,7 +30,7 @@ import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
-import { handleChartDelete, CardStyles } from '../utils';
+import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
 
 interface ChartCardProps {
   chart: Chart;

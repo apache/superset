@@ -236,7 +236,7 @@ export const init = (appConfig?: AppConfig) => {
   retriesByJobId = {};
   lastReceivedEventId = null;
 
-  config = appConfig || getBootstrapData().config;
+  config = appConfig || getBootstrapData().common.conf;
   transport = config.GLOBAL_ASYNC_QUERIES_TRANSPORT || TRANSPORT_POLLING;
   pollingDelayMs = config.GLOBAL_ASYNC_QUERIES_POLLING_DELAY || 500;
 

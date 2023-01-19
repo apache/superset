@@ -16,13 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../assets/stylesheets/less/variables.less';
+import { buildQueryContext, QueryFormData } from '@superset-ui/core';
 
-@import './builder.less';
-@import './dashboard.less';
-@import './dnd.less';
-@import './filter-scope-selector.less';
-@import './grid.less';
-@import './popover-menu.less';
-@import './resizable.less';
-@import './components/index.less';
+export default function buildQuery(formData: QueryFormData) {
+  const { metric, sort_by_metric } = formData;
+  return buildQueryContext(formData, baseQueryObject => [
+    {
+      ...baseQueryObject,
+      ...(sort_by_metric && { orderby: [[metric, false]] }),
+    },
+  ]);
+}
