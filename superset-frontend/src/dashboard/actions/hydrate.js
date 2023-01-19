@@ -394,6 +394,11 @@ export const hydrateDashboard =
 
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboard, user);
+    const crossFiltersEnabled =
+      (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+        (metadata.cross_filters_enabled === undefined ||
+          metadata.cross_filters_enabled)) ||
+      false;
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -433,8 +438,7 @@ export const hydrateDashboard =
             (isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR) &&
               metadata.filter_bar_orientation) ||
             FilterBarOrientation.VERTICAL,
-          crossFiltersEnabled: (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-            metadata.cross_filters_enabled === undefined || metadata.cross_filters_enabled) || false,
+          crossFiltersEnabled,
         },
         dataMask,
         dashboardFilters,

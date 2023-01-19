@@ -17,15 +17,28 @@
  * under the License.
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FeatureFlag, isFeatureEnabled, styled, t, useTheme } from '@superset-ui/core';
+import {
+  DataMaskStateWithId,
+  FeatureFlag,
+  isFeatureEnabled,
+  styled,
+  t,
+  useTheme,
+} from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import { saveFilterBarOrientation, saveCrossFiltersSetting } from 'src/dashboard/actions/dashboardInfo';
+import {
+  saveFilterBarOrientation,
+  saveCrossFiltersSetting,
+} from 'src/dashboard/actions/dashboardInfo';
 import Icons from 'src/components/Icons';
-import DropdownSelectableIcon, { DropDownSelectableProps } from 'src/components/DropdownSelectableIcon';
+import DropdownSelectableIcon, {
+  DropDownSelectableProps,
+} from 'src/components/DropdownSelectableIcon';
 import Checkbox from 'src/components/Checkbox';
+import { clearDataMaskState } from 'src/dataMask/actions';
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -49,18 +62,21 @@ const FilterBarSettings = () => {
   const isCrossFiltersFeatureEnabled = isFeatureEnabled(
     FeatureFlag.DASHBOARD_CROSS_FILTERS,
   );
-  const shouldEnableCrossFilters = !!isCrossFiltersEnabled && isCrossFiltersFeatureEnabled;
-  const [crossFiltersEnabled, setCrossFiltersEnabled] =
-    useState<boolean>(shouldEnableCrossFilters);
+  const shouldEnableCrossFilters =
+    !!isCrossFiltersEnabled && isCrossFiltersFeatureEnabled;
+  const [crossFiltersEnabled, setCrossFiltersEnabled] = useState<boolean>(
+    shouldEnableCrossFilters,
+  );
   const crossFiltersMenuKey = 'cross-filters-menu-key';
   const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
     o === FilterBarOrientation.VERTICAL ||
     o === FilterBarOrientation.HORIZONTAL;
   const updateCrossFiltersSetting = useCallback(
-    async (isEnabled) => {
-      await dispatch(
-        saveCrossFiltersSetting(isEnabled),
-      );
+    async isEnabled => {
+      if (!isEnabled) {
+        dispatch(clearDataMaskState());
+      }
+      await dispatch(saveCrossFiltersSetting(isEnabled));
     },
     [dispatch, crossFiltersEnabled],
   );
@@ -105,7 +121,7 @@ const FilterBarSettings = () => {
     ),
     [crossFiltersEnabled],
   );
-  const menuItems: DropDownSelectableProps["menuItems"] = [
+  const menuItems: DropDownSelectableProps['menuItems'] = [
     {
       key: 'placement',
       label: t('Placement of the filter bar'),

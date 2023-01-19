@@ -267,8 +267,11 @@ export function saveDashboardRequest(data, id, saveType) {
         refresh_frequency: data.metadata?.refresh_frequency || 0,
         timed_refresh_immune_slices:
           data.metadata?.timed_refresh_immune_slices || [],
-          // cross-filters should be enabled by default
-        cross_filters_enabled: metadataCrossFiltersEnabled === undefined ? true : metadataCrossFiltersEnabled,
+        // cross-filters should be enabled by default
+        cross_filters_enabled:
+          metadataCrossFiltersEnabled === undefined
+            ? true
+            : metadataCrossFiltersEnabled,
       },
     };
 

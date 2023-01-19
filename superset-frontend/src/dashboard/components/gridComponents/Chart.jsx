@@ -176,13 +176,6 @@ class Chart extends React.Component {
       return true;
     }
 
-    // allow chart to update if enable/disable cross-filters.
-    if (
-      this.props?.emitCrossFilters !== nextProps?.emitCrossFilters
-    ) {
-      return true;
-    }
-
     // allow chart update/re-render only if visible:
     // under selected tab or no tab layout
     if (nextProps.isComponentVisible) {

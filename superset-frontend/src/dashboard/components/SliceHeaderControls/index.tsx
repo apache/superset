@@ -111,7 +111,6 @@ export interface SliceHeaderControlsProps {
     slice_name: string;
     slice_id: number;
     slice_description: string;
-    form_data?: { emit_filter?: boolean };
     datasource: string;
   };
 
@@ -141,6 +140,8 @@ export interface SliceHeaderControlsProps {
   supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
   sliceCanEdit?: boolean;
+
+  crossFiltersEnabled?: boolean;
 }
 type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
   RouteComponentProps;
@@ -332,6 +333,7 @@ class SliceHeaderControls extends React.PureComponent<
       addDangerToast = () => {},
       supersetCanShare = false,
       isCached = [],
+      crossFiltersEnabled,
     } = this.props;
     const crossFilterItems = getChartMetadataRegistry().items;
     const isTable = slice.viz_type === 'table';
@@ -341,7 +343,6 @@ class SliceHeaderControls extends React.PureComponent<
         value.behaviors?.includes(Behavior.INTERACTIVE_CHART),
       )
       .find(([key]) => key === slice.viz_type);
-    const canEmitCrossFilter = slice.form_data?.emit_filter;
 
     const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
       moment.utc(itemCachedDttm).fromNow(),
@@ -368,6 +369,7 @@ class SliceHeaderControls extends React.PureComponent<
     const fullscreenLabel = isFullSize
       ? t('Exit fullscreen')
       : t('Enter fullscreen');
+
     const menu = (
       <Menu
         onClick={this.handleMenuClick}
@@ -464,7 +466,7 @@ class SliceHeaderControls extends React.PureComponent<
 
         {isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
           isCrossFilter &&
-          canEmitCrossFilter && (
+          crossFiltersEnabled && (
             <>
               <Menu.Item key={MENU_KEYS.CROSS_FILTER_SCOPING}>
                 {t('Cross-filter scoping')}

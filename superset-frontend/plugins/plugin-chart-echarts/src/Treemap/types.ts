@@ -42,7 +42,6 @@ export type EchartsTreemapFormData = QueryFormData & {
   numberFormat: string;
   dateFormat: string;
   dashboardId?: number;
-  emitFilter: boolean;
 };
 
 export enum EchartsTreemapLabelType {
@@ -65,7 +64,6 @@ export const DEFAULT_FORM_DATA: Partial<EchartsTreemapFormData> = {
   showLabels: true,
   showUpperLabels: true,
   dateFormat: 'smart_date',
-  emitFilter: false,
 };
 
 export interface TreePathInfo {

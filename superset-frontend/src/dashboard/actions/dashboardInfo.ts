@@ -136,9 +136,7 @@ export interface SetCrossFiltersEnabled {
   type: typeof SET_CROSS_FILTERS_ENABLED;
   crossFiltersEnabled: boolean;
 }
-export function setCrossFiltersEnabled(
-  crossFiltersEnabled: boolean,
-) {
+export function setCrossFiltersEnabled(crossFiltersEnabled: boolean) {
   return { type: SET_CROSS_FILTERS_ENABLED, crossFiltersEnabled };
 }
 

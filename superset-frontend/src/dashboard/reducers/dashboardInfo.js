@@ -44,11 +44,11 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         filterBarOrientation: action.filterBarOrientation,
       };
-      case SET_CROSS_FILTERS_ENABLED:
-        return {
-          ...state,
-          crossFiltersEnabled: action.crossFiltersEnabled,
-        };
+    case SET_CROSS_FILTERS_ENABLED:
+      return {
+        ...state,
+        crossFiltersEnabled: action.crossFiltersEnabled,
+      };
     default:
       return state;
   }
