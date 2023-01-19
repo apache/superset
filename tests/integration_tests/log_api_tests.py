@@ -47,8 +47,6 @@ EXPECTED_COLUMNS = [
 
 
 class TestLogApi(SupersetTestCase):
-    maxDiff = None
-
     def insert_log(
         self,
         action: str,
