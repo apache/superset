@@ -20,7 +20,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  DataMaskStateWithId,
   FeatureFlag,
   isFeatureEnabled,
   styled,

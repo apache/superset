@@ -48,6 +48,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
       conf: {},
       flash_messages: [],
     },
+    crossFiltersEnabled: true,
   },
 };
 
