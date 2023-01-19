@@ -266,6 +266,8 @@ class TestLogApi(SupersetTestCase):
         """
         Log API: Test recent activity when distinct is false
         """
+        db.session.query(Log).delete(synchronize_session=False)
+        db.session.commit()
         admin_user = self.get_user("admin")
         self.login(username="admin")
         dash = create_dashboard("dash_slug", "dash_title", "{}", [])
@@ -282,6 +284,4 @@ class TestLogApi(SupersetTestCase):
         db.session.commit()
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
-        print(response["result"])
-        self.assertEqual(response["result"], {"a": 1})  # debugging
         self.assertEqual(len(response["result"]), 2)
