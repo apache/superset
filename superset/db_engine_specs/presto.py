@@ -638,9 +638,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         Per the SQLAlchemy definition if the schema is omitted the database’s default
         schema is used, however some dialects infer the request as schema agnostic.
 
-        Note that PyHive's Hive and Presto SQLAlchemy dialects do not implement the
-        `get_view_names` method. To ensure consistency with the `get_table_names` method
-        the request is deemed schema agnostic when the schema is omitted.
+        Note that PyHive's Presto SQLAlchemy dialect does not adhere to the
+        specification as the `get_view_names` method is not defined. Futhermore the
+        dialect wrongfully infers the request as schema agnostic when the schema is
+        omitted.
 
         :param database: The database to inspect
         :param inspector: The SQLAlchemy inspector
