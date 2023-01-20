@@ -16,40 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-@import '../../../assets/stylesheets/less/variables.less';
 
-.new-component {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  align-items: center;
-  padding: 16px;
-  background: @lightest;
-  cursor: move;
+import React from 'react';
+import { Global } from '@emotion/react';
+import { css } from '@superset-ui/core';
 
-  &:not(.static):hover {
-    background: @gray-bg;
-  }
-}
-
-.new-component-placeholder {
-  position: relative;
-  background: @gray-bg;
-  width: 40px;
-  height: 40px;
-  margin-right: 16px;
-  border: 1px solid @lightest;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: @gray;
-  font-size: @font-size-xxl;
-
-  &.fa-window-restore {
-    font-size: @font-size-l;
-  }
-
-  &.fa-area-chart {
-    font-size: @font-size-xl;
-  }
-}
+export const SqlLabGlobalStyles = () => (
+  <Global
+    styles={theme => css`
+      body {
+        min-height: max(
+          100vh,
+          ${theme.gridUnit * 125}px
+        ); // Set a min height so the gutter is always visible when resizing
+        overflow: hidden;
+      }
+    `}
+  />
+);

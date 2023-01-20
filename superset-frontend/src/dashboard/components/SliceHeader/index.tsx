@@ -25,7 +25,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useDispatch, useSelector } from 'react-redux';
@@ -62,6 +62,69 @@ const CrossFilterIcon = styled(Icons.CursorTarget)`
   color: ${({ theme }) => theme.colors.primary.base};
   height: 22px;
   width: 22px;
+`;
+
+const ChartHeaderStyles = styled.div`
+  ${({ theme }) => css`
+    font-size: ${theme.typography.sizes.l}px;
+    font-weight: ${theme.typography.weights.bold};
+    margin-bottom: ${theme.gridUnit}px;
+    display: flex;
+    max-width: 100%;
+    align-items: flex-start;
+    min-height: 0;
+
+    & > .header-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      flex-grow: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+
+      & > span.ant-tooltip-open {
+        display: inline;
+      }
+    }
+
+    & > .header-controls {
+      display: flex;
+
+      & > * {
+        margin-left: ${theme.gridUnit * 2}px;
+      }
+    }
+
+    .dropdown.btn-group {
+      pointer-events: none;
+      vertical-align: top;
+      & > * {
+        pointer-events: auto;
+      }
+    }
+
+    .dropdown-toggle.btn.btn-default {
+      background: none;
+      border: none;
+      box-shadow: none;
+    }
+
+    .dropdown-menu.dropdown-menu-right {
+      top: ${theme.gridUnit * 5}px;
+    }
+
+    .divider {
+      margin: ${theme.gridUnit}px 0;
+    }
+
+    .refresh-tooltip {
+      display: block;
+      height: ${theme.gridUnit * 4}px;
+      margin: ${theme.gridUnit}px 0;
+      color: ${theme.colors.text.label};
+    }
+  `}
 `;
 
 const SliceHeader: FC<SliceHeaderProps> = ({
@@ -134,7 +197,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
 
   return (
-    <div className="chart-header" data-test="slice-header" ref={innerRef}>
+    <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
         <Tooltip title={headerTooltip}>
           <EditableTitle
@@ -229,7 +292,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
           </>
         )}
       </div>
-    </div>
+    </ChartHeaderStyles>
   );
 };
 

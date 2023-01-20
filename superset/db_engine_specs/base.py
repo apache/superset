@@ -193,7 +193,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: Set[str] = set()
     drivers: Dict[str, str] = {}
     default_driver: Optional[str] = None
-    allow_ssh_tunneling = False
+    disable_ssh_tunneling = False
 
     _date_trunc_functions: Dict[str, str] = {}
     _time_grain_expressions: Dict[Optional[str], str] = {}
@@ -1697,11 +1697,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Construct a Dict with properties we want to expose.
 
         :returns: Dict with properties of our class like supports_file_upload
-        and allow_ssh_tunneling
+        and disable_ssh_tunneling
         """
         return {
             "supports_file_upload": cls.supports_file_upload,
-            "allow_ssh_tunneling": cls.allow_ssh_tunneling,
+            "disable_ssh_tunneling": cls.disable_ssh_tunneling,
         }
 
 

@@ -1150,7 +1150,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                             supports_file_upload:
                               description: Whether the engine supports file uploads
                               type: boolean
-                            allow_ssh_tunneling:
+                            disable_ssh_tunneling:
                               description: Whether the engine supports SSH Tunnels
                               type: boolean
             400:

@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import json
 import logging
 from operator import eq, ge, gt, le, lt, ne
 from timeit import default_timer
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -84,12 +86,12 @@ class AlertCommand(BaseCommand):
         except (KeyError, json.JSONDecodeError) as ex:
             raise AlertValidatorConfigError() from ex
 
-    def _validate_not_null(self, rows: np.recarray) -> None:
+    def _validate_not_null(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)
         self._result = rows[0][1]
 
     @staticmethod
-    def _validate_result(rows: np.recarray) -> None:
+    def _validate_result(rows: np.recarray[Any, Any]) -> None:
         # check if query return more than one row
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
@@ -108,7 +110,7 @@ class AlertCommand(BaseCommand):
                 )
             )
 
-    def _validate_operator(self, rows: np.recarray) -> None:
+    def _validate_operator(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)
         if rows[0][1] in (0, None, np.nan):
             self._result = 0.0
