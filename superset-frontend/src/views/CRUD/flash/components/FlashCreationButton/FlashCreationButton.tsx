@@ -39,7 +39,7 @@ import { useSelector } from 'react-redux';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { getUpToDateQuery } from 'src/SqlLab/actions/sqlLab';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { DATASOURCE_TYPES } from '../../constants';
+import { DATASOURCE_TYPES, ERROR_MESSSAGES } from '../../constants';
 import {
   createFlash,
   fetchDatabases,
@@ -413,7 +413,7 @@ const FlashCreationButton: FunctionComponent<FlashCreationButtonProps> = ({
       .catch(error => {
         const apiError = error?.data?.message
           ? error?.data?.message
-          : t('Service Error, Please Contact Administrator');
+          : ERROR_MESSSAGES.REMOTE_SERVER;
         addDangerToast(apiError);
       });
   };
