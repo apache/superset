@@ -26,8 +26,8 @@ from typing import (
     Any,
     cast,
     Dict,
+    Hashable,
     List,
-    Mapping,
     NamedTuple,
     Optional,
     Set,
@@ -87,7 +87,13 @@ from superset.superset_typing import (
     QueryObjectDict,
 )
 from superset.utils import core as utils
-from superset.utils.core import get_user_id
+from superset.utils.core import (
+    GenericDataType,
+    get_column_name,
+    get_user_id,
+    is_adhoc_column,
+    remove_duplicates,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlMetric, TableColumn
@@ -680,7 +686,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     }
 
     @property
-    def query(self) -> str:
+    def fetch_value_predicate(self) -> str:
+        return "fix this!"
+
+    def query(self, query_obj: QueryObjectDict) -> QueryResult:
         raise NotImplementedError()
 
     @property
@@ -747,11 +756,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def get_fetch_values_predicate(self) -> List[Any]:
         raise NotImplementedError()
 
-    @staticmethod
-    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
+    def get_extra_cache_keys(self, query_obj: Dict[str, Any]) -> List[Hashable]:
         raise NotImplementedError()
 
     def get_template_processor(self, **kwargs: Any) -> BaseTemplateProcessor:
+        raise NotImplementedError()
+
+    def get_sqla_row_level_filters(
+        self,
+        template_processor: BaseTemplateProcessor,
+    ) -> List[TextClause]:
         raise NotImplementedError()
 
     def _process_sql_expression(  # pylint: disable=no-self-use
@@ -1156,13 +1170,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _get_series_orderby(
         self,
         series_limit_metric: Metric,
-        metrics_by_name: Mapping[str, "SqlMetric"],
-        columns_by_name: Mapping[str, "TableColumn"],
+        metrics_by_name: Dict[str, "SqlMetric"],
+        columns_by_name: Dict[str, "TableColumn"],
+        template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> Column:
         if utils.is_adhoc_metric(series_limit_metric):
             assert isinstance(series_limit_metric, dict)
             ob = self.adhoc_metric_to_sqla(
-                series_limit_metric, columns_by_name  # type: ignore
+                series_limit_metric, columns_by_name
             )
         elif (
             isinstance(series_limit_metric, str)
@@ -1180,23 +1195,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col: Type["AdhocColumn"],  # type: ignore
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
-        """
-        Turn an adhoc column into a sqlalchemy column.
+        raise NotImplementedError()
+        # """
+        # Turn an adhoc column into a sqlalchemy column.
 
-        :param col: Adhoc column definition
-        :param template_processor: template_processor instance
-        :returns: The metric defined as a sqlalchemy column
-        :rtype: sqlalchemy.sql.column
-        """
-        label = utils.get_column_name(col)  # type: ignore
-        expression = self._process_sql_expression(
-            expression=col["sqlExpression"],
-            database_id=self.database_id,
-            schema=self.schema,
-            template_processor=template_processor,
-        )
-        sqla_column = literal_column(expression)
-        return self.make_sqla_column_compatible(sqla_column, label)
+        # :param col: Adhoc column definition
+        # :param template_processor: template_processor instance
+        # :returns: The metric defined as a sqlalchemy column
+        # :rtype: sqlalchemy.sql.column
+        # """
+        # label = utils.get_column_name(col)  # type: ignore
+        # expression = self._process_sql_expression(
+        #     expression=col["sqlExpression"],
+        #     database_id=self.database_id,
+        #     schema=self.schema,
+        #     template_processor=template_processor,
+        # )
+        # sqla_column = literal_column(expression)
+        # return self.make_sqla_column_compatible(sqla_column, label)
 
     def _get_top_groups(
         self,
@@ -1371,7 +1387,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             "time_column": granularity,
             "time_grain": time_grain,
             "to_dttm": to_dttm.isoformat() if to_dttm else None,
-            "table_columns": [col.get("column_name") for col in self.columns],
+            "table_columns": [col.column_name for col in self.columns],
             "filter": filter,
         }
         columns = columns or []
@@ -1399,10 +1415,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if granularity not in self.dttm_cols and granularity is not None:
             granularity = self.main_dttm_col
 
-        columns_by_name: Dict[str, "TableColumn"] = {
-            col.get("column_name"): col
-            for col in self.columns  # col.column_name: col for col in self.columns
+        columns_by_name: Dict[str, TableColumn] = {
+            col.column_name: col for col in self.columns
         }
+
+        metrics_by_name: Dict[str, SqlMetric] = {m.metric_name: m for m in self.metrics}
 
         if not granularity and is_timeseries:
             raise QueryObjectValidationError(
@@ -1423,6 +1440,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         metric=metric,
                         columns_by_name=columns_by_name,
                         template_processor=template_processor,
+                    )
+                )
+            elif isinstance(metric, str) and metric in metrics_by_name:
+                metrics_exprs.append(
+                    metrics_by_name[metric].get_sqla_col(
+                        template_processor=template_processor
                     )
                 )
             else:
@@ -1463,13 +1486,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col = metrics_exprs_by_expr.get(str(col), col)
                     need_groupby = True
             elif col in columns_by_name:
-                gb_column_obj = columns_by_name[col]
-                if isinstance(gb_column_obj, dict):
-                    col = self.get_sqla_col(gb_column_obj)
-                else:
-                    col = gb_column_obj.get_sqla_col()
+                col = columns_by_name[col].get_sqla_col(
+                    template_processor=template_processor
+                )
             elif col in metrics_exprs_by_label:
                 col = metrics_exprs_by_label[col]
+                need_groupby = True
+            elif col in metrics_by_name:
+                col = metrics_by_name[col].get_sqla_col(
+                    template_processor=template_processor
+                )
                 need_groupby = True
 
             if isinstance(col, ColumnElement):
@@ -1496,33 +1522,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # if groupby field/expr equals granularity field/expr
                     if selected == granularity:
                         table_col = columns_by_name[selected]
-                        if isinstance(table_col, dict):
-                            outer = self.get_timestamp_expression(
-                                column=table_col,
-                                time_grain=time_grain,
-                                label=selected,
-                                template_processor=template_processor,
-                            )
-                        else:
-                            outer = table_col.get_timestamp_expression(
-                                time_grain=time_grain,
-                                label=selected,
-                                template_processor=template_processor,
-                            )
+                        outer = table_col.get_timestamp_expression(
+                            time_grain=time_grain,
+                            label=selected,
+                            template_processor=template_processor,
+                        )
                     # if groupby field equals a selected column
                     elif selected in columns_by_name:
-                        if isinstance(columns_by_name[selected], dict):
-                            outer = sa.column(f"{selected}")
-                            outer = self.make_sqla_column_compatible(outer, selected)
-                        else:
-                            outer = columns_by_name[selected].get_sqla_col()
+                        outer = columns_by_name[selected].get_sqla_col(
+                            template_processor=template_processor
+                        )
                     else:
-                        selected = self.validate_adhoc_subquery(
+                        selected = validate_adhoc_subquery(
                             selected,
                             self.database_id,
                             self.schema,
                         )
-                        outer = sa.column(f"{selected}")
+                        outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
                     outer = self.adhoc_column_to_sqla(
@@ -1536,19 +1552,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 select_exprs.append(outer)
         elif columns:
             for selected in columns:
-                selected = self.validate_adhoc_subquery(
-                    selected,
+                if is_adhoc_column(selected):
+                    _sql = selected["sqlExpression"]
+                    _column_label = selected["label"]
+                elif isinstance(selected, str):
+                    _sql = selected
+                    _column_label = selected
+
+                selected = validate_adhoc_subquery(
+                    _sql,
                     self.database_id,
                     self.schema,
                 )
-                if isinstance(columns_by_name[selected], dict):
-                    select_exprs.append(sa.column(f"{selected}"))
-                else:
-                    select_exprs.append(
-                        columns_by_name[selected].get_sqla_col()
-                        if selected in columns_by_name
-                        else self.make_sqla_column_compatible(literal_column(selected))
+                select_exprs.append(
+                    columns_by_name[selected].get_sqla_col(
+                        template_processor=template_processor
                     )
+                    if isinstance(selected, str) and selected in columns_by_name
+                    else self.make_sqla_column_compatible(
+                        literal_column(selected), _column_label
+                    )
+                )
             metrics_exprs = []
 
         if granularity:
@@ -1559,57 +1583,41 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         col=granularity,
                     )
                 )
-            time_filters: List[Any] = []
+            time_filters = []
 
             if is_timeseries:
-                if isinstance(dttm_col, dict):
-                    timestamp = self.get_timestamp_expression(
-                        dttm_col, time_grain, template_processor=template_processor
-                    )
-                else:
-                    timestamp = dttm_col.get_timestamp_expression(
-                        time_grain=time_grain, template_processor=template_processor
-                    )
+                timestamp = dttm_col.get_timestamp_expression(
+                    time_grain=time_grain, template_processor=template_processor
+                )
                 # always put timestamp as the first column
                 select_exprs.insert(0, timestamp)
                 groupby_all_columns[timestamp.name] = timestamp
 
             # Use main dttm column to support index with secondary dttm columns.
-            if db_engine_spec.time_secondary_columns:
-                if isinstance(dttm_col, dict):
-                    dttm_col_name = dttm_col.get("column_name")
-                else:
-                    dttm_col_name = dttm_col.column_name
-
-                if (
-                    self.main_dttm_col in self.dttm_cols
-                    and self.main_dttm_col != dttm_col_name
-                ):
-                    if isinstance(self.main_dttm_col, dict):
-                        time_filters.append(
-                            self.get_time_filter(
-                                self.main_dttm_col,
-                                from_dttm,
-                                to_dttm,
-                            )
-                        )
-                    else:
-                        time_filters.append(
-                            columns_by_name[self.main_dttm_col].get_time_filter(
-                                from_dttm,
-                                to_dttm,
-                            )
-                        )
-
-            if isinstance(dttm_col, dict):
-                time_filters.append(self.get_time_filter(dttm_col, from_dttm, to_dttm))
-            else:
-                time_filters.append(dttm_col.get_time_filter(from_dttm, to_dttm))
+            if (
+                db_engine_spec.time_secondary_columns
+                and self.main_dttm_col in self.dttm_cols
+                and self.main_dttm_col != dttm_col.column_name
+            ):
+                time_filters.append(
+                    columns_by_name[self.main_dttm_col].get_time_filter(
+                        start_dttm=from_dttm,
+                        end_dttm=to_dttm,
+                        template_processor=template_processor,
+                    )
+                )
+            time_filters.append(
+                dttm_col.get_time_filter(
+                    start_dttm=from_dttm,
+                    end_dttm=to_dttm,
+                    template_processor=template_processor,
+                )
+            )
 
         # Always remove duplicates by column name, as sometimes `metrics_exprs`
         # can have the same name as a groupby column (e.g. when users use
         # raw columns as custom SQL adhoc metric).
-        select_exprs = utils.remove_duplicates(
+        select_exprs = remove_duplicates(
             select_exprs + metrics_exprs, key=lambda x: x.name
         )
 
@@ -1619,7 +1627,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # Order by columns are "hidden" columns, some databases require them
         # always be present in SELECT if an aggregation function is used
         if not db_engine_spec.allows_hidden_ordeby_agg:
-            select_exprs = utils.remove_duplicates(select_exprs + orderby_exprs)
+            select_exprs = remove_duplicates(select_exprs + orderby_exprs)
 
         qry = sa.select(select_exprs)
 
@@ -1637,18 +1645,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             flt_col = flt["col"]
             val = flt.get("val")
             op = flt["op"].upper()
-            col_obj: Optional["TableColumn"] = None
+            col_obj: Optional[TableColumn] = None
             sqla_col: Optional[Column] = None
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
-            elif utils.is_adhoc_column(flt_col):
-                sqla_col = self.adhoc_column_to_sqla(flt_col)  # type: ignore
+            elif is_adhoc_column(flt_col):
+                sqla_col = self.adhoc_column_to_sqla(col=flt_col, template_processor=template_processor) # type: ignore
             else:
                 col_obj = columns_by_name.get(flt_col)
             filter_grain = flt.get("grain")
 
             if is_feature_enabled("ENABLE_TEMPLATE_REMOVE_FILTERS"):
-                if utils.get_column_name(flt_col) in removed_filters:
+                if get_column_name(flt_col) in removed_filters:
                     # Skip generating SQLA filter when the jinja template handles it.
                     continue
 
@@ -1656,44 +1664,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if sqla_col is not None:
                     pass
                 elif col_obj and filter_grain:
-                    if isinstance(col_obj, dict):
-                        sqla_col = self.get_timestamp_expression(
-                            col_obj, time_grain, template_processor=template_processor
-                        )
-                    else:
-                        sqla_col = col_obj.get_timestamp_expression(
-                            time_grain=filter_grain,
-                            template_processor=template_processor,
-                        )
-                elif col_obj and isinstance(col_obj, dict):
-                    sqla_col = sa.column(col_obj.get("column_name"))
+                    sqla_col = col_obj.get_timestamp_expression(
+                        time_grain=filter_grain, template_processor=template_processor
+                    )
                 elif col_obj:
-                    sqla_col = col_obj.get_sqla_col()
-
-                if col_obj and isinstance(col_obj, dict):
-                    col_type = col_obj.get("type")
-                else:
-                    col_type = col_obj.type if col_obj else None
+                    sqla_col = col_obj.get_sqla_col(
+                        template_processor=template_processor
+                    )
+                col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(
                     native_type=col_type,
-                    db_extra=self.database.get_extra(),  # type: ignore
+#                    db_extra=self.database.get_extra(),
                 )
                 is_list_target = op in (
                     utils.FilterOperator.IN.value,
                     utils.FilterOperator.NOT_IN.value,
                 )
 
-                if col_obj and isinstance(col_obj, dict):
-                    col_advanced_data_type = ""
-                else:
-                    col_advanced_data_type = (
-                        col_obj.advanced_data_type if col_obj else ""
-                    )
+                col_advanced_data_type = col_obj.advanced_data_type if col_obj else ""
 
                 if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
                 else:
-                    target_generic_type = utils.GenericDataType.STRING
+                    target_generic_type = GenericDataType.STRING
                 eq = self.filter_values_handler(
                     values=val,
                     operator=op,
@@ -1701,7 +1694,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_native_type=col_type,
                     is_list_target=is_list_target,
                     db_engine_spec=db_engine_spec,
-                    db_extra=self.database.get_extra(),  # type: ignore
+#                     db_extra=self.database.get_extra(),
                 )
                 if (
                     col_advanced_data_type != ""
@@ -1757,7 +1750,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 elif op == utils.FilterOperator.IS_FALSE.value:
                     where_clause_and.append(sqla_col.is_(False))
                 else:
-                    if eq is None:
+                    if (
+                        op
+                        not in {
+                            utils.FilterOperator.EQUALS.value,
+                            utils.FilterOperator.NOT_EQUALS.value,
+                        }
+                        and eq is None
+                    ):
                         raise QueryObjectValidationError(
                             _(
                                 "Must specify a value for filters "
@@ -1791,23 +1791,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             extras=extras,
                         )
                         where_clause_and.append(
-                            self.get_time_filter(
-                                time_col=col_obj,
+                            col_obj.get_time_filter(
                                 start_dttm=_since,
                                 end_dttm=_until,
+                                label=sqla_col.key,
+                                template_processor=template_processor,
                             )
                         )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
                         )
-        # todo(hugh): fix this w/ template_processor
-        # where_clause_and += self.get_sqla_row_level_filters(template_processor)
+        where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
             if where:
                 try:
-                    where = template_processor.process_template(f"{where}")
+                    where = template_processor.process_template(f"({where})")
                 except TemplateError as ex:
                     raise QueryObjectValidationError(
                         _(
@@ -1815,11 +1815,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             msg=ex.message,
                         )
                     ) from ex
+                where = self._process_sql_expression(
+                    expression=where,
+                    database_id=self.database_id,
+                    schema=self.schema,
+                    template_processor=template_processor
+                )
                 where_clause_and += [self.text(where)]
             having = extras.get("having")
             if having:
                 try:
-                    having = template_processor.process_template(f"{having}")
+                    having = template_processor.process_template(f"({having})")
                 except TemplateError as ex:
                     raise QueryObjectValidationError(
                         _(
@@ -1827,9 +1833,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             msg=ex.message,
                         )
                     ) from ex
+                having = self._process_sql_expression(
+                    expression=having,
+                    database_id=self.database_id,
+                    schema=self.schema,
+                    template_processor=template_processor,
+                )
                 having_clause_and += [self.text(having)]
-        if apply_fetch_values_predicate and self.fetch_values_predicate:  # type: ignore
-            qry = qry.where(self.get_fetch_values_predicate())  # type: ignore
+
+        if apply_fetch_values_predicate and self.fetch_values_predicate: # type: ignore
+            qry = qry.where(
+                self.get_fetch_values_predicate(template_processor=template_processor) # type: ignore
+            )
         if granularity:
             qry = qry.where(and_(*(time_filters + where_clause_and)))
         else:
@@ -1869,7 +1884,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 inner_groupby_exprs = []
                 inner_select_exprs = []
                 for gby_name, gby_obj in groupby_series_columns.items():
-                    label = utils.get_column_name(gby_name)
+                    label = get_column_name(gby_name)
                     inner = self.make_sqla_column_compatible(gby_obj, gby_name + "__")
                     inner_groupby_exprs.append(inner)
                     inner_select_exprs.append(inner)
@@ -1879,26 +1894,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 inner_time_filter = []
 
                 if dttm_col and not db_engine_spec.time_groupby_inline:
-                    if isinstance(dttm_col, dict):
-                        inner_time_filter = [
-                            self.get_time_filter(
-                                dttm_col,
-                                inner_from_dttm or from_dttm,
-                                inner_to_dttm or to_dttm,
-                            )
-                        ]
-                    else:
-                        inner_time_filter = [
-                            dttm_col.get_time_filter(
-                                inner_from_dttm or from_dttm,
-                                inner_to_dttm or to_dttm,
-                            )
-                        ]
-
+                    inner_time_filter = [
+                        dttm_col.get_time_filter(
+                            start_dttm=inner_from_dttm or from_dttm,
+                            end_dttm=inner_to_dttm or to_dttm,
+                            template_processor=template_processor,
+                        )
+                    ]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
                 subq = subq.group_by(*inner_groupby_exprs)
 
                 ob = inner_main_metric_expr
+                if series_limit_metric:
+                    ob = self._get_series_orderby(
+                        series_limit_metric=series_limit_metric,
+                        metrics_by_name=metrics_by_name,
+                        columns_by_name=columns_by_name,
+                        template_processor=template_processor,
+                    )
                 direction = sa.desc if order_desc else sa.asc
                 subq = subq.order_by(direction(ob))
                 subq = subq.limit(series_limit)
@@ -1912,6 +1925,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     on_clause.append(gby_obj == sa.column(col_name))
 
                 tbl = tbl.join(subq.alias(), and_(*on_clause))
+            else:
+                if series_limit_metric:
+                    orderby = [
+                        (
+                            self._get_series_orderby(
+                                series_limit_metric=series_limit_metric,
+                                metrics_by_name=metrics_by_name,
+                                columns_by_name=columns_by_name,
+                                template_processor=template_processor,
+                            ),
+                            not order_desc,
+                        )
+                    ]
 
                 # run prequery to get top groups
                 prequery_obj = {
@@ -1928,7 +1954,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     "columns": columns,
                     "order_desc": True,
                 }
-                result = self.exc_query(prequery_obj)
+
+                result = self.query(prequery_obj)
                 prequeries.append(result.query)
                 dimensions = [
                     c

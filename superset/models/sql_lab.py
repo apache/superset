@@ -33,6 +33,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Hashable,
     Integer,
     Numeric,
     String,
@@ -307,7 +308,7 @@ class Query(
         return ""
 
     @staticmethod
-    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[str]:
+    def get_extra_cache_keys(query_obj: Dict[str, Any]) -> List[Hashable]:
         return []
 
     @property

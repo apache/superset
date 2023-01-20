@@ -70,9 +70,9 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
         for obj in it:
             if na_obj := pd.isna(obj):
                 # pandas <NA> type cannot be converted to string
-                obj[na_obj] = None  # type: ignore
+                obj[na_obj] = None
             else:
-                obj[...] = stringify(obj)  # type: ignore
+                obj[...] = stringify(obj)
 
     return result
 
