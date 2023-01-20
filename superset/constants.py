@@ -115,6 +115,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_list": "read",
     "info": "read",
     "post": "write",
+    "bulk_create": "write",
     "put": "write",
     "related": "read",
     "related_objects": "read",
