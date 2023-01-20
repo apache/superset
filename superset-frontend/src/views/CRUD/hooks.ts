@@ -33,7 +33,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import SupersetText from 'src/utils/textUtils';
 import { FavoriteStatus, ImportResourceName, DatabaseObject } from './types';
-import { fetchAuditLogs, fetchUsers } from './flash/services/flash.service';
+import { fetchAuditLogs, fetchFlashes } from './flash/services/flash.service';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -308,7 +308,7 @@ export function useFlashListViewResource<D extends object = any>(
             .finally(() => {
               updateState({ loading: false });
             })
-        : fetchUsers(queryParams)
+        : fetchFlashes(queryParams)
             .then(
               (json = {}) => {
                 updateState({

@@ -26,7 +26,7 @@ import {
 import Modal from 'src/components/Modal';
 import Editor from '@monaco-editor/react';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { UPDATE_TYPES } from '../../constants';
+import { ERROR_MESSSAGES, UPDATE_TYPES } from '../../constants';
 import { updateFlash, validateSqlQuery } from '../../services/flash.service';
 
 interface FlashQueryButtonProps {
@@ -117,7 +117,7 @@ const FlashQuery: FunctionComponent<FlashQueryButtonProps> = ({
       .catch(error => {
         const apiError = error?.data?.message
           ? error?.data?.message
-          : t('Your sql query is not valid');
+          : ERROR_MESSSAGES.REMOTE_SERVER;
         addDangerToast(t(apiError));
       });
   };

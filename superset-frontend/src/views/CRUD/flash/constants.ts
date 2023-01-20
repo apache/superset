@@ -58,3 +58,8 @@ export const DATASOURCE_TYPES = {
   HIVE: 'hive',
   PINOT: 'pinot',
 };
+
+export const ERROR_MESSSAGES = {
+  REMOTE_SERVER:
+    'Unable to connect with the remote server. Please contact your Administrator or communicate on the required Support Channel.',
+};
