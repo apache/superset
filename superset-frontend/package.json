@@ -170,7 +170,7 @@
     "react-dom": "^16.13.0",
     "react-draggable": "^4.4.3",
     "react-gravatar": "^2.6.1",
-    "react-hot-loader": "^4.12.20",
+    "react-hot-loader": "^4.13.1",
     "react-intersection-observer": "^8.26.2",
     "react-js-cron": "^1.2.0",
     "react-json-tree": "^0.17.0",
