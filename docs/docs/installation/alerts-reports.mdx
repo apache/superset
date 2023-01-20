@@ -7,7 +7,7 @@ version: 2
 
 ## Alerts and Reports
 
-*v1.0.1 to current.  Instructions for version <=0.38 are preserved at the bottom of this document.*
+*This covers versions 1.0.1 to current.*
 
 Users can configure automated alerts and reports to send dashboards or charts to an email recipient or Slack channel.
 
@@ -23,7 +23,7 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 ##### In your `superset_config.py`
 
 - `"ALERT_REPORTS"` [feature flag](https://superset.apache.org/docs/installation/configuring-superset#feature-flags) must be turned to True.
-- `CELERYBEAT_SCHEDULE` in CeleryConfig must contain schedule for `reports.scheduler`.
+- `beat_schedule` in CeleryConfig must contain schedule for `reports.scheduler`.
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
@@ -38,7 +38,7 @@ Screenshots will be taken but no messages actually sent as long as `ALERT_REPORT
   > If you choose Chrome, you must also change the value of `WEBDRIVER_TYPE` to `"chrome"` in your `superset_config.py`.
 
 Note: All the components required (Firefox headless browser, Redis, Postgres db, celery worker and celery beat) are present in the *dev* docker image if you are following [Installing Superset Locally](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose/).
-All you need to do is add the required config variables described in this guide (See `Detailed Config`). 
+All you need to do is add the required config variables described in this guide (See `Detailed Config`).
 
 If you are running a non-dev docker image, e.g., a stable release like `apache/superset:2.0.0`, that image does not include a headless browser.  Only the `superset_worker` container needs this headless browser to browse to the target chart or dashboard.  You can either install and configure the headless browser, or when deploying via `docker-compose`, modify your `docker-compose.yml` file to use a dev image for the worker container and a stable release image for the `superset_app` container.
 
@@ -60,7 +60,7 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
 
 Note: when you configure an alert or a report, the Slack channel list take channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
 
-#### Kubernetes specific
+#### Kubernetes-specific
 
 - You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
 - You can see the dedicated docs about [Kubernetes installation](/docs/installation/running-on-kubernetes) for more generic details.
@@ -167,6 +167,54 @@ WEBDRIVER_BASEURL = "http://superset:8088"
 WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
 ```
 
+You also need
+to specify on behalf of which username to render the dashboards. In general dashboards and charts
+are not accessible to unauthorized requests, that is why the worker needs to take over credentials
+of an existing user to take a snapshot.
+
+By default, Alerts and Reports are executed as the user that the `THUMBNAIL_SELENIUM_USER` config
+parameter is set to. To change this user, just change the config as follows:
+
+```python
+THUMBNAIL_SELENIUM_USER = 'username_with_permission_to_access_dashboards'
+```
+
+In addition, it's also possible to execute the reports as the report owners/creators. This is typically
+needed if there isn't a central service account that has access to all objects or databases (e.g.
+when using user impersonation on database connections). For this there's the config flag
+`ALERTS_REPORTS_EXECUTE_AS` which makes it possible to customize how alerts and reports are executed.
+To first try to execute as the creator in the owners list (if present), then fall
+back to the creator, then the last modifier in the owners list (if present), then the
+last modifier, then an owner (giving priority to the last modifier and then the
+creator if either is contained within the list of owners, otherwise the first owner
+will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+
+```python
+from superset.reports.types import ReportScheduleExecutor
+
+ALERT_REPORTS_EXECUTE_AS = [
+    ReportScheduleExecutor.CREATOR_OWNER,
+    ReportScheduleExecutor.CREATOR,
+    ReportScheduleExecutor.MODIFIER_OWNER,
+    ReportScheduleExecutor.MODIFIER,
+    ReportScheduleExecutor.OWNER,
+    ReportScheduleExecutor.SELENIUM,
+]
+```
+
+
+**Important notes**
+
+- Be mindful of the concurrency setting for celery (using `-c 4`). Selenium/webdriver instances can
+  consume a lot of CPU / memory on your servers.
+- In some cases, if you notice a lot of leaked geckodriver processes, try running your celery
+  processes with `celery worker --pool=prefork --max-tasks-per-child=128 ...`
+- It is recommended to run separate workers for the `sql_lab` and `email_reports` tasks. This can be
+  done using the `queue` field in `task_annotations`.
+- Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
+  its default value of `http://0.0.0.0:8080/`.
+
+
 ### Custom Dockerfile
 
 A webdriver (and headless browser) is needed to capture screenshots of the charts and dashboards which are then sent to the recipient. If using a base (non-dev) superset image, it does not have a webdriver installed, so we need to extend it and install the webdriver.
@@ -216,104 +264,6 @@ USER superset
 ```
 
 > Don't forget to set `WEBDRIVER_TYPE` and `WEBDRIVER_OPTION_ARGS` in your config if you use Chrome.
-
-
-# Old Reports feature (version <=0.38)
-
-## Scheduling and Emailing Reports
-
-
-### Email Reports
-
-Email reports allow users to schedule email reports for:
-
-- chart and dashboard visualization (attachment or inline)
-- chart data (CSV attachment on inline table)
-
-Enable email reports in your `superset_config.py` file:
-
-```python
-ENABLE_SCHEDULED_EMAIL_REPORTS = True
-```
-
-This flag enables some permissions that are stored in your database, so you'll want to run `superset init` again if you are running this in a dev environment.
-Now you will find two new items in the navigation bar that allow you to schedule email reports:
-
-- **Manage > Dashboard Emails**
-- **Manage > Chart Email Schedules**
-
-Schedules are defined in [crontab format](https://crontab.guru/) and each schedule can have a list
-of recipients (all of them can receive a single mail, or separate mails). For audit purposes, all
-outgoing mails can have a mandatory BCC.
-
-In order get picked up you need to configure a celery worker and a celery beat (see section above
-“Celery Tasks”). Your celery configuration also needs an entry `email_reports.schedule_hourly` for
-`CELERYBEAT_SCHEDULE`.
-
-To send emails you need to configure SMTP settings in your `superset_config.py` configuration file.
-
-```python
-EMAIL_NOTIFICATIONS = True
-
-SMTP_HOST = "email-smtp.eu-west-1.amazonaws.com"
-SMTP_STARTTLS = True
-SMTP_SSL = False
-SMTP_USER = "smtp_username"
-SMTP_PORT = 25
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
-SMTP_MAIL_FROM = "insights@komoot.com"
-```
-
-To render dashboards you need to install a local browser on your Superset instance:
-
-- [geckodriver](https://github.com/mozilla/geckodriver) for Firefox
-- [chromedriver](http://chromedriver.chromium.org/) for Chrome
-
-You'll need to adjust the `WEBDRIVER_TYPE` accordingly in your configuration. You also need
-to specify on behalf of which username to render the dashboards. In general dashboards and charts
-are not accessible to unauthorized requests, that is why the worker needs to take over credentials
-of an existing user to take a snapshot.
-
-By default, Alerts and Reports are executed as the user that the `THUMBNAIL_SELENIUM_USER` config
-parameter is set to. To change this user, just change the config as follows:
-
-```python
-THUMBNAIL_SELENIUM_USER = 'username_with_permission_to_access_dashboards'
-```
-
-In addition, it's also possible to execute the reports as the report owners/creators. This is typically
-needed if there isn't a central service account that has access to all objects or databases (e.g.
-when using user impersonation on database connections). For this there's the config flag
-`ALERTS_REPORTS_EXECUTE_AS` which makes it possible to customize how alerts and reports are executed.
-To first try to execute as the creator in the owners list (if present), then fall
-back to the creator, then the last modifier in the owners list (if present), then the
-last modifier, then an owner (giving priority to the last modifier and then the
-creator if either is contained within the list of owners, otherwise the first owner
-will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
-
-```python
-from superset.reports.types import ReportScheduleExecutor
-
-ALERT_REPORTS_EXECUTE_AS = [
-    ReportScheduleExecutor.CREATOR_OWNER,
-    ReportScheduleExecutor.CREATOR,
-    ReportScheduleExecutor.MODIFIER_OWNER,
-    ReportScheduleExecutor.MODIFIER,
-    ReportScheduleExecutor.OWNER,
-    ReportScheduleExecutor.SELENIUM,
-]
-```
-
-**Important notes**
-
-- Be mindful of the concurrency setting for celery (using `-c 4`). Selenium/webdriver instances can
-  consume a lot of CPU / memory on your servers.
-- In some cases, if you notice a lot of leaked geckodriver processes, try running your celery
-  processes with `celery worker --pool=prefork --max-tasks-per-child=128 ...`
-- It is recommended to run separate workers for the `sql_lab` and `email_reports` tasks. This can be
-  done using the `queue` field in `task_annotations`.
-- Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
-  its default value of `http://0.0.0.0:8080/`.
 
 ### Schedule Reports
 
