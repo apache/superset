@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag } from '@superset-ui/core';
-import { DataMask, FilterConfiguration, Filters } from '@superset-ui/core';
+import {
+  DataMask,
+  FeatureFlag,
+  FilterConfiguration,
+  Filters,
+} from '@superset-ui/core';
 import { isFeatureEnabled } from '../featureFlags';
 import { getInitialDataMask } from './reducer';
 

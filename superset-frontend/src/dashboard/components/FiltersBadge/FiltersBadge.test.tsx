@@ -18,7 +18,6 @@
  */
 import React from 'react';
 import { shallow } from 'enzyme';
-import { supersetTheme } from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { Store } from 'redux';
 import * as SupersetUI from '@superset-ui/core';
@@ -59,7 +58,9 @@ describe('FiltersBadge', () => {
     // shallow rendering in enzyme doesn't propagate contexts correctly,
     // so we have to mock the hook.
     // See https://medium.com/7shifts-engineering-blog/testing-usecontext-react-hook-with-enzyme-shallow-da062140fc83
-    jest.spyOn(SupersetUI, 'useTheme').mockImplementation(() => supersetTheme);
+    jest
+      .spyOn(SupersetUI, 'useTheme')
+      .mockImplementation(() => SupersetUI.supersetTheme);
   });
 
   describe('for dashboard filters', () => {
