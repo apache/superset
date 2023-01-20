@@ -56,7 +56,7 @@ const SSHTunnelForm = ({
   db,
   dbFetched,
   isEditMode,
-  sshTunneling,
+  isSSHTunneling,
   onSSHTunnelParametersChange,
   setSSHTunnelLoginMethod,
   removeSSHTunnelConfig,
@@ -64,7 +64,7 @@ const SSHTunnelForm = ({
   db: DatabaseObject | null;
   dbFetched: DatabaseObject | null;
   isEditMode: boolean;
-  sshTunneling: boolean;
+  isSSHTunneling: boolean;
   onSSHTunnelParametersChange: EventHandler<
     ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   >;
@@ -81,7 +81,7 @@ const SSHTunnelForm = ({
       <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
         <AntdSwitch
           disabled={
-            !sshTunneling || (isEditMode && !isEmpty(dbFetched?.ssh_tunnel))
+            !isSSHTunneling || (isEditMode && !isEmpty(dbFetched?.ssh_tunnel))
           }
           checked={useSSHTunneling}
           onChange={changed => {
