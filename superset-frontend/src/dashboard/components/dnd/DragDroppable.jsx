@@ -21,6 +21,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
+import { css, styled } from '@superset-ui/core';
 
 import { componentShape } from '../../util/propShapes';
 import { dragConfig, dropConfig } from './dragDroppableConfig';
@@ -73,6 +74,64 @@ const defaultProps = {
   dragPreviewRef() {},
 };
 
+const DragDroppableStyles = styled.div`
+  ${({ theme }) => css`
+    position: relative;
+
+    &.dragdroppable--dragging {
+      opacity: 0.2;
+    }
+
+    &.dragdroppable-row {
+      width: 100%;
+    }
+
+    &.dragdroppable-column .resizable-container span div {
+      z-index: 10;
+    }
+
+    & {
+      .drop-indicator {
+        display: block;
+        background-color: ${theme.colors.primary.base};
+        position: absolute;
+        z-index: 10;
+      }
+
+      .drop-indicator--top {
+        top: 0;
+        left: 0;
+        height: ${theme.gridUnit}px;
+        width: 100%;
+        min-width: ${theme.gridUnit * 4}px;
+      }
+
+      .drop-indicator--bottom {
+        top: 100%;
+        left: 0;
+        height: ${theme.gridUnit}px;
+        width: 100%;
+        min-width: ${theme.gridUnit * 4}px;
+      }
+
+      .drop-indicator--right {
+        top: 0;
+        left: 100%;
+        height: 100%;
+        width: ${theme.gridUnit}px;
+        min-height: ${theme.gridUnit * 4}px;
+      }
+
+      .drop-indicator--left {
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: ${theme.gridUnit}px;
+        min-height: ${theme.gridUnit * 4}px;
+      }
+    }
+  `};
+`;
 // export unwrapped component for testing
 export class UnwrappedDragDroppable extends React.PureComponent {
   constructor(props) {
@@ -141,7 +200,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
       : {};
 
     return (
-      <div
+      <DragDroppableStyles
         style={style}
         ref={this.setRef}
         data-test="dragdroppable-object"
@@ -154,7 +213,7 @@ export class UnwrappedDragDroppable extends React.PureComponent {
         )}
       >
         {children(childProps)}
-      </div>
+      </DragDroppableStyles>
     );
   }
 }

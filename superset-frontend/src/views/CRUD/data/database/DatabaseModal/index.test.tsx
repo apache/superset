@@ -25,17 +25,23 @@ import {
   within,
   cleanup,
   act,
+  waitFor,
 } from 'spec/helpers/testing-library';
-import * as hooks from 'src/views/CRUD/hooks';
 import {
   DatabaseObject,
   CONFIGURATION_METHOD,
 } from 'src/views/CRUD/data/database/types';
+import * as hooks from 'src/views/CRUD/hooks';
 import DatabaseModal, {
   dbReducer,
   DBReducerActionType,
   ActionType,
 } from './index';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: () => true,
+}));
 
 const dbProps = {
   show: true,
@@ -47,6 +53,20 @@ const dbProps = {
 const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
 const VALIDATE_PARAMS_ENDPOINT = 'glob:*/api/v1/database/validate_parameters*';
+const DATABASE_CONNECT_ENDPOINT = 'glob:*/api/v1/database/';
+
+fetchMock.post(DATABASE_CONNECT_ENDPOINT, {
+  id: 10,
+  result: {
+    configuration_method: 'sqlalchemy_form',
+    database_name: 'Other2',
+    driver: 'apsw',
+    expose_in_sqllab: true,
+    extra: '{"allows_virtual_table_explore":true}',
+    sqlalchemy_uri: 'gsheets://',
+  },
+  json: 'foo',
+});
 
 fetchMock.config.overwriteRoutes = true;
 fetchMock.get(DATABASE_FETCH_ENDPOINT, {
@@ -111,6 +131,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -120,6 +141,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -172,6 +194,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'mysql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -181,6 +204,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -190,6 +214,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -214,6 +239,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
       engine_information: {
         supports_file_upload: true,
+        disable_ssh_tunneling: true,
       },
     },
     {
@@ -224,7 +250,39 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: false,
+        disable_ssh_tunneling: true,
       },
+    },
+    {
+      available_drivers: ['connector'],
+      default_driver: 'connector',
+      engine: 'databricks',
+      name: 'Databricks',
+      parameters: {
+        properties: {
+          access_token: {
+            type: 'string',
+          },
+          database: {
+            type: 'string',
+          },
+          host: {
+            type: 'string',
+          },
+          http_path: {
+            type: 'string',
+          },
+          port: {
+            format: 'int32',
+            type: 'integer',
+          },
+        },
+        required: ['access_token', 'database', 'host', 'http_path', 'port'],
+        type: 'object',
+      },
+      preferred: true,
+      sqlalchemy_uri_placeholder:
+        'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
     },
   ],
 });
@@ -238,6 +296,7 @@ const databaseFixture: DatabaseObject = {
   database_name: 'Postgres',
   name: 'PostgresDB',
   is_managed_externally: false,
+  driver: 'psycopg2',
 };
 
 describe('DatabaseModal', () => {
@@ -355,8 +414,9 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer[0]).toBeEmptyDOMElement();
+
       // This is how many preferred databases are rendered
-      expect(preferredDbIcon).toHaveLength(4);
+      expect(preferredDbIcon).toHaveLength(5);
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -397,6 +457,21 @@ describe('DatabaseModal', () => {
       const SQLURIHelper = screen.getByText(
         /refer to the for more information on how to structure your uri\./i,
       );
+      // <SSHTunnelForm> - Basic tab's SSH Tunnel Form
+      const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+      userEvent.click(SSHTunnelingToggle);
+      const SSHTunnelServerAddressInput = screen.getByTestId(
+        'ssh-tunnel-server_address-input',
+      );
+      const SSHTunnelServerPortInput = screen.getByTestId(
+        'ssh-tunnel-server_port-input',
+      );
+      const SSHTunnelUsernameInput = screen.getByTestId(
+        'ssh-tunnel-username-input',
+      );
+      const SSHTunnelPasswordInput = screen.getByTestId(
+        'ssh-tunnel-password-input',
+      );
       const testConnectionButton = screen.getByRole('button', {
         name: /test connection/i,
       });
@@ -431,6 +506,11 @@ describe('DatabaseModal', () => {
         SQLURILabel,
         SQLURIInput,
         SQLURIHelper,
+        SSHTunnelingToggle,
+        SSHTunnelServerAddressInput,
+        SSHTunnelServerPortInput,
+        SSHTunnelUsernameInput,
+        SSHTunnelPasswordInput,
         testConnectionButton,
         alertIcon,
         alertMessage,
@@ -1116,6 +1196,107 @@ describe('DatabaseModal', () => {
           expect.anything();
         });
       });
+
+      describe('SSH Tunnel Form interaction', () => {
+        test('properly interacts with SSH Tunnel form textboxes', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          userEvent.click(SSHTunnelingToggle);
+          const SSHTunnelServerAddressInput = screen.getByTestId(
+            'ssh-tunnel-server_address-input',
+          );
+          expect(SSHTunnelServerAddressInput).toHaveValue('');
+          userEvent.type(SSHTunnelServerAddressInput, 'localhost');
+          expect(SSHTunnelServerAddressInput).toHaveValue('localhost');
+          const SSHTunnelServerPortInput = screen.getByTestId(
+            'ssh-tunnel-server_port-input',
+          );
+          expect(SSHTunnelServerPortInput).toHaveValue('');
+          userEvent.type(SSHTunnelServerPortInput, '22');
+          expect(SSHTunnelServerPortInput).toHaveValue('22');
+          const SSHTunnelUsernameInput = screen.getByTestId(
+            'ssh-tunnel-username-input',
+          );
+          expect(SSHTunnelUsernameInput).toHaveValue('');
+          userEvent.type(SSHTunnelUsernameInput, 'test');
+          expect(SSHTunnelUsernameInput).toHaveValue('test');
+          const SSHTunnelPasswordInput = screen.getByTestId(
+            'ssh-tunnel-password-input',
+          );
+          expect(SSHTunnelPasswordInput).toHaveValue('');
+          userEvent.type(SSHTunnelPasswordInput, 'pass');
+          expect(SSHTunnelPasswordInput).toHaveValue('pass');
+        });
+
+        test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          expect(SSHTunnelingToggle).toBeVisible();
+          const SSHTunnelServerAddressInput = screen.queryByTestId(
+            'ssh-tunnel-server_address-input',
+          );
+          expect(SSHTunnelServerAddressInput).not.toBeInTheDocument();
+          const SSHTunnelServerPortInput = screen.queryByTestId(
+            'ssh-tunnel-server_port-input',
+          );
+          expect(SSHTunnelServerPortInput).not.toBeInTheDocument();
+          const SSHTunnelUsernameInput = screen.queryByTestId(
+            'ssh-tunnel-username-input',
+          );
+          expect(SSHTunnelUsernameInput).not.toBeInTheDocument();
+          const SSHTunnelPasswordInput = screen.queryByTestId(
+            'ssh-tunnel-password-input',
+          );
+          expect(SSHTunnelPasswordInput).not.toBeInTheDocument();
+        });
+
+        test('If user changes the login method, the inputs change', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /sqlite/i,
+            }),
+          );
+
+          expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          userEvent.click(SSHTunnelingToggle);
+          const SSHTunnelUsePasswordInput = screen.getByTestId(
+            'ssh-tunnel-use_password-radio',
+          );
+          expect(SSHTunnelUsePasswordInput).toBeVisible();
+          const SSHTunnelUsePrivateKeyInput = screen.getByTestId(
+            'ssh-tunnel-use_private_key-radio',
+          );
+          expect(SSHTunnelUsePrivateKeyInput).toBeVisible();
+          const SSHTunnelPasswordInput = screen.getByTestId(
+            'ssh-tunnel-password-input',
+          );
+          // By default, we use Password as login method
+          expect(SSHTunnelPasswordInput).toBeVisible();
+          // Change the login method to use private key
+          userEvent.click(SSHTunnelUsePrivateKeyInput);
+          const SSHTunnelPrivateKeyInput = screen.getByTestId(
+            'ssh-tunnel-private_key-input',
+          );
+          expect(SSHTunnelPrivateKeyInput).toBeVisible();
+          const SSHTunnelPrivateKeyPasswordInput = screen.getByTestId(
+            'ssh-tunnel-private_key_password-input',
+          );
+          expect(SSHTunnelPrivateKeyPasswordInput).toBeVisible();
+        });
+      });
     });
 
     describe('Dynamic form flow', () => {
@@ -1145,6 +1326,7 @@ describe('DatabaseModal', () => {
         const databaseNameField = textboxes[1];
         const usernameField = textboxes[2];
         const passwordField = textboxes[3];
+        const connectButton = screen.getByRole('button', { name: 'Connect' });
 
         expect(hostField).toHaveValue('');
         expect(portField).toHaveValue(null);
@@ -1165,19 +1347,10 @@ describe('DatabaseModal', () => {
         expect(usernameField).toHaveValue('testdb');
         expect(passwordField).toHaveValue('demoPassword');
 
-        /* ---------- 🐞 TODO (lyndsiWilliams): function mock is not currently working 🐞 ----------
-
-        // Mock useSingleViewResource
-        const mockUseSingleViewResource = jest.fn();
-        mockUseSingleViewResource.mockImplementation(useSingleViewResource);
-
-        const { fetchResource } = mockUseSingleViewResource('database');
-
-        // Invalid hook call?
-        userEvent.click(screen.getByRole('button', { name: 'Connect' }));
-        expect(fetchResource).toHaveBeenCalled();
-
-        */
+        userEvent.click(connectButton);
+        await waitFor(() => {
+          expect(fetchMock.calls(VALIDATE_PARAMS_ENDPOINT).length).toEqual(6);
+        });
       });
     });
 
@@ -1292,23 +1465,6 @@ describe('DatabaseModal', () => {
       ...jest.requireActual('src/views/CRUD/hooks'),
       useSingleViewResource: jest.fn(),
     }));
-    const useSingleViewResourceMock = jest.spyOn(
-      hooks,
-      'useSingleViewResource',
-    );
-
-    useSingleViewResourceMock.mockReturnValue({
-      state: {
-        loading: false,
-        resource: null,
-        error: { _schema: 'Test Error With Object' },
-      },
-      fetchResource: jest.fn(),
-      createResource: jest.fn(),
-      updateResource: jest.fn(),
-      clearError: jest.fn(),
-      setResource: jest.fn(),
-    });
 
     const renderAndWait = async () => {
       const mounted = act(async () => {
@@ -1372,10 +1528,14 @@ describe('DatabaseModal', () => {
     test('Error displays when it is a string', async () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
+      const button = screen.getByText('See more');
+      userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
+      expect(errorMessage).toBeVisible();
+      const closeButton = screen.getByText('Close');
+      userEvent.click(closeButton);
       expect(step2of3text).toBeVisible();
       expect(errorTitleMessage).toBeVisible();
-      expect(errorMessage).toBeVisible();
     });
   });
 });
@@ -1405,7 +1565,7 @@ describe('dbReducer', () => {
   test('it will set state to payload from extra editor', () => {
     const action: DBReducerActionType = {
       type: ActionType.extraEditorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     const currentState = dbReducer(databaseFixture, action);
     // extra should be serialized
@@ -1418,20 +1578,20 @@ describe('dbReducer', () => {
   test('it will set state to payload from editor', () => {
     const action: DBReducerActionType = {
       type: ActionType.editorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     const currentState = dbReducer(databaseFixture, action);
     // extra should be serialized
     expect(currentState).toEqual({
       ...databaseFixture,
-      foo: { bar: 1 },
+      foo: JSON.stringify({ bar: 1 }),
     });
   });
 
   test('it will add extra payload to existing extra data', () => {
     const action: DBReducerActionType = {
       type: ActionType.extraEditorChange,
-      payload: { name: 'foo', json: { bar: 1 } },
+      payload: { name: 'foo', json: JSON.stringify({ bar: 1 }) },
     };
     // extra should be a string
     const currentState = dbReducer(
@@ -1747,6 +1907,111 @@ describe('dbReducer', () => {
     expect(currentState).toEqual({
       ...databaseFixture,
       catalog: [],
+    });
+  });
+
+  test('it will add db information when one is selected', () => {
+    const { backend, ...db } = databaseFixture;
+    const action: DBReducerActionType = {
+      type: ActionType.dbSelected,
+      payload: {
+        engine_information: {
+          supports_file_upload: true,
+          disable_ssh_tunneling: false,
+        },
+        ...db,
+        driver: db.driver,
+        engine: backend,
+      },
+    };
+    const currentState = dbReducer({}, action);
+
+    expect(currentState).toEqual({
+      database_name: db.database_name,
+      engine: backend,
+      configuration_method: db.configuration_method,
+      engine_information: {
+        supports_file_upload: true,
+        disable_ssh_tunneling: false,
+      },
+      driver: db.driver,
+      expose_in_sqllab: true,
+      extra: '{"allows_virtual_table_explore":true}',
+      is_managed_externally: false,
+      name: 'PostgresDB',
+    });
+  });
+
+  test('it will add a SSH Tunnel config parameter', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersSSHTunnelChange,
+      payload: { name: 'server_address', value: '127.0.0.1' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      ssh_tunnel: {
+        server_address: '127.0.0.1',
+      },
+    });
+  });
+
+  test('it will add a SSH Tunnel config parameter with existing configs', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersSSHTunnelChange,
+      payload: { name: 'server_port', value: '22' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        ssh_tunnel: {
+          server_address: '127.0.0.1',
+        },
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      ssh_tunnel: {
+        server_address: '127.0.0.1',
+        server_port: '22',
+      },
+    });
+  });
+
+  test('it will change a SSH Tunnel config parameter with existing configs', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.parametersSSHTunnelChange,
+      payload: { name: 'server_address', value: 'localhost' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        ssh_tunnel: {
+          server_address: '127.0.0.1',
+        },
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      ssh_tunnel: {
+        server_address: 'localhost',
+      },
+    });
+  });
+
+  test('it will remove the SSH Tunnel config parameters', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.removeSSHTunnelConfig,
+    };
+    const currentState = dbReducer(databaseFixture, action);
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      ssh_tunnel: undefined,
     });
   });
 });

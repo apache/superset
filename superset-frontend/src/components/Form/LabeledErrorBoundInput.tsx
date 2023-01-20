@@ -19,7 +19,7 @@
 import React from 'react';
 import { Input, Tooltip } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined } from '@ant-design/icons';
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme, t } from '@superset-ui/core';
 import InfoTooltip from 'src/components/InfoTooltip';
 import errorIcon from 'src/assets/images/icons/error.svg';
 import FormItem from './FormItem';
@@ -37,6 +37,7 @@ export interface LabeledErrorBoundInputProps {
   tooltipText?: string | null;
   id?: string;
   classname?: string;
+  visibilityToggle?: boolean;
   [x: string]: any;
 }
 
@@ -101,6 +102,7 @@ const LabeledErrorBoundInput = ({
   tooltipText,
   id,
   className,
+  visibilityToggle,
   ...props
 }: LabeledErrorBoundInputProps) => (
   <StyledFormGroup className={className}>
@@ -119,17 +121,17 @@ const LabeledErrorBoundInput = ({
       help={errorMessage || helpText}
       hasFeedback={!!errorMessage}
     >
-      {props.name === 'password' ? (
+      {visibilityToggle || props.name === 'password' ? (
         <StyledInputPassword
           {...props}
           {...validationMethods}
           iconRender={visible =>
             visible ? (
-              <Tooltip title="Hide password.">
+              <Tooltip title={t('Hide password.')}>
                 <EyeInvisibleOutlined />
               </Tooltip>
             ) : (
-              <Tooltip title="Show password.">
+              <Tooltip title={t('Show password.')}>
                 <EyeOutlined />
               </Tooltip>
             )

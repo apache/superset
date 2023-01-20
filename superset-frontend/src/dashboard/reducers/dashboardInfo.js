@@ -19,7 +19,7 @@
 
 import {
   DASHBOARD_INFO_UPDATED,
-  SET_FILTER_BAR_LOCATION,
+  SET_FILTER_BAR_ORIENTATION,
 } from '../actions/dashboardInfo';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -38,10 +38,10 @@ export default function dashboardStateReducer(state = {}, action) {
         ...action.data.dashboardInfo,
         // set async api call data
       };
-    case SET_FILTER_BAR_LOCATION:
+    case SET_FILTER_BAR_ORIENTATION:
       return {
         ...state,
-        filterBarLocation: action.filterBarLocation,
+        filterBarOrientation: action.filterBarOrientation,
       };
     default:
       return state;

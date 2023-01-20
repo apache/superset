@@ -42,10 +42,11 @@ import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { ClientErrorObject } from 'src/utils/getClientErrorObject';
-import { RootState } from 'src/dashboard/types';
+import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { onFiltersRefreshSuccess } from 'src/dashboard/actions/dashboardState';
-import { dispatchFocusAction } from './utils';
-import { FilterProps } from './types';
+import { FAST_DEBOUNCE } from 'src/constants';
+import { dispatchHoverAction, dispatchFocusAction } from './utils';
+import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { checkIsMissingRequiredValue } from '../utils';
@@ -75,15 +76,17 @@ const useShouldFilterRefresh = () => {
   return !isDashboardRefreshing && isFilterRefreshing;
 };
 
-const FilterValue: React.FC<FilterProps> = ({
+const FilterValue: React.FC<FilterControlProps> = ({
   dataMaskSelected,
   filter,
-  directPathToChild,
+  focusedFilterId,
   onFilterSelectionChange,
   inView = true,
   showOverflow,
   parentRef,
   setFilterActive,
+  orientation = FilterBarOrientation.VERTICAL,
+  overflow = false,
 }) => {
   const { id, targets, filterType, adhoc_filters, time_range } = filter;
   const metadata = getChartMetadataRegistry().get(filterType);
@@ -209,10 +212,12 @@ const FilterValue: React.FC<FilterProps> = ({
   ]);
 
   useEffect(() => {
-    if (directPathToChild?.[0] === filter.id) {
-      inputRef?.current?.focus();
+    if (focusedFilterId && focusedFilterId === filter.id) {
+      setTimeout(() => {
+        inputRef?.current?.focus();
+      }, FAST_DEBOUNCE);
     }
-  }, [inputRef, directPathToChild, filter.id]);
+  }, [inputRef, focusedFilterId, filter.id]);
 
   const setDataMask = useCallback(
     (dataMask: DataMask) => onFilterSelectionChange(filter, dataMask),
@@ -228,14 +233,32 @@ const FilterValue: React.FC<FilterProps> = ({
     [dispatch],
   );
 
+  const setHoveredFilter = useCallback(
+    () => dispatchHoverAction(dispatch, id),
+    [dispatch, id],
+  );
+  const unsetHoveredFilter = useCallback(
+    () => dispatchHoverAction(dispatch),
+    [dispatch],
+  );
+
   const hooks = useMemo(
     () => ({
       setDataMask,
+      setHoveredFilter,
+      unsetHoveredFilter,
       setFocusedFilter,
       unsetFocusedFilter,
       setFilterActive,
     }),
-    [setDataMask, setFilterActive, setFocusedFilter, unsetFocusedFilter],
+    [
+      setDataMask,
+      setFilterActive,
+      setHoveredFilter,
+      unsetHoveredFilter,
+      setFocusedFilter,
+      unsetFocusedFilter,
+    ],
   );
 
   const isMissingRequiredValue = checkIsMissingRequiredValue(
@@ -249,6 +272,14 @@ const FilterValue: React.FC<FilterProps> = ({
       validateStatus: isMissingRequiredValue && 'error',
     }),
     [filter.dataMask?.filterState, isMissingRequiredValue],
+  );
+
+  const displaySettings = useMemo(
+    () => ({
+      filterBarOrientation: orientation,
+      isOverflowingFilterBar: overflow,
+    }),
+    [orientation, overflow],
   );
 
   if (error) {
@@ -271,6 +302,7 @@ const FilterValue: React.FC<FilterProps> = ({
           width="100%"
           showOverflow={showOverflow}
           formData={formData}
+          displaySettings={displaySettings}
           parentRef={parentRef}
           inputRef={inputRef}
           // For charts that don't have datasource we need workaround for empty placeholder
@@ -287,4 +319,4 @@ const FilterValue: React.FC<FilterProps> = ({
     </StyledDiv>
   );
 };
-export default FilterValue;
+export default React.memo(FilterValue);

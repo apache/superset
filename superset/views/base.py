@@ -114,6 +114,8 @@ FRONTEND_CONF_KEYS = (
     "DEFAULT_TIME_FILTER",
     "HTML_SANITIZATION",
     "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
+    "WELCOME_PAGE_LAST_TAB",
+    "VIZ_TYPE_DENYLIST",
 )
 
 logger = logging.getLogger(__name__)
@@ -365,7 +367,11 @@ def menu_data(user: User) -> Dict[str, Any]:
             # show the watermark if the default app icon has been overriden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
+            "bug_report_icon": appbuilder.app.config["BUG_REPORT_ICON"],
+            "bug_report_text": appbuilder.app.config["BUG_REPORT_TEXT"],
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
+            "documentation_icon": appbuilder.app.config["DOCUMENTATION_ICON"],
+            "documentation_text": appbuilder.app.config["DOCUMENTATION_TEXT"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
             "version_sha": appbuilder.app.config["VERSION_SHA"],
             "build_number": build_number,
@@ -386,13 +392,12 @@ def menu_data(user: User) -> Dict[str, Any]:
 
 
 @cache_manager.cache.memoize(timeout=60)
-def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
     """Common data always sent to the client
 
-    The function is memoized as the return value only changes based
-    on configuration and feature flag values.
+    The function is memoized as the return value only changes when user permissions
+    or configuration values change.
     """
-    messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
     # should not expose API TOKEN to frontend
@@ -416,7 +421,6 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
     bootstrap_data = {
-        "flash_messages": messages,
         "conf": frontend_config,
         "locale": locale,
         "language_pack": get_language_pack(locale),
@@ -428,6 +432,13 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
+
+
+def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+    return {
+        **(cached_common_bootstrap_data(user)),
+        "flash_messages": get_flashed_messages(with_categories=True),
+    }
 
 
 def get_error_level_from_status_code(  # pylint: disable=invalid-name

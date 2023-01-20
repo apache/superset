@@ -209,7 +209,7 @@ class BaseDatasource(
     def explore_url(self) -> str:
         if self.default_endpoint:
             return self.default_endpoint
-        return f"/explore/?dataset_type={self.type}&dataset_id={self.id}"
+        return f"/explore/?datasource_type={self.type}&datasource_id={self.id}"
 
     @property
     def column_formats(self) -> Dict[str, Optional[str]]:
@@ -312,9 +312,9 @@ class BaseDatasource(
                 for metric in utils.get_iterable(form_data.get(metric_param) or []):
                     metric_names.add(utils.get_metric_name(metric))
                     if utils.is_adhoc_metric(metric):
-                        column_names.add(
-                            (metric.get("column") or {}).get("column_name")
-                        )
+                        column = metric.get("column") or {}
+                        if column_name := column.get("column_name"):
+                            column_names.add(column_name)
 
             # Columns used in query filters
             column_names.update(
@@ -395,6 +395,7 @@ class BaseDatasource(
     @staticmethod
     def filter_values_handler(  # pylint: disable=too-many-arguments
         values: Optional[FilterValues],
+        operator: str,
         target_generic_type: GenericDataType,
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
@@ -405,6 +406,8 @@ class BaseDatasource(
             return None
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
+            if operator == utils.FilterOperator.TEMPORAL_RANGE:
+                return value
             if (
                 isinstance(value, (float, int))
                 and target_generic_type == utils.GenericDataType.TEMPORAL

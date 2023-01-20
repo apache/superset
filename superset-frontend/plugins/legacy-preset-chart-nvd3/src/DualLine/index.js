@@ -19,6 +19,7 @@
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from '../transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
@@ -27,6 +28,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Visualizes 2 metrics as line plots using the same x-axis. This chart is useful for comparing metrics across the same time range.',
   ),
+  exampleGallery: [{ url: example }],
   name: t('Dual Line Chart'),
   tags: [t('Legacy'), t('nvd3')],
   thumbnail,

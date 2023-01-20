@@ -143,12 +143,10 @@ function AnnotationLayersList({
           }
 
           if (hasHistory) {
-            return (
-              <Link to={`/annotationmodelview/${id}/annotation`}>{name}</Link>
-            );
+            return <Link to={`/annotationlayer/${id}/annotation`}>{name}</Link>;
           }
 
-          return <a href={`/annotationmodelview/${id}/annotation`}>{name}</a>;
+          return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
         },
       },
       {
@@ -324,7 +322,7 @@ function AnnotationLayersList({
   };
 
   const onLayerAdd = (id?: number) => {
-    window.location.href = `/annotationmodelview/${id}/annotation`;
+    window.location.href = `/annotationlayer/${id}/annotation`;
   };
 
   const onModalHide = () => {

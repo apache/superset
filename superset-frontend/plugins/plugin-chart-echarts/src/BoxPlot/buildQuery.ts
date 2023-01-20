@@ -38,7 +38,7 @@ export default function buildQuery(formData: BoxPlotQueryFormData) {
           if (
             isPhysicalColumn(col) &&
             formData.time_grain_sqla &&
-            formData?.datetime_columns_lookup?.[col]
+            formData?.temporal_columns_lookup?.[col]
           ) {
             return {
               timeGrain: formData.time_grain_sqla,

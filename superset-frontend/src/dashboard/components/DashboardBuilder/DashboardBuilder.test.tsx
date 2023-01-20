@@ -125,7 +125,7 @@ describe('DashboardBuilder', () => {
 
   it('should render a StickyContainer with class "dashboard"', () => {
     const { getByTestId } = setup();
-    const stickyContainer = getByTestId('dashboard-content');
+    const stickyContainer = getByTestId('dashboard-content-wrapper');
     expect(stickyContainer).toHaveClass('dashboard');
   });
 
@@ -133,7 +133,7 @@ describe('DashboardBuilder', () => {
     const { getByTestId } = setup({
       dashboardState: { ...mockState.dashboardState, editMode: true },
     });
-    const stickyContainer = getByTestId('dashboard-content');
+    const stickyContainer = getByTestId('dashboard-content-wrapper');
     expect(stickyContainer).toHaveClass('dashboard dashboard--editing');
   });
 
@@ -247,6 +247,20 @@ describe('DashboardBuilder', () => {
       'TAB_ID2',
     ]);
     (setDirectPathToChild as jest.Mock).mockReset();
+  });
+
+  it('should not display a loading spinner when saving is not in progress', () => {
+    const { queryByAltText } = setup();
+
+    expect(queryByAltText('Loading...')).not.toBeInTheDocument();
+  });
+
+  it('should display a loading spinner when saving is in progress', async () => {
+    const { findByAltText } = setup({
+      dashboardState: { dashboardIsSaving: true },
+    });
+
+    expect(await findByAltText('Loading...')).toBeVisible();
   });
 
   describe('when nativeFiltersEnabled', () => {

@@ -49,7 +49,7 @@ import ImportModelsModal from 'src/components/ImportModal/index';
 
 import Dashboard from 'src/dashboard/containers/Dashboard';
 import CertifiedBadge from 'src/components/CertifiedBadge';
-import { bootstrapData } from 'src/preamble';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import DashboardCard from './DashboardCard';
 import { DashboardStatus } from './types';
 
@@ -94,6 +94,8 @@ interface Dashboard {
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
+
+const bootstrapData = getBootstrapData();
 
 function DashboardList(props: DashboardListProps) {
   const {
@@ -184,6 +186,7 @@ function DashboardList(props: DashboardListProps) {
                 url = '',
                 certified_by = '',
                 certification_details = '',
+                owners,
               } = json.result;
               return {
                 ...dashboard,
@@ -197,6 +200,7 @@ function DashboardList(props: DashboardListProps) {
                 url,
                 certified_by,
                 certification_details,
+                owners,
               };
             }
             return dashboard;
@@ -464,6 +468,13 @@ function DashboardList(props: DashboardListProps) {
   const filters: Filters = useMemo(
     () => [
       {
+        Header: t('Search'),
+        key: 'search',
+        id: 'dashboard_title',
+        input: 'search',
+        operator: FilterOperator.titleOrSlug,
+      },
+      {
         Header: t('Owner'),
         key: 'owner',
         id: 'owners',
@@ -532,13 +543,6 @@ function DashboardList(props: DashboardListProps) {
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
-      },
-      {
-        Header: t('Search'),
-        key: 'search',
-        id: 'dashboard_title',
-        input: 'search',
-        operator: FilterOperator.titleOrSlug,
       },
     ],
     [addDangerToast, favoritesFilter, props.user],

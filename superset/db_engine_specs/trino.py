@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import logging
+import re
+from datetime import datetime
 from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
@@ -24,7 +26,7 @@ from flask import current_app
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 
-from superset.constants import USER_AGENT
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
@@ -48,6 +50,29 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine_name = "Trino"
 
     @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
+        """
+        Convert a Python `datetime` object to a SQL expression.
+        :param target_type: The target type of expression
+        :param dttm: The datetime object
+        :param db_extra: The database extra object
+        :return: The SQL expression
+        Superset only defines time zone naive `datetime` objects, though this method
+        handles both time zone naive and aware conversions.
+        """
+        tt = target_type.upper()
+        if tt == utils.TemporalType.DATE:
+            return f"DATE '{dttm.date().isoformat()}'"
+        if re.sub(r"\(\d\)", "", tt) in (
+            utils.TemporalType.TIMESTAMP,
+            utils.TemporalType.TIMESTAMP_WITH_TIME_ZONE,
+        ):
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="microseconds", sep=" ")}'"""
+        return None
+
+    @classmethod
     def extra_table_metadata(
         cls,
         database: Database,
@@ -58,11 +83,34 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         indexes = database.get_indexes(table_name, schema_name)
         if indexes:
-            partitions_columns = []
-            for index in indexes:
-                if index.get("name") == "partition":
-                    partitions_columns += index.get("column_names", [])
-            metadata["partitions"] = {"cols": partitions_columns}
+            col_names, latest_parts = cls.latest_partition(
+                table_name, schema_name, database, show_first=True
+            )
+
+            if not latest_parts:
+                latest_parts = tuple([None] * len(col_names))
+
+            metadata["partitions"] = {
+                "cols": sorted(
+                    list(
+                        set(
+                            column_name
+                            for index in indexes
+                            if index.get("name") == "partition"
+                            for column_name in index.get("column_names", [])
+                        )
+                    )
+                ),
+                "latest": dict(zip(col_names, latest_parts)),
+                "partitionQuery": cls._partition_query(
+                    table_name=(
+                        f"{schema_name}.{table_name}"
+                        if schema_name and "." not in table_name
+                        else table_name
+                    ),
+                    database=database,
+                ),
+            }
 
         if database.has_view_by_name(table_name, schema_name):
             metadata["view"] = database.inspector.get_view_definition(
@@ -133,10 +181,29 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             query.tracking_url = tracking_url
 
         # Adds the executed query id to the extra payload so the query can be cancelled
-        query.set_extra_json_key("cancel_query", cursor.stats["queryId"])
+        query.set_extra_json_key(
+            key=QUERY_CANCEL_KEY,
+            value=(cancel_query_id := cursor.stats["queryId"]),
+        )
 
         session.commit()
+
+        # if query cancelation was requested prior to the handle_cursor call, but
+        # the query was still executed, trigger the actual query cancelation now
+        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+            cls.cancel_query(
+                cursor=cursor,
+                query=query,
+                cancel_query_id=cancel_query_id,
+            )
+
         super().handle_cursor(cursor=cursor, query=query, session=session)
+
+    @classmethod
+    def prepare_cancel_query(cls, query: Query, session: Session) -> None:
+        if QUERY_CANCEL_KEY not in query.extra:
+            query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+            session.commit()
 
     @classmethod
     def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:

@@ -27,7 +27,7 @@ import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 
-interface ShareSqlLabQueryPropTypes {
+interface ShareSqlLabQueryProps {
   queryEditorId: string;
   addDangerToast: (msg: string) => void;
 }
@@ -42,10 +42,10 @@ const StyledIcon = styled(Icons.Link)`
   }
 `;
 
-function ShareSqlLabQuery({
+const ShareSqlLabQuery = ({
   queryEditorId,
   addDangerToast,
-}: ShareSqlLabQueryPropTypes) {
+}: ShareSqlLabQueryProps) => {
   const theme = useTheme();
 
   const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
@@ -126,6 +126,6 @@ function ShareSqlLabQuery({
       )}
     </>
   );
-}
+};
 
 export default withToasts(ShareSqlLabQuery);

@@ -133,7 +133,7 @@ export default class FixedOrMetricControl extends React.Component {
                 )}
                 {this.state.type === controlTypes.metric && (
                   <span>
-                    <span>metric: </span>
+                    <span>{t('metric')}: </span>
                     <strong>
                       {this.state.metricValue
                         ? this.state.metricValue.label

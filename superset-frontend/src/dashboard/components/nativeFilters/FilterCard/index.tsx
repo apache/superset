@@ -27,8 +27,13 @@ export const FilterCard = ({
   filter,
   getPopupContainer,
   isVisible: externalIsVisible = true,
+  placement,
 }: FilterCardProps) => {
   const [internalIsVisible, setInternalIsVisible] = useState(false);
+
+  const hidePopover = () => {
+    setInternalIsVisible(false);
+  };
 
   useEffect(() => {
     if (!externalIsVisible) {
@@ -37,7 +42,7 @@ export const FilterCard = ({
   }, [externalIsVisible]);
   return (
     <Popover
-      placement="right"
+      placement={placement}
       overlayClassName="filter-card-popover"
       mouseEnterDelay={0.2}
       mouseLeaveDelay={0.2}
@@ -45,9 +50,8 @@ export const FilterCard = ({
         setInternalIsVisible(externalIsVisible && visible);
       }}
       visible={externalIsVisible && internalIsVisible}
-      content={<FilterCardContent filter={filter} />}
+      content={<FilterCardContent filter={filter} hidePopover={hidePopover} />}
       getPopupContainer={getPopupContainer ?? (() => document.body)}
-      destroyTooltipOnHide
     >
       {children}
     </Popover>

@@ -29,7 +29,7 @@ export const getSectionContainerElement = () =>
 
 const getElementYVisibilityRatioOnContainer = (node: HTMLElement) => {
   const containerHeight = window?.innerHeight;
-  const nodePositionInViewport = node.getBoundingClientRect()?.top;
+  const nodePositionInViewport = node?.getBoundingClientRect()?.top;
   if (!containerHeight || !nodePositionInViewport) {
     return 0;
   }
@@ -45,6 +45,7 @@ const ControlPopover: React.FC<PopoverProps> = ({
   getPopupContainer,
   getVisibilityRatio = getElementYVisibilityRatioOnContainer,
   visible: visibleProp,
+  destroyTooltipOnHide = false,
   ...props
 }) => {
   const triggerElementRef = useRef<HTMLElement>();
@@ -56,10 +57,9 @@ const ControlPopover: React.FC<PopoverProps> = ({
 
   const calculatePlacement = useCallback(() => {
     const visibilityRatio = getVisibilityRatio(triggerElementRef.current!);
-
-    if (visibilityRatio < 0.35) {
+    if (visibilityRatio < 0.35 && placement !== 'rightTop') {
       setPlacement('rightTop');
-    } else if (visibilityRatio > 0.65) {
+    } else if (visibilityRatio > 0.65 && placement !== 'rightBottom') {
       setPlacement('rightBottom');
     } else {
       setPlacement('right');
@@ -68,10 +68,6 @@ const ControlPopover: React.FC<PopoverProps> = ({
 
   const changeContainerScrollStatus = useCallback(
     visible => {
-      if (triggerElementRef.current && visible) {
-        calculatePlacement();
-      }
-
       const element = getSectionContainerElement();
       if (element) {
         element.style.setProperty(
@@ -87,9 +83,6 @@ const ControlPopover: React.FC<PopoverProps> = ({
   const handleGetPopupContainer = useCallback(
     (triggerNode: HTMLElement) => {
       triggerElementRef.current = triggerNode;
-      setTimeout(() => {
-        calculatePlacement();
-      }, 0);
 
       return getPopupContainer?.(triggerNode) || document.body;
     },
@@ -140,6 +133,12 @@ const ControlPopover: React.FC<PopoverProps> = ({
     };
   }, [handleDocumentKeyDownListener, visible]);
 
+  useEffect(() => {
+    if (visible) {
+      calculatePlacement();
+    }
+  }, [visible, calculatePlacement]);
+
   return (
     <Popover
       {...props}
@@ -148,6 +147,7 @@ const ControlPopover: React.FC<PopoverProps> = ({
       placement={placement}
       onVisibleChange={handleOnVisibleChange}
       getPopupContainer={handleGetPopupContainer}
+      destroyTooltipOnHide={destroyTooltipOnHide}
     />
   );
 };

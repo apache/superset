@@ -30,6 +30,7 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
+import { QueryState } from '@superset-ui/core';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
@@ -315,12 +316,64 @@ describe('async actions', () => {
     });
   });
 
+  describe('getUpToDateQuery', () => {
+    const id = 'randomidvalue2';
+    const unsavedQueryEditor = {
+      id,
+      sql: 'some query here',
+      schemaOptions: [{ value: 'testSchema' }, { value: 'schema2' }],
+    };
+
+    it('returns payload with the updated queryEditor', () => {
+      const queryEditor = {
+        id,
+        name: 'Dummy query editor',
+        schema: 'testSchema',
+      };
+      const state = {
+        sqlLab: {
+          tabHistory: [id],
+          queryEditors: [queryEditor],
+          unsavedQueryEditor,
+        },
+      };
+      expect(actions.getUpToDateQuery(state, queryEditor)).toEqual({
+        ...queryEditor,
+        ...unsavedQueryEditor,
+      });
+    });
+
+    it('ignores the deprecated schema option', () => {
+      const queryEditor = {
+        id,
+        name: 'Dummy query editor',
+        schema: 'oldSchema',
+      };
+      const state = {
+        sqlLab: {
+          tabHistory: [id],
+          queryEditors: [queryEditor],
+          unsavedQueryEditor,
+        },
+      };
+      expect(actions.getUpToDateQuery(state, queryEditor)).toEqual({
+        ...queryEditor,
+        ...unsavedQueryEditor,
+        schema: undefined,
+      });
+    });
+  });
+
   describe('postStopQuery', () => {
-    const stopQueryEndpoint = 'glob:*/superset/stop_query/*';
+    const stopQueryEndpoint = 'glob:*/api/v1/query/stop';
     fetchMock.post(stopQueryEndpoint, {});
+    const baseQuery = {
+      ...query,
+      id: 'test_foo',
+    };
 
     const makeRequest = () => {
-      const request = actions.postStopQuery(query);
+      const request = actions.postStopQuery(baseQuery);
       return request(dispatch);
     };
 
@@ -345,7 +398,8 @@ describe('async actions', () => {
 
       return makeRequest().then(() => {
         const call = fetchMock.calls(stopQueryEndpoint)[0];
-        expect(call[1].body.get('client_id')).toBe(query.id);
+        const body = JSON.parse(call[1].body);
+        expect(body.client_id).toBe(baseQuery.id);
       });
     });
   });
@@ -502,6 +556,7 @@ describe('async actions', () => {
         const results = {
           data: mockBigNumber,
           query: { sqlEditorId: 'abcd' },
+          status: QueryState.SUCCESS,
           query_id: 'efgh',
         };
         fetchMock.get(fetchQueryEndpoint, JSON.stringify(results), {
@@ -523,6 +578,35 @@ describe('async actions', () => {
         return store.dispatch(actions.fetchQueryResults(query)).then(() => {
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
+        });
+      });
+
+      it("doesn't update the tab state in the backend on stoppped query", () => {
+        expect.assertions(2);
+
+        const results = {
+          status: QueryState.STOPPED,
+          query_id: 'efgh',
+        };
+        fetchMock.get(fetchQueryEndpoint, JSON.stringify(results), {
+          overwriteRoutes: true,
+        });
+        const store = mockStore({});
+        const expectedActions = [
+          {
+            type: actions.REQUEST_QUERY_RESULTS,
+            query,
+          },
+          // missing below
+          {
+            type: actions.QUERY_SUCCESS,
+            query,
+            results,
+          },
+        ];
+        return store.dispatch(actions.fetchQueryResults(query)).then(() => {
+          expect(store.getActions()).toEqual(expectedActions);
+          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
         });
       });
     });

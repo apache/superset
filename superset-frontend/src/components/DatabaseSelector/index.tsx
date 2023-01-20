@@ -92,7 +92,7 @@ export interface DatabaseSelectorProps {
   db?: DatabaseObject | null;
   emptyState?: ReactNode;
   formMode?: boolean;
-  getDbList?: (arg0: any) => {};
+  getDbList?: (arg0: any) => void;
   handleError: (msg: string) => void;
   isDatabaseSelectEnabled?: boolean;
   onDbChange?: (db: DatabaseObject) => void;
@@ -221,6 +221,13 @@ export default function DatabaseSelector({
     );
   }, [db]);
 
+  function changeSchema(schema: SchemaValue) {
+    setCurrentSchema(schema);
+    if (onSchemaChange) {
+      onSchemaChange(schema.value);
+    }
+  }
+
   useEffect(() => {
     if (currentDb) {
       setLoadingSchemas(true);
@@ -240,6 +247,7 @@ export default function DatabaseSelector({
           }
           setSchemaOptions(options);
           setLoadingSchemas(false);
+          if (options.length === 1) changeSchema(options[0]);
           if (refresh > 0) addSuccessToast('List refreshed');
         })
         .catch(err => {
@@ -267,13 +275,6 @@ export default function DatabaseSelector({
     }
     if (onSchemaChange) {
       onSchemaChange(undefined);
-    }
-  }
-
-  function changeSchema(schema: SchemaValue) {
-    setCurrentSchema(schema);
-    if (onSchemaChange) {
-      onSchemaChange(schema.value);
     }
   }
 
