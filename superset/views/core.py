@@ -2177,6 +2177,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @expose("/results/<key>/")
     @event_logger.log_this
+    @deprecated()
     def results(self, key: str) -> FlaskResponse:
         return self.results_exec(key)
 

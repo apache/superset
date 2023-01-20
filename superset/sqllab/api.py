@@ -21,44 +21,41 @@ from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
-from superset.views.base import handle_api_exception
-from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+
+from superset import app, is_feature_enabled
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.databases.dao import DatabaseDAO
+from superset.extensions import event_logger
+from superset.jinja_context import get_template_processor
+from superset.models.sql_lab import Query
 from superset.queries.dao import QueryDAO
-from superset.sqllab.sql_json_executer import (
-    ASynchronousSqlJsonExecutor,
-    SqlJsonExecutor,
-    SynchronousSqlJsonExecutor,
-)
+from superset.sql_lab import get_sql_results
+from superset.sqllab.command_status import SqlJsonExecutionStatus
+from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
+from superset.sqllab.commands.results import SqlExecutionResultsCommand
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
     SqlLabException,
 )
-from superset.sqllab.command_status import SqlJsonExecutionStatus
-from superset.sql_lab import get_sql_results
-from superset.sqllab.commands.execute import CommandResult, ExecuteSqlCommand
 from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
-from superset.databases.dao import DatabaseDAO
-from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.sqllab.query_render import SqlQueryRenderImpl
-from superset.jinja_context import get_template_processor
-
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.extensions import event_logger
-from superset.models.sql_lab import Query
-from superset.sqllab.commands.results import SqlExecutionResultsCommand
 from superset.sqllab.schemas import (
     ExecutePayloadSchema,
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
 )
+from superset.sqllab.sql_json_executer import (
+    ASynchronousSqlJsonExecutor,
+    SqlJsonExecutor,
+    SynchronousSqlJsonExecutor,
+)
+from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+from superset.sqllab.validators import CanAccessQueryValidatorImpl
+from superset.views.base import handle_api_exception
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_json,
     statsd_metrics,
-)
-from superset import (
-    app,
-    is_feature_enabled,
 )
 
 config = app.config

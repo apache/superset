@@ -46,7 +46,7 @@ class QueryResultSchema(Schema):
     changedOn = fields.DateTime()
     changed_on = fields.String()
     dbId = fields.Integer()
-    db = fields.String()
+    db = fields.String()  # pylint: disable=invalid-name
     endDttm = fields.Float()
     errorMessage = fields.String(allow_none=True)
     executedSql = fields.String()

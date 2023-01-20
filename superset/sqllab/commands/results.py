@@ -19,20 +19,13 @@ from __future__ import annotations
 
 import logging
 from typing import Any, cast, Dict, Optional
+
 from flask_babel import gettext as __, lazy_gettext as _
 
-from superset import (
-    app,
-    db,
-    results_backend,
-    results_backend_use_msgpack,
-)
+from superset import app, db, results_backend, results_backend_use_msgpack
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    SerializationError,
-    SupersetErrorException,
-)
+from superset.exceptions import SerializationError, SupersetErrorException
 from superset.models.sql_lab import Query
 from superset.sqllab.utils import apply_display_max_row_configuration_if_require
 from superset.utils import core as utils
@@ -90,7 +83,9 @@ class SqlExecutionResultsCommand(BaseCommand):
                 status=410,
             )
 
-        self._query = db.session.query(Query).filter_by(results_key=self._key).one_or_none()
+        self._query = (
+            db.session.query(Query).filter_by(results_key=self._key).one_or_none()
+        )
         if self._query is None:
             raise SupersetErrorException(
                 SupersetError(
@@ -109,7 +104,9 @@ class SqlExecutionResultsCommand(BaseCommand):
     ) -> Dict[str, Any]:
         """Runs arbitrary sql and returns data as json"""
         self.validate()
-        payload = utils.zlib_decompress(self._blob, decode=not results_backend_use_msgpack)
+        payload = utils.zlib_decompress(
+            self._blob, decode=not results_backend_use_msgpack
+        )
         try:
             obj = _deserialize_results_payload(
                 payload, self._query, cast(bool, results_backend_use_msgpack)
@@ -130,5 +127,5 @@ class SqlExecutionResultsCommand(BaseCommand):
 
         if self._rows:
             obj = apply_display_max_row_configuration_if_require(obj, self._rows)
-        
+
         return obj

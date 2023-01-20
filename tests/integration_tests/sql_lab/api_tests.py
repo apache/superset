@@ -39,6 +39,7 @@ QUERIES_FIXTURE_COUNT = 10
 
 
 class TestSqlLabApi(SupersetTestCase):
+    @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
     def test_execute_required_params(self):
         self.login()
         client_id = "{}".format(random.getrandbits(64))[:10]
@@ -78,12 +79,19 @@ class TestSqlLabApi(SupersetTestCase):
         self.assertDictEqual(resp_data, failed_resp)
         self.assertEqual(rv.status_code, 400)
 
+        from superset import sql_lab as core
+
+        core.results_backend = mock.Mock()
+        core.results_backend.get.return_value = {}
+
         data = {"sql": "SELECT 1", "database_id": 1, "client_id": client_id}
         rv = self.client.post(
             "/api/v1/sqllab/execute/",
             json=data,
         )
         resp_data = json.loads(rv.data.decode("utf-8"))
+        print("R:\n")
+        print(resp_data)
         self.assertEqual(resp_data.get("status"), "success")
         self.assertEqual(rv.status_code, 200)
 
@@ -113,7 +121,7 @@ class TestSqlLabApi(SupersetTestCase):
         self.delete_fake_db_for_macros()
 
     @mock.patch("superset.sqllab.commands.results.results_backend_use_msgpack", False)
-    def test_display_limit(self):
+    def test_get_results_with_display_limit(self):
         from superset.sqllab.commands import results as command
 
         command.results_backend = mock.Mock()
