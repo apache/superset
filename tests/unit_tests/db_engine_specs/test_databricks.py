@@ -18,8 +18,11 @@
 
 import json
 
+import pytest
 from pytest_mock import MockerFixture
 
+from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
 
 
@@ -197,3 +200,56 @@ def test_get_extra_params(mocker: MockerFixture) -> None:
             }
         }
     }
+
+
+def test_extract_errors() -> None:
+    """
+    Test that custom error messages are extracted correctly.
+    """
+
+    msg = ": mismatched input 'fromm'. Expecting: "
+    result = DatabricksNativeEngineSpec.extract_errors(Exception(msg))
+
+    assert result == [
+        SupersetError(
+            message=": mismatched input 'fromm'. Expecting: ",
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "engine_name": "Databricks",
+                "issue_codes": [
+                    {
+                        "code": 1002,
+                        "message": "Issue 1002 - The database returned an unexpected error.",
+                    }
+                ],
+            },
+        )
+    ]
+
+
+def test_extract_errors_with_context() -> None:
+    """
+    Test that custom error messages are extracted correctly with context.
+    """
+
+    msg = ": mismatched input 'fromm'. Expecting: "
+    context = {"hostname": "foo"}
+    result = DatabricksNativeEngineSpec.extract_errors(Exception(msg), context)
+
+    assert result == [
+        SupersetError(
+            message=": mismatched input 'fromm'. Expecting: ",
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "engine_name": "Databricks",
+                "issue_codes": [
+                    {
+                        "code": 1002,
+                        "message": "Issue 1002 - The database returned an unexpected error.",
+                    }
+                ],
+            },
+        )
+    ]
