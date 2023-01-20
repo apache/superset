@@ -88,6 +88,7 @@ describe('PivotTableChart transformProps', () => {
       metricsLayout: MetricsLayoutEnum.COLUMNS,
       metricColorFormatters: [],
       dateFormatters: {},
+      emitCrossFilters: false,
       columnFormats: {},
     });
   });

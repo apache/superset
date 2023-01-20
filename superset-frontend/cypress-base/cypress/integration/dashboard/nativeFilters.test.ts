@@ -204,9 +204,10 @@ function openVerticalFilterBar() {
 function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
   cy.getBySel('filterbar-orientation-icon').click();
   cy.wait(250);
-  cy.getBySel('dropdown-selectable-info')
+  cy.getBySel('dropdown-selectable-icon-submenu')
     .contains('Orientation of filter bar')
-    .should('exist');
+    .should('exist')
+    .trigger('mouseover');
 
   if (orientation === 'vertical') {
     cy.get('.ant-dropdown-menu-item-selected')

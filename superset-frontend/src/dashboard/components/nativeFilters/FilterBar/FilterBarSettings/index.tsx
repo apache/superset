@@ -123,7 +123,7 @@ const FilterBarSettings = () => {
   const menuItems: DropDownSelectableProps['menuItems'] = [
     {
       key: 'placement',
-      label: t('Placement of the filter bar'),
+      label: t('Orientation of filter bar'),
       children: [
         {
           key: FilterBarOrientation.VERTICAL,

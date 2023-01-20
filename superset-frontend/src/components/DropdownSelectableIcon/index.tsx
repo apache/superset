@@ -103,7 +103,11 @@ export default (props: DropDownSelectableProps) => {
         )}
         {menuItems.map(m =>
           m.children?.length ? (
-            <SubMenu title={m.label} key={m.key}>
+            <SubMenu
+              title={m.label}
+              key={m.key}
+              data-test="dropdown-selectable-icon-submenu"
+            >
               {m.children.map(s => menuItem(s.label, s.key))}
             </SubMenu>
           ) : (
