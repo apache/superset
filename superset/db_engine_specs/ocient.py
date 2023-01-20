@@ -14,10 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Optional, List
+from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+import re
 
 from sqlalchemy.engine.reflection import Inspector
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.errors import SupersetErrorType
+from flask_babel import gettext as __
 
 import pyocient
 from pyocient import _STPoint, _STLinestring, _STPolygon
@@ -27,6 +30,36 @@ from superset import app
 superset_log_level = app.config['LOG_LEVEL']
 pyocient.logger.setLevel(superset_log_level)
 
+
+# Regular expressions to catch custom errors
+
+CONNECTION_INVALID_USERNAME_REGEX = re.compile(
+    "The referenced user does not exist \(User \'(?P<username>.*?)\' not found\)"
+)
+CONNECTION_INVALID_PASSWORD_REGEX = re.compile(
+    'The userid/password combination was not valid \(Incorrect password for user\)'
+)
+CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
+    r"Unable to connect to (?P<host>.*?):(?P<port>.*?):"       
+)
+CONNECTION_UNKNOWN_DATABASE_REGEX = re.compile(
+    "No database named '(?P<database>.*?)' exists"
+)
+CONNECTION_INVALID_PORT_ERROR = re.compile(
+    "Port out of range 0-65535"
+)
+INVALID_CONNECTION_STRING_REGEX = re.compile(
+    "An invalid connection string attribute was specified \(failed to decrypt cipher text\)"
+)
+SYNTAX_ERROR_REGEX = re.compile(
+    r"There is a syntax error in your statement \(extraneous input '(?P<ext_input>.*?)' expecting {.*}"
+)
+TABLE_DOES_NOT_EXIST_REGEX = re.compile(
+    "The referenced table or view '(?P<table>.*?)' does not exist"
+)
+COLUMN_DOES_NOT_EXIST_REGEX = re.compile(
+    "The reference to column '(?P<column>.*?)' is not valid"
+)
 
 # Custom datatype conversion functions
 
@@ -90,6 +123,53 @@ class OcientEngineSpec(BaseEngineSpec):
     force_column_alias_quotes = True
     max_column_name_length = 30
 
+    custom_errors : Dict[Pattern[str], Tuple[str, SupersetErrorType, Dict[str, Any]]] = {
+        CONNECTION_INVALID_USERNAME_REGEX: (
+            __('The username "%(username)s" does not exist.'),
+            SupersetErrorType.CONNECTION_INVALID_USERNAME_ERROR,
+            {},
+        ),
+        CONNECTION_INVALID_PASSWORD_REGEX: (
+            __('The user/password combination is not valid (Incorrect password for user).'),
+            SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
+            {},
+        ),
+        CONNECTION_UNKNOWN_DATABASE_REGEX: (
+            __('Could not connect to database: "%(database)s"'),
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            {}
+        ),
+        CONNECTION_INVALID_HOSTNAME_REGEX: (
+            __('Could not resolve hostname: "%(host)s".'),
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            {}
+        ),
+        CONNECTION_INVALID_PORT_ERROR: (
+            __('Port out of range 0-65535'),
+            SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
+            {}
+        ),
+        INVALID_CONNECTION_STRING_REGEX: (
+            __('Invalid Connection String: Expecting String of the form \'ocient://user:pass@host:port/database\'.'),
+            SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            {}
+        ), 
+        SYNTAX_ERROR_REGEX: (
+            __('Extraneous input: "%(ext_input)s".'),
+            SupersetErrorType.SYNTAX_ERROR,
+            {}
+        ),
+        TABLE_DOES_NOT_EXIST_REGEX: (
+            __('Table or View "%(table)s" does not exist.'),
+            SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            {}
+        ),
+        COLUMN_DOES_NOT_EXIST_REGEX: (
+            __('Invalid reference to column: "%(column)s"'),
+            SupersetErrorType.COLUMN_DOES_NOT_EXIST_ERROR,
+            {}
+        ),
+}
     _time_grain_expressions = {
         None: "{col}",
         "PT1S": "ROUND({col}, 'SECOND')",
