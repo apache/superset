@@ -28,6 +28,7 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
+import example from './images/example.jpg';
 import {
   EchartsMixedTimeseriesFormData,
   EchartsMixedTimeseriesProps,
@@ -69,6 +70,7 @@ export default class EchartsTimeseriesChartPlugin extends ChartPlugin<
           AnnotationType.Interval,
           AnnotationType.Timeseries,
         ],
+        exampleGallery: [{ url: example }],
         name: hasGenericChartAxes ? t('Mixed Chart') : t('Mixed Time-Series'),
         thumbnail,
         tags: [

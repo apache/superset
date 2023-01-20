@@ -131,7 +131,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'postgresql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -141,7 +141,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -194,7 +194,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
         'mysql://user:password@host:port/dbname[?key=value&key=value...]',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -204,7 +204,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: true,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -214,7 +214,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: false,
       },
     },
     {
@@ -239,7 +239,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       sqlalchemy_uri_placeholder: 'bigquery://{project_id}',
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: true,
       },
     },
     {
@@ -250,7 +250,7 @@ fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
       preferred: false,
       engine_information: {
         supports_file_upload: false,
-        allow_ssh_tunneling: false,
+        disable_ssh_tunneling: true,
       },
     },
     {
@@ -1198,6 +1198,41 @@ describe('DatabaseModal', () => {
       });
 
       describe('SSH Tunnel Form interaction', () => {
+        test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
+          userEvent.click(
+            screen.getByRole('button', {
+              name: /postgresql/i,
+            }),
+          );
+          expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+          const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
+          userEvent.click(SSHTunnelingToggle);
+          const SSHTunnelServerAddressInput = screen.getByTestId(
+            'ssh-tunnel-server_address-input',
+          );
+          expect(SSHTunnelServerAddressInput).toHaveValue('');
+          userEvent.type(SSHTunnelServerAddressInput, 'localhost');
+          expect(SSHTunnelServerAddressInput).toHaveValue('localhost');
+          const SSHTunnelServerPortInput = screen.getByTestId(
+            'ssh-tunnel-server_port-input',
+          );
+          expect(SSHTunnelServerPortInput).toHaveValue('');
+          userEvent.type(SSHTunnelServerPortInput, '22');
+          expect(SSHTunnelServerPortInput).toHaveValue('22');
+          const SSHTunnelUsernameInput = screen.getByTestId(
+            'ssh-tunnel-username-input',
+          );
+          expect(SSHTunnelUsernameInput).toHaveValue('');
+          userEvent.type(SSHTunnelUsernameInput, 'test');
+          expect(SSHTunnelUsernameInput).toHaveValue('test');
+          const SSHTunnelPasswordInput = screen.getByTestId(
+            'ssh-tunnel-password-input',
+          );
+          expect(SSHTunnelPasswordInput).toHaveValue('');
+          userEvent.type(SSHTunnelPasswordInput, 'pass');
+          expect(SSHTunnelPasswordInput).toHaveValue('pass');
+        });
+
         test('properly interacts with SSH Tunnel form textboxes', async () => {
           userEvent.click(
             screen.getByRole('button', {
@@ -1917,7 +1952,7 @@ describe('dbReducer', () => {
       payload: {
         engine_information: {
           supports_file_upload: true,
-          allow_ssh_tunneling: true,
+          disable_ssh_tunneling: false,
         },
         ...db,
         driver: db.driver,
@@ -1932,7 +1967,7 @@ describe('dbReducer', () => {
       configuration_method: db.configuration_method,
       engine_information: {
         supports_file_upload: true,
-        allow_ssh_tunneling: true,
+        disable_ssh_tunneling: false,
       },
       driver: db.driver,
       expose_in_sqllab: true,

@@ -404,9 +404,9 @@ describe('Horizontal FilterBar', () => {
     saveNativeFilterSettings([SAMPLE_CHART]);
     cy.getBySel('filter-bar').within(() => {
       cy.get(nativeFilters.filterItem).contains('Albania').should('be.visible');
-      cy.get(nativeFilters.filterItem).contains('+1').should('be.visible');
+      cy.get(nativeFilters.filterItem).contains('+ 1 ...').should('be.visible');
       cy.get('.ant-select-selection-search-input').click();
-      cy.get(nativeFilters.filterItem).contains('+2').should('be.visible');
+      cy.get(nativeFilters.filterItem).contains('+ 2 ...').should('be.visible');
     });
   });
 });

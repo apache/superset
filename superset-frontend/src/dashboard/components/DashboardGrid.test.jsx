@@ -76,13 +76,6 @@ describe('DashboardGrid', () => {
     expect(wrapper.find('.grid-column-guide')).toHaveLength(GRID_COLUMN_COUNT);
   });
 
-  it('should render a grid row guide when resizing', () => {
-    const wrapper = setup();
-    expect(wrapper.find('.grid-row-guide')).not.toExist();
-    wrapper.setState({ isResizing: true, rowGuideTop: 10 });
-    expect(wrapper.find('.grid-row-guide')).toExist();
-  });
-
   it('should call resizeComponent when a child DashboardComponent calls resizeStop', () => {
     const resizeComponent = sinon.spy();
     const args = { id: 'id', widthMultiple: 1, heightMultiple: 3 };

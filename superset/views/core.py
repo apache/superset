@@ -2298,6 +2298,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         on_giveup=lambda details: db.session.rollback(),
         max_tries=5,
     )
+    @deprecated()
     def stop_query(self) -> FlaskResponse:
         client_id = request.form.get("client_id")
         query = db.session.query(Query).filter_by(client_id=client_id).one()

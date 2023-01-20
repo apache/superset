@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Spin } from 'antd';
+import { Spin, Tag } from 'antd';
 import AntdSelect from 'antd/lib/select';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
@@ -52,7 +52,9 @@ export const StyledSelect = styled(AntdSelect, {
     .ant-select-arrow .anticon:not(.ant-select-suffix) {
       pointer-events: none;
     }
-
+    .select-all {
+      border-bottom: 1px solid ${theme.colors.grayscale.light3};
+    }
     ${
       oneLine &&
       `
@@ -72,6 +74,18 @@ export const StyledSelect = styled(AntdSelect, {
       `
     };
  `}
+`;
+
+export const NoElement = styled.span`
+  display: none;
+`;
+
+export const StyledTag = styled(Tag)`
+  ${({ theme }) => `
+    background: ${theme.colors.grayscale.light3};
+    font-size: ${theme.typography.sizes.m}px;
+    border: none;
+  `}
 `;
 
 export const StyledStopOutlined = styled(Icons.StopOutlined)`

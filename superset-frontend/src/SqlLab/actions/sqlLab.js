@@ -129,10 +129,22 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
     sqlLab: { unsavedQueryEditor },
   } = rootState;
   const id = key ?? queryEditor.id;
-  return {
+  const updatedQueryEditor = {
     ...queryEditor,
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   };
+
+  if (
+    'schema' in updatedQueryEditor &&
+    !updatedQueryEditor.schemaOptions?.find(
+      ({ value }) => value === updatedQueryEditor.schema,
+    )
+  ) {
+    // remove the deprecated schema option
+    delete updatedQueryEditor.schema;
+  }
+
+  return updatedQueryEditor;
 }
 
 export function resetState() {
@@ -460,9 +472,9 @@ export function validateQuery(queryEditor, sql) {
 export function postStopQuery(query) {
   return function (dispatch) {
     return SupersetClient.post({
-      endpoint: '/superset/stop_query/',
-      postPayload: { client_id: query.id },
-      stringify: false,
+      endpoint: '/api/v1/query/stop',
+      body: JSON.stringify({ client_id: query.id }),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))

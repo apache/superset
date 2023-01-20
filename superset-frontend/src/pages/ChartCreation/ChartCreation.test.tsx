@@ -22,10 +22,10 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import Button from 'src/components/Button';
 import { AsyncSelect } from 'src/components';
 import {
-  AddSliceContainer,
-  AddSliceContainerProps,
-  AddSliceContainerState,
-} from 'src/addSlice/AddSliceContainer';
+  ChartCreation,
+  ChartCreationProps,
+  ChartCreationState,
+} from 'src/pages/ChartCreation';
 import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
 import { act } from 'spec/helpers/testing-library';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
@@ -70,15 +70,11 @@ const routeProps = {
 
 async function getWrapper(user = mockUser) {
   const wrapper = mount(
-    <AddSliceContainer
-      user={user}
-      addSuccessToast={() => null}
-      {...routeProps}
-    />,
+    <ChartCreation user={user} addSuccessToast={() => null} {...routeProps} />,
   ) as unknown as ReactWrapper<
-    AddSliceContainerProps,
-    AddSliceContainerState,
-    AddSliceContainer
+    ChartCreationProps,
+    ChartCreationState,
+    ChartCreation
   >;
   await act(() => new Promise(resolve => setTimeout(resolve, 0)));
   return wrapper;
