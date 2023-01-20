@@ -410,6 +410,7 @@ class Chart extends React.Component {
       datasetsStatus,
       isInView,
       emitCrossFilters,
+      logEvent,
     } = this.props;
 
     const { width } = this.state;
@@ -460,6 +461,7 @@ class Chart extends React.Component {
           editMode={editMode}
           annotationQuery={chart.annotationQuery}
           logExploreChart={this.logExploreChart}
+          logEvent={logEvent}
           onExploreChart={this.onExploreChart}
           exportCSV={this.exportCSV}
           exportFullCSV={this.exportFullCSV}

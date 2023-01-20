@@ -133,6 +133,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   updateSliceName = () => ({}),
   toggleExpandSlice = () => ({}),
   logExploreChart = () => ({}),
+  logEvent,
   exportCSV = () => ({}),
   editMode = false,
   annotationQuery = {},
@@ -274,6 +275,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 toggleExpandSlice={toggleExpandSlice}
                 forceRefresh={forceRefresh}
                 logExploreChart={logExploreChart}
+                logEvent={logEvent}
                 exportCSV={exportCSV}
                 exportFullCSV={exportFullCSV}
                 supersetCanExplore={supersetCanExplore}
