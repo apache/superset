@@ -218,9 +218,7 @@ test('should render - FeatureFlag enabled', async () => {
     screen.getByRole('heading', { name: 'Certification' }),
   ).toBeInTheDocument();
   // Tags will be included since isFeatureFlag always returns true in this test
-  expect(
-    screen.getByRole('heading', { name: 'Tags' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Tags' })).toBeInTheDocument();
   expect(screen.getAllByRole('heading')).toHaveLength(5);
 
   expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
