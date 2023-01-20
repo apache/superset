@@ -122,6 +122,12 @@ const ErrorAlertContainer = styled.div`
   `};
 `;
 
+const SSHTunnelContainer = styled.div`
+  ${({ theme }) => `
+    padding: 0px ${theme.gridUnit * 4}px;
+  `};
+`;
+
 interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
@@ -549,7 +555,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         DB.backend === db?.engine || DB.engine === db?.engine,
     ) as DatabaseObject
   )?.engine_information?.disable_ssh_tunneling;
-  const sshTunneling = isFeatureEnabled(FeatureFlag.SSH_TUNNELING);
+  const isSSHTunneling =
+    isFeatureEnabled(FeatureFlag.SSH_TUNNELING) &&
+    disableSSHTunnelingForEngine !== undefined;
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
@@ -1287,6 +1295,37 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     });
   };
 
+  const renderSSHTunnelForm = () => (
+    <SSHTunnelForm
+      isEditMode={isEditMode}
+      isSSHTunneling={isSSHTunneling}
+      db={db as DatabaseObject}
+      dbFetched={dbFetched as DatabaseObject}
+      onSSHTunnelParametersChange={({
+        target,
+      }: {
+        target: HTMLInputElement | HTMLTextAreaElement;
+      }) =>
+        onChange(ActionType.parametersSSHTunnelChange, {
+          type: target.type,
+          name: target.name,
+          value: target.value,
+        })
+      }
+      setSSHTunnelLoginMethod={(method: AuthType) =>
+        setDB({
+          type: ActionType.setSSHTunnelLoginMethod,
+          payload: { login_method: method },
+        })
+      }
+      removeSSHTunnelConfig={() =>
+        setDB({
+          type: ActionType.removeSSHTunnelConfig,
+        })
+      }
+    />
+  );
+
   const renderCTABtns = () => (
     <StyledBtns>
       <Button
@@ -1493,36 +1532,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                {sshTunneling && !disableSSHTunnelingForEngine && (
-                  <SSHTunnelForm
-                    isEditMode={isEditMode}
-                    sshTunneling={sshTunneling}
-                    db={db as DatabaseObject}
-                    dbFetched={dbFetched as DatabaseObject}
-                    onSSHTunnelParametersChange={({
-                      target,
-                    }: {
-                      target: HTMLInputElement | HTMLTextAreaElement;
-                    }) =>
-                      onChange(ActionType.parametersSSHTunnelChange, {
-                        type: target.type,
-                        name: target.name,
-                        value: target.value,
-                      })
-                    }
-                    setSSHTunnelLoginMethod={(method: AuthType) =>
-                      setDB({
-                        type: ActionType.setSSHTunnelLoginMethod,
-                        payload: { login_method: method },
-                      })
-                    }
-                    removeSSHTunnelConfig={() =>
-                      setDB({
-                        type: ActionType.removeSSHTunnelConfig,
-                      })
-                    }
-                  />
-                )}
+                {isSSHTunneling && renderSSHTunnelForm()}
               </SqlAlchemyForm>
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
@@ -1796,6 +1806,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                   getPlaceholder={getPlaceholder}
                 />
+                {isSSHTunneling && (
+                  <SSHTunnelContainer>
+                    {renderSSHTunnelForm()}
+                  </SSHTunnelContainer>
+                )}
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
                     <>
