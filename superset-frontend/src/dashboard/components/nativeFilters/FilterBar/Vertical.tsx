@@ -28,10 +28,16 @@ import React, {
   createContext,
 } from 'react';
 import cx from 'classnames';
-import { HandlerFunction, styled, t, isNativeFilter } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  HandlerFunction,
+  isNativeFilter,
+  styled,
+  t,
+} from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdTabs } from 'src/components';
-import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
+import { isFeatureEnabled } from 'src/featureFlags';
 import Loading from 'src/components/Loading';
 import { EmptyStateSmall } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';
