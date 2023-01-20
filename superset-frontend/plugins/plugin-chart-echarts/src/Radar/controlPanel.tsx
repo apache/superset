@@ -108,8 +108,8 @@ const config: ControlPanelConfig = {
               default: labelType,
               renderTrigger: true,
               choices: [
-                ['value', 'Value'],
-                ['key_value', 'Category and Value'],
+                ['value', t('Value')],
+                ['key_value', t('Category and Value')],
               ],
               description: t('What should be shown on the label?'),
             },

@@ -21,7 +21,11 @@ import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render } from 'spec/helpers/testing-library';
 import { Store } from 'redux';
-import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
+import {
+  initialState,
+  defaultQueryEditor,
+  extraQueryEditor1,
+} from 'src/SqlLab/fixtures';
 
 import EstimateQueryCostButton, {
   EstimateQueryCostButtonProps,
@@ -43,7 +47,7 @@ jest.mock('src/components/Select/AsyncSelect', () => () => (
 const setup = (props: Partial<EstimateQueryCostButtonProps>, store?: Store) =>
   render(
     <EstimateQueryCostButton
-      queryEditor={defaultQueryEditor}
+      queryEditorId={defaultQueryEditor.id}
       getEstimate={jest.fn()}
       {...props}
     />,
@@ -61,12 +65,8 @@ describe('EstimateQueryCostButton', () => {
   });
 
   it('renders label for selected query', async () => {
-    const queryEditorWithSelectedText = {
-      ...defaultQueryEditor,
-      selectedText: 'SELECT',
-    };
     const { queryByText } = setup(
-      { queryEditor: queryEditorWithSelectedText },
+      { queryEditorId: extraQueryEditor1.id },
       mockStore(initialState),
     );
 

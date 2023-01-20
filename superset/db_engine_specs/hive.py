@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import os
 import re
@@ -185,8 +187,6 @@ class HiveEngineSpec(PrestoEngineSpec):
         :param to_sql_kwargs: The kwargs to be passed to pandas.DataFrame.to_sql` method
         """
 
-        engine = cls.get_engine(database)
-
         if to_sql_kwargs["if_exists"] == "append":
             raise SupersetException("Append operation not currently supported")
 
@@ -205,9 +205,10 @@ class HiveEngineSpec(PrestoEngineSpec):
             if table_exists:
                 raise SupersetException("Table already exists")
         elif to_sql_kwargs["if_exists"] == "replace":
-            engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
+            with cls.get_engine(database) as engine:
+                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
 
-        def _get_hive_type(dtype: np.dtype) -> str:
+        def _get_hive_type(dtype: np.dtype[Any]) -> str:
             hive_type_by_dtype = {
                 np.dtype("bool"): "BOOLEAN",
                 np.dtype("float64"): "DOUBLE",
@@ -226,22 +227,23 @@ class HiveEngineSpec(PrestoEngineSpec):
         ) as file:
             pq.write_table(pa.Table.from_pandas(df), where=file.name)
 
-            engine.execute(
-                text(
-                    f"""
-                    CREATE TABLE {str(table)} ({schema_definition})
-                    STORED AS PARQUET
-                    LOCATION :location
-                    """
-                ),
-                location=upload_to_s3(
-                    filename=file.name,
-                    upload_prefix=current_app.config[
-                        "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                    ](database, g.user, table.schema),
-                    table=table,
-                ),
-            )
+            with cls.get_engine(database) as engine:
+                engine.execute(
+                    text(
+                        f"""
+                        CREATE TABLE {str(table)} ({schema_definition})
+                        STORED AS PARQUET
+                        LOCATION :location
+                        """
+                    ),
+                    location=upload_to_s3(
+                        filename=file.name,
+                        upload_prefix=current_app.config[
+                            "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
+                        ](database, g.user, table.schema),
+                        table=table,
+                    ),
+                )
 
     @classmethod
     def convert_dttm(
@@ -375,7 +377,15 @@ class HiveEngineSpec(PrestoEngineSpec):
                     last_log_line = len(log_lines)
                 if needs_commit:
                     session.commit()
-            time.sleep(current_app.config["HIVE_POLL_INTERVAL"])
+            if sleep_interval := current_app.config.get("HIVE_POLL_INTERVAL"):
+                logger.warning(
+                    "HIVE_POLL_INTERVAL is deprecated and will be removed in 3.0. Please use DB_POLL_INTERVAL_SECONDS instead"
+                )
+            else:
+                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                    cls.engine, 5
+                )
+            time.sleep(sleep_interval)
             polled = cursor.poll()
 
     @classmethod
@@ -559,7 +569,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def has_implicit_cancel(cls) -> bool:
         """
         Return True if the live cursor handles the implicit cancelation of the query,
-        False otherise.
+        False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query
         :see: handle_cursor

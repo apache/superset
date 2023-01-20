@@ -56,6 +56,7 @@ import jordan from './countries/jordan.geojson';
 import kenya from './countries/kenya.geojson';
 import korea from './countries/korea.geojson';
 import kuwait from './countries/kuwait.geojson';
+import latvia from './countries/latvia.geojson';
 import liechtenstein from './countries/liechtenstein.geojson';
 import lithuania from './countries/lithuania.geojson';
 import nigeria from './countries/nigeria.geojson';
@@ -69,6 +70,7 @@ import nicaragua from './countries/nicaragua.geojson';
 import oman from './countries/oman.geojson';
 import pakistan from './countries/pakistan.geojson';
 import panama from './countries/panama.geojson';
+import papua_new_guinea from './countries/papua new guinea.geojson';
 import paraguay from './countries/paraguay.geojson';
 import philippines from './countries/philippines.geojson';
 import peru from './countries/peru.geojson';
@@ -141,6 +143,7 @@ export const countries = {
   kenya,
   korea,
   kuwait,
+  latvia,
   liechtenstein,
   lithuania,
   malaysia,
@@ -154,6 +157,7 @@ export const countries = {
   oman,
   pakistan,
   panama,
+  papua_new_guinea,
   paraguay,
   philippines,
   peru,

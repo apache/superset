@@ -30,8 +30,7 @@ import type {
   QueryFormMetric,
   QueryResponse,
 } from '@superset-ui/core';
-import sharedControls from './shared-controls';
-import sharedControlComponents from './shared-controls/components';
+import { sharedControls, sharedControlComponents } from './shared-controls';
 
 export type { Metric } from '@superset-ui/core';
 export type { ControlFormItemSpec } from './components/ControlForm';
@@ -89,6 +88,7 @@ export interface ControlPanelState {
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
   common: JsonObject;
+  metadata?: JsonObject | null;
 }
 
 /**

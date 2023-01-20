@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, Query, QueryResponse } from '@superset-ui/core';
+import { JsonObject, QueryResponse } from '@superset-ui/core';
 import { SupersetError } from 'src/components/ErrorMessage/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ToastType } from 'src/components/MessageToasts/types';
@@ -35,7 +35,7 @@ export interface QueryEditor {
   id: string;
   dbId?: number;
   name: string;
-  schema: string;
+  schema?: string;
   autorun: boolean;
   sql: string;
   remoteId: number | null;
@@ -69,7 +69,7 @@ export type SqlLabRootState = {
     databases: Record<string, any>;
     dbConnect: boolean;
     offline: boolean;
-    queries: Record<string, Query>;
+    queries: Record<string, QueryResponse>;
     queryEditors: QueryEditor[];
     tabHistory: string[]; // default is activeTab ? [activeTab.id.toString()] : []
     tables: Record<string, any>[];

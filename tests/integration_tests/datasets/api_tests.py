@@ -366,12 +366,18 @@ class TestDatasetApi(SupersetTestCase):
                     schema="information_schema",
                 )
             )
-            schema_values = [
-                "information_schema",
-                "public",
-            ]
+            all_datasets = db.session.query(SqlaTable).all()
+            schema_values = sorted(
+                set(
+                    [
+                        dataset.schema
+                        for dataset in all_datasets
+                        if dataset.schema is not None
+                    ]
+                )
+            )
             expected_response = {
-                "count": 2,
+                "count": len(schema_values),
                 "result": [{"text": val, "value": val} for val in schema_values],
             }
             self.login(username="admin")
@@ -397,10 +403,8 @@ class TestDatasetApi(SupersetTestCase):
             pg_test_query_parameter(
                 query_parameter,
                 {
-                    "count": 2,
-                    "result": [
-                        {"text": "information_schema", "value": "information_schema"}
-                    ],
+                    "count": len(schema_values),
+                    "result": [expected_response["result"][0]],
                 },
             )
 
@@ -767,7 +771,7 @@ class TestDatasetApi(SupersetTestCase):
             with patch.object(
                 dialect, "get_view_names", wraps=dialect.get_view_names
             ) as patch_get_view_names:
-                patch_get_view_names.return_value = ["test_case_view"]
+                patch_get_view_names.return_value = {"test_case_view"}
 
             self.login(username="admin")
             table_data = {

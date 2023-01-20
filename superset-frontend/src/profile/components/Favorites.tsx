@@ -20,13 +20,12 @@ import React from 'react';
 import rison from 'rison';
 import moment from 'moment';
 import { t } from '@superset-ui/core';
-
+import { DashboardResponse, BootstrapUser } from 'src/types/bootstrapTypes';
 import TableLoader from '../../components/TableLoader';
 import { Slice } from '../types';
-import { User, DashboardResponse } from '../../types/bootstrapTypes';
 
 interface FavoritesProps {
-  user: User;
+  user: BootstrapUser;
 }
 
 export default class Favorites extends React.PureComponent<FavoritesProps> {
@@ -40,7 +39,7 @@ export default class Favorites extends React.PureComponent<FavoritesProps> {
       }));
     return (
       <TableLoader
-        dataEndpoint={`/superset/fave_slices/${this.props.user.userId}/`}
+        dataEndpoint={`/superset/fave_slices/${this.props.user?.userId}/`}
         className="table-condensed"
         columns={['slice', 'creator', 'favorited']}
         mutator={mutator}

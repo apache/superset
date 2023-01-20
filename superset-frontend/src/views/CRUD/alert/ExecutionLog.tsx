@@ -168,7 +168,7 @@ function ExecutionLog({ addDangerToast, isReportEnabled }: ExecutionLogProps) {
               {alertResource?.type} {alertResource?.name}
             </span>
             <span>
-              <Link to={path}>Back to all</Link>
+              <Link to={path}>{t('Back to all')}</Link>
             </span>
           </StyledHeader>
         }

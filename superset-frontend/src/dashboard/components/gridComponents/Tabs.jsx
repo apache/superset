@@ -224,9 +224,12 @@ export class Tabs extends React.PureComponent {
       title: t('Delete dashboard tab?'),
       content: (
         <span>
-          Deleting a tab will remove all content within it. You may still
-          reverse this action with the <b>undo</b> button (cmd + z) until you
-          save your changes.
+          {t(
+            'Deleting a tab will remove all content within it. You may still ' +
+              'reverse this action with the',
+          )}{' '}
+          <b>{t('undo')}</b>{' '}
+          {t('button (cmd + z) until you save your changes.')}
         </span>
       ),
       onOk: () => {
@@ -235,8 +238,8 @@ export class Tabs extends React.PureComponent {
         this.handleDeleteTab(tabIndex);
       },
       okType: 'danger',
-      okText: 'DELETE',
-      cancelText: 'CANCEL',
+      okText: t('DELETE'),
+      cancelText: t('CANCEL'),
       icon: null,
     });
   };
@@ -340,9 +343,10 @@ export class Tabs extends React.PureComponent {
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
     let tabsToHighlight;
-    if (nativeFilters?.focusedFilterId) {
-      tabsToHighlight =
-        nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
+    const highlightedFilterId =
+      nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
+    if (highlightedFilterId) {
+      tabsToHighlight = nativeFilters.filters[highlightedFilterId]?.tabsInScope;
     }
     return (
       <DragDroppable

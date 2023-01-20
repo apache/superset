@@ -16,22 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
 import {
-  ChartDataResponseResult,
-  ChartProps,
-  QueryFormColumn,
-  QueryFormData,
-} from '@superset-ui/core';
-import {
-  EchartsLegendFormData,
-  EChartTransformedProps,
+  BaseChartProps,
+  BaseTransformedProps,
+  ContextMenuTransformedProps,
+  CrossFilterTransformedProps,
+  LegendFormData,
   LegendOrientation,
   LegendType,
 } from '../types';
 import { DEFAULT_LEGEND_FORM_DATA } from '../constants';
 
 export type EchartsPieFormData = QueryFormData &
-  EchartsLegendFormData & {
+  LegendFormData & {
     colorScheme?: string;
     currentOwnValue?: string[] | null;
     donut: boolean;
@@ -59,9 +57,9 @@ export enum EchartsPieLabelType {
   KeyValuePercent = 'key_value_percent',
 }
 
-export interface EchartsPieChartProps extends ChartProps<EchartsPieFormData> {
+export interface EchartsPieChartProps
+  extends BaseChartProps<EchartsPieFormData> {
   formData: EchartsPieFormData;
-  queriesData: ChartDataResponseResult[];
 }
 
 // @ts-ignore
@@ -84,4 +82,6 @@ export const DEFAULT_FORM_DATA: EchartsPieFormData = {
 };
 
 export type PieChartTransformedProps =
-  EChartTransformedProps<EchartsPieFormData>;
+  BaseTransformedProps<EchartsPieFormData> &
+    ContextMenuTransformedProps &
+    CrossFilterTransformedProps;

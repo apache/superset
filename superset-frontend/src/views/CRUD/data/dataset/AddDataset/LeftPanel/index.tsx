@@ -17,7 +17,14 @@
  * under the License.
  */
 import React, { useEffect, useState, SetStateAction, Dispatch } from 'react';
-import { SupersetClient, t, styled } from '@superset-ui/core';
+import {
+  SupersetClient,
+  t,
+  styled,
+  css,
+  useTheme,
+  logging,
+} from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Form } from 'src/components/Form';
 import Icons from 'src/components/Icons';
@@ -28,7 +35,10 @@ import Loading from 'src/components/Loading';
 import DatabaseSelector, {
   DatabaseObject,
 } from 'src/components/DatabaseSelector';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import {
+  EmptyStateMedium,
+  emptyStateComponent,
+} from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { DatasetActionType } from '../types';
 
@@ -36,6 +46,7 @@ interface LeftPanelProps {
   setDataset: Dispatch<SetStateAction<object>>;
   schema?: string | null | undefined;
   dbId?: number;
+  datasets?: (string | null | undefined)[] | undefined;
 }
 
 const SearchIcon = styled(Icons.Search)`
@@ -55,7 +66,7 @@ const LeftPanelStyle = styled.div`
     }
     .refresh {
       position: absolute;
-      top: ${theme.gridUnit * 37.25}px;
+      top: ${theme.gridUnit * 38.75}px;
       left: ${theme.gridUnit * 16.75}px;
       span[role="button"]{
         font-size: ${theme.gridUnit * 4.25}px;
@@ -78,6 +89,11 @@ const LeftPanelStyle = styled.div`
       top: ${theme.gridUnit * 92.25}px;
       left: ${theme.gridUnit * 3.25}px;
       right: 0;
+
+      .no-scrollbar {
+        margin-right: ${theme.gridUnit * 4}px;
+      }
+
       .options {
         cursor: pointer;
         padding: ${theme.gridUnit * 1.75}px;
@@ -86,6 +102,7 @@ const LeftPanelStyle = styled.div`
           background-color: ${theme.colors.grayscale.light4}
         }
       }
+
       .options-highlighted {
         cursor: pointer;
         padding: ${theme.gridUnit * 1.75}px;
@@ -93,10 +110,16 @@ const LeftPanelStyle = styled.div`
         background-color: ${theme.colors.primary.dark1};
         color: ${theme.colors.grayscale.light5};
       }
+
+      .options, .options-highlighted {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
     }
     form > span[aria-label="refresh"] {
       position: absolute;
-      top: ${theme.gridUnit * 67.5}px;
+      top: ${theme.gridUnit * 69}px;
       left: ${theme.gridUnit * 42.75}px;
       font-size: ${theme.gridUnit * 4.25}px;
     }
@@ -105,13 +128,13 @@ const LeftPanelStyle = styled.div`
     }
     .loading-container {
       position: absolute;
-      top: 359px;
+      top: ${theme.gridUnit * 89.75}px;
       left: 0;
       right: 0;
       text-align: center;
       img {
         width: ${theme.gridUnit * 20}px;
-        margin-bottom: 10px;
+        margin-bottom: ${theme.gridUnit * 2.5}px;
       }
       p {
         color: ${theme.colors.grayscale.light1};
@@ -124,7 +147,10 @@ export default function LeftPanel({
   setDataset,
   schema,
   dbId,
+  datasets,
 }: LeftPanelProps) {
+  const theme = useTheme();
+
   const [tableOptions, setTableOptions] = useState<Array<TableOption>>([]);
   const [resetTables, setResetTables] = useState(false);
   const [loadTables, setLoadTables] = useState(false);
@@ -166,9 +192,9 @@ export default function LeftPanel({
         setResetTables(false);
         setRefresh(false);
       })
-      .catch(e => {
-        console.log('error', e);
-      });
+      .catch(error =>
+        logging.error('There was an error fetching tables', error),
+      );
   };
 
   const setSchema = (schema: string) => {
@@ -212,21 +238,43 @@ export default function LeftPanel({
     </div>
   );
 
+  const SELECT_DATABASE_AND_SCHEMA_TEXT = t('Select database & schema');
+  const TABLE_LOADING_TEXT = t('Table loading');
+  const NO_TABLES_FOUND_TITLE = t('No database tables found');
+  const NO_TABLES_FOUND_DESCRIPTION = t('Try selecting a different schema');
+  const SELECT_DATABASE_TABLE_TEXT = t('Select database table');
+  const REFRESH_TABLE_LIST_TOOLTIP = t('Refresh table list');
+  const REFRESH_TABLES_TEXT = t('Refresh tables');
+  const SEARCH_TABLES_PLACEHOLDER_TEXT = t('Search tables');
+
+  const optionsList = document.getElementsByClassName('options-list');
+  const scrollableOptionsList =
+    optionsList[0]?.scrollHeight > optionsList[0]?.clientHeight;
+  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+
+  const onEmptyResults = (searchText?: string) => {
+    setEmptyResultsWithSearch(!!searchText);
+  };
+
   return (
     <LeftPanelStyle>
-      <p className="section-title db-schema">Select database & schema</p>
+      <p className="section-title db-schema">
+        {SELECT_DATABASE_AND_SCHEMA_TEXT}
+      </p>
       <DatabaseSelector
         handleError={addDangerToast}
         onDbChange={setDatabase}
         onSchemaChange={setSchema}
+        emptyState={emptyStateComponent(emptyResultsWithSearch)}
+        onEmptyResults={onEmptyResults}
       />
-      {loadTables && !refresh && Loader('Table loading')}
+      {loadTables && !refresh && Loader(TABLE_LOADING_TEXT)}
       {schema && !loadTables && !tableOptions.length && !searchVal && (
         <div className="emptystate">
           <EmptyStateMedium
             image="empty-table.svg"
-            title={t('No database tables found')}
-            description={t('Try selecting a different schema')}
+            title={NO_TABLES_FOUND_TITLE}
+            description={NO_TABLES_FOUND_DESCRIPTION}
           />
         </div>
       )}
@@ -234,15 +282,15 @@ export default function LeftPanel({
       {schema && (tableOptions.length > 0 || searchVal.length > 0) && (
         <>
           <Form>
-            <p className="table-title">Select database table</p>
+            <p className="table-title">{SELECT_DATABASE_TABLE_TEXT}</p>
             <RefreshLabel
               onClick={() => {
                 setLoadTables(true);
                 setRefresh(true);
               }}
-              tooltipContent={t('Refresh table list')}
+              tooltipContent={REFRESH_TABLE_LIST_TOOLTIP}
             />
-            {refresh && Loader('Refresh tables')}
+            {refresh && Loader(REFRESH_TABLES_TEXT)}
             {!refresh && (
               <Input
                 value={searchVal}
@@ -251,7 +299,7 @@ export default function LeftPanel({
                   setSearchVal(evt.target.value);
                 }}
                 className="table-form"
-                placeholder={t('Search tables')}
+                placeholder={SEARCH_TABLES_PLACEHOLDER_TEXT}
                 allowClear
               />
             )}
@@ -261,7 +309,13 @@ export default function LeftPanel({
               filteredOptions.map((option, i) => (
                 <div
                   className={
-                    selectedTable === i ? 'options-highlighted' : 'options'
+                    selectedTable === i
+                      ? scrollableOptionsList
+                        ? 'options-highlighted'
+                        : 'options-highlighted no-scrollbar'
+                      : scrollableOptionsList
+                      ? 'options'
+                      : 'options no-scrollbar'
                   }
                   key={i}
                   role="button"
@@ -269,6 +323,19 @@ export default function LeftPanel({
                   onClick={() => setTable(option.value, i)}
                 >
                   {option.label}
+                  {datasets?.includes(option.value) && (
+                    <Icons.Warning
+                      iconColor={
+                        selectedTable === i
+                          ? theme.colors.grayscale.light5
+                          : theme.colors.info.base
+                      }
+                      iconSize="m"
+                      css={css`
+                        margin-right: ${theme.gridUnit * 2}px;
+                      `}
+                    />
+                  )}
                 </div>
               ))}
           </div>
