@@ -58,13 +58,12 @@ def test_report_for_dashboard_with_tabs(
         ).run()
         dashboard_state = report_schedule.extra.get("dashboard", {})
         permalink_key = CreateDashboardPermalinkCommand(
-            dashboard.id, dashboard_state
+            str(dashboard.id), dashboard_state
         ).run()
 
         assert dashboard_screenshot_mock.call_count == 1
-        (url, digest) = dashboard_screenshot_mock.call_args.args
+        url = dashboard_screenshot_mock.call_args.args[0]
         assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
-        assert digest == dashboard.digest
         assert send_email_smtp_mock.call_count == 1
         assert len(send_email_smtp_mock.call_args.kwargs["images"]) == 1
 
@@ -101,9 +100,8 @@ def test_report_with_header_data(
         ).run()
 
         assert dashboard_screenshot_mock.call_count == 1
-        (url, digest) = dashboard_screenshot_mock.call_args.args
+        url = dashboard_screenshot_mock.call_args.args[0]
         assert url.endswith(f"/superset/dashboard/p/{permalink_key}/")
-        assert digest == dashboard.digest
         assert send_email_smtp_mock.call_count == 1
         header_data = send_email_smtp_mock.call_args.kwargs["header_data"]
         assert header_data.get("dashboard_id") == dashboard.id
