@@ -283,6 +283,10 @@ supersetNode:
   deploymentAnnotations: {}
   # -- Labels to be added to supersetNode deployment
   deploymentLabels: {}
+  # -- Affinity to be added to supersetNode deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetNode deployments
+  topologySpreadConstraints: []
   # -- Annotations to be added to supersetNode pods
   podAnnotations: {}
   # -- Labels to be added to supersetNode pods
@@ -426,6 +430,10 @@ supersetCeleryBeat:
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
   # -- Annotations to be added to supersetCeleryBeat deployment
   deploymentAnnotations: {}
+  # -- Affinity to be added to supersetCeleryBeat deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetCeleryBeat deployments
+  topologySpreadConstraints: []
   # -- Annotations to be added to supersetCeleryBeat pods
   podAnnotations: {}
   # -- Labels to be added to supersetCeleryBeat pods
@@ -498,11 +506,15 @@ supersetCeleryFlower:
         - /bin/sh
         - -c
         - dockerize -wait "tcp://$DB_HOST:$DB_PORT" -wait "tcp://$REDIS_HOST:$REDIS_PORT" -timeout 120s
-  # -- Annotations to be added to supersetCeleryBeat deployment
+  # -- Annotations to be added to supersetCeleryFlower deployment
   deploymentAnnotations: {}
-  # -- Annotations to be added to supersetCeleryBeat pods
+  # -- Affinity to be added to supersetCeleryFlower deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetCeleryFlower deployments
+  topologySpreadConstraints: []
+  # -- Annotations to be added to supersetCeleryFlower pods
   podAnnotations: {}
-  # -- Labels to be added to supersetCeleryBeat pods
+  # -- Labels to be added to supersetCeleryFlower pods
   podLabels: {}
   # -- Resource settings for the CeleryBeat pods - these settings overwrite might existing values from the global resources object defined above.
   resources:
@@ -558,6 +570,10 @@ supersetWebsockets:
   command: []
   resources: {}
   deploymentAnnotations: {}
+  # -- Affinity to be added to supersetWebsockets deployment
+  affinity: {}
+  # -- TopologySpreadConstrains to be added to supersetWebsockets deployments
+  topologySpreadConstraints: []
   podAnnotations: {}
   podLabels: {}
   strategy: {}
@@ -765,3 +781,6 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+# -- TopologySpreadConstrains to be added to all deployments
+topologySpreadConstraints: []
