@@ -62,7 +62,6 @@ const propTypes = {
   ownState: PropTypes.object,
   postTransformProps: PropTypes.func,
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
-  // cross filters
   emitCrossFilters: PropTypes.bool,
 };
 

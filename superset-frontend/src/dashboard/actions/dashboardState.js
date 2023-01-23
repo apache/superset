@@ -36,6 +36,7 @@ import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
 } from 'src/dashboard/util/constants';
+import { isCrossFiltersEnabled } from 'src/dashboard/util/crossFilters';
 import {
   addSuccessToast,
   addWarningToast,
@@ -268,10 +269,9 @@ export function saveDashboardRequest(data, id, saveType) {
         timed_refresh_immune_slices:
           data.metadata?.timed_refresh_immune_slices || [],
         // cross-filters should be enabled by default
-        cross_filters_enabled:
-          metadataCrossFiltersEnabled === undefined
-            ? true
-            : metadataCrossFiltersEnabled,
+        cross_filters_enabled: isCrossFiltersEnabled(
+          metadataCrossFiltersEnabled,
+        ),
       },
     };
 

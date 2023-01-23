@@ -66,6 +66,11 @@ const FilterBarSettings = () => {
   const [crossFiltersEnabled, setCrossFiltersEnabled] = useState<boolean>(
     shouldEnableCrossFilters,
   );
+  const canEdit = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
+  );
+  const canSetHorizontalFilterBar =
+    canEdit && isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR);
   const crossFiltersMenuKey = 'cross-filters-menu-key';
   const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
     o === FilterBarOrientation.VERTICAL ||
@@ -120,8 +125,17 @@ const FilterBarSettings = () => {
     ),
     [crossFiltersEnabled],
   );
-  const menuItems: DropDownSelectableProps['menuItems'] = [
-    {
+  const menuItems: DropDownSelectableProps['menuItems'] = [];
+
+  if (isCrossFiltersFeatureEnabled) {
+    menuItems.unshift({
+      key: crossFiltersMenuKey,
+      label: crossFiltersMenuItem,
+    });
+  }
+
+  if (canSetHorizontalFilterBar) {
+    menuItems.push({
       key: 'placement',
       label: t('Orientation of filter bar'),
       children: [
@@ -134,14 +148,11 @@ const FilterBarSettings = () => {
           label: t('Horizontal (Top)'),
         },
       ],
-    },
-  ];
-
-  if (isCrossFiltersFeatureEnabled) {
-    menuItems.unshift({
-      key: crossFiltersMenuKey,
-      label: crossFiltersMenuItem,
     });
+  }
+
+  if (!menuItems.length) {
+    return null;
   }
 
   return (

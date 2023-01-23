@@ -22,7 +22,6 @@ import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { DropdownButtonProps } from 'antd/lib/dropdown';
 import { Menu, MenuProps } from 'src/components/Menu';
-import { css, Global } from '@emotion/react';
 
 const { SubMenu } = Menu;
 
@@ -79,18 +78,26 @@ const StyledMenu = styled(Menu)`
   `}
 `;
 
+const StyleSubmenuItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;
+
 export default (props: DropDownSelectableProps) => {
   const theme = useTheme();
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
   const menuItem = (label: string | React.ReactNode, key: string) => (
     <Menu.Item key={key}>
-      {label}
-      {selectedKeys?.includes(key) && (
-        <Icons.Check
-          iconColor={theme.colors.primary.base}
-          className="tick-menu-item"
-        />
-      )}
+      <StyleSubmenuItem>
+        <span>{label}</span>
+        {selectedKeys?.includes(key) && (
+          <Icons.Check
+            iconColor={theme.colors.primary.base}
+            className="tick-menu-item"
+            iconSize="xl"
+          />
+        )}
+      </StyleSubmenuItem>
     </Menu.Item>
   );
   const overlayMenu = useMemo(
@@ -120,21 +127,10 @@ export default (props: DropDownSelectableProps) => {
   );
 
   return (
-    <>
-      <Global
-        styles={css`
-          .ant-dropdown-menu .ant-dropdown-menu-item > .tick-menu-item {
-            float: right;
-            margin-right: 0;
-            font-size: ${theme.typography.sizes.xl}px;
-          }
-        `}
-      />
-      <StyledDropdownButton
-        overlay={overlayMenu}
-        trigger={['click']}
-        icon={icon}
-      />
-    </>
+    <StyledDropdownButton
+      overlay={overlayMenu}
+      trigger={['click']}
+      icon={icon}
+    />
   );
 };
