@@ -23,7 +23,7 @@ import { CSSTransition } from 'react-transition-group';
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
 import Split from 'react-split';
-import { t, styled, useTheme } from '@superset-ui/core';
+import { css, t, styled, useTheme } from '@superset-ui/core';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
 import Modal from 'src/components/Modal';
@@ -74,6 +74,7 @@ import {
 } from 'src/utils/localStorageHelpers';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { isEmpty } from 'lodash';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
@@ -86,10 +87,7 @@ import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
 
-const appContainer = document.getElementById('app');
-const bootstrapData = JSON.parse(
-  appContainer.getAttribute('data-bootstrap') || '{}',
-);
+const bootstrapData = getBootstrapData();
 const validatorMap =
   bootstrapData?.common?.conf?.SQL_VALIDATORS_BY_ENGINE || {};
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -132,6 +130,62 @@ const StyledSidebar = styled.div`
   border-right: 1px solid
     ${({ theme, hide }) =>
       hide ? 'transparent' : theme.colors.grayscale.light2};
+`;
+
+const StyledSqlEditor = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+
+    .schemaPane {
+      transition: transform ${theme.transitionTiming}s ease-in-out;
+    }
+
+    .queryPane {
+      flex: 1 1 auto;
+      padding: ${theme.gridUnit * 2}px;
+      overflow-y: auto;
+      overflow-x: scroll;
+    }
+
+    .schemaPane-enter-done,
+    .schemaPane-exit {
+      transform: translateX(0);
+      z-index: 7;
+    }
+
+    .schemaPane-exit-active {
+      transform: translateX(-120%);
+    }
+
+    .schemaPane-enter-active {
+      transform: translateX(0);
+      max-width: ${theme.gridUnit * 75}px;
+    }
+
+    .schemaPane-enter,
+    .schemaPane-exit-done {
+      max-width: 0;
+      transform: translateX(-120%);
+      overflow: hidden;
+    }
+
+    .schemaPane-exit-done + .queryPane {
+      margin-left: 0;
+    }
+
+    .gutter {
+      border-top: 1px solid ${theme.colors.grayscale.light2};
+      border-bottom: 1px solid ${theme.colors.grayscale.light2};
+      width: 3%;
+      margin: ${theme.gridUnit}px 47%;
+    }
+
+    .gutter.gutter-vertical {
+      cursor: row-resize;
+    }
+  `}
 `;
 
 const propTypes = {
@@ -638,7 +692,7 @@ const SqlEditor = ({
     ? 'schemaPane-exit-done'
     : 'schemaPane-enter-done';
   return (
-    <div ref={sqlEditorRef} className="SqlEditor">
+    <StyledSqlEditor ref={sqlEditorRef} className="SqlEditor">
       <CSSTransition classNames="schemaPane" in={!hideLeftBar} timeout={300}>
         <ResizableSidebar
           id={`sqllab:${queryEditor.id}`}
@@ -706,7 +760,7 @@ const SqlEditor = ({
         <span>{t('Name')}</span>
         <Input placeholder={createModalPlaceHolder} onChange={ctasChanged} />
       </Modal>
-    </div>
+    </StyledSqlEditor>
   );
 };
 

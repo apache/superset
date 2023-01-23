@@ -42,7 +42,8 @@ class UpdateSSHTunnelCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         try:
-            tunnel = SSHTunnelDAO.update(self._model, self._properties)
+            if self._model is not None:  # So we dont get incompatible types error
+                tunnel = SSHTunnelDAO.update(self._model, self._properties)
         except DAOUpdateFailedError as ex:
             raise SSHTunnelUpdateFailedError() from ex
         return tunnel

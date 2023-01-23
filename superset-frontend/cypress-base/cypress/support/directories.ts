@@ -127,10 +127,11 @@ export const databasesPage = {
 
 export const sqlLabView = {
   sqlEditorLeftBar: {
-    sqlEditorLeftBar: '[class="SqlEditorLeftBar"]',
-    databaseSchemaTableSection: '[class="SqlEditorLeftBar"] > :nth-child(1)',
+    sqlEditorLeftBar: '[data-test="sql-editor-left-bar"]',
+    databaseSchemaTableSection:
+      '[data-test="sql-editor-left-bar"] > :nth-child(1)',
     tableSchemaSection:
-      '[class="SqlEditorLeftBar"] > :nth-child(1) > :nth-child(3) > :nth-child(1)',
+      '[data-test="sql-editor-left-bar"] > :nth-child(1) > :nth-child(3) > :nth-child(1)',
     tableSchemaInputEmpty: '[aria-label="Select table or type table name"]',
   },
   databaseInput: '[data-test=DatabaseSelector] > :nth-child(1)',

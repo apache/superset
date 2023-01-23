@@ -22,6 +22,8 @@ import { styled } from '@superset-ui/core';
 import { useCSSTextTruncation } from 'src/hooks/useTruncation';
 import { Tooltip } from '../Tooltip';
 import { CustomTagProps } from './types';
+import { SELECT_ALL_VALUE } from './utils';
+import { NoElement } from './styles';
 
 const StyledTag = styled(AntdTag)`
   & .ant-tag-close-icon {
@@ -51,10 +53,10 @@ const Tag = (props: any) => {
 };
 
 /**
- * Custom tag renderer dedicated for oneLine mode
+ * Custom tag renderer
  */
-export const oneLineTagRender = (props: CustomTagProps) => {
-  const { label } = props;
+export const customTagRender = (props: CustomTagProps) => {
+  const { label, value } = props;
 
   const onPreventMouseDown = (event: React.MouseEvent<HTMLElement>) => {
     // if close icon is clicked, stop propagation to avoid opening the dropdown
@@ -69,9 +71,12 @@ export const oneLineTagRender = (props: CustomTagProps) => {
     }
   };
 
-  return (
-    <Tag onMouseDown={onPreventMouseDown} {...props}>
-      {label}
-    </Tag>
-  );
+  if (value !== SELECT_ALL_VALUE) {
+    return (
+      <Tag onMouseDown={onPreventMouseDown} {...(props as object)}>
+        {label}
+      </Tag>
+    );
+  }
+  return <NoElement />;
 };

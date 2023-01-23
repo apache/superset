@@ -14,13 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+import re
+import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from flask import current_app
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.orm import Session
 
+from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.models.sql_lab import Query
 from superset.utils import core as utils
+
+logger = logging.getLogger(__name__)
+# Query 5543ffdf692b7d02:f78a944000000000: 3% Complete (17 out of 547)
+QUERY_PROGRESS_REGEX = re.compile(r"Query.*: (?P<query_progress>[0-9]+)%")
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
@@ -63,3 +74,82 @@ class ImpalaEngineSpec(BaseEngineSpec):
             if not row[0].startswith("_")
         ]
         return schemas
+
+    @classmethod
+    def has_implicit_cancel(cls) -> bool:
+        """
+        Return True if the live cursor handles the implicit cancelation of the query,
+        False otherise.
+
+        :return: Whether the live cursor implicitly cancels the query
+        :see: handle_cursor
+        """
+
+        return True
+
+    @classmethod
+    def execute(
+        cls,
+        cursor: Any,
+        query: str,
+        **kwargs: Any,
+    ) -> None:
+        try:
+            cursor.execute_async(query)
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex)
+
+    @classmethod
+    def handle_cursor(cls, cursor: Any, query: Query, session: Session) -> None:
+        """Stop query and updates progress information"""
+
+        query_id = query.id
+        unfinished_states = (
+            "INITIALIZED_STATE",
+            "RUNNING_STATE",
+        )
+
+        try:
+            status = cursor.status()
+            while status in unfinished_states:
+                session.refresh(query)
+                query = session.query(Query).filter_by(id=query_id).one()
+                # if query cancelation was requested prior to the handle_cursor call, but
+                # the query was still executed
+                # modified in stop_query in views / core.py is reflected  here.
+                # stop query
+                if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+                    cursor.cancel_operation()
+                    cursor.close_operation()
+                    cursor.close()
+                    break
+
+                #  updates progress info by log
+                try:
+                    log = cursor.get_log() or ""
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning("Call to GetLog() failed")
+                    log = ""
+
+                if log:
+                    match = QUERY_PROGRESS_REGEX.match(log)
+                    if match:
+                        progress = int(match.groupdict()["query_progress"])
+                    logger.debug(
+                        "Query %s: Progress total: %s", str(query_id), str(progress)
+                    )
+                    needs_commit = False
+                    if progress > query.progress:
+                        query.progress = progress
+                        needs_commit = True
+
+                    if needs_commit:
+                        session.commit()
+                sleep_interval = current_app.config["DB_POLL_INTERVAL_SECONDS"].get(
+                    cls.engine, 5
+                )
+                time.sleep(sleep_interval)
+                status = cursor.status()
+        except Exception:  # pylint: disable=broad-except
+            logger.debug("Call to status() failed ")
+            return

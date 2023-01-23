@@ -22,6 +22,7 @@ import {
   ChartDataResponseResult,
   ChartProps,
   HandlerFunction,
+  PlainObject,
   QueryFormColumn,
   SetDataMaskHook,
 } from '@superset-ui/core';
@@ -111,7 +112,7 @@ export enum LabelPositionEnum {
   InsideBottomRight = 'insideBottomRight',
 }
 
-export interface BaseChartProps<T> extends ChartProps<T> {
+export interface BaseChartProps<T extends PlainObject> extends ChartProps<T> {
   queriesData: ChartDataResponseResult[];
 }
 
@@ -154,5 +155,11 @@ export interface TitleFormData {
 }
 
 export type StackType = boolean | null | Partial<AreaChartExtraControlsValue>;
+
+export interface TreePathInfo {
+  name: string;
+  dataIndex: number;
+  value: number | number[];
+}
 
 export * from './Timeseries/types';
