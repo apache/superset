@@ -177,23 +177,31 @@ const Select = forwardRef(
       return result.filter(opt => opt.value !== SELECT_ALL_VALUE);
     }, [selectOptions, selectValue]);
 
+    const enabledOptions = useMemo(
+      () => fullSelectOptions.filter(option => !option.disabled),
+      [fullSelectOptions],
+    );
+
+    const selectAllEligible = useMemo(
+      () =>
+        fullSelectOptions.filter(
+          option => hasOption(option.value, selectValue) || !option.disabled,
+        ),
+      [fullSelectOptions, selectValue],
+    );
+
     const selectAllEnabled = useMemo(
       () =>
         !isSingleMode &&
         selectOptions.length > 0 &&
-        fullSelectOptions.length > 1 &&
+        enabledOptions.length > 1 &&
         !inputValue,
-      [
-        isSingleMode,
-        selectOptions.length,
-        fullSelectOptions.length,
-        inputValue,
-      ],
+      [isSingleMode, selectOptions.length, enabledOptions.length, inputValue],
     );
 
     const selectAllMode = useMemo(
-      () => ensureIsArray(selectValue).length === fullSelectOptions.length + 1,
-      [selectValue, fullSelectOptions],
+      () => ensureIsArray(selectValue).length === selectAllEligible.length + 1,
+      [selectValue, selectAllEligible],
     );
 
     const handleOnSelect = (
@@ -209,19 +217,19 @@ const Select = forwardRef(
           if (value === getValue(SELECT_ALL_VALUE)) {
             if (isLabeledValue(selectedItem)) {
               return [
-                ...fullSelectOptions,
+                ...selectAllEligible,
                 selectAllOption,
               ] as AntdLabeledValue[];
             }
             return [
               SELECT_ALL_VALUE,
-              ...fullSelectOptions.map(opt => opt.value),
+              ...selectAllEligible.map(opt => opt.value),
             ] as AntdLabeledValue[];
           }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
             if (
-              result.length === fullSelectOptions.length &&
+              result.length === selectAllEligible.length &&
               selectAllEnabled
             ) {
               return isLabeledValue(selectedItem)
@@ -236,12 +244,26 @@ const Select = forwardRef(
       setInputValue('');
     };
 
+    const clear = () => {
+      setSelectValue(
+        fullSelectOptions
+          .filter(
+            option => option.disabled && hasOption(option.value, selectValue),
+          )
+          .map(option =>
+            labelInValue
+              ? { label: option.label, value: option.value }
+              : option.value,
+          ),
+      );
+    };
+
     const handleOnDeselect = (
       value: string | number | AntdLabeledValue | undefined,
     ) => {
       if (Array.isArray(selectValue)) {
         if (getValue(value) === getValue(SELECT_ALL_VALUE)) {
-          setSelectValue(undefined);
+          clear();
         } else {
           let array = selectValue as AntdLabeledValue[];
           array = array.filter(
@@ -312,7 +334,7 @@ const Select = forwardRef(
       );
 
     const handleClear = () => {
-      setSelectValue(undefined);
+      clear();
       if (onClear) {
         onClear();
       }
@@ -337,7 +359,7 @@ const Select = forwardRef(
       // if all values are selected, add select all to value
       if (
         !isSingleMode &&
-        ensureIsArray(value).length === fullSelectOptions.length &&
+        ensureIsArray(value).length === selectAllEligible.length &&
         selectOptions.length > 0
       ) {
         setSelectValue(
@@ -353,7 +375,7 @@ const Select = forwardRef(
       value,
       isSingleMode,
       labelInValue,
-      fullSelectOptions.length,
+      selectAllEligible.length,
       selectOptions.length,
     ]);
 
@@ -362,21 +384,21 @@ const Select = forwardRef(
         v => getValue(v) === SELECT_ALL_VALUE,
       );
       if (checkSelectAll && !selectAllMode) {
-        const optionsToSelect = fullSelectOptions.map(option =>
+        const optionsToSelect = selectAllEligible.map(option =>
           labelInValue ? option : option.value,
         );
         optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
         setSelectValue(optionsToSelect);
       }
-    }, [selectValue, selectAllMode, labelInValue, fullSelectOptions]);
+    }, [selectValue, selectAllMode, labelInValue, selectAllEligible]);
 
     const selectAllLabel = useMemo(
       () => () =>
         `${SELECT_ALL_VALUE} (${formatNumber(
           NumberFormats.INTEGER,
-          fullSelectOptions.length,
+          selectAllEligible.length,
         )})`,
-      [fullSelectOptions.length],
+      [selectAllEligible],
     );
 
     const handleOnChange = (values: any, options: any) => {
@@ -394,17 +416,18 @@ const Select = forwardRef(
           // send all options to onchange if all are not currently there
           if (!selectAllMode) {
             newValues = labelInValue
-              ? fullSelectOptions.map(opt => ({
+              ? selectAllEligible.map(opt => ({
                   key: opt.value,
                   value: opt.value,
                   label: opt.label,
                 }))
-              : fullSelectOptions.map(opt => opt.value);
+              : selectAllEligible.map(opt => opt.value);
             newOptions = fullSelectOptions.map(opt => ({
               children: opt.label,
               key: opt.value,
               value: opt.value,
               label: opt.label,
+              disabled: opt.disabled,
             }));
           } else {
             newValues = ensureIsArray(values).filter(
@@ -412,7 +435,7 @@ const Select = forwardRef(
             );
           }
         } else if (
-          ensureIsArray(values).length === fullSelectOptions.length &&
+          ensureIsArray(values).length === selectAllEligible.length &&
           selectAllMode
         ) {
           newValues = [];
