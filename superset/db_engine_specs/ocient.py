@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Dict, List, Optional, Pattern, Tuple, TYPE_CHECKING
+
 import re
 
 from sqlalchemy.engine.reflection import Inspector
@@ -25,8 +25,8 @@ from flask_babel import gettext as __
 import pyocient
 from pyocient import _STPoint, _STLinestring, _STPolygon, TypeCodes
 from superset import app
-from typing import Any, Callable, Dict, List, NamedTuple, Tuple
-
+from superset.models.core import Database
+from typing import Any, Callable, Dict, List, NamedTuple, Tuple, Optional, Pattern
 # Ensure pyocient inherits Superset's logging level
 superset_log_level = app.config['LOG_LEVEL']
 pyocient.logger.setLevel(superset_log_level)
