@@ -24,8 +24,8 @@ import {
   TableSize,
   SUPERSET_TABLE_COLUMN,
   ColumnsType,
-  ETableAction,
   OnChangeFunction,
+  ETableAction,
 } from './index';
 import { numericalSort, alphabeticalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
