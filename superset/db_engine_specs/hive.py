@@ -22,7 +22,7 @@ import re
 import tempfile
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Set, Tuple, TYPE_CHECKING
 from urllib import parse
 
 import numpy as np
@@ -576,3 +576,38 @@ class HiveEngineSpec(PrestoEngineSpec):
         """
 
         return True
+
+    @classmethod
+    def get_view_names(
+        cls,
+        database: "Database",
+        inspector: Inspector,
+        schema: Optional[str],
+    ) -> Set[str]:
+        """
+        Get all the view names within the specified schema.
+
+        Per the SQLAlchemy definition if the schema is omitted the database’s default
+        schema is used, however some dialects infer the request as schema agnostic.
+
+        Note that PyHive's Hive SQLAlchemy dialect does not adhere to the specification
+        where the `get_view_names` method returns both real tables and views. Futhermore
+        the dialect wrongfully infers the request as schema agnostic when the schema is
+        omitted.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The view names
+        """
+
+        sql = "SHOW VIEWS"
+
+        if schema:
+            sql += f" IN `{schema}`"
+
+        with database.get_raw_connection(schema=schema) as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            results = cursor.fetchall()
+            return {row[0] for row in results}

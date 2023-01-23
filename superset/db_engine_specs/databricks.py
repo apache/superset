@@ -218,12 +218,15 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
+        # access_token isn't currently parseable from the
+        # databricks error response, but adding it in here
+        # for reference if their error message changes
         context = {
-            "host": context["hostname"],
-            "access_token": context["password"],
-            "port": context["port"],
-            "username": context["username"],
-            "database": context["database"],
+            "host": context.get("hostname"),
+            "access_token": context.get("password"),
+            "port": context.get("port"),
+            "username": context.get("username"),
+            "database": context.get("database"),
         }
         for regex, (message, error_type, extra) in cls.custom_errors.items():
             match = regex.search(raw_message)

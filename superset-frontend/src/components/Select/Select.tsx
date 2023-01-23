@@ -178,8 +178,17 @@ const Select = forwardRef(
     }, [selectOptions, selectValue]);
 
     const selectAllEnabled = useMemo(
-      () => !isSingleMode && fullSelectOptions.length > 1 && !inputValue,
-      [fullSelectOptions, isSingleMode, inputValue],
+      () =>
+        !isSingleMode &&
+        selectOptions.length > 0 &&
+        fullSelectOptions.length > 1 &&
+        !inputValue,
+      [
+        isSingleMode,
+        selectOptions.length,
+        fullSelectOptions.length,
+        inputValue,
+      ],
     );
 
     const selectAllMode = useMemo(
@@ -329,7 +338,7 @@ const Select = forwardRef(
       if (
         !isSingleMode &&
         ensureIsArray(value).length === fullSelectOptions.length &&
-        fullSelectOptions.length > 0
+        selectOptions.length > 0
       ) {
         setSelectValue(
           labelInValue
@@ -340,18 +349,24 @@ const Select = forwardRef(
               ] as AntdLabeledValue[]),
         );
       }
-    }, [value, isSingleMode, labelInValue, fullSelectOptions.length]);
+    }, [
+      value,
+      isSingleMode,
+      labelInValue,
+      fullSelectOptions.length,
+      selectOptions.length,
+    ]);
 
     useEffect(() => {
       const checkSelectAll = ensureIsArray(selectValue).some(
         v => getValue(v) === SELECT_ALL_VALUE,
       );
       if (checkSelectAll && !selectAllMode) {
-        setSelectValue(
-          labelInValue
-            ? ([...fullSelectOptions, selectAllOption] as AntdLabeledValue[])
-            : ([...fullSelectOptions, SELECT_ALL_VALUE] as AntdLabeledValue[]),
+        const optionsToSelect = fullSelectOptions.map(option =>
+          labelInValue ? option : option.value,
         );
+        optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
+        setSelectValue(optionsToSelect);
       }
     }, [selectValue, selectAllMode, labelInValue, fullSelectOptions]);
 
