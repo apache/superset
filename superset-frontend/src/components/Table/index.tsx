@@ -73,7 +73,7 @@ export interface TableProps<RecordType> {
    */
   size: TableSize;
   /**
-   * Adjusts the padding around elements for different amounts of spacing between elements.
+   * Controls if table rows are selectable and if multiple select is supported.
    */
   selectionType?: SelectionType;
   /*
