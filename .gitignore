@@ -49,6 +49,7 @@ dump.rdb
 env
 venv*
 .venv
+.vimrc
 env_py3
 envpy3
 env36
