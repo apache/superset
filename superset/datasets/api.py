@@ -242,6 +242,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         DatasetDuplicateSchema,
     )
 
+    list_outer_default_load = True
+    show_outer_default_load = True
+
     @expose("/", methods=["POST"])
     @protect()
     @safe

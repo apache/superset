@@ -327,7 +327,10 @@ class ImportExportMixin:
         # Recursively create children
         if recursive:
             for child in cls.export_children:
-                child_class = cls.__mapper__.relationships[child].argument.class_
+                argument = cls.__mapper__.relationships[child].argument
+                child_class = (
+                    argument.class_ if hasattr(argument, "class_") else argument
+                )
                 added = []
                 for c_obj in new_children.get(child, []):
                     added.append(

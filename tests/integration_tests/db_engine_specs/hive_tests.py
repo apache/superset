@@ -403,3 +403,41 @@ def test__latest_partition_from_df():
         ["ds=01-01-19/hour=1", "ds=01-03-19/hour=1", "ds=01-02-19/hour=2"],
         ["01-03-19", "1"],
     )
+
+
+def test_get_view_names_with_schema():
+    database = mock.MagicMock()
+    mock_execute = mock.MagicMock()
+    database.get_raw_connection().__enter__().cursor().execute = mock_execute
+    database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+        return_value=[["a", "b,", "c"], ["d", "e"]]
+    )
+
+    schema = "schema"
+    result = HiveEngineSpec.get_view_names(database, mock.Mock(), schema)
+    mock_execute.assert_called_once_with(f"SHOW VIEWS IN `{schema}`")
+    assert result == {"a", "d"}
+
+
+def test_get_view_names_without_schema():
+    database = mock.MagicMock()
+    mock_execute = mock.MagicMock()
+    database.get_raw_connection().__enter__().cursor().execute = mock_execute
+    database.get_raw_connection().__enter__().cursor().fetchall = mock.MagicMock(
+        return_value=[["a", "b,", "c"], ["d", "e"]]
+    )
+    result = HiveEngineSpec.get_view_names(database, mock.Mock(), None)
+    mock_execute.assert_called_once_with("SHOW VIEWS")
+    assert result == {"a", "d"}
+
+
+@mock.patch("superset.db_engine_specs.base.BaseEngineSpec.get_table_names")
+@mock.patch("superset.db_engine_specs.hive.HiveEngineSpec.get_view_names")
+def test_get_table_names(
+    mock_get_view_names,
+    mock_get_table_names,
+):
+    mock_get_view_names.return_value = {"view1", "view2"}
+    mock_get_table_names.return_value = {"table1", "table2", "view1", "view2"}
+    tables = HiveEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
+    assert tables == {"table1", "table2"}
