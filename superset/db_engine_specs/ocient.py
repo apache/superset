@@ -53,7 +53,7 @@ INVALID_CONNECTION_STRING_REGEX = re.compile(
     "An invalid connection string attribute was specified \(failed to decrypt cipher text\)"
 )
 SYNTAX_ERROR_REGEX = re.compile(
-    r"There is a syntax error in your statement \(extraneous input '(?P<ext_input>.*?)' expecting {.*}"
+    r"There is a syntax error in your statement \((?P<qualifier>.*?) input '(?P<input>.*?)' expecting {.*}"
 )
 TABLE_DOES_NOT_EXIST_REGEX = re.compile(
     "The referenced table or view '(?P<table>.*?)' does not exist"
@@ -186,7 +186,7 @@ class OcientEngineSpec(BaseEngineSpec):
             {}
         ), 
         SYNTAX_ERROR_REGEX: (
-            __('Extraneous input: "%(ext_input)s".'),
+            __('Syntax Error: %(qualifier)s input "%(input)s".'),
             SupersetErrorType.SYNTAX_ERROR,
             {}
         ),
