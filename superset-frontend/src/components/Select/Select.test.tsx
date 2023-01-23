@@ -808,14 +808,21 @@ test('"Select All" is checked when unchecking a newly added option and all the o
 });
 
 test('does not render "Select All" when there are 0 or 1 options', async () => {
-  render(
+  const { rerender } = render(
     <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
   );
   await open();
   expect(screen.queryByText(selectAllOptionLabel(0))).not.toBeInTheDocument();
-  await type(`${NEW_OPTION}{enter}`);
+  rerender(
+    <Select
+      {...defaultProps}
+      options={OPTIONS.slice(0, 1)}
+      mode="multiple"
+      allowNewOptions
+    />,
+  );
   expect(screen.queryByText(selectAllOptionLabel(1))).not.toBeInTheDocument();
-  await type(`Kyle2{enter}`);
+  await type(`${NEW_OPTION}{enter}`);
   expect(screen.queryByText(selectAllOptionLabel(2))).toBeInTheDocument();
 });
 
