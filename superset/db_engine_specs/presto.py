@@ -22,7 +22,6 @@ import re
 import time
 from abc import ABCMeta
 from collections import defaultdict, deque
-from contextlib import closing
 from datetime import datetime
 from distutils.version import StrictVersion
 from textwrap import dedent
@@ -639,9 +638,10 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         Per the SQLAlchemy definition if the schema is omitted the database’s default
         schema is used, however some dialects infer the request as schema agnostic.
 
-        Note that PyHive's Hive and Presto SQLAlchemy dialects do not implement the
-        `get_view_names` method. To ensure consistency with the `get_table_names` method
-        the request is deemed schema agnostic when the schema is omitted.
+        Note that PyHive's Presto SQLAlchemy dialect does not adhere to the
+        specification as the `get_view_names` method is not defined. Futhermore the
+        dialect wrongfully infers the request as schema agnostic when the schema is
+        omitted.
 
         :param database: The database to inspect
         :param inspector: The SQLAlchemy inspector
@@ -667,13 +667,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             ).strip()
             params = {}
 
-        with cls.get_engine(database, schema=schema) as engine:
-            with closing(engine.raw_connection()) as conn:
-                cursor = conn.cursor()
-                cursor.execute(sql, params)
-                results = cursor.fetchall()
-
-        return {row[0] for row in results}
+        with database.get_raw_connection(schema=schema) as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            results = cursor.fetchall()
+            return {row[0] for row in results}
 
     @classmethod
     def _create_column_info(
@@ -1196,16 +1194,15 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         # pylint: disable=import-outside-toplevel
         from pyhive.exc import DatabaseError
 
-        with cls.get_engine(database, schema=schema) as engine:
-            with closing(engine.raw_connection()) as conn:
-                cursor = conn.cursor()
-                sql = f"SHOW CREATE VIEW {schema}.{table}"
-                try:
-                    cls.execute(cursor, sql)
+        with database.get_raw_connection(schema=schema) as conn:
+            cursor = conn.cursor()
+            sql = f"SHOW CREATE VIEW {schema}.{table}"
+            try:
+                cls.execute(cursor, sql)
+            except DatabaseError:  # not a VIEW
+                return None
+            rows = cls.fetch_data(cursor, 1)
 
-                except DatabaseError:  # not a VIEW
-                    return None
-                rows = cls.fetch_data(cursor, 1)
             return rows[0][0]
 
     @classmethod
@@ -1307,7 +1304,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     def has_implicit_cancel(cls) -> bool:
         """
         Return True if the live cursor handles the implicit cancelation of the query,
-        False otherise.
+        False otherwise.
 
         :return: Whether the live cursor implicitly cancels the query
         :see: handle_cursor

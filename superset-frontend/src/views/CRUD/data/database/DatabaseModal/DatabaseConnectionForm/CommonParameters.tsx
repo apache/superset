@@ -66,7 +66,7 @@ export const portField = ({
       errorMessage={validationErrors?.port}
       placeholder={t('e.g. 5432')}
       className="form-group-w-50"
-      label="Port"
+      label={t('Port')}
       onChange={changeMethods.onParametersChange}
     />
   </>

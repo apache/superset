@@ -454,6 +454,7 @@ export const hydrateDashboard =
           editMode: canEdit && editMode,
           isPublished: dashboard.published,
           hasUnsavedChanges: false,
+          dashboardIsSaving: false,
           maxUndoHistoryExceeded: false,
           lastModifiedTime: dashboard.changed_on,
           isRefreshing: false,

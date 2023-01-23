@@ -17,7 +17,7 @@
  * under the License.
  */
 import shortid from 'shortid';
-import { t, SupersetClient } from '@superset-ui/core';
+import { SupersetClient, t } from '@superset-ui/core';
 import invert from 'lodash/invert';
 import mapKeys from 'lodash/mapKeys';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
@@ -128,10 +128,22 @@ export function getUpToDateQuery(rootState, queryEditor, key) {
     sqlLab: { unsavedQueryEditor },
   } = rootState;
   const id = key ?? queryEditor.id;
-  return {
+  const updatedQueryEditor = {
     ...queryEditor,
     ...(id === unsavedQueryEditor.id && unsavedQueryEditor),
   };
+
+  if (
+    'schema' in updatedQueryEditor &&
+    !updatedQueryEditor.schemaOptions?.find(
+      ({ value }) => value === updatedQueryEditor.schema,
+    )
+  ) {
+    // remove the deprecated schema option
+    delete updatedQueryEditor.schema;
+  }
+
+  return updatedQueryEditor;
 }
 
 export function resetState() {
@@ -229,11 +241,13 @@ export function startQuery(query) {
 
 export function querySuccess(query, results) {
   return function (dispatch) {
+    const sqlEditorId = results?.query?.sqlEditorId;
     const sync =
+      sqlEditorId &&
       !query.isDataPreview &&
       isFeatureEnabled(FeatureFlag.SQLLAB_BACKEND_PERSISTENCE)
         ? SupersetClient.put({
-            endpoint: encodeURI(`/tabstateview/${results.query.sqlEditorId}`),
+            endpoint: encodeURI(`/tabstateview/${sqlEditorId}`),
             postPayload: { latest_query_id: query.id },
           })
         : Promise.resolve();
@@ -448,9 +462,9 @@ export function validateQuery(queryEditor, sql) {
 export function postStopQuery(query) {
   return function (dispatch) {
     return SupersetClient.post({
-      endpoint: '/superset/stop_query/',
-      postPayload: { client_id: query.id },
-      stringify: false,
+      endpoint: '/api/v1/query/stop',
+      body: JSON.stringify({ client_id: query.id }),
+      headers: { 'Content-Type': 'application/json' },
     })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))

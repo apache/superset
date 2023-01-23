@@ -144,8 +144,8 @@ def _add_table_metrics(datasource: SqlaTable) -> None:
         metrics.append(SqlMetric(metric_name="sum__num", expression=f"SUM({col})"))
 
     for col in columns:
-        if col.column_name == "ds":
-            col.is_dttm = True
+        if col.column_name == "ds":  # type: ignore
+            col.is_dttm = True  # type: ignore
             break
 
     datasource.columns = columns
@@ -168,12 +168,10 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "time_range": "No filter",
         "granularity_sqla": "ds",
         "groupby": [],
         "row_limit": app.config["ROW_LIMIT"],
-        "since": "100 years ago",
-        "until": "now",
+        "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
     }
@@ -419,8 +417,7 @@ def create_slices(tbl: SqlaTable) -> Tuple[List[Slice], List[Slice]]:
             params=get_slice_json(
                 defaults,
                 groupby=["ds"],
-                since="40 years ago",
-                until="now",
+                time_range="1983 : 2023",
                 viz_type="table",
                 metrics=metrics,
             ),

@@ -171,15 +171,15 @@ export default class AlteredSliceTag extends React.Component {
     const columns = [
       {
         accessor: 'control',
-        Header: 'Control',
+        Header: t('Control'),
       },
       {
         accessor: 'before',
-        Header: 'Before',
+        Header: t('Before'),
       },
       {
         accessor: 'after',
-        Header: 'After',
+        Header: t('After'),
       },
     ];
     // set the wrap text in the specific columns.
