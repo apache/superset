@@ -817,6 +817,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           database_name,
           configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine: undefined,
+          engine_information: {
+            supports_file_upload: true,
+          },
         },
       });
     } else {
