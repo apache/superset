@@ -91,7 +91,7 @@ type DashboardBuilderProps = {};
 const StyledDiv = styled.div`
   ${({ theme }) => css`
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);;
+    grid-template-columns: auto minmax(0, 1fr);
     grid-template-rows: auto 1fr;
     flex: 1;
     /* Special cases */
