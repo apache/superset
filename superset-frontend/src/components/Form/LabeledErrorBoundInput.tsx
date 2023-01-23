@@ -138,7 +138,11 @@ const LabeledErrorBoundInput = ({
               </Tooltip>
             ) : (
               <Tooltip title={t('Show password.')}>
-                <Icons.EyeOutlined iconSize="m" css={iconReset} />
+                <Icons.EyeOutlined
+                  iconSize="m"
+                  css={iconReset}
+                  data-test="icon-eye"
+                />
               </Tooltip>
             )
           }
