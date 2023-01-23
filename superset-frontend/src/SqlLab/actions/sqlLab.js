@@ -320,10 +320,10 @@ export function fetchQueryResults(query, displayLimit) {
 
     const queryParams = rison.encode({
       key: query.resultsKey,
-      rows: displayLimit,
+      rows: displayLimit || null,
     });
 
-    SupersetClient.get({
+    return SupersetClient.get({
       endpoint: `/api/v1/sqllab/results/?q=${queryParams}`,
       parseMethod: 'json-bigint',
     })
