@@ -162,6 +162,7 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
     def get_extra_params(database: "Database") -> Dict[str, Any]:
         """
         Add a user agent to be used in the requests.
+        Trim whitespace from connect_args to avoid databricks driver errors
         """
         extra: Dict[str, Any] = BaseEngineSpec.get_extra_params(database)
         engine_params: Dict[str, Any] = extra.setdefault("engine_params", {})
@@ -169,6 +170,10 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
 
         connect_args.setdefault("http_headers", [("User-Agent", USER_AGENT)])
         connect_args.setdefault("_user_agent_entry", USER_AGENT)
+
+        # trim whitespace from http_path to avoid databricks errors on connecting
+        if http_path := connect_args.get("http_path"):
+            connect_args["http_path"] = http_path.strip()
 
         return extra
 
@@ -213,12 +218,15 @@ class DatabricksNativeEngineSpec(DatabricksODBCEngineSpec, BasicParametersMixin)
         raw_message = cls._extract_error_message(ex)
 
         context = context or {}
+        # access_token isn't currently parseable from the
+        # databricks error response, but adding it in here
+        # for reference if their error message changes
         context = {
-            "host": context["hostname"],
-            "access_token": context["password"],
-            "port": context["port"],
-            "username": context["username"],
-            "database": context["database"],
+            "host": context.get("hostname"),
+            "access_token": context.get("password"),
+            "port": context.get("port"),
+            "username": context.get("username"),
+            "database": context.get("database"),
         }
         for regex, (message, error_type, extra) in cls.custom_errors.items():
             match = regex.search(raw_message)

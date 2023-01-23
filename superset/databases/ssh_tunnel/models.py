@@ -23,6 +23,7 @@ from flask_appbuilder import Model
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy_utils import EncryptedType
 
+from superset.constants import PASSWORD_MASK
 from superset.models.core import Database
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -69,8 +70,16 @@ class SSHTunnel(Model, AuditMixinNullable, ExtraJSONMixin, ImportExportMixin):
 
     @property
     def data(self) -> Dict[str, Any]:
-        return {
+        output = {
+            "id": self.id,
             "server_address": self.server_address,
             "server_port": self.server_port,
             "username": self.username,
         }
+        if self.password is not None:
+            output["password"] = PASSWORD_MASK
+        if self.private_key is not None:
+            output["private_key"] = PASSWORD_MASK
+        if self.private_key_password is not None:
+            output["private_key_password"] = PASSWORD_MASK
+        return output

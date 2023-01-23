@@ -192,10 +192,14 @@ Error: %(text)s
             SlackRequestError,
             SlackClientConfigurationError,
         ) as ex:
-            raise NotificationParamException from ex
+            raise NotificationParamException(str(ex)) from ex
         except SlackObjectFormationError as ex:
-            raise NotificationMalformedException from ex
+            raise NotificationMalformedException(str(ex)) from ex
         except SlackTokenRotationError as ex:
-            raise NotificationAuthorizationException from ex
-        except (SlackClientNotConnectedError, SlackClientError, SlackApiError) as ex:
-            raise NotificationUnprocessableException from ex
+            raise NotificationAuthorizationException(str(ex)) from ex
+        except (SlackClientNotConnectedError, SlackApiError) as ex:
+            raise NotificationUnprocessableException(str(ex)) from ex
+        except SlackClientError as ex:
+            # this is the base class for all slack client errors
+            # keep it last so that it doesn't interfere with @backoff
+            raise NotificationUnprocessableException(str(ex)) from ex

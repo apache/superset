@@ -171,6 +171,10 @@ const StyledSectionContainer = styled.div`
   display: flex;
   flex-direction: column;
 
+  .control-label {
+    margin-top: ${({ theme }) => theme.gridUnit}px;
+  }
+
   .header-section {
     display: flex;
     flex: 0 0 auto;
@@ -339,6 +343,7 @@ const StyledRadioGroup = styled(Radio.Group)`
 
 const StyledCheckbox = styled(AntdCheckbox)`
   margin-left: ${({ theme }) => theme.gridUnit * 5.5}px;
+  margin-top: ${({ theme }) => theme.gridUnit}px;
 `;
 
 // Notification Method components
@@ -353,6 +358,12 @@ const StyledNotificationAddButton = styled.div`
   &.disabled {
     color: ${({ theme }) => theme.colors.grayscale.light1};
     cursor: default;
+  }
+`;
+
+const StyledNotificationMethodWrapper = styled.div`
+  .inline-container .input-container {
+    margin-left: 0;
   }
 `;
 
@@ -1445,18 +1456,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             {notificationSettings.map((notificationSetting, i) => (
-              <NotificationMethod
-                setting={notificationSetting}
-                index={i}
-                key={`NotificationMethod-${i}`}
-                onUpdate={updateNotificationSetting}
-                onRemove={removeNotificationSetting}
-                css={css`
-                  .input-container {
-                    margin-left: 0;
-                  }
-                `}
-              />
+              <StyledNotificationMethodWrapper>
+                <NotificationMethod
+                  setting={notificationSetting}
+                  index={i}
+                  key={`NotificationMethod-${i}`}
+                  onUpdate={updateNotificationSetting}
+                  onRemove={removeNotificationSetting}
+                />
+              </StyledNotificationMethodWrapper>
             ))}
             <NotificationMethodAdd
               data-test="notification-add"

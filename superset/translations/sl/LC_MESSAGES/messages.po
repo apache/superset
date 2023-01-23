@@ -2675,7 +2675,6 @@ msgid "Filter List"
 msgstr "Seznam filtrov"
 
 #: superset-frontend/plugins/plugin-chart-table/src/TableChart.tsx:122
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:260
 #: superset-frontend/src/explore/components/DataTableControl/index.tsx:107
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:453
 #: superset-frontend/src/views/CRUD/annotationlayers/AnnotationLayersList.tsx:304
@@ -10159,38 +10158,6 @@ msgstr "SQL"
 #: superset-frontend/src/SqlLab/components/QueryHistory/index.tsx:74
 msgid "Run a query to display query history"
 msgstr "Za prikaz zgodovine poizvedb zaženite poizvedbo"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:136
-msgid "An error occurred when refreshing queries"
-msgstr "Pri osveževanju poizvedb je prišlo do napake"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:184
-msgid "It seems you don't have access to any database"
-msgstr "Zdi se, da nimate dostopa do nobene podatkovne baz"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:199
-msgid "Filter by user"
-msgstr "Filtriraj po uporabniku"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:208
-msgid "Filter by database"
-msgstr "Filtriraj po podatkovni bazi"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:217
-msgid "Query search string"
-msgstr "Iskalni niz za poizvedbo"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:223
-msgid "[From]-"
-msgstr "[Od]-"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:235
-msgid "[To]-"
-msgstr "[Do]-"
-
-#: superset-frontend/src/SqlLab/components/QuerySearch/index.tsx:244
-msgid "Filter by status"
-msgstr "Filtriraj po statusu"
 
 #: superset-frontend/src/SqlLab/components/QueryTable/index.tsx:121
 #: superset-frontend/src/views/CRUD/alert/AlertList.tsx:53

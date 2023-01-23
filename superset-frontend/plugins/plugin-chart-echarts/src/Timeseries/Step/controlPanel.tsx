@@ -70,9 +70,9 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: EchartsTimeseriesSeriesType.Start,
               choices: [
-                [EchartsTimeseriesSeriesType.Start, 'Start'],
-                [EchartsTimeseriesSeriesType.Middle, 'Middle'],
-                [EchartsTimeseriesSeriesType.End, 'End'],
+                [EchartsTimeseriesSeriesType.Start, t('Start')],
+                [EchartsTimeseriesSeriesType.Middle, t('Middle')],
+                [EchartsTimeseriesSeriesType.End, t('End')],
               ],
               description: t(
                 'Defines whether the step should appear at the beginning, middle or end between two data points',

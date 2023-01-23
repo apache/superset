@@ -34,6 +34,7 @@ import {
   isTemporalColumn,
   withDndFallback,
 } from '@superset-ui/chart-controls';
+import Modal from 'src/components/Modal';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -58,6 +59,8 @@ import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
 import DndAdhocFilterOption from './DndAdhocFilterOption';
 import { useDefaultTimeFilter } from '../DateFilterControl/utils';
 
+const { confirm } = Modal;
+
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
   DndItemType.Column,
@@ -75,10 +78,23 @@ export interface DndFilterSelectProps
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
   datasource: Datasource;
+  confirmDeletion?: {
+    triggerCondition: (
+      valueToBeDeleted: OptionValueType,
+      values: OptionValueType[],
+    ) => boolean;
+    confirmationTitle: string;
+    confirmationText: string;
+  };
 }
 
 const DndFilterSelect = (props: DndFilterSelectProps) => {
-  const { datasource, onChange = () => {}, name: controlName } = props;
+  const {
+    datasource,
+    onChange = () => {},
+    name: controlName,
+    confirmDeletion,
+  } = props;
 
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
@@ -189,7 +205,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     );
   }, [props.value]);
 
-  const onClickClose = useCallback(
+  const removeValue = useCallback(
     (index: number) => {
       const valuesCopy = [...values];
       valuesCopy.splice(index, 1);
@@ -197,6 +213,27 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       onChange(valuesCopy);
     },
     [onChange, values],
+  );
+
+  const onClickClose = useCallback(
+    (index: number) => {
+      if (confirmDeletion) {
+        const { confirmationText, confirmationTitle, triggerCondition } =
+          confirmDeletion;
+        if (triggerCondition(values[index], values)) {
+          confirm({
+            title: confirmationTitle,
+            content: confirmationText,
+            onOk() {
+              removeValue(index);
+            },
+          });
+          return;
+        }
+      }
+      removeValue(index);
+    },
+    [confirmDeletion, removeValue, values],
   );
 
   const onShiftOptions = useCallback(
@@ -404,6 +441,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         visible={newFilterPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
+        requireSave={!!droppedItem}
       />
     </>
   );
