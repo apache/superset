@@ -90,8 +90,6 @@ class TestSqlLabApi(SupersetTestCase):
             json=data,
         )
         resp_data = json.loads(rv.data.decode("utf-8"))
-        print("R:\n")
-        print(resp_data)
         self.assertEqual(resp_data.get("status"), "success")
         self.assertEqual(rv.status_code, 200)
 
