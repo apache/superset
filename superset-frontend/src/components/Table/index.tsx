@@ -18,7 +18,6 @@
  */
 import React, { useState, useEffect, useRef, ReactElement } from 'react';
 import AntTable, {
-  ColumnType,
   ColumnsType,
   TableProps as AntTableProps,
 } from 'antd/lib/table';
@@ -38,12 +37,6 @@ export enum SelectionType {
 }
 
 export type SortOrder = 'descend' | 'ascend' | null;
-export interface SorterResult<RecordType> {
-  column?: ColumnType<RecordType>;
-  order?: SortOrder;
-  field?: React.Key | React.Key[];
-  columnKey?: React.Key;
-}
 
 export enum ETableAction {
   PAGINATE = 'paginate',
@@ -51,11 +44,20 @@ export enum ETableAction {
   FILTER = 'filter',
 }
 
+export { ColumnsType };
+export type OnChangeFunction<RecordType> =
+  AntTableProps<RecordType>['onChange'];
+
+export enum TableSize {
+  SMALL = 'small',
+  MIDDLE = 'middle',
+}
+
 export interface TableProps<RecordType> {
   /**
    * Data that will populate the each row and map to the column key.
    */
-  data: object[];
+  data: RecordType[];
   /**
    * Table column definitions.
    */
@@ -67,7 +69,7 @@ export interface TableProps<RecordType> {
   /**
    * Callback function invoked when a row is selected by user.
    */
-  handleRowSelection?: Function;
+  handleRowSelection?: (newSelectedRowKeys: React.Key[]) => void;
   /**
    * Controls the size of the table.
    */
@@ -134,21 +136,12 @@ export interface TableProps<RecordType> {
   /**
    * Invoked when the tables sorting, paging, or filtering is changed.
    */
-  onChange?: AntTableProps<RecordType>['onChange'];
+  onChange?: OnChangeFunction<RecordType>;
   /**
    * Returns props that should be applied to each row component.
    */
   onRow?: AntTableProps<RecordType>['onRow'];
 }
-
-export enum TableSize {
-  SMALL = 'small',
-  MIDDLE = 'middle',
-}
-
-export { ColumnsType };
-export type OnChangeFunction<RecordType> =
-  AntTableProps<RecordType>['onChange'];
 
 const defaultRowSelection: React.Key[] = [];
 
