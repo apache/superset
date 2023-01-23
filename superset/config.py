@@ -53,6 +53,7 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
+from flask_appbuilder.const import AUTH_OID
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.manager import AUTH_DB
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
@@ -63,6 +64,7 @@ from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
+from superset.keycloak_auth import OIDCSecurityManager
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
@@ -185,14 +187,14 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-CUSTOM_SECURITY_MANAGER = None
+# CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
 # Your App secret key. Make sure you override it on superset_config.py.
 # Use a strong complex alphanumeric string and use a tool to help you generate
 # a sufficiently random sequence, ex: openssl rand -base64 42"
-SECRET_KEY = CHANGE_ME_SECRET_KEY
+# SECRET_KEY = CHANGE_ME_SECRET_KEY
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = "sqlite:///" + os.path.join(DATA_DIR, "superset.db")
@@ -319,7 +321,21 @@ DRUID_ANALYSIS_TYPES = ["cardinality"]
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+#AUTH_TYPE = AUTH_DB
+
+# Keycloak configuration
+
+AUTH_TYPE = AUTH_OID
+
+SECRET_KEY = CHANGE_ME_SECRET_KEY  # TODO use env vars in production
+OIDC_CLIENT_SECRETS = os.path.abspath(os.getcwd()) + '/superset/client-secret.json'  # TODO use env vars in production pointing to configMaps
+OIDC_ID_TOKEN_COOKIE_SECURE = False  # TODO True in production
+OIDC_REQUIRE_VERIFIED_EMAIL = False  # TODO True in production
+OIDC_OPENID_REALM = 'neos'  # TODO use env vars in production
+OIDC_INTROSPECTION_AUTH_METHOD = 'client_secret_post'
+CUSTOM_SECURITY_MANAGER = OIDCSecurityManager
+AUTH_USER_REGISTRATION = True  # TODO check this
+AUTH_USER_REGISTRATION_ROLE = 'Gamma'
 
 # Uncomment to setup Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
