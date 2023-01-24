@@ -17,9 +17,9 @@
  * under the License.
  */
 import { Dispatch } from 'redux';
-import { makeApi, CategoricalColorNamespace, t } from '@superset-ui/core';
+import { makeApi, CategoricalColorNamespace } from '@superset-ui/core';
 import { isString } from 'lodash';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
+import { getErrorText } from 'src/utils/getClientErrorObject';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   DashboardInfo,
@@ -169,18 +169,7 @@ export function saveFilterBarOrientation(orientation: FilterBarOrientation) {
         dispatch(onSave(lastModifiedTime));
       }
     } catch (errorObject) {
-      const { error, message } = await getClientErrorObject(errorObject);
-      let errorText = t('Sorry, an unknown error occurred.');
-
-      if (error) {
-        errorText = t(
-          'Sorry, there was an error saving this dashboard: %s',
-          error,
-        );
-      }
-      if (typeof message === 'string' && message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
+      const errorText = await getErrorText(errorObject, 'dashboard');
       dispatch(addDangerToast(errorText));
       throw errorObject;
     }
@@ -214,18 +203,7 @@ export function saveCrossFiltersSetting(crossFiltersEnabled: boolean) {
         dispatch(onSave(lastModifiedTime));
       }
     } catch (errorObject) {
-      const { error, message } = await getClientErrorObject(errorObject);
-      let errorText = t('Sorry, an unknown error occurred.');
-
-      if (error) {
-        errorText = t(
-          'Sorry, there was an error saving this dashboard: %s',
-          error,
-        );
-      }
-      if (typeof message === 'string' && message === 'Forbidden') {
-        errorText = t('You do not have permission to edit this dashboard');
-      }
+      const errorText = await getErrorText(errorObject, 'dashboard');
       dispatch(addDangerToast(errorText));
       throw errorObject;
     }
