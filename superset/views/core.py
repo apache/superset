@@ -1450,7 +1450,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # whether to get distinct subjects
         distinct = request.args.get("distinct") != "false"
 
-        payload = LogDAO.get_recent_activity(user_id, limit, actions, distinct)
+        payload = LogDAO.get_recent_activity(user_id, actions, distinct, 0, limit)
 
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 

@@ -56,6 +56,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "referrer",
     ]
     show_columns = list_columns
+    page_size = 20
     apispec_parameter_schemas = {
         "get_recent_activity_schema": get_recent_activity_schema,
     }
@@ -127,11 +128,12 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
             return error_obj
+        
+        args = kwargs["rison"]
+        page, page_size = self._sanitize_page_args(*self._handle_page_args(args))
+        actions = args.get("actions", ["explore", "dashboard"])
+        distinct = args.get("distinct", True)
 
-        limit = kwargs["rison"].get("limit", 100)
-        actions = kwargs["rison"].get("actions", ["explore", "dashboard"])
-        distinct = kwargs["rison"].get("distinct", True)
-
-        payload = LogDAO.get_recent_activity(user_id, limit, actions, distinct)
+        payload = LogDAO.get_recent_activity(user_id, actions, distinct, page, page_size)
 
         return self.response(200, result=payload)

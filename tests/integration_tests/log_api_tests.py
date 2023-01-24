@@ -208,35 +208,6 @@ class TestLogApi(SupersetTestCase):
             },
         )
 
-    def test_get_recent_activity_limit(self):
-        """
-        Log API: Test recent activity limit argument
-        """
-        admin_user = self.get_user("admin")
-        self.login(username="admin")
-        dash = create_dashboard("dash_slug", "dash_title", "{}", [])
-        dash2 = create_dashboard("dash2_slug", "dash2_title", "{}", [])
-        dash3 = create_dashboard("dash3_slug", "dash3_title", "{}", [])
-        log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
-        log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash2.id)
-        log3 = self.insert_log("dashboard", admin_user, dashboard_id=dash3.id)
-
-        arguments = {"limit": 2}
-        uri = f"api/v1/log/recent_activity/{admin_user.id}/?q={prison.dumps(arguments)}"
-        rv = self.client.get(uri)
-
-        db.session.delete(log)
-        db.session.delete(log2)
-        db.session.delete(log3)
-        db.session.delete(dash)
-        db.session.delete(dash2)
-        db.session.delete(dash3)
-        db.session.commit()
-
-        self.assertEqual(rv.status_code, 200)
-        response = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(len(response["result"]), 2)
-
     def test_get_recent_activity_actions_filter(self):
         """
         Log API: Test recent activity actions argument
@@ -283,3 +254,76 @@ class TestLogApi(SupersetTestCase):
         self.assertEqual(rv.status_code, 200)
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(len(response["result"]), 2)
+
+    def test_get_recent_activity_pagination(self):
+        """
+        Log API: Test recent activity pagination arguments
+        """
+        admin_user = self.get_user("admin")
+        self.login(username="admin")
+        dash = create_dashboard("dash_slug", "dash_title", "{}", [])
+        dash2 = create_dashboard("dash2_slug", "dash2_title", "{}", [])
+        dash3 = create_dashboard("dash3_slug", "dash3_title", "{}", [])
+        log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
+        log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash2.id)
+        log3 = self.insert_log("dashboard", admin_user, dashboard_id=dash3.id)
+
+        arguments = {"page": 0, "page_size": 2}
+        uri = f"api/v1/log/recent_activity/{admin_user.id}/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response,
+            {
+                "result": [
+                    {
+                        "action": "dashboard",
+                        "item_type": "dashboard",
+                        "item_url": "/superset/dashboard/dash3_slug/",
+                        "item_title": "dash3_title",
+                        "time": ANY,
+                        "time_delta_humanized": ANY,
+                    },
+                    {
+                        "action": "dashboard",
+                        "item_type": "dashboard",
+                        "item_url": "/superset/dashboard/dash2_slug/",
+                        "item_title": "dash2_title",
+                        "time": ANY,
+                        "time_delta_humanized": ANY,
+                    }
+                ]
+            },
+        )
+
+        arguments = {"page": 1, "page_size": 2}
+        uri = f"api/v1/log/recent_activity/{admin_user.id}/?q={prison.dumps(arguments)}"
+        rv = self.client.get(uri)
+
+        db.session.delete(log)
+        db.session.delete(log2)
+        db.session.delete(log3)
+        db.session.delete(dash)
+        db.session.delete(dash2)
+        db.session.delete(dash3)
+        db.session.commit()
+
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        self.assertEqual(
+            response,
+            {
+                "result": [
+                    {
+                        "action": "dashboard",
+                        "item_type": "dashboard",
+                        "item_url": "/superset/dashboard/dash_slug/",
+                        "item_title": "dash_title",
+                        "time": ANY,
+                        "time_delta_humanized": ANY,
+                    }
+                ]
+            },
+        )

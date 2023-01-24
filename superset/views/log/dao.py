@@ -34,7 +34,7 @@ class LogDAO(BaseDAO):
 
     @staticmethod
     def get_recent_activity(
-        user_id: int, limit: int, actions: List[str], distinct: bool
+        user_id: int, actions: List[str], distinct: bool, page: int, page_size: int
     ) -> List[Dict[str, Any]]:
         has_subject_title = or_(
             and_(
@@ -79,7 +79,8 @@ class LogDAO(BaseDAO):
                 )
                 .filter(has_subject_title)
                 .order_by(subqry.c.dttm.desc())
-                .limit(limit)
+                .limit(page_size)
+                .offset(page * page_size)
             )
         else:
             qry = (
@@ -97,7 +98,8 @@ class LogDAO(BaseDAO):
                 .filter(has_subject_title)
                 .filter(Log.action.in_(actions), Log.user_id == user_id)
                 .order_by(Log.dttm.desc())
-                .limit(limit)
+                .limit(page_size)
+                .offset(page * page_size)
             )
 
         payload = []
