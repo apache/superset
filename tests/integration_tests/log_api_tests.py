@@ -21,7 +21,6 @@ from typing import Optional
 from unittest.mock import ANY
 
 import prison
-from flask_appbuilder.security.sqla.models import User
 from unittest.mock import patch
 
 from superset import db
@@ -293,7 +292,7 @@ class TestLogApi(SupersetTestCase):
                         "item_title": "dash2_title",
                         "time": ANY,
                         "time_delta_humanized": ANY,
-                    }
+                    },
                 ]
             },
         )
