@@ -21,6 +21,7 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm.session import Session
 
+from superset.charts.commands.delete import DeleteChartCommand
 from superset.utils.core import DatasourceType
 
 SAMPLE_USERS = [1, 2, 3, 4]
@@ -63,7 +64,6 @@ def session_with_data_and_owners(session: Session) -> Iterator[Session]:
             last_name=str(user),
             email=str(user),
         )
-        session.add(test_user)
         obj_owners.append(test_user)
 
     slice_obj = Slice(
@@ -77,7 +77,6 @@ def session_with_data_and_owners(session: Session) -> Iterator[Session]:
 
     session.add(slice_obj)
     session.commit()
-    session.flush()
     yield session
     session.rollback()
 
@@ -112,19 +111,19 @@ def test_delete_slice_check_slice_user(session_with_data_and_owners: Session) ->
     result = ChartDAO.find_by_id(
         1, session=session_with_data_and_owners, skip_base_filter=True
     )
-    assert result
+    assert result is not None and result.id == 1
     slice_user_model = session_with_data_and_owners.execute(
-        slice_user.select().where(slice_user.c.user_id == SAMPLE_USERS[0])
-    )
-    assert slice_user_model is not None
-    ChartDAO.delete(result)
-    session_with_data_and_owners.flush()
+        slice_user.select().where(slice_user.c.slice_id == 1)
+    ).all()
+    assert len(slice_user_model) == 4
+    session_with_data_and_owners.delete(result)
     # requery the session to check to make sure everything is deleted properly
+    session_with_data_and_owners.commit()
     result_after_delete = ChartDAO.find_by_id(
         1, session=session_with_data_and_owners, skip_base_filter=True
     )
     slice_user_model_delete = session_with_data_and_owners.execute(
         slice_user.select().where(slice_user.c.slice_id == 1)
-    )
+    ).all()
     assert result_after_delete is None
-    assert slice_user_model_delete is None
+    assert slice_user_model_delete == []

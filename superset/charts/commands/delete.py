@@ -48,9 +48,6 @@ class DeleteChartCommand(BaseCommand):
         self.validate()
         try:
             Dashboard.clear_cache_for_slice(slice_id=self._model_id)
-            db.session.execute(
-                slice_user.delete().where(slice_user.c.slice_id == self._model_id)
-            )
             chart = ChartDAO.delete(self._model)
         except DAODeleteFailedError as ex:
             logger.exception(ex.exception)

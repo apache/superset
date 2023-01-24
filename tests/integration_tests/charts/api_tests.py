@@ -229,7 +229,7 @@ class TestChartApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixin):
         self.assertEqual(rv.status_code, 200)
         model = db.session.query(Slice).get(chart_id)
         slice_user_model = db.session.execute(
-            slice_user.select().where(slice_user.user_id == admin_id)
+            slice_user.select().where(slice_user.c.slice_id == chart_id)
         )
         self.assertEqual(model, None)
         self.assertEqual(slice_user_model, None)
