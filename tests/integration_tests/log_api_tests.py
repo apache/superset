@@ -21,6 +21,7 @@ import time
 from typing import Optional
 from unittest.mock import ANY
 
+from flask_appbuilder.security.sqla.models import User
 import prison
 from unittest.mock import patch
 
