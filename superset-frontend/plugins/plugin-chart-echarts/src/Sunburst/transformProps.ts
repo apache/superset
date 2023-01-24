@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import {
   CategoricalColorNamespace,
   getColumnLabel,
@@ -26,6 +25,7 @@ import {
   getTimeFormatter,
   NumberFormats,
   NumberFormatter,
+  SupersetTheme,
   t,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
@@ -96,6 +96,7 @@ export function formatTooltip({
   totalValue,
   metricLabel,
   secondaryMetricLabel,
+  theme,
 }: {
   params: CallbackDataParams & {
     treePathInfo: {
@@ -109,6 +110,7 @@ export function formatTooltip({
   totalValue: number;
   metricLabel: string;
   secondaryMetricLabel?: string;
+  theme: SupersetTheme;
 }): string {
   const { data, treePathInfo = [] } = params;
   const node = data as TreeNode;
@@ -122,33 +124,41 @@ export function formatTooltip({
   const absolutePercentage = percentFormatter(node.value / totalValue);
   const parentNode =
     treePathInfo.length > 2 ? treePathInfo[treePathInfo.length - 2] : undefined;
+
   const result = [
-    `<div style="font-size: 14px;font-weight: 600">${node.name}</div>`,
-    `<div style="font-size: 14px;">${absolutePercentage} of total</div>`,
+    `<div style="
+      font-size: ${theme.typography.sizes.m}px;
+      color: ${theme.colors.grayscale.base}"
+     >`,
+    `<div style="font-weight: ${theme.typography.weights.bold}">
+      ${node.name}
+     </div>`,
+    `<div">
+      ${absolutePercentage} of total
+     </div>`,
   ];
   if (parentNode) {
     const conditionalPercentage = percentFormatter(
       node.value / parentNode.value,
     );
     result.push(`
-    <div style="font-size: 14px;">
+    <div>
       ${conditionalPercentage} of ${parentNode.name}
     </div>`);
   }
   result.push(
-    `<div style="color: '#666666'">
+    `<div>
     ${metricLabel}: ${formattedValue}${
       colorByCategory
         ? ''
         : `, ${secondaryMetricLabel}: ${formattedSecondaryValue}`
     }
-    </div>`,
+     </div>`,
     colorByCategory
       ? ''
-      : `<div style="color: '#666666'">
-       ${metricLabel}/${secondaryMetricLabel}: ${compareValuePercentage}
-      </div>`,
+      : `<div>${metricLabel}/${secondaryMetricLabel}: ${compareValuePercentage}</div>`,
   );
+  result.push('</div>');
   return result.join('\n');
 }
 
@@ -307,6 +317,7 @@ export default function transformProps(
           totalValue,
           metricLabel,
           secondaryMetricLabel,
+          theme,
         }),
     },
     series: [
