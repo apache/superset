@@ -346,6 +346,9 @@ class BaseReportState:
             }
         return log_data
 
+    def get_link(self) -> str:
+        return f"https://careem-insights.careem-internal.com/alert/list/?filters=(name:{self._report_schedule.name})&pageIndex=0&sortColumn=name&sortOrder=desc"
+
     def _get_notification_content(self) -> NotificationContent:
         """
         Gets a notification content, this is composed by a title and a screenshot
@@ -357,12 +360,14 @@ class BaseReportState:
         error_text = None
         screenshot_data = []
         header_data = self._get_log_data()
+        link = self.get_link()
         if self._report_schedule.msg_content:
             name = f"{self._report_schedule.type}: " f"{self._report_schedule.name}"
             return NotificationContent(
                 name=name,
                 description=self._report_schedule.description,
                 msg_content=self._report_schedule.msg_content,
+                link=link,
                 header_data=header_data,
             )
         url = self._get_url(user_friendly=True)
@@ -411,6 +416,7 @@ class BaseReportState:
         return NotificationContent(
             name=name,
             url=url,
+            link=link,
             screenshots=screenshot_data,
             description=self._report_schedule.description,
             csv=csv_data,
