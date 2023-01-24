@@ -126,7 +126,7 @@ Here's a list of repositories that contain Superset-related packages:
 
 ## Types of Contributions
 
-### Report Bug
+### Report a Bug
 
 The best way to report a bug is to file an issue on GitHub. Please include:
 
@@ -138,15 +138,17 @@ The best way to report a bug is to file an issue on GitHub. Please include:
 When posting Python stack traces, please quote them using
 [Markdown blocks](https://help.github.com/articles/creating-and-highlighting-code-blocks/).
 
+_Please note that feature requests opened as Github Issues will be moved to Discussions._
+
 ### Submit Ideas or Feature Requests
 
-The best way is to file an issue on GitHub:
+The best way is to start an ["Ideas" Discussion thread](https://github.com/apache/superset/discussions/categories/ideas) on GitHub:
 
 - Explain in detail how it would work.
 - Keep the scope as narrow as possible, to make it easier to implement.
-- Remember that this is a volunteer-driven project, and that contributions are welcome :)
+- Remember that this is a volunteer-driven project, and that your contributions are as welcome as anyone's :)
 
-For large features or major changes to codebase, please create **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
+To propose large features or major changes to codebase, and help usher in those changes, please create a **Superset Improvement Proposal (SIP)**. See template from [SIP-0](https://github.com/apache/superset/issues/5602)
 
 ### Fix Bugs
 
