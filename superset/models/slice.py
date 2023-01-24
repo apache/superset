@@ -288,7 +288,9 @@ class Slice(  # pylint: disable=too-many-public-methods
         return self.build_explore_url(self.id, base_url, overrides)
 
     @staticmethod
-    def build_explore_url(id_: int, base_url: str = "/explore", overrides: Optional[Dict[str, Any]] = None) -> str:
+    def build_explore_url(
+        id_: int, base_url: str = "/explore", overrides: Optional[Dict[str, Any]] = None
+    ) -> str:
         overrides = overrides or {}
         form_data = {"slice_id": id_}
         form_data.update(overrides)
