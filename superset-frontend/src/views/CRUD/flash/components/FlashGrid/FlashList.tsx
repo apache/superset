@@ -179,6 +179,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
     }
     const payload = {
       ttl: currentTtl,
+      owner: user?.email,
     };
     if (flash && flash?.id) {
       recoverFlashObject(flash?.id, payload).then(
