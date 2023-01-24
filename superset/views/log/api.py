@@ -120,7 +120,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
             401:
               $ref: '#/components/responses/401'
             403:
-              $ref: '#/components/responses/404'
+              $ref: '#/components/responses/403'
             500:
               $ref: '#/components/responses/500'
         """
