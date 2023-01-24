@@ -177,7 +177,8 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
   };
 
   const onFlashUpdation = ({ formData }: { formData: any }) => {
-    const payload = { ...formData };
+    const flashType = formData.flashType.replace(/\s/g, '');
+    const payload = { ...formData, flashType };
     flashTtlService(Number(flash?.id), UPDATE_TYPES.TTL, payload);
   };
 
