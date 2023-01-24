@@ -19,7 +19,7 @@ import inspect
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TYPE_CHECKING
+from typing import Any, Dict, Hashable, List, Optional, Type, TYPE_CHECKING
 
 import simplejson as json
 import sqlalchemy as sqla
@@ -33,7 +33,6 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
-    Hashable,
     Integer,
     Numeric,
     String,

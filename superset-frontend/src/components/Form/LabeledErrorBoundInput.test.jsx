@@ -81,13 +81,13 @@ describe('LabeledErrorBoundInput', () => {
     defaultProps.visibilityToggle = true;
     render(<LabeledErrorBoundInput {...defaultProps} />);
 
-    expect(await screen.findByRole('img', { name: /eye/i })).toBeVisible();
+    expect(await screen.findByTestId('icon-eye')).toBeVisible();
   });
 
   it('becomes a password input if props.name === password (backwards compatibility)', async () => {
     defaultProps.name = 'password';
     render(<LabeledErrorBoundInput {...defaultProps} />);
 
-    expect(await screen.findByRole('img', { name: /eye/i })).toBeVisible();
+    expect(await screen.findByTestId('icon-eye')).toBeVisible();
   });
 });

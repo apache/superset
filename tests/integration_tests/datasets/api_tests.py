@@ -1988,8 +1988,8 @@ class TestDatasetApi(SupersetTestCase):
         assert str(dataset.uuid) == dataset_config["uuid"]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 
@@ -2090,8 +2090,8 @@ class TestDatasetApi(SupersetTestCase):
         dataset = database.tables[0]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 

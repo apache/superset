@@ -68,7 +68,14 @@ from sqlalchemy import (
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import backref, Query, relationship, RelationshipProperty, Session
+from sqlalchemy.orm import (
+    backref,
+    Mapped,
+    Query,
+    relationship,
+    RelationshipProperty,
+    Session,
+)
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table
@@ -130,6 +137,8 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     remove_duplicates,
 )
+
+from superset.models.helpers import ExploreMixin
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -230,10 +239,10 @@ class TableColumn(Model, BaseColumn, CertificationMixin):
     __tablename__ = "table_columns"
     __table_args__ = (UniqueConstraint("table_id", "column_name"),)
     table_id = Column(Integer, ForeignKey("tables.id"))
-    table: SqlaTable = relationship(
+    table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
-        backref=backref("columns", cascade="all, delete-orphan"),
-        foreign_keys=[table_id],
+        back_populates="columns",
+        lazy="joined",  # Eager loading for efficient parent referencing with selectin.
     )
     is_dttm = Column(Boolean, default=False)
     expression = Column(MediumText())
@@ -445,10 +454,10 @@ class SqlMetric(Model, BaseMetric, CertificationMixin):
     __tablename__ = "sql_metrics"
     __table_args__ = (UniqueConstraint("table_id", "metric_name"),)
     table_id = Column(Integer, ForeignKey("tables.id"))
-    table = relationship(
+    table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
-        backref=backref("metrics", cascade="all, delete-orphan"),
-        foreign_keys=[table_id],
+        back_populates="metrics",
+        lazy="joined",  # Eager loading for efficient parent referencing with selectin.
     )
     expression = Column(MediumText(), nullable=False)
     extra = Column(Text)
@@ -546,8 +555,18 @@ class SqlaTable(Model, BaseDatasource, ExploreMixin):  # pylint: disable=too-man
     type = "table"
     query_language = "sql"
     is_rls_supported = True
-    columns: List[TableColumn] = []
-    metrics: List[SqlMetric] = []
+    columns: Mapped[List[TableColumn]] = relationship(
+        TableColumn,
+        back_populates="table",
+        cascade="all, delete-orphan",
+        lazy="selectin",  # Only non-eager loading that works with bidirectional joined.
+    )
+    metrics: Mapped[List[SqlMetric]] = relationship(
+        SqlMetric,
+        back_populates="table",
+        cascade="all, delete-orphan",
+        lazy="selectin",  # Only non-eager loading that works with bidirectional joined.
+    )
     metric_class = SqlMetric
     column_class = TableColumn
     owner_class = security_manager.user_model
