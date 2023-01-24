@@ -24,5 +24,4 @@ export const isCrossFiltersEnabled = (
 ): boolean =>
   (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
     (metadataCrossFiltersEnabled === undefined ||
-      metadataCrossFiltersEnabled)) ||
-  false;
+      metadataCrossFiltersEnabled));

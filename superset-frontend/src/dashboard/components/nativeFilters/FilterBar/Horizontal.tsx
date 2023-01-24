@@ -105,7 +105,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
           <Loading position="inline-centered" />
         ) : (
           <>
-            {canEdit && <FilterBarSettings />}
+            <FilterBarSettings />
             {canEdit && (
               <FiltersLinkContainer hasFilters={hasFilters}>
                 <FilterConfigurationLink
