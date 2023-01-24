@@ -194,7 +194,9 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
         ),
       );
     } else {
-      addDangerToast('There is an issue recovering the selected flash');
+      addDangerToast(
+        'There is an issue recovering the selected flash: FLASH ID is missing',
+      );
     }
   };
 
