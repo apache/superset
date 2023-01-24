@@ -26,7 +26,6 @@ describe('Charts filters', () => {
   });
 
   beforeEach(() => {
-    cy.preserveLogin();
     clearAllInputs();
   });
 
