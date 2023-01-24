@@ -327,14 +327,14 @@ DRUID_ANALYSIS_TYPES = ["cardinality"]
 
 AUTH_TYPE = AUTH_OID
 
-SECRET_KEY = CHANGE_ME_SECRET_KEY  # TODO use env vars in production
-OIDC_CLIENT_SECRETS = os.path.abspath(os.getcwd()) + '/superset/client-secret.json'  # TODO use env vars in production pointing to configMaps
-OIDC_ID_TOKEN_COOKIE_SECURE = False  # TODO True in production
-OIDC_REQUIRE_VERIFIED_EMAIL = False  # TODO True in production
-OIDC_OPENID_REALM = 'neos'  # TODO use env vars in production
+SECRET_KEY = os.getenv("SUPERSET_SECRET_KEY", CHANGE_ME_SECRET_KEY)
+OIDC_CLIENT_SECRETS = os.getenv("KC_OIDC_CLIENT_SECRETS_PATH", os.path.abspath(os.getcwd()) + '/client-secret.json')
+OIDC_ID_TOKEN_COOKIE_SECURE = bool(os.getenv("KC_OIDC_ID_TOKEN_COOKIE_SECURE", False))
+OIDC_REQUIRE_VERIFIED_EMAIL = bool(os.getenv("KC_OIDC_REQUIRE_VERIFIED_EMAIL", False))
+OIDC_OPENID_REALM = os.getenv("KC_OIDC_OPENID_REALM", "neos")
 OIDC_INTROSPECTION_AUTH_METHOD = 'client_secret_post'
 CUSTOM_SECURITY_MANAGER = OIDCSecurityManager
-AUTH_USER_REGISTRATION = True  # TODO check this
+AUTH_USER_REGISTRATION = True
 AUTH_USER_REGISTRATION_ROLE = 'Gamma'
 
 # Uncomment to setup Full admin role name
