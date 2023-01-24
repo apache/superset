@@ -40,7 +40,7 @@ export default function RecentActivity({ user }: RecentActivityProps) {
         _time: row.time,
       }));
   };
-  const params = rison.encode({ limit: rowLimit });
+  const params = rison.encode({ page_size: rowLimit });
   return (
     <div>
       <TableLoader
