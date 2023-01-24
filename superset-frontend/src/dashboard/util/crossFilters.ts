@@ -22,6 +22,5 @@ import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
 ): boolean =>
-  (isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
-    (metadataCrossFiltersEnabled === undefined ||
-      metadataCrossFiltersEnabled));
+  isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+  (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);

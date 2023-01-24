@@ -39,8 +39,8 @@ const renderWrapper = (overrideProps?: Record<string, any>) =>
       initialState: {
         dashboardInfo: {
           dash_edit_perm: true,
-        }
-      }
+        },
+      },
     }),
   );
 

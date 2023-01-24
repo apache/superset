@@ -81,6 +81,9 @@ const StyledMenu = styled(Menu)`
 const StyleSubmenuItem = styled.div`
   display: flex;
   justify-content: space-between;
+  > span {
+    width: 100%;
+  }
 `;
 
 export default (props: DropDownSelectableProps) => {

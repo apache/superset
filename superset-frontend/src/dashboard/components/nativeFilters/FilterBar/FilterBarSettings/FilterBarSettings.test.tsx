@@ -24,8 +24,8 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
-import FilterBarSettings from '.';
 import { FeatureFlag } from '@superset-ui/core';
+import FilterBarSettings from '.';
 
 const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {
@@ -54,16 +54,18 @@ const initialState: { dashboardInfo: DashboardInfo } = {
 };
 
 const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
-waitFor(() => render(<FilterBarSettings />, {
-    useRedux: true,
-    initialState: {
-      ...initialState,
-      dashboardInfo: {
-        ...initialState.dashboardInfo,
-        ...dashboardInfoOverride,
+  waitFor(() =>
+    render(<FilterBarSettings />, {
+      useRedux: true,
+      initialState: {
+        ...initialState,
+        dashboardInfo: {
+          ...initialState.dashboardInfo,
+          ...dashboardInfoOverride,
+        },
       },
-    },
-  }));
+    }),
+  );
 
 test('Dropdown trigger renders with FF HORIZONTAL_FILTER_BAR on', async () => {
   // @ts-ignore

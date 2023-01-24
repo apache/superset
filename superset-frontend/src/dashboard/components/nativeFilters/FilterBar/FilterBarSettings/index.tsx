@@ -42,9 +42,20 @@ import { clearDataMaskState } from 'src/dataMask/actions';
 type SelectedKey = FilterBarOrientation | string | number;
 
 const StyledMenuLabel = styled.span`
-  .enable-cross-filters {
-    vertical-align: middle;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const StyledCheckbox = styled(Checkbox)`
+  ${({ theme }) => `
+  &,
+  svg {
+    display: inline-block;
+    width: ${theme.gridUnit * 4}px;
+    height: ${theme.gridUnit * 4}px;
   }
+`}
 `;
 
 const FilterBarSettings = () => {
@@ -115,12 +126,14 @@ const FilterBarSettings = () => {
   const crossFiltersMenuItem = useMemo(
     () => (
       <StyledMenuLabel>
-        <Checkbox
+        <StyledCheckbox
           className="enable-cross-filters"
           checked={crossFiltersEnabled}
           onChange={checked => setCrossFiltersEnabled(checked || false)}
         />{' '}
-        {t('Enable cross-filtering')}
+        <span className="enable-cross-filters-text">
+          {t('Enable cross-filtering')}
+        </span>
       </StyledMenuLabel>
     ),
     [crossFiltersEnabled],
