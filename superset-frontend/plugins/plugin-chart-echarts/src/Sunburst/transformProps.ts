@@ -32,7 +32,7 @@ import { EChartsCoreOption } from 'echarts';
 import { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { OpacityEnum } from '../constants';
-import { defaultGrid, defaultTooltip } from '../defaults';
+import { defaultGrid } from '../defaults';
 import { Refs } from '../types';
 import { formatSeriesName, getColtypesMapping } from '../utils/series';
 import { treeBuilder, TreeNode } from '../utils/treeBuilder';
@@ -41,6 +41,7 @@ import {
   EchartsSunburstLabelType,
   SunburstTransformedProps,
 } from './types';
+import { getDefaultTooltip } from '../utils/tooltip';
 
 export function getLinearDomain(
   treeData: TreeNode[],
@@ -306,7 +307,7 @@ export default function transformProps(
       ...defaultGrid,
     },
     tooltip: {
-      ...defaultTooltip,
+      ...getDefaultTooltip(refs),
       show: !inContextMenu,
       trigger: 'item',
       formatter: (params: any) =>
