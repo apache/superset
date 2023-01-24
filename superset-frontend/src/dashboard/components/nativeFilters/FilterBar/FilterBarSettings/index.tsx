@@ -45,6 +45,10 @@ const StyledMenuLabel = styled.span`
   display: flex;
   align-items: center;
   justify-content: space-between;
+
+  .enable-cross-filters-text {
+    padding-left: ${({ theme }) => `${theme.gridUnit * 2}px`};
+  }
 `;
 
 const StyledCheckbox = styled(Checkbox)`
@@ -144,6 +148,7 @@ const FilterBarSettings = () => {
     menuItems.unshift({
       key: crossFiltersMenuKey,
       label: crossFiltersMenuItem,
+      divider: canSetHorizontalFilterBar,
     });
   }
 

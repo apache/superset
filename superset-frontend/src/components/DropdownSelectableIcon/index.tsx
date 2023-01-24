@@ -35,6 +35,7 @@ export interface DropDownSelectableProps extends Pick<MenuProps, 'onSelect'> {
     key: string;
     label: string | React.ReactNode;
     children?: SubMenuItemProps[];
+    divider?: boolean;
   }[];
   selectedKeys?: string[];
 }
@@ -78,6 +79,16 @@ const StyledMenu = styled(Menu)`
   `}
 `;
 
+const StyleMenuItem = styled(Menu.Item)<{ divider?: boolean }>`
+  display: flex;
+  justify-content: space-between;
+  > span {
+    width: 100%;
+  }
+  border-bottom: ${({ divider, theme }) =>
+    divider ? `1px solid ${theme.colors.grayscale.light3};` : 'none;'};
+`;
+
 const StyleSubmenuItem = styled.div`
   display: flex;
   justify-content: space-between;
@@ -89,8 +100,12 @@ const StyleSubmenuItem = styled.div`
 export default (props: DropDownSelectableProps) => {
   const theme = useTheme();
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
-  const menuItem = (label: string | React.ReactNode, key: string) => (
-    <Menu.Item key={key}>
+  const menuItem = (
+    label: string | React.ReactNode,
+    key: string,
+    divider?: boolean,
+  ) => (
+    <StyleMenuItem key={key} divider={divider}>
       <StyleSubmenuItem>
         <span>{label}</span>
         {selectedKeys?.includes(key) && (
@@ -101,7 +116,7 @@ export default (props: DropDownSelectableProps) => {
           />
         )}
       </StyleSubmenuItem>
-    </Menu.Item>
+    </StyleMenuItem>
   );
   const overlayMenu = useMemo(
     () => (
@@ -121,7 +136,7 @@ export default (props: DropDownSelectableProps) => {
               {m.children.map(s => menuItem(s.label, s.key))}
             </SubMenu>
           ) : (
-            menuItem(m.label, m.key)
+            menuItem(m.label, m.key, m.divider)
           ),
         )}
       </StyledMenu>

@@ -34,7 +34,7 @@ export function toggleBulkSelect() {
 }
 
 export function clearAllInputs() {
-  cy.get('[aria-label="close-circle"]').click({ multiple: true, force: true });
+  cy.get('.ant-select-clear').click({ multiple: true, force: true });
 }
 
 const toSlicelike = ($chart: JQuery<HTMLElement>): Slice => ({
