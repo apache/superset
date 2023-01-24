@@ -630,6 +630,10 @@ class SqlaTable(Model, BaseDatasource, ExploreMixin):  # pylint: disable=too-man
     def __repr__(self) -> str:  # pylint: disable=invalid-repr-returned
         return self.name
 
+    @property
+    def db_extra(self) -> Dict[str, Any]:
+        return self.database.get_extra()
+
     @staticmethod
     def _apply_cte(sql: str, cte: Optional[str]) -> str:
         """

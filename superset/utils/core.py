@@ -1803,16 +1803,9 @@ def get_time_filter_status(
     datasource: "BaseDatasource",
     applied_time_extras: Dict[str, str],
 ) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
-
-    temporal_columns: Set[Any]
-    if datasource.type == "query":
-        temporal_columns = {
-            col.get("column_name") for col in datasource.columns if col.get("is_dttm")
-        }
-    else:
-        temporal_columns = {
-            col.column_name for col in datasource.columns if col.is_dttm
-        }
+    temporal_columns: Set[Any] = {
+        col.column_name for col in datasource.columns if col.is_dttm
+    }
     applied: List[Dict[str, str]] = []
     rejected: List[Dict[str, str]] = []
     time_column = applied_time_extras.get(ExtraFiltersTimeColumnType.TIME_COL)

@@ -200,6 +200,9 @@ class Query(
         str_types = ("VARCHAR", "STRING", "CHAR")
         columns = []
         col_type = ""
+
+        from superset.connectors.sqla.models import TableColumn
+
         for col in self.extra.get("columns", []):
             computed_column = {**col}
             col_type = col.get("type")
@@ -213,16 +216,29 @@ class Query(
             if col_type and any(map(lambda t: t in col_type.upper(), date_types)):
                 computed_column["type_generic"] = GenericDataType.TEMPORAL
 
-            computed_column["column_name"] = col.get("name")
+            column_name = col.get("name")
+            del computed_column["name"]
+            del computed_column["type_generic"]
             computed_column["groupby"] = True
-            columns.append(computed_column)
+            columns.append(
+                TableColumn(
+                    column_name=column_name,
+                    type=col_type,
+                    is_dttm=computed_column["is_dttm"],
+                    groupby=True,
+                )
+            )
         return columns
+
+    @property
+    def db_extra(self) -> None:
+        return None
 
     @property
     def data(self) -> Dict[str, Any]:
         order_by_choices = []
         for col in self.columns:
-            column_name = str(col.get("column_name") or "")
+            column_name = str(col.column_name or "")
             order_by_choices.append(
                 (json.dumps([column_name, True]), column_name + " [asc]")
             )
@@ -236,7 +252,7 @@ class Query(
             ],
             "filter_select": True,
             "name": self.tab_name,
-            "columns": self.columns,
+            "columns": [o.data for o in self.columns],
             "metrics": [],
             "id": self.id,
             "type": self.type,
@@ -277,7 +293,7 @@ class Query(
 
     @property
     def column_names(self) -> List[Any]:
-        return [col.get("column_name") for col in self.columns]
+        return [col.column_name for col in self.columns]
 
     @property
     def offset(self) -> int:
@@ -292,7 +308,7 @@ class Query(
 
     @property
     def dttm_cols(self) -> List[Any]:
-        return [col.get("column_name") for col in self.columns if col.get("is_dttm")]
+        return [col.column_name for col in self.columns if col.is_dttm]
 
     @property
     def schema_perm(self) -> str:
@@ -335,7 +351,7 @@ class Query(
         if not column_name:
             return None
         for col in self.columns:
-            if col.get("column_name") == column_name:
+            if col.column_name == column_name:
                 return col
         return None
 
