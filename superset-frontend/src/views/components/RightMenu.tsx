@@ -300,7 +300,8 @@ const RightMenu = ({
   );
 
   const buildMenuItem = (item: Record<string, any>) => {
-    const disabledText = isDisabled && item.url;
+    const disabledText =
+      isDisabled && item.url && !item.url.includes('dataset');
     return disabledText ? (
       <Menu.Item key={item.name} css={styledDisabled}>
         <Tooltip placement="top" title={tooltipText}>
