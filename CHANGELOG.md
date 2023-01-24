@@ -32,7 +32,7 @@ under the License.
 **Features**
 
 **Fixes**
-- [#22417](https://github.com/apache/superset/pull/22417) fix: fix: Force configuration for SafeMarkdown component in Handlebars(@geido)
+- [#22417](https://github.com/apache/superset/pull/22417) fix: Force configuration for SafeMarkdown component in Handlebars(@geido)
 - [#21895](https://github.com/apache/superset/pull/21895) feat: Improves SafeMarkdown HTML sanitization (@michael-s-molina) (security-improvement)
 - [#21874](https://github.com/apache/superset/pull/21874) feat: Adds a Content Security Policy (CSP) check for production environments (@michael-s-molina)(security-improvement)
 - [#21853](https://github.com/apache/superset/pull/21853) feat: Disables HTML rendering in Toast by default (@michael-s-molina)(security-improvement)
