@@ -1,7 +1,3 @@
-import { CallbackDataParams } from 'echarts/types/src/util/types';
-import { LegendOrientation } from './types';
-import { TOOLTIP_POINTER_MARGIN, TOOLTIP_OVERFLOW_MARGIN } from './constants';
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,6 +16,8 @@ import { TOOLTIP_POINTER_MARGIN, TOOLTIP_OVERFLOW_MARGIN } from './constants';
  * specific language governing permissions and limitations
  * under the License.
  */
+import { LegendOrientation } from './types';
+
 export const defaultGrid = {
   containLabel: true,
 };
