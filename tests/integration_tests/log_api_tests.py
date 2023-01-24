@@ -16,8 +16,8 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+from datetime import datetime, timedelta
 import json
-import time
 from typing import Optional
 from unittest.mock import ANY
 
@@ -266,10 +266,13 @@ class TestLogApi(SupersetTestCase):
         dash2 = create_dashboard("dash2_slug", "dash2_title", "{}", [])
         dash3 = create_dashboard("dash3_slug", "dash3_title", "{}", [])
         log = self.insert_log("dashboard", admin_user, dashboard_id=dash.id)
-        time.sleep(0.05)
         log2 = self.insert_log("dashboard", admin_user, dashboard_id=dash2.id)
-        time.sleep(0.05)
         log3 = self.insert_log("dashboard", admin_user, dashboard_id=dash3.id)
+
+        now = datetime.now()
+        log3.dttm = now
+        log2.dttm = now - timedelta(days=1)
+        log.dttm = now - timedelta(days=2)
 
         arguments = {"page": 0, "page_size": 2}
         uri = f"api/v1/log/recent_activity/{admin_user.id}/?q={prison.dumps(arguments)}"
