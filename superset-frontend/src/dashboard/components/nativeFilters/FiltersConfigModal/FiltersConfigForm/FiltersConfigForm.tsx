@@ -258,6 +258,19 @@ const StyledAsterisk = styled.span`
   }
 `;
 
+const FilterTypeInfo = styled.div`
+  ${({ theme }) => `
+    width: 49%;
+    font-size: ${theme.typography.sizes.s}px;
+    color: ${theme.colors.grayscale.light1};
+    margin:
+      ${-theme.gridUnit * 2}px
+      0px
+      ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 4}px;
+  `}
+`;
+
 const FilterTabs = {
   configuration: {
     key: 'configuration',
@@ -795,6 +808,13 @@ const FiltersConfigForm = (
             />
           </StyledFormItem>
         </StyledContainer>
+        {formFilter?.filterType === 'filter_time' && (
+          <FilterTypeInfo>
+            {t(`Dashboard time range filters apply to temporal columns defined in
+          the filter section of each chart. Add temporal columns to the chart
+          filters to have this dashboard filter impact those charts.`)}
+          </FilterTypeInfo>
+        )}
         {hasDataset && (
           <StyledRowContainer>
             {showDataset ? (

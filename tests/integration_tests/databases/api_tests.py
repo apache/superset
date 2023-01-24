@@ -318,6 +318,7 @@ class TestDatabaseApi(SupersetTestCase):
             .filter(SSHTunnel.database_id == response.get("id"))
             .one()
         )
+        self.assertEqual(response.get("result")["ssh_tunnel"]["password"], "XXXXXXXXXX")
         self.assertEqual(model_ssh_tunnel.database_id, response.get("id"))
         # Cleanup
         model = db.session.query(Database).get(response.get("id"))
@@ -404,6 +405,7 @@ class TestDatabaseApi(SupersetTestCase):
             "server_address": "123.132.123.1",
             "server_port": 8080,
             "username": "Test",
+            "password": "new_bar",
         }
         database_data_with_ssh_tunnel = {
             "database_name": "test-db-with-ssh-tunnel",
@@ -437,6 +439,9 @@ class TestDatabaseApi(SupersetTestCase):
             .one()
         )
         self.assertEqual(model_ssh_tunnel.database_id, response_update.get("id"))
+        self.assertEqual(
+            response_update.get("result")["ssh_tunnel"]["password"], "XXXXXXXXXX"
+        )
         self.assertEqual(model_ssh_tunnel.username, "Test")
         self.assertEqual(model_ssh_tunnel.server_address, "123.132.123.1")
         self.assertEqual(model_ssh_tunnel.server_port, 8080)
@@ -2042,8 +2047,8 @@ class TestDatabaseApi(SupersetTestCase):
         assert str(dataset.uuid) == dataset_config["uuid"]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 
@@ -2113,8 +2118,8 @@ class TestDatabaseApi(SupersetTestCase):
         )
         dataset = database.tables[0]
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 
@@ -2359,6 +2364,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "disable_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2381,6 +2387,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "disable_ssh_tunneling": True,
                     },
                 },
                 {
@@ -2432,6 +2439,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "disable_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2454,6 +2462,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
                         "supports_file_upload": False,
+                        "disable_ssh_tunneling": True,
                     },
                 },
                 {
@@ -2505,6 +2514,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
                         "supports_file_upload": True,
+                        "disable_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2514,6 +2524,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "engine_information": {
                         "supports_file_upload": True,
+                        "disable_ssh_tunneling": False,
                     },
                 },
             ]
@@ -2544,6 +2555,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "engine_information": {
                         "supports_file_upload": True,
+                        "disable_ssh_tunneling": False,
                     },
                 },
                 {
@@ -2553,6 +2565,7 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "engine_information": {
                         "supports_file_upload": True,
+                        "disable_ssh_tunneling": False,
                     },
                 },
             ]

@@ -375,6 +375,7 @@ class DatabaseValidateParametersSchema(Schema):
 
 
 class DatabaseSSHTunnel(Schema):
+    id = fields.Integer(allow_none=True, description="SSH Tunnel ID (for updates)")
     server_address = fields.String()
     server_port = fields.Integer()
     username = fields.String()

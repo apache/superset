@@ -18,10 +18,11 @@
  */
 
 import React from 'react';
-import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
+import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
-import fetchMock from 'fetch-mock';
+import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
+import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
@@ -394,4 +395,31 @@ test('should not set the temporal column', async () => {
       null,
     );
   });
+});
+
+test('should show missing params state', () => {
+  const props = createProps({ datasource: fallbackExploreInitialData.dataset });
+  render(<DatasourceControl {...props} />, { useRedux: true });
+  expect(screen.getByText(/missing dataset/i)).toBeVisible();
+  expect(screen.getByText(/missing url parameters/i)).toBeVisible();
+  expect(
+    screen.getByText(
+      /the url is missing the dataset_id or slice_id parameters\./i,
+    ),
+  ).toBeVisible();
+});
+
+test('should show missing dataset state', () => {
+  // @ts-ignore
+  delete window.location;
+  // @ts-ignore
+  window.location = { search: '?slice_id=152' };
+  const props = createProps({ datasource: fallbackExploreInitialData.dataset });
+  render(<DatasourceControl {...props} />, { useRedux: true });
+  expect(screen.getAllByText(/missing dataset/i)).toHaveLength(2);
+  expect(
+    screen.getByText(
+      /the dataset linked to this chart may have been deleted\./i,
+    ),
+  ).toBeVisible();
 });

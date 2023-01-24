@@ -21,7 +21,7 @@ import { SupersetTheme, t } from '@superset-ui/core';
 import { AntdButton, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
-import { DeleteFilled } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { FieldPropTypes } from '.';
 import { infoTooltip, labelMarginBotton, CredentialInfoForm } from '../styles';
 
@@ -152,7 +152,8 @@ export const EncryptedField = ({
             {fileToUpload && (
               <div className="input-upload-current">
                 {fileToUpload}
-                <DeleteFilled
+                <Icons.DeleteFilled
+                  iconSize="m"
                   onClick={() => {
                     setFileToUpload(null);
                     changeMethods.onParametersChange({

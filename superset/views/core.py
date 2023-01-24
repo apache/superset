@@ -67,6 +67,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -194,7 +195,7 @@ DATABASE_KEYS = [
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
-PARAMETER_MISSING_ERR = (
+PARAMETER_MISSING_ERR = __(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."
@@ -637,7 +638,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             and not security_manager.can_access("can_csv", "Superset")
         ):
             return json_error_response(
-                _("You don't have the rights to ") + _("download as csv"),
+                _("You don't have the rights to download as csv"),
                 status=403,
             )
 
@@ -916,13 +917,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if action == "overwrite" and not slice_overwrite_perm:
             return json_error_response(
-                _("You don't have the rights to ") + _("alter this ") + _("chart"),
+                _("You don't have the rights to alter this chart"),
                 status=403,
             )
 
         if action == "saveas" and not slice_add_perm:
             return json_error_response(
-                _("You don't have the rights to ") + _("create a ") + _("chart"),
+                _("You don't have the rights to create a chart"),
                 status=403,
             )
 
@@ -1086,9 +1087,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dash_overwrite_perm = security_manager.is_owner(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
-                    _("You don't have the rights to ")
-                    + _("alter this ")
-                    + _("dashboard"),
+                    _("You don't have the rights to alter this dashboard"),
                     status=403,
                 )
 
@@ -1104,9 +1103,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dash_add_perm = security_manager.can_access("can_write", "Dashboard")
             if not dash_add_perm:
                 return json_error_response(
-                    _("You don't have the rights to ")
-                    + _("create a ")
-                    + _("dashboard"),
+                    _("You don't have the rights to create a dashboard"),
                     status=403,
                 )
 
@@ -2302,6 +2299,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         on_giveup=lambda details: db.session.rollback(),
         max_tries=5,
     )
+    @deprecated()
     def stop_query(self) -> FlaskResponse:
         client_id = request.form.get("client_id")
         query = db.session.query(Query).filter_by(client_id=client_id).one()
@@ -2319,6 +2317,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
+        # Add the stop identity attribute because the sqlalchemy thread is unsafe
+        # because of multiple updates to the status in the query table
+        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
         query.end_time = now_as_float()
         db.session.commit()
 
@@ -2604,6 +2605,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/search_queries")
+    @deprecated()
     def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Search for previously run sqllab queries. Used for Sqllab Query Search

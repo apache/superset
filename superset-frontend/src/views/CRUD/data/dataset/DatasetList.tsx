@@ -560,8 +560,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         operator: FilterOperator.datasetIsNullOrEmpty,
         unfilteredLabel: 'All',
         selects: [
-          { label: 'Virtual', value: false },
-          { label: 'Physical', value: true },
+          { label: t('Virtual'), value: false },
+          { label: t('Physical'), value: true },
         ],
       },
       {

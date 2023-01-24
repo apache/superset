@@ -54,6 +54,7 @@ import ViewQueryModal from 'src/explore/components/controls/ViewQueryModal';
 import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import Modal from 'src/components/Modal';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
+import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 
 const MENU_KEYS = {
   CROSS_FILTER_SCOPING: 'cross_filter_scoping',
@@ -69,12 +70,20 @@ const MENU_KEYS = {
   DRILL_TO_DETAIL: 'drill_to_detail',
 };
 
+// TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
   padding: ${({ theme }) => theme.gridUnit / 4}px
     ${({ theme }) => theme.gridUnit * 1.5}px;
 
   .dot {
     display: block;
+
+    height: ${({ theme }) => theme.gridUnit}px;
+    width: ${({ theme }) => theme.gridUnit}px;
+    border-radius: 50%;
+    margin: ${({ theme }) => theme.gridUnit / 2}px 0;
+
+    background-color: ${({ theme }) => theme.colors.text.label};
   }
 
   &:hover {
@@ -129,6 +138,7 @@ export interface SliceHeaderControlsProps {
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
+  logEvent?: (eventName: string, eventData?: object) => void;
   toggleExpandSlice?: (sliceId: number) => void;
   exportCSV?: (sliceId: number) => void;
   exportFullCSV?: (sliceId: number) => void;
@@ -312,6 +322,9 @@ class SliceHeaderControls extends React.PureComponent<
           // @ts-ignore
         )(domEvent).then(() => {
           menu.style.visibility = 'visible';
+        });
+        this.props.logEvent?.(LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE, {
+          chartId: this.props.slice.slice_id,
         });
         break;
       }

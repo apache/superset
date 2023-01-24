@@ -905,7 +905,7 @@ class PivotTableViz(BaseViz):
             groupby = []
         if not groupby:
             raise QueryObjectValidationError(
-                _("Please choose at least one 'Group by' field ")
+                _("Please choose at least one 'Group by' field")
             )
         if transpose and not columns:
             raise QueryObjectValidationError(
