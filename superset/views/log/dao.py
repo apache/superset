@@ -107,13 +107,12 @@ class LogDAO(BaseDAO):
             item_type = None
             if log.dashboard_id:
                 item_type = "dashboard"
-                item_url = Dashboard(id=log.dashboard_id, slug=log.dashboard_slug).url
+                item_url = Dashboard.get_url(log.dashboard_id, log.dashboard_slug)
                 item_title = log.dashboard_title
             elif log.slice_id:
-                slc = Slice(id=log.slice_id, slice_name=log.slice_name)
                 item_type = "slice"
-                item_url = slc.slice_url
-                item_title = slc.chart
+                item_url = Slice.build_explore_url(log.slice_id)
+                item_title = log.slice_name or "<empty>"
 
             payload.append(
                 {
