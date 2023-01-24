@@ -358,7 +358,7 @@ class BaseReportState:
         screenshot_data = []
         header_data = self._get_log_data()
         if self._report_schedule.msg_content:
-            name = self._report_schedule.name
+            name = f"{self._report_schedule.type}: " f"{self._report_schedule.name}"
             return NotificationContent(
                 name=name,
                 description=self._report_schedule.description,
@@ -397,13 +397,15 @@ class BaseReportState:
 
         if self._report_schedule.chart:
             name = (
-                f"{self._report_schedule.name}: "
-                f"{self._report_schedule.chart.slice_name}"
+                f"{self._report_schedule.type}: "
+                f"{self._report_schedule.name} "
+                f"({self._report_schedule.chart.slice_name})"
             )
         else:
             name = (
-                f"{self._report_schedule.name}: "
-                f"{self._report_schedule.dashboard.dashboard_title}"
+                f"{self._report_schedule.type}: "
+                f"{self._report_schedule.name} "
+                f"({self._report_schedule.dashboard.dashboard_title})"
             )
 
         return NotificationContent(

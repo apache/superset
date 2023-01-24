@@ -57,12 +57,12 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
         template = __(
             """*%(name)s*
 
-                %(msg_content)s
+%(msg_content)s
 
-                %(description)s
+%(description)s
 
-                %(table)s
-            """,
+%(table)s
+""",
             name=self._content.name,
             description=self._content.description or "",
             msg_content=self._content.msg_content or "",
@@ -72,12 +72,12 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             template = __(
                 """*%(name)s*
 
-                %(description)s
+%(description)s
 
-                <%(url)s|Explore in Careem Insights>
+<%(url)s|Explore in Careem Insights>
 
-                %(table)s
-            """,
+%(table)s
+""",
                 name=self._content.name,
                 description=self._content.description or "",
                 url=url,
