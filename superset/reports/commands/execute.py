@@ -347,7 +347,7 @@ class BaseReportState:
         return log_data
 
     def get_link(self) -> str:
-        return f"https://careem-insights.careem-internal.com/alert/list/?filters=(name:{self._report_schedule.name})"
+        return f"https://careem-insights.careem-internal.com/{self._report_schedule.type.lower()}/list/?filters=(name:'{self._report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
     def _get_notification_content(self) -> NotificationContent:
         """
