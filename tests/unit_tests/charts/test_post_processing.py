@@ -64,7 +64,7 @@ def test_pivot_df_no_cols_no_rows_single_metric():
     """.strip()
     )
 
-    # tranpose_pivot and combine_metrics do nothing in this case
+    # transpose_pivot and combine_metrics do nothing in this case
     pivoted = pivot_df(
         df,
         rows=[],
@@ -169,7 +169,7 @@ def test_pivot_df_no_cols_no_rows_two_metrics():
     """.strip()
     )
 
-    # tranpose_pivot and combine_metrics do nothing in this case
+    # transpose_pivot and combine_metrics do nothing in this case
     pivoted = pivot_df(
         df,
         rows=[],

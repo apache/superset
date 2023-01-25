@@ -77,11 +77,11 @@ def test_extract_errors() -> None:
         )
     ]
 
-    msg = "syntax error line 1 at position 10 unexpected 'limmmited'."
+    msg = "syntax error line 1 at position 10 unexpected 'limited'."
     result = SnowflakeEngineSpec.extract_errors(Exception(msg))
     assert result == [
         SupersetError(
-            message='Please check your query for syntax errors at or near "limmmited". Then, try running your query again.',
+            message='Please check your query for syntax errors at or near "limited". Then, try running your query again.',
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={

@@ -451,7 +451,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     def test_with_invalid_where_parameter__400(self):
         self.query_context_payload["queries"][0]["filters"] = []
-        # erroneus WHERE-clause
+        # erroneous WHERE-clause
         self.query_context_payload["queries"][0]["extras"]["where"] = "(gender abc def)"
 
         rv = self.post_assert_metric(CHART_DATA_URI, self.query_context_payload, "data")
