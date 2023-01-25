@@ -502,7 +502,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
             "test_table", "test_schema", db, select(), columns
         )
         query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-        self.assertEqual("SELECT  \nWHERE ds = '01-01-19' AND hour = 1", query_result)
+        self.assertEqual("SELECT \nWHERE ds = '01-01-19' AND hour = 1", query_result)
 
     def test_query_cost_formatter(self):
         raw_cost = [

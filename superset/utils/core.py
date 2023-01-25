@@ -429,7 +429,7 @@ def parse_js_uri_path_item(
 
     :param item: a uri path component
     :param unquote: Perform unquoting of string using urllib.parse.unquote_plus()
-    :param eval_undefined: When set to True and item is either 'null'  or 'undefined',
+    :param eval_undefined: When set to True and item is either 'null' or 'undefined',
     assume item is undefined and return None.
     :return: Either None, the original item or unquoted item
     """

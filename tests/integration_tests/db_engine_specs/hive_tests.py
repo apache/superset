@@ -358,7 +358,7 @@ def test_where_latest_partition(mock_method):
             "test_table", "test_schema", db, select(), columns
         )
     query_result = str(result.compile(compile_kwargs={"literal_binds": True}))
-    assert "SELECT  \nWHERE ds = '01-01-19' AND hour = 1" == query_result
+    assert "SELECT \nWHERE ds = '01-01-19' AND hour = 1" == query_result
 
 
 @mock.patch("superset.db_engine_specs.presto.PrestoEngineSpec.latest_partition")

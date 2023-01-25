@@ -75,7 +75,7 @@ def test_df_to_escaped_csv():
     assert escaped_csv_rows == [
         ["col_a", "'=func()"],
         ["-10", "'=cmd\|' /C calc'!A0"],
-        ["a", "'=b"],  # pandas seems to be removing the leading ""
+        ["a", "'=b"], # pandas seems to be removing the leading ""
         ["' =a", "b"],
     ]
 
