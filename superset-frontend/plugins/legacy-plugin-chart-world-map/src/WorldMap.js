@@ -46,6 +46,8 @@ const propTypes = {
   showBubbles: PropTypes.bool,
   linearColorScheme: PropTypes.string,
   color: PropTypes.string,
+  setDataMask: PropTypes.func,
+  onContextMenu: PropTypes.func,
 };
 
 const formatter = getNumberFormatter();
@@ -66,7 +68,9 @@ function WorldMap(element, props) {
     sliceId,
     theme,
     onContextMenu,
+    setDataMask,
     inContextMenu,
+    filterState,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -107,6 +111,33 @@ function WorldMap(element, props) {
   processedData.forEach(d => {
     mapData[d.country] = d;
   });
+
+  const handleClick = source => {
+    const pointerEvent = d3.event;
+    pointerEvent.preventDefault();
+    const key = source.id || source.country;
+    let val = countryFieldtype === 'name' ? mapData[key]?.name : key;
+    if (val === filterState.value) {
+      val = null;
+    }
+
+    setDataMask({
+      extraFormData: {
+        filters: val
+          ? [
+              {
+                col: entity,
+                op: 'IN',
+                val: [val],
+              },
+            ]
+          : [],
+      },
+      filterState: {
+        value: val ?? null,
+      },
+    });
+  };
 
   const handleContextMenu = source => {
     const pointerEvent = d3.event;
@@ -178,7 +209,8 @@ function WorldMap(element, props) {
     done: datamap => {
       datamap.svg
         .selectAll('.datamaps-subunit')
-        .on('contextmenu', handleContextMenu);
+        .on('contextmenu', handleContextMenu)
+        .on('click', handleClick);
     },
   });
 
@@ -190,7 +222,8 @@ function WorldMap(element, props) {
       .selectAll('circle.datamaps-bubble')
       .style('fill', color)
       .style('stroke', color)
-      .on('contextmenu', handleContextMenu);
+      .on('contextmenu', handleContextMenu)
+      .on('click', handleClick);
   }
 }
 
