@@ -20,10 +20,12 @@
 import {
   ChartDataResponseResult,
   ChartProps,
+  DataRecordValue,
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
+import { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
 import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
@@ -64,3 +66,8 @@ export type SunburstTransformedProps =
   BaseTransformedProps<EchartsSunburstFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps;
+
+export type NodeItemOption = SunburstSeriesNodeItemOption & {
+  records: DataRecordValue[];
+  secondaryValue: number;
+};

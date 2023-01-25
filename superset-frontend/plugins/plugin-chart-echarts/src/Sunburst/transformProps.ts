@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  DataRecordValue,
   getColumnLabel,
   getMetricLabel,
   getNumberFormatter,
@@ -29,7 +30,6 @@ import {
   t,
 } from '@superset-ui/core';
 import { EChartsCoreOption } from 'echarts';
-import { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
 import { CallbackDataParams } from 'echarts/types/src/util/types';
 import { OpacityEnum } from '../constants';
 import { defaultGrid } from '../defaults';
@@ -39,6 +39,7 @@ import { treeBuilder, TreeNode } from '../utils/treeBuilder';
 import {
   EchartsSunburstChartProps,
   EchartsSunburstLabelType,
+  NodeItemOption,
   SunburstTransformedProps,
 } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -259,9 +260,14 @@ export default function transformProps(
     linearColorScale(totalSecondaryValue / totalValue);
   }
 
-  const traverse = (treeNodes: TreeNode[], path: string[]) =>
+  const traverse = (
+    treeNodes: TreeNode[],
+    path: string[],
+    pathRecords?: DataRecordValue[],
+  ) =>
     treeNodes.map(treeNode => {
       const { name: nodeName, value, secondaryValue, groupBy } = treeNode;
+      const records = [...(pathRecords || []), nodeName];
       let name = formatSeriesName(nodeName, {
         numberFormatter,
         timeFormatter: getTimeFormatter(dateFormat),
@@ -270,10 +276,10 @@ export default function transformProps(
         }),
       });
       const newPath = path.concat(name);
-      let item: SunburstSeriesNodeItemOption = {
+      let item: NodeItemOption = {
+        records,
         name,
         value,
-        // @ts-ignore
         secondaryValue,
         itemStyle: {
           color: colorByCategory
@@ -282,7 +288,7 @@ export default function transformProps(
         },
       };
       if (treeNode.children?.length) {
-        item.children = traverse(treeNode.children, newPath);
+        item.children = traverse(treeNode.children, newPath, records);
       } else {
         name = newPath.join(',');
       }
