@@ -1026,7 +1026,7 @@ def send_mime_email(
     smtp_password = config["SMTP_PASSWORD"]
     smtp_starttls = config["SMTP_STARTTLS"]
     smtp_ssl = config["SMTP_SSL"]
-    smpt_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
+    smtp_ssl_server_auth = config["SMTP_SSL_SERVER_AUTH"]
 
     if dryrun:
         logger.info("Dryrun enabled, email notification content is below:")
@@ -1035,7 +1035,7 @@ def send_mime_email(
 
     # Default ssl context is SERVER_AUTH using the default system
     # root CA certificates
-    ssl_context = ssl.create_default_context() if smpt_ssl_server_auth else None
+    ssl_context = ssl.create_default_context() if smtp_ssl_server_auth else None
     smtp = (
         smtplib.SMTP_SSL(smtp_host, smtp_port, context=ssl_context)
         if smtp_ssl
