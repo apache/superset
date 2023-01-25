@@ -1559,9 +1559,7 @@ def parse_ssl_cert(certificate: str) -> Certificate:
     :raises CertificateException: If certificate is not valid/unparseable
     """
     try:
-        return load_pem_x509_certificate(
-            certificate.encode("utf-8"), default_backend()
-        )
+        return load_pem_x509_certificate(certificate.encode("utf-8"), default_backend())
     except ValueError as ex:
         raise CertificateException("Invalid certificate") from ex
 
