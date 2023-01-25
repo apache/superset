@@ -26,11 +26,14 @@ import { TooltipPlacement } from 'src/components/Tooltip';
 import {
   HeaderComponentStyles,
   disabledSaveBtnStyles,
+  StyledCreateDatasetTitle,
 } from 'src/views/CRUD/data/dataset/styles';
 import {
   DatasetActionType,
   DSReducerActionType,
 } from 'src/views/CRUD/data/dataset/AddDataset/types';
+
+export const DEFAULT_TITLE = t('New dataset');
 
 const tooltipProps: { text: string; placement: TooltipPlacement } = {
   text: t('Select a database table and create dataset'),
@@ -59,39 +62,48 @@ const renderOverlay = () => (
 
 export default function Header({
   setDataset,
-  datasetName,
+  title = DEFAULT_TITLE,
+  editing = false,
 }: {
   setDataset: React.Dispatch<DSReducerActionType>;
-  datasetName: string;
+  title?: string | null | undefined;
+  schema?: string | null | undefined;
+  editing?: boolean;
 }) {
   const editableTitleProps = {
-    title: datasetName,
-    placeholder: t('Add the name of the dataset'),
+    title: title ?? DEFAULT_TITLE,
+    placeholder: DEFAULT_TITLE,
     onSave: (newDatasetName: string) => {
       setDataset({
         type: DatasetActionType.changeDataset,
         payload: { name: 'dataset_name', value: newDatasetName },
       });
     },
-    canEdit: true,
+    canEdit: false,
     label: t('dataset name'),
   };
 
   return (
     <HeaderComponentStyles>
-      <PageHeaderWithActions
-        editableTitleProps={editableTitleProps}
-        showTitlePanelItems={false}
-        showFaveStar={false}
-        faveStarProps={{ itemId: 1, saveFaveStar: () => {} }}
-        titlePanelAdditionalItems={<></>}
-        rightPanelAdditionalItems={renderDisabledSaveButton()}
-        additionalActionsMenu={renderOverlay()}
-        menuDropdownProps={{
-          disabled: true,
-        }}
-        tooltipProps={tooltipProps}
-      />
+      {editing ? (
+        <PageHeaderWithActions
+          editableTitleProps={editableTitleProps}
+          showTitlePanelItems={false}
+          showFaveStar={false}
+          faveStarProps={{ itemId: 1, saveFaveStar: () => {} }}
+          titlePanelAdditionalItems={<></>}
+          rightPanelAdditionalItems={renderDisabledSaveButton()}
+          additionalActionsMenu={renderOverlay()}
+          menuDropdownProps={{
+            disabled: true,
+          }}
+          tooltipProps={tooltipProps}
+        />
+      ) : (
+        <StyledCreateDatasetTitle>
+          {title || DEFAULT_TITLE}
+        </StyledCreateDatasetTitle>
+      )}
     </HeaderComponentStyles>
   );
 }

@@ -49,7 +49,11 @@ const propTypes = {
   renderHoverMenu: PropTypes.bool,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   activeTabs: PropTypes.arrayOf(PropTypes.string),
-  filterboxMigrationState: FILTER_BOX_MIGRATION_STATES,
+  filterboxMigrationState: PropTypes.oneOf(
+    Object.keys(FILTER_BOX_MIGRATION_STATES).map(
+      key => FILTER_BOX_MIGRATION_STATES[key],
+    ),
+  ),
 
   // actions (from DashboardComponent.jsx)
   logEvent: PropTypes.func.isRequired,
@@ -220,9 +224,12 @@ export class Tabs extends React.PureComponent {
       title: t('Delete dashboard tab?'),
       content: (
         <span>
-          Deleting a tab will remove all content within it. You may still
-          reverse this action with the <b>undo</b> button (cmd + z) until you
-          save your changes.
+          {t(
+            'Deleting a tab will remove all content within it. You may still ' +
+              'reverse this action with the',
+          )}{' '}
+          <b>{t('undo')}</b>{' '}
+          {t('button (cmd + z) until you save your changes.')}
         </span>
       ),
       onOk: () => {
@@ -231,8 +238,8 @@ export class Tabs extends React.PureComponent {
         this.handleDeleteTab(tabIndex);
       },
       okType: 'danger',
-      okText: 'DELETE',
-      cancelText: 'CANCEL',
+      okText: t('DELETE'),
+      cancelText: t('CANCEL'),
       icon: null,
     });
   };
@@ -336,9 +343,10 @@ export class Tabs extends React.PureComponent {
     const { tabIndex: selectedTabIndex, activeKey } = this.state;
 
     let tabsToHighlight;
-    if (nativeFilters?.focusedFilterId) {
-      tabsToHighlight =
-        nativeFilters.filters[nativeFilters.focusedFilterId].tabsInScope;
+    const highlightedFilterId =
+      nativeFilters?.focusedFilterId || nativeFilters?.hoveredFilterId;
+    if (highlightedFilterId) {
+      tabsToHighlight = nativeFilters.filters[highlightedFilterId]?.tabsInScope;
     }
     return (
       <DragDroppable

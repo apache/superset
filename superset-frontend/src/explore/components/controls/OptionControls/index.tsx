@@ -179,6 +179,7 @@ export const OptionControlLabel = ({
   type,
   index,
   isExtra,
+  datasourceWarningMessage,
   tooltipTitle,
   multi = true,
   ...props
@@ -195,7 +196,8 @@ export const OptionControlLabel = ({
   type: string;
   index: number;
   isExtra?: boolean;
-  tooltipTitle: string;
+  datasourceWarningMessage?: string;
+  tooltipTitle?: string;
   multi?: boolean;
 }) => {
   const theme = useTheme();
@@ -306,7 +308,10 @@ export const OptionControlLabel = ({
       <CloseContainer
         role="button"
         data-test="remove-control-button"
-        onClick={onRemove}
+        onClick={e => {
+          e.stopPropagation();
+          onRemove();
+        }}
       >
         <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
       </CloseContainer>
@@ -314,15 +319,18 @@ export const OptionControlLabel = ({
         {isFunction && <Icons.FieldDerived />}
         {getLabelContent()}
       </Label>
-      {isExtra && (
+      {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltipWithTrigger
           icon="exclamation-triangle"
           placement="top"
           bsStyle="warning"
-          tooltip={t(`
+          tooltip={
+            datasourceWarningMessage ||
+            t(`
                 This filter was inherited from the dashboard's context.
                 It won't be saved when saving the chart.
-              `)}
+              `)
+          }
         />
       )}
       {withCaret && (

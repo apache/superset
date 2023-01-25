@@ -19,6 +19,7 @@
 
 import userEvent from '@testing-library/user-event';
 import React from 'react';
+import { getMockStore } from 'spec/fixtures/mockStore';
 import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag } from 'src/featureFlags';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
@@ -46,6 +47,7 @@ const createProps = (viz_type = 'sunburst') =>
     forceRefresh: jest.fn(),
     handleToggleFullSize: jest.fn(),
     toggleExpandSlice: jest.fn(),
+    logEvent: jest.fn(),
     slice: {
       slice_id: 371,
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
@@ -96,9 +98,11 @@ const createProps = (viz_type = 'sunburst') =>
 
 const renderWrapper = (overrideProps?: SliceHeaderControlsProps) => {
   const props = overrideProps || createProps();
+  const store = getMockStore();
   return render(<SliceHeaderControls {...props} />, {
     useRedux: true,
     useRouter: true,
+    store,
   });
 };
 
@@ -253,6 +257,7 @@ test('Should show the "Drill to detail"', () => {
     [FeatureFlag.DRILL_TO_DETAIL]: true,
   };
   const props = createProps();
+  props.slice.slice_id = 18;
   renderWrapper(props);
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });

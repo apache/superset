@@ -227,8 +227,10 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
             return_value="account_info"
         )
 
-        mock_get_engine.return_value.url.host = "google-host"
-        mock_get_engine.return_value.dialect.credentials_info = "secrets"
+        mock_get_engine.return_value.__enter__.return_value.url.host = "google-host"
+        mock_get_engine.return_value.__enter__.return_value.dialect.credentials_info = (
+            "secrets"
+        )
 
         BigQueryEngineSpec.df_to_sql(
             database=database,
@@ -246,11 +248,11 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         )
 
     def test_extract_errors(self):
-        msg = "403 POST https://bigquery.googleapis.com/bigquery/v2/projects/test-keel-310804/jobs?prettyPrint=false: Access Denied: Project User does not have bigquery.jobs.create permission in project profound-keel-310804"
+        msg = "403 POST https://bigquery.googleapis.com/bigquery/v2/projects/test-keel-310804/jobs?prettyPrint=false: Access Denied: Project profound-keel-310804: User does not have bigquery.jobs.create permission in project profound-keel-310804"
         result = BigQueryEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message="We were unable to connect to your database. Please confirm that your service account has the Viewer and Job User roles on the project.",
+                message='Unable to connect. Verify that the following roles are set on the service account: "BigQuery Data Viewer", "BigQuery Metadata Viewer", "BigQuery Job User" and the following permissions are set "bigquery.readsessions.create", "bigquery.readsessions.getData"',
                 error_type=SupersetErrorType.CONNECTION_DATABASE_PERMISSIONS_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -354,7 +356,7 @@ class TestBigQueryDbEngineSpec(TestDbEngineSpec):
         ]
 
     @mock.patch("superset.models.core.Database.db_engine_spec", BigQueryEngineSpec)
-    @mock.patch("pybigquery._helpers.create_bigquery_client", mock.Mock)
+    @mock.patch("sqlalchemy_bigquery._helpers.create_bigquery_client", mock.Mock)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_calculated_column_in_order_by(self):
         table = self.get_table(name="birth_names")

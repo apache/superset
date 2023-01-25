@@ -28,7 +28,7 @@ import {
   styled,
   useTheme,
   isAdhocColumn,
-  QueryObjectFilterClause,
+  BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
 import { PivotTable, sortAs, aggregatorTemplates } from './react-pivottable';
 import {
@@ -144,6 +144,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     metricColorFormatters,
     dateFormatters,
     onContextMenu,
+    timeGrainSqla,
   } = props;
 
   const theme = useTheme();
@@ -370,18 +371,20 @@ export default function PivotTableChart(props: PivotTableProps) {
     ) => {
       if (onContextMenu) {
         e.preventDefault();
-        const filters: QueryObjectFilterClause[] = [];
+        e.stopPropagation();
+        const filters: BinaryQueryObjectFilterClause[] = [];
         if (colKey && colKey.length > 1) {
           colKey.forEach((val, i) => {
             const col = cols[i];
-            const formattedVal =
-              dateFormatters[col]?.(val as number) || String(val);
+            const formatter = dateFormatters[col];
+            const formattedVal = formatter?.(val as number) || String(val);
             if (i > 0) {
               filters.push({
                 col,
                 op: '==',
                 val,
                 formattedVal,
+                grain: formatter ? timeGrainSqla : undefined,
               });
             }
           });
@@ -389,20 +392,21 @@ export default function PivotTableChart(props: PivotTableProps) {
         if (rowKey) {
           rowKey.forEach((val, i) => {
             const col = rows[i];
-            const formattedVal =
-              dateFormatters[col]?.(val as number) || String(val);
+            const formatter = dateFormatters[col];
+            const formattedVal = formatter?.(val as number) || String(val);
             filters.push({
               col,
               op: '==',
               val,
               formattedVal,
+              grain: formatter ? timeGrainSqla : undefined,
             });
           });
         }
-        onContextMenu(filters, e.clientX, e.clientY);
+        onContextMenu(e.clientX, e.clientY, filters);
       }
     },
-    [cols, dateFormatters, onContextMenu, rows],
+    [cols, dateFormatters, onContextMenu, rows, timeGrainSqla],
   );
 
   return (

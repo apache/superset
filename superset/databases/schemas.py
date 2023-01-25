@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# pylint: disable=no-self-use, unused-argument
+
 import inspect
 import json
 from typing import Any, Dict
@@ -240,7 +243,6 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         missing=ConfigurationMethod.SQLALCHEMY_FORM,
     )
 
-    # pylint: disable=no-self-use, unused-argument
     @pre_load
     def build_sqlalchemy_uri(
         self, data: Dict[str, Any], **kwargs: Any
@@ -303,9 +305,27 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         return data
 
 
+def rename_encrypted_extra(
+    self: Schema,
+    data: Dict[str, Any],
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """
+    Rename ``encrypted_extra`` to ``masked_encrypted_extra``.
+
+    PR #21248 changed the database schema for security reasons. This pre-loader keeps
+    Superset backwards compatible with older clients.
+    """
+    if "encrypted_extra" in data:
+        data["masked_encrypted_extra"] = data.pop("encrypted_extra")
+    return data
+
+
 class DatabaseValidateParametersSchema(Schema):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
+
+    rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     id = fields.Integer(allow_none=True, description="Database ID (for updates)")
     engine = fields.String(required=True, description="SQLAlchemy engine to use")
@@ -314,6 +334,11 @@ class DatabaseValidateParametersSchema(Schema):
         keys=fields.String(),
         values=fields.Raw(allow_none=True),
         description="DB-specific parameters for configuration",
+    )
+    catalog = fields.Dict(
+        keys=fields.String(),
+        values=fields.Raw(allow_none=True),
+        description="Gsheets specific column for managing label to sheet urls",
     )
     database_name = fields.String(
         description=database_name_description,
@@ -340,9 +365,25 @@ class DatabaseValidateParametersSchema(Schema):
     )
 
 
+class DatabaseSSHTunnel(Schema):
+    id = fields.Integer(allow_none=True, description="SSH Tunnel ID (for updates)")
+    server_address = fields.String()
+    server_port = fields.Integer()
+    username = fields.String()
+
+    # Basic Authentication
+    password = fields.String(required=False)
+
+    # password protected private key authentication
+    private_key = fields.String(required=False)
+    private_key_password = fields.String(required=False)
+
+
 class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
+
+    rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
         description=database_name_description,
@@ -382,11 +423,14 @@ class DatabasePostSchema(Schema, DatabaseParametersSchemaMixin):
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
     uuid = fields.String(required=False)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
+
+    rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
         description=database_name_description,
@@ -425,9 +469,13 @@ class DatabasePutSchema(Schema, DatabaseParametersSchemaMixin):
     )
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
+
+    rename_encrypted_extra = pre_load(rename_encrypted_extra)
+
     database_name = fields.String(
         description=database_name_description,
         allow_none=True,
@@ -449,6 +497,8 @@ class DatabaseTestConnectionSchema(Schema, DatabaseParametersSchemaMixin):
         description=sqlalchemy_uri_description,
         validate=[Length(1, 1024), sqlalchemy_uri_validator],
     )
+
+    ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
 
 
 class TableMetadataOptionsResponseSchema(Schema):
@@ -573,7 +623,6 @@ class DatabaseFunctionNamesResponse(Schema):
 
 
 class ImportV1DatabaseExtraSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
     @pre_load
     def fix_schemas_allowed_for_csv_upload(  # pylint: disable=invalid-name
         self, data: Dict[str, Any], **kwargs: Any
@@ -611,7 +660,6 @@ class ImportV1DatabaseExtraSchema(Schema):
 
 
 class ImportV1DatabaseSchema(Schema):
-    # pylint: disable=no-self-use, unused-argument
     @pre_load
     def fix_allow_csv_upload(
         self, data: Dict[str, Any], **kwargs: Any
@@ -642,7 +690,6 @@ class ImportV1DatabaseSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)
 
-    # pylint: disable=no-self-use, unused-argument
     @validates_schema
     def validate_password(self, data: Dict[str, Any], **kwargs: Any) -> None:
         """If sqlalchemy_uri has a masked password, password is required"""

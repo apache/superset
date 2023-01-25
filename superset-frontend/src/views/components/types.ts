@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { NavBarProps, MenuObjectProps } from './Menu';
+import { NavBarProps, MenuObjectProps } from 'src/types/bootstrapTypes';
 
 export interface ExtentionConfigs {
   ALLOWED_EXTENSIONS: Array<any>;
@@ -40,4 +40,5 @@ export interface RightMenuProps {
 export enum GlobalMenuDataOptions {
   GOOGLE_SHEETS = 'gsheets',
   DB_CONNECTION = 'dbconnection',
+  DATASET_CREATION = 'datasetCreation',
 }

@@ -40,6 +40,7 @@ Join our growing community!
 - [Cape Crypto](https://capecrypto.com)
 - [Capital Service S.A.](http://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](http://clark.de/)
+- [KarrotPay](https://www.daangnpay.com/)
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](http://xendit.co/) [@LieAlbertTriAdrian]
 
@@ -72,6 +73,7 @@ Join our growing community!
 - [Apollo GraphQL](https://www.apollographql.com/) [@evans]
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
+- [Careem](https://www.careem.com/) [@SamraHanifCareem]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [CnOvit](http://www.cnovit.com/) [@xieshaohu]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
@@ -86,10 +88,12 @@ Join our growing community!
 - [Intercom](https://www.intercom.com/) [@kate-gallo]
 - [jampp](https://jampp.com/)
 - [Konfío](http://konfio.mx) [@uis-rodriguez]
+- [Mainstrat](https://mainstrat.com/)
 - [mishmash io](https://mishmash.io/)[@mishmash-io]
 - [Myra Labs](http://www.myralabs.com/) [@viksit]
 - [Nielsen](http://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
+- [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [Preset, Inc.](https://preset.io)
@@ -142,16 +146,22 @@ Join our growing community!
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
 - [QPID Health](http://www.qpidhealth.com/)
+- [REDCap Cloud](https://www.redcapcloud.com/)
 - [TrustMedis](https://trustmedis.com) [@famasya]
 - [WeSure](https://www.wesure.cn/)
 
 ### HR / Staffing
+- [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
 
 ### News
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
 
+### Government
+- [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
+
 ### Others
+- [AI inside](https://inside.ai/en/)
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [komoot](https://www.komoot.com/) [@christophlingg]

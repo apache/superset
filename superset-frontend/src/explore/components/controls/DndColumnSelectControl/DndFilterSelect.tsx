@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   FeatureFlag,
+  hasGenericChartAxes,
   isFeatureEnabled,
   logging,
   Metric,
@@ -27,7 +28,13 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { ColumnMeta, withDndFallback } from '@superset-ui/chart-controls';
+import {
+  ColumnMeta,
+  isColumnMeta,
+  isTemporalColumn,
+  withDndFallback,
+} from '@superset-ui/chart-controls';
+import Modal from 'src/components/Modal';
 import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
   Operators,
@@ -35,7 +42,6 @@ import {
 import { Datasource, OptionSortType } from 'src/explore/types';
 import { OptionValueType } from 'src/explore/components/controls/DndColumnSelectControl/types';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
-import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import AdhocFilter, {
   CLAUSES,
@@ -50,6 +56,10 @@ import {
 import { DndItemType } from 'src/explore/components/DndItemType';
 import { ControlComponentProps } from 'src/explore/components/Control';
 import AdhocFilterControl from '../FilterControl/AdhocFilterControl';
+import DndAdhocFilterOption from './DndAdhocFilterOption';
+import { useDefaultTimeFilter } from '../DateFilterControl/utils';
+
+const { confirm } = Modal;
 
 const EMPTY_OBJECT = {};
 const DND_ACCEPTED_TYPES = [
@@ -68,10 +78,23 @@ export interface DndFilterSelectProps
   savedMetrics: Metric[];
   selectedMetrics: QueryFormMetric[];
   datasource: Datasource;
+  confirmDeletion?: {
+    triggerCondition: (
+      valueToBeDeleted: OptionValueType,
+      values: OptionValueType[],
+    ) => boolean;
+    confirmationTitle: string;
+    confirmationText: string;
+  };
 }
 
 const DndFilterSelect = (props: DndFilterSelectProps) => {
-  const { datasource, onChange = () => {}, name: controlName } = props;
+  const {
+    datasource,
+    onChange = () => {},
+    name: controlName,
+    confirmDeletion,
+  } = props;
 
   const propsValues = Array.from(props.value ?? []);
   const [values, setValues] = useState(
@@ -182,7 +205,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     );
   }, [props.value]);
 
-  const onClickClose = useCallback(
+  const removeValue = useCallback(
     (index: number) => {
       const valuesCopy = [...values];
       valuesCopy.splice(index, 1);
@@ -190,6 +213,27 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
       onChange(valuesCopy);
     },
     [onChange, values],
+  );
+
+  const onClickClose = useCallback(
+    (index: number) => {
+      if (confirmDeletion) {
+        const { confirmationText, confirmationTitle, triggerCondition } =
+          confirmDeletion;
+        if (triggerCondition(values[index], values)) {
+          confirm({
+            title: confirmationTitle,
+            content: confirmationText,
+            onOk() {
+              removeValue(index);
+            },
+          });
+          return;
+        }
+      }
+      removeValue(index);
+    },
+    [confirmDeletion, removeValue, values],
   );
 
   const onShiftOptions = useCallback(
@@ -296,32 +340,18 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const valuesRenderer = useCallback(
     () =>
-      values.map((adhocFilter: AdhocFilter, index: number) => {
-        const label = adhocFilter.getDefaultLabel();
-        const tooltipTitle = adhocFilter.getTooltipTitle();
-        return (
-          <AdhocFilterPopoverTrigger
-            key={index}
-            adhocFilter={adhocFilter}
-            options={options}
-            datasource={datasource}
-            onFilterEdit={onFilterEdit}
-            partitionColumn={partitionColumn}
-          >
-            <OptionWrapper
-              key={index}
-              index={index}
-              label={label}
-              tooltipTitle={tooltipTitle}
-              clickClose={onClickClose}
-              onShiftOptions={onShiftOptions}
-              type={DndItemType.FilterOption}
-              withCaret
-              isExtra={adhocFilter.isExtra}
-            />
-          </AdhocFilterPopoverTrigger>
-        );
-      }),
+      values.map((adhocFilter: AdhocFilter, index: number) => (
+        <DndAdhocFilterOption
+          index={index}
+          adhocFilter={adhocFilter}
+          options={options}
+          datasource={datasource}
+          onFilterEdit={onFilterEdit}
+          partitionColumn={partitionColumn}
+          onClickClose={onClickClose}
+          onShiftOptions={onShiftOptions}
+        />
+      )),
     [
       onClickClose,
       onFilterEdit,
@@ -338,6 +368,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     togglePopover(true);
   }, [togglePopover]);
 
+  const defaultTimeFilter = useDefaultTimeFilter();
   const adhocFilter = useMemo(() => {
     if (isSavedMetric(droppedItem)) {
       return new AdhocFilter({
@@ -359,6 +390,15 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     if (config.subject && isFeatureEnabled(FeatureFlag.UX_BETA)) {
       config.operator = OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.IN].operation;
       config.operatorId = Operators.IN;
+    }
+    if (
+      hasGenericChartAxes &&
+      isColumnMeta(droppedItem) &&
+      isTemporalColumn(droppedItem?.column_name, props.datasource)
+    ) {
+      config.operator = Operators.TEMPORAL_RANGE;
+      config.operatorId = Operators.TEMPORAL_RANGE;
+      config.comparator = defaultTimeFilter;
     }
     return new AdhocFilter(config);
   }, [droppedItem]);
@@ -401,9 +441,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         visible={newFilterPopoverVisible}
         togglePopover={togglePopover}
         closePopover={closePopover}
-      >
-        <div />
-      </AdhocFilterPopoverTrigger>
+        requireSave={!!droppedItem}
+      />
     </>
   );
 };

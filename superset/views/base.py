@@ -103,12 +103,19 @@ FRONTEND_CONF_KEYS = (
     "SQLALCHEMY_DISPLAY_TEXT",
     "GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL",
     "DASHBOARD_AUTO_REFRESH_MODE",
+    "DASHBOARD_AUTO_REFRESH_INTERVALS",
+    "DASHBOARD_VIRTUALIZATION",
     "SCHEDULED_QUERIES",
     "EXCEL_EXTENSIONS",
     "CSV_EXTENSIONS",
     "COLUMNAR_EXTENSIONS",
     "ALLOWED_EXTENSIONS",
     "SAMPLES_ROW_LIMIT",
+    "DEFAULT_TIME_FILTER",
+    "HTML_SANITIZATION",
+    "HTML_SANITIZATION_SCHEMA_EXTENSIONS",
+    "WELCOME_PAGE_LAST_TAB",
+    "VIZ_TYPE_DENYLIST",
 )
 
 logger = logging.getLogger(__name__)
@@ -177,6 +184,30 @@ def generate_download_headers(
     content_disp = f"attachment; filename={filename}.{extension}"
     headers = {"Content-Disposition": content_disp}
     return headers
+
+
+def deprecated(
+    eol_version: str = "3.0.0",
+) -> Callable[[Callable[..., FlaskResponse]], Callable[..., FlaskResponse]]:
+    """
+    A decorator to set an API endpoint from SupersetView has deprecated.
+    Issues a log warning
+    """
+
+    def _deprecated(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+        def wraps(self: "BaseSupersetView", *args: Any, **kwargs: Any) -> FlaskResponse:
+            logger.warning(
+                "%s.%s "
+                "This API endpoint is deprecated and will be removed in version %s",
+                self.__class__.__name__,
+                f.__name__,
+                eol_version,
+            )
+            return f(self, *args, **kwargs)
+
+        return functools.update_wrapper(wraps, f)
+
+    return _deprecated
 
 
 def api(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
@@ -336,7 +367,11 @@ def menu_data(user: User) -> Dict[str, Any]:
             # show the watermark if the default app icon has been overriden
             "show_watermark": ("superset-logo-horiz" not in appbuilder.app_icon),
             "bug_report_url": appbuilder.app.config["BUG_REPORT_URL"],
+            "bug_report_icon": appbuilder.app.config["BUG_REPORT_ICON"],
+            "bug_report_text": appbuilder.app.config["BUG_REPORT_TEXT"],
             "documentation_url": appbuilder.app.config["DOCUMENTATION_URL"],
+            "documentation_icon": appbuilder.app.config["DOCUMENTATION_ICON"],
+            "documentation_text": appbuilder.app.config["DOCUMENTATION_TEXT"],
             "version_string": appbuilder.app.config["VERSION_STRING"],
             "version_sha": appbuilder.app.config["VERSION_SHA"],
             "build_number": build_number,
@@ -357,13 +392,12 @@ def menu_data(user: User) -> Dict[str, Any]:
 
 
 @cache_manager.cache.memoize(timeout=60)
-def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+def cached_common_bootstrap_data(user: User) -> Dict[str, Any]:
     """Common data always sent to the client
 
-    The function is memoized as the return value only changes based
-    on configuration and feature flag values.
+    The function is memoized as the return value only changes when user permissions
+    or configuration values change.
     """
-    messages = get_flashed_messages(with_categories=True)
     locale = str(get_locale())
 
     # should not expose API TOKEN to frontend
@@ -387,7 +421,6 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
     bootstrap_data = {
-        "flash_messages": messages,
         "conf": frontend_config,
         "locale": locale,
         "language_pack": get_language_pack(locale),
@@ -399,6 +432,13 @@ def common_bootstrap_payload(user: User) -> Dict[str, Any]:
     }
     bootstrap_data.update(conf["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     return bootstrap_data
+
+
+def common_bootstrap_payload(user: User) -> Dict[str, Any]:
+    return {
+        **(cached_common_bootstrap_data(user)),
+        "flash_messages": get_flashed_messages(with_categories=True),
+    }
 
 
 def get_error_level_from_status_code(  # pylint: disable=invalid-name

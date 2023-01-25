@@ -21,6 +21,7 @@ import { ReactWrapper } from 'enzyme';
 import { styledMount as mount } from 'spec/helpers/theming';
 import FilterableTable, {
   MAX_COLUMNS_FOR_TABLE,
+  convertBigIntStrToNumber,
 } from 'src/components/FilterableTable';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -330,4 +331,20 @@ describe('FilterableTable sorting - RTL', () => {
     expect(gridCells[5]).toHaveTextContent('2021-10-01');
     expect(gridCells[6]).toHaveTextContent('2022-01-02');
   });
+});
+
+test('renders bigInt value in a number format', () => {
+  expect(convertBigIntStrToNumber('123')).toBe('123');
+  expect(convertBigIntStrToNumber('some string value')).toBe(
+    'some string value',
+  );
+  expect(convertBigIntStrToNumber('{ a: 123 }')).toBe('{ a: 123 }');
+  expect(convertBigIntStrToNumber('"Not a Number"')).toBe('"Not a Number"');
+  // trim quotes for bigint string format
+  expect(convertBigIntStrToNumber('"-12345678901234567890"')).toBe(
+    '-12345678901234567890',
+  );
+  expect(convertBigIntStrToNumber('"12345678901234567890"')).toBe(
+    '12345678901234567890',
+  );
 });

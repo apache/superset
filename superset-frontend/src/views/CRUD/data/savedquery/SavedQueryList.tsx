@@ -50,6 +50,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import Icons from 'src/components/Icons';
+import { BootstrapUser } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 const PAGE_SIZE = 25;
@@ -69,9 +70,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 interface SavedQueryListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  user: {
-    userId: string | number;
-  };
+  user: BootstrapUser;
 }
 
 const StyledTableLabel = styled.div`
@@ -424,6 +423,7 @@ function SavedQueryList({
     () => [
       {
         Header: t('Database'),
+        key: 'database',
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -445,6 +445,7 @@ function SavedQueryList({
       {
         Header: t('Schema'),
         id: 'schema',
+        key: 'schema',
         input: 'select',
         operator: FilterOperator.equals,
         unfilteredLabel: 'All',
@@ -462,6 +463,7 @@ function SavedQueryList({
       {
         Header: t('Search'),
         id: 'label',
+        key: 'search',
         input: 'search',
         operator: FilterOperator.allText,
       },

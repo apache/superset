@@ -19,9 +19,8 @@
 import React from 'react';
 import {
   ensureIsArray,
-  FeatureFlag,
+  hasGenericChartAxes,
   isAdhocColumn,
-  isFeatureEnabled,
   isPhysicalColumn,
   QueryFormMetric,
   smartDateFormatter,
@@ -31,7 +30,6 @@ import {
 import {
   ControlPanelConfig,
   D3_TIME_FORMAT_OPTIONS,
-  formatSelectOptions,
   sections,
   sharedControls,
   emitFilterControl,
@@ -68,7 +66,7 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
+          hasGenericChartAxes
             ? {
                 name: 'time_grain_sqla',
                 config: {
@@ -98,9 +96,7 @@ const config: ControlPanelConfig = {
                 },
               }
             : null,
-          isFeatureEnabled(FeatureFlag.GENERIC_CHART_AXES)
-            ? 'datetime_columns_lookup'
-            : null,
+          hasGenericChartAxes ? 'temporal_columns_lookup' : null,
         ],
         [
           {
@@ -181,26 +177,29 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               label: t('Aggregation function'),
               clearable: false,
-              choices: formatSelectOptions([
-                'Count',
-                'Count Unique Values',
-                'List Unique Values',
-                'Sum',
-                'Average',
-                'Median',
-                'Sample Variance',
-                'Sample Standard Deviation',
-                'Minimum',
-                'Maximum',
-                'First',
-                'Last',
-                'Sum as Fraction of Total',
-                'Sum as Fraction of Rows',
-                'Sum as Fraction of Columns',
-                'Count as Fraction of Total',
-                'Count as Fraction of Rows',
-                'Count as Fraction of Columns',
-              ]),
+              choices: [
+                ['Count', t('Count')],
+                ['Count Unique Values', t('Count Unique Values')],
+                ['List Unique Values', t('List Unique Values')],
+                ['Sum', t('Sum')],
+                ['Average', t('Average')],
+                ['Median', t('Median')],
+                ['Sample Variance', t('Sample Variance')],
+                ['Sample Standard Deviation', t('Sample Standard Deviation')],
+                ['Minimum', t('Minimum')],
+                ['Maximum', t('Maximum')],
+                ['First', t('First')],
+                ['Last', t('Last')],
+                ['Sum as Fraction of Total', t('Sum as Fraction of Total')],
+                ['Sum as Fraction of Rows', t('Sum as Fraction of Rows')],
+                ['Sum as Fraction of Columns', t('Sum as Fraction of Columns')],
+                ['Count as Fraction of Total', t('Count as Fraction of Total')],
+                ['Count as Fraction of Rows', t('Count as Fraction of Rows')],
+                [
+                  'Count as Fraction of Columns',
+                  t('Count as Fraction of Columns'),
+                ],
+              ],
               default: 'Sum',
               description: t(
                 'Aggregate function to apply when pivoting and computing the total rows and columns',

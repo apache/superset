@@ -203,6 +203,7 @@ export const extraQueryEditor1 = {
   id: 'diekd23',
   sql: 'SELECT *\nFROM\nWHERE\nLIMIT',
   name: 'Untitled Query 2',
+  selectedText: 'SELECT',
 };
 
 export const extraQueryEditor2 = {
@@ -682,16 +683,14 @@ export const initialState = {
 };
 
 export const query = {
-  id: 'clientId2353',
+  name: 'test query',
   dbId: 1,
   sql: 'SELECT * FROM something',
-  sqlEditorId: defaultQueryEditor.id,
-  tab: 'unimportant',
-  tempTable: null,
-  runAsync: false,
-  ctas: false,
-  cached: false,
+  description: 'test description',
+  schema: 'test schema',
 };
+
+export const queryId = 'clientId2353';
 
 export const testQuery: ISaveableDatasource = {
   name: 'unimportant',
@@ -723,7 +722,7 @@ export const mockdatasets = [...new Array(3)].map((_, i) => ({
   changed_by: 'user',
   changed_on: new Date().toISOString(),
   database_name: `db ${i}`,
-  explore_url: `/explore/?dataset_type=table&dataset_id=${i}`,
+  explore_url: `/explore/?datasource_type=table&datasource_id=${i}`,
   id: i,
   schema: `schema ${i}`,
   table_name: `coolest table ${i}`,

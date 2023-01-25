@@ -23,12 +23,26 @@ from typing import Sequence, Union
 import backoff
 from flask_babel import gettext as __
 from slack_sdk import WebClient
-from slack_sdk.errors import SlackApiError, SlackClientError
+from slack_sdk.errors import (
+    BotUserAccessError,
+    SlackApiError,
+    SlackClientConfigurationError,
+    SlackClientError,
+    SlackClientNotConnectedError,
+    SlackObjectFormationError,
+    SlackRequestError,
+    SlackTokenRotationError,
+)
 
 from superset import app
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
-from superset.reports.notifications.exceptions import NotificationError
+from superset.reports.notifications.exceptions import (
+    NotificationAuthorizationException,
+    NotificationMalformedException,
+    NotificationParamException,
+    NotificationUnprocessableException,
+)
 from superset.utils.decorators import statsd_gauge
 from superset.utils.urls import modify_url_query
 
@@ -173,5 +187,19 @@ Error: %(text)s
             else:
                 client.chat_postMessage(channel=channel, text=body)
             logger.info("Report sent to slack")
+        except (
+            BotUserAccessError,
+            SlackRequestError,
+            SlackClientConfigurationError,
+        ) as ex:
+            raise NotificationParamException(str(ex)) from ex
+        except SlackObjectFormationError as ex:
+            raise NotificationMalformedException(str(ex)) from ex
+        except SlackTokenRotationError as ex:
+            raise NotificationAuthorizationException(str(ex)) from ex
+        except (SlackClientNotConnectedError, SlackApiError) as ex:
+            raise NotificationUnprocessableException(str(ex)) from ex
         except SlackClientError as ex:
-            raise NotificationError(ex) from ex
+            # this is the base class for all slack client errors
+            # keep it last so that it doesn't interfere with @backoff
+            raise NotificationUnprocessableException(str(ex)) from ex

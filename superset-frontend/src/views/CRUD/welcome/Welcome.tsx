@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState } from 'react';
-import { styled, t, getExtensionsRegistry } from '@superset-ui/core';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  getExtensionsRegistry,
+  JsonObject,
+  styled,
+  t,
+} from '@superset-ui/core';
 import Collapse from 'src/components/Collapse';
 import { User } from 'src/types/bootstrapTypes';
 import { reject } from 'lodash';
@@ -40,7 +45,10 @@ import {
 } from 'src/views/CRUD/utils';
 import { FeatureFlag, isFeatureEnabled } from 'src/featureFlags';
 import { AntdSwitch } from 'src/components';
-
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { TableTab } from 'src/views/CRUD/types';
+import { canUserAccessSqlLab } from 'src/dashboard/util/permissionUtils';
+import { WelcomePageLastTab } from './types';
 import ActivityTable from './ActivityTable';
 import ChartTable from './ChartTable';
 import SavedQueries from './SavedQueries';
@@ -54,10 +62,10 @@ interface WelcomeProps {
 }
 
 export interface ActivityData {
-  Created?: Array<object>;
-  Edited?: Array<object>;
-  Viewed?: Array<object>;
-  Examples?: Array<object>;
+  [TableTab.Created]?: JsonObject[];
+  [TableTab.Edited]?: JsonObject[];
+  [TableTab.Viewed]?: JsonObject[];
+  [TableTab.Other]?: JsonObject[];
 }
 
 interface LoadingProps {
@@ -138,6 +146,8 @@ const WelcomeNav = styled.div`
   `}
 `;
 
+const bootstrapData = getBootstrapData();
+
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
     {[...new Array(loadingCardCount)].map((_, index) => (
@@ -152,6 +162,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
+  const canAccessSqlLab = canUserAccessSqlLab(user);
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
   const recent = `/superset/recent_activity/${user.userId}/?limit=6`;
@@ -169,7 +180,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const [dashboardData, setDashboardData] = useState<Array<object> | null>(
     null,
   );
-  const [loadedCount, setLoadedCount] = useState(0);
+  const [isFetchingActivityData, setIsFetchingActivityData] = useState(true);
 
   const collapseState = getItem(LocalStorageKeys.homepage_collapse_state, []);
   const [activeState, setActiveState] = useState<Array<string>>(collapseState);
@@ -185,28 +196,58 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     'welcome.main.replacement',
   );
 
+  const [otherTabTitle, otherTabFilters] = useMemo(() => {
+    const lastTab = bootstrapData.common?.conf
+      .WELCOME_PAGE_LAST_TAB as WelcomePageLastTab;
+    const [customTitle, customFilter] = Array.isArray(lastTab)
+      ? lastTab
+      : [undefined, undefined];
+    if (customTitle && customFilter) {
+      return [t(customTitle), customFilter];
+    }
+    if (lastTab === 'all') {
+      return [t('All'), []];
+    }
+    return [
+      t('Examples'),
+      [
+        {
+          col: 'created_by',
+          opr: 'rel_o_m',
+          value: 0,
+        },
+      ],
+    ];
+  }, []);
+
   useEffect(() => {
+    if (!otherTabFilters) {
+      return;
+    }
     const activeTab = getItem(LocalStorageKeys.homepage_activity_filter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
-    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast)
+    getRecentAcitivtyObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
         const data: ActivityData | null = {};
-        data.Examples = res.examples;
+        data[TableTab.Other] = res.other;
         if (res.viewed) {
           const filtered = reject(res.viewed, ['item_url', null]).map(r => r);
-          data.Viewed = filtered;
-          if (!activeTab && data.Viewed) {
-            setActiveChild('Viewed');
-          } else if (!activeTab && !data.Viewed) {
-            setActiveChild('Created');
-          } else setActiveChild(activeTab || 'Created');
-        } else if (!activeTab) setActiveChild('Created');
+          data[TableTab.Viewed] = filtered;
+          if (!activeTab && data[TableTab.Viewed]) {
+            setActiveChild(TableTab.Viewed);
+          } else if (!activeTab && !data[TableTab.Viewed]) {
+            setActiveChild(TableTab.Created);
+          } else setActiveChild(activeTab || TableTab.Created);
+        } else if (!activeTab) setActiveChild(TableTab.Created);
         else setActiveChild(activeTab);
         setActivityData(activityData => ({ ...activityData, ...data }));
       })
       .catch(
         createErrorHandler((errMsg: unknown) => {
-          setActivityData(activityData => ({ ...activityData, Viewed: [] }));
+          setActivityData(activityData => ({
+            ...activityData,
+            [TableTab.Viewed]: [],
+          }));
           addDangerToast(
             t('There was an issue fetching your recent activity: %s', errMsg),
           );
@@ -221,41 +262,47 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         value: `${id}`,
       },
     ];
-    getUserOwnedObjects(id, 'dashboard')
-      .then(r => {
-        setDashboardData(r);
-        setLoadedCount(loadedCount => loadedCount + 1);
-      })
-      .catch((err: unknown) => {
-        setDashboardData([]);
-        setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(
-          t('There was an issue fetching your dashboards: %s', err),
-        );
-      });
-    getUserOwnedObjects(id, 'chart')
-      .then(r => {
-        setChartData(r);
-        setLoadedCount(loadedCount => loadedCount + 1);
-      })
-      .catch((err: unknown) => {
-        setChartData([]);
-        setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(t('There was an issue fetching your chart: %s', err));
-      });
-    getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
-      .then(r => {
-        setQueryData(r);
-        setLoadedCount(loadedCount => loadedCount + 1);
-      })
-      .catch((err: unknown) => {
-        setQueryData([]);
-        setLoadedCount(loadedCount => loadedCount + 1);
-        addDangerToast(
-          t('There was an issues fetching your saved queries: %s', err),
-        );
-      });
-  }, []);
+    Promise.all([
+      getUserOwnedObjects(id, 'dashboard')
+        .then(r => {
+          setDashboardData(r);
+          return Promise.resolve();
+        })
+        .catch((err: unknown) => {
+          setDashboardData([]);
+          addDangerToast(
+            t('There was an issue fetching your dashboards: %s', err),
+          );
+          return Promise.resolve();
+        }),
+      getUserOwnedObjects(id, 'chart')
+        .then(r => {
+          setChartData(r);
+          return Promise.resolve();
+        })
+        .catch((err: unknown) => {
+          setChartData([]);
+          addDangerToast(t('There was an issue fetching your chart: %s', err));
+          return Promise.resolve();
+        }),
+      canAccessSqlLab
+        ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
+            .then(r => {
+              setQueryData(r);
+              return Promise.resolve();
+            })
+            .catch((err: unknown) => {
+              setQueryData([]);
+              addDangerToast(
+                t('There was an issue fetching your saved queries: %s', err),
+              );
+              return Promise.resolve();
+            })
+        : Promise.resolve(),
+    ]).then(() => {
+      setIsFetchingActivityData(false);
+    });
+  }, [otherTabFilters]);
 
   const handleToggle = () => {
     setChecked(!checked);
@@ -277,13 +324,14 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   }, [chartData, queryData, dashboardData]);
 
   useEffect(() => {
-    if (!collapseState && activityData?.Viewed?.length) {
+    if (!collapseState && activityData?.[TableTab.Viewed]?.length) {
       setActiveState(activeState => ['1', ...activeState]);
     }
   }, [activityData]);
 
   const isRecentActivityLoading =
-    !activityData?.Examples && !activityData?.Viewed;
+    !activityData?.[TableTab.Other] && !activityData?.[TableTab.Viewed];
+
   return (
     <WelcomeContainer>
       {WelcomeMessageExtension && <WelcomeMessageExtension />}
@@ -296,7 +344,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             {isFeatureEnabled(FeatureFlag.THUMBNAILS) ? (
               <div className="switch">
                 <AntdSwitch checked={checked} onChange={handleToggle} />
-                <span>Thumbnails</span>
+                <span>{t('Thumbnails')}</span>
               </div>
             ) : null}
           </WelcomeNav>
@@ -308,16 +356,16 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
           >
             <Collapse.Panel header={t('Recents')} key="1">
               {activityData &&
-              (activityData.Viewed ||
-                activityData.Examples ||
-                activityData.Created) &&
+              (activityData[TableTab.Viewed] ||
+                activityData[TableTab.Other] ||
+                activityData[TableTab.Created]) &&
               activeChild !== 'Loading' ? (
                 <ActivityTable
                   user={{ userId: user.userId! }} // user is definitely not a guest user on this page
                   activeChild={activeChild}
                   setActiveChild={setActiveChild}
                   activityData={activityData}
-                  loadedCount={loadedCount}
+                  isFetchingActivityData={isFetchingActivityData}
                 />
               ) : (
                 <LoadingCards />
@@ -331,7 +379,9 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   user={user}
                   mine={dashboardData}
                   showThumbnails={checked}
-                  examples={activityData?.Examples}
+                  otherTabData={activityData?.[TableTab.Other]}
+                  otherTabFilters={otherTabFilters}
+                  otherTabTitle={otherTabTitle}
                 />
               )}
             </Collapse.Panel>
@@ -343,22 +393,26 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   showThumbnails={checked}
                   user={user}
                   mine={chartData}
-                  examples={activityData?.Examples}
+                  otherTabData={activityData?.[TableTab.Other]}
+                  otherTabFilters={otherTabFilters}
+                  otherTabTitle={otherTabTitle}
                 />
               )}
             </Collapse.Panel>
-            <Collapse.Panel header={t('Saved queries')} key="4">
-              {!queryData ? (
-                <LoadingCards cover={checked} />
-              ) : (
-                <SavedQueries
-                  showThumbnails={checked}
-                  user={user}
-                  mine={queryData}
-                  featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
-                />
-              )}
-            </Collapse.Panel>
+            {canAccessSqlLab && (
+              <Collapse.Panel header={t('Saved queries')} key="4">
+                {!queryData ? (
+                  <LoadingCards cover={checked} />
+                ) : (
+                  <SavedQueries
+                    showThumbnails={checked}
+                    user={user}
+                    mine={queryData}
+                    featureFlag={isFeatureEnabled(FeatureFlag.THUMBNAILS)}
+                  />
+                )}
+              </Collapse.Panel>
+            )}
           </Collapse>
         </>
       )}

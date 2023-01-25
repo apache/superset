@@ -23,7 +23,11 @@ import {
   interceptBulkDelete,
   interceptUpdate,
   interceptDelete,
+  visitSampleChartFromList,
+  saveChartToDashboard,
+  interceptFiltering,
 } from '../explore/utils';
+import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
 
 function orderAlphabetical() {
   setFilter('Sort', 'Alphabetical');
@@ -43,14 +47,67 @@ function confirmDelete() {
   cy.getBySel('modal-confirm-button').click();
 }
 
+function visitChartList() {
+  interceptFiltering();
+  cy.visit(CHART_LIST);
+  cy.wait('@filtering');
+}
+
 describe('Charts list', () => {
   beforeEach(() => {
     cy.preserveLogin();
   });
 
+  describe.skip('Cross-referenced dashboards', () => {
+    beforeEach(() => {
+      cy.createSampleDashboards([0, 1, 2, 3]);
+      cy.createSampleCharts([0]);
+      visitChartList();
+    });
+
+    it('should show the cross-referenced dashboards in the table cell', () => {
+      interceptDashboardGet();
+      cy.getBySel('table-row')
+        .first()
+        .find('[data-test="table-row-cell"]')
+        .find('[data-test="crosslinks"]')
+        .should('be.empty');
+      cy.getBySel('table-row')
+        .eq(10)
+        .find('[data-test="table-row-cell"]')
+        .find('[data-test="crosslinks"]')
+        .contains('Supported Charts Dashboard')
+        .invoke('removeAttr', 'target')
+        .click();
+      cy.wait('@get');
+    });
+
+    it('should show the newly added dashboards in a tooltip', () => {
+      interceptDashboardGet();
+      visitSampleChartFromList('1 - Sample chart');
+      saveChartToDashboard('1 - Sample dashboard');
+      saveChartToDashboard('2 - Sample dashboard');
+      saveChartToDashboard('3 - Sample dashboard');
+      visitChartList();
+      cy.getBySel('count-crosslinks').should('be.visible');
+      cy.getBySel('crosslinks')
+        .first()
+        .trigger('mouseover')
+        .then(() => {
+          cy.get('.ant-tooltip')
+            .contains('3 - Sample dashboard')
+            .invoke('removeAttr', 'target')
+            .click();
+          cy.wait('@get');
+        });
+    });
+  });
+
   describe('list mode', () => {
     before(() => {
-      cy.visit(CHART_LIST);
+      cy.createSampleDashboards([0, 1, 2, 3]);
+      cy.createSampleCharts([0]);
+      visitChartList();
       setGridMode('list');
     });
 
@@ -59,6 +116,7 @@ describe('Charts list', () => {
       cy.getBySel('sort-header').eq(1).contains('Chart');
       cy.getBySel('sort-header').eq(2).contains('Visualization type');
       cy.getBySel('sort-header').eq(3).contains('Dataset');
+      // cy.getBySel('sort-header').eq(4).contains('Dashboards added to');
       cy.getBySel('sort-header').eq(4).contains('Modified by');
       cy.getBySel('sort-header').eq(5).contains('Last modified');
       cy.getBySel('sort-header').eq(6).contains('Created by');
@@ -93,7 +151,7 @@ describe('Charts list', () => {
 
   describe('card mode', () => {
     before(() => {
-      cy.visit(CHART_LIST);
+      visitChartList();
       setGridMode('card');
     });
 
@@ -125,8 +183,8 @@ describe('Charts list', () => {
 
   describe('common actions', () => {
     beforeEach(() => {
-      cy.createSampleCharts();
-      cy.visit(CHART_LIST);
+      cy.createSampleCharts([0, 1, 2, 3]);
+      visitChartList();
     });
 
     it('should allow to favorite/unfavorite', () => {

@@ -43,6 +43,7 @@ const mockQueryEditor = {
   autorun: false,
   sql: 'SELECT * FROM ...',
   remoteId: 999,
+  schemaOptions: [{ value: 'query_schema' }, { value: 'query_schema_updated' }],
 };
 const disabled = {
   id: 'disabledEditorId',
@@ -72,6 +73,7 @@ const unsavedQueryEditor = {
   schema: 'query_schema_updated',
   sql: 'SELECT * FROM Updated Limit 100',
   autorun: true,
+  templateParams: '{ "my_value": "foo" }',
 };
 
 const standardProviderWithUnsaved: React.FC = ({ children }) => (
@@ -81,6 +83,7 @@ const standardProviderWithUnsaved: React.FC = ({ children }) => (
         ...initialState,
         sqlLab: {
           ...initialState.sqlLab,
+          queryEditors: [mockQueryEditor],
           unsavedQueryEditor,
         },
       })}
@@ -122,7 +125,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, remoteId, ...expected } = mockQueryEditor;
+      const { id, remoteId, schemaOptions, ...expected } = mockQueryEditor;
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);

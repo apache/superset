@@ -19,8 +19,8 @@ import json
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, List, Optional
-from zipfile import ZipFile
+from typing import Any, cast, Dict, List, Optional
+from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -29,7 +29,10 @@ from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 
 from superset import app, event_logger
-from superset.commands.importers.exceptions import NoValidFilesFoundError
+from superset.commands.importers.exceptions import (
+    IncorrectFormatError,
+    NoValidFilesFoundError,
+)
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.databases.commands.create import CreateDatabaseCommand
@@ -69,13 +72,21 @@ from superset.databases.schemas import (
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
+from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
+from superset.databases.ssh_tunnel.commands.exceptions import (
+    SSHTunnelDeleteFailedError,
+    SSHTunnelNotFoundError,
+)
 from superset.databases.utils import get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.ssh_tunnel import mask_password_info
+from superset.views.base import json_errors_response
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_form_data,
@@ -102,6 +113,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "available",
         "validate_parameters",
         "validate_sql",
+        "delete_ssh_tunnel",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -110,6 +122,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     base_filters = [["id", DatabaseFilter, lambda: []]]
     show_columns = [
         "id",
+        "uuid",
         "database_name",
         "cache_timeout",
         "expose_in_sqllab",
@@ -152,6 +165,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_ctas_schema",
         "id",
+        "uuid",
         "disable_data_preview",
         "engine_information",
     ]
@@ -212,6 +226,47 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ValidateSQLResponse,
     )
 
+    @expose("/<int:pk>", methods=["GET"])
+    @protect()
+    @safe
+    def get(self, pk: int, **kwargs: Any) -> Response:
+        """Get a database
+        ---
+        get:
+          description: >-
+            Get a database
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The database id
+            name: pk
+          responses:
+            200:
+              description: Database
+              content:
+                application/json:
+                  schema:
+                    type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        data = self.get_headless(pk, **kwargs)
+        try:
+            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
+                payload = data.json
+                payload["result"]["ssh_tunnel"] = ssh_tunnel.data
+                return payload
+            return data
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
+
     @expose("/", methods=["POST"])
     @protect()
     @safe
@@ -221,7 +276,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def post(self) -> Response:
+    def post(self) -> FlaskResponse:
         """Creates a new Database
         ---
         post:
@@ -273,11 +328,19 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if new_model.driver:
                 item["driver"] = new_model.driver
 
+            # Return SSH Tunnel and hide passwords if any
+            if item.get("ssh_tunnel"):
+                item["ssh_tunnel"] = mask_password_info(
+                    new_model.ssh_tunnel  # pylint: disable=no-member
+                )
+
             return self.response(201, id=new_model.id, result=item)
         except DatabaseInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DatabaseConnectionFailedError as ex:
             return self.response_422(message=str(ex))
+        except SupersetErrorsException as ex:
+            return json_errors_response(errors=ex.errors, status=ex.status)
         except DatabaseCreateFailedError as ex:
             logger.error(
                 "Error creating model %s: %s",
@@ -286,6 +349,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>", methods=["PUT"])
     @protect()
@@ -350,6 +415,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
             if changed_model.parameters:
                 item["parameters"] = changed_model.parameters
+            # Return SSH Tunnel and hide passwords if any
+            if item.get("ssh_tunnel"):
+                item["ssh_tunnel"] = mask_password_info(changed_model.ssh_tunnel)
             return self.response(200, id=changed_model.id, result=item)
         except DatabaseNotFoundError:
             return self.response_404()
@@ -479,6 +547,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(
                 500, message="There was an error connecting to the database"
             )
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
@@ -537,6 +607,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SQLAlchemyError as ex:
             self.incr_stats("error", self.table_metadata.__name__)
             return self.response_422(error_msg_from_exception(ex))
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
+
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
@@ -597,7 +670,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("init", self.table_metadata.__name__)
 
         parsed_schema = parse_js_uri_path_item(schema_name, eval_undefined=True)
-        table_name = parse_js_uri_path_item(table_name)  # type: ignore
+        table_name = cast(str, parse_js_uri_path_item(table_name))
         payload = database.db_engine_spec.extra_table_metadata(
             database, table_name, parsed_schema
         )
@@ -961,6 +1034,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         upload = request.files.get("formData")
         if not upload:
             return self.response_400()
+        if not is_zipfile(upload):
+            raise IncorrectFormatError("Not a ZIP file")
         with ZipFile(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
@@ -1075,6 +1150,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                             supports_file_upload:
                               description: Whether the engine supports file uploads
                               type: boolean
+                            disable_ssh_tunneling:
+                              description: Whether the engine supports SSH Tunnels
+                              type: boolean
             400:
               $ref: '#/components/responses/400'
             500:
@@ -1188,3 +1266,57 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command = ValidateDatabaseParametersCommand(payload)
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<int:pk>/ssh_tunnel/", methods=["DELETE"])
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".delete_ssh_tunnel",
+        log_to_statsd=False,
+    )
+    def delete_ssh_tunnel(self, pk: int) -> Response:
+        """Deletes a SSH Tunnel
+        ---
+        delete:
+          description: >-
+            Deletes a SSH Tunnel.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          responses:
+            200:
+              description: SSH Tunnel deleted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            DeleteSSHTunnelCommand(pk).run()
+            return self.response(200, message="OK")
+        except SSHTunnelNotFoundError:
+            return self.response_404()
+        except SSHTunnelDeleteFailedError as ex:
+            logger.error(
+                "Error deleting SSH Tunnel %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { TreePathInfo } from './types';
+import { TreePathInfo } from '../types';
 
 export const COLOR_SATURATION = [0.7, 0.4];
 export const LABEL_FONTSIZE = 11;

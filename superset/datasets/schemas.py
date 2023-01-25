@@ -80,6 +80,7 @@ class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
     schema = fields.String(validate=Length(0, 250))
     table_name = fields.String(required=True, allow_none=False, validate=Length(1, 250))
+    sql = fields.String(allow_none=True)
     owners = fields.List(fields.Integer())
     is_managed_externally = fields.Boolean(allow_none=True, default=False)
     external_url = fields.String(allow_none=True)

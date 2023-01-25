@@ -18,6 +18,7 @@
  */
 import { t, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from '../transformProps';
+import example from './images/example.jpg';
 import thumbnail from './images/thumbnail.png';
 import controlPanel from './controlPanel';
 
@@ -27,6 +28,7 @@ const metadata = new ChartMetadata({
   description: t(
     'Showcases the progress of a single metric against a given target. The higher the fill, the closer the metric is to the target.',
   ),
+  exampleGallery: [{ url: example }],
   name: t('Bullet Chart'),
   tags: [t('Business'), t('Legacy'), t('Report'), t('nvd3')],
   thumbnail,

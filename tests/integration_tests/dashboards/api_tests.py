@@ -225,15 +225,36 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric(uri, "get_datasets")
         self.assertEqual(response.status_code, 404)
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_draft_dashboard_datasets(self):
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_gamma_dashboard_datasets(self):
         """
-        All users should have access to dashboards without roles
+        Check that a gamma user with data access can access dashboard/datasets
         """
+        from superset.connectors.sqla.models import SqlaTable
+
+        # Set correct role permissions
+        gamma_role = security_manager.find_role("Gamma")
+        fixture_dataset = db.session.query(SqlaTable).get(1)
+        data_access_pvm = security_manager.add_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        gamma_role.permissions.append(data_access_pvm)
+        db.session.commit()
+
         self.login(username="gamma")
-        uri = "api/v1/dashboard/world_health/datasets"
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        db.session.commit()
+
+        uri = f"api/v1/dashboard/{dashboard.id}/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
+
+        # rollback permission change
+        data_access_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        security_manager.del_permission_role(gamma_role, data_access_pvm)
 
     @pytest.mark.usefixtures("create_dashboards")
     def get_dashboard_by_slug(self):
@@ -275,10 +296,22 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric(uri, "get_charts")
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.data.decode("utf-8"))
-        self.assertEqual(len(data["result"]), 1)
-        self.assertEqual(
-            data["result"][0]["slice_name"], dashboard.slices[0].slice_name
-        )
+        assert len(data["result"]) == 1
+        result = data["result"][0]
+        assert set(result.keys()) == {
+            "cache_timeout",
+            "certification_details",
+            "certified_by",
+            "changed_on",
+            "description",
+            "description_markeddown",
+            "form_data",
+            "id",
+            "slice_name",
+            "slice_url",
+        }
+        assert result["id"] == dashboard.slices[0].id
+        assert result["slice_name"] == dashboard.slices[0].slice_name
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):
@@ -307,16 +340,44 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         response = self.get_assert_metric(uri, "get_charts")
         self.assertEqual(response.status_code, 404)
 
-    @pytest.mark.usefixtures("create_dashboards")
-    def test_get_draft_dashboard_charts(self):
-        """
-        All users should have access to draft dashboards without roles
-        """
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_not_allowed(self):
         self.login(username="gamma")
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        self.assertEqual(response.status_code, 404)
+
+    @pytest.mark.usefixtures("create_dashboards")
+    def test_get_gamma_dashboard_charts(self):
+        """
+        Check that a gamma user with data access can access dashboard/charts
+        """
+        from superset.connectors.sqla.models import SqlaTable
+
+        # Set correct role permissions
+        gamma_role = security_manager.find_role("Gamma")
+        fixture_dataset = db.session.query(SqlaTable).get(1)
+        data_access_pvm = security_manager.add_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        gamma_role.permissions.append(data_access_pvm)
+        db.session.commit()
+
+        self.login(username="gamma")
+
         dashboard = self.dashboards[0]
+        dashboard.published = True
+        db.session.commit()
+
         uri = f"api/v1/dashboard/{dashboard.id}/charts"
         response = self.get_assert_metric(uri, "get_charts")
         assert response.status_code == 200
+
+        # rollback permission change
+        data_access_pvm = security_manager.find_permission_view_menu(
+            "datasource_access", fixture_dataset.perm
+        )
+        security_manager.del_permission_role(gamma_role, data_access_pvm)
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_empty(self):
@@ -439,7 +500,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         self.login(username="gamma")
         uri = f"api/v1/dashboard/{dashboard.id}"
         rv = self.client.get(uri)
-        assert rv.status_code == 200
+        assert rv.status_code == 404
         # rollback changes
         db.session.delete(dashboard)
         db.session.commit()
@@ -792,6 +853,46 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
                 ).id
             )
         self.login(username="admin")
+        argument = dashboard_ids
+        uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
+        rv = self.delete_assert_metric(uri, "bulk_delete")
+        self.assertEqual(rv.status_code, 200)
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {"message": f"Deleted {dashboard_count} dashboards"}
+        self.assertEqual(response, expected_response)
+        for dashboard_id in dashboard_ids:
+            model = db.session.query(Dashboard).get(dashboard_id)
+            self.assertEqual(model, None)
+
+    def test_delete_bulk_embedded_dashboards(self):
+        """
+        Dashboard API: Test delete bulk embedded
+        """
+        user = self.get_user("admin")
+        dashboard_count = 4
+        dashboard_ids = list()
+        for dashboard_name_index in range(dashboard_count):
+            dashboard_ids.append(
+                self.insert_dashboard(
+                    f"title{dashboard_name_index}",
+                    None,
+                    [user.id],
+                ).id
+            )
+        self.login(username=user.username)
+        for dashboard_id in dashboard_ids:
+            # post succeeds and returns value
+            allowed_domains = ["test.example", "embedded.example"]
+            resp = self.post_assert_metric(
+                f"api/v1/dashboard/{dashboard_id}/embedded",
+                {"allowed_domains": allowed_domains},
+                "set_embedded",
+            )
+            self.assertEqual(resp.status_code, 200)
+            result = json.loads(resp.data.decode("utf-8"))["result"]
+            self.assertIsNotNone(result["uuid"])
+            self.assertNotEqual(result["uuid"], "")
+            self.assertEqual(result["allowed_domains"], allowed_domains)
         argument = dashboard_ids
         uri = f"api/v1/dashboard/?q={prison.dumps(argument)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
@@ -1775,6 +1876,26 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
 
         response_roles = [result["text"] for result in response["result"]]
         assert "Alpha" in response_roles
+
+    def test_get_all_related_roles_with_with_extra_filters(self):
+        """
+        API: Test get filter related roles with extra related query filters
+        """
+        self.login(username="admin")
+
+        def _base_filter(query):
+            return query.filter_by(name="Alpha")
+
+        with patch.dict(
+            "superset.views.filters.current_app.config",
+            {"EXTRA_RELATED_QUERY_FILTERS": {"role": _base_filter}},
+        ):
+            uri = f"api/v1/dashboard/related/roles"
+            rv = self.client.get(uri)
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            response_roles = [result["text"] for result in response["result"]]
+            assert response_roles == ["Alpha"]
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):

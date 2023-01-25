@@ -502,6 +502,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     () => [
       {
         Header: t('Owner'),
+        key: 'owner',
         id: 'owners',
         input: 'select',
         operator: FilterOperator.relationManyMany,
@@ -521,6 +522,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Database'),
+        key: 'database',
         id: 'database',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -536,6 +538,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Schema'),
+        key: 'schema',
         id: 'schema',
         input: 'select',
         operator: FilterOperator.equals,
@@ -551,17 +554,19 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Type'),
+        key: 'sql',
         id: 'sql',
         input: 'select',
         operator: FilterOperator.datasetIsNullOrEmpty,
         unfilteredLabel: 'All',
         selects: [
-          { label: 'Virtual', value: false },
-          { label: 'Physical', value: true },
+          { label: t('Virtual'), value: false },
+          { label: t('Physical'), value: true },
         ],
       },
       {
         Header: t('Certified'),
+        key: 'certified',
         id: 'id',
         urlDisplay: 'certified',
         input: 'select',
@@ -574,6 +579,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'table_name',
         input: 'search',
         operator: FilterOperator.contains,
@@ -725,6 +731,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         show={datasetAddModalOpen}
         onHide={closeDatasetAddModal}
         onDatasetAdd={refreshData}
+        history={history}
       />
       {datasetCurrentlyDeleting && (
         <DeleteModal

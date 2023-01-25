@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObjectFilterClause } from '@superset-ui/core';
-import { EChartTransformedProps, EventHandlers } from '../types';
+import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
+import {
+  BaseTransformedProps,
+  CrossFilterTransformedProps,
+  EventHandlers,
+} from '../types';
 
 export type Event = {
   name: string;
@@ -40,15 +44,16 @@ export const clickEventHandler =
 
 export const contextMenuEventHandler =
   (
-    groupby: EChartTransformedProps<any>['groupby'],
-    onContextMenu: EChartTransformedProps<any>['onContextMenu'],
+    groupby: (BaseTransformedProps<any> &
+      CrossFilterTransformedProps)['groupby'],
+    onContextMenu: BaseTransformedProps<any>['onContextMenu'],
     labelMap: Record<string, string[]>,
   ) =>
   (e: Event) => {
     if (onContextMenu) {
       e.event.stop();
       const pointerEvent = e.event.event;
-      const filters: QueryObjectFilterClause[] = [];
+      const filters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
         groupby.forEach((dimension, i) =>
@@ -60,12 +65,12 @@ export const contextMenuEventHandler =
           }),
         );
       }
-      onContextMenu(filters, pointerEvent.clientX, pointerEvent.clientY);
+      onContextMenu(pointerEvent.clientX, pointerEvent.clientY, filters);
     }
   };
 
 export const allEventHandlers = (
-  transformedProps: EChartTransformedProps<any>,
+  transformedProps: BaseTransformedProps<any> & CrossFilterTransformedProps,
   handleChange: (values: string[]) => void,
 ) => {
   const { groupby, selectedValues, onContextMenu, labelMap } = transformedProps;

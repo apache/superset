@@ -35,7 +35,7 @@ describe('Download Chart > Distribution bar chart', () => {
 
     cy.visitChartByParams(formData);
     cy.get('.header-with-actions .ant-dropdown-trigger').click();
-    cy.get(':nth-child(1) > .ant-dropdown-menu-submenu-title').click();
+    cy.get(':nth-child(3) > .ant-dropdown-menu-submenu-title').click();
     cy.get(
       '.ant-dropdown-menu-submenu > .ant-dropdown-menu li:nth-child(3)',
     ).click();

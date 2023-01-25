@@ -251,7 +251,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       show={show}
       onHide={onHide}
       responsive
-      title={t('Change dataset')}
+      title={t('Swap dataset')}
       width={confirmChange ? '432px' : ''}
       height={confirmChange ? 'auto' : '540px'}
       hideFooter={!confirmChange}
@@ -260,13 +260,13 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
           {confirmChange && (
             <ConfirmModalStyled>
               <div className="btn-container">
-                <Button onClick={handlerCancelConfirm}>Cancel</Button>
+                <Button onClick={handlerCancelConfirm}>{t('Cancel')}</Button>
                 <Button
                   className="proceed-btn"
                   buttonStyle="primary"
                   onClick={handleChangeConfirm}
                 >
-                  Proceed
+                  {t('Proceed')}
                 </Button>
               </div>
             </ConfirmModalStyled>

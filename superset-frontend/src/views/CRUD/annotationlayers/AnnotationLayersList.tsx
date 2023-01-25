@@ -143,12 +143,10 @@ function AnnotationLayersList({
           }
 
           if (hasHistory) {
-            return (
-              <Link to={`/annotationmodelview/${id}/annotation`}>{name}</Link>
-            );
+            return <Link to={`/annotationlayer/${id}/annotation`}>{name}</Link>;
           }
 
-          return <a href={`/annotationmodelview/${id}/annotation`}>{name}</a>;
+          return <a href={`/annotationlayer/${id}/annotation`}>{name}</a>;
         },
       },
       {
@@ -283,6 +281,7 @@ function AnnotationLayersList({
     () => [
       {
         Header: t('Created by'),
+        key: 'created_by',
         id: 'created_by',
         input: 'select',
         operator: FilterOperator.relationOneMany,
@@ -302,6 +301,7 @@ function AnnotationLayersList({
       },
       {
         Header: t('Search'),
+        key: 'search',
         id: 'name',
         input: 'search',
         operator: FilterOperator.contains,
@@ -322,7 +322,7 @@ function AnnotationLayersList({
   };
 
   const onLayerAdd = (id?: number) => {
-    window.location.href = `/annotationmodelview/${id}/annotation`;
+    window.location.href = `/annotationlayer/${id}/annotation`;
   };
 
   const onModalHide = () => {

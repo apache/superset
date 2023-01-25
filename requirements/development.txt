@@ -28,6 +28,8 @@ certifi==2021.10.8
     # via requests
 chardet==4.0.0
     # via tabulator
+charset-normalizer==2.0.12
+    # via requests
 decorator==5.1.1
     # via ipython
 et-xmlfile==1.1.0
@@ -64,11 +66,11 @@ pexpect==4.8.0
     # via ipython
 pickleshare==0.7.5
     # via ipython
-pillow==9.1.1
+pillow==9.3.0
     # via apache-superset
 progress==1.6
     # via -r requirements/development.in
-psycopg2-binary==2.9.1
+psycopg2-binary==2.9.5
     # via apache-superset
 ptyprocess==0.7.0
     # via pexpect
@@ -76,7 +78,7 @@ pure-eval==0.2.2
     # via stack-data
 pure-sasl==0.6.2
     # via thrift-sasl
-pydruid==0.6.2
+pydruid==0.6.5
     # via apache-superset
 pygments==2.12.0
     # via ipython
@@ -95,7 +97,7 @@ s3transfer==0.5.0
     # via boto3
 sasl==0.3.1
     # via pyhive
-sqloxide==0.1.17
+sqloxide==0.1.30
     # via -r requirements/development.in
 stack-data==0.2.0
     # via ipython

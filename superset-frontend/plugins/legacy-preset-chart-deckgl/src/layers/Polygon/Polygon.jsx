@@ -22,6 +22,7 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import React from 'react';
+import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 
 import { PolygonLayer } from 'deck.gl';
@@ -57,7 +58,11 @@ function setTooltipContent(formData) {
     return (
       <div className="deckgl-tooltip">
         {o.object.name && (
-          <TooltipRow label="name: " value={`${o.object.name}`} />
+          <TooltipRow
+            // eslint-disable-next-line prefer-template
+            label={t('name') + ': '}
+            value={`${o.object.name}`}
+          />
         )}
         {o.object[formData.line_column] && (
           <TooltipRow

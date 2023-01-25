@@ -55,11 +55,11 @@ from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.tasks.thumbnails import cache_dashboard_thumbnail
+from superset.tasks.utils import get_current_user
+from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils
 from superset.utils.core import get_user_id
 from superset.utils.decorators import debounce
-from superset.utils.hashing import md5_sha_from_str
-from superset.utils.urls import get_url_path
 
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
@@ -224,8 +224,9 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
     @property
     def sqla_metadata(self) -> None:
         # pylint: disable=no-member
-        meta = MetaData(bind=self.get_sqla_engine())
-        meta.reflect()
+        with self.get_sqla_engine_with_context() as engine:
+            meta = MetaData(bind=engine)
+            meta.reflect()
 
     @property
     def status(self) -> utils.DashboardStatus:
@@ -240,11 +241,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def digest(self) -> str:
-        """
-        Returns a MD5 HEX digest that makes this dashboard unique
-        """
-        unique_string = f"{self.position_json}.{self.css}.{self.json_metadata}"
-        return md5_sha_from_str(unique_string)
+        return get_dashboard_digest(self)
 
     @property
     def thumbnail_url(self) -> str:
@@ -328,8 +325,11 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
         return {}
 
     def update_thumbnail(self) -> None:
-        url = get_url_path("Superset.dashboard", dashboard_id_or_slug=self.id)
-        cache_dashboard_thumbnail.delay(url, self.digest, force=True)
+        cache_dashboard_thumbnail.delay(
+            current_user=get_current_user(),
+            dashboard_id=self.id,
+            force=True,
+        )
 
     @debounce(0.1)
     def clear_cache(self) -> None:
@@ -423,11 +423,6 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
                 remote_id=eager_datasource.id,
                 database_name=eager_datasource.database.name,
             )
-            datasource_class = copied_datasource.__class__
-            for field_name in datasource_class.export_children:
-                field_val = getattr(eager_datasource, field_name).copy()
-                # set children without creating ORM relations
-                copied_datasource.__dict__[field_name] = field_val
             eager_datasources.append(copied_datasource)
 
         return json.dumps(
@@ -438,8 +433,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @classmethod
     def get(cls, id_or_slug: Union[str, int]) -> Dashboard:
-        session = db.session()
-        qry = session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
+        qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
         return qry.one_or_none()
 
 

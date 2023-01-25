@@ -18,6 +18,7 @@
  */
 
 import React from 'react';
+import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { PivotData, flatKey } from './utilities';
@@ -764,7 +765,10 @@ export class TableRenderer extends React.Component {
           true,
         )}
       >
-        {`Total (${this.props.aggregatorName})`}
+        {
+          // eslint-disable-next-line prefer-template
+          t('Total') + ` (${this.props.aggregatorName})`
+        }
       </th>
     );
 
