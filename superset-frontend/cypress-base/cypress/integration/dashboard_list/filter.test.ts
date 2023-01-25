@@ -26,7 +26,6 @@ describe('Dashboards filters', () => {
   });
 
   beforeEach(() => {
-    cy.preserveLogin();
     clearAllInputs();
   });
 

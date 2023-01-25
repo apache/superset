@@ -18,7 +18,6 @@
  */
 describe('SqlLab query tabs', () => {
   beforeEach(() => {
-    cy.login();
     cy.visit('/superset/sqllab');
   });
 

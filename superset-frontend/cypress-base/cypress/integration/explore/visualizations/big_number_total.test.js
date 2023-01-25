@@ -21,7 +21,6 @@ import { FORM_DATA_DEFAULTS, NUM_METRIC } from './shared.helper';
 
 describe('Visualization > Big Number Total', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     interceptChart({ legacy: false }).as('chartData');
   });
 

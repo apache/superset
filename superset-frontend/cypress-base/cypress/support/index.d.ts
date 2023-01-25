@@ -29,7 +29,6 @@ declare namespace Cypress {
      * Login test user.
      */
     login(): void;
-    preserveLogin(): void;
 
     /**
      *

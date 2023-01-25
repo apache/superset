@@ -30,7 +30,6 @@ const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
 
 describe('Test explore links', () => {
   beforeEach(() => {
-    cy.login();
     interceptChart({ legacy: true }).as('chartData');
   });
 
