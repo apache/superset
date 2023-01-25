@@ -59,7 +59,12 @@ export default function useQueryEditor<T extends keyof QueryEditor>(
     [schemaOptions],
   );
 
-  if ('schema' in queryEditor && schema && !schemaOptionsMap.has(schema)) {
+  if (
+    'schema' in queryEditor &&
+    schemaOptions &&
+    schema &&
+    !schemaOptionsMap.has(schema)
+  ) {
     delete queryEditor.schema;
   }
 

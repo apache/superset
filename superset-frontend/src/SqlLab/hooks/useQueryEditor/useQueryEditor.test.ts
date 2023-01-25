@@ -116,3 +116,28 @@ test('skips the deprecated schema option', () => {
   expect(result.current.schema).not.toEqual(defaultQueryEditor.schema);
   expect(result.current.schema).toBeUndefined();
 });
+
+test('skips the deprecated schema option before loaded', () => {
+  const { result } = renderHook(
+    () => useQueryEditor(defaultQueryEditor.id, ['schema']),
+    {
+      wrapper: createWrapper({
+        useRedux: true,
+        store: mockStore({
+          ...initialState,
+          sqlLab: {
+            ...initialState.sqlLab,
+            queryEditors: [
+              {
+                id: defaultQueryEditor.id,
+                schema: defaultQueryEditor.schema,
+              },
+            ],
+          },
+        }),
+      }),
+    },
+  );
+  expect(result.current.schema).toEqual(defaultQueryEditor.schema);
+  expect(result.current.schema).not.toBeUndefined();
+});
