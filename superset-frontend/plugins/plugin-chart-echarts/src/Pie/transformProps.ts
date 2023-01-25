@@ -144,6 +144,7 @@ export default function transformProps(
     width,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -166,7 +167,6 @@ export default function transformProps(
     showLabels,
     showLegend,
     showLabelsThreshold,
-    emitFilter,
     sliceId,
     showTotal,
   }: EchartsPieFormData = {
@@ -339,11 +339,11 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
     labelMap,
     groupby,
     selectedValues,
     onContextMenu,
     refs,
+    emitCrossFilters,
   };
 }

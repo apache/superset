@@ -28,7 +28,6 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   sections,
-  emitFilterControl,
   ControlPanelConfig,
   getStandardizedControls,
   ControlState,
@@ -77,7 +76,6 @@ const config: ControlPanelConfig = {
         ['groupby'],
         ['metrics'],
         ['adhoc_filters'],
-        emitFilterControl,
         ['series_limit'],
         ['series_limit_metric'],
         [
