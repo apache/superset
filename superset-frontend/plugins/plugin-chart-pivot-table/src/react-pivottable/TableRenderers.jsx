@@ -20,12 +20,15 @@
 import React from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
-import { t } from '@superset-ui/core';
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
 const parseLabel = value => {
-  if (typeof value === 'number' || typeof value === 'string') {
+  if (typeof value === 'string') {
+    if (value === 'metric') return t('metric');
+    return value;
+  }
+  if (typeof value === 'number') {
     return value;
   }
   return String(value);
@@ -49,7 +52,7 @@ function displayHeaderCell(
       >
         {ArrowIcon}
       </span>
-      <span className="toggle-val">{t(parseLabel(name))}</span>
+      <span className="toggle-val">{parseLabel(name)}</span>
     </span>
   ) : (
     parseLabel(name)

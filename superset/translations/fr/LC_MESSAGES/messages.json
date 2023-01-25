@@ -3883,7 +3883,8 @@
       "Shift + Click to sort by multiple columns": [
         "Maintenir Shift + Clic pour trier plusieurs colonnes"
       ],
-      "metrics": ["métrique"]
+      "metric": ["métrique"],
+      "metrics": ["métriques"]
     }
   }
 }

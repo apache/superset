@@ -7059,6 +7059,12 @@ msgstr ""
 msgid "Metric"
 msgstr ""
 
+#: superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx:28
+#: superset-frontend/src/explore/components/controls/FixedOrMetricControl/index.jsx:136
+msgid "metric"
+msgstr ""
+
+
 #: superset/connectors/sqla/models.py:1079
 #: superset/connectors/sqla/models.py:1509
 #, python-format
