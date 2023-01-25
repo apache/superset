@@ -5,8 +5,6 @@
 #
 #    pip-compile-multi
 #
---trusted-host gitlab.understand.ai
-
 -e file:.
     # via -r requirements/base.in
 alembic==1.6.5
