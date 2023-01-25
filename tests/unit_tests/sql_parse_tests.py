@@ -675,7 +675,7 @@ WHERE TABLE_SCHEMA like "%bi%"),0x7e)));
             """
 select (extractvalue(1,concat(0x7e,(select GROUP_CONCAT(COLUMN_NAME)
 from INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME="bi_achivement_daily"),0x7e)));
+WHERE TABLE_NAME="bi_achievement_daily"),0x7e)));
 """
         )
         == {Table("COLUMNS", "INFORMATION_SCHEMA")}
