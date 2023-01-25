@@ -142,9 +142,11 @@ class ExecuteSqlCommand(BaseCommand):
         self._save_new_query(query)
         try:
             logger.info("Triggering query_id: %i", query.id)
-            self._validate_access(query)
+
             self._execution_context.set_query(query)
             rendered_query = self._sql_query_render.render(self._execution_context)
+            query.sql = rendered_query
+            self._validate_access(query)
             self._set_query_limit_if_required(rendered_query)
             self._query_dao.update(
                 query, {"limit": self._execution_context.query.limit}
