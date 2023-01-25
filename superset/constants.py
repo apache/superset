@@ -140,6 +140,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_data": "read",
     "samples": "read",
     "delete_ssh_tunnel": "write",
+    "stop_query": "read",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

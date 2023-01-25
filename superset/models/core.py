@@ -168,6 +168,7 @@ class Database(
         "allow_run_async",
         "allow_ctas",
         "allow_cvas",
+        "allow_dml",
         "allow_file_upload",
         "extra",
     ]

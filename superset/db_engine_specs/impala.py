@@ -92,7 +92,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         cls,
         cursor: Any,
         query: str,
-        **kwargs: Any,  # pylint: disable=unused-argument
+        **kwargs: Any,
     ) -> None:
         try:
             cursor.execute_async(query)

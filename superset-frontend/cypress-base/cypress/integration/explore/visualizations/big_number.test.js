@@ -20,7 +20,6 @@ import { interceptChart } from 'cypress/utils';
 
 describe('Visualization > Big Number with Trendline', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     interceptChart({ legacy: false }).as('chartData');
   });
 
