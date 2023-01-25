@@ -61,7 +61,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
 %(description)s
 
-<%(link)s|Open in Careem Insights>
+<%(link)s|Open Alert/Report in Careem Insights>
 
 %(table)s
 """,
@@ -79,7 +79,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
 <%(url)s|Explore in Careem Insights>
 
-<%(link)s|Open in Careem Insights>
+<%(link)s|Open Alert/Report in Careem Insights>
 
 %(table)s
 """,
