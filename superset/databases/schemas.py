@@ -683,6 +683,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_ctas = fields.Boolean()
     allow_cvas = fields.Boolean()
+    allow_dml = fields.Boolean(required=False)
     allow_csv_upload = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
