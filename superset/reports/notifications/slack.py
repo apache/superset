@@ -54,6 +54,13 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             if self._content.url is not None
             else ""
         )
+        link = (
+            modify_url_query(
+                self._content.link, pageIndex=0, sortColumn="name", sortOrder="desc"
+            )
+            if self._content.link is not None
+            else ""
+        )
         template = __(
             """*%(name)s*
 
@@ -69,7 +76,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             description=self._content.description or "",
             msg_content=self._content.msg_content or "",
             table=table,
-            link=self._content.link or "",
+            link=link,
         )
         if all([url is not None, url != ""]):
             template = __(
@@ -87,7 +94,7 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 description=self._content.description or "",
                 url=url,
                 table=table,
-                link=self._content.link or "",
+                link=link,
             )
 
         return template
