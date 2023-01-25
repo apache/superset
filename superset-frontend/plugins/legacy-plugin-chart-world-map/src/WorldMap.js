@@ -48,6 +48,7 @@ const propTypes = {
   color: PropTypes.string,
   setDataMask: PropTypes.func,
   onContextMenu: PropTypes.func,
+  emitCrossFilters: PropTypes.bool,
 };
 
 const formatter = getNumberFormatter();
@@ -71,6 +72,7 @@ function WorldMap(element, props) {
     setDataMask,
     inContextMenu,
     filterState,
+    emitCrossFilters,
   } = props;
   const div = d3.select(element);
   div.classed('superset-legacy-chart-world-map', true);
@@ -113,11 +115,17 @@ function WorldMap(element, props) {
   });
 
   const handleClick = source => {
+    if (!emitCrossFilters) {
+      return;
+    }
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;
     let val = countryFieldtype === 'name' ? mapData[key]?.name : key;
-    if (val === filterState.value) {
+    if (!val) {
+      return;
+    }
+    if (key === filterState.value) {
       val = null;
     }
 
@@ -135,6 +143,7 @@ function WorldMap(element, props) {
       },
       filterState: {
         value: val ?? null,
+        selectedValues: val ? [key] : [],
       },
     });
   };
@@ -224,6 +233,15 @@ function WorldMap(element, props) {
       .style('stroke', color)
       .on('contextmenu', handleContextMenu)
       .on('click', handleClick);
+  }
+
+  if (filterState.selectedValues) {
+    d3.selectAll('path.datamaps-subunit')
+      .filter(
+        countryFeature =>
+          !filterState.selectedValues.includes(countryFeature.id),
+      )
+      .style('fill-opacity', theme.opacity.mediumLight);
   }
 }
 

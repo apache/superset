@@ -27,6 +27,7 @@ export default function transformProps(chartProps) {
     hooks,
     inContextMenu,
     filterState,
+    emitCrossFilters,
   } = chartProps;
   const { onContextMenu, setDataMask } = hooks;
   const {
@@ -59,5 +60,6 @@ export default function transformProps(chartProps) {
     setDataMask,
     inContextMenu,
     filterState,
+    emitCrossFilters,
   };
 }
