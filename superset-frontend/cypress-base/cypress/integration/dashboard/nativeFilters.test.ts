@@ -234,14 +234,6 @@ function openMoreFilters(intercetFilterState = true) {
 }
 
 describe('Horizontal FilterBar', () => {
-  before(() => {
-    cy.login();
-  });
-
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   it('should go from vertical to horizontal and the opposite', () => {
     visitDashboard();
     openVerticalFilterBar();
@@ -412,10 +404,6 @@ describe('Horizontal FilterBar', () => {
 });
 
 describe('Native filters', () => {
-  beforeEach(() => {
-    cy.preserveLogin();
-  });
-
   describe('Nativefilters tests initial state required', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0]);
