@@ -130,12 +130,12 @@ export interface BaseTransformedProps<F> {
 }
 
 export type CrossFilterTransformedProps = {
-  emitFilter: boolean;
   groupby: QueryFormColumn[];
   labelMap: Record<string, string[]>;
   setControlValue?: HandlerFunction;
   setDataMask: SetDataMaskHook;
   selectedValues: Record<number, string>;
+  emitCrossFilters?: boolean;
 };
 
 export type ContextMenuTransformedProps = {

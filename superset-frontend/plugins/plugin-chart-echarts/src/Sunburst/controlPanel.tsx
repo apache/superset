@@ -24,7 +24,6 @@ import {
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
-  emitFilterControl,
   getStandardizedControls,
   sections,
 } from '@superset-ui/chart-controls';
@@ -43,7 +42,6 @@ const config: ControlPanelConfig = {
         ['metric'],
         ['secondary_metric'],
         ['adhoc_filters'],
-        emitFilterControl,
         ['row_limit'],
         [
           {
