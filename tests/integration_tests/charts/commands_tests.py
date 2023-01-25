@@ -72,6 +72,9 @@ class TestExportChartsCommand(SupersetTestCase):
 
         assert metadata == {
             "slice_name": "Energy Sankey",
+            "description": None,
+            "certification_details": None,
+            "certified_by": None,
             "viz_type": "sankey",
             "params": {
                 "collapsed_fieldsets": "",
@@ -110,6 +113,9 @@ class TestExportChartsCommand(SupersetTestCase):
 
         assert metadata == {
             "slice_name": "Heatmap",
+            "description": None,
+            "certification_details": None,
+            "certified_by": None,
             "viz_type": "heatmap",
             "params": {
                 "all_columns_x": "source",
@@ -168,6 +174,9 @@ class TestExportChartsCommand(SupersetTestCase):
         )
         assert list(metadata.keys()) == [
             "slice_name",
+            "description",
+            "certification_details",
+            "certified_by",
             "viz_type",
             "params",
             "cache_timeout",
