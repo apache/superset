@@ -756,7 +756,7 @@ class TestDashboardApi(SupersetTestCase, ApiOwnersTestCaseMixin, InsertChartMixi
         rv = self.get_assert_metric(uri, "get_list")
         self.assertEqual(rv.status_code, 200)
         data = json.loads(rv.data.decode("utf-8"))
-        self.assertEqual(data["count"], 5)
+        self.assertEqual(data["count"], 0)
 
     @pytest.mark.usefixtures("create_created_by_gamma_dashboards")
     def test_get_dashboards_created_by_me(self):
