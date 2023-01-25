@@ -50,11 +50,9 @@ from flask_babel import lazy_gettext as _
 from jinja2.exceptions import TemplateError
 from sqlalchemy import (
     and_,
-    asc,
     Boolean,
     Column,
     DateTime,
-    desc,
     Enum,
     ForeignKey,
     inspect,
@@ -84,9 +82,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
-from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
-from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.connectors.base.models import BaseColumn, BaseDatasource, BaseMetric
 from superset.connectors.sqla.utils import (
     find_cached_objects_in_session,
@@ -98,13 +94,11 @@ from superset.connectors.sqla.utils import (
 from superset.datasets.models import Dataset as NewDataset
 from superset.db_engine_specs.base import BaseEngineSpec, CTE_ALIAS, TimestampExpression
 from superset.exceptions import (
-    AdvancedDataTypeResponseError,
     DatasetInvalidPermissionEvaluationException,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetSecurityException,
 )
-from superset.extensions import feature_flag_manager
 from superset.jinja_context import (
     BaseTemplateProcessor,
     ExtraCache,
@@ -117,26 +111,12 @@ from superset.models.helpers import (
     CertificationMixin,
     ExploreMixin,
     QueryResult,
+    QueryStringExtended,
 )
 from superset.sql_parse import ParsedQuery, sanitize_clause
-from superset.superset_typing import (
-    AdhocColumn,
-    AdhocMetric,
-    Column as ColumnTyping,
-    Metric,
-    OrderBy,
-    QueryObjectDict,
-)
+from superset.superset_typing import AdhocColumn, AdhocMetric, Metric, QueryObjectDict
 from superset.utils import core as utils
-from superset.utils.core import (
-    GenericDataType,
-    get_column_name,
-    get_username,
-    is_adhoc_column,
-    MediumText,
-    QueryObjectFilterClause,
-    remove_duplicates,
-)
+from superset.utils.core import GenericDataType, get_username, MediumText
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -160,14 +140,6 @@ class SqlaQuery(NamedTuple):
     labels_expected: List[str]
     prequeries: List[str]
     sqla_query: Select
-
-from superset.models.helpers import QueryStringExtended
-
-# class QueryStringExtended(NamedTuple):
-#     applied_template_filters: Optional[List[str]]
-#     labels_expected: List[str]
-#     prequeries: List[str]
-#     sql: str
 
 
 @dataclass
@@ -547,7 +519,9 @@ def _process_sql_expression(
     return expression
 
 
-class SqlaTable(Model, BaseDatasource, ExploreMixin):  # pylint: disable=too-many-public-methods
+class SqlaTable(
+    Model, BaseDatasource, ExploreMixin
+):  # pylint: disable=too-many-public-methods
     """An ORM object for SqlAlchemy table references"""
 
     type = "table"
@@ -1007,7 +981,7 @@ class SqlaTable(Model, BaseDatasource, ExploreMixin):  # pylint: disable=too-man
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
-    def adhoc_column_to_sqla( # type: ignore
+    def adhoc_column_to_sqla(
         self,
         col: AdhocColumn,
         template_processor: Optional[BaseTemplateProcessor] = None,

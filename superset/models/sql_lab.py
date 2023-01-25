@@ -54,6 +54,7 @@ from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.core import GenericDataType, QueryStatus, user_label
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import TableColumn
     from superset.db_engine_specs import BaseEngineSpec
 
 
@@ -182,7 +183,11 @@ class Query(
         return list(ParsedQuery(self.sql).tables)
 
     @property
-    def columns(self) -> List[Dict[str, Any]]:
+    def columns(self) -> List["TableColumn"]:
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            TableColumn,
+        )
+
         bool_types = ("BOOL",)
         num_types = (
             "DOUBLE",
@@ -200,8 +205,6 @@ class Query(
         str_types = ("VARCHAR", "STRING", "CHAR")
         columns = []
         col_type = ""
-
-        from superset.connectors.sqla.models import TableColumn
 
         for col in self.extra.get("columns", []):
             computed_column = {**col}
@@ -231,7 +234,7 @@ class Query(
         return columns
 
     @property
-    def db_extra(self) -> None:
+    def db_extra(self) -> Optional[Dict[str, Any]]:
         return None
 
     @property
