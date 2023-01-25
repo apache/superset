@@ -141,6 +141,11 @@ export interface TableProps<RecordType> {
    * Returns props that should be applied to each row component.
    */
   onRow?: AntTableProps<RecordType>['onRow'];
+  /**
+   * Property name or accessor function for retrieving the unique key for each record.
+   * If not defined, each record must have a `key` field.
+   */
+  rowKey?: AntTableProps<RecordType>['rowKey'];
 }
 
 const defaultRowSelection: React.Key[] = [];
@@ -244,6 +249,7 @@ export function Table<RecordType extends object>(
     onChange = noop,
     recordCount,
     onRow,
+    rowKey,
   } = props;
 
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -376,6 +382,7 @@ export function Table<RecordType extends object>(
     onRow,
     theme,
     height: bodyHeight,
+    rowKey,
   };
 
   return (
