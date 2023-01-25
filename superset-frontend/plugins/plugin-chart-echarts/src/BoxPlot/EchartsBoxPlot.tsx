@@ -30,12 +30,12 @@ export default function EchartsBoxPlot(props: BoxPlotChartTransformedProps) {
     labelMap,
     groupby,
     selectedValues,
-    formData,
     refs,
+    emitCrossFilters,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 

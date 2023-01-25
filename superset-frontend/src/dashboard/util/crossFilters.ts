@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import { emitFilterControl } from '@superset-ui/chart-controls';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
-describe('isFeatureFlagEnabled', () => {
-  it('returns empty array for unset feature flag', () => {
-    expect(emitFilterControl).toHaveLength(0);
-  });
-});
+export const isCrossFiltersEnabled = (
+  metadataCrossFiltersEnabled: boolean | undefined,
+): boolean =>
+  isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+  (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);

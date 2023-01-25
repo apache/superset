@@ -169,6 +169,9 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   const crossFilterValue = useSelector<RootState, any>(
     state => state.dataMask[slice?.slice_id]?.filterState?.value,
   );
+  const isCrossFiltersEnabled = useSelector<RootState, boolean>(
+    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
+  );
 
   const indicator = useMemo(
     () => ({
@@ -289,6 +292,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 chartStatus={chartStatus}
                 formData={formData}
                 exploreUrl={exploreUrl}
+                crossFiltersEnabled={isCrossFiltersEnabled}
               />
             )}
           </>
