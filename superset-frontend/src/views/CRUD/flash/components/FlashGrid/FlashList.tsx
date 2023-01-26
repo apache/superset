@@ -31,14 +31,19 @@ import ListView, { Filters, FilterOperator } from 'src/components/ListView';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import { TooltipPlacement } from 'antd/lib/tooltip';
+import ConfirmationModal from 'src/components/ConfirmationModal';
 import { FLASH_STATUS, FLASH_TYPES, SCHEDULE_TYPE } from '../../constants';
 import { FlashServiceObject } from '../../types';
 import FlashOwnership from '../FlashOwnership/FlashOwnership';
 import FlashExtendTTL from '../FlashExtendTTl/FlashExtendTTl';
 import FlashSchedule from '../FlashSchedule/FlashSchedule';
-import { fetchDatabases, removeFlash } from '../../services/flash.service';
+import {
+  fetchDatabases,
+  recoverFlashObject,
+  removeFlash,
+} from '../../services/flash.service';
 import FlashQuery from '../FlashQuery/FlashQuery';
-import { FlashTypesEnum } from '../../enums';
+import { FlashTypes, FlashTypesEnum } from '../../enums';
 import FlashView from '../FlashView/FlashView';
 
 const PAGE_SIZE = 25;
@@ -76,6 +81,9 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
   const [showFlashSchedule, setShowFlashSchedule] = useState<boolean>(false);
   const [showFlashQuery, setShowFlashQuery] = useState<boolean>(false);
   const [showFlashView, setShowFlashView] = useState<boolean>(false);
+  const [recoverFlash, setRecoverFlash] = useState<FlashServiceObject | null>(
+    null,
+  );
 
   useEffect(() => {
     fetchDatabaseDropdown();
@@ -131,6 +139,10 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
     flashDeleteService(flash);
   };
 
+  const handleRecoverFlash = (flash: FlashServiceObject) => {
+    flashRecoverService(flash);
+  };
+
   const flashDeleteService = (flash: FlashServiceObject) => {
     if (flash && flash?.id) {
       removeFlash(flash?.id).then(
@@ -149,6 +161,47 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
       addDangerToast('There is an issue deleting the flash');
     }
   };
+
+  const flashRecoverService = (flash: FlashServiceObject) => {
+    let currentTtl = flash?.ttl;
+    const maxDate = new Date(flash.ttl);
+
+    const flashType = flash.flashType.replace(/([A-Z])/g, ' $1').trim();
+    if (
+      flashType === FlashTypes.SHORT_TERM ||
+      flashType === FlashTypes.ONE_TIME
+    ) {
+      maxDate.setDate(maxDate.getDate() + 7);
+      currentTtl = new Date(maxDate).toISOString().split('T')[0];
+    } else if (flashType === FlashTypes.LONG_TERM) {
+      maxDate.setDate(maxDate.getDate() + 90);
+      currentTtl = new Date(maxDate).toISOString().split('T')[0];
+    }
+    const payload = {
+      ttl: currentTtl,
+      owner: user?.email,
+    };
+    if (flash && flash?.id) {
+      recoverFlashObject(flash?.id, payload).then(
+        () => {
+          setRecoverFlash(null);
+          addSuccessToast(t('Recovered: %s', flash?.tableName));
+          refreshData();
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue recovering %s: %s', flash?.tableName, errMsg),
+          ),
+        ),
+      );
+    } else {
+      addDangerToast(
+        'There is an issue recovering the selected flash: FLASH ID is missing',
+      );
+    }
+  };
+
+  const isDeletedFlash = (flashStatus: string) => flashStatus === 'Deleted';
 
   const initialSort = [{ id: 'status', desc: true }];
   const columns = useMemo(
@@ -219,6 +272,7 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           const handleSqlQuery = () => {
             changeSqlQuery(original);
           };
+          const handleRecover = () => setRecoverFlash(original);
           const handleChangeSchedule = () => changeSchedule(original);
           const handleChangeOwnership = () => changeOwnership(original);
           const handleChangeTtl = () => changeTtl(original);
@@ -228,7 +282,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
             history.push(`/flash/auditlogs/${original.id}`);
 
           const actions: ActionProps[] | [] = [
-            original?.flashType !== FlashTypesEnum.ONE_TIME &&
+            isDeletedFlash(original?.status) && {
+              label: 'recover-action',
+              tooltip: t('Recover Flash'),
+              placement: 'bottom' as TooltipPlacement,
+              icon: 'Undo',
+              onClick: handleRecover,
+            },
+            !isDeletedFlash(original?.status) &&
+              original?.flashType !== FlashTypesEnum.ONE_TIME &&
               (original?.owner === user?.email || user?.roles?.Admin) && {
                 label: 'export-action',
                 tooltip: t('Extend TTL'),
@@ -236,14 +298,15 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                 icon: 'Share',
                 onClick: handleChangeTtl,
               },
-            {
+            !isDeletedFlash(original?.status) && {
               label: 'ownership-action',
               tooltip: t('Change Ownership'),
               placement: 'bottom' as TooltipPlacement,
               icon: 'SwitchUser',
               onClick: handleChangeOwnership,
             },
-            original?.flashType !== FlashTypesEnum.ONE_TIME &&
+            !isDeletedFlash(original?.status) &&
+              original?.flashType !== FlashTypesEnum.ONE_TIME &&
               (original?.owner === user?.email || user?.roles?.Admin) && {
                 label: 'copy-action',
                 tooltip: t('Change Schedule'),
@@ -251,20 +314,22 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
                 icon: 'Calendar',
                 onClick: handleChangeSchedule,
               },
-            (original?.owner === user?.email || user?.roles?.Admin) && {
-              label: 'copy-action',
-              tooltip: t('Update Sql Query'),
-              placement: 'bottom' as TooltipPlacement,
-              icon: 'Sql',
-              onClick: handleSqlQuery,
-            },
-            original?.owner === user?.email && {
-              label: 'delete-action',
-              tooltip: t('Delete Flash'),
-              placement: 'bottom' as TooltipPlacement,
-              icon: 'Trash',
-              onClick: handleDelete,
-            },
+            !isDeletedFlash(original?.status) &&
+              (original?.owner === user?.email || user?.roles?.Admin) && {
+                label: 'copy-action',
+                tooltip: t('Update Sql Query'),
+                placement: 'bottom' as TooltipPlacement,
+                icon: 'Sql',
+                onClick: handleSqlQuery,
+              },
+            !isDeletedFlash(original?.status) &&
+              original?.owner === user?.email && {
+                label: 'delete-action',
+                tooltip: t('Delete Flash'),
+                placement: 'bottom' as TooltipPlacement,
+                icon: 'Trash',
+                onClick: handleDelete,
+              },
             {
               label: 'view-action',
               tooltip: t('View Flash Information'),
@@ -409,6 +474,24 @@ function FlashList({ addDangerToast, addSuccessToast }: FlashListProps) {
           onHide={() => setDeleteFlash(null)}
           open
           title={t('Delete Flash Object?')}
+        />
+      )}
+
+      {recoverFlash && (
+        <ConfirmationModal
+          description={t(
+            'This action will recover your selected flash object.',
+          )}
+          onConfirm={() => {
+            if (recoverFlash) {
+              handleRecoverFlash(recoverFlash);
+            }
+          }}
+          onHide={() => setRecoverFlash(null)}
+          open
+          title={t('Recover Flash Object?')}
+          primaryButtonName={t('recover')}
+          confirmationType={t('recover')}
         />
       )}
 
