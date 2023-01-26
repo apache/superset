@@ -54,10 +54,12 @@ import {
   MetaObject,
   Operator,
   Recipient,
+  AlertsReportsConfig,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import { useSelector } from 'react-redux';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -134,24 +136,6 @@ const RETENTION_OPTIONS = [
   },
 ];
 
-const DEFAULT_RETENTION = 90;
-const DEFAULT_WORKING_TIMEOUT = 3600;
-const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
-const DEFAULT_ALERT = {
-  active: true,
-  creation_method: 'alerts_reports',
-  crontab: DEFAULT_CRON_VALUE,
-  log_retention: DEFAULT_RETENTION,
-  working_timeout: DEFAULT_WORKING_TIMEOUT,
-  name: '',
-  owners: [],
-  recipients: [],
-  sql: '',
-  validator_config_json: {},
-  validator_type: '',
-  force_screenshot: false,
-  grace_period: undefined,
-};
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
@@ -510,6 +494,28 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         ? 'hidden'
         : 'disabled',
     );
+  };
+  
+  const {
+    ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
+    ALERT_REPORTS_DEFAULT_CRON_VALUE,
+    ALERT_REPORTS_DEFAULT_RETENTION
+  } = useSelector<any, AlertsReportsConfig>(state => state.common.conf);
+
+  const DEFAULT_ALERT = {
+    active: true,
+    creation_method: 'alerts_reports',
+    crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
+    log_retention: ALERT_REPORTS_DEFAULT_RETENTION,
+    working_timeout: ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
+    name: '',
+    owners: [],
+    recipients: [],
+    sql: '',
+    validator_config_json: {},
+    validator_type: '',
+    force_screenshot: false,
+    grace_period: undefined,
   };
 
   const updateNotificationSetting = (
