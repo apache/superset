@@ -55,7 +55,7 @@ class Strategy:  # pylint: disable=too-few-public-methods
 
     Strategies can be configured in `superset/config.py`:
 
-        BEAT_SCHEDULE = {
+        beat_schedule = {
             'cache-warmup-hourly': {
                 'task': 'cache-warmup',
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
@@ -82,7 +82,7 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     This is a dummy strategy that will fetch all charts. Can be configured by:
 
-        BEAT_SCHEDULE = {
+        beat_schedule = {
             'cache-warmup-hourly': {
                 'task': 'cache-warmup',
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
@@ -105,7 +105,7 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
     """
     Warm up charts in the top-n dashboards.
 
-        BEAT_SCHEDULE = {
+        beat_schedule = {
             'cache-warmup-hourly': {
                 'task': 'cache-warmup',
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
@@ -151,7 +151,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
     """
     Warm up charts in dashboards with custom tags.
 
-        BEAT_SCHEDULE = {
+        beat_schedule = {
             'cache-warmup-hourly': {
                 'task': 'cache-warmup',
                 'schedule': crontab(minute=1, hour='*'),  # @hourly
