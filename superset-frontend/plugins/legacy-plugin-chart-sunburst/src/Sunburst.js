@@ -385,14 +385,15 @@ function Sunburst(element, props) {
       // eslint-disable-next-line prefer-template
       .text(absolutePercString + ' ' + t('of total'));
 
+    const OF_PARENT_TEXT = t('of parent');
+
     if (conditionalPercString) {
       offsetIndex += 1;
       gMiddleText
         .append('text')
         .attr('class', 'path-cond-percent')
         .attr('y', yOffsets[offsetIndex])
-        // eslint-disable-next-line prefer-template
-        .text(conditionalPercString + ' ' + t('of parent'));
+        .text(`${conditionalPercString} ${OF_PARENT_TEXT}`);
     }
 
     offsetIndex += 1;

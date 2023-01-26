@@ -85,11 +85,12 @@ function Calendar(element, props) {
 
   const metricsData = data.data;
 
+  const METRIC_TEXT = t('Metric');
+
   Object.keys(metricsData).forEach(metric => {
     const calContainer = div.append('div');
     if (showMetricName) {
-      // eslint-disable-next-line prefer-template
-      calContainer.text(t('Metric') + `: ${verboseMap[metric] || metric}`);
+      calContainer.text(`${METRIC_TEXT}: ${verboseMap[metric] || metric}`);
     }
     const timestamps = metricsData[metric];
     const extents = d3Extent(Object.keys(timestamps), key => timestamps[key]);

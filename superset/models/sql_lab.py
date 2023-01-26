@@ -225,10 +225,10 @@ class Query(
         for col in self.columns:
             column_name = str(col.get("column_name") or "")
             order_by_choices.append(
-                (json.dumps([column_name, True]), column_name + __(" [asc]"))
+                (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
             )
             order_by_choices.append(
-                (json.dumps([column_name, False]), column_name + __(" [desc]"))
+                (json.dumps([column_name, False]), f"{column_name} " + __("[desc]"))
             )
 
         return {

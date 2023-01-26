@@ -1412,6 +1412,7 @@ export function popQuery(queryId) {
 }
 export function popDatasourceQuery(datasourceKey, sql) {
   return function (dispatch) {
+    const QUERY_TEXT = t('Query');
     const datasetId = datasourceKey.split('__')[0];
     return SupersetClient.get({
       endpoint: `/api/v1/dataset/${datasetId}?q=(keys:!(none))`,
@@ -1419,8 +1420,7 @@ export function popDatasourceQuery(datasourceKey, sql) {
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
-            // eslint-disable-next-line prefer-template
-            title: t('Query') + ` ${json.result.name}`,
+            title: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
             autorun: sql !== undefined,

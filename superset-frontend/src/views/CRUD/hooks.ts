@@ -420,7 +420,7 @@ export function useImportResource(
       const formData = new FormData();
       formData.append('formData', bundle);
 
-      const reexportText = t(
+      const RE_EXPORT_TEXT = t(
         'Please re-export your file and try importing again',
       );
 
@@ -472,7 +472,7 @@ export function useImportResource(
                   resourceLabel,
                   [
                     ...error.errors.map(payload => payload.message),
-                    reexportText,
+                    RE_EXPORT_TEXT,
                   ].join('.\n'),
                 ),
               );

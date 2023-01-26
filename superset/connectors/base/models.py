@@ -249,10 +249,10 @@ class BaseDatasource(
         for column_name in self.column_names:
             column_name = str(column_name or "")
             order_by_choices.append(
-                (json.dumps([column_name, True]), column_name + __(" [asc]"))
+                (json.dumps([column_name, True]), f"{column_name} " + __("[asc]"))
             )
             order_by_choices.append(
-                (json.dumps([column_name, False]), column_name + __(" [desc]"))
+                (json.dumps([column_name, False]), f"{column_name} " + __("[desc]"))
             )
 
         verbose_map = {"__timestamp": "Time"}

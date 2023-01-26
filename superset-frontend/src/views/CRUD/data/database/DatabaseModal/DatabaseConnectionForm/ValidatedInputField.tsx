@@ -29,7 +29,7 @@ const FIELD_TEXT_MAP = {
     placeholder: t('e.g. world_population'),
   },
   warehouse: {
-    placeholder: t('e.g. world_population'),
+    placeholder: t('e.g. compute_wh'),
     className: 'form-group-w-50',
   },
   role: {

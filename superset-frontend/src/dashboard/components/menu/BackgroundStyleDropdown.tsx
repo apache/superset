@@ -73,14 +73,12 @@ const BackgroundStyleOption = styled.div`
 `;
 
 function renderButton(option: OptionProps) {
+  const BACKGROUND_TEXT = t('background');
   return (
     <BackgroundStyleOption
       className={cx('background-style-option', option.className)}
     >
-      {
-        // eslint-disable-next-line prefer-template
-        `${option.label} ` + t('background')
-      }
+      {`${option.label} ${BACKGROUND_TEXT}`}
     </BackgroundStyleOption>
   );
 }
