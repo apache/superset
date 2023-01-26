@@ -62,6 +62,7 @@ from sqlalchemy.orm.query import Query
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
+from superset.common_utils import str_to_bool
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.keycloak_auth import OIDCSecurityManager
@@ -329,8 +330,8 @@ AUTH_TYPE = AUTH_OID
 
 SECRET_KEY = os.getenv("SUPERSET_SECRET_KEY", CHANGE_ME_SECRET_KEY)
 OIDC_CLIENT_SECRETS = os.getenv("KC_OIDC_CLIENT_SECRETS_PATH", os.path.abspath(os.getcwd()) + '/client-secret.json')
-OIDC_ID_TOKEN_COOKIE_SECURE = bool(os.getenv("KC_OIDC_ID_TOKEN_COOKIE_SECURE", False))
-OIDC_REQUIRE_VERIFIED_EMAIL = bool(os.getenv("KC_OIDC_REQUIRE_VERIFIED_EMAIL", False))
+OIDC_ID_TOKEN_COOKIE_SECURE = str_to_bool(os.getenv("KC_OIDC_ID_TOKEN_COOKIE_SECURE", "false"))
+OIDC_REQUIRE_VERIFIED_EMAIL = str_to_bool(os.getenv("KC_OIDC_REQUIRE_VERIFIED_EMAIL", "false"))
 OIDC_OPENID_REALM = os.getenv("KC_OIDC_OPENID_REALM", "neos")
 OIDC_INTROSPECTION_AUTH_METHOD = 'client_secret_post'
 CUSTOM_SECURITY_MANAGER = OIDCSecurityManager
