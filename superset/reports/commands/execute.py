@@ -22,7 +22,6 @@ from uuid import UUID
 
 import pandas as pd
 from celery.exceptions import SoftTimeLimitExceeded
-from flask import request
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy.orm import Session
 
@@ -348,11 +347,8 @@ class BaseReportState:
         return log_data
 
     def get_link(self) -> str:
-        logger.info("SAMRA BASE URL", request.base_url)
-        base_url = request.base_url
-        # baseurl = app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
-        # return f"{baseurl}/{self._report_schedule.type.lower()}/list/?filters=(name:'{self._report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
-        return f"{base_url}?filters=(name:'{self._report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
+        baseurl = app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
+        return f"{baseurl}/{self._report_schedule.type.lower()}/list/?filters=(name:'{self._report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
     def _get_notification_content(self) -> NotificationContent:
         """
