@@ -30,12 +30,12 @@ export default function EchartsFunnel(props: FunnelChartTransformedProps) {
     labelMap,
     groupby,
     selectedValues,
-    formData,
+    emitCrossFilters,
     refs,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 

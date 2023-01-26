@@ -26,6 +26,7 @@ import { applyDefaultFormData } from 'src/explore/store';
 import { buildActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { findPermission } from 'src/utils/findPermission';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
+import { isCrossFiltersEnabled } from 'src/dashboard/util/crossFilters';
 import {
   DASHBOARD_FILTER_SCOPE_GLOBAL,
   dashboardFilter,
@@ -394,6 +395,9 @@ export const hydrateDashboard =
 
     const { roles } = user;
     const canEdit = canUserEditDashboard(dashboard, user);
+    const crossFiltersEnabled = isCrossFiltersEnabled(
+      metadata.cross_filters_enabled,
+    );
 
     return dispatch({
       type: HYDRATE_DASHBOARD,
@@ -433,6 +437,7 @@ export const hydrateDashboard =
             (isFeatureEnabled(FeatureFlag.HORIZONTAL_FILTER_BAR) &&
               metadata.filter_bar_orientation) ||
             FilterBarOrientation.VERTICAL,
+          crossFiltersEnabled,
         },
         dataMask,
         dashboardFilters,

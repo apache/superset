@@ -31,7 +31,6 @@ import React, {
   useReducer,
   Reducer,
 } from 'react';
-import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
@@ -120,6 +119,12 @@ const TabsStyled = styled(Tabs)`
 const ErrorAlertContainer = styled.div`
   ${({ theme }) => `
     margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+  `};
+`;
+
+const SSHTunnelContainer = styled.div`
+  ${({ theme }) => `
+    padding: 0px ${theme.gridUnit * 4}px;
   `};
 `;
 
@@ -519,7 +524,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     t('database'),
     addDangerToast,
   );
-  const history = useHistory();
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
@@ -551,7 +555,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         DB.backend === db?.engine || DB.engine === db?.engine,
     ) as DatabaseObject
   )?.engine_information?.disable_ssh_tunneling;
-  const sshTunneling = isFeatureEnabled(FeatureFlag.SSH_TUNNELING);
+  const isSSHTunneling =
+    isFeatureEnabled(FeatureFlag.SSH_TUNNELING) &&
+    disableSSHTunnelingForEngine !== undefined;
   const hasAlert =
     connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
   const useSqlAlchemyForm =
@@ -811,6 +817,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           database_name,
           configuration_method: CONFIGURATION_METHOD.SQLALCHEMY_URI,
           engine: undefined,
+          engine_information: {
+            supports_file_upload: true,
+          },
         },
       });
     } else {
@@ -1289,6 +1298,37 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     });
   };
 
+  const renderSSHTunnelForm = () => (
+    <SSHTunnelForm
+      isEditMode={isEditMode}
+      isSSHTunneling={isSSHTunneling}
+      db={db as DatabaseObject}
+      dbFetched={dbFetched as DatabaseObject}
+      onSSHTunnelParametersChange={({
+        target,
+      }: {
+        target: HTMLInputElement | HTMLTextAreaElement;
+      }) =>
+        onChange(ActionType.parametersSSHTunnelChange, {
+          type: target.type,
+          name: target.name,
+          value: target.value,
+        })
+      }
+      setSSHTunnelLoginMethod={(method: AuthType) =>
+        setDB({
+          type: ActionType.setSSHTunnelLoginMethod,
+          payload: { login_method: method },
+        })
+      }
+      removeSSHTunnelConfig={() =>
+        setDB({
+          type: ActionType.removeSSHTunnelConfig,
+        })
+      }
+    />
+  );
+
   const renderCTABtns = () => (
     <StyledBtns>
       <Button
@@ -1297,7 +1337,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          history.push('/dataset/add/');
+          window.location.href = '/tablemodelview/list#create';
         }}
       >
         {t('CREATE DATASET')}
@@ -1308,7 +1348,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          history.push(`/superset/sqllab/?db=true`);
+          window.location.href = `/superset/sqllab/?db=true`;
         }}
       >
         {t('QUERY DATA IN SQL LAB')}
@@ -1495,36 +1535,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 testConnection={testConnection}
                 testInProgress={testInProgress}
               >
-                {sshTunneling && !disableSSHTunnelingForEngine && (
-                  <SSHTunnelForm
-                    isEditMode={isEditMode}
-                    sshTunneling={sshTunneling}
-                    db={db as DatabaseObject}
-                    dbFetched={dbFetched as DatabaseObject}
-                    onSSHTunnelParametersChange={({
-                      target,
-                    }: {
-                      target: HTMLInputElement | HTMLTextAreaElement;
-                    }) =>
-                      onChange(ActionType.parametersSSHTunnelChange, {
-                        type: target.type,
-                        name: target.name,
-                        value: target.value,
-                      })
-                    }
-                    setSSHTunnelLoginMethod={(method: AuthType) =>
-                      setDB({
-                        type: ActionType.setSSHTunnelLoginMethod,
-                        payload: { login_method: method },
-                      })
-                    }
-                    removeSSHTunnelConfig={() =>
-                      setDB({
-                        type: ActionType.removeSSHTunnelConfig,
-                      })
-                    }
-                  />
-                )}
+                {isSSHTunneling && renderSSHTunnelForm()}
               </SqlAlchemyForm>
               {isDynamic(db?.backend || db?.engine) && !isEditMode && (
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
@@ -1798,6 +1809,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                   validationErrors={validationErrors}
                   getPlaceholder={getPlaceholder}
                 />
+                {isSSHTunneling && (
+                  <SSHTunnelContainer>
+                    {renderSSHTunnelForm()}
+                  </SSHTunnelContainer>
+                )}
                 <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
                   {dbModel.engine !== Engines.GSheet && (
                     <>

@@ -1810,7 +1810,7 @@ class TestDatasetApi(SupersetTestCase):
             "datasource_access", dataset.perm
         )
 
-        # add perissions to allow export + access to query this dataset
+        # add permissions to allow export + access to query this dataset
         gamma_role = security_manager.find_role("Gamma")
         security_manager.add_permission_role(gamma_role, perm1)
         security_manager.add_permission_role(gamma_role, perm2)
@@ -1988,8 +1988,8 @@ class TestDatasetApi(SupersetTestCase):
         assert str(dataset.uuid) == dataset_config["uuid"]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 
@@ -2090,8 +2090,8 @@ class TestDatasetApi(SupersetTestCase):
         dataset = database.tables[0]
 
         dataset.owners = []
-        database.owners = []
         db.session.delete(dataset)
+        db.session.commit()
         db.session.delete(database)
         db.session.commit()
 

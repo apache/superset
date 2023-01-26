@@ -197,7 +197,7 @@ export const getRecentAcitivtyObjs = (
     return Promise.all(newBatch)
       .then(([chartRes, dashboardRes]) => {
         res.other = [...chartRes.json.result, ...dashboardRes.json.result];
-        res.viewed = recentsRes.json;
+        res.viewed = recentsRes.json.result;
         return res;
       })
       .catch(errMsg =>

@@ -53,7 +53,6 @@ describe('Dashboard tabs', () => {
   });
 
   beforeEach(() => {
-    cy.preserveLogin();
     resetTabs();
   });
 

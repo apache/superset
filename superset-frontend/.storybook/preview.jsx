@@ -87,5 +87,5 @@ addParameters({
       ],
     },
   },
-  controls: { expanded: true },
+  controls: { expanded: true, sort: 'alpha' },
 });
