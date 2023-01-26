@@ -334,7 +334,7 @@ class AnnotationLayer extends React.PureComponent {
                     ...x,
                     data: {
                       ...x.data,
-                      groupby: x.data.groupby.map(column =>
+                      groupby: x.data.groupby?.map(column =>
                         getColumnLabel(column),
                       ),
                     },
