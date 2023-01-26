@@ -145,6 +145,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             )
         img_tag = "".join(img_tags)
         msgContent = ""
+        url_renderer = ""
+        if all([url is not None, url != ""]):
+            url_renderer = f"""<b><a href="{url}">{call_to_action}</a></b><p></p>"""
         if self._content.msg_content:
             msgContent = f"""<p>{self._content.msg_content}</p>"""
         body = textwrap.dedent(
@@ -169,12 +172,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
               <body>
                 <div>{description}</div>
                 <br>
-                <b><a href="{url}">{call_to_action if url else ""}</a></b><p></p>
+                {url_renderer}
                 {msgContent}
                 <b><a href="{self._content.link}">Open Alert/Report in Careem Insights</a></b><p></p>
                 {html_table}
                 {img_tag}
-
               </body>
             </html>
             """

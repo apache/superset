@@ -66,8 +66,6 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
 %(description)s
 
-<%(link)s|Open Alert/Report in Careem Insights>
-
 %(table)s
 """,
             name=self._content.name,
@@ -75,7 +73,6 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
             msg_content=self._content.msg_content or "",
             table=table,
             link=link,
-            # link=self._content.link or "",
         )
         if all([url is not None, url != ""]):
             template = __(
@@ -85,16 +82,13 @@ class SlackNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
 <%(url)s|Explore in Careem Insights>
 
-<%(link)s|Open Alert/Report in Careem Insights>
-
 %(table)s
 """,
                 name=self._content.name,
                 description=self._content.description or "",
                 url=url,
                 table=table,
-                link=link
-                # link=self._content.link or "",
+                link=link,
             )
 
         return template
