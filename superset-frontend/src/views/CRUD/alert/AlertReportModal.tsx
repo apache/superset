@@ -57,9 +57,9 @@ import {
   AlertsReportsConfig,
 } from 'src/views/CRUD/alert/types';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
+import { useSelector } from 'react-redux';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
-import { useSelector } from 'react-redux';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -135,7 +135,6 @@ const RETENTION_OPTIONS = [
     value: 90,
   },
 ];
-
 
 const StyledModal = styled(Modal)`
   max-width: 1200px;
@@ -495,11 +494,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         : 'disabled',
     );
   };
-  
+
   const {
     ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
     ALERT_REPORTS_DEFAULT_CRON_VALUE,
-    ALERT_REPORTS_DEFAULT_RETENTION
+    ALERT_REPORTS_DEFAULT_RETENTION,
   } = useSelector<any, AlertsReportsConfig>(state => state.common.conf);
 
   const DEFAULT_ALERT = {
