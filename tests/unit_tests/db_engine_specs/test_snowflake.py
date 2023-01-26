@@ -34,6 +34,7 @@ from tests.unit_tests.fixtures.common import dttm
         ("DATE", "TO_DATE('2019-01-02')"),
         ("DATETIME", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
         ("TIMESTAMP", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMP_NTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
     ],
 )
 def test_convert_dttm(actual: str, expected: str, dttm: datetime) -> None:

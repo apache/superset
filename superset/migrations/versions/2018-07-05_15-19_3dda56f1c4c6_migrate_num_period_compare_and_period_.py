@@ -56,7 +56,7 @@ db_engine_specs_map = {
     "second": "PT1S",
     "minute": "PT1M",
     "5 minute": "PT5M",
-    "10  minute": "PT10M",
+    "10 minute": "PT10M",
     "half hour": "PT0.5H",
     "hour": "PT1H",
     "day": "P1D",
