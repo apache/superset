@@ -169,7 +169,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
               <body>
                 <div>{description}</div>
                 <br>
-                <b><a href="{url}">{call_to_action}</a></b><p></p>
+                <b><a href="{url}">{call_to_action if url else ""}</a></b><p></p>
                 {msgContent}
                 <b><a href="{self._content.link}">Open Alert/Report in Careem Insights</a></b><p></p>
                 {html_table}
