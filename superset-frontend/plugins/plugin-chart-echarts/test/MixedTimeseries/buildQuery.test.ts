@@ -46,7 +46,6 @@ const formDataMixedChart = {
   row_limit: 10,
   timeseries_limit_metric: 'count',
   order_desc: true,
-  emit_filter: true,
   truncate_metric: true,
   show_empty_columns: true,
   //   -- query b
@@ -63,7 +62,6 @@ const formDataMixedChart = {
   row_limit_b: 100,
   timeseries_limit_metric_b: undefined,
   order_desc_b: false,
-  emit_filter_b: undefined,
   truncate_metric_b: true,
   show_empty_columns_b: true,
   // chart configs

@@ -32,7 +32,6 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   sections,
   sharedControls,
-  emitFilterControl,
   Dataset,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
@@ -127,7 +126,6 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        emitFilterControl,
         ['series_limit'],
         [
           {

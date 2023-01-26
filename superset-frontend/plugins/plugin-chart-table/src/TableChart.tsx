@@ -222,13 +222,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     serverPaginationData,
     setDataMask,
     showCellBars = true,
-    emitFilter = false,
     sortDesc = false,
     filters,
     sticky = true, // whether to use sticky header
     columnColorFormatters,
     allowRearrangeColumns = false,
     onContextMenu,
+    emitCrossFilters,
   } = props;
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -243,7 +243,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   const handleChange = useCallback(
     (filters: { [x: string]: DataRecordValue[] }) => {
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
@@ -289,7 +289,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
       });
     },
-    [emitFilter, setDataMask],
+    [emitCrossFilters, setDataMask],
   );
 
   // only take relevant page size options
@@ -322,27 +322,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [filters],
   );
 
-  function getEmitTarget(col: string) {
-    const meta = columnsMeta?.find(x => x.key === col);
-    return meta?.config?.emitTarget || col;
-  }
-
   const toggleFilter = useCallback(
     function toggleFilter(key: string, val: DataRecordValue) {
       let updatedFilters = { ...(filters || {}) };
-      const target = getEmitTarget(key);
-      if (filters && isActiveFilterValue(target, val)) {
+      if (filters && isActiveFilterValue(key, val)) {
         updatedFilters = {};
       } else {
         updatedFilters = {
-          [target]: [val],
+          [key]: [val],
         };
       }
       if (
-        Array.isArray(updatedFilters[target]) &&
-        updatedFilters[target].length === 0
+        Array.isArray(updatedFilters[key]) &&
+        updatedFilters[key].length === 0
       ) {
-        delete updatedFilters[target];
+        delete updatedFilters[key];
       }
       handleChange(updatedFilters);
     },
@@ -396,7 +390,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         getValueRange(key, alignPositiveNegative);
 
       let className = '';
-      if (emitFilter) {
+      if (emitCrossFilters) {
         className += ' dt-is-filter';
       }
 
@@ -459,7 +453,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             // show raw number in title in case of numeric values
             title: typeof value === 'number' ? String(value) : undefined,
             onClick:
-              emitFilter && !valueRange
+              emitCrossFilters && !valueRange
                 ? () => toggleFilter(key, value)
                 : undefined,
             className: [
@@ -567,7 +561,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [
       defaultAlignPN,
       defaultColorPN,
-      emitFilter,
+      emitCrossFilters,
       getValueRange,
       isActiveFilterValue,
       isRawRecords,

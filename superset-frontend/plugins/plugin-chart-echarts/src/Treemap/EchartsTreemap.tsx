@@ -29,7 +29,7 @@ import { TreemapTransformedProps } from './types';
 
 export default function EchartsTreemap({
   echartOptions,
-  formData,
+  emitCrossFilters,
   groupby,
   height,
   labelMap,
@@ -41,7 +41,7 @@ export default function EchartsTreemap({
 }: TreemapTransformedProps) {
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 

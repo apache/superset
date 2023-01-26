@@ -28,6 +28,7 @@ import {
   validateNonEmpty,
   isValidExpression,
   styled,
+  getColumnLabel,
   withTheme,
 } from '@superset-ui/core';
 
@@ -326,7 +327,19 @@ class AnnotationLayer extends React.PureComponent {
                     metadata && metadata.canBeAnnotationType(annotationType)
                   );
                 })
-                .map(x => ({ value: x.id, label: x.title, slice: x })),
+                .map(x => ({
+                  value: x.id,
+                  label: x.title,
+                  slice: {
+                    ...x,
+                    data: {
+                      ...x.data,
+                      groupby: x.data.groupby.map(column =>
+                        getColumnLabel(column),
+                      ),
+                    },
+                  },
+                })),
             });
           },
         );
@@ -499,7 +512,7 @@ class AnnotationLayer extends React.PureComponent {
             isSelected
             title={t('Annotation Slice Configuration')}
             info={t(`This section allows you to configure how to use the slice
-               to generate annotations.`)}
+              to generate annotations.`)}
           >
             {(annotationType === ANNOTATION_TYPES.EVENT ||
               annotationType === ANNOTATION_TYPES.INTERVAL) && (

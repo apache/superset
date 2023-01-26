@@ -36,7 +36,6 @@ export type EchartsSunburstFormData = QueryFormData & {
   secondaryMetric?: QueryFormMetric;
   colorScheme?: string;
   linearColorScheme?: string;
-  emitFilter: boolean;
 };
 
 export enum EchartsSunburstLabelType {
@@ -51,7 +50,6 @@ export const DEFAULT_FORM_DATA: Partial<EchartsSunburstFormData> = {
   labelType: EchartsSunburstLabelType.Key,
   showLabels: false,
   dateFormat: 'smart_date',
-  emitFilter: false,
 };
 
 export interface EchartsSunburstChartProps

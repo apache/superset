@@ -18,7 +18,6 @@
  */
 describe('Advanced analytics', () => {
   beforeEach(() => {
-    cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('postJson');
     cy.intercept('GET', '/superset/explore_json/**').as('getJson');
     cy.intercept('PUT', '/api/v1/explore/**').as('putExplore');

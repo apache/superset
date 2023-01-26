@@ -38,13 +38,14 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
     formData,
     onContextMenu,
     refs,
+    emitCrossFilters,
   } = props;
 
-  const { emitFilter, columns } = formData;
+  const { columns } = formData;
 
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 
@@ -75,7 +76,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         },
       });
     },
-    [emitFilter, setDataMask, columns, labelMap],
+    [emitCrossFilters, setDataMask, columns, labelMap],
   );
 
   const eventHandlers: EventHandlers = {

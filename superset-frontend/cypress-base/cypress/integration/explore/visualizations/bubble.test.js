@@ -18,7 +18,6 @@
  */
 describe('Visualization > Bubble', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 
