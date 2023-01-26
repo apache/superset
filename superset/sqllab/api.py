@@ -17,6 +17,7 @@
 import logging
 from typing import Any, cast, Dict, Optional
 
+import simplejson as json
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -51,7 +52,9 @@ from superset.sqllab.sql_json_executer import (
 )
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
-from superset.views.base import handle_api_exception
+from superset.superset_typing import FlaskResponse
+from superset.utils import core as utils
+from superset.views.base import handle_api_exception, json_success
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_json,
@@ -88,16 +91,14 @@ class SqlLabRestApi(BaseSupersetModelRestApi):
 
     @expose("/results/")
     @protect()
-    @safe
     @statsd_metrics
     @rison(sql_lab_get_results_schema)
-    @handle_api_exception
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".get_results",
         log_to_statsd=False,
     )
-    def get_results(self, **kwargs: Any) -> Response:
+    def get_results(self, **kwargs: Any) -> FlaskResponse:
         """Gets the result of a SQL query execution
         ---
         get:
@@ -134,19 +135,24 @@ class SqlLabRestApi(BaseSupersetModelRestApi):
         key = params.get("key")
         rows = params.get("rows")
         result = SqlExecutionResultsCommand(key=key, rows=rows).run()
-        return self.response(200, **result)
+        # return the result without special encoding
+        return json_success(
+            json.dumps(
+                result, default=utils.json_iso_dttm_ser, ignore_nan=True, encoding=None
+            ),
+            200,
+        )
 
     @expose("/execute/", methods=["POST"])
     @protect()
     @statsd_metrics
     @requires_json
-    @handle_api_exception
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".get_results",
         log_to_statsd=False,
     )
-    def execute_sql_query(self) -> Response:
+    def execute_sql_query(self) -> FlaskResponse:
         """Executes a SQL query
         ---
         post:
@@ -201,7 +207,8 @@ class SqlLabRestApi(BaseSupersetModelRestApi):
                 if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING
                 else 200
             )
-            return self.response(response_status, **command_result["payload"])
+            # return the execution result without special encoding
+            return json_success(command_result["payload"], response_status)
         except SqlLabException as ex:
             payload = {"errors": [ex.to_dict()]}
 
@@ -219,7 +226,6 @@ class SqlLabRestApi(BaseSupersetModelRestApi):
             execution_context, query_dao
         )
         execution_context_convertor = ExecutionContextConvertor()
-        execution_context_convertor.set_serialize_to_json(False)
         execution_context_convertor.set_max_row_in_display(
             int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
         )
