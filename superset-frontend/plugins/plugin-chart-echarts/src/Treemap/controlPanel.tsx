@@ -24,7 +24,6 @@ import {
   D3_FORMAT_OPTIONS,
   D3_TIME_FORMAT_OPTIONS,
   sections,
-  emitFilterControl,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
@@ -55,7 +54,6 @@ const config: ControlPanelConfig = {
           },
         ],
         ['adhoc_filters'],
-        emitFilterControl,
       ],
     },
     {
@@ -97,9 +95,9 @@ const config: ControlPanelConfig = {
               default: labelType,
               renderTrigger: true,
               choices: [
-                ['Key', 'Key'],
-                ['value', 'Value'],
-                ['key_value', 'Category and Value'],
+                ['Key', t('Key')],
+                ['value', t('Value')],
+                ['key_value', t('Category and Value')],
               ],
               description: t('What should be shown on the label?'),
             },

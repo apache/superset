@@ -86,7 +86,6 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   yAxisIndexB?: number;
   groupby: QueryFormColumn[];
   groupbyB: QueryFormColumn[];
-  emitFilter: boolean;
 } & LegendFormData &
   TitleFormData;
 
@@ -143,7 +142,6 @@ export type EchartsMixedTimeseriesChartTransformedProps =
   BaseTransformedProps<EchartsMixedTimeseriesFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
-      emitFilterB: boolean;
       groupbyB: QueryFormColumn[];
       labelMapB: Record<string, string[]>;
       seriesBreakdown: number;

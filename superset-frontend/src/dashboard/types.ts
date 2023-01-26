@@ -70,6 +70,7 @@ export type DashboardState = {
   isRefreshing: boolean;
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
+  dashboardIsSaving: boolean;
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;
@@ -107,7 +108,9 @@ export type DashboardInfo = {
     color_scheme_domain: string[];
     label_colors: JsonObject;
     shared_label_colors: JsonObject;
+    cross_filters_enabled: boolean;
   };
+  crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
 };
 

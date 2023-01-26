@@ -102,13 +102,11 @@ test('Should render "appliedCrossFilterIndicators"', () => {
   userEvent.click(screen.getByTestId('details-panel-content'));
   expect(screen.getByText('Applied Cross Filters (1)')).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: 'search Clinical Stage' }),
+    screen.getByRole('button', { name: 'Clinical Stage' }),
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toBeCalledTimes(0);
-  userEvent.click(
-    screen.getByRole('button', { name: 'search Clinical Stage' }),
-  );
+  userEvent.click(screen.getByRole('button', { name: 'Clinical Stage' }));
   expect(props.onHighlightFilterSource).toBeCalledTimes(1);
   expect(props.onHighlightFilterSource).toBeCalledWith([
     'ROOT_ID',
@@ -135,12 +133,10 @@ test('Should render "appliedIndicators"', () => {
 
   userEvent.click(screen.getByTestId('details-panel-content'));
   expect(screen.getByText('Applied Filters (1)')).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'search Country' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Country' })).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toBeCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'search Country' }));
+  userEvent.click(screen.getByRole('button', { name: 'Country' }));
   expect(props.onHighlightFilterSource).toBeCalledTimes(1);
   expect(props.onHighlightFilterSource).toBeCalledWith([
     'ROOT_ID',
@@ -168,12 +164,12 @@ test('Should render "incompatibleIndicators"', () => {
   userEvent.click(screen.getByTestId('details-panel-content'));
   expect(screen.getByText('Incompatible Filters (1)')).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: 'search Vaccine Approach Copy' }),
+    screen.getByRole('button', { name: 'Vaccine Approach Copy' }),
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toBeCalledTimes(0);
   userEvent.click(
-    screen.getByRole('button', { name: 'search Vaccine Approach Copy' }),
+    screen.getByRole('button', { name: 'Vaccine Approach Copy' }),
   );
   expect(props.onHighlightFilterSource).toBeCalledTimes(1);
   expect(props.onHighlightFilterSource).toBeCalledWith([
@@ -202,13 +198,11 @@ test('Should render "unsetIndicators"', () => {
   userEvent.click(screen.getByTestId('details-panel-content'));
   expect(screen.getByText('Unset Filters (1)')).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: 'search Vaccine Approach' }),
+    screen.getByRole('button', { name: 'Vaccine Approach' }),
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toBeCalledTimes(0);
-  userEvent.click(
-    screen.getByRole('button', { name: 'search Vaccine Approach' }),
-  );
+  userEvent.click(screen.getByRole('button', { name: 'Vaccine Approach' }));
   expect(props.onHighlightFilterSource).toBeCalledTimes(1);
   expect(props.onHighlightFilterSource).toBeCalledWith([
     'ROOT_ID',

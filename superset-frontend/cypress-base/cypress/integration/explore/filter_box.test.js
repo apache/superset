@@ -27,7 +27,6 @@ describe('Edit FilterBox Chart', () => {
   }
 
   beforeEach(() => {
-    cy.login();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

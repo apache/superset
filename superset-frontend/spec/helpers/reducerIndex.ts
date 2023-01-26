@@ -31,13 +31,13 @@ import explore from 'src/explore/reducers/exploreReducer';
 import sqlLab from 'src/SqlLab/reducers/sqlLab';
 import localStorageUsageInKilobytes from 'src/SqlLab/reducers/localStorageUsage';
 import reports from 'src/reports/reducers/reports';
+import getBootstrapData from 'src/utils/getBootstrapData';
 
 const impressionId = (state = '') => state;
 
-const container = document.getElementById('app');
-const bootstrap = JSON.parse(container?.getAttribute('data-bootstrap') ?? '{}');
-const common = { ...bootstrap.common };
-const user = { ...bootstrap.user };
+const bootstrapData = getBootstrapData();
+const common = { ...bootstrapData.common };
+const user = { ...bootstrapData.user };
 
 const noopReducer =
   (initialState: unknown) =>

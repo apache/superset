@@ -30,12 +30,12 @@ export default function EchartsRadar(props: RadarChartTransformedProps) {
     labelMap,
     groupby,
     selectedValues,
-    formData,
+    emitCrossFilters,
     refs,
   } = props;
   const handleChange = useCallback(
     (values: string[]) => {
-      if (!formData.emitFilter) {
+      if (!emitCrossFilters) {
         return;
       }
 

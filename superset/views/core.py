@@ -20,12 +20,11 @@ from __future__ import annotations
 import logging
 import re
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Callable, cast, Dict, List, Optional, Union
 from urllib import parse
 
 import backoff
-import humanize
 import pandas as pd
 import simplejson as json
 from flask import abort, flash, g, redirect, render_template, request, Response
@@ -41,7 +40,6 @@ from flask_babel import gettext as __, lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError, SQLAlchemyError
 from sqlalchemy.orm.session import Session
-from sqlalchemy.sql import functions as func
 
 from superset import (
     app,
@@ -67,6 +65,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.dashboards.commands.importers.v0 import ImportDashboardsCommand
 from superset.dashboards.dao import DashboardDAO
 from superset.dashboards.permalink.commands.get import GetDashboardPermalinkCommand
@@ -97,7 +96,7 @@ from superset.explore.permalink.commands.get import GetExplorePermalinkCommand
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import async_query_manager, cache_manager
 from superset.jinja_context import get_template_processor
-from superset.models.core import Database, FavStar, Log
+from superset.models.core import Database, FavStar
 from superset.models.dashboard import Dashboard
 from superset.models.datasource_access_request import DatasourceAccessRequest
 from superset.models.slice import Slice
@@ -154,6 +153,7 @@ from superset.views.base import (
     json_success,
     validate_sqlatable,
 )
+from superset.views.log.dao import LogDAO
 from superset.views.sql_lab.schemas import SqlJsonPayloadSchema
 from superset.views.utils import (
     _deserialize_results_payload,
@@ -194,7 +194,7 @@ DATABASE_KEYS = [
 
 DATASOURCE_MISSING_ERR = __("The data source seems to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
-PARAMETER_MISSING_ERR = (
+PARAMETER_MISSING_ERR = __(
     "Please check your template parameters for syntax errors and make sure "
     "they match across your SQL query and Set Parameters. Then, try running "
     "your query again."
@@ -637,7 +637,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             and not security_manager.can_access("can_csv", "Superset")
         ):
             return json_error_response(
-                _("You don't have the rights to ") + _("download as csv"),
+                _("You don't have the rights to download as csv"),
                 status=403,
             )
 
@@ -773,7 +773,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             query["form_data_key"] = [form_data_key]
             url = url._replace(query=parse.urlencode(query, True))
             redirect_url = parse.urlunparse(url)
-        return redirect_url
+
+        # Return a relative URL
+        url = parse.urlparse(redirect_url)
+        if url.query:
+            return f"{url.path}?{url.query}"
+        return url.path
 
     @has_access
     @event_logger.log_this
@@ -911,13 +916,13 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
         if action == "overwrite" and not slice_overwrite_perm:
             return json_error_response(
-                _("You don't have the rights to ") + _("alter this ") + _("chart"),
+                _("You don't have the rights to alter this chart"),
                 status=403,
             )
 
         if action == "saveas" and not slice_add_perm:
             return json_error_response(
-                _("You don't have the rights to ") + _("create a ") + _("chart"),
+                _("You don't have the rights to create a chart"),
                 status=403,
             )
 
@@ -1081,9 +1086,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dash_overwrite_perm = security_manager.is_owner(dash)
             if not dash_overwrite_perm:
                 return json_error_response(
-                    _("You don't have the rights to ")
-                    + _("alter this ")
-                    + _("dashboard"),
+                    _("You don't have the rights to alter this dashboard"),
                     status=403,
                 )
 
@@ -1099,9 +1102,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             dash_add_perm = security_manager.can_access("can_write", "Dashboard")
             if not dash_add_perm:
                 return json_error_response(
-                    _("You don't have the rights to ")
-                    + _("create a ")
-                    + _("dashboard"),
+                    _("You don't have the rights to create a dashboard"),
                     status=403,
                 )
 
@@ -1436,9 +1437,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/recent_activity/<int:user_id>/", methods=["GET"])
-    def recent_activity(  # pylint: disable=too-many-locals
-        self, user_id: int
-    ) -> FlaskResponse:
+    @deprecated()
+    def recent_activity(self, user_id: int) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
         error_obj = self.get_user_activity_access_error(user_id)
         if error_obj:
@@ -1450,96 +1450,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         # whether to get distinct subjects
         distinct = request.args.get("distinct") != "false"
 
-        has_subject_title = or_(
-            and_(
-                Dashboard.dashboard_title is not None,
-                Dashboard.dashboard_title != "",
-            ),
-            and_(Slice.slice_name is not None, Slice.slice_name != ""),
-        )
+        payload = LogDAO.get_recent_activity(user_id, actions, distinct, 0, limit)
 
-        if distinct:
-            one_year_ago = datetime.today() - timedelta(days=365)
-            subqry = (
-                db.session.query(
-                    Log.dashboard_id,
-                    Log.slice_id,
-                    Log.action,
-                    func.max(Log.dttm).label("dttm"),
-                )
-                .group_by(Log.dashboard_id, Log.slice_id, Log.action)
-                .filter(
-                    and_(
-                        Log.action.in_(actions),
-                        Log.user_id == user_id,
-                        # limit to one year of data to improve performance
-                        Log.dttm > one_year_ago,
-                        or_(Log.dashboard_id.isnot(None), Log.slice_id.isnot(None)),
-                    )
-                )
-                .subquery()
-            )
-            qry = (
-                db.session.query(
-                    subqry,
-                    Dashboard.slug.label("dashboard_slug"),
-                    Dashboard.dashboard_title,
-                    Slice.slice_name,
-                )
-                .outerjoin(Dashboard, Dashboard.id == subqry.c.dashboard_id)
-                .outerjoin(
-                    Slice,
-                    Slice.id == subqry.c.slice_id,
-                )
-                .filter(has_subject_title)
-                .order_by(subqry.c.dttm.desc())
-                .limit(limit)
-            )
-        else:
-            qry = (
-                db.session.query(
-                    Log.dttm,
-                    Log.action,
-                    Log.dashboard_id,
-                    Log.slice_id,
-                    Dashboard.slug.label("dashboard_slug"),
-                    Dashboard.dashboard_title,
-                    Slice.slice_name,
-                )
-                .outerjoin(Dashboard, Dashboard.id == Log.dashboard_id)
-                .outerjoin(Slice, Slice.id == Log.slice_id)
-                .filter(has_subject_title)
-                .order_by(Log.dttm.desc())
-                .limit(limit)
-            )
-
-        payload = []
-        for log in qry.all():
-            item_url = None
-            item_title = None
-            item_type = None
-            if log.dashboard_id:
-                item_type = "dashboard"
-                item_url = Dashboard(id=log.dashboard_id, slug=log.dashboard_slug).url
-                item_title = log.dashboard_title
-            elif log.slice_id:
-                slc = Slice(id=log.slice_id, slice_name=log.slice_name)
-                item_type = "slice"
-                item_url = slc.slice_url
-                item_title = slc.chart
-
-            payload.append(
-                {
-                    "action": log.action,
-                    "item_type": item_type,
-                    "item_url": item_url,
-                    "item_title": item_title,
-                    "time": log.dttm,
-                    "time_delta_humanized": humanize.naturaltime(
-                        datetime.now() - log.dttm
-                    ),
-                }
-            )
         return json_success(json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
@@ -2296,6 +2208,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         on_giveup=lambda details: db.session.rollback(),
         max_tries=5,
     )
+    @deprecated()
     def stop_query(self) -> FlaskResponse:
         client_id = request.form.get("client_id")
         query = db.session.query(Query).filter_by(client_id=client_id).one()
@@ -2313,6 +2226,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetCancelQueryException("Could not cancel query")
 
         query.status = QueryStatus.STOPPED
+        # Add the stop identity attribute because the sqlalchemy thread is unsafe
+        # because of multiple updates to the status in the query table
+        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
         query.end_time = now_as_float()
         db.session.commit()
 
@@ -2598,6 +2514,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/search_queries")
+    @deprecated()
     def search_queries(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Search for previously run sqllab queries. Used for Sqllab Query Search
