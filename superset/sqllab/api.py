@@ -18,8 +18,8 @@ import logging
 from typing import Any, cast, Dict, Optional
 
 import simplejson as json
-from flask import request, Response
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask import request
+from flask_appbuilder.api import expose, protect, rison
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
@@ -54,7 +54,7 @@ from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
-from superset.views.base import handle_api_exception, json_success
+from superset.views.base import json_success
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     requires_json,
