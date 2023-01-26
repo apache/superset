@@ -347,7 +347,8 @@ class BaseReportState:
         return log_data
 
     def get_link(self) -> str:
-        return f"https://careem-insights.careem-internal.com/{self._report_schedule.type.lower()}/list/?filters=(name:'{self._report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
+        baseurl = app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"]
+        return f"{baseurl}/{self._report_schedule.type.lower()}/list/?filters=(name:'{self._report_schedule.name}')&pageIndex=0&sortColumn=name&sortOrder=desc"
 
     def _get_notification_content(self) -> NotificationContent:
         """
