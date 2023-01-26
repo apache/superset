@@ -310,16 +310,16 @@ export const Basic: ComponentStory<typeof Table> = args => <Table {...args} />;
 function handlers(record: object, rowIndex: number) {
   return {
     onClick: action(
-      `row onClick, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onClick, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // click row
     onDoubleClick: action(
-      `row onDoubleClick, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onDoubleClick, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // double click row
     onContextMenu: action(
-      `row onContextMenu, row:  ${rowIndex}, record: ${JSON.stringify(record)}`,
+      `row onContextMenu, row: ${rowIndex}, record: ${JSON.stringify(record)}`,
     ), // right button click row
-    onMouseEnter: action(`Mouse Enter, row:  ${rowIndex}`), // mouse enter row
-    onMouseLeave: action(`Mouse Leave, row:  ${rowIndex}`), // mouse leave row
+    onMouseEnter: action(`Mouse Enter, row: ${rowIndex}`), // mouse enter row
+    onMouseLeave: action(`Mouse Leave, row: ${rowIndex}`), // mouse leave row
   };
 }
 
