@@ -1998,6 +1998,8 @@ def add_metadata_to_queries(sql: str, **kwargs: any) -> str:
     scheduled = False
     if kwargs["query_source"] == "Alerts":
         scheduled = True
+    if kwargs["query_source"] == "Charts":
+        return f"/* Username: {username}, chart_id: {kwargs['chart_id']}, dashboard_id: {kwargs['dashboard_id']} , Query_hash: {hash}, Query_source: {kwargs['query_source']}, Scheduled: {scheduled} */ \n{sql}"
     return f"/* Username: {username}, Query_id: {kwargs['query_id']}, Query_hash: {hash}, Query_source: {kwargs['query_source']}, Scheduled: {scheduled} */ \n{sql}"
 
 

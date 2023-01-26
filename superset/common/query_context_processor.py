@@ -201,13 +201,16 @@ class QueryContextProcessor:
         # Here, we assume that all the queries will use the same datasource, which is
         # a valid assumption for current setting. In the long term, we may
         # support multiple queries from different data sources.
-
+        dashboard = None
+        if "dashboards" in query_context.form_data.keys():
+            dashboard = query_context.form_data['dashboards']
+        chart = query_context.form_data['slice_id']
         query = ""
         if isinstance(query_context.datasource, Query):
             # todo(hugh): add logic to manage all sip68 models here
             result = query_context.datasource.exc_query(query_object.to_dict())
         else:
-            result = query_context.datasource.query(query_object.to_dict())
+            result = query_context.datasource.query(query_object.to_dict(),dashboard_id = dashboard,chart_id = chart)
             query = result.query + ";\n\n"
 
         df = result.df

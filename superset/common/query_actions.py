@@ -38,7 +38,8 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
-
+import logging
+logger = logging.getLogger(__name__)
 config = app.config
 
 
@@ -87,8 +88,12 @@ def _get_query(
 ) -> Dict[str, Any]:
     datasource = _get_datasource(query_context, query_obj)
     result = {"language": datasource.query_language}
+    dashboard = None
+    if "dashboards" in query_context.form_data.keys():
+        dashboard = query_context.form_data['dashboards']
+    chart = query_context.form_data['slice_id']
     try:
-        result["query"] = datasource.get_query_str(query_obj.to_dict())
+        result["query"] = datasource.get_query_str(query_obj.to_dict(),dashboard_id = dashboard,chart_id = chart)
     except QueryObjectValidationError as err:
         result["error"] = err.message
     return result
@@ -224,6 +229,7 @@ def get_query_results(
     :return: JSON serializable result payload
     """
     result_func = _result_type_functions.get(result_type)
+    logger.info("talha result",result_type)
     if result_func:
         return result_func(query_context, query_obj, force_cached)
     raise QueryObjectValidationError(

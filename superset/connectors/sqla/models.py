@@ -969,7 +969,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         df = pd.read_sql_query(sql=sql, con=engine)
         return df[column_name].to_list()
 
-    def mutate_query_from_config(self, sql: str) -> str:
+    def mutate_query_from_config(self, sql: str,**kwargs: any) -> str:
         """Apply config's SQL_QUERY_MUTATOR
 
         Typically adds comments to the query with context"""
@@ -980,6 +980,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
                 # TODO(john-bodley): Deprecate in 3.0.
                 query_source="Charts",
                 query_id=None,
+                dashboard_id = kwargs['dashboard_id'],
+                chart_id = kwargs['chart_id'],
                 user_name=get_username(),
                 security_manager=security_manager,
                 database=self.database,
@@ -1034,12 +1036,12 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         )
         return sqlparse.format(final_sql, reindent=True)
 
-    def get_query_str_extended(self, query_obj: QueryObjectDict) -> QueryStringExtended:
+    def get_query_str_extended(self, query_obj: QueryObjectDict,**kwargs: any) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
         sql = sqlparse.format(sql, reindent=True)
-        sql = self.mutate_query_from_config(sql)
+        sql = self.mutate_query_from_config(sql,**kwargs)
 
         if self.table_name.startswith("tmp__"):
             sql = self.get_multi_dataset_query(sql)
@@ -1051,8 +1053,8 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
             sql=sql,
         )
 
-    def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        query_str_ext = self.get_query_str_extended(query_obj)
+    def get_query_str(self, query_obj: QueryObjectDict,**kwargs: any) -> str:
+        query_str_ext = self.get_query_str_extended(query_obj,**kwargs)
         all_queries = query_str_ext.prequeries + [query_str_ext.sql]
         return ";\n\n".join(all_queries) + ";"
 
@@ -1944,9 +1946,9 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
 
         return or_(*groups)
 
-    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+    def query(self, query_obj: QueryObjectDict,**kwargs: any) -> QueryResult:
         qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
+        query_str_ext = self.get_query_str_extended(query_obj,**kwargs)
         sql = query_str_ext.sql
         status = QueryStatus.SUCCESS
         errors = None
