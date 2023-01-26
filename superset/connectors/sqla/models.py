@@ -755,7 +755,7 @@ class SqlaTable(Model, BaseDatasource):  # pylint: disable=too-many-public-metho
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     def external_metadata(self) -> List[Dict[str, str]]:
-        # todo(yongjie): create a pysical table column type in seprated PR
+        # todo(yongjie): create a pysical table column type in a separate PR
         if self.sql:
             return get_virtual_table_metadata(dataset=self)  # type: ignore
         return get_physical_table_metadata(
