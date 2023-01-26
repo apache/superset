@@ -178,7 +178,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
 
         cursor = mock.Mock()
         cursor.fetchone.return_value = (
-            "Seq Scan on birth_names  (cost=0.00..1537.91 rows=75691 width=46)",
+            "Seq Scan on birth_names (cost=0.00..1537.91 rows=75691 width=46)",
         )
         sql = "SELECT * FROM birth_names"
         results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
