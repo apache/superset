@@ -156,6 +156,7 @@ const FlashOwnership: FunctionComponent<FlashOwnershipButtonProps> = ({
   const onFieldChange = (formValues: any) => {
     const formData = { ...formValues };
     const jsonSchema = { ...flashSchema };
+    formData.flashType = flash.flashType.replace(/([A-Z])/g, ' $1').trim();
     if (formData) {
       if (formData.ownershipType) {
         formData.owner = user?.email;
@@ -172,6 +173,12 @@ const FlashOwnership: FunctionComponent<FlashOwnershipButtonProps> = ({
                   readOnly: formData.ownershipType,
                 };
               }
+            if (key === 'flashType') {
+              jsonSchema.properties[key] = {
+                ...value,
+                readOnly: true,
+              };
+            }
           },
         );
       }
