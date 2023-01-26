@@ -168,6 +168,8 @@ class ChartEntityResponseSchema(Schema):
     certification_details = fields.String(description=certification_details_description)
 
 
+from superset import typemallow as tm
+@tm.ts_interface()
 class ChartPostSchema(Schema):
     """
     Schema to add a new chart.
@@ -1403,3 +1405,5 @@ CHART_SCHEMAS = (
     ChartCacheScreenshotResponseSchema,
     GetFavStarIdsSchema,
 )
+
+tm.generate_ts("./output.ts")
