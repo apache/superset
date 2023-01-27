@@ -501,7 +501,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ALERT_REPORTS_DEFAULT_RETENTION,
   } = useSelector<any, AlertsReportsConfig>(state => state.common.conf);
 
-  const DEFAULT_ALERT = {
+  const defaultAlert = {
     active: true,
     creation_method: 'alerts_reports',
     crontab: ALERT_REPORTS_DEFAULT_CRON_VALUE,
@@ -554,7 +554,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setIsHidden(true);
     onHide();
     setNotificationSettings([]);
-    setCurrentAlert({ ...DEFAULT_ALERT });
+    setCurrentAlert({ ...defaultAlert });
     setNotificationAddState('active');
   };
 
@@ -997,7 +997,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       !isEditMode &&
       (!currentAlert || currentAlert.id || (isHidden && show))
     ) {
-      setCurrentAlert({ ...DEFAULT_ALERT });
+      setCurrentAlert({ ...defaultAlert });
       setNotificationSettings([]);
       setNotificationAddState('active');
     }
