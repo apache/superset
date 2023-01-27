@@ -163,6 +163,7 @@ export default function transformProps(
     width,
     theme,
     inContextMenu,
+    emitCrossFilters,
   } = chartProps;
   const { data = [] } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
@@ -180,7 +181,6 @@ export default function transformProps(
     showLabelsThreshold,
     showTotal,
     sliceId,
-    emitFilter,
   } = formData;
   const refs: Refs = {};
   const numberFormatter = getNumberFormatter(numberFormat);
@@ -352,7 +352,7 @@ export default function transformProps(
     height,
     echartOptions,
     setDataMask,
-    emitFilter,
+    emitCrossFilters,
     labelMap: Object.fromEntries(columnsLabelMap),
     groupby,
     selectedValues: filterState.selectedValues || [],

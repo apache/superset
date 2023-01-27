@@ -209,7 +209,7 @@ def mock_upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     container.exec_run(f"hdfs dfs -mkdir -p {dest_dir}")
     dest = os.path.join(dest_dir, os.path.basename(filename))
     container.exec_run(f"hdfs dfs -put {src} {dest}")
-    # hive external table expectes a directory for the location
+    # hive external table expects a directory for the location
     return dest_dir
 
 

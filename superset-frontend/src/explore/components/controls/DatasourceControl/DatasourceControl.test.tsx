@@ -27,6 +27,25 @@ import DatasourceControl from '.';
 
 const SupersetClientGet = jest.spyOn(SupersetClient, 'get');
 
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({
+    fileName,
+    role,
+    ...rest
+  }: {
+    fileName: string;
+    role: string;
+  }) => (
+    <span
+      role={role ?? 'img'}
+      aria-label={fileName.replace('_', '-')}
+      {...rest}
+    />
+  ),
+  StyledIcon: () => <span />,
+}));
+
 const createProps = (overrides: JsonObject = {}) => ({
   hovered: false,
   type: 'DatasourceControl',

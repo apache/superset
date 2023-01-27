@@ -18,7 +18,6 @@
  */
 describe('Visualization > Pivot Table', () => {
   beforeEach(() => {
-    cy.preserveLogin();
     cy.intercept('POST', '/superset/explore_json/**').as('getJson');
   });
 

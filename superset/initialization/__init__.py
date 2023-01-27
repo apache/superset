@@ -123,7 +123,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.api import ChartRestApi
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
-            RowLevelSecurityView,
+            RowLevelSecurityFiltersModelView,
             SqlMetricInlineView,
             TableColumnInlineView,
             TableModelView,
@@ -147,7 +147,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.queries.saved_queries.api import SavedQueryRestApi
         from superset.reports.api import ReportScheduleRestApi
         from superset.reports.logs.api import ReportExecutionLogRestApi
-        from superset.row_level_security.api import RLSRestApi
         from superset.security.api import SecurityRestApi
         from superset.views.access_requests import AccessRequestsModelView
         from superset.views.alerts import AlertView, ReportView
@@ -216,7 +215,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
         appbuilder.add_api(ReportExecutionLogRestApi)
-        appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
         #
         # Setup regular views
@@ -281,6 +279,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=__("Manage"),
             category_icon="",
+        )
+        appbuilder.add_view(
+            RowLevelSecurityFiltersModelView,
+            "Row Level Security",
+            label=__("Row Level Security"),
+            category="Security",
+            category_label=__("Security"),
+            icon="fa-lock",
         )
 
         #
@@ -401,16 +407,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=__("Security"),
             icon="fa-table",
             menu_cond=lambda: bool(self.config["ENABLE_ACCESS_REQUEST"]),
-        )
-
-        appbuilder.add_view(
-            RowLevelSecurityView,
-            "Row Level Security",
-            href="/rowlevelsecurity/list/",
-            label=__("Row Level Security"),
-            category="Security",
-            category_label=__("Security"),
-            icon="fa-lock",
         )
 
     def init_app_in_ctx(self) -> None:

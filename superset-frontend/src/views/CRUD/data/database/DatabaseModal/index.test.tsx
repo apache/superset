@@ -43,6 +43,25 @@ jest.mock('@superset-ui/core', () => ({
   isFeatureEnabled: () => true,
 }));
 
+jest.mock('src/components/Icons/Icon', () => ({
+  __esModule: true,
+  default: ({
+    fileName,
+    role,
+    ...rest
+  }: {
+    fileName: string;
+    role: string;
+  }) => (
+    <span
+      role={role ?? 'img'}
+      aria-label={fileName.replace('_', '-')}
+      {...rest}
+    />
+  ),
+  StyledIcon: () => <span />,
+}));
+
 const dbProps = {
   show: true,
   database_name: 'my database',
@@ -354,11 +373,6 @@ describe('DatabaseModal', () => {
       const preferredDbTextSQLite = within(preferredDbButtonSQLite).getByText(
         /sqlite/i,
       );
-      // All dbs render with this icon in this testing environment,
-      // The Icon count should equal the count of databases rendered
-      const preferredDbIcon = screen.getAllByRole('img', {
-        name: /default-icon/i,
-      });
       // renderAvailableSelector() => <Select> - Supported databases selector
       const supportedDbsHeader = screen.getByRole('heading', {
         name: /or choose from a list of other databases we support:/i,
@@ -399,10 +413,6 @@ describe('DatabaseModal', () => {
         preferredDbButtonPresto,
         preferredDbButtonMySQL,
         preferredDbButtonSQLite,
-        preferredDbIcon[0],
-        preferredDbIcon[1],
-        preferredDbIcon[2],
-        preferredDbIcon[3],
         preferredDbTextPostgreSQL,
         preferredDbTextPresto,
         preferredDbTextMySQL,
@@ -414,9 +424,6 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer[0]).toBeEmptyDOMElement();
-
-      // This is how many preferred databases are rendered
-      expect(preferredDbIcon).toHaveLength(5);
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {

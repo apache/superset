@@ -135,7 +135,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     colTotals,
     rowTotals,
     valueFormat,
-    emitFilter,
+    emitCrossFilters,
     setDataMask,
     selectedFilters,
     verboseMap,
@@ -287,7 +287,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       isSubtotal: boolean,
       isGrandTotal: boolean,
     ) => {
-      if (isSubtotal || isGrandTotal || !emitFilter) {
+      if (isSubtotal || isGrandTotal || !emitCrossFilters) {
         return;
       }
 
@@ -327,7 +327,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       }
       handleChange(updatedFilters);
     },
-    [emitFilter, selectedFilters, handleChange],
+    [emitCrossFilters, selectedFilters, handleChange],
   );
 
   const tableOptions = useMemo(
@@ -336,7 +336,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       clickColumnHeaderCallback: toggleFilter,
       colTotals,
       rowTotals,
-      highlightHeaderCellsOnHover: emitFilter,
+      highlightHeaderCellsOnHover: emitCrossFilters,
       highlightedHeaderCells: selectedFilters,
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
@@ -345,7 +345,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     [
       colTotals,
       dateFormatters,
-      emitFilter,
+      emitCrossFilters,
       metricColorFormatters,
       rowTotals,
       selectedFilters,

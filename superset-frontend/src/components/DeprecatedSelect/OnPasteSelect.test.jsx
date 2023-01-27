@@ -45,7 +45,7 @@ const defaultProps = {
 const defaultEvt = {
   preventDefault: sinon.spy(),
   clipboardData: {
-    getData: sinon.spy(() => ' United States, China  , India, Canada, '),
+    getData: sinon.spy(() => ' United States, China, India, Canada, '),
   },
 };
 
