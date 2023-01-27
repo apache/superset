@@ -191,6 +191,7 @@ const FlashOwnership: FunctionComponent<FlashOwnershipButtonProps> = ({
     const payload = { ...formData };
     if (payload.ownershipType === true || payload.ownershipType === false) {
       delete payload.ownershipType;
+      delete payload.flashType;
     }
     flashOwnershipService(Number(flash?.id), UPDATE_TYPES.OWNER, payload);
   };

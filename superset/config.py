@@ -260,7 +260,7 @@ SHOW_STACKTRACE = True
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
 ENABLE_PROXY_FIX = False
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
-FLASH_URL = "https://flash-api.prod.careem-rh.com/"
+FLASH_URL = "https://flash-api.dev.careem-rh.com/"
 
 # Configuration for scheduling queries from SQL Lab.
 SCHEDULED_QUERIES: Dict[str, Any] = None
