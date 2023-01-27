@@ -242,6 +242,15 @@ function WorldMap(element, props) {
           !filterState.selectedValues.includes(countryFeature.id),
       )
       .style('fill-opacity', theme.opacity.mediumLight);
+
+    // hack to ensure that the clicked country's color is preserved
+    // sometimes the fill color would get default grey value after applying cross filter
+    filterState.selectedValues.forEach(value => {
+      d3.select(`path.datamaps-subunit.${value}`).style(
+        'fill',
+        mapData[value].fillColor,
+      );
+    });
   }
 }
 
