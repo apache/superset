@@ -90,7 +90,7 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
     Require 'multipart/form-data' as request MIME type
     """
 
-    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
         if not request.mimetype == "multipart/form-data":
             raise InvalidPayloadFormatError(
                 message="Request MIME type is not 'multipart/form-data'"
@@ -105,7 +105,7 @@ def statsd_metrics(f: Callable[..., Any]) -> Callable[..., Any]:
     Handle sending all statsd metrics from the REST API
     """
 
-    def wraps(self: "BaseSupersetModelRestApi", *args: Any, **kwargs: Any) -> Response:
+    def wraps(self: BaseSupersetApiMixin, *args: Any, **kwargs: Any) -> Response:
         func_name = f.__name__
         try:
             duration, response = time_function(f, self, *args, **kwargs)
