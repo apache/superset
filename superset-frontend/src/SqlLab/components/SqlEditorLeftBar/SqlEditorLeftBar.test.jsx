@@ -41,22 +41,15 @@ const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 const store = mockStore(initialState);
 
-beforeEach(() => {
-  fetchMock.get('glob:*/api/v1/database/**', { result: [] });
-  fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: [] });
-  fetchMock.get('glob:*/superset/tables/**', {
-    options: [
-      {
-        label: 'ab_user',
-        value: 'ab_user',
-      },
-    ],
-    tableLength: 1,
-  });
-});
-
-afterEach(() => {
-  fetchMock.restore();
+fetchMock.get('glob:*/api/v1/database/*/schemas/?*', { result: [] });
+fetchMock.get('glob:*/superset/tables/**', {
+  options: [
+    {
+      label: 'ab_user',
+      value: 'ab_user',
+    },
+  ],
+  tableLength: 1,
 });
 
 const renderAndWait = (props, store) =>
@@ -117,9 +110,8 @@ test('should toggle the table when the header is clicked', async () => {
   userEvent.click(header);
 
   await waitFor(() => {
-    expect(store.getActions()[store.getActions().length - 1].type).toEqual(
-      'COLLAPSE_TABLE',
-    );
+    expect(store.getActions()).toHaveLength(4);
+    expect(store.getActions()[3].type).toEqual('COLLAPSE_TABLE');
   });
 });
 
@@ -137,77 +129,14 @@ test('When changing database the table list must be updated', async () => {
         database_name: 'new_db',
         backend: 'postgresql',
       }}
-      queryEditorId={defaultQueryEditor.id}
+      queryEditor={{ ...mockedProps.queryEditor, schema: 'new_schema' }}
       tables={[{ ...mockedProps.tables[0], dbId: 2, name: 'new_table' }]}
     />,
     {
       useRedux: true,
-      store: mockStore({
-        ...initialState,
-        sqlLab: {
-          ...initialState.sqlLab,
-          unsavedQueryEditor: {
-            id: defaultQueryEditor.id,
-            schema: 'new_schema',
-          },
-        },
-      }),
+      initialState,
     },
   );
   expect(await screen.findByText(/new_db/i)).toBeInTheDocument();
   expect(await screen.findByText(/new_table/i)).toBeInTheDocument();
-});
-
-test('ignore schema api when current schema is deprecated', async () => {
-  const invalidSchemaName = 'None';
-  await renderAndWait(
-    mockedProps,
-    mockStore({
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        unsavedQueryEditor: {
-          id: defaultQueryEditor.id,
-          schema: invalidSchemaName,
-        },
-      },
-    }),
-  );
-
-  expect(await screen.findByText(/Database/i)).toBeInTheDocument();
-  expect(screen.queryByText(/None/i)).not.toBeInTheDocument();
-  expect(fetchMock.calls()).not.toContainEqual(
-    expect.arrayContaining([
-      expect.stringContaining(
-        `/tables/${mockedProps.database.id}/${invalidSchemaName}/`,
-      ),
-    ]),
-  );
-});
-
-test('fetches schema api when current schema is among the list', async () => {
-  const validSchema = 'schema1';
-  await renderAndWait(
-    mockedProps,
-    mockStore({
-      ...initialState,
-      sqlLab: {
-        ...initialState.sqlLab,
-        unsavedQueryEditor: {
-          id: defaultQueryEditor.id,
-          schema: validSchema,
-          schemaOptions: [{ name: validSchema, value: validSchema }],
-        },
-      },
-    }),
-  );
-
-  expect(await screen.findByText(/schema1/i)).toBeInTheDocument();
-  expect(fetchMock.calls()).toContainEqual(
-    expect.arrayContaining([
-      expect.stringContaining(
-        `/tables/${mockedProps.database.id}/${validSchema}/`,
-      ),
-    ]),
-  );
 });

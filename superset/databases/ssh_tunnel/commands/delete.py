@@ -19,10 +19,12 @@ from typing import Optional
 
 from flask_appbuilder.models.sqla import Model
 
+from superset import is_feature_enabled
 from superset.commands.base import BaseCommand
 from superset.dao.exceptions import DAODeleteFailedError
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelDeleteFailedError,
+    SSHTunnelingNotEnabledError,
     SSHTunnelNotFoundError,
 )
 from superset.databases.ssh_tunnel.dao import SSHTunnelDAO
@@ -37,6 +39,8 @@ class DeleteSSHTunnelCommand(BaseCommand):
         self._model: Optional[SSHTunnel] = None
 
     def run(self) -> Model:
+        if not is_feature_enabled("SSH_TUNNELING"):
+            raise SSHTunnelingNotEnabledError()
         self.validate()
         try:
             ssh_tunnel = SSHTunnelDAO.delete(self._model)

@@ -36,6 +36,17 @@ from tests.unit_tests.fixtures.common import dttm
         ("Date", "TO_DATE('2019-01-02')"),
         ("DateTime", "CAST('2019-01-02T03:04:05.678900' AS DATETIME)"),
         ("TimeStamp", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMP_NTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMP_LTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMP_TZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMPLTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMPNTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        ("TIMESTAMPTZ", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
+        (
+            "TIMESTAMP WITH LOCAL TIME ZONE",
+            "TO_TIMESTAMP('2019-01-02T03:04:05.678900')",
+        ),
+        ("TIMESTAMP WITHOUT TIME ZONE", "TO_TIMESTAMP('2019-01-02T03:04:05.678900')"),
         ("UnknownType", None),
     ],
 )

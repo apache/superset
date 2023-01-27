@@ -67,8 +67,10 @@ class TestUpdateSSHTunnelCommand(SupersetTestCase):
 
 class TestDeleteSSHTunnelCommand(SupersetTestCase):
     @mock.patch("superset.utils.core.g")
-    def test_delete_ssh_tunnel_not_found(self, mock_g):
+    @mock.patch("superset.databases.ssh_tunnel.commands.delete.is_feature_enabled")
+    def test_delete_ssh_tunnel_not_found(self, mock_g, mock_delete_is_feature_enabled):
         mock_g.user = security_manager.find_user("admin")
+        mock_delete_is_feature_enabled.return_value = True
         # We have not created a SSH Tunnel yet so id = 1 is invalid
         command = DeleteSSHTunnelCommand(1)
         with pytest.raises(SSHTunnelNotFoundError) as excinfo:
