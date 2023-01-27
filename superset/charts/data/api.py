@@ -45,12 +45,7 @@ from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.utils.async_query_manager import AsyncQueryTokenException
 from superset.utils.core import create_zip, get_user_id, json_int_dttm_ser
-from superset.views.base import (
-    CsvResponse,
-    generate_download_headers,
-    XlsResponse,
-    XlsxResponse,
-)
+from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
@@ -355,27 +350,26 @@ class ChartDataRestApi(ChartRestApi):
             if not result["queries"]:
                 return self.response_400(_("Empty query result"))
 
+            is_csv_format = result_format == ChartDataResultFormat.CSV
+
             if len(result["queries"]) == 1:
                 # return single query results
                 data = result["queries"][0]["data"]
-                if result_format == ChartDataResultFormat.CSV:
+                if is_csv_format:
                     return CsvResponse(data, headers=generate_download_headers("csv"))
-                elif result_format == ChartDataResultFormat.XLS:
-                    return XlsResponse(data, headers=generate_download_headers("xls"))
-                elif result_format == ChartDataResultFormat.XLSX:
-                    return XlsxResponse(data, headers=generate_download_headers("xlsx"))
+
+                return XlsxResponse(data, headers=generate_download_headers("xlsx"))
 
             # return multi-query results bundled as a zip file
-
-            def _process_data(d: Any) -> Any:
+            def _process_data(query_data: Any) -> Any:
                 if result_format == ChartDataResultFormat.CSV:
                     encoding = current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
-                    return d.encode(encoding)
-                return d
+                    return query_data.encode(encoding)
+                return query_data
 
             files = {
-                f"query_{idx + 1}.{result_format}": _process_data(result["data"])
-                for idx, result in enumerate(result["queries"])
+                f"query_{idx + 1}.{result_format}": _process_data(query["data"])
+                for idx, query in enumerate(result["queries"])
             }
             return Response(
                 create_zip(files),

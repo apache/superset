@@ -452,16 +452,14 @@ class QueryContextProcessor:
             verbose_map = self._qc_datasource.data.get("verbose_map", {})
             if verbose_map:
                 df.columns = [verbose_map.get(column, column) for column in columns]
-            if self._query_context.result_type == ChartDataResultFormat.CSV:
+
+            result = None
+            if self._query_context.result_format == ChartDataResultFormat.CSV:
                 result = csv.df_to_escaped_csv(
                     df, index=include_index, **config["CSV_EXPORT"]
                 )
-            else:
-                result = excel.df_to_excel(
-                    df,
-                    excel_format=self._query_context.result_format,
-                    **config["EXCEL_EXPORT"],
-                )
+            elif self._query_context.result_format == ChartDataResultFormat.XLSX:
+                result = excel.df_to_excel(df, **config["EXCEL_EXPORT"])
             return result or ""
 
         return df.to_dict(orient="records")

@@ -666,15 +666,6 @@ class CsvResponse(Response):
     default_mimetype = "text/csv"
 
 
-class XlsResponse(Response):
-    """
-    Override Response to use xls mimetype
-    """
-
-    charset = "utf-8"
-    default_mimetype = "application/vnd.ms-excel"
-
-
 class XlsxResponse(Response):
     """
     Override Response to use xlsx mimetype
