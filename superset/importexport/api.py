@@ -20,7 +20,7 @@ from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
-from flask_appbuilder.api import BaseApi, expose, protect
+from flask_appbuilder.api import expose, protect
 
 from superset.commands.export.assets import ExportAssetsCommand
 from superset.commands.importers.exceptions import (
@@ -30,10 +30,10 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
-from superset.views.base_api import requires_form_data
+from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 
-class ImportExportRestApi(BaseApi):
+class ImportExportRestApi(BaseSupersetApi):
     """
     API for exporting all assets or importing them.
     """
@@ -44,6 +44,7 @@ class ImportExportRestApi(BaseApi):
 
     @expose("/export/", methods=["GET"])
     @protect()
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -92,6 +93,7 @@ class ImportExportRestApi(BaseApi):
 
     @expose("/import/", methods=["POST"])
     @protect()
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,

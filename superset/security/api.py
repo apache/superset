@@ -19,7 +19,7 @@ from typing import Any, Dict
 
 from flask import request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.api import BaseApi, safe
+from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
@@ -30,6 +30,7 @@ from superset.embedded_dashboard.commands.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
+from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,7 @@ class GuestTokenCreateSchema(PermissiveSchema):
 guest_token_create_schema = GuestTokenCreateSchema()
 
 
-class SecurityRestApi(BaseApi):
+class SecurityRestApi(BaseSupersetApi):
     resource_name = "security"
     allow_browser_login = True
     openapi_spec_tag = "Security"
@@ -85,6 +86,7 @@ class SecurityRestApi(BaseApi):
     @event_logger.log_this
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("read")
     def csrf_token(self) -> Response:
         """
@@ -114,6 +116,7 @@ class SecurityRestApi(BaseApi):
     @event_logger.log_this
     @protect()
     @safe
+    @statsd_metrics
     @permission_name("grant_guest_token")
     def guest_token(self) -> Response:
         """Response
