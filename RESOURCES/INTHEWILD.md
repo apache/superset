@@ -161,7 +161,7 @@ Join our growing community!
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 
 ### Travel
-- [Skyscanner](https://www.skyscanner.net/)
+- [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
 - [AI inside](https://inside.ai/en/)
