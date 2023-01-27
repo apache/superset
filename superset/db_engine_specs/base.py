@@ -1574,7 +1574,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
     ) -> Optional[ColumnSpec]:
         """
-        Converts native database type to sqlalchemy column type.
+        Get generic type related specs regarding a native column type.
+
         :param native_type: Native database type
         :param db_extra: The database extra object
         :param source: Type coming from the database table or cursor description
@@ -1588,6 +1589,28 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 sqla_type=column_type, generic_type=generic_type, is_dttm=is_dttm
             )
         return None
+
+    @classmethod
+    def get_sqla_column_type(
+        cls,
+        native_type: Optional[str],
+        db_extra: Optional[Dict[str, Any]] = None,
+        source: utils.ColumnTypeSource = utils.ColumnTypeSource.GET_TABLE,
+    ) -> Optional[TypeEngine]:
+        """
+        Converts native database type to sqlalchemy column type.
+
+        :param native_type: Native database type
+        :param db_extra: The database extra object
+        :param source: Type coming from the database table or cursor description
+        :return: ColumnSpec object
+        """
+        column_spec = cls.get_column_spec(
+            native_type=native_type,
+            db_extra=db_extra,
+            source=utils.ColumnTypeSource.GET_TABLE,
+        )
+        return column_spec.sqla_type if column_spec else None
 
     # pylint: disable=unused-argument
     @classmethod

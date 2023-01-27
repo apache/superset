@@ -248,8 +248,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        column_spec = cls.get_column_spec(target_type)
-        sqla_type = column_spec.sqla_type if column_spec else None
+        sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"

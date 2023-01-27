@@ -70,8 +70,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
 
         db_extra = db_extra or {}
 
-        column_spec = cls.get_column_spec(target_type)
-        sqla_type = column_spec.sqla_type if column_spec else None
+        sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.DateTime):
             es_version = db_extra.get("version")
@@ -124,8 +123,7 @@ class OpenDistroEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     def convert_dttm(
         cls, target_type: str, dttm: datetime, db_extra: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
-        column_spec = cls.get_column_spec(target_type)
-        sqla_type = column_spec.sqla_type if column_spec else None
+        sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.DateTime):
             return f"""'{dttm.isoformat(timespec="seconds")}'"""

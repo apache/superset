@@ -285,8 +285,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         Superset only defines time zone naive `datetime` objects, though this method
         handles both time zone naive and aware conversions.
         """
-        column_spec = cls.get_column_spec(target_type)
-        sqla_type = column_spec.sqla_type if column_spec else None
+        sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
             return f"DATE '{dttm.date().isoformat()}'"
