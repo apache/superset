@@ -98,7 +98,7 @@ describe('server', () => {
       expect(endMock).toHaveBeenLastCalledWith('OK');
     });
 
-    test('reponds with a 404 when not found', () => {
+    test('responds with a 404 when not found', () => {
       const endMock = jest.fn();
       const writeHeadMock = jest.fn();
 

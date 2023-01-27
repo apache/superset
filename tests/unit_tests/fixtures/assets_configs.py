@@ -177,6 +177,7 @@ dashboards_config_1: Dict[str, Any] = {
             "show_native_filters": True,
             "color_scheme_domain": [],
             "shared_label_colors": {},
+            "cross_filters_enabled": False,
         },
         "version": "1.0.0",
     },

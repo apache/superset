@@ -476,15 +476,15 @@ class TestSqlaTableModel(SupersetTestCase):
             # TODO(bkyryliuk): make it work for presto.
             return
 
-        def cannonicalize_df(df):
+        def canonicalize_df(df):
             ret = df.sort_values(by=list(df.columns.values), inplace=False)
             ret.reset_index(inplace=True, drop=True)
             return ret
 
         df1 = self.query_with_expr_helper(is_timeseries=True, inner_join=True)
-        name_list1 = cannonicalize_df(df1).name.values.tolist()
+        name_list1 = canonicalize_df(df1).name.values.tolist()
         df2 = self.query_with_expr_helper(is_timeseries=True, inner_join=False)
-        name_list2 = cannonicalize_df(df1).name.values.tolist()
+        name_list2 = canonicalize_df(df1).name.values.tolist()
         self.assertFalse(df2.empty)
 
         assert name_list2 == name_list1

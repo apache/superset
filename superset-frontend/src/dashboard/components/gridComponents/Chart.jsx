@@ -97,6 +97,7 @@ const propTypes = {
   postTransformProps: PropTypes.func,
   datasetsStatus: PropTypes.oneOf(['loading', 'error', 'complete']),
   isInView: PropTypes.bool,
+  emitCrossFilters: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -408,6 +409,7 @@ class Chart extends React.Component {
       postTransformProps,
       datasetsStatus,
       isInView,
+      emitCrossFilters,
       logEvent,
     } = this.props;
 
@@ -438,6 +440,7 @@ class Chart extends React.Component {
           filterId: id,
         })
       : {};
+
     return (
       <SliceContainer
         className="chart-slice"
@@ -540,6 +543,7 @@ class Chart extends React.Component {
             postTransformProps={postTransformProps}
             datasetsStatus={datasetsStatus}
             isInView={isInView}
+            emitCrossFilters={emitCrossFilters}
           />
         </ChartWrapper>
       </SliceContainer>
