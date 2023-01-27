@@ -117,7 +117,9 @@ class CacheRestApi(BaseSupersetModelRestApi):
                 )
                 db.session.execute(delete_stmt)
                 db.session.commit()
-                stats_logger_manager.instance.gauge("invalidated_cache", len(cache_keys))
+                stats_logger_manager.instance.gauge(
+                    "invalidated_cache", len(cache_keys)
+                )
                 logger.info(
                     "Invalidated %s cache records for %s datasources",
                     len(cache_keys),
