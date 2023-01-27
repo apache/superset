@@ -1608,7 +1608,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         column_spec = cls.get_column_spec(
             native_type=native_type,
             db_extra=db_extra,
-            source=utils.ColumnTypeSource.GET_TABLE,
+            source=source,
         )
         return column_spec.sqla_type if column_spec else None
 
