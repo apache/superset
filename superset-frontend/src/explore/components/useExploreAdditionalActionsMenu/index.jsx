@@ -328,7 +328,10 @@ export const useExploreAdditionalActionsMenu = (
           >
             {t('Download as image')}
           </Menu.Item>
-          <Menu.Item key={MENU_KEYS.EXPORT_TO_XLSX} icon={<FileOutlined />}>
+          <Menu.Item
+            key={MENU_KEYS.EXPORT_TO_XLSX}
+            icon={<Icons.FileOutlined css={iconReset} />}
+          >
             {t('Export to Excel')}
           </Menu.Item>
         </Menu.SubMenu>
