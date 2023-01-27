@@ -1304,7 +1304,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <span className="required">*</span>
             </StyledSectionTitle>
             <AlertReportCronScheduler
-              value={currentAlert?.crontab || DEFAULT_CRON_VALUE}
+              value={currentAlert?.crontab || ALERT_REPORTS_DEFAULT_CRON_VALUE}
               onChange={newVal => updateAlertState('crontab', newVal)}
             />
             <div className="control-label">{TRANSLATIONS.TIMEZONE_TEXT}</div>
@@ -1334,7 +1334,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   value={
                     typeof currentAlert?.log_retention === 'number'
                       ? currentAlert?.log_retention
-                      : DEFAULT_RETENTION
+                      : ALERT_REPORTS_DEFAULT_RETENTION
                   }
                   options={RETENTION_OPTIONS}
                   sortComparator={propertyComparator('value')}
