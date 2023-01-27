@@ -70,7 +70,7 @@ test('includes id implicitly', () => {
 test('returns updated values from unsaved change', () => {
   const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
   const { result } = renderHook(
-    () => useQueryEditor(defaultQueryEditor.id, ['id', 'sql', 'schema']),
+    () => useQueryEditor(defaultQueryEditor.id, ['id', 'sql']),
     {
       wrapper: createWrapper({
         useRedux: true,
@@ -88,31 +88,5 @@ test('returns updated values from unsaved change', () => {
     },
   );
   expect(result.current.id).toEqual(defaultQueryEditor.id);
-  expect(result.current.schema).toEqual(defaultQueryEditor.schema);
   expect(result.current.sql).toEqual(expectedSql);
-});
-
-test('skips the deprecated schema option', () => {
-  const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
-  const { result } = renderHook(
-    () => useQueryEditor(defaultQueryEditor.id, ['schema']),
-    {
-      wrapper: createWrapper({
-        useRedux: true,
-        store: mockStore({
-          ...initialState,
-          sqlLab: {
-            ...initialState.sqlLab,
-            unsavedQueryEditor: {
-              id: defaultQueryEditor.id,
-              sql: expectedSql,
-              schema: 'deprecated schema',
-            },
-          },
-        }),
-      }),
-    },
-  );
-  expect(result.current.schema).not.toEqual(defaultQueryEditor.schema);
-  expect(result.current.schema).toBeUndefined();
 });
