@@ -506,24 +506,11 @@ FLASH_TTL = {
                 "format": "date",
                 "default": "7 days from now",
             },
-            "flashType": {
-                "title": "Flash Type",
-                "type": "string",
-                "enum": [" ", "One Time", "Short Term", "Long Term"],
-                "enumNames": [
-                    "Please Select",
-                    "One Time (Valid upto 7 days)",
-                    "Short Term (Valid upto 7 days)",
-                    "Long Term (Valid upto 90 days)",
-                ],
-                "default": "Please Select",
-            },
         },
         "required": ["ttl"],
     },
     "UISCHEMA": {
         "ui:order": [
-            "flashType",
             "ttl",
         ],
         "ttl": {

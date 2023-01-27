@@ -118,15 +118,11 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
 
   const [formData, setFormData] = useState<FlashExtendTtl>({
     ttl: '',
-    flashType: '',
   });
 
   useEffect(() => {
     if (flash) {
       formData.ttl = flash?.ttl ? flash?.ttl : '';
-      formData.flashType = flash?.flashType
-        ? flash?.flashType.replace(/([A-Z])/g, ' $1').trim()
-        : '';
     }
   }, []);
 
@@ -142,7 +138,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
   };
 
   const validate = (formData: any, errors: any) => {
-    const { flashType } = formData;
+    const flashType = flash.flashType.replace(/([A-Z])/g, ' $1').trim();
     if (flash) {
       if (new Date(formData.ttl) < new Date(flash.ttl)) {
         errors.ttl.addError(
@@ -177,8 +173,7 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
   };
 
   const onFlashUpdation = ({ formData }: { formData: any }) => {
-    const flashType = formData.flashType.replace(/\s/g, '');
-    const payload = { ...formData, flashType };
+    const payload = { ...formData };
     flashTtlService(Number(flash?.id), UPDATE_TYPES.TTL, payload);
   };
 
@@ -205,6 +200,18 @@ const FlashExtendTTL: FunctionComponent<FlashExtendTTLButtonProps> = ({
       <Row>
         <Col xs={5}>
           <p>FLASH TYPE:</p>
+        </Col>
+        <Col xs={12}>
+          <p>
+            <strong>
+              {flash?.flashType
+                ? flash.flashType
+                    .replace(/([A-Z])/g, ' $1')
+                    .trim()
+                    .toUpperCase()
+                : ''}
+            </strong>
+          </p>
         </Col>
       </Row>
       <Row>
