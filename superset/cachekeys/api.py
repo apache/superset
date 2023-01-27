@@ -26,7 +26,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.cachekeys.schemas import CacheInvalidationRequestSchema
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import cache_manager, db, event_logger
+from superset.extensions import cache_manager, db, event_logger, stats_logger_manager
 from superset.models.cache import CacheKey
 from superset.views.base_api import BaseSupersetModelRestApi, statsd_metrics
 
@@ -117,7 +117,9 @@ class CacheRestApi(BaseSupersetModelRestApi):
                 )
                 db.session.execute(delete_stmt)
                 db.session.commit()
-                self.stats_logger.gauge("invalidated_cache", len(cache_keys))
+                stats_logger_manager.instance.gauge(
+                    "invalidated_cache", len(cache_keys)
+                )
                 logger.info(
                     "Invalidated %s cache records for %s datasources",
                     len(cache_keys),
