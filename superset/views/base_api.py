@@ -18,8 +18,8 @@ import functools
 import logging
 from typing import Any, Callable, cast, Dict, List, Optional, Set, Tuple, Type, Union
 
-from flask import Blueprint, request, Response
-from flask_appbuilder import AppBuilder, Model, ModelRestApi
+from flask import request, Response
+from flask_appbuilder import Model, ModelRestApi
 from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith

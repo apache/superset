@@ -21,7 +21,6 @@ from typing import Any
 from apispec import APISpec
 from apispec.exceptions import DuplicateComponentNameError
 from flask import request, Response
-from flask_appbuilder.api import BaseApi
 from marshmallow import ValidationError
 
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod

@@ -20,7 +20,7 @@ from flask import g, request, Response
 from flask_appbuilder.api import expose, protect, safe
 
 from superset.charts.commands.exceptions import ChartNotFoundError
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.explore.commands.get import GetExploreCommand
 from superset.explore.commands.parameters import CommandParameters
 from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointError

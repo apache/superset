@@ -18,7 +18,7 @@ import logging
 
 from flask import request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.api import BaseApi, safe
+from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
 
 from superset.extensions import async_query_manager, event_logger
