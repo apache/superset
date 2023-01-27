@@ -84,6 +84,9 @@ interface AlertReportModalProps {
   show: boolean;
 }
 
+const DEFAULT_RETENTION = 90;
+const DEFAULT_WORKING_TIMEOUT = 3600;
+const DEFAULT_CRON_VALUE = '0 * * * *'; // every hour
 const DEFAULT_NOTIFICATION_METHODS: NotificationMethodOption[] = ['Email'];
 const DEFAULT_NOTIFICATION_FORMAT = 'PNG';
 const CONDITIONS = [
@@ -496,10 +499,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const {
-    ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT,
-    ALERT_REPORTS_DEFAULT_CRON_VALUE,
-    ALERT_REPORTS_DEFAULT_RETENTION,
-  } = useSelector<any, AlertsReportsConfig>(state => state.common.conf);
+    ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT = DEFAULT_WORKING_TIMEOUT,
+    ALERT_REPORTS_DEFAULT_CRON_VALUE = DEFAULT_CRON_VALUE,
+    ALERT_REPORTS_DEFAULT_RETENTION = DEFAULT_RETENTION,
+  } = useSelector<any, AlertsReportsConfig>(state => state.common?.conf);
 
   const defaultAlert = {
     active: true,
