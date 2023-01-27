@@ -18,9 +18,10 @@
  */
 import React from 'react';
 import moment from 'moment';
+import rison from 'rison';
 
 import TableLoader from '../../components/TableLoader';
-import { Activity } from '../types';
+import { ActivityResult } from '../types';
 import { BootstrapUser } from '../../types/bootstrapTypes';
 
 interface RecentActivityProps {
@@ -29,8 +30,8 @@ interface RecentActivityProps {
 
 export default function RecentActivity({ user }: RecentActivityProps) {
   const rowLimit = 50;
-  const mutator = function (data: Activity[]) {
-    return data
+  const mutator = function (data: ActivityResult) {
+    return data.result
       .filter(row => row.action === 'dashboard' || row.action === 'explore')
       .map(row => ({
         name: <a href={row.item_url}>{row.item_title}</a>,
@@ -39,13 +40,14 @@ export default function RecentActivity({ user }: RecentActivityProps) {
         _time: row.time,
       }));
   };
+  const params = rison.encode({ page_size: rowLimit });
   return (
     <div>
       <TableLoader
         className="table-condensed"
         mutator={mutator}
         sortable
-        dataEndpoint={`/superset/recent_activity/${user?.userId}/?limit=${rowLimit}`}
+        dataEndpoint={`/api/v1/log/recent_activity/${user?.userId}/?q=${params}`}
       />
     </div>
   );

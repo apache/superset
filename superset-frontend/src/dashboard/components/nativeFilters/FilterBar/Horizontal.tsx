@@ -24,7 +24,7 @@ import Loading from 'src/components/Loading';
 import FilterControls from './FilterControls/FilterControls';
 import { getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
-import FilterBarOrientationSelect from './FilterBarOrientationSelect';
+import FilterBarSettings from './FilterBarSettings';
 import FilterConfigurationLink from './FilterConfigurationLink';
 
 const HorizontalBar = styled.div`
@@ -105,7 +105,7 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
           <Loading position="inline-centered" />
         ) : (
           <>
-            {canEdit && <FilterBarOrientationSelect />}
+            <FilterBarSettings />
             {canEdit && (
               <FiltersLinkContainer hasFilters={hasFilters}>
                 <FilterConfigurationLink

@@ -16,36 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getAnnotationJsonUrl } from '.';
 
-let windowLocation: any;
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
-beforeAll(() => {
-  windowLocation = window.location;
-  // @ts-expect-error
-  delete window.location;
-});
-
-beforeEach(() => {
-  window.location = {
-    search: '?testA=0&testB=1',
-  } as any;
-});
-
-afterAll(() => {
-  window.location = windowLocation;
-});
-
-test('get correct annotation when isNative:true', () => {
-  const response = getAnnotationJsonUrl('slice_id', 'form_data', true);
-  expect(response).toBe(
-    '/superset/annotation_json/slice_id?form_data=%22form_data%22',
-  );
-});
-
-test('get correct annotation when isNative:false', () => {
-  const response = getAnnotationJsonUrl('slice_id', { json: 'my-data' }, false);
-  expect(response).toBe(
-    '/superset/slice_json/slice_id?form_data=%7B%22json%22%3A%22my-data%22%7D',
-  );
-});
+export const isCrossFiltersEnabled = (
+  metadataCrossFiltersEnabled: boolean | undefined,
+): boolean =>
+  isFeatureEnabled(FeatureFlag.DASHBOARD_CROSS_FILTERS) &&
+  (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);

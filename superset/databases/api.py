@@ -79,6 +79,7 @@ from superset.databases.schemas import (
 from superset.databases.ssh_tunnel.commands.delete import DeleteSSHTunnelCommand
 from superset.databases.ssh_tunnel.commands.exceptions import (
     SSHTunnelDeleteFailedError,
+    SSHTunnelingNotEnabledError,
     SSHTunnelNotFoundError,
 )
 from superset.databases.utils import get_table_metadata
@@ -356,6 +357,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SSHTunnelingNotEnabledError as ex:
+            return self.response_400(message=str(ex))
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
@@ -440,6 +443,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SSHTunnelingNotEnabledError as ex:
+            return self.response_400(message=str(ex))
 
     @expose("/<int:pk>", methods=["DELETE"])
     @protect()
@@ -856,8 +861,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         # This validates custom Schema with custom validations
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        TestConnectionDatabaseCommand(item).run()
-        return self.response(200, message="OK")
+        try:
+            TestConnectionDatabaseCommand(item).run()
+            return self.response(200, message="OK")
+        except SSHTunnelingNotEnabledError as ex:
+            return self.response_400(message=str(ex))
 
     @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
@@ -1394,3 +1402,11 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SSHTunnelingNotEnabledError as ex:
+            logger.error(
+                "Error deleting SSH Tunnel %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_400(message=str(ex))

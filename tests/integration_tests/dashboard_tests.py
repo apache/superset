@@ -487,13 +487,18 @@ class TestDashboard(SupersetTestCase):
         hidden_dash.slices = []
         hidden_dash.owners = []
 
-        db.session.merge(dash)
-        db.session.merge(hidden_dash)
+        db.session.add(dash)
+        db.session.add(hidden_dash)
         db.session.commit()
 
         self.login(user.username)
 
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(dash)
+        db.session.delete(hidden_dash)
+        db.session.commit()
+
         self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
         self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
 
@@ -510,8 +515,8 @@ class TestDashboard(SupersetTestCase):
         regular_dash.dashboard_title = "A Plain Ol Dashboard"
         regular_dash.slug = regular_dash_slug
 
-        db.session.merge(favorite_dash)
-        db.session.merge(regular_dash)
+        db.session.add(favorite_dash)
+        db.session.add(regular_dash)
         db.session.commit()
 
         dash = db.session.query(Dashboard).filter_by(slug=fav_dash_slug).first()
@@ -521,12 +526,18 @@ class TestDashboard(SupersetTestCase):
         favorites.class_name = "Dashboard"
         favorites.user_id = user.id
 
-        db.session.merge(favorites)
+        db.session.add(favorites)
         db.session.commit()
 
         self.login(user.username)
 
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(favorites)
+        db.session.delete(regular_dash)
+        db.session.delete(favorite_dash)
+        db.session.commit()
+
         self.assertIn(f"/superset/dashboard/{fav_dash_slug}/", resp)
 
     def test_user_can_not_view_unpublished_dash(self):
@@ -541,12 +552,16 @@ class TestDashboard(SupersetTestCase):
         dash.owners = [admin_user]
         dash.slices = []
         dash.published = False
-        db.session.merge(dash)
+        db.session.add(dash)
         db.session.commit()
 
         # list dashboards as a gamma user
         self.login(gamma_user.username)
         resp = self.get_resp("/api/v1/dashboard/")
+
+        db.session.delete(dash)
+        db.session.commit()
+
         self.assertNotIn(f"/superset/dashboard/{slug}/", resp)
 
 

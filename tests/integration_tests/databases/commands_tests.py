@@ -162,6 +162,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
                 "allow_csv_upload": True,
                 "allow_ctas": True,
                 "allow_cvas": True,
+                "allow_dml": True,
                 "allow_run_async": False,
                 "cache_timeout": None,
                 "database_name": "examples",
@@ -365,6 +366,7 @@ class TestExportDatabasesCommand(SupersetTestCase):
             "allow_run_async",
             "allow_ctas",
             "allow_cvas",
+            "allow_dml",
             "allow_csv_upload",
             "extra",
             "uuid",
@@ -408,6 +410,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.allow_file_upload
         assert database.allow_ctas
         assert database.allow_cvas
+        assert database.allow_dml
         assert not database.allow_run_async
         assert database.cache_timeout is None
         assert database.database_name == "imported_database"
@@ -443,6 +446,7 @@ class TestImportDatabasesCommand(SupersetTestCase):
         assert database.allow_file_upload
         assert database.allow_ctas
         assert database.allow_cvas
+        assert database.allow_dml
         assert not database.allow_run_async
         assert database.cache_timeout is None
         assert database.database_name == "imported_database"
