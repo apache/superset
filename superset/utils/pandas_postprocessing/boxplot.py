@@ -57,10 +57,10 @@ def boxplot(
     """
 
     def quartile1(series: Series) -> float:
-        return np.nanpercentile(series, 25, interpolation="midpoint")  # type: ignore
+        return np.nanpercentile(series, 25, interpolation="midpoint")
 
     def quartile3(series: Series) -> float:
-        return np.nanpercentile(series, 75, interpolation="midpoint")  # type: ignore
+        return np.nanpercentile(series, 75, interpolation="midpoint")
 
     if whisker_type == PostProcessingBoxplotWhiskerType.TUKEY:
 
@@ -99,8 +99,8 @@ def boxplot(
             return np.nanpercentile(series, low)
 
     else:
-        whisker_high = np.max  # type: ignore
-        whisker_low = np.min  # type: ignore
+        whisker_high = np.max
+        whisker_low = np.min
 
     def outliers(series: Series) -> Set[float]:
         above = series[series > whisker_high(series)]
