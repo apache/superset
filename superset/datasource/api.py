@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 
 from superset import app, db, event_logger
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
@@ -24,11 +24,12 @@ from superset.datasource.dao import DatasourceDAO
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import apply_max_row_limit, DatasourceType
+from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
 
 
-class DatasourceRestApi(BaseApi):
+class DatasourceRestApi(BaseSupersetApi):
     allow_browser_login = True
     class_permission_name = "Datasource"
     resource_name = "datasource"
@@ -40,6 +41,7 @@ class DatasourceRestApi(BaseApi):
     )
     @protect()
     @safe
+    @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".get_column_values",
