@@ -505,6 +505,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/slice_json/<int:slice_id>")
     @etag_cache()
     @check_resource_permissions(check_slice_perms)
+    @deprecated()
     def slice_json(self, slice_id: int) -> FlaskResponse:
         form_data, slc = get_form_data(slice_id, use_slice_data=True)
         if not slc:
@@ -528,6 +529,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/annotation_json/<int:layer_id>")
+    @deprecated()
     def annotation_json(  # pylint: disable=no-self-use
         self, layer_id: int
     ) -> FlaskResponse:
@@ -2131,7 +2133,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             raise SupersetErrorException(
                 SupersetError(
                     message=__(
-                        "The query associated with these results could not be find. "
+                        "The query associated with these results could not be found. "
                         "You need to re-run the original query."
                     ),
                     error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
@@ -2485,6 +2487,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/queries/<float:last_updated_ms>")
     @expose("/queries/<int:last_updated_ms>")
+    @deprecated()
     def queries(self, last_updated_ms: Union[float, int]) -> FlaskResponse:
         """
         Get the updated queries.

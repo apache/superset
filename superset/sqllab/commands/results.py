@@ -90,7 +90,7 @@ class SqlExecutionResultsCommand(BaseCommand):
             raise SupersetErrorException(
                 SupersetError(
                     message=__(
-                        "The query associated with these results could not be find. "
+                        "The query associated with these results could not be found. "
                         "You need to re-run the original query."
                     ),
                     error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,

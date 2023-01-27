@@ -140,8 +140,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "get_data": "read",
     "samples": "read",
     "delete_ssh_tunnel": "write",
-    "get_results": "read",
-    "execute_sql_query": "read",
+    "get_updated_since": "read",
     "stop_query": "read",
 }
 

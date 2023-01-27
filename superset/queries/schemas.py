@@ -33,6 +33,14 @@ openapi_spec_methods_override = {
     },
 }
 
+queries_get_updated_since_schema = {
+    "type": "object",
+    "properties": {
+        "last_updated_ms": {"type": "number"},
+    },
+    "required": ["last_updated_ms"],
+}
+
 
 class DatabaseSchema(Schema):
     database_name = fields.String()

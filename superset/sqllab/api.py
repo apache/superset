@@ -24,7 +24,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 
 from superset import app, is_feature_enabled
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.databases.dao import DatabaseDAO
 from superset.extensions import event_logger
 from superset.jinja_context import get_template_processor
@@ -55,28 +54,19 @@ from superset.sqllab.validators import CanAccessQueryValidatorImpl
 from superset.superset_typing import FlaskResponse
 from superset.utils import core as utils
 from superset.views.base import json_success
-from superset.views.base_api import (
-    BaseSupersetModelRestApi,
-    requires_json,
-    statsd_metrics,
-)
+from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 config = app.config
 logger = logging.getLogger(__name__)
 
 
-class SqlLabRestApi(BaseSupersetModelRestApi):
+class SqlLabRestApi(BaseSupersetApi):
     datamodel = SQLAInterface(Query)
 
-    include_route_methods = {
-        "get_results",
-        "execute_sql_query",
-    }
     resource_name = "sqllab"
     allow_browser_login = True
 
     class_permission_name = "Query"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
     execute_model_schema = ExecutePayloadSchema()
 

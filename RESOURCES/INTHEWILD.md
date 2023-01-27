@@ -160,6 +160,9 @@ Join our growing community!
 ### Government
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 
+### Travel
+- [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
+
 ### Others
 - [AI inside](https://inside.ai/en/)
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]

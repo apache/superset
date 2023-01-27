@@ -3988,7 +3988,7 @@
       "The query associated with the results was deleted.": [
         "Die den Ergebnissen zugeordnete Abfrage wurde gelöscht."
       ],
-      "The query associated with these results could not be find. You need to re-run the original query.": [
+      "The query associated with these results could not be found. You need to re-run the original query.": [
         "Die mit diesen Ergebnissen verknüpfte Abfrage konnte nicht gefunden werden. Sie müssen die ursprüngliche Abfrage erneut ausführen."
       ],
       "The query contains one or more malformed template parameters.": [
