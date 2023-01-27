@@ -19,10 +19,8 @@ import logging
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
 from superset import app, db, event_logger
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasource.dao import DatasourceDAO
-from superset.datasource.schemas import GetColumnValuesResponseSchema
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import apply_max_row_limit, DatasourceType
@@ -31,13 +29,10 @@ logger = logging.getLogger(__name__)
 
 
 class DatasourceRestApi(BaseApi):
-    include_route_methods = {"get_column_values"}
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
     allow_browser_login = True
     class_permission_name = "Datasource"
     resource_name = "datasource"
     openapi_spec_tag = "Datasources"
-    openapi_spec_component_schemas = (GetColumnValuesResponseSchema,)
 
     @expose(
         "/<datasource_type>/<int:datasource_id>/column/<column_name>/values/",
@@ -79,7 +74,17 @@ class DatasourceRestApi(BaseApi):
               content:
                 application/json:
                   schema:
-                    $ref: "#/components/schemas/GetColumnValuesResponseSchema"
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          oneOf:
+                            - type: string
+                            - type: integer
+                            - type: number
+                            - type: boolean
+                            - type: object
             400:
               $ref: '#/components/responses/400'
             401:
