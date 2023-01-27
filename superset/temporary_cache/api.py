@@ -34,12 +34,12 @@ from superset.temporary_cache.schemas import (
     TemporaryCachePostSchema,
     TemporaryCachePutSchema,
 )
-from superset.views.base_api import requires_json
+from superset.views.base_api import BaseSupersetApi, requires_json
 
 logger = logging.getLogger(__name__)
 
 
-class TemporaryCacheRestApi(BaseApi, ABC):
+class TemporaryCacheRestApi(BaseSupersetApi, ABC):
     add_model_schema = TemporaryCachePostSchema()
     edit_model_schema = TemporaryCachePutSchema()
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP

@@ -27,12 +27,13 @@ from superset.advanced_data_type.schemas import (
 )
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.extensions import event_logger
+from superset.views.base_api import BaseSupersetApi
 
 config = app.config
 ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 
 
-class AdvancedDataTypeRestApi(BaseApi):
+class AdvancedDataTypeRestApi(BaseSupersetApi):
     """
     Advanced Data Type Rest API
     -Will return available AdvancedDataTypes when the /types endpoint is accessed
@@ -41,7 +42,6 @@ class AdvancedDataTypeRestApi(BaseApi):
     """
 
     allow_browser_login = True
-    include_route_methods = {"get", "get_types"}
     resource_name = "advanced_data_type"
     class_permission_name = "AdvancedDataType"
 
