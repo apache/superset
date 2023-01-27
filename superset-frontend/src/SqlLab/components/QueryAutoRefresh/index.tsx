@@ -18,10 +18,12 @@
  */
 import { useState } from 'react';
 import { isObject } from 'lodash';
+import rison from 'rison';
 import {
   SupersetClient,
   Query,
   runningQueryStateList,
+  QueryResponse,
 } from '@superset-ui/core';
 import { QueryDictionary } from 'src/SqlLab/types';
 import useInterval from 'src/SqlLab/utils/useInterval';
@@ -62,22 +64,30 @@ function QueryAutoRefresh({
   refreshQueries,
   queriesLastUpdate,
 }: QueryAutoRefreshProps) {
-  // We do not want to spam requests in the case of slow connections and potentially recieve responses out of order
+  // We do not want to spam requests in the case of slow connections and potentially receive responses out of order
   // pendingRequest check ensures we only have one active http call to check for query statuses
   const [pendingRequest, setPendingRequest] = useState(false);
 
   const checkForRefresh = () => {
     if (!pendingRequest && shouldCheckForQueries(queries)) {
+      const params = rison.encode({
+        last_updated_ms: queriesLastUpdate - QUERY_UPDATE_BUFFER_MS,
+      });
+
       setPendingRequest(true);
       SupersetClient.get({
-        endpoint: `/superset/queries/${
-          queriesLastUpdate - QUERY_UPDATE_BUFFER_MS
-        }`,
+        endpoint: `/api/v1/query/updated_since?q=${params}`,
         timeout: QUERY_TIMEOUT_LIMIT,
       })
         .then(({ json }) => {
           if (json) {
-            refreshQueries?.(json);
+            const jsonPayload = json as { result?: QueryResponse[] };
+            const queries =
+              jsonPayload?.result?.reduce((acc, current) => {
+                acc[current.id] = current;
+                return acc;
+              }, {}) ?? {};
+            refreshQueries?.(queries);
           }
         })
         .catch(() => {})

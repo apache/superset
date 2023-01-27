@@ -1680,7 +1680,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -1695,7 +1695,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -1742,10 +1742,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User3"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartDataRestApi.get_list.User1"
           },
           "params": {
             "nullable": true,
@@ -1809,10 +1809,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -1825,23 +1821,6 @@
         "type": "object"
       },
       "ChartDataRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "ChartDataRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -1864,6 +1843,27 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "ChartDataRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
         ],
         "type": "object"
       },
@@ -2472,7 +2472,7 @@
             "type": "string"
           },
           "changed_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -2487,7 +2487,7 @@
             "readOnly": true
           },
           "created_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
           },
           "created_on_delta_humanized": {
             "readOnly": true
@@ -2534,10 +2534,10 @@
             "type": "string"
           },
           "last_saved_by": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User3"
           },
           "owners": {
-            "$ref": "#/components/schemas/ChartRestApi.get_list.User2"
+            "$ref": "#/components/schemas/ChartRestApi.get_list.User1"
           },
           "params": {
             "nullable": true,
@@ -2601,10 +2601,6 @@
             "maxLength": 64,
             "type": "string"
           },
-          "id": {
-            "format": "int32",
-            "type": "integer"
-          },
           "last_name": {
             "maxLength": 64,
             "type": "string"
@@ -2617,23 +2613,6 @@
         "type": "object"
       },
       "ChartRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "last_name": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
-          "last_name"
-        ],
-        "type": "object"
-      },
-      "ChartRestApi.get_list.User2": {
         "properties": {
           "first_name": {
             "maxLength": 64,
@@ -2656,6 +2635,27 @@
           "first_name",
           "last_name",
           "username"
+        ],
+        "type": "object"
+      },
+      "ChartRestApi.get_list.User2": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
         ],
         "type": "object"
       },
@@ -4172,6 +4172,12 @@
       },
       "DatabaseSSHTunnel": {
         "properties": {
+          "id": {
+            "description": "SSH Tunnel ID (for updates)",
+            "format": "int32",
+            "nullable": true,
+            "type": "integer"
+          },
           "password": {
             "type": "string"
           },
@@ -5119,7 +5125,7 @@
       "DatasetRestApi.get_list": {
         "properties": {
           "changed_by": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
           },
           "changed_by_name": {
             "readOnly": true
@@ -5162,7 +5168,7 @@
             "readOnly": true
           },
           "owners": {
-            "$ref": "#/components/schemas/DatasetRestApi.get_list.User"
+            "$ref": "#/components/schemas/DatasetRestApi.get_list.User1"
           },
           "schema": {
             "maxLength": 255,
@@ -5206,6 +5212,23 @@
             "maxLength": 64,
             "type": "string"
           },
+          "username": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatasetRestApi.get_list.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
           "id": {
             "format": "int32",
             "type": "integer"
@@ -5222,23 +5245,6 @@
         "required": [
           "first_name",
           "last_name",
-          "username"
-        ],
-        "type": "object"
-      },
-      "DatasetRestApi.get_list.User1": {
-        "properties": {
-          "first_name": {
-            "maxLength": 64,
-            "type": "string"
-          },
-          "username": {
-            "maxLength": 64,
-            "type": "string"
-          }
-        },
-        "required": [
-          "first_name",
           "username"
         ],
         "type": "object"
@@ -6160,6 +6166,207 @@
           "id": {
             "format": "int32",
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "RLSRestApi.get": {
+        "properties": {
+          "clause": {
+            "description": "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Detailed description",
+            "type": "string"
+          },
+          "filter_type": {
+            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.",
+            "enum": [
+              "Regular",
+              "Base"
+            ],
+            "type": "string"
+          },
+          "group_key": {
+            "description": "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique if of rls filter",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Name of rls filter",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/Roles1"
+            },
+            "type": "array"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/Tables"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RLSRestApi.get_list": {
+        "properties": {
+          "changed_on_delta_humanized": {
+            "readOnly": true
+          },
+          "clause": {
+            "description": "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Detailed description",
+            "type": "string"
+          },
+          "filter_type": {
+            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.",
+            "enum": [
+              "Regular",
+              "Base"
+            ],
+            "type": "string"
+          },
+          "group_key": {
+            "description": "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
+            "type": "string"
+          },
+          "id": {
+            "description": "Unique if of rls filter",
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "description": "Name of rls filter",
+            "type": "string"
+          },
+          "roles": {
+            "items": {
+              "$ref": "#/components/schemas/Roles1"
+            },
+            "type": "array"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/Tables"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "RLSRestApi.post": {
+        "properties": {
+          "clause": {
+            "description": "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Detailed description",
+            "nullable": true,
+            "type": "string"
+          },
+          "filter_type": {
+            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.",
+            "enum": [
+              "Regular",
+              "Base"
+            ],
+            "type": "string"
+          },
+          "group_key": {
+            "description": "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of rls filter",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "tables": {
+            "description": "These are the tables this filter will be applied to.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "clause",
+          "filter_type",
+          "name",
+          "roles",
+          "tables"
+        ],
+        "type": "object"
+      },
+      "RLSRestApi.put": {
+        "properties": {
+          "clause": {
+            "description": "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false).",
+            "type": "string"
+          },
+          "description": {
+            "description": "Detailed description",
+            "nullable": true,
+            "type": "string"
+          },
+          "filter_type": {
+            "description": "Regular filters add where clauses to queries if a user belongs to a role referenced in the filter, base filters apply filters to all queries except the roles defined in the filter, and can be used to define what users can see if no RLS filters within a filter group apply to them.",
+            "enum": [
+              "Regular",
+              "Base"
+            ],
+            "type": "string"
+          },
+          "group_key": {
+            "description": "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe').",
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of rls filter",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "roles": {
+            "description": "For regular filters, these are the roles this filter will be applied to. For base filters, these are the roles that the filter DOES NOT apply to, e.g. Admin if admin should see all data.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "tables": {
+            "description": "These are the tables this filter will be applied to.",
+            "items": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -8220,6 +8427,18 @@
         },
         "type": "object"
       },
+      "Roles1": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "SavedQueryRestApi.get": {
         "properties": {
           "changed_on_delta_humanized": {
@@ -8725,6 +8944,21 @@
         },
         "type": "object"
       },
+      "Tables": {
+        "properties": {
+          "id": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "schema": {
+            "type": "string"
+          },
+          "table_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "TemporaryCachePostSchema": {
         "properties": {
           "value": {
@@ -9081,6 +9315,17 @@
             "type": "integer"
           }
         },
+        "type": "object"
+      },
+      "queries_get_updated_since_schema": {
+        "properties": {
+          "last_updated_ms": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "last_updated_ms"
+        ],
         "type": "object"
       },
       "screenshot_query_schema": {
@@ -14217,6 +14462,10 @@
                       "engine_information": {
                         "description": "Dict with public properties form the DB Engine",
                         "properties": {
+                          "disable_ssh_tunneling": {
+                            "description": "Whether the engine supports SSH Tunnels",
+                            "type": "boolean"
+                          },
                           "supports_file_upload": {
                             "description": "Whether the engine supports file uploads",
                             "type": "boolean"
@@ -17409,6 +17658,65 @@
         ]
       }
     },
+    "/api/v1/query/updated_since": {
+      "get": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/queries_get_updated_since_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "description": "A List of queries that changed after last_updated_ms",
+                      "items": {
+                        "$ref": "#/components/schemas/QueryRestApi.get"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Queries list"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "summary": "Get a list of queries that changed after last_updated_ms",
+        "tags": [
+          "Queries"
+        ]
+      }
+    },
     "/api/v1/query/{pk}": {
       "get": {
         "description": "Get query detail information.",
@@ -18256,6 +18564,590 @@
         ],
         "tags": [
           "Report Schedules"
+        ]
+      }
+    },
+    "/api/v1/rowlevelsecurity/": {
+      "delete": {
+        "description": "Deletes multiple RLS rules in a bulk operation.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_delete_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "RLS Rule bulk delete"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      },
+      "get": {
+        "description": "Get a list of models",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "The total record count on the backend",
+                      "type": "number"
+                    },
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "ids": {
+                      "description": "A list of item ids, useful when you don't know the column id",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "list_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "list_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "List Items",
+                      "type": "string"
+                    },
+                    "order_columns": {
+                      "description": "A list of allowed columns to sort",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "description": "The result from the get list query",
+                      "items": {
+                        "$ref": "#/components/schemas/RLSRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Items from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      },
+      "post": {
+        "description": "Create a new RLS Rule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RLSRestApi.post"
+              }
+            }
+          },
+          "description": "RLS schema",
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/RLSRestApi.post"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "RLS Rule added"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      }
+    },
+    "/api/v1/rowlevelsecurity/_info": {
+      "get": {
+        "description": "Get metadata information about this API resource",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_info_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "add_columns": {
+                      "type": "object"
+                    },
+                    "edit_columns": {
+                      "type": "object"
+                    },
+                    "filters": {
+                      "properties": {
+                        "column_name": {
+                          "items": {
+                            "properties": {
+                              "name": {
+                                "description": "The filter name. Will be translated by babel",
+                                "type": "string"
+                              },
+                              "operator": {
+                                "description": "The filter operation key to use on list filters",
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "permissions": {
+                      "description": "The user permissions for this API resource",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      }
+    },
+    "/api/v1/rowlevelsecurity/related/{column_name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "column_name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RelatedResponseSchema"
+                }
+              }
+            },
+            "description": "Related column data"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      }
+    },
+    "/api/v1/rowlevelsecurity/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      },
+      "get": {
+        "description": "Get an item model",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_item_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "description_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The description for the column name. Will be translated by babel",
+                          "example": "A Nice description for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "id": {
+                      "description": "The item id",
+                      "type": "string"
+                    },
+                    "label_columns": {
+                      "properties": {
+                        "column_name": {
+                          "description": "The label for the column name. Will be translated by babel",
+                          "example": "A Nice label for the column",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/RLSRestApi.get"
+                    },
+                    "show_columns": {
+                      "description": "A list of columns",
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "show_title": {
+                      "description": "A title to render. Will be translated by babel",
+                      "example": "Show Item Details",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Item from Model"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
+        ]
+      },
+      "put": {
+        "description": "Updates an RLS Rule",
+        "parameters": [
+          {
+            "description": "The Rule pk",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RLSRestApi.put"
+              }
+            }
+          },
+          "description": "RLS schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/RLSRestApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Rule changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          }
+        ],
+        "tags": [
+          "Row Level Security"
         ]
       }
     },

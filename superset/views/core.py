@@ -2485,6 +2485,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @expose("/queries/<float:last_updated_ms>")
     @expose("/queries/<int:last_updated_ms>")
+    @deprecated()
     def queries(self, last_updated_ms: Union[float, int]) -> FlaskResponse:
         """
         Get the updated queries.
