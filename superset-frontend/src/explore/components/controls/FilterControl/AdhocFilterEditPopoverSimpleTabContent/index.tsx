@@ -408,16 +408,18 @@ const AdhocFilterEditPopoverSimpleTabContent: React.FC<Props> = props => {
           controller.abort();
         }
         setLoadingComparatorSuggestions(true);
-        SupersetClient.get({ 
+        SupersetClient.get({
           signal,
           endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/`,
         })
           .then(({ json }) => {
             setSuggestions(
-              json.result.map((suggestion: null | number | boolean | string) => ({
-                value: suggestion,
-                label: optionLabel(suggestion),
-              })),
+              json.result.map(
+                (suggestion: null | number | boolean | string) => ({
+                  value: suggestion,
+                  label: optionLabel(suggestion),
+                }),
+              ),
             );
             setLoadingComparatorSuggestions(false);
           })
