@@ -25,7 +25,6 @@ import React, {
 } from 'react';
 import { logging, t } from '@superset-ui/core';
 import { UseGetDatasetsList } from 'src/views/CRUD/data/hooks';
-import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import Header from './Header';
 import DatasetPanel from './DatasetPanel';
@@ -89,26 +88,23 @@ export default function AddDataset() {
     ? encodeURIComponent(dataset?.schema)
     : undefined;
 
-  const queryParams = dataset?.schema
-    ? rison.encode_uri({
-        filters: [
-          { col: 'database', opr: 'rel_o_m', value: dataset?.db?.id },
-          { col: 'schema', opr: 'eq', value: encodedSchema },
-          { col: 'sql', opr: 'dataset_is_null_or_empty', value: '!t' },
-        ],
-      })
-    : undefined;
-
   const getDatasetsList = useCallback(async () => {
-    await UseGetDatasetsList(queryParams)
-      .then(json => {
-        setDatasets(json?.result);
-      })
-      .catch(error => {
-        addDangerToast(t('There was an error fetching dataset'));
-        logging.error(t('There was an error fetching dataset'), error);
-      });
-  }, [queryParams]);
+    if (dataset?.schema) {
+      const filters = [
+        { col: 'database', opr: 'rel_o_m', value: dataset?.db?.id },
+        { col: 'schema', opr: 'eq', value: encodedSchema },
+        { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
+      ];
+      await UseGetDatasetsList(filters)
+        .then(results => {
+          setDatasets(results);
+        })
+        .catch(error => {
+          addDangerToast(t('There was an error fetching dataset'));
+          logging.error(t('There was an error fetching dataset'), error);
+        });
+    }
+  }, [dataset?.db?.id, dataset?.schema, encodedSchema]);
 
   useEffect(() => {
     if (dataset?.schema) {
