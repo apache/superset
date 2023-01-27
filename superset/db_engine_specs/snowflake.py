@@ -162,10 +162,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
 
         if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}')"
-        if isinstance(sqla_type, types.DateTime):
-            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
         if isinstance(sqla_type, types.TIMESTAMP):
             return f"""TO_TIMESTAMP('{dttm.isoformat(timespec="microseconds")}')"""
+        if isinstance(sqla_type, types.DateTime):
+            return f"""CAST('{dttm.isoformat(timespec="microseconds")}' AS DATETIME)"""
         return None
 
     @staticmethod
