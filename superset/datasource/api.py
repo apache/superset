@@ -22,6 +22,7 @@ from superset import app, db, event_logger
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.dao.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasource.dao import DatasourceDAO
+from superset.datasource.schemas import GetColumnValuesResponseSchema
 from superset.exceptions import SupersetSecurityException
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import apply_max_row_limit, DatasourceType
@@ -36,6 +37,7 @@ class DatasourceRestApi(BaseApi):
     class_permission_name = "Datasource"
     resource_name = "datasource"
     openapi_spec_tag = "Datasources"
+    openapi_spec_component_schemas = (GetColumnValuesResponseSchema,)
 
     @expose(
         "/<datasource_type>/<int:datasource_id>/column/<column_name>/values/",
@@ -51,6 +53,44 @@ class DatasourceRestApi(BaseApi):
     def get_column_values(
         self, datasource_type: str, datasource_id: int, column_name: str
     ) -> FlaskResponse:
+        """Get possible values for a datasource column
+        ---
+        get:
+          summary: Get possible values for a datasource column
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: datasource_type
+            description: The type of datasource
+          - in: path
+            schema:
+              type: integer
+            name: datasource_id
+            description: The id of the datasource
+          - in: path
+            schema:
+              type: string
+            name: column_name
+            description: The name of the column to get values for
+          responses:
+            200:
+              description: A List of distinct values for the column
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/GetColumnValuesResponseSchema"
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
         try:
             datasource = DatasourceDAO.get_datasource(
                 db.session, DatasourceType(datasource_type), datasource_id
@@ -79,5 +119,5 @@ class DatasourceRestApi(BaseApi):
                 message=(
                     "Unable to get column values for "
                     f"datasource type: {datasource_type}"
-                )
+                ),
             )
