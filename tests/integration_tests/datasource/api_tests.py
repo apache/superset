@@ -33,7 +33,7 @@ class TestDatasourceApi(SupersetTestCase):
             .one()
         )
 
-    @pytest.mark.usefixtures("virtual_dataset")
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_ints(self):
         self.login(username="admin")
         table = self.get_virtual_dataset()
@@ -43,7 +43,7 @@ class TestDatasourceApi(SupersetTestCase):
         for val in range(10):
             assert val in response["result"]
 
-    @pytest.mark.usefixtures("virtual_dataset")
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_strs(self):
         self.login(username="admin")
         table = self.get_virtual_dataset()
@@ -53,7 +53,7 @@ class TestDatasourceApi(SupersetTestCase):
         for val in ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]:
             assert val in response["result"]
 
-    @pytest.mark.usefixtures("virtual_dataset")
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_floats(self):
         self.login(username="admin")
         table = self.get_virtual_dataset()
@@ -63,7 +63,7 @@ class TestDatasourceApi(SupersetTestCase):
         for val in [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9]:
             assert val in response["result"]
 
-    @pytest.mark.usefixtures("virtual_dataset")
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_nulls(self):
         self.login(username="admin")
         table = self.get_virtual_dataset()
@@ -72,7 +72,7 @@ class TestDatasourceApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["result"], [None])
 
-    @pytest.mark.usefixtures("virtual_dataset")
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_invalid_datasource_type(self):
         self.login(username="admin")
         table = self.get_virtual_dataset()
@@ -101,7 +101,7 @@ class TestDatasourceApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         self.assertEqual(response["message"], "Datasource does not exist")
 
-    @pytest.mark.usefixtures("virtual_dataset")
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_no_datasource_access(self):
         # Allow gamma user to use this endpoint, but does not have datasource access
         perm = security_manager.find_permission_view_menu(
