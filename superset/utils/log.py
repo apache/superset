@@ -284,10 +284,6 @@ class AbstractEventLogger(ABC):
         """Decorator that instrument `update_log_payload` to kwargs"""
         return self._wrapper(f, allow_extra_payload=True)
 
-    @property
-    def stats_logger(self) -> BaseStatsLogger:
-        return current_app.config["STATS_LOGGER"]
-
 
 def get_event_logger_from_cfg_value(cfg_value: Any) -> AbstractEventLogger:
     """
