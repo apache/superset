@@ -576,6 +576,7 @@ class QueryContextProcessor:
         if not chart.datasource:
             raise QueryObjectValidationError(_("The chart datasource does not exist"))
         form_data = chart.form_data.copy()
+        form_data.update(annotation_layer.get("overrides", {}))
         try:
             viz_obj = get_viz(
                 datasource_type=chart.datasource.type,
